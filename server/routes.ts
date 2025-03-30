@@ -245,7 +245,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       // Update only allowed fields
-      const allowedFields = ['name', 'email', 'profileImage'];
+      const allowedFields = ['name', 'email', 'username', 'profileImage'];
       const updateData: Partial<User> = {};
       
       for (const field of allowedFields) {
