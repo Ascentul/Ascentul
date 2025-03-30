@@ -1388,8 +1388,18 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   apiRouter.post("/payments/cancel-subscription", async (req: Request, res: Response) => {
     try {
-      // In a real app, get userId from session
-      const user = await storage.getUserByUsername("alex");
+      // We'll use the same approach as the /users/me endpoint
+      // For consistency in this demo, get the user from the session
+      const userId = req.body.userId;
+      let user;
+      
+      if (userId) {
+        user = await storage.getUser(userId);
+      } else {
+        // Fallback to the sample user if no userId is provided
+        user = await storage.getUserByUsername("alex");
+      }
+      
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }

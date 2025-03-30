@@ -69,7 +69,10 @@ export default function Account() {
     try {
       const response = await fetch('/api/payments/cancel-subscription', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user?.id 
+        })
       });
       
       if (!response.ok) {
