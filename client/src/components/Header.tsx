@@ -28,15 +28,14 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <div className="flex items-center">
           {/* University Toggle - only for university users */}
           {isUniversityUser && (
-            <Link href="/university">
-              <Button 
-                variant="outline" 
-                className="mr-3 text-primary border-primary hover:bg-primary/5 flex items-center"
-              >
-                <GraduationCap className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">University Edition</span>
-              </Button>
-            </Link>
+            <Button 
+              variant="default" 
+              className="mr-3 bg-purple-600 hover:bg-purple-700 text-white flex items-center pulse-animation shadow-md"
+              onClick={() => window.location.href = '/university'}
+            >
+              <GraduationCap className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">University Edition</span>
+            </Button>
           )}
           
           <Button variant="ghost" size="icon" className="relative text-neutral-700 hover:text-primary">

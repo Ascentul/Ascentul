@@ -86,9 +86,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="flex items-center space-x-4">
-            <a
-              href="/"
-              className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            <button
+              onClick={() => window.location.href = '/'}
+              className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-md pulse-animation"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -104,7 +104,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
               <span>Career App</span>
-            </a>
+            </button>
             
             {user && (
               <div className="flex items-center space-x-1">
