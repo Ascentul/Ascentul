@@ -23,12 +23,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
+import { PracticeSession } from '@/components/interview/PracticeSession';
 import { type InterviewProcess } from '@shared/schema';
 
 const Interview = () => {
   const [activeTab, setActiveTab] = useState('processes');
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showPracticeSession, setShowPracticeSession] = useState(false);
+  const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch interview processes
@@ -218,14 +221,86 @@ const Interview = () => {
             )}
 
             {activeTab === 'practice' && (
-              <div className="text-center py-8">
-                <h3 className="font-medium">Interview Practice</h3>
-                <p className="text-muted-foreground mt-2">
-                  Practice common interview questions and improve your skills.
-                </p>
-                <Button className="mt-4">
-                  Start Practice Session
-                </Button>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h3 className="font-medium">Select an Interview Process</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose an interview process to practice for. We'll generate relevant questions based on the job description.
+                  </p>
+                  
+                  {isLoading ? (
+                    <>
+                      <ProcessCardSkeleton />
+                      <ProcessCardSkeleton />
+                    </>
+                  ) : processes && processes.length > 0 ? (
+                    <div className="space-y-3 mt-4">
+                      {processes.map(process => (
+                        <Card 
+                          key={process.id}
+                          className="cursor-pointer transition-colors hover:bg-accent/50"
+                          onClick={() => setSelectedProcessId(process.id)}
+                        >
+                          <CardHeader className="p-4 pb-2">
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-base">{process.companyName}</CardTitle>
+                              <StatusBadge status={process.status} />
+                            </div>
+                            <CardDescription>{process.position}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <CalendarDays className="h-3 w-3 mr-1" />
+                                {new Date(process.createdAt).toLocaleDateString()}
+                              </div>
+                              <Button 
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPracticeProcessId(process.id);
+                                  setShowPracticeSession(true);
+                                }}
+                              >
+                                Practice
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">No interview processes found.</p>
+                      <Button 
+                        variant="link" 
+                        onClick={() => {
+                          setActiveTab('processes');
+                          setShowCreateForm(true);
+                        }}
+                        className="mt-2"
+                      >
+                        Create an interview process first
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="text-center border-t pt-6 mt-6">
+                  <h3 className="font-medium">General Interview Practice</h3>
+                  <p className="text-muted-foreground mt-2">
+                    Practice common interview questions and improve your skills without selecting a specific job.
+                  </p>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => {
+                      setPracticeProcessId(null);
+                      setShowPracticeSession(true);
+                    }}
+                  >
+                    Start General Practice
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -257,6 +332,13 @@ const Interview = () => {
       <NewInterviewProcessForm
         isOpen={showCreateForm}
         onClose={() => setShowCreateForm(false)}
+      />
+      
+      {/* Practice Session Dialog */}
+      <PracticeSession
+        isOpen={showPracticeSession}
+        onClose={() => setShowPracticeSession(false)}
+        process={processes?.find(p => p.id === practiceProcessId) || undefined}
       />
     </div>
   );

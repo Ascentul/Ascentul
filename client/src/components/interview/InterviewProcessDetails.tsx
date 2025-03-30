@@ -40,10 +40,12 @@ import {
   Edit,
   Trash,
   PlusCircle,
-  CheckCircle
+  CheckCircle,
+  PlayCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
+import { PracticeSession } from './PracticeSession';
 
 type InterviewProcessDetailsProps = {
   process: InterviewProcess & {
@@ -57,6 +59,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   const queryClient = useQueryClient();
   const [isAddStageDialogOpen, setIsAddStageDialogOpen] = useState(false);
   const [isAddFollowupDialogOpen, setIsAddFollowupDialogOpen] = useState(false);
+  const [showPracticeSession, setShowPracticeSession] = useState(false);
   const [newStage, setNewStage] = useState({
     type: '',
     scheduledDate: '',
@@ -229,7 +232,18 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
               <CardTitle className="text-xl">{process.companyName}</CardTitle>
               <p className="text-muted-foreground">{process.position}</p>
             </div>
-            <div>{getStatusBadge(process.status)}</div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center"
+                onClick={() => setShowPracticeSession(true)}
+              >
+                <PlayCircle className="h-4 w-4 mr-1" /> 
+                Practice
+              </Button>
+              {getStatusBadge(process.status)}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -561,6 +575,13 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Practice Session Dialog */}
+      <PracticeSession
+        isOpen={showPracticeSession}
+        onClose={() => setShowPracticeSession(false)}
+        process={process}
+      />
     </div>
   );
 };
