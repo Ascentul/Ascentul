@@ -1236,6 +1236,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
+  // Mount the API router to the Express app
+  app.use(apiRouter);
+
   const httpServer = createServer(app);
   return httpServer;
 }
