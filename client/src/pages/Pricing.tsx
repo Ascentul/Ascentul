@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link } from 'wouter';
-import { Check, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Check, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,10 +10,118 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { useUser, useIsSubscriptionActive } from '@/lib/useUserData';
 
 export default function Pricing() {
+  const { user, isLoading: userLoading } = useUser();
+  const isSubscriptionActive = useIsSubscriptionActive();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  
+  // Add state to track which plan is being processed
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  // Create subscription mutation
+  const subscriptionMutation = useMutation({
+    mutationFn: async (planType: 'premium' | 'university') => {
+      const response = await apiRequest('POST', '/api/payments/create-subscription', {
+        plan: planType,
+        interval: 'monthly', // Default to monthly, can be expanded to offer annual
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create subscription');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      // For the Stripe checkout flow, redirect to the checkout page with the client secret
+      if (data.clientSecret) {
+        // In a real implementation, redirect to a checkout page that uses Stripe Elements
+        // For now, we'll just navigate to a success page and show a toast
+        toast({
+          title: "Subscription Started",
+          description: "Redirecting to payment...",
+        });
+        
+        // Simulate redirect to checkout
+        setTimeout(() => {
+          // This would be a real checkout page in production
+          navigate('/');
+          toast({
+            title: "Subscription Active",
+            description: "Thank you for subscribing! You now have access to premium features.",
+          });
+        }, 1500);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Subscription Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      setProcessingPlan(null);
+    },
+    onSettled: () => {
+      setProcessingPlan(null);
+    }
+  });
+
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/payments/cancel-subscription', {});
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel subscription');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your subscription has been cancelled and will end at the end of your billing period.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubscribe = async (planType: 'premium' | 'university') => {
+    if (!user) {
+      // Redirect to auth page if not logged in
+      navigate('/auth');
+      return;
+    }
+    
+    setProcessingPlan(planType);
+    subscriptionMutation.mutate(planType);
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!user || !isSubscriptionActive) {
+      return;
+    }
+    
+    cancelSubscriptionMutation.mutate();
+  };
+  
   const plans = [
     {
+      id: 'free',
       name: 'Free',
       price: '0',
       description: 'Perfect for getting started with basic career planning.',
@@ -24,11 +132,13 @@ export default function Pricing() {
         'Basic interview preparation',
         'Limited goal tracking',
       ],
-      buttonText: 'Get Started',
-      buttonVariant: 'outline',
+      buttonText: user ? 'Current Plan' : 'Get Started',
+      buttonAction: () => navigate(user ? '/' : '/auth'),
+      buttonVariant: 'outline' as const,
       highlighted: false
     },
     {
+      id: 'premium',
       name: 'Premium',
       price: '9.99',
       description: 'Everything you need for professional career development.',
@@ -42,11 +152,19 @@ export default function Pricing() {
         'Work history management',
         'Interview process tracking',
       ],
-      buttonText: 'Subscribe Now',
-      buttonVariant: 'default',
+      buttonText: isSubscriptionActive && user?.subscriptionPlan === 'premium' 
+        ? 'Current Plan' 
+        : (user ? 'Subscribe Now' : 'Sign Up'),
+      buttonAction: () => user 
+        ? (isSubscriptionActive && user.subscriptionPlan === 'premium' 
+            ? navigate('/') 
+            : handleSubscribe('premium'))
+        : navigate('/auth'),
+      buttonVariant: 'default' as const,
       highlighted: true
     },
     {
+      id: 'university',
       name: 'University Edition',
       price: '7.99',
       description: 'Special plan for university students with academic tools.',
@@ -59,8 +177,15 @@ export default function Pricing() {
         'Academic goal integration',
         'University-specific career resources',
       ],
-      buttonText: 'Get Student Access',
-      buttonVariant: 'outline',
+      buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
+        ? 'Current Plan' 
+        : (user ? 'Get Student Access' : 'Sign Up'),
+      buttonAction: () => user 
+        ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
+            ? navigate('/') 
+            : handleSubscribe('university'))
+        : navigate('/auth'),
+      buttonVariant: 'outline' as const,
       highlighted: false,
       badge: 'For Students'
     }
@@ -113,15 +238,28 @@ export default function Pricing() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Link href="/auth">
-                    <Button 
-                      variant={plan.buttonVariant as any} 
-                      className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    >
-                      {plan.buttonText}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant={plan.buttonVariant} 
+                    className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                    onClick={plan.buttonAction}
+                    disabled={processingPlan === plan.id || 
+                             (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
+                             (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
+                  >
+                    {processingPlan === plan.id ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {plan.buttonText}
+                        {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        }
+                      </>
+                    )}
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -195,12 +333,31 @@ export default function Pricing() {
               Join thousands of professionals using CareerPilot to achieve their career goals.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth">
-                <Button size="lg">
+              {user ? (
+                isSubscriptionActive ? (
+                  <Button size="lg" onClick={handleCancelSubscription} disabled={cancelSubscriptionMutation.isPending} variant="outline">
+                    {cancelSubscriptionMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>Cancel Subscription</>
+                    )}
+                  </Button>
+                ) : (
+                  <Button size="lg" onClick={() => handleSubscribe('premium')}>
+                    Upgrade to Premium
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )
+              ) : (
+                <Button size="lg" onClick={() => navigate('/auth')}>
                   Start Your Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
+              )}
+              
               <Button variant="outline" size="lg">
                 Schedule a Demo
               </Button>

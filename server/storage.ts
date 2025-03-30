@@ -50,8 +50,22 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
+  updateUserStripeInfo(userId: number, stripeInfo: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
+    subscriptionPlan?: 'free' | 'premium' | 'university';
+    subscriptionExpiresAt?: Date;
+  }): Promise<User | undefined>;
+  updateUserVerificationInfo(userId: number, verificationInfo: {
+    emailVerified?: boolean;
+    verificationToken?: string | null;
+    verificationExpires?: Date | null;
+  }): Promise<User | undefined>;
   addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number>;
   
   // Goal operations
@@ -134,6 +148,22 @@ export interface IStorage {
     pendingTasks: number;
     monthlyXp: { month: string; xp: number }[];
   }>;
+  
+  // Subscription and verification operations
+  getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  updateUserStripeInfo(userId: number, stripeInfo: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
+    subscriptionPlan?: 'free' | 'premium' | 'university';
+    subscriptionExpiresAt?: Date;
+  }): Promise<User | undefined>;
+  updateUserVerificationInfo(userId: number, verificationInfo: {
+    emailVerified?: boolean;
+    verificationToken?: string | null;
+    verificationExpires?: Date | null;
+  }): Promise<User | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -1156,6 +1186,54 @@ export class MemStorage implements IStorage {
 
   async deleteFollowupAction(id: number): Promise<boolean> {
     return this.followupActions.delete(id);
+  }
+
+  // Subscription and verification methods
+  async getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.stripeSubscriptionId === subscriptionId
+    );
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.verificationToken === token
+    );
+  }
+
+  async updateUserStripeInfo(userId: number, stripeInfo: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
+    subscriptionPlan?: 'free' | 'premium' | 'university';
+    subscriptionExpiresAt?: Date;
+  }): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const updatedUser = { ...user, ...stripeInfo };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserVerificationInfo(userId: number, verificationInfo: {
+    emailVerified?: boolean;
+    verificationToken?: string | null;
+    verificationExpires?: Date | null;
+  }): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    // Handle null values properly
+    const updatedUser = { 
+      ...user,
+      emailVerified: verificationInfo.emailVerified !== undefined ? verificationInfo.emailVerified : user.emailVerified,
+      verificationToken: verificationInfo.verificationToken === null ? undefined : verificationInfo.verificationToken || user.verificationToken,
+      verificationExpires: verificationInfo.verificationExpires === null ? undefined : verificationInfo.verificationExpires || user.verificationExpires,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 }
 

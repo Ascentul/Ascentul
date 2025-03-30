@@ -3,6 +3,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import Stripe from "stripe";
+import crypto from "crypto";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -15,6 +17,7 @@ import {
   insertFollowupActionSchema
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
+import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail } from "./services/stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -1237,6 +1240,128 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
 
   // Mount the API router to the Express app
+  // Payment and Subscription Routes
+  apiRouter.post("/payments/create-payment-intent", async (req: Request, res: Response) => {
+    try {
+      const data = createPaymentIntentSchema.parse(req.body);
+      const result = await createPaymentIntent(data);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  apiRouter.post("/payments/create-subscription", async (req: Request, res: Response) => {
+    try {
+      // In a real app, get userId from session
+      const user = await storage.getUserByUsername("alex");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const data = createSubscriptionSchema.parse({
+        ...req.body,
+        userId: user.id,
+        userName: user.name,
+        email: user.email
+      });
+      
+      const result = await createSubscription(data);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  apiRouter.post("/payments/webhook", express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+    try {
+      const sig = req.headers['stripe-signature'];
+      
+      if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+        return res.status(400).json({ error: 'Missing signature or webhook secret' });
+      }
+      
+      let event;
+      try {
+        // Verify webhook signature
+        const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+          apiVersion: '2023-10-16' as any,
+        });
+        event = stripeClient.webhooks.constructEvent(
+          req.body,
+          sig as string,
+          process.env.STRIPE_WEBHOOK_SECRET
+        );
+      } catch (err: any) {
+        return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+      }
+      
+      // Handle the event
+      if (event.type === 'customer.subscription.updated' || 
+          event.type === 'customer.subscription.created') {
+        const subscription = event.data.object;
+        await handleSubscriptionUpdated(subscription.id);
+      }
+      
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  apiRouter.post("/payments/cancel-subscription", async (req: Request, res: Response) => {
+    try {
+      // In a real app, get userId from session
+      const user = await storage.getUserByUsername("alex");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const result = await cancelSubscription(user.id);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Email verification routes
+  apiRouter.post("/auth/send-verification-email", async (req: Request, res: Response) => {
+    try {
+      // In a real app, get userId from session
+      const user = await storage.getUserByUsername("alex");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const token = await generateEmailVerificationToken(user.id, user.email);
+      
+      // In a real app, send email with verification link
+      // For demo purposes, just return the token
+      res.status(200).json({ 
+        message: "Verification email sent",
+        // Only in development, to simulate clicking the link
+        verificationUrl: `/verify-email?token=${token}`
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  apiRouter.get("/auth/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: 'Missing or invalid token' });
+      }
+      
+      const result = await verifyEmail(token);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
   app.use(apiRouter);
 
   const httpServer = createServer(app);

@@ -17,6 +17,12 @@ export interface User {
   level: number;
   rank: string;
   profileImage?: string;
+  subscriptionPlan: "free" | "premium" | "university";
+  subscriptionStatus: "active" | "inactive" | "cancelled" | "past_due";
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionExpiresAt?: Date;
+  emailVerified: boolean;
 }
 
 interface UserContextType {
@@ -157,4 +163,87 @@ export function useIsUniversityAdmin() {
 export function useIsUniversityUser() {
   const { user } = useUser();
   return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
+}
+
+// Subscription helper hooks
+export function useIsSubscriptionActive() {
+  const { user } = useUser();
+  return !!user && user.subscriptionStatus === 'active';
+}
+
+export function useUserPlan() {
+  const { user } = useUser();
+  return user?.subscriptionPlan || 'free';
+}
+
+export function useCanAccessPremiumFeature() {
+  const { user } = useUser();
+  return !!user && (
+    (user.subscriptionPlan === 'premium' || user.subscriptionPlan === 'university') && 
+    user.subscriptionStatus === 'active'
+  );
+}
+
+export function useUpdateUserSubscription() {
+  const queryClient = useQueryClient();
+  
+  const updateSubscriptionMutation = useMutation({
+    mutationFn: async ({ 
+      subscriptionPlan, 
+      subscriptionStatus,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      subscriptionExpiresAt
+    }: { 
+      subscriptionPlan?: 'free' | 'premium' | 'university';
+      subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
+      stripeCustomerId?: string;
+      stripeSubscriptionId?: string;
+      subscriptionExpiresAt?: Date;
+    }) => {
+      const res = await apiRequest('PUT', '/api/users/subscription', {
+        subscriptionPlan,
+        subscriptionStatus,
+        stripeCustomerId,
+        stripeSubscriptionId,
+        subscriptionExpiresAt
+      });
+      const data = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+  });
+  
+  return updateSubscriptionMutation;
+}
+
+export function useVerifyEmail() {
+  const queryClient = useQueryClient();
+  
+  const verifyEmailMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const res = await apiRequest('POST', '/api/users/verify-email', { token });
+      const data = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+  });
+  
+  return verifyEmailMutation;
+}
+
+export function useSendVerificationEmail() {
+  const sendVerificationMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest('POST', '/api/users/send-verification', { email });
+      const data = await res.json();
+      return data;
+    },
+  });
+  
+  return sendVerificationMutation;
 }

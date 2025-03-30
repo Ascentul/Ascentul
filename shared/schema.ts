@@ -74,6 +74,15 @@ export const users = pgTable("users", {
   level: integer("level").notNull().default(1),
   rank: text("rank").notNull().default("Career Explorer"),
   profileImage: text("profile_image"),
+  // Subscription fields
+  subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium", "university"
+  subscriptionStatus: text("subscription_status").notNull().default("inactive"), // Options: "active", "inactive", "cancelled", "past_due"
+  stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID for payments
+  stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
+  subscriptionExpiresAt: timestamp("subscription_expires_at"), // When the subscription expires
+  emailVerified: boolean("email_verified").default(false), // Whether the user's email has been verified
+  verificationToken: text("verification_token"), // Token for email verification
+  verificationExpires: timestamp("verification_expires"), // When the verification token expires
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -83,6 +92,14 @@ export const insertUserSchema = createInsertSchema(users).omit({
   level: true,
   rank: true,
   createdAt: true,
+  subscriptionPlan: true,
+  subscriptionStatus: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionExpiresAt: true,
+  emailVerified: true,
+  verificationToken: true,
+  verificationExpires: true,
 });
 
 // Goals model

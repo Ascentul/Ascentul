@@ -141,9 +141,9 @@ export default function Sidebar() {
       
       {/* Settings */}
       <div className="border-t py-4">
-        <Link href="/settings" className="flex items-center px-6 py-3 text-sm hover:bg-primary/5 transition-colors">
+        <Link href="/account" className="flex items-center px-6 py-3 text-sm hover:bg-primary/5 transition-colors">
           <Settings className="w-5 h-5 mr-3" />
-          Settings
+          Account Settings
         </Link>
         <button 
           className="flex items-center px-6 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
