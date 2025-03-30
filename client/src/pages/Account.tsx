@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useUser } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,14 +44,28 @@ export default function Account() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update profile' }));
+        throw new Error(errorData.message || 'Failed to update profile');
       }
       
-      // Reload the page to reflect changes
-      window.location.reload();
+      // Update the client-side user data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been updated successfully.",
+        variant: "default",
+      });
+      
+      setIsEditingProfile(false);
       return await response.json();
     } catch (error) {
       console.error('Error updating profile:', error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
       throw error;
     }
   };

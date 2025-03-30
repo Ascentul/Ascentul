@@ -14,7 +14,8 @@ import {
   insertInterviewPracticeSchema,
   insertInterviewProcessSchema,
   insertInterviewStageSchema,
-  insertFollowupActionSchema
+  insertFollowupActionSchema,
+  type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail } from "./services/stripe";
@@ -229,6 +230,41 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(200).json(safeUser);
     } catch (error) {
       res.status(500).json({ message: "Error fetching user" });
+    }
+  });
+  
+  // Update user profile
+  apiRouter.put("/users/profile", async (req: Request, res: Response) => {
+    try {
+      // In a real app, you would get the user ID from the session
+      // For demo purposes, we'll use the sample user
+      const user = await storage.getUserByUsername("alex");
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update only allowed fields
+      const allowedFields = ['name', 'email', 'profileImage'];
+      const updateData: Partial<User> = {};
+      
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(user.id, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      const { password: userPassword, ...safeUser } = updatedUser;
+      res.status(200).json(safeUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Error updating user profile" });
     }
   });
   
