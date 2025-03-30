@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Link } from "wouter";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
@@ -86,8 +86,8 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           </div>
           
           <div className="flex items-center space-x-4">
-            <button
-              onClick={() => window.location.href = '/'}
+            <a 
+              href="/"
               className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-md border border-foreground/20 bg-background hover:bg-background/80 transition-colors"
             >
               <svg
@@ -104,7 +104,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
               <span>Career App</span>
-            </button>
+            </a>
             
             {user && (
               <div className="flex items-center space-x-1">
