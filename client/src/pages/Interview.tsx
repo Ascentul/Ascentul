@@ -38,7 +38,7 @@ export default function Interview() {
   const { data: questions, isLoading } = useQuery({
     queryKey: ['/api/interview/questions', category],
     queryFn: async ({ queryKey }) => {
-      const url = category 
+      const url = category && category !== "all"
         ? `/api/interview/questions?category=${encodeURIComponent(category)}` 
         : '/api/interview/questions';
       const res = await fetch(url, { credentials: 'include' });
@@ -188,7 +188,7 @@ export default function Interview() {
                           <SelectValue placeholder="All Categories" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All Categories</SelectItem>
+                          <SelectItem value="all">All Categories</SelectItem>
                           <SelectItem value="behavioral">Behavioral</SelectItem>
                           <SelectItem value="technical">Technical</SelectItem>
                           <SelectItem value="situational">Situational</SelectItem>
