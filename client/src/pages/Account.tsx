@@ -294,11 +294,16 @@ export default function Account() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Subscription Details</CardTitle>
               <div className="space-x-2">
-                {user.subscriptionPlan === 'free' && (
-                  <Button variant="default" size="sm" onClick={upgradeSubscription}>
-                    Upgrade Plan
-                  </Button>
-                )}
+                {/* Always show upgrade button regardless of plan for easy access */}
+                <Button 
+                  variant={user.subscriptionPlan === 'free' ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={upgradeSubscription}
+                >
+                  {user.subscriptionPlan === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+                </Button>
+                
+                {/* Show cancel button only for paid subscriptions */}
                 {user.subscriptionStatus === 'active' && user.subscriptionPlan !== 'free' && (
                   <Button variant="outline" size="sm" onClick={() => setIsCancellingSubscription(true)}>
                     Cancel Subscription
@@ -368,7 +373,14 @@ export default function Account() {
               {/* Premium features description */}
               {user.subscriptionPlan === 'premium' && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-md">
-                  <h3 className="font-medium mb-2">Your Premium Features</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium">Your Premium Features</h3>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={upgradeSubscription}>
+                        Manage Subscription
+                      </Button>
+                    </div>
+                  </div>
                   <ul className="space-y-1 text-sm">
                     <li className="flex items-center">
                       <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Advanced resume builder
