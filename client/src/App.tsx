@@ -9,7 +9,16 @@ import WorkHistory from "@/pages/WorkHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import Profile from "@/pages/Profile";
+import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
+
+// Route Protection Components
+import { ProtectedRoute, PublicRoute } from "@/components/RouteProtection";
+import { 
+  UniversityRouteGuard, 
+  AdminRouteGuard, 
+  StudentRouteGuard 
+} from "@/components/university/UniversityRouteProtection";
 
 // University Edition Components
 import UniversityAdminDashboard from "@/pages/university/AdminDashboard";
@@ -84,6 +93,16 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
 function App() {
   const [location] = useLocation();
   const isUniversityRoute = location.startsWith("/university");
+  const isAuthRoute = location === "/auth";
+
+  // Skip layout for auth route
+  if (isAuthRoute) {
+    return (
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+      </Switch>
+    );
+  }
 
   // Choose layout based on route
   const LayoutComponent = isUniversityRoute ? UniversityLayout : Layout;
@@ -91,22 +110,77 @@ function App() {
   return (
     <LayoutComponent>
       <Switch>
-        {/* Career App Routes */}
-        <Route path="/" component={Dashboard} />
-        <Route path="/goals" component={Goals} />
-        <Route path="/resume" component={Resume} />
-        <Route path="/cover-letter" component={CoverLetter} />
-        <Route path="/interviews" component={Interview} />
-        <Route path="/work-history" component={WorkHistory} />
-        <Route path="/achievements" component={Achievements} />
-        <Route path="/ai-coach" component={AICoach} />
-        <Route path="/profile" component={Profile} />
+        {/* Authentication Route */}
+        <Route path="/auth" component={AuthPage} />
         
-        {/* University Edition Routes */}
-        <Route path="/university" component={LearningModules} />
-        <Route path="/university/admin" component={UniversityAdminDashboard} />
-        <Route path="/university/study-plan" component={StudyPlan} />
-        <Route path="/university/learning" component={LearningModules} />
+        {/* Career App Routes - Protected for regular users */}
+        <Route path="/">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/goals">
+          <ProtectedRoute>
+            <Goals />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/resume">
+          <ProtectedRoute>
+            <Resume />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/cover-letter">
+          <ProtectedRoute>
+            <CoverLetter />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/interviews">
+          <ProtectedRoute>
+            <Interview />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/work-history">
+          <ProtectedRoute>
+            <WorkHistory />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/achievements">
+          <ProtectedRoute>
+            <Achievements />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/ai-coach">
+          <ProtectedRoute>
+            <AICoach />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/profile">
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* University Edition Routes - Protected for university users */}
+        <Route path="/university">
+          <StudentRouteGuard>
+            <LearningModules />
+          </StudentRouteGuard>
+        </Route>
+        <Route path="/university/admin">
+          <AdminRouteGuard>
+            <UniversityAdminDashboard />
+          </AdminRouteGuard>
+        </Route>
+        <Route path="/university/study-plan">
+          <StudentRouteGuard>
+            <StudyPlan />
+          </StudentRouteGuard>
+        </Route>
+        <Route path="/university/learning">
+          <StudentRouteGuard>
+            <LearningModules />
+          </StudentRouteGuard>
+        </Route>
         
         {/* 404 Route */}
         <Route component={NotFound} />

@@ -7,6 +7,12 @@ export interface User {
   username: string;
   name: string;
   email: string;
+  userType: "regular" | "university_student" | "university_admin";
+  universityId?: number;
+  departmentId?: number;
+  studentId?: string;
+  graduationYear?: number;
+  isUniversityStudent: boolean;
   xp: number;
   level: number;
   rank: string;
@@ -17,7 +23,7 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  login: (username: string, password: string) => Promise<User>;
+  login: (username: string, password: string, loginType?: 'regular' | 'university') => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
@@ -41,8 +47,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async ({ username, password }: { username: string; password: string }) => {
-      const res = await apiRequest('POST', '/api/auth/login', { username, password });
+    mutationFn: async ({ 
+      username, 
+      password, 
+      loginType 
+    }: { 
+      username: string; 
+      password: string; 
+      loginType?: 'regular' | 'university' 
+    }) => {
+      const res = await apiRequest('POST', '/api/auth/login', { username, password, loginType });
       const data = await res.json();
       return data.user as User;
     },
@@ -52,8 +66,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const login = async (username: string, password: string) => {
-    return loginMutation.mutateAsync({ username, password });
+  const login = async (username: string, password: string, loginType?: 'regular' | 'university') => {
+    return loginMutation.mutateAsync({ username, password, loginType });
   };
 
   const logout = () => {
@@ -122,4 +136,25 @@ export function useUserXPHistory() {
   return useQuery({
     queryKey: ['/api/users/xp-history'],
   });
+}
+
+// User type helper hooks
+export function useIsRegularUser() {
+  const { user } = useUser();
+  return !!user && user.userType === 'regular';
+}
+
+export function useIsUniversityStudent() {
+  const { user } = useUser();
+  return !!user && user.userType === 'university_student';
+}
+
+export function useIsUniversityAdmin() {
+  const { user } = useUser();
+  return !!user && user.userType === 'university_admin';
+}
+
+export function useIsUniversityUser() {
+  const { user } = useUser();
+  return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
 }

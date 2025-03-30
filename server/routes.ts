@@ -129,7 +129,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Auth Routes
   apiRouter.post("/auth/login", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, loginType } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -141,9 +141,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
+      // Check user type based on the login type
+      if (loginType) {
+        if (loginType === "university" && user.userType === "regular") {
+          return res.status(403).json({ message: "Access denied. This account is not associated with a university." });
+        }
+        
+        if (loginType === "regular" && (user.userType === "university_student" || user.userType === "university_admin")) {
+          return res.status(403).json({ message: "Access denied. Please use the university login portal." });
+        }
+      }
+      
       // For a real app, you would create a session here
-      const safeUser = { ...user };
-      delete safeUser.password;
+      const { password: pwd, ...safeUser } = user;
       
       res.status(200).json({ user: safeUser });
     } catch (error) {
@@ -160,9 +170,26 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Username already exists" });
       }
       
+      // Set the user type based on registration form or defaults to "regular"
+      if (!userData.userType) {
+        userData.userType = "regular";
+      }
+      
+      // Validate university info for university users
+      if (userData.userType === "university_student" || userData.userType === "university_admin") {
+        if (!userData.universityId) {
+          return res.status(400).json({ message: "University ID is required for university users" });
+        }
+        
+        // If registering as university_admin, additional validation would be needed in a real app
+        if (userData.userType === "university_admin") {
+          // This would typically involve checking an admin registration code or admin email domain
+          // For demo purposes, we're allowing it without additional checks
+        }
+      }
+      
       const newUser = await storage.createUser(userData);
-      const safeUser = { ...newUser };
-      delete safeUser.password;
+      const { password: userPwd, ...safeUser } = newUser;
       
       res.status(201).json({ user: safeUser });
     } catch (error) {
@@ -184,8 +211,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(404).json({ message: "User not found" });
       }
       
-      const safeUser = { ...user };
-      delete safeUser.password;
+      const { password: userPassword, ...safeUser } = user;
       
       res.status(200).json(safeUser);
     } catch (error) {

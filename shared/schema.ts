@@ -64,6 +64,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  userType: text("user_type").notNull().default("regular"), // Options: "regular", "university_student", "university_admin"
   universityId: integer("university_id"),
   departmentId: integer("department_id"),
   studentId: text("student_id"), // University-assigned student ID
