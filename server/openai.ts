@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "mock_key_for_development" });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // AI Coach for career advice
 export async function getCareerAdvice(query: string, userContext: {
@@ -34,8 +34,14 @@ Respond directly to their question with personalized guidance.`;
     });
 
     return response.choices[0].message.content || "I'm not sure how to advise on that topic. Could you try rephrasing your question?";
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return "There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.";
+    }
+    
     return "I'm currently unable to provide advice. Please try again later.";
   }
 }
@@ -71,8 +77,17 @@ Provide your response in JSON format with these fields:
       suggestions: parsedResponse.suggestions || [],
       keywords: parsedResponse.keywords || []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return {
+        suggestions: ["There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key."],
+        keywords: []
+      };
+    }
+    
     return {
       suggestions: ["Unable to generate suggestions at this time."],
       keywords: []
@@ -108,8 +123,14 @@ The cover letter should be professional, concise, and highlight how my experienc
     });
 
     return response.choices[0].message.content || "Unable to generate cover letter at this time.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return "There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.";
+    }
+    
     return "Unable to generate cover letter at this time. Please try again later.";
   }
 }
@@ -145,8 +166,20 @@ Generate 3 behavioral questions and 3 technical questions.`;
       behavioral: parsedResponse.behavioral || [],
       technical: parsedResponse.technical || []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return {
+        behavioral: [{ 
+          question: "There's an issue with the OpenAI API key configuration.", 
+          suggestedAnswer: "Please contact the administrator to set up a valid API key." 
+        }],
+        technical: []
+      };
+    }
+    
     return {
       behavioral: [{ question: "Unable to generate questions at this time.", suggestedAnswer: "" }],
       technical: []
@@ -193,8 +226,18 @@ Generate 3 goals for each timeframe.`;
       mediumTerm: parsedResponse.mediumTerm || [],
       longTerm: parsedResponse.longTerm || []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return {
+        shortTerm: [{ title: "API Configuration Issue", description: "There's an issue with the OpenAI API key. Please contact the administrator to set up a valid API key." }],
+        mediumTerm: [],
+        longTerm: []
+      };
+    }
+    
     return {
       shortTerm: [{ title: "Unable to generate goals at this time.", description: "" }],
       mediumTerm: [],
