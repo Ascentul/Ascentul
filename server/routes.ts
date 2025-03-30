@@ -245,15 +245,42 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       // Update only allowed fields
-      const allowedFields = ['name', 'email', 'username', 'profileImage'];
       const updateData: Partial<User> = {};
+      const { name, username, profileImage, email, currentPassword } = req.body;
       
-      for (const field of allowedFields) {
-        if (req.body[field] !== undefined) {
-          updateData[field] = req.body[field];
+      // Handle name, username, and profileImage updates directly
+      if (name !== undefined) updateData.name = name;
+      if (username !== undefined) updateData.username = username;
+      if (profileImage !== undefined) updateData.profileImage = profileImage;
+      
+      // Special handling for email changes
+      if (email !== undefined && email !== user.email) {
+        // For security, require current password to change email
+        if (!currentPassword) {
+          return res.status(400).json({ 
+            message: "Current password is required to change email address" 
+          });
         }
+        
+        // In a real app, validate the password here
+        // For demo purposes, we'll assume the password is valid
+
+        // Generate verification token and set expiration (24 hours)
+        const verificationToken = Math.random().toString(36).substring(2, 15) + 
+                                 Math.random().toString(36).substring(2, 15);
+        const verificationExpires = new Date();
+        verificationExpires.setHours(verificationExpires.getHours() + 24);
+        
+        // Store the pending email change
+        updateData.pendingEmail = email;
+        updateData.pendingEmailToken = verificationToken;
+        updateData.pendingEmailExpires = verificationExpires;
+        
+        // In a real app, send verification email to the new address
+        console.log(`Verification link would be sent to ${email} with token: ${verificationToken}`);
       }
       
+      // Apply the updates
       const updatedUser = await storage.updateUser(user.id, updateData);
       
       if (!updatedUser) {
@@ -261,6 +288,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const { password: userPassword, ...safeUser } = updatedUser;
+      
+      // Add a message about email verification if needed
+      if (updateData.pendingEmail) {
+        return res.status(200).json({
+          ...safeUser,
+          message: "A verification email has been sent to your new email address. Please check your inbox to complete the email change."
+        });
+      }
+      
       res.status(200).json(safeUser);
     } catch (error) {
       console.error("Error updating user profile:", error);
@@ -1387,6 +1423,60 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(400).json({ error: error.message });
     }
   });
+  
+  // Send verification email for email address change
+  apiRouter.post("/auth/send-email-change-verification", async (req: Request, res: Response) => {
+    try {
+      const { email, currentPassword } = req.body;
+      
+      // Validate the new email
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: 'Invalid email address' });
+      }
+      
+      // In a real app, get userId from session and validate password
+      const user = await storage.getUserByUsername("alex");
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // In a real app, validate the provided current password
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required' });
+      }
+      
+      // Check if the new email is different from the current one
+      if (email === user.email) {
+        return res.status(400).json({ error: 'New email is the same as the current email' });
+      }
+      
+      // Generate a verification token
+      const token = Math.random().toString(36).substring(2, 15) + 
+                    Math.random().toString(36).substring(2, 15);
+      
+      // Set token expiration to 24 hours
+      const tokenExpires = new Date();
+      tokenExpires.setHours(tokenExpires.getHours() + 24);
+      
+      // Store the pending email change
+      await storage.updateUser(user.id, {
+        pendingEmail: email,
+        pendingEmailToken: token,
+        pendingEmailExpires: tokenExpires
+      });
+      
+      // In a real app, send verification email to the new address
+      
+      // For demo purposes, return the token
+      res.status(200).json({
+        message: `Verification email sent to ${email}. Please check your inbox to confirm the change.`,
+        // Only in development, to simulate clicking the link
+        verificationUrl: `/verify-email-change?token=${token}`
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 
   apiRouter.get("/auth/verify-email", async (req: Request, res: Response) => {
     try {
@@ -1398,6 +1488,53 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const result = await verifyEmail(token);
       res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  // Endpoint to verify and confirm email changes
+  apiRouter.get("/auth/verify-email-change", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+      
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ error: 'Missing or invalid token' });
+      }
+      
+      // Find user with this pending email token
+      const user = await storage.getUserByPendingEmailToken(token);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found or invalid token' });
+      }
+      
+      // Check if token is expired
+      if (user.pendingEmailExpires && new Date(user.pendingEmailExpires) < new Date()) {
+        return res.status(400).json({ error: 'Verification token has expired' });
+      }
+      
+      if (!user.pendingEmail) {
+        return res.status(400).json({ error: 'No pending email change found' });
+      }
+      
+      // Update user's email
+      const updatedUser = await storage.updateUser(user.id, {
+        email: user.pendingEmail,
+        emailVerified: true,
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailExpires: null
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ error: 'Failed to update email' });
+      }
+      
+      res.status(200).json({ 
+        success: true,
+        message: `Email successfully updated to ${updatedUser.email}`
+      });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

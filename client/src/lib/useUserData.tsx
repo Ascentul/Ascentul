@@ -23,6 +23,7 @@ export interface User {
   stripeSubscriptionId?: string;
   subscriptionExpiresAt?: Date;
   emailVerified: boolean;
+  pendingEmail?: string; // Added for email change verification workflow
 }
 
 interface UserContextType {
@@ -264,4 +265,45 @@ export function useSendVerificationEmail() {
   });
   
   return sendVerificationMutation;
+}
+
+// Hook for changing email
+export function useChangeEmail() {
+  const queryClient = useQueryClient();
+  
+  const changeEmailMutation = useMutation({
+    mutationFn: async ({ email, currentPassword }: { email: string; currentPassword: string }) => {
+      const res = await apiRequest('POST', '/api/auth/send-email-change-verification', { 
+        email, 
+        currentPassword 
+      });
+      const data = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      // Refetch user data to reflect pending email change
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+  });
+  
+  return changeEmailMutation;
+}
+
+// Hook for verifying email change
+export function useVerifyEmailChange() {
+  const queryClient = useQueryClient();
+  
+  const verifyEmailChangeMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const res = await apiRequest('GET', `/api/auth/verify-email-change?token=${token}`);
+      const data = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      // Refetch user data to reflect email change
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+  });
+  
+  return verifyEmailChangeMutation;
 }

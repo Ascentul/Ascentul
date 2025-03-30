@@ -83,6 +83,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false), // Whether the user's email has been verified
   verificationToken: text("verification_token"), // Token for email verification
   verificationExpires: timestamp("verification_expires"), // When the verification token expires
+  pendingEmail: text("pending_email"), // Email address pending verification for change
+  pendingEmailToken: text("pending_email_token"), // Token for pending email verification
+  pendingEmailExpires: timestamp("pending_email_expires"), // When the pending email token expires
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -52,6 +52,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
+  getUserByPendingEmailToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   updateUserStripeInfo(userId: number, stripeInfo: {
@@ -1198,6 +1199,12 @@ export class MemStorage implements IStorage {
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.verificationToken === token
+    );
+  }
+  
+  async getUserByPendingEmailToken(token: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.pendingEmailToken === token
     );
   }
 
