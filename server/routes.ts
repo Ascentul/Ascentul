@@ -664,7 +664,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Interview Routes
-  apiRouter.get("/interview/questions", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/questions", async (req: Request, res: Response) => {
     try {
       const { category } = req.query;
       const questions = await storage.getInterviewQuestions(category as string | undefined);
@@ -674,7 +674,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/interview/practice", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/practice", async (req: Request, res: Response) => {
     try {
       const practiceData = insertInterviewPracticeSchema.parse(req.body);
       
@@ -695,7 +695,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/interview/practice-history", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/practice-history", async (req: Request, res: Response) => {
     try {
       // For demo purposes, use the sample user
       const user = await storage.getUserByUsername("alex");
@@ -711,7 +711,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/interview/generate-questions", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/generate-questions", async (req: Request, res: Response) => {
     try {
       const { jobTitle, skills } = req.body;
       
@@ -886,7 +886,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   app.use("/api", apiRouter);
   
   // Interview Process Tracking Routes
-  apiRouter.get("/interview-processes", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes", async (req: Request, res: Response) => {
     try {
       // For demo purposes, use the sample user
       const user = await storage.getUserByUsername("alex");
@@ -902,7 +902,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/interview-processes", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes", async (req: Request, res: Response) => {
     try {
       const processData = insertInterviewProcessSchema.parse(req.body);
       
@@ -923,7 +923,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/interview-processes/:id", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -944,7 +944,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/interview-processes/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/processes/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -966,7 +966,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/interview-processes/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/processes/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -989,7 +989,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Interview Stage Routes
-  apiRouter.get("/interview-processes/:processId/stages", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:processId/stages", async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1011,7 +1011,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/interview-processes/:processId/stages", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes/:processId/stages", async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1037,7 +1037,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/interview-stages/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/stages/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const stageId = parseInt(id);
@@ -1059,7 +1059,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/interview-stages/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/stages/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const stageId = parseInt(id);
@@ -1082,7 +1082,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Followup Action Routes
-  apiRouter.get("/interview-processes/:processId/followups", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:processId/followups", async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1113,7 +1113,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/interview-processes/:processId/followups", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes/:processId/followups", async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1139,7 +1139,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/followup-actions/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/followup-actions/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);
@@ -1161,7 +1161,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/followup-actions/:id/complete", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/followup-actions/:id/complete", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);
@@ -1183,7 +1183,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/followup-actions/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/followup-actions/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);

@@ -31,8 +31,13 @@ import {
   BadgeCheck,
   PlusCircle,
   Briefcase,
-  Circle
+  Circle,
+  Filter
 } from 'lucide-react';
+
+// Import interview components
+import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
+import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 
 export default function Interview() {
   const { toast } = useToast();
@@ -51,6 +56,8 @@ export default function Interview() {
   
   // Interview Process States
   const [statusFilter, setStatusFilter] = useState<string[]>(['all']);
+  const [isNewProcessDialogOpen, setIsNewProcessDialogOpen] = useState(false);
+  const [selectedProcess, setSelectedProcess] = useState<any>(null);
   
   // Fetch interview questions
   const { data: questions, isLoading } = useQuery({
@@ -75,6 +82,41 @@ export default function Interview() {
     queryKey: ['/api/interview/processes'],
   });
 
+  // Handle checkbox changes for status filter
+  const handleStatusFilterChange = (status: string) => {
+    if (status === 'all') {
+      setStatusFilter(['all']);
+      return;
+    }
+    
+    // Remove 'all' if it's there
+    const newFilter = statusFilter.filter(s => s !== 'all');
+    
+    if (newFilter.includes(status)) {
+      // Remove status if already selected
+      setStatusFilter(newFilter.filter(s => s !== status));
+    } else {
+      // Add status if not selected
+      setStatusFilter([...newFilter, status]);
+    }
+    
+    // If nothing selected, default to 'all'
+    if (newFilter.length === 0) {
+      setStatusFilter(['all']);
+    }
+  };
+
+  // Filter processes by status
+  const filteredProcesses = (processes: any[]) => {
+    if (!processes) return [];
+    
+    if (statusFilter.includes('all')) {
+      return processes;
+    }
+    
+    return processes.filter(process => statusFilter.includes(process.status));
+  };
+
   // Save practice answer mutation
   const savePracticeMutation = useMutation({
     mutationFn: async ({ questionId, userAnswer, confidence }: { questionId: number, userAnswer: string, confidence: number }) => {
@@ -97,7 +139,7 @@ export default function Interview() {
     onError: (error) => {
       toast({
         title: 'Error',
-        description: `Failed to save practice: ${error.message}`,
+        description: `Failed to save practice: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: 'destructive',
       });
     },
@@ -123,7 +165,7 @@ export default function Interview() {
     onError: (error) => {
       toast({
         title: 'Error',
-        description: `Failed to generate questions: ${error.message}`,
+        description: `Failed to generate questions: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: 'destructive',
       });
     },
@@ -181,6 +223,44 @@ export default function Interview() {
     
     return filtered;
   };
+
+  // Calculate stats for the process tab
+  const calculateProcessStats = () => {
+    if (!interviewProcesses) return { upcoming: 0, followups: 0 };
+    
+    let upcomingInterviews = 0;
+    let dueFollowups = 0;
+    
+    interviewProcesses.forEach((process: any) => {
+      // Count upcoming interviews (stages with scheduledDate in the future)
+      if (process.stages) {
+        process.stages.forEach((stage: any) => {
+          if (stage.scheduledDate && !stage.completedDate) {
+            const stageDate = new Date(stage.scheduledDate);
+            if (stageDate > new Date()) {
+              upcomingInterviews++;
+            }
+          }
+        });
+      }
+      
+      // Count due follow-ups
+      if (process.followups) {
+        process.followups.forEach((followup: any) => {
+          if (followup.dueDate && !followup.completed) {
+            const dueDate = new Date(followup.dueDate);
+            if (dueDate > new Date()) {
+              dueFollowups++;
+            }
+          }
+        });
+      }
+    });
+    
+    return { upcoming: upcomingInterviews, followups: dueFollowups };
+  };
+  
+  const processStats = calculateProcessStats();
 
   return (
     <div className="container mx-auto">
@@ -612,28 +692,50 @@ export default function Interview() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Button className="w-full">
+                    <Button 
+                      className="w-full"
+                      onClick={() => setIsNewProcessDialogOpen(true)}
+                    >
                       <PlusCircle className="h-4 w-4 mr-2" />
                       New Interview Process
                     </Button>
 
                     <div className="pt-4">
-                      <h3 className="text-sm font-medium mb-2">Status Filter</h3>
+                      <h3 className="text-sm font-medium mb-2 flex items-center">
+                        <Filter className="h-4 w-4 mr-1 text-neutral-500" />
+                        Status Filter
+                      </h3>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-all" checked={statusFilter.includes('all')} />
+                          <Checkbox 
+                            id="status-all" 
+                            checked={statusFilter.includes('all')} 
+                            onCheckedChange={() => handleStatusFilterChange('all')}
+                          />
                           <label htmlFor="status-all" className="text-sm">All Processes</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-active" checked={statusFilter.includes('In Progress')} />
+                          <Checkbox 
+                            id="status-active" 
+                            checked={statusFilter.includes('In Progress')}
+                            onCheckedChange={() => handleStatusFilterChange('In Progress')}
+                          />
                           <label htmlFor="status-active" className="text-sm">Active</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-completed" checked={statusFilter.includes('Completed')} />
+                          <Checkbox 
+                            id="status-completed" 
+                            checked={statusFilter.includes('Completed')}
+                            onCheckedChange={() => handleStatusFilterChange('Completed')}
+                          />
                           <label htmlFor="status-completed" className="text-sm">Completed</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-rejected" checked={statusFilter.includes('Rejected')} />
+                          <Checkbox 
+                            id="status-rejected" 
+                            checked={statusFilter.includes('Rejected')}
+                            onCheckedChange={() => handleStatusFilterChange('Rejected')}
+                          />
                           <label htmlFor="status-rejected" className="text-sm">Rejected</label>
                         </div>
                       </div>
@@ -644,11 +746,11 @@ export default function Interview() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-xs">Upcoming Interviews</span>
-                          <Badge variant="secondary">1</Badge>
+                          <Badge variant="secondary">{processStats.upcoming}</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs">Due Follow-ups</span>
-                          <Badge variant="secondary">2</Badge>
+                          <Badge variant="secondary">{processStats.followups}</Badge>
                         </div>
                       </div>
                     </div>
@@ -662,9 +764,9 @@ export default function Interview() {
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                 </div>
-              ) : interviewProcesses && interviewProcesses.length > 0 ? (
+              ) : interviewProcesses && filteredProcesses(interviewProcesses).length > 0 ? (
                 <div className="space-y-4">
-                  {interviewProcesses.map((process: any) => (
+                  {filteredProcesses(interviewProcesses).map((process: any) => (
                     <Card key={process.id}>
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -749,8 +851,13 @@ export default function Interview() {
                         </div>
                       </CardContent>
                       <CardFooter className="flex justify-between border-t p-4">
-                        <Button variant="outline" size="sm">View Notes</Button>
-                        <Button size="sm">Manage Process</Button>
+                        <Button variant="outline" size="sm">View Details</Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => setSelectedProcess(process)}
+                        >
+                          Manage Process
+                        </Button>
                       </CardFooter>
                     </Card>
                   ))}
@@ -762,7 +869,7 @@ export default function Interview() {
                   <p className="text-neutral-500 mb-4">
                     Start tracking your interview journeys
                   </p>
-                  <Button>
+                  <Button onClick={() => setIsNewProcessDialogOpen(true)}>
                     <PlusCircle className="h-4 w-4 mr-2" />
                     New Interview Process
                   </Button>
@@ -772,6 +879,21 @@ export default function Interview() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Interview Process Dialog */}
+      <NewInterviewProcessForm 
+        open={isNewProcessDialogOpen}
+        onClose={() => setIsNewProcessDialogOpen(false)}
+      />
+
+      {/* Interview Process Details Dialog */}
+      {selectedProcess && (
+        <InterviewProcessDetails
+          process={selectedProcess}
+          open={Boolean(selectedProcess)}
+          onClose={() => setSelectedProcess(null)}
+        />
+      )}
     </div>
   );
 }

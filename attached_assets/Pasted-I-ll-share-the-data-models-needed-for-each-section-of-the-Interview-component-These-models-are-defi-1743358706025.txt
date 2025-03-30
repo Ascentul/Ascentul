@@ -1,0 +1,146 @@
+I'll share the data models needed for each section of the Interview component. These models are defined in the shared/schema.ts file and implemented in the server/storage.ts file.
+
+1. Question Library
+Data Model: InterviewQuestion
+
+export type InterviewQuestion = {
+  id: number;
+  category: string;         // "behavioral", "technical", "situational"
+  question: string;         // The actual interview question text
+  suggestedAnswer: string | null; // Suggested approach/answer
+  difficultyLevel: number;  // 1=Easy, 2=Medium, 3=Hard
+}
+ 
+// For inserting new questions
+export type InsertInterviewQuestion = {
+  category: string;
+  question: string;
+  suggestedAnswer?: string | null;
+  difficultyLevel?: number;
+}
+
+2. Practice History
+Data Model: InterviewPractice
+
+export type InterviewPractice = {
+  id: number;
+  userId: number;           // User who practiced
+  questionId: number;       // Reference to the question that was practiced
+  userAnswer: string | null; // User's answer to the question
+  confidence: number | null; // User confidence (1-5 scale)
+  practiceDate: Date;       // When the practice occurred
+}
+ 
+// For inserting new practice entries
+export type InsertInterviewPractice = {
+  userId: number;
+  questionId: number;
+  userAnswer?: string | null;
+  confidence?: number | null;
+  practiceDate?: Date;
+}
+
+3. AI Question Generator
+This feature doesn't have a specific data model as it dynamically generates questions. However, it interfaces with the OpenAI API and returns an array of generated questions:
+
+// Sample generated question structure (not stored in database)
+type GeneratedQuestion = {
+  question: string;
+  explanation?: string;
+}
+
+The generated questions can optionally be saved to the InterviewQuestion model if needed.
+
+4. Interview Process
+This section uses multiple related models to track the full interview journey:
+
+Data Model: InterviewProcess
+
+export type InterviewProcess = {
+  id: number;
+  userId: number;            // User who owns this process
+  companyName: string;       // Company being interviewed with
+  position: string;          // Job position
+  status: string;            // "In Progress", "Completed", "Rejected", "Pending"
+  jobDescription: string | null; // Job description
+  contactName: string | null; // Primary contact at company
+  contactEmail: string | null; // Contact email
+  contactPhone: string | null; // Contact phone
+  notes: string | null;      // General notes about the process
+  createdAt: Date;           // When the process was created
+  updatedAt: Date;           // When the process was last updated
+}
+ 
+// For inserting new interview processes
+export type InsertInterviewProcess = {
+  userId: number;
+  companyName: string;
+  position: string;
+  status: string;
+  jobDescription?: string | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  notes?: string | null;
+}
+
+Data Model: InterviewStage
+
+export type InterviewStage = {
+  id: number;
+  processId: number;         // Reference to the interview process
+  type: string;              // "Phone Screening", "Technical Interview", etc.
+  scheduledDate: Date | null; // When the interview is scheduled
+  completedDate: Date | null; // When the interview was completed
+  location: string | null;    // Interview location
+  interviewers: string[] | null; // Names of interviewers
+  feedback: string | null;    // Feedback received
+  outcome: string | null;     // Result of this stage
+  nextSteps: string | null;   // Next steps after this stage
+  notes: string | null;       // General notes
+  createdAt: Date;            // When this stage was created
+  updatedAt: Date;            // When this stage was last updated
+}
+ 
+// For inserting new interview stages
+export type InsertInterviewStage = {
+  processId: number;
+  type: string;
+  scheduledDate?: Date | null;
+  location?: string | null;
+  interviewers?: string[] | null;
+  notes?: string | null;
+}
+
+Data Model: FollowupAction
+
+export type FollowupAction = {
+  id: number;
+  processId: number;         // Reference to the interview process
+  stageId: number | null;    // Optional reference to a specific stage
+  type: string;              // "Thank You Email", "Prepare Questions", etc.
+  description: string;       // Description of the action
+  dueDate: Date | null;      // When the action is due
+  completed: boolean;        // Whether the action has been completed
+  completedDate: Date | null; // When the action was completed
+  notes: string | null;      // Additional notes
+  createdAt: Date;           // When this action was created
+  updatedAt: Date;           // When this action was last updated
+}
+ 
+// For inserting new followup actions
+export type InsertFollowupAction = {
+  processId: number;
+  stageId?: number | null;
+  type: string;
+  description: string;
+  dueDate?: Date | null;
+  notes?: string | null;
+}
+
+These data models allow for a comprehensive tracking of the interview journey:
+
+The InterviewProcess tracks the overall interview process with a company
+InterviewStage tracks each individual stage of the process (phone screen, technical interview, etc.)
+FollowupAction tracks specific tasks related to the interview (sending thank you emails, preparing questions, etc.)
+The combination of these models creates a full picture of a user's job application and interview journey, making it easy to track status, next steps, and important dates.
