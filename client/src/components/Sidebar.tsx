@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
-import { useUser, useIsUniversityUser } from '@/lib/useUserData';
+import { useUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -22,7 +22,7 @@ import {
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useUser();
-  const isUniversityUser = useIsUniversityUser();
+  const isUniversityUser = user?.userType === 'university_student' || user?.userType === 'university_admin';
 
   if (!user) return null;
 

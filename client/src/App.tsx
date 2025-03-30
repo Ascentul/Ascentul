@@ -32,7 +32,7 @@ import LearningModules from "@/pages/university/LearningModules";
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user } = useUser();
-  const isAdmin = useIsUniversityAdmin();
+  const isAdmin = user?.userType === 'university_admin';
   
   return (
     <div className="min-h-screen bg-background">
