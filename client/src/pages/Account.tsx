@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
 
@@ -22,6 +22,7 @@ export default function Account() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
+  const [isUpgradingPlan, setIsUpgradingPlan] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   
   // Email change mutation using useChangeEmail hook from useUserData
@@ -424,11 +425,17 @@ export default function Account() {
                 <div className="space-y-3">
                   <h3 className="font-medium text-lg">Plan Actions</h3>
                   <div className="flex flex-col gap-3">
-                    <Button variant="outline" onClick={upgradeSubscription}>
-                      {user.subscriptionPlan === 'free' ? 'Upgrade to Pro' : 'Change Plan'}
-                    </Button>
-                    
-                    {user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active' && (
+                    {user.subscriptionPlan === 'free' ? (
+                      <Button 
+                        variant="default" 
+                        onClick={() => {
+                          setIsManagingSubscription(false);
+                          setIsUpgradingPlan(true);
+                        }}
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    ) : (
                       <Button 
                         variant="destructive" 
                         onClick={() => {
@@ -590,6 +597,67 @@ export default function Account() {
             }}
           />
         )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Upgrade Plan Dialog for Free Users */}
+    <Dialog open={isUpgradingPlan} onOpenChange={setIsUpgradingPlan}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Upgrade to Pro</DialogTitle>
+          <DialogDescription>
+            Unlock all premium features to accelerate your career growth.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-6">
+          <div className="rounded-xl bg-primary/5 p-5 border border-primary/20 mb-6">
+            <h3 className="font-semibold text-lg mb-3 flex items-center">
+              <Sparkles className="h-5 w-5 mr-2 text-primary" />
+              Pro Plan Benefits
+            </h3>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 mr-2 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">Advanced Resume Builder</span>
+                  <p className="text-sm text-muted-foreground">Create unlimited professional resumes with AI enhancement</p>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 mr-2 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">Unlimited Interview Practice</span>
+                  <p className="text-sm text-muted-foreground">Practice with unlimited AI-generated questions and feedback</p>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 mr-2 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">AI Career Coach</span>
+                  <p className="text-sm text-muted-foreground">Get personalized career advice whenever you need it</p>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="h-5 w-5 mr-2 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">Cover Letter Generator</span>
+                  <p className="text-sm text-muted-foreground">Create tailored cover letters for every application</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-lg font-semibold">$12.99 <span className="text-sm font-normal text-muted-foreground">/ month</span></p>
+              <p className="text-sm text-muted-foreground">Cancel anytime</p>
+            </div>
+            <div className="space-x-2">
+              <Button variant="outline" onClick={() => setIsUpgradingPlan(false)}>Cancel</Button>
+              <Button onClick={upgradeSubscription}>Upgrade Now</Button>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   </div>
