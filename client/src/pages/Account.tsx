@@ -24,7 +24,12 @@ import {
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
 
 // Load Stripe outside of component to avoid recreating on renders
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Make sure we're using the public key (starts with pk_)
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+if (!stripePublicKey || !stripePublicKey.startsWith('pk_')) {
+  console.error('Missing or invalid Stripe public key. Make sure VITE_STRIPE_PUBLIC_KEY is set correctly.');
+}
+const stripePromise = loadStripe(stripePublicKey);
 
 // Payment Method Form Component
 function PaymentMethodForm({ 
