@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route, useLocation, Link } from "wouter";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
@@ -140,12 +141,20 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const isUniversityRoute = location.startsWith("/university");
   const isAuthRoute = location === "/auth";
-  // For non-authenticated users, show public routes; otherwise show protected routes
-  const isAuthenticated = useUser().user !== null;
-  const isPublicRoute = (!isAuthenticated && ["", "/", "/home", "/pricing", "/solutions", "/who-we-serve"].includes(location));
+  // Always show public pages at public routes, regardless of authentication
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve"].includes(location);
+  
+  // Add alternate approach for root path handling
+  if (location === "/" || location === "") {
+    return (
+      <PublicLayout>
+        <Home />
+      </PublicLayout>
+    );
+  }
 
   // Skip layout for auth route
   if (isAuthRoute) {
@@ -181,7 +190,7 @@ function App() {
         <Route path="/auth" component={AuthPage} />
         
         {/* Career App Routes - Protected for regular users */}
-        <Route path="/">
+        <Route path="/dashboard">
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>

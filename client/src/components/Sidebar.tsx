@@ -34,7 +34,7 @@ export default function Sidebar() {
 
   // Career app navigation items
   const careerNavigationItems = [
-    { href: '/', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
+    { href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
     { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goals' },
     { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
     { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
