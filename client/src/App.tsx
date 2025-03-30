@@ -20,20 +20,25 @@ import {
   StudentRouteGuard 
 } from "@/components/university/UniversityRouteProtection";
 
+// User data hooks
+import { useUser, useIsUniversityAdmin } from "@/lib/useUserData";
+
 // University Edition Components
 import UniversityAdminDashboard from "@/pages/university/AdminDashboard";
 import StudyPlan from "@/pages/university/StudyPlan";
 import LearningModules from "@/pages/university/LearningModules";
 
-// Mock University Edition Layout
+// University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { user } = useUser();
+  const isAdmin = useIsUniversityAdmin();
   
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-14 items-center">
-          <div className="mr-4 flex">
+        <div className="container flex h-14 items-center justify-between">
+          <div className="flex items-center">
             <a href="/university" className="mr-6 flex items-center space-x-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -45,20 +50,22 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 strokeLinejoin="round"
                 className="h-6 w-6"
               >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
               <span className="font-bold">University Edition</span>
             </a>
             <nav className="flex items-center space-x-6 text-sm font-medium">
-              <a
-                href="/university/admin"
-                className={`transition-colors hover:text-foreground/80 ${
-                  location === "/university/admin" ? "text-foreground" : "text-foreground/60"
-                }`}
-              >
-                Admin Dashboard
-              </a>
+              {isAdmin && (
+                <a
+                  href="/university/admin"
+                  className={`transition-colors hover:text-foreground/80 ${
+                    location === "/university/admin" ? "text-foreground" : "text-foreground/60"
+                  }`}
+                >
+                  Admin Dashboard
+                </a>
+              )}
               <a
                 href="/university/study-plan"
                 className={`transition-colors hover:text-foreground/80 ${
@@ -75,17 +82,46 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
               >
                 Learning Modules
               </a>
-              <a
-                href="/"
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-              >
-                Back to Career App
-              </a>
             </nav>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <a
+              href="/"
+              className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span>Career App</span>
+            </a>
+            
+            {user && (
+              <div className="flex items-center space-x-1">
+                <span className="text-sm text-foreground/60">{user.name}</span>
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  {user.profileImage ? (
+                    <img src={user.profileImage} alt={user.name} className="w-8 h-8 rounded-full" />
+                  ) : (
+                    user.name.charAt(0)
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
-      <main className="flex-1">{children}</main>
+      <main className="container mx-auto py-6 px-4">{children}</main>
     </div>
   );
 }

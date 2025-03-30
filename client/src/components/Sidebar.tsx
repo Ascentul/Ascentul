@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
-import { useUser } from '@/lib/useUserData';
+import { useUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -13,12 +13,16 @@ import {
   Trophy, 
   Bot, 
   Settings, 
-  LogOut 
+  LogOut,
+  GraduationCap,
+  BookOpen,
+  School
 } from 'lucide-react';
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user } = useUser();
+  const { user, logout } = useUser();
+  const isUniversityUser = useIsUniversityUser();
 
   if (!user) return null;
 
@@ -28,7 +32,8 @@ export default function Sidebar() {
   const xpInCurrentLevel = user.xp - currentLevelBaseXP;
   const progressPercentage = Math.min(100, (xpInCurrentLevel / xpToNextLevel) * 100);
 
-  const navigationItems = [
+  // Career app navigation items
+  const careerNavigationItems = [
     { href: '/', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
     { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goals' },
     { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
@@ -72,11 +77,20 @@ export default function Sidebar() {
           </div>
           <Progress value={progressPercentage} className="h-2" />
         </div>
+        
+        {/* University user badge - only show for university users */}
+        {isUniversityUser && (
+          <div className="mt-3 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium flex items-center">
+            <GraduationCap className="w-3 h-3 mr-1" />
+            University User
+          </div>
+        )}
       </div>
       
       {/* Navigation Links */}
       <nav className="flex-1 overflow-y-auto py-4">
-        {navigationItems.map((item) => (
+        {/* Career App Navigation Items */}
+        {careerNavigationItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -87,6 +101,42 @@ export default function Sidebar() {
             {item.label}
           </Link>
         ))}
+        
+        {/* University Quick Access - only show for university users */}
+        {isUniversityUser && (
+          <>
+            <div className="px-6 py-3 mt-4 text-xs font-medium text-neutral-400 uppercase">
+              University Resources
+            </div>
+            
+            <Link 
+              href="/university"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <School className="w-5 h-5 mr-3" />
+              University Dashboard
+            </Link>
+            
+            <Link 
+              href="/university/study-plan"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university/study-plan" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <Target className="w-5 h-5 mr-3" />
+              Study Plan
+            </Link>
+            
+            <Link 
+              href="/university/learning"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university/learning" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <BookOpen className="w-5 h-5 mr-3" />
+              Learning Modules
+            </Link>
+          </>
+        )}
       </nav>
       
       {/* Settings */}
@@ -97,7 +147,7 @@ export default function Sidebar() {
         </Link>
         <button 
           className="flex items-center px-6 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
-          onClick={() => {/* Implement logout functionality */}}
+          onClick={() => logout()}
         >
           <LogOut className="w-5 h-5 mr-3" />
           Logout
