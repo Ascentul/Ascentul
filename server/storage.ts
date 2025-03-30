@@ -34,7 +34,16 @@ import {
   type InsertAiCoachMessage,
   xpHistory,
   type XpHistory,
-  type InsertXpHistory
+  type InsertXpHistory,
+  interviewProcesses,
+  type InterviewProcess,
+  type InsertInterviewProcess,
+  interviewStages,
+  type InterviewStage,
+  type InsertInterviewStage,
+  followupActions,
+  type FollowupAction,
+  type InsertFollowupAction
 } from "@shared/schema";
 
 export interface IStorage {
@@ -80,6 +89,28 @@ export interface IStorage {
   saveInterviewPractice(userId: number, practice: InsertInterviewPractice): Promise<InterviewPractice>;
   getUserInterviewPractice(userId: number): Promise<InterviewPractice[]>;
   
+  // Interview Process Tracking operations
+  getInterviewProcesses(userId: number): Promise<InterviewProcess[]>;
+  getInterviewProcess(id: number): Promise<InterviewProcess | undefined>;
+  createInterviewProcess(userId: number, process: InsertInterviewProcess): Promise<InterviewProcess>;
+  updateInterviewProcess(id: number, processData: Partial<InterviewProcess>): Promise<InterviewProcess | undefined>;
+  deleteInterviewProcess(id: number): Promise<boolean>;
+  
+  // Interview Stage operations
+  getInterviewStages(processId: number): Promise<InterviewStage[]>;
+  getInterviewStage(id: number): Promise<InterviewStage | undefined>;
+  createInterviewStage(processId: number, stage: InsertInterviewStage): Promise<InterviewStage>;
+  updateInterviewStage(id: number, stageData: Partial<InterviewStage>): Promise<InterviewStage | undefined>;
+  deleteInterviewStage(id: number): Promise<boolean>;
+  
+  // Followup Action operations
+  getFollowupActions(processId: number, stageId?: number): Promise<FollowupAction[]>;
+  getFollowupAction(id: number): Promise<FollowupAction | undefined>;
+  createFollowupAction(processId: number, action: InsertFollowupAction): Promise<FollowupAction>;
+  updateFollowupAction(id: number, actionData: Partial<FollowupAction>): Promise<FollowupAction | undefined>;
+  deleteFollowupAction(id: number): Promise<boolean>;
+  completeFollowupAction(id: number): Promise<FollowupAction | undefined>;
+  
   // Achievement operations
   getAchievements(): Promise<Achievement[]>;
   getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]>;
@@ -118,6 +149,9 @@ export class MemStorage implements IStorage {
   private aiCoachConversations: Map<number, AiCoachConversation>;
   private aiCoachMessages: Map<number, AiCoachMessage>;
   private xpHistory: Map<number, XpHistory>;
+  private interviewProcesses: Map<number, InterviewProcess>;
+  private interviewStages: Map<number, InterviewStage>;
+  private followupActions: Map<number, FollowupAction>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -131,6 +165,9 @@ export class MemStorage implements IStorage {
   private aiCoachConversationIdCounter: number;
   private aiCoachMessageIdCounter: number;
   private xpHistoryIdCounter: number;
+  private interviewProcessIdCounter: number;
+  private interviewStageIdCounter: number;
+  private followupActionIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -145,6 +182,9 @@ export class MemStorage implements IStorage {
     this.aiCoachConversations = new Map();
     this.aiCoachMessages = new Map();
     this.xpHistory = new Map();
+    this.interviewProcesses = new Map();
+    this.interviewStages = new Map();
+    this.followupActions = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -158,12 +198,21 @@ export class MemStorage implements IStorage {
     this.aiCoachConversationIdCounter = 1;
     this.aiCoachMessageIdCounter = 1;
     this.xpHistoryIdCounter = 1;
+    this.interviewProcessIdCounter = 1;
+    this.interviewStageIdCounter = 1;
+    this.followupActionIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
   }
   
   private initializeData() {
+    // Sample interview process data for testing
+    const now = new Date();
+    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
     // Initialize sample achievements
     const sampleAchievements: InsertAchievement[] = [
       {
@@ -206,6 +255,121 @@ export class MemStorage implements IStorage {
         id: this.achievementIdCounter++
       });
     });
+    
+    // Create a sample interview process
+    const sampleProcess: InterviewProcess = {
+      id: this.interviewProcessIdCounter++,
+      userId: 1, // For the sample user (alex)
+      position: "Senior Software Engineer",
+      companyName: "TechCorp Inc.",
+      jobDescription: "Senior role focused on full-stack development with React and Node.js",
+      contactName: "Jane Recruiter",
+      contactEmail: "jane@techcorp.example",
+      contactPhone: "+1-555-123-4567",
+      notes: "Initial screening was positive. Team seems collaborative and focused on product quality.",
+      status: "in_progress",
+      createdAt: twoDaysAgo,
+      updatedAt: now
+    };
+    this.interviewProcesses.set(sampleProcess.id, sampleProcess);
+    
+    // Create sample interview stages
+    const phoneScreening: InterviewStage = {
+      id: this.interviewStageIdCounter++,
+      processId: sampleProcess.id,
+      type: "Phone Screening",
+      location: "Phone call",
+      scheduledDate: twoDaysAgo,
+      completedDate: twoDaysAgo,
+      interviewers: ["Jane Recruiter", "John HR"],
+      feedback: "Positive initial conversation. Technical background is strong. Moving to technical assessment.",
+      outcome: "passed",
+      notes: "Asked about team structure and development process.",
+      nextSteps: "Technical assessment to be scheduled",
+      createdAt: twoDaysAgo,
+      updatedAt: twoDaysAgo
+    };
+    this.interviewStages.set(phoneScreening.id, phoneScreening);
+    
+    const technicalAssessment: InterviewStage = {
+      id: this.interviewStageIdCounter++,
+      processId: sampleProcess.id,
+      type: "Technical Assessment",
+      location: "Online coding platform",
+      scheduledDate: now,
+      completedDate: now,
+      interviewers: ["Senior Developer"],
+      feedback: "Completed coding task efficiently. Good approach to problem-solving. Clean code.",
+      outcome: "passed",
+      notes: "Completed a task building a React component with data fetching.",
+      nextSteps: "Technical interview with team lead",
+      createdAt: now,
+      updatedAt: now
+    };
+    this.interviewStages.set(technicalAssessment.id, technicalAssessment);
+    
+    const technicalInterview: InterviewStage = {
+      id: this.interviewStageIdCounter++,
+      processId: sampleProcess.id,
+      type: "Technical Interview",
+      location: "Video call",
+      scheduledDate: tomorrow,
+      completedDate: null,
+      interviewers: ["Team Lead", "Senior Architect"],
+      feedback: null,
+      outcome: null,
+      notes: "Will focus on system design and architecture discussions.",
+      nextSteps: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.interviewStages.set(technicalInterview.id, technicalInterview);
+    
+    // Create sample followup actions
+    const thankYouEmail: FollowupAction = {
+      id: this.followupActionIdCounter++,
+      processId: sampleProcess.id,
+      stageId: phoneScreening.id,
+      type: "Thank You Email",
+      description: "Send a thank you email to Jane for the phone screening",
+      dueDate: new Date(twoDaysAgo.getTime() + 24 * 60 * 60 * 1000),
+      notes: "Mention interest in the collaborative culture",
+      completed: true,
+      completedDate: new Date(twoDaysAgo.getTime() + 22 * 60 * 60 * 1000),
+      createdAt: twoDaysAgo,
+      updatedAt: twoDaysAgo
+    };
+    this.followupActions.set(thankYouEmail.id, thankYouEmail);
+    
+    const prepareQuestions: FollowupAction = {
+      id: this.followupActionIdCounter++,
+      processId: sampleProcess.id,
+      stageId: technicalInterview.id,
+      type: "Prepare Questions",
+      description: "Prepare questions about the tech stack and team structure",
+      dueDate: tomorrow,
+      notes: "Research company products thoroughly",
+      completed: false,
+      completedDate: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.followupActions.set(prepareQuestions.id, prepareQuestions);
+    
+    const reviewTechnology: FollowupAction = {
+      id: this.followupActionIdCounter++,
+      processId: sampleProcess.id,
+      stageId: technicalInterview.id,
+      type: "Review Technology",
+      description: "Brush up on system design patterns and React optimization techniques",
+      dueDate: tomorrow,
+      notes: "Focus on recent projects for examples",
+      completed: false,
+      completedDate: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.followupActions.set(reviewTechnology.id, reviewTechnology);
     
     // Initialize sample interview questions
     const sampleQuestions: InsertInterviewQuestion[] = [
@@ -760,6 +924,238 @@ export class MemStorage implements IStorage {
       pendingTasks,
       monthlyXp: monthlyXpArray
     };
+  }
+  // Interview Process Tracking operations
+  async getInterviewProcesses(userId: number): Promise<InterviewProcess[]> {
+    return Array.from(this.interviewProcesses.values())
+      .filter(process => process.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getInterviewProcess(id: number): Promise<InterviewProcess | undefined> {
+    return this.interviewProcesses.get(id);
+  }
+
+  async createInterviewProcess(userId: number, processData: InsertInterviewProcess): Promise<InterviewProcess> {
+    const id = this.interviewProcessIdCounter++;
+    const now = new Date();
+    const interviewProcess: InterviewProcess = {
+      ...processData,
+      id,
+      userId,
+      status: processData.status || "applied",
+      createdAt: now,
+      updatedAt: now
+    };
+    this.interviewProcesses.set(id, interviewProcess);
+    
+    // Award XP for creating a new interview process
+    await this.addUserXP(userId, 50, "interview_process_created", "Started tracking a new interview process");
+    
+    return interviewProcess;
+  }
+
+  async updateInterviewProcess(id: number, processData: Partial<InterviewProcess>): Promise<InterviewProcess | undefined> {
+    const process = this.interviewProcesses.get(id);
+    if (!process) return undefined;
+    
+    const now = new Date();
+    const updatedProcess = { 
+      ...process, 
+      ...processData,
+      updatedAt: now 
+    };
+    this.interviewProcesses.set(id, updatedProcess);
+    
+    // Award XP for updating job status if status changed
+    if (processData.status && processData.status !== process.status) {
+      await this.addUserXP(process.userId, 25, "interview_status_updated", `Updated job status to ${processData.status}`);
+    }
+    
+    return updatedProcess;
+  }
+
+  async deleteInterviewProcess(id: number): Promise<boolean> {
+    // Also delete all related stages and followup actions
+    const process = this.interviewProcesses.get(id);
+    if (!process) return false;
+    
+    const stages = await this.getInterviewStages(id);
+    for (const stage of stages) {
+      await this.deleteInterviewStage(stage.id);
+    }
+    
+    const followupActions = await this.getFollowupActions(id);
+    for (const action of followupActions) {
+      await this.deleteFollowupAction(action.id);
+    }
+    
+    return this.interviewProcesses.delete(id);
+  }
+
+  // Interview Stage operations
+  async getInterviewStages(processId: number): Promise<InterviewStage[]> {
+    return Array.from(this.interviewStages.values())
+      .filter(stage => stage.processId === processId)
+      .sort((a, b) => {
+        // Sort by scheduled date if available, otherwise by creation date
+        const aDate = a.scheduledDate || a.createdAt;
+        const bDate = b.scheduledDate || b.createdAt;
+        return new Date(aDate).getTime() - new Date(bDate).getTime();
+      });
+  }
+
+  async getInterviewStage(id: number): Promise<InterviewStage | undefined> {
+    return this.interviewStages.get(id);
+  }
+
+  async createInterviewStage(processId: number, stageData: InsertInterviewStage): Promise<InterviewStage> {
+    const id = this.interviewStageIdCounter++;
+    const now = new Date();
+    const interviewStage: InterviewStage = {
+      ...stageData,
+      id,
+      processId,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.interviewStages.set(id, interviewStage);
+    
+    // Get the process to award XP to the user
+    const process = await this.getInterviewProcess(processId);
+    if (process) {
+      await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
+    }
+    
+    return interviewStage;
+  }
+
+  async updateInterviewStage(id: number, stageData: Partial<InterviewStage>): Promise<InterviewStage | undefined> {
+    const stage = this.interviewStages.get(id);
+    if (!stage) return undefined;
+    
+    const now = new Date();
+    const updatedStage = { 
+      ...stage, 
+      ...stageData,
+      updatedAt: now 
+    };
+    
+    // If marking as completed and wasn't completed before
+    if (stageData.completedDate && !stage.completedDate) {
+      // Get the process to award XP to the user
+      const process = await this.getInterviewProcess(stage.processId);
+      if (process) {
+        await this.addUserXP(process.userId, 75, "interview_stage_completed", `Completed interview stage: ${stage.type}`);
+      }
+    }
+    
+    this.interviewStages.set(id, updatedStage);
+    return updatedStage;
+  }
+
+  async deleteInterviewStage(id: number): Promise<boolean> {
+    // Also delete related followup actions
+    const stage = this.interviewStages.get(id);
+    if (!stage) return false;
+    
+    const followupActions = Array.from(this.followupActions.values())
+      .filter(action => action.stageId === id);
+    
+    for (const action of followupActions) {
+      await this.deleteFollowupAction(action.id);
+    }
+    
+    return this.interviewStages.delete(id);
+  }
+
+  // Followup Action operations
+  async getFollowupActions(processId: number, stageId?: number): Promise<FollowupAction[]> {
+    let actions = Array.from(this.followupActions.values())
+      .filter(action => action.processId === processId);
+    
+    if (stageId !== undefined) {
+      actions = actions.filter(action => action.stageId === stageId);
+    }
+    
+    return actions.sort((a, b) => {
+      // Sort by due date if available, otherwise by creation date
+      const aDate = a.dueDate || a.createdAt;
+      const bDate = b.dueDate || b.createdAt;
+      return new Date(aDate).getTime() - new Date(bDate).getTime();
+    });
+  }
+
+  async getFollowupAction(id: number): Promise<FollowupAction | undefined> {
+    return this.followupActions.get(id);
+  }
+
+  async createFollowupAction(processId: number, actionData: InsertFollowupAction): Promise<FollowupAction> {
+    const id = this.followupActionIdCounter++;
+    const now = new Date();
+    const followupAction: FollowupAction = {
+      ...actionData,
+      id,
+      processId,
+      completed: false,
+      completedDate: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.followupActions.set(id, followupAction);
+    
+    // Get the process to award XP to the user
+    const process = await this.getInterviewProcess(processId);
+    if (process) {
+      await this.addUserXP(process.userId, 25, "followup_action_created", `Added followup action: ${actionData.type}`);
+    }
+    
+    return followupAction;
+  }
+
+  async updateFollowupAction(id: number, actionData: Partial<FollowupAction>): Promise<FollowupAction | undefined> {
+    const action = this.followupActions.get(id);
+    if (!action) return undefined;
+    
+    const now = new Date();
+    const updatedAction = { 
+      ...action, 
+      ...actionData,
+      updatedAt: now 
+    };
+    this.followupActions.set(id, updatedAction);
+    return updatedAction;
+  }
+
+  async completeFollowupAction(id: number): Promise<FollowupAction | undefined> {
+    const action = this.followupActions.get(id);
+    if (!action) return undefined;
+    
+    if (action.completed) {
+      // Already completed
+      return action;
+    }
+    
+    const now = new Date();
+    const updatedAction = {
+      ...action,
+      completed: true,
+      completedDate: now,
+      updatedAt: now
+    };
+    this.followupActions.set(id, updatedAction);
+    
+    // Get the process to award XP to the user
+    const process = await this.getInterviewProcess(action.processId);
+    if (process) {
+      await this.addUserXP(process.userId, 50, "followup_action_completed", `Completed followup action: ${action.type}`);
+    }
+    
+    return updatedAction;
+  }
+
+  async deleteFollowupAction(id: number): Promise<boolean> {
+    return this.followupActions.delete(id);
   }
 }
 

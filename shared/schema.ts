@@ -207,6 +207,73 @@ export const insertXpHistorySchema = createInsertSchema(xpHistory).omit({
   earnedAt: true,
 });
 
+// Interview Process Tracking
+export const interviewProcesses = pgTable("interview_processes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  companyName: text("company_name").notNull(),
+  position: text("position").notNull(),
+  jobDescription: text("job_description"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  status: text("status").notNull().default("applied"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertInterviewProcessSchema = createInsertSchema(interviewProcesses).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const interviewStages = pgTable("interview_stages", {
+  id: serial("id").primaryKey(),
+  processId: integer("process_id").notNull(),
+  type: text("type").notNull(), // e.g., "phone_screen", "technical", "onsite", "final"
+  scheduledDate: timestamp("scheduled_date"),
+  completedDate: timestamp("completed_date"),
+  location: text("location"),
+  interviewers: text("interviewers").array(),
+  notes: text("notes"),
+  feedback: text("feedback"),
+  outcome: text("outcome"), // e.g., "passed", "failed", "pending"
+  nextSteps: text("next_steps"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertInterviewStageSchema = createInsertSchema(interviewStages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const followupActions = pgTable("followup_actions", {
+  id: serial("id").primaryKey(),
+  processId: integer("process_id").notNull(),
+  stageId: integer("stage_id"),
+  type: text("type").notNull(), // e.g., "thank_you_email", "follow_up", "preparation", "document_submission"
+  description: text("description").notNull(),
+  dueDate: timestamp("due_date"),
+  completed: boolean("completed").notNull().default(false),
+  completedDate: timestamp("completed_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFollowupActionSchema = createInsertSchema(followupActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completed: true,
+  completedDate: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -243,3 +310,12 @@ export type InsertAiCoachMessage = z.infer<typeof insertAiCoachMessageSchema>;
 
 export type XpHistory = typeof xpHistory.$inferSelect;
 export type InsertXpHistory = z.infer<typeof insertXpHistorySchema>;
+
+export type InterviewProcess = typeof interviewProcesses.$inferSelect;
+export type InsertInterviewProcess = z.infer<typeof insertInterviewProcessSchema>;
+
+export type InterviewStage = typeof interviewStages.$inferSelect;
+export type InsertInterviewStage = z.infer<typeof insertInterviewStageSchema>;
+
+export type FollowupAction = typeof followupActions.$inferSelect;
+export type InsertFollowupAction = z.infer<typeof insertFollowupActionSchema>;

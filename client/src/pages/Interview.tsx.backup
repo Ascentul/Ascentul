@@ -173,7 +173,7 @@ export default function Interview() {
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((q: any) => 
+      filtered = filtered.filter(q => 
         q.question.toLowerCase().includes(query) || 
         (q.suggestedAnswer && q.suggestedAnswer.toLowerCase().includes(query))
       );
@@ -259,12 +259,12 @@ export default function Interview() {
                   <CardContent className="space-y-6">
                     <div className="space-y-2">
                       <h3 className="text-lg font-medium">
-                        {questions?.find((q: any) => q.id === selectedQuestionId)?.question}
+                        {questions?.find(q => q.id === selectedQuestionId)?.question}
                       </h3>
                       <div className="text-sm text-neutral-500">
                         Category: <span className="font-medium text-primary">
-                          {questions?.find((q: any) => q.id === selectedQuestionId)?.category.charAt(0).toUpperCase() + 
-                            questions?.find((q: any) => q.id === selectedQuestionId)?.category.slice(1)}
+                          {questions?.find(q => q.id === selectedQuestionId)?.category.charAt(0).toUpperCase() + 
+                            questions?.find(q => q.id === selectedQuestionId)?.category.slice(1)}
                         </span>
                       </div>
                     </div>
@@ -313,7 +313,7 @@ export default function Interview() {
                 </Card>
               ) : filteredQuestions().length > 0 ? (
                 <div className="space-y-4">
-                  {filteredQuestions().map((question: any) => (
+                  {filteredQuestions().map((question) => (
                     <Card key={question.id}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
@@ -388,14 +388,14 @@ export default function Interview() {
                         <span>Average Confidence</span>
                         <span className="font-medium">
                           {practiceHistory?.length
-                            ? (practiceHistory.reduce((sum: any, p: any) => sum + p.confidence, 0) / practiceHistory.length).toFixed(1)
+                            ? (practiceHistory.reduce((sum, p) => sum + p.confidence, 0) / practiceHistory.length).toFixed(1)
                             : "N/A"}
                         </span>
                       </div>
                       <Progress 
                         value={
                           practiceHistory?.length
-                            ? (practiceHistory.reduce((sum: any, p: any) => sum + p.confidence, 0) / practiceHistory.length / 5) * 100
+                            ? (practiceHistory.reduce((sum, p) => sum + p.confidence, 0) / practiceHistory.length / 5) * 100
                             : 0
                         } 
                         className="h-2" 
@@ -407,8 +407,8 @@ export default function Interview() {
                       {practiceHistory?.length ? (
                         <div className="space-y-3">
                           {['behavioral', 'technical', 'situational'].map(cat => {
-                            const count = practiceHistory.filter((p: any) => {
-                              const question = questions?.find((q: any) => q.id === p.questionId);
+                            const count = practiceHistory.filter(p => {
+                              const question = questions?.find(q => q.id === p.questionId);
                               return question?.category === cat;
                             }).length;
                             
@@ -438,8 +438,8 @@ export default function Interview() {
             <div className="lg:col-span-3">
               {practiceHistory?.length ? (
                 <div className="space-y-4">
-                  {practiceHistory.map((practice: any) => {
-                    const question = questions?.find((q: any) => q.id === practice.questionId);
+                  {practiceHistory.map((practice) => {
+                    const question = questions?.find(q => q.id === practice.questionId);
                     
                     return (
                       <Card key={practice.id}>
@@ -503,12 +503,12 @@ export default function Interview() {
                   <UserRound className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
                   <h3 className="text-xl font-medium mb-2">No Practice History</h3>
                   <p className="text-neutral-500 mb-4">
-                    You haven't practiced any interview questions yet
+                    Start practicing interview questions to build your history
                   </p>
-                  <Button onClick={() => {
-                    document.querySelector('button[value="questions"]')?.click();
-                  }}>
-                    Go to Question Library
+                  <Button
+                    onClick={() => document.querySelector('[data-value="questions"]')?.click()}
+                  >
+                    Practice Questions
                   </Button>
                 </div>
               )}
@@ -517,31 +517,27 @@ export default function Interview() {
         </TabsContent>
         
         <TabsContent value="generator">
-          <div className="max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>AI Interview Question Generator</CardTitle>
-                <p className="text-sm text-neutral-500">Generate customized interview questions based on your job target</p>
-              </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-4">Generate Custom Interview Questions</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Job Title</label>
-                    <Input 
-                      placeholder="e.g. Software Engineer, Product Manager, Data Scientist"
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Job Title</label>
+                    <Input
+                      placeholder="e.g., Software Engineer"
                       value={jobTitle}
                       onChange={(e) => setJobTitle(e.target.value)}
                     />
                   </div>
                   
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Required Skills</label>
-                    <Textarea 
-                      placeholder="Enter skills separated by commas (e.g. React, TypeScript, Node.js)"
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Your Skills (comma separated)</label>
+                    <Input
+                      placeholder="e.g., JavaScript, React, Project Management"
                       value={skills}
                       onChange={(e) => setSkills(e.target.value)}
                     />
-                    <p className="text-xs text-neutral-500 mt-1">These will be used to generate relevant technical questions</p>
                   </div>
                   
                   <Button 
@@ -549,46 +545,43 @@ export default function Interview() {
                     onClick={handleGenerateQuestions}
                     disabled={generateQuestionsMutation.isPending}
                   >
-                    {generateQuestionsMutation.isPending ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate Interview Questions"
-                    )}
+                    {generateQuestionsMutation.isPending ? 'Generating...' : 'Generate Questions'}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-4">Generated Questions</h3>
                 
                 {generatedQuestions ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Generated Questions</h3>
+                  <div className="space-y-6">
                     <div className="space-y-3">
-                      {generatedQuestions.map((q: any, index: number) => (
-                        <div key={index} className="p-3 bg-neutral-50 rounded-md border">
-                          <p className="font-medium">{q.question}</p>
-                          {q.explanation && (
-                            <p className="text-sm text-neutral-600 mt-2">{q.explanation}</p>
-                          )}
+                      <h4 className="font-medium">Behavioral Questions</h4>
+                      {generatedQuestions.behavioral.map((q, index) => (
+                        <div key={index} className="bg-blue-50 p-3 rounded-md border border-blue-100">
+                          <h5 className="font-medium mb-2">{q.question}</h5>
+                          <div className="text-sm">
+                            <span className="font-medium">Suggested Approach: </span>
+                            {q.suggestedAnswer}
+                          </div>
                         </div>
                       ))}
                     </div>
                     
-                    <div className="flex justify-end">
-                      <Button variant="outline" size="sm" onClick={() => setGeneratedQuestions(null)}>
-                        Clear Questions
-                      </Button>
+                    <div className="space-y-3">
+                      <h4 className="font-medium">Technical Questions</h4>
+                      {generatedQuestions.technical.map((q, index) => (
+                        <div key={index} className="bg-purple-50 p-3 rounded-md border border-purple-100">
+                          <h5 className="font-medium mb-2">{q.question}</h5>
+                          <div className="text-sm">
+                            <span className="font-medium">Suggested Approach: </span>
+                            {q.suggestedAnswer}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ) : generateQuestionsMutation.isError ? (
-                  <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded-md">
-                    <h3 className="font-medium mb-1">Error Generating Questions</h3>
-                    <p className="text-sm">
-                      {generateQuestionsMutation.error instanceof Error
-                        ? generateQuestionsMutation.error.message
-                        : "An unknown error occurred"}
-                    </p>
-                    <p className="text-sm mt-2">Please try again with different parameters</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -602,7 +595,7 @@ export default function Interview() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="process">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
@@ -621,19 +614,19 @@ export default function Interview() {
                       <h3 className="text-sm font-medium mb-2">Status Filter</h3>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-all" checked={statusFilter.includes('all')} />
+                          <Checkbox id="status-all" checked />
                           <label htmlFor="status-all" className="text-sm">All Processes</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-active" checked={statusFilter.includes('In Progress')} />
+                          <Checkbox id="status-active" />
                           <label htmlFor="status-active" className="text-sm">Active</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-completed" checked={statusFilter.includes('Completed')} />
+                          <Checkbox id="status-completed" />
                           <label htmlFor="status-completed" className="text-sm">Completed</label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Checkbox id="status-rejected" checked={statusFilter.includes('Rejected')} />
+                          <Checkbox id="status-rejected" />
                           <label htmlFor="status-rejected" className="text-sm">Rejected</label>
                         </div>
                       </div>
@@ -662,9 +655,9 @@ export default function Interview() {
                 <div className="flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                 </div>
-              ) : interviewProcesses && interviewProcesses.length > 0 ? (
+              ) : interviewProcesses?.length > 0 ? (
                 <div className="space-y-4">
-                  {interviewProcesses.map((process: any) => (
+                  {interviewProcesses.map((process) => (
                     <Card key={process.id}>
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -703,7 +696,7 @@ export default function Interview() {
                           <div>
                             <p className="text-sm font-medium mb-2">Interview Progress</p>
                             <div className="space-y-2">
-                              {process.stages?.map((stage: any) => (
+                              {process.stages?.map((stage) => (
                                 <div key={stage.id} className="flex items-center">
                                   {stage.completedDate ? (
                                     <CheckCircle className="h-4 w-4 text-green-500 mr-2" />

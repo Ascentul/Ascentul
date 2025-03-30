@@ -3,7 +3,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertUserSchema, insertGoalSchema, insertWorkHistorySchema, insertResumeSchema, insertCoverLetterSchema, insertInterviewPracticeSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertGoalSchema, 
+  insertWorkHistorySchema, 
+  insertResumeSchema, 
+  insertCoverLetterSchema, 
+  insertInterviewPracticeSchema,
+  insertInterviewProcessSchema,
+  insertInterviewStageSchema,
+  insertFollowupActionSchema
+} from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -875,6 +885,326 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Register all routes with /api prefix
   app.use("/api", apiRouter);
   
+  // Interview Process Tracking Routes
+  apiRouter.get("/interview-processes", async (req: Request, res: Response) => {
+    try {
+      // For demo purposes, use the sample user
+      const user = await storage.getUserByUsername("alex");
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const processes = await storage.getInterviewProcesses(user.id);
+      res.status(200).json(processes);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching interview processes" });
+    }
+  });
+  
+  apiRouter.post("/interview-processes", async (req: Request, res: Response) => {
+    try {
+      const processData = insertInterviewProcessSchema.parse(req.body);
+      
+      // For demo purposes, use the sample user
+      const user = await storage.getUserByUsername("alex");
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const process = await storage.createInterviewProcess(user.id, processData);
+      res.status(201).json(process);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid interview process data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating interview process" });
+    }
+  });
+  
+  apiRouter.get("/interview-processes/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const processId = parseInt(id);
+      
+      if (isNaN(processId)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processId);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      res.status(200).json(process);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching interview process" });
+    }
+  });
+  
+  apiRouter.put("/interview-processes/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const processId = parseInt(id);
+      
+      if (isNaN(processId)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processId);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      const updatedProcess = await storage.updateInterviewProcess(processId, req.body);
+      res.status(200).json(updatedProcess);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating interview process" });
+    }
+  });
+  
+  apiRouter.delete("/interview-processes/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const processId = parseInt(id);
+      
+      if (isNaN(processId)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processId);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      await storage.deleteInterviewProcess(processId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting interview process" });
+    }
+  });
+  
+  // Interview Stage Routes
+  apiRouter.get("/interview-processes/:processId/stages", async (req: Request, res: Response) => {
+    try {
+      const { processId } = req.params;
+      const processIdNum = parseInt(processId);
+      
+      if (isNaN(processIdNum)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processIdNum);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      const stages = await storage.getInterviewStages(processIdNum);
+      res.status(200).json(stages);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching interview stages" });
+    }
+  });
+  
+  apiRouter.post("/interview-processes/:processId/stages", async (req: Request, res: Response) => {
+    try {
+      const { processId } = req.params;
+      const processIdNum = parseInt(processId);
+      
+      if (isNaN(processIdNum)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processIdNum);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      const stageData = insertInterviewStageSchema.parse(req.body);
+      const stage = await storage.createInterviewStage(processIdNum, stageData);
+      res.status(201).json(stage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid interview stage data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating interview stage" });
+    }
+  });
+  
+  apiRouter.put("/interview-stages/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const stageId = parseInt(id);
+      
+      if (isNaN(stageId)) {
+        return res.status(400).json({ message: "Invalid stage ID" });
+      }
+      
+      const stage = await storage.getInterviewStage(stageId);
+      
+      if (!stage) {
+        return res.status(404).json({ message: "Interview stage not found" });
+      }
+      
+      const updatedStage = await storage.updateInterviewStage(stageId, req.body);
+      res.status(200).json(updatedStage);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating interview stage" });
+    }
+  });
+  
+  apiRouter.delete("/interview-stages/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const stageId = parseInt(id);
+      
+      if (isNaN(stageId)) {
+        return res.status(400).json({ message: "Invalid stage ID" });
+      }
+      
+      const stage = await storage.getInterviewStage(stageId);
+      
+      if (!stage) {
+        return res.status(404).json({ message: "Interview stage not found" });
+      }
+      
+      await storage.deleteInterviewStage(stageId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting interview stage" });
+    }
+  });
+  
+  // Followup Action Routes
+  apiRouter.get("/interview-processes/:processId/followups", async (req: Request, res: Response) => {
+    try {
+      const { processId } = req.params;
+      const processIdNum = parseInt(processId);
+      const { stageId } = req.query;
+      
+      if (isNaN(processIdNum)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processIdNum);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      let stageIdNum: number | undefined = undefined;
+      if (stageId && typeof stageId === 'string') {
+        stageIdNum = parseInt(stageId);
+        if (isNaN(stageIdNum)) {
+          return res.status(400).json({ message: "Invalid stage ID" });
+        }
+      }
+      
+      const actions = await storage.getFollowupActions(processIdNum, stageIdNum);
+      res.status(200).json(actions);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching followup actions" });
+    }
+  });
+  
+  apiRouter.post("/interview-processes/:processId/followups", async (req: Request, res: Response) => {
+    try {
+      const { processId } = req.params;
+      const processIdNum = parseInt(processId);
+      
+      if (isNaN(processIdNum)) {
+        return res.status(400).json({ message: "Invalid process ID" });
+      }
+      
+      const process = await storage.getInterviewProcess(processIdNum);
+      
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      const actionData = insertFollowupActionSchema.parse(req.body);
+      const action = await storage.createFollowupAction(processIdNum, actionData);
+      res.status(201).json(action);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid followup action data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating followup action" });
+    }
+  });
+  
+  apiRouter.put("/followup-actions/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const actionId = parseInt(id);
+      
+      if (isNaN(actionId)) {
+        return res.status(400).json({ message: "Invalid action ID" });
+      }
+      
+      const action = await storage.getFollowupAction(actionId);
+      
+      if (!action) {
+        return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      const updatedAction = await storage.updateFollowupAction(actionId, req.body);
+      res.status(200).json(updatedAction);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating followup action" });
+    }
+  });
+  
+  apiRouter.put("/followup-actions/:id/complete", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const actionId = parseInt(id);
+      
+      if (isNaN(actionId)) {
+        return res.status(400).json({ message: "Invalid action ID" });
+      }
+      
+      const action = await storage.getFollowupAction(actionId);
+      
+      if (!action) {
+        return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      const completedAction = await storage.completeFollowupAction(actionId);
+      res.status(200).json(completedAction);
+    } catch (error) {
+      res.status(500).json({ message: "Error completing followup action" });
+    }
+  });
+  
+  apiRouter.delete("/followup-actions/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const actionId = parseInt(id);
+      
+      if (isNaN(actionId)) {
+        return res.status(400).json({ message: "Invalid action ID" });
+      }
+      
+      const action = await storage.getFollowupAction(actionId);
+      
+      if (!action) {
+        return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      await storage.deleteFollowupAction(actionId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting followup action" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
