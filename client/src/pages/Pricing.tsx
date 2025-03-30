@@ -335,15 +335,9 @@ export default function Pricing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {user ? (
                 isSubscriptionActive ? (
-                  <Button size="lg" onClick={handleCancelSubscription} disabled={cancelSubscriptionMutation.isPending} variant="outline">
-                    {cancelSubscriptionMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>Cancel Subscription</>
-                    )}
+                  <Button size="lg" onClick={() => navigate('/account')} variant="outline">
+                    Manage Your Subscription
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button size="lg" onClick={() => handleSubscribe('premium')}>
