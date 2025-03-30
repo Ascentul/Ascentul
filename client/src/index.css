@@ -11,20 +11,3 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
-
-/* Pulse animation for toggle buttons */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
-  }
-}
-
-.pulse-animation {
-  animation: pulse 2s infinite;
-}

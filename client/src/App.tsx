@@ -88,7 +88,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => window.location.href = '/'}
-              className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors shadow-md pulse-animation"
+              className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-md border border-foreground/20 bg-background hover:bg-background/80 transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

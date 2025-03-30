@@ -29,8 +29,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           {/* University Toggle - only for university users */}
           {isUniversityUser && (
             <Button 
-              variant="default" 
-              className="mr-3 bg-purple-600 hover:bg-purple-700 text-white flex items-center pulse-animation shadow-md"
+              variant="outline" 
+              className="mr-3 border-primary text-primary hover:bg-primary/5 flex items-center"
               onClick={() => window.location.href = '/university'}
             >
               <GraduationCap className="h-4 w-4 mr-2" />
