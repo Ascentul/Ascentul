@@ -192,10 +192,15 @@ export async function cancelSubscription(userId: number) {
       throw new Error('User has no active subscription to cancel');
     }
     
-    // Cancel at period end to allow user to use service until the end of the billing period
-    await stripe.subscriptions.update(user.stripeSubscriptionId, {
-      cancel_at_period_end: true,
-    });
+    // Check if this is a mock subscription ID (for demo purposes)
+    const isMockSubscription = user.stripeSubscriptionId.startsWith('sub_mock');
+    
+    if (!isMockSubscription) {
+      // Only call Stripe API for real subscription IDs
+      await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+    }
     
     // Update user record to mark subscription as pending cancellation
     await storage.updateUserStripeInfo(userId, {
@@ -259,6 +264,18 @@ export async function createSetupIntent(userId: number) {
       throw new Error('User not found');
     }
     
+    // Check if user has a mock customer ID
+    const isMockCustomer = !user.stripeCustomerId || user.stripeCustomerId.startsWith('cus_mock');
+    
+    if (isMockCustomer) {
+      // Return a mock setup intent for demo purposes
+      return {
+        clientSecret: 'seti_mock_secret_' + Math.random().toString(36).substr(2, 9),
+        setupIntentId: 'seti_mock_' + Math.random().toString(36).substr(2, 9)
+      };
+    }
+    
+    // For real customers, proceed with Stripe API
     // Ensure customer exists in Stripe
     const customerId = await createOrRetrieveCustomer(
       userId,
@@ -296,6 +313,51 @@ export async function getUserPaymentMethods(userId: number) {
       return { payment_methods: [] };
     }
     
+    // Check if this is a mock customer ID (for demo purposes)
+    const isMockCustomer = user.stripeCustomerId.startsWith('cus_mock');
+    
+    if (isMockCustomer) {
+      // Return mock data for demo
+      return { 
+        payment_methods: [
+          {
+            id: 'pm_mock123',
+            object: 'payment_method',
+            billing_details: {
+              address: {
+                city: 'San Francisco',
+                country: 'US',
+                line1: '123 Market St',
+                line2: null,
+                postal_code: '94107',
+                state: 'CA'
+              },
+              email: user.email,
+              name: user.name,
+              phone: null
+            },
+            card: {
+              brand: 'visa',
+              checks: {},
+              country: 'US',
+              exp_month: 12,
+              exp_year: 2024,
+              funding: 'credit',
+              last4: '4242',
+              networks: {},
+              three_d_secure_usage: {},
+              wallet: null
+            },
+            created: Math.floor(Date.now() / 1000) - 86400,
+            customer: user.stripeCustomerId,
+            type: 'card'
+          }
+        ],
+        default_payment_method: 'pm_mock123'
+      };
+    }
+    
+    // For real customer IDs, call Stripe API
     // Retrieve customer with default payment method expanded
     const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
       expand: ['default_source', 'invoice_settings.default_payment_method']
