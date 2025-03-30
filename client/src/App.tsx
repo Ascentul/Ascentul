@@ -8,6 +8,7 @@ import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         <Route path="/work-history" component={WorkHistory} />
         <Route path="/achievements" component={Achievements} />
         <Route path="/ai-coach" component={AICoach} />
+        <Route path="/profile" component={Profile} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
