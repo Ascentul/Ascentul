@@ -202,9 +202,10 @@ export async function cancelSubscription(userId: number) {
       });
     }
     
-    // Update user record to mark subscription as pending cancellation
+    // Update user record to mark subscription as cancelled and revert to free plan
     await storage.updateUserStripeInfo(userId, {
       subscriptionStatus: 'cancelled',
+      subscriptionPlan: 'free',  // Set back to free plan
     });
     
     return { success: true, message: 'Subscription will be cancelled at the end of the billing period' };
