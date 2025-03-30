@@ -23,13 +23,19 @@ import {
   Building,
   Star,
   Clock,
-  Calendar
+  Calendar,
+  Edit,
+  Plus,
+  Trash2,
+  Download,
+  Share
 } from "lucide-react";
 
 // This is a demo component to show what a profile page might look like
 export default function Profile() {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState("about");
+  const [isEditing, setIsEditing] = useState(false);
   
   // Placeholder for user statistics
   const { data: statistics } = useQuery({ 
@@ -54,6 +60,31 @@ export default function Profile() {
     queryKey: ['/api/work-history'],
     enabled: !!user
   });
+  
+  // Handle UI interactions
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+  
+  const handleConnect = () => {
+    alert("Connection request sent!");
+  };
+  
+  const handleAddExperience = () => {
+    alert("Experience form would open here");
+  };
+  
+  const handleAddEducation = () => {
+    alert("Education form would open here");
+  };
+  
+  const handleAddSkill = () => {
+    alert("Skill form would open here");
+  };
+  
+  const handleEditItem = (itemType: string, id: number) => {
+    alert(`Editing ${itemType} with ID: ${id}`);
+  };
   
   // Placeholder profile completeness
   const profileCompleteness = 85;
@@ -81,8 +112,14 @@ export default function Profile() {
           </div>
         </div>
         <div className="absolute bottom-4 right-8 flex gap-2">
-          <Button variant="outline" size="sm">Edit Profile</Button>
-          <Button size="sm">Connect</Button>
+          <Button variant="outline" size="sm" onClick={handleEditToggle}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Profile
+          </Button>
+          <Button size="sm" onClick={handleConnect}>
+            <Plus className="h-4 w-4 mr-2" />
+            Connect
+          </Button>
         </div>
       </div>
       
@@ -160,7 +197,10 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>About Me</span>
-                <Button variant="ghost" size="sm">Edit</Button>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -188,19 +228,19 @@ export default function Profile() {
               
               <h3 className="text-sm font-medium mb-2">Connect</h3>
               <div className="flex gap-3">
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => window.open('mailto:user@example.com')}>
                   <Mail className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => window.open('https://linkedin.com', '_blank')}>
                   <Linkedin className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => window.open('https://github.com', '_blank')}>
                   <Github className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => window.open('https://twitter.com', '_blank')}>
                   <Twitter className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => window.open('https://example.com', '_blank')}>
                   <Globe className="h-4 w-4" />
                 </Button>
               </div>
@@ -214,7 +254,10 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Work Experience</span>
-                <Button variant="ghost" size="sm">Add Experience</Button>
+                <Button variant="ghost" size="sm" onClick={handleAddExperience}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Experience
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -228,9 +271,9 @@ export default function Profile() {
                     <div className="flex justify-between">
                       <h3 className="font-medium">Senior Software Engineer</h3>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItem("experience", 1)}>
                           <span className="sr-only">Edit</span>
-                          <pencil className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -264,9 +307,9 @@ export default function Profile() {
                     <div className="flex justify-between">
                       <h3 className="font-medium">Software Developer</h3>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItem("experience", 2)}>
                           <span className="sr-only">Edit</span>
-                          <pencil className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -298,7 +341,10 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Education</span>
-                <Button variant="ghost" size="sm">Add Education</Button>
+                <Button variant="ghost" size="sm" onClick={handleAddEducation}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Education
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -312,9 +358,9 @@ export default function Profile() {
                     <div className="flex justify-between">
                       <h3 className="font-medium">Bachelor of Science in Computer Science</h3>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItem("education", 1)}>
                           <span className="sr-only">Edit</span>
-                          <pencil className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -341,9 +387,9 @@ export default function Profile() {
                     <div className="flex justify-between">
                       <h3 className="font-medium">AWS Certified Solutions Architect</h3>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItem("certification", 1)}>
                           <span className="sr-only">Edit</span>
-                          <pencil className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -368,7 +414,10 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Skills & Endorsements</span>
-                <Button variant="ghost" size="sm">Add Skill</Button>
+                <Button variant="ghost" size="sm" onClick={handleAddSkill}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Skill
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -408,17 +457,6 @@ export default function Profile() {
                         <div className="h-2 bg-primary rounded-full" style={{ width: '80%' }}></div>
                       </div>
                     </div>
-                    
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">TypeScript</span>
-                        <span className="text-xs text-muted-foreground">19 endorsements</span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div className="h-2 bg-primary rounded-full" style={{ width: '75%' }}></div>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 
@@ -430,19 +468,8 @@ export default function Profile() {
                     {/* Skill Item */}
                     <div>
                       <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Communication</span>
-                        <span className="text-xs text-muted-foreground">18 endorsements</span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div className="h-2 bg-primary rounded-full" style={{ width: '85%' }}></div>
-                      </div>
-                    </div>
-                    
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium">Team Leadership</span>
-                        <span className="text-xs text-muted-foreground">15 endorsements</span>
+                        <span className="text-xs text-muted-foreground">18 endorsements</span>
                       </div>
                       <div className="h-2 bg-primary/10 rounded-full">
                         <div className="h-2 bg-primary rounded-full" style={{ width: '75%' }}></div>
@@ -456,7 +483,7 @@ export default function Profile() {
                         <span className="text-xs text-muted-foreground">22 endorsements</span>
                       </div>
                       <div className="h-2 bg-primary/10 rounded-full">
-                        <div className="h-2 bg-primary rounded-full" style={{ width: '90%' }}></div>
+                        <div className="h-2 bg-primary rounded-full" style={{ width: '82%' }}></div>
                       </div>
                     </div>
                   </div>
@@ -476,75 +503,130 @@ export default function Profile() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Achievement Item */}
-                <Card>
+                <Card className="border-primary/10 overflow-hidden">
+                  <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
                   <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Award className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Resume Master</h3>
-                        <p className="text-sm text-muted-foreground">Created 5 tailored resumes</p>
-                        <Badge className="mt-2">+100 XP</Badge>
-                      </div>
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Award className="h-6 w-6 text-primary" />
                     </div>
+                    <h3 className="font-medium">Resume Master</h3>
+                    <p className="text-sm text-muted-foreground">Created 5 different resumes tailored to specific job postings.</p>
+                    <div className="mt-2 text-xs text-primary">+100 XP</div>
+                    <Badge className="mt-4" variant="outline">Unlocked May 20, 2024</Badge>
                   </CardContent>
                 </Card>
                 
                 {/* Achievement Item */}
-                <Card>
+                <Card className="border-primary/10 overflow-hidden">
+                  <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
                   <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Award className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Interview Pro</h3>
-                        <p className="text-sm text-muted-foreground">Completed 20 practice interviews</p>
-                        <Badge className="mt-2">+150 XP</Badge>
-                      </div>
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <Star className="h-6 w-6 text-primary" />
                     </div>
+                    <h3 className="font-medium">Goal Achiever</h3>
+                    <p className="text-sm text-muted-foreground">Completed 10 career goals ahead of schedule.</p>
+                    <div className="mt-2 text-xs text-primary">+150 XP</div>
+                    <Badge className="mt-4" variant="outline">Unlocked Jun 12, 2024</Badge>
                   </CardContent>
                 </Card>
                 
-                {/* Achievement Item */}
-                <Card>
+                {/* Achievement Item - Locked */}
+                <Card className="border-gray-200 overflow-hidden opacity-60">
+                  <div className="h-2 bg-gray-200"></div>
                   <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Award className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Goal Setter</h3>
-                        <p className="text-sm text-muted-foreground">Set 5 career goals</p>
-                        <Badge className="mt-2">+75 XP</Badge>
-                      </div>
+                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                      <Award className="h-6 w-6 text-gray-400" />
                     </div>
+                    <h3 className="font-medium">Interview Expert</h3>
+                    <p className="text-sm text-muted-foreground">Complete 20 practice interviews with high confidence ratings.</p>
+                    <div className="mt-2 text-xs text-gray-400">+200 XP</div>
+                    <Badge className="mt-4" variant="outline">Locked</Badge>
                   </CardContent>
                 </Card>
-                
-                {/* Locked Achievement Item */}
-                <Card className="opacity-60">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                        <Award className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Job Master</h3>
-                        <p className="text-sm text-muted-foreground">Apply to 10 jobs</p>
-                        <Badge variant="outline" className="mt-2">Locked</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              </div>
+              
+              <div className="mt-8">
+                <h3 className="font-medium mb-4">XP Progression</h3>
+                <div className="h-2 bg-gray-100 rounded-full mb-2">
+                  <div className="h-2 bg-primary rounded-full" style={{ width: '68%' }}></div>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Level {user.level}</span>
+                  <span>{user.xp} / 1000 XP</span>
+                  <span>Level {user.level + 1}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Resume / Documents Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex justify-between items-center">
+            <span>Your Documents</span>
+            <Button variant="ghost" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Create New
+            </Button>
+          </CardTitle>
+          <CardDescription>Quick access to your resumes and cover letters</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Software Developer Resume</CardTitle>
+                <CardDescription>Last updated: March 15, 2024</CardDescription>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <p className="text-sm text-muted-foreground">Tailored for front-end development positions</p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  <Badge variant="outline" className="text-xs">ATS Optimized</Badge>
+                  <Badge variant="outline" className="text-xs">Modern Template</Badge>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm" onClick={() => alert("Downloading...")}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => alert("Editing...")}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Tech Lead Cover Letter</CardTitle>
+                <CardDescription>Last updated: February 8, 2024</CardDescription>
+              </CardHeader>
+              <CardContent className="pb-2">
+                <p className="text-sm text-muted-foreground">Emphasizes leadership and architectural experience</p>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  <Badge variant="outline" className="text-xs">Professional</Badge>
+                  <Badge variant="outline" className="text-xs">Leadership Focus</Badge>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm" onClick={() => alert("Downloading...")}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => alert("Editing...")}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
