@@ -1,14 +1,74 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
-// User model
+// University Model for University Edition
+export const universities = pgTable("universities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  domain: text("domain").notNull().unique(),
+  logo: text("logo"),
+  primaryColor: text("primary_color"),
+  secondaryColor: text("secondary_color"),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  subscriptionPlan: text("subscription_plan").notNull().default("basic"),
+  licenseCount: integer("license_count").notNull().default(0),
+  activeLicenses: integer("active_licenses").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUniversitySchema = createInsertSchema(universities).omit({
+  id: true,
+  createdAt: true,
+});
+
+// University Administrators
+export const universityAdmins = pgTable("university_admins", {
+  id: serial("id").primaryKey(),
+  universityId: integer("university_id").notNull(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("admin"), // admin, super_admin, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUniversityAdminSchema = createInsertSchema(universityAdmins).omit({
+  id: true,
+  createdAt: true,
+});
+
+// University Departments
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  universityId: integer("university_id").notNull(),
+  name: text("name").notNull(),
+  code: text("code"),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+});
+
+// User model (Extended for University Edition)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  universityId: integer("university_id"),
+  departmentId: integer("department_id"),
+  studentId: text("student_id"), // University-assigned student ID
+  graduationYear: integer("graduation_year"),
+  isUniversityStudent: boolean("is_university_student").default(false),
   xp: integer("xp").notNull().default(0),
   level: integer("level").notNull().default(1),
   rank: text("rank").notNull().default("Career Explorer"),
@@ -274,9 +334,256 @@ export const insertFollowupActionSchema = createInsertSchema(followupActions).om
   completedDate: true,
 });
 
+// Study Plan Model (University Edition)
+export const studyPlans = pgTable("study_plans", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  academicTerm: text("academic_term"), // Fall 2023, Spring 2024, etc.
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertStudyPlanSchema = createInsertSchema(studyPlans).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Study Plan Course Model
+export const studyPlanCourses = pgTable("study_plan_courses", {
+  id: serial("id").primaryKey(),
+  planId: integer("plan_id").notNull(),
+  courseCode: text("course_code").notNull(),
+  courseName: text("course_name").notNull(),
+  credits: integer("credits").notNull().default(3),
+  schedule: text("schedule"), // e.g., "MWF 9:00-10:30"
+  instructor: text("instructor"),
+  location: text("location"),
+  priority: integer("priority").notNull().default(1), // 1 = highest
+  status: text("status").notNull().default("planned"), // planned, in-progress, completed
+  grade: text("grade"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStudyPlanCourseSchema = createInsertSchema(studyPlanCourses).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Course Assignment Model
+export const courseAssignments = pgTable("course_assignments", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  status: text("status").notNull().default("pending"), // pending, in-progress, completed
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  grade: text("grade"),
+  weight: integer("weight").notNull().default(1), // percentage weight in course grade
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments).omit({
+  id: true,
+  createdAt: true,
+  completed: true,
+  completedAt: true,
+});
+
+// Learning Module for LMS (University Edition)
+export const learningModules = pgTable("learning_modules", {
+  id: serial("id").primaryKey(),
+  universityId: integer("university_id").notNull(),
+  departmentId: integer("department_id"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  level: text("level").notNull().default("beginner"), // beginner, intermediate, advanced
+  estimatedHours: integer("estimated_hours"),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLearningModuleSchema = createInsertSchema(learningModules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  published: true,
+});
+
+// Learning Unit Model
+export const learningUnits = pgTable("learning_units", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  content: jsonb("content").notNull(),
+  orderIndex: integer("order_index").notNull().default(0),
+  estimatedMinutes: integer("estimated_minutes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLearningUnitSchema = createInsertSchema(learningUnits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Module Enrollment Model
+export const moduleEnrollments = pgTable("module_enrollments", {
+  id: serial("id").primaryKey(),
+  moduleId: integer("module_id").notNull(),
+  userId: integer("user_id").notNull(),
+  progress: integer("progress").notNull().default(0),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  lastAccessedAt: timestamp("last_accessed_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertModuleEnrollmentSchema = createInsertSchema(moduleEnrollments).omit({
+  id: true,
+  userId: true,
+  progress: true,
+  completed: true,
+  completedAt: true,
+  lastAccessedAt: true,
+  createdAt: true,
+});
+
+// Define relations between models
+export const universitiesRelations = relations(universities, ({ many }) => ({
+  administrators: many(universityAdmins),
+  departments: many(departments),
+  students: many(users),
+  learningModules: many(learningModules),
+}));
+
+export const universityAdminsRelations = relations(universityAdmins, ({ one }) => ({
+  university: one(universities, {
+    fields: [universityAdmins.universityId],
+    references: [universities.id],
+  }),
+}));
+
+export const departmentsRelations = relations(departments, ({ one, many }) => ({
+  university: one(universities, {
+    fields: [departments.universityId],
+    references: [universities.id],
+  }),
+  students: many(users),
+  learningModules: many(learningModules),
+}));
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  university: one(universities, {
+    fields: [users.universityId],
+    references: [universities.id],
+  }),
+  department: one(departments, {
+    fields: [users.departmentId],
+    references: [departments.id],
+  }),
+  workHistory: many(workHistory),
+  goals: many(goals),
+  studyPlans: many(studyPlans),
+  moduleEnrollments: many(moduleEnrollments),
+}));
+
+export const studyPlansRelations = relations(studyPlans, ({ one, many }) => ({
+  user: one(users, {
+    fields: [studyPlans.userId],
+    references: [users.id],
+  }),
+  courses: many(studyPlanCourses),
+}));
+
+export const studyPlanCoursesRelations = relations(studyPlanCourses, ({ one, many }) => ({
+  studyPlan: one(studyPlans, {
+    fields: [studyPlanCourses.planId],
+    references: [studyPlans.id],
+  }),
+  assignments: many(courseAssignments),
+}));
+
+export const courseAssignmentsRelations = relations(courseAssignments, ({ one }) => ({
+  course: one(studyPlanCourses, {
+    fields: [courseAssignments.courseId],
+    references: [studyPlanCourses.id],
+  }),
+}));
+
+export const learningModulesRelations = relations(learningModules, ({ one, many }) => ({
+  university: one(universities, {
+    fields: [learningModules.universityId],
+    references: [universities.id],
+  }),
+  department: one(departments, {
+    fields: [learningModules.departmentId],
+    references: [departments.id],
+  }),
+  units: many(learningUnits),
+  enrollments: many(moduleEnrollments),
+}));
+
+export const learningUnitsRelations = relations(learningUnits, ({ one }) => ({
+  module: one(learningModules, {
+    fields: [learningUnits.moduleId],
+    references: [learningModules.id],
+  }),
+}));
+
+export const moduleEnrollmentsRelations = relations(moduleEnrollments, ({ one }) => ({
+  module: one(learningModules, {
+    fields: [moduleEnrollments.moduleId],
+    references: [learningModules.id],
+  }),
+  user: one(users, {
+    fields: [moduleEnrollments.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
+export type University = typeof universities.$inferSelect;
+export type InsertUniversity = z.infer<typeof insertUniversitySchema>;
+
+export type UniversityAdmin = typeof universityAdmins.$inferSelect;
+export type InsertUniversityAdmin = z.infer<typeof insertUniversityAdminSchema>;
+
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type StudyPlan = typeof studyPlans.$inferSelect;
+export type InsertStudyPlan = z.infer<typeof insertStudyPlanSchema>;
+
+export type StudyPlanCourse = typeof studyPlanCourses.$inferSelect;
+export type InsertStudyPlanCourse = z.infer<typeof insertStudyPlanCourseSchema>;
+
+export type CourseAssignment = typeof courseAssignments.$inferSelect;
+export type InsertCourseAssignment = z.infer<typeof insertCourseAssignmentSchema>;
+
+export type LearningModule = typeof learningModules.$inferSelect;
+export type InsertLearningModule = z.infer<typeof insertLearningModuleSchema>;
+
+export type LearningUnit = typeof learningUnits.$inferSelect;
+export type InsertLearningUnit = z.infer<typeof insertLearningUnitSchema>;
+
+export type ModuleEnrollment = typeof moduleEnrollments.$inferSelect;
+export type InsertModuleEnrollment = z.infer<typeof insertModuleEnrollmentSchema>;
 
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
