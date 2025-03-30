@@ -34,41 +34,8 @@ export default function Account() {
   const [isUpgradingSubscription, setIsUpgradingSubscription] = useState(false);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
   
-  // Since updateProfile isn't available in useUser, we'll implement it here
-  const updateProfile = async (data: any) => {
-    try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Failed to update profile' }));
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
-      
-      // Update the client-side user data
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-      
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been updated successfully.",
-        variant: "default",
-      });
-      
-      setIsEditingProfile(false);
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Update Failed",
-        description: error instanceof Error ? error.message : "Failed to update profile",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
+  // Use the updateProfile function from the useUser hook
+  const { updateProfile } = useUser();
   
   // Helper function to get pretty plan name
   const getPlanName = (plan: string | undefined): string => {

@@ -93,7 +93,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     mutationFn: async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
       const res = await apiRequest('PUT', '/api/users/profile', data);
       const responseData = await res.json();
-      return responseData.user as User;
+      // Response data is the user object directly
+      return responseData as User;
     },
     onSuccess: (updatedUser) => {
       queryClient.setQueryData(['/api/users/me'], updatedUser);
