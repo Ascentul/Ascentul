@@ -224,8 +224,9 @@ export default function Account() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: user?.id,
-          planType: 'premium',
-          interval: selectedCycle
+          plan: 'premium',
+          interval: selectedCycle,
+          email: user?.email
         })
       });
       
@@ -545,7 +546,11 @@ export default function Account() {
                       <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Work history tracking
                     </li>
                   </ul>
-                  <Button variant="default" size="sm" className="mt-4" onClick={upgradeSubscription}>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="mt-4" 
+                    onClick={() => upgradeSubscription()}>
                     Upgrade to Pro
                   </Button>
                 </div>

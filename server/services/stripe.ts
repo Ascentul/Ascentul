@@ -210,7 +210,7 @@ export async function cancelSubscription(userId: number) {
     await storage.updateUserStripeInfo(userId, {
       subscriptionStatus: 'cancelled',
       subscriptionPlan: 'free',  // Set back to free plan
-      subscriptionCycle: null,   // Clear the subscription cycle
+      subscriptionCycle: undefined,   // Clear the subscription cycle
     });
     
     return { success: true, message: 'Subscription will be cancelled at the end of the billing period' };
