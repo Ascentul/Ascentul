@@ -12,6 +12,15 @@ import Profile from "@/pages/Profile";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
+// Public Pages
+import Home from "@/pages/Home";
+import Pricing from "@/pages/Pricing";
+import Solutions from "@/pages/Solutions";
+import WhoWeServe from "@/pages/WhoWeServe";
+
+// Public Layout
+import { PublicLayout } from "@/components/PublicLayout";
+
 // Route Protection Components
 import { ProtectedRoute, PublicRoute } from "@/components/RouteProtection";
 import { 
@@ -134,6 +143,9 @@ function App() {
   const [location] = useLocation();
   const isUniversityRoute = location.startsWith("/university");
   const isAuthRoute = location === "/auth";
+  // For non-authenticated users, show public routes; otherwise show protected routes
+  const isAuthenticated = useUser().user !== null;
+  const isPublicRoute = (!isAuthenticated && ["", "/", "/home", "/pricing", "/solutions", "/who-we-serve"].includes(location));
 
   // Skip layout for auth route
   if (isAuthRoute) {
@@ -141,6 +153,21 @@ function App() {
       <Switch>
         <Route path="/auth" component={AuthPage} />
       </Switch>
+    );
+  }
+
+  // Use PublicLayout for public routes
+  if (isPublicRoute) {
+    return (
+      <PublicLayout>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/home" component={Home} />
+          <Route path="/pricing" component={Pricing} />
+          <Route path="/solutions" component={Solutions} />
+          <Route path="/who-we-serve" component={WhoWeServe} />
+        </Switch>
+      </PublicLayout>
     );
   }
 
