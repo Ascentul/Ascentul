@@ -398,6 +398,31 @@ export default function Account() {
                 </div>
               )}
             </CardContent>
+            
+            {/* Add Card Footer with Unsubscribe Button for paid plans */}
+            {user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active' && (
+              <CardFooter className="border-t pt-6 flex flex-col items-stretch">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-medium">Subscription Management</h3>
+                    <p className="text-sm text-muted-foreground">Need to make changes to your billing?</p>
+                  </div>
+                  <Button variant="default" size="sm" onClick={upgradeSubscription}>
+                    Manage Payment Methods
+                  </Button>
+                </div>
+                <div className="border-t pt-4">
+                  <p className="text-sm text-muted-foreground mb-3">Want to cancel your subscription?</p>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full"
+                    onClick={() => setIsCancellingSubscription(true)}
+                  >
+                    Unsubscribe
+                  </Button>
+                </div>
+              </CardFooter>
+            )}
           </Card>
           
           {/* Cancel Subscription Dialog */}
