@@ -158,7 +158,7 @@ export default function Account() {
       case 'free':
         return 'Free Plan';
       case 'premium':
-        return 'Premium Plan';
+        return 'Pro Plan';
       case 'university':
         return 'University License';
       default:
@@ -365,7 +365,7 @@ export default function Account() {
                     </li>
                   </ul>
                   <Button variant="default" size="sm" className="mt-4" onClick={upgradeSubscription}>
-                    Upgrade to Premium
+                    Upgrade to Pro
                   </Button>
                 </div>
               )}
@@ -374,7 +374,7 @@ export default function Account() {
               {user.subscriptionPlan === 'premium' && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-md">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Your Premium Features</h3>
+                    <h3 className="font-medium">Your Pro Features</h3>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={upgradeSubscription}>
                         Manage Subscription
@@ -431,7 +431,7 @@ export default function Account() {
               <DialogHeader>
                 <DialogTitle>Cancel Subscription</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.
+                  Are you sure you want to cancel your subscription? You'll lose access to pro features at the end of your billing period.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">

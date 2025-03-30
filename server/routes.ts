@@ -36,7 +36,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         departmentId: 2,
         studentId: "U12345",
         graduationYear: 2025,
-        profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80"
+        profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
+        subscriptionPlan: "premium",
+        subscriptionStatus: "active",
+        stripeCustomerId: "cus_mock123",
+        stripeSubscriptionId: "sub_mock123",
+        subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 month from now
       });
       console.log("Created sample user:", sampleUser.id);
       

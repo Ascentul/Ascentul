@@ -139,7 +139,7 @@ export default function Pricing() {
     },
     {
       id: 'premium',
-      name: 'Premium',
+      name: 'Pro',
       price: '9.99',
       description: 'Everything you need for professional career development.',
       features: [
@@ -169,7 +169,7 @@ export default function Pricing() {
       price: '7.99',
       description: 'Special plan for university students with academic tools.',
       features: [
-        'All Premium features',
+        'All Pro features',
         'Study plan creator',
         'Course tracking and management',
         'Learning modules',
@@ -347,7 +347,7 @@ export default function Pricing() {
                   </Button>
                 ) : (
                   <Button size="lg" onClick={() => handleSubscribe('premium')}>
-                    Upgrade to Premium
+                    Upgrade to Pro
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )
