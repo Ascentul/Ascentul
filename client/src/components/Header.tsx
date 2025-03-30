@@ -30,7 +30,11 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           {isUniversityUser && (
             <a
                 href="/university"
-                className="mr-3 border border-primary rounded-md px-3 py-1.5 text-primary hover:bg-primary/5 flex items-center"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = '/university';
+                }}
+                className="mr-3 border border-primary rounded-md px-3 py-1.5 text-primary hover:bg-primary/5 flex items-center cursor-pointer"
               >
                 <GraduationCap className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">University Edition</span>
