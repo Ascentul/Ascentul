@@ -1330,8 +1330,18 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   apiRouter.post("/payments/create-subscription", async (req: Request, res: Response) => {
     try {
-      // In a real app, get userId from session
-      const user = await storage.getUserByUsername("alex");
+      // Get the authenticated user (for demo we're using alex)
+      // In a real app with auth, you'd get the user from the session
+      const userId = req.body.userId;
+      let user;
+      
+      if (userId) {
+        user = await storage.getUser(userId);
+      } else {
+        // Fallback to the sample user if no userId is provided
+        user = await storage.getUserByUsername("alex");
+      }
+      
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -1385,8 +1395,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   apiRouter.get("/payments/payment-methods", async (req: Request, res: Response) => {
     try {
-      // For consistency in this demo, get the user from the session
-      const user = await storage.getUserByUsername("alex");
+      // Get userId from query parameters
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      let user;
+      
+      if (userId) {
+        user = await storage.getUser(userId);
+      } else {
+        // Fallback to the sample user if no userId is provided
+        user = await storage.getUserByUsername("alex");
+      }
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });

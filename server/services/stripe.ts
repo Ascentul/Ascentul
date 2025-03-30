@@ -12,14 +12,17 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Product price IDs - these would be set in your Stripe dashboard
+// Using the values from the image for Pro plans
 const PRICE_IDS = {
   premium: {
-    monthly: 'price_monthly_premium',  // Replace with actual Stripe price ID
-    annual: 'price_annual_premium',   // Replace with actual Stripe price ID
+    monthly: 'price_monthly_premium15',    // $15.00 USD per month
+    quarterly: 'price_quarterly_premium30', // $30.00 USD every 3 months
+    annual: 'price_annual_premium72',      // $72.00 USD per year
   },
   university: {
-    monthly: 'price_monthly_university',  // Replace with actual Stripe price ID
-    annual: 'price_annual_university',    // Replace with actual Stripe price ID
+    monthly: 'price_monthly_university',    // Replace with actual Stripe price ID
+    quarterly: 'price_quarterly_university', // Replace with actual Stripe price ID
+    annual: 'price_annual_university',      // Replace with actual Stripe price ID
   }
 };
 
@@ -31,7 +34,7 @@ export const createPaymentIntentSchema = z.object({
 
 export const createSubscriptionSchema = z.object({
   plan: z.enum(['premium', 'university']),
-  interval: z.enum(['monthly', 'annual']).default('monthly'),
+  interval: z.enum(['monthly', 'quarterly', 'annual']).default('monthly'),
   email: z.string().email(),
   userId: z.number(),
   userName: z.string(),
@@ -121,6 +124,7 @@ export async function createSubscription(data: z.infer<typeof createSubscription
       stripeSubscriptionId: subscription.id,
       subscriptionStatus: 'inactive', // Will be updated to 'active' after successful payment
       subscriptionPlan: data.plan,
+      subscriptionCycle: data.interval,
     });
     
     // Get client secret for payment
@@ -206,6 +210,7 @@ export async function cancelSubscription(userId: number) {
     await storage.updateUserStripeInfo(userId, {
       subscriptionStatus: 'cancelled',
       subscriptionPlan: 'free',  // Set back to free plan
+      subscriptionCycle: null,   // Clear the subscription cycle
     });
     
     return { success: true, message: 'Subscription will be cancelled at the end of the billing period' };

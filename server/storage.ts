@@ -1213,6 +1213,7 @@ export class MemStorage implements IStorage {
     stripeSubscriptionId?: string;
     subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
     subscriptionPlan?: 'free' | 'premium' | 'university';
+    subscriptionCycle?: 'monthly' | 'quarterly' | 'annual';
     subscriptionExpiresAt?: Date;
   }): Promise<User | undefined> {
     const user = await this.getUser(userId);

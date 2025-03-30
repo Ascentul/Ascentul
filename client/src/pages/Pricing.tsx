@@ -10,26 +10,35 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useIsSubscriptionActive } from '@/lib/useUserData';
+
+type PlanInterval = 'monthly' | 'quarterly' | 'annual';
 
 export default function Pricing() {
   const { user, isLoading: userLoading } = useUser();
   const isSubscriptionActive = useIsSubscriptionActive();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
   
   // Add state to track which plan is being processed
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
   // Create subscription mutation
   const subscriptionMutation = useMutation({
-    mutationFn: async (planType: 'premium' | 'university') => {
+    mutationFn: async ({ planType, interval }: { planType: 'premium' | 'university', interval: PlanInterval }) => {
       const response = await apiRequest('POST', '/api/payments/create-subscription', {
         plan: planType,
-        interval: 'monthly', // Default to monthly, can be expanded to offer annual
+        interval: interval,
       });
       
       if (!response.ok) {
@@ -108,7 +117,7 @@ export default function Pricing() {
     }
     
     setProcessingPlan(planType);
-    subscriptionMutation.mutate(planType);
+    subscriptionMutation.mutate({ planType, interval: billingInterval });
   };
 
   const handleCancelSubscription = async () => {
@@ -118,12 +127,45 @@ export default function Pricing() {
     
     cancelSubscriptionMutation.mutate();
   };
+
+  // Pro plan pricing based on billing interval
+  const getPricing = (interval: PlanInterval) => {
+    switch (interval) {
+      case 'monthly':
+        return { price: '15.00', period: 'month', savings: '' };
+      case 'quarterly':
+        return { price: '30.00', period: '3 months', savings: 'Save $15' };
+      case 'annual':
+        return { price: '72.00', period: 'year', savings: 'Save $108' };
+      default:
+        return { price: '15.00', period: 'month', savings: '' };
+    }
+  };
+
+  // Calculate university pricing (hypothetically at 20% discount of Pro)
+  const getUniversityPricing = (interval: PlanInterval) => {
+    switch (interval) {
+      case 'monthly':
+        return { price: '7.99', period: 'month', savings: '47% off Pro' };
+      case 'quarterly':
+        return { price: '21.99', period: '3 months', savings: '27% off Pro' };
+      case 'annual':
+        return { price: '59.99', period: 'year', savings: '17% off Pro' };
+      default:
+        return { price: '7.99', period: 'month', savings: '47% off Pro' };
+    }
+  };
+  
+  // Current plan pricing
+  const proPricing = getPricing(billingInterval);
+  const universityPricing = getUniversityPricing(billingInterval);
   
   const plans = [
     {
       id: 'free',
       name: 'Free',
       price: '0',
+      period: 'forever',
       description: 'Perfect for getting started with basic career planning.',
       features: [
         'Dashboard with career stats',
@@ -140,7 +182,9 @@ export default function Pricing() {
     {
       id: 'premium',
       name: 'Pro',
-      price: '9.99',
+      price: proPricing.price,
+      period: proPricing.period,
+      savings: proPricing.savings,
       description: 'Everything you need for professional career development.',
       features: [
         'All Free features',
@@ -166,7 +210,9 @@ export default function Pricing() {
     {
       id: 'university',
       name: 'University Edition',
-      price: '7.99',
+      price: universityPricing.price,
+      period: universityPricing.period,
+      savings: universityPricing.savings,
       description: 'Special plan for university students with academic tools.',
       features: [
         'All Pro features',
@@ -204,6 +250,25 @@ export default function Pricing() {
         </div>
       </section>
 
+      {/* Billing Interval Toggle */}
+      <section className="pb-8">
+        <div className="container mx-auto px-4">
+          <div className="max-w-md mx-auto">
+            <Tabs 
+              defaultValue="monthly" 
+              className="w-full"
+              onValueChange={(value) => setBillingInterval(value as PlanInterval)}
+            >
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="quarterly">Quarterly</TabsTrigger>
+                <TabsTrigger value="annual">Annual</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Cards */}
       <section className="pb-20">
         <div className="container mx-auto px-4">
@@ -213,16 +278,16 @@ export default function Pricing() {
                 key={plan.name} 
                 className={`${plan.highlighted ? 'border-primary shadow-lg relative' : 'border-border'}`}
               >
-                {plan.badge && (
+                {plan.savings && (
                   <div className="absolute -top-3 right-6 bg-primary text-white text-xs font-semibold py-1 px-3 rounded-full">
-                    {plan.badge}
+                    {plan.savings}
                   </div>
                 )}
                 <CardHeader>
                   <CardTitle>{plan.name}</CardTitle>
                   <div className="mt-2">
                     <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground ml-1">/month</span>
+                    <span className="text-muted-foreground ml-1">/{plan.period}</span>
                   </div>
                   <CardDescription className="mt-3">{plan.description}</CardDescription>
                 </CardHeader>

@@ -77,6 +77,7 @@ export const users = pgTable("users", {
   // Subscription fields
   subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium", "university"
   subscriptionStatus: text("subscription_status").notNull().default("inactive"), // Options: "active", "inactive", "cancelled", "past_due"
+  subscriptionCycle: text("subscription_cycle").default("monthly"), // Options: "monthly", "quarterly", "annual"
   stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID for payments
   stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
   subscriptionExpiresAt: timestamp("subscription_expires_at"), // When the subscription expires
@@ -97,6 +98,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
   subscriptionPlan: true,
   subscriptionStatus: true,
+  subscriptionCycle: true,
   stripeCustomerId: true,
   stripeSubscriptionId: true,
   subscriptionExpiresAt: true,

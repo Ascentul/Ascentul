@@ -140,6 +140,7 @@ export default function Account() {
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [isUpgradingPlan, setIsUpgradingPlan] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   
   // State for Stripe payment elements
   const [isLoading, setIsLoading] = useState(false);
@@ -208,13 +209,34 @@ export default function Account() {
   };
 
   // Subscription management functions
-  const upgradeSubscription = async () => {
+  const upgradeSubscription = async (cycle?: 'monthly' | 'quarterly' | 'annual') => {
     try {
       // Close dialog if open
       setIsManagingSubscription(false);
+      setIsUpgradingPlan(false);
       
-      // Redirect to pricing page to select a plan
-      window.location.href = '/pricing';
+      // Use selected billing cycle or default to monthly
+      const selectedCycle = cycle || billingCycle;
+      
+      // Create subscription with the selected interval
+      const response = await fetch('/api/payments/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user?.id,
+          planType: 'premium',
+          interval: selectedCycle
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create subscription');
+      }
+      
+      const { clientSecret } = await response.json();
+      
+      // Redirect to checkout page with client secret
+      window.location.href = `/checkout?client_secret=${clientSecret}`;
     } catch (error: any) {
       console.error('Error upgrading subscription:', error);
       toast({
@@ -494,7 +516,7 @@ export default function Account() {
                   <>
                     <div>
                       <h3 className="font-medium text-sm text-muted-foreground">Billing Cycle</h3>
-                      <p>Monthly</p>
+                      <p className="capitalize">{user.subscriptionCycle || 'Monthly'}</p>
                     </div>
                     {user.subscriptionExpiresAt && (
                       <div>
@@ -604,7 +626,12 @@ export default function Account() {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Billing Cycle</p>
-                      <p className="font-medium">Monthly</p>
+                      <p className="font-medium">
+                        {user.subscriptionCycle === 'monthly' && 'Monthly'}
+                        {user.subscriptionCycle === 'quarterly' && 'Quarterly'}
+                        {user.subscriptionCycle === 'annual' && 'Annual'}
+                        {!user.subscriptionCycle && 'N/A'}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Next Billing Date</p>
@@ -839,15 +866,57 @@ export default function Account() {
             </ul>
           </div>
           
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-lg font-semibold">$12.99 <span className="text-sm font-normal text-muted-foreground">/ month</span></p>
-              <p className="text-sm text-muted-foreground">Cancel anytime</p>
-            </div>
-            <div className="space-x-2">
-              <Button variant="outline" onClick={() => setIsUpgradingPlan(false)}>Cancel</Button>
-              <Button onClick={upgradeSubscription}>Upgrade Now</Button>
-            </div>
+          {/* Billing cycle tabs */}
+          <div className="mb-6">
+            <Tabs defaultValue="monthly" className="w-full" onValueChange={(value) => setBillingCycle(value as 'monthly' | 'quarterly' | 'annual')}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="quarterly">Quarterly</TabsTrigger>
+                <TabsTrigger value="annual">Annual</TabsTrigger>
+              </TabsList>
+              <TabsContent value="monthly" className="pt-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-lg font-semibold">$15.00 <span className="text-sm font-normal text-muted-foreground">/ month</span></p>
+                    <p className="text-sm text-muted-foreground">Cancel anytime</p>
+                  </div>
+                  <div className="space-x-2">
+                    <Button variant="outline" onClick={() => setIsUpgradingPlan(false)}>Cancel</Button>
+                    <Button onClick={() => upgradeSubscription('monthly')}>Upgrade Now</Button>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="quarterly" className="pt-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center">
+                      <p className="text-lg font-semibold">$30.00 <span className="text-sm font-normal text-muted-foreground">/ 3 months</span></p>
+                      <span className="ml-2 text-xs font-medium text-green-600 bg-green-100 rounded-full px-2 py-0.5">Save $15</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">$10.00 per month, billed quarterly</p>
+                  </div>
+                  <div className="space-x-2">
+                    <Button variant="outline" onClick={() => setIsUpgradingPlan(false)}>Cancel</Button>
+                    <Button onClick={() => upgradeSubscription('quarterly')}>Upgrade Now</Button>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="annual" className="pt-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center">
+                      <p className="text-lg font-semibold">$72.00 <span className="text-sm font-normal text-muted-foreground">/ year</span></p>
+                      <span className="ml-2 text-xs font-medium text-green-600 bg-green-100 rounded-full px-2 py-0.5">Save $108</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">$6.00 per month, billed annually</p>
+                  </div>
+                  <div className="space-x-2">
+                    <Button variant="outline" onClick={() => setIsUpgradingPlan(false)}>Cancel</Button>
+                    <Button onClick={() => upgradeSubscription('annual')}>Upgrade Now</Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </DialogContent>

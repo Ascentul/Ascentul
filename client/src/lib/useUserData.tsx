@@ -19,6 +19,7 @@ export interface User {
   profileImage?: string;
   subscriptionPlan: "free" | "premium" | "university";
   subscriptionStatus: "active" | "inactive" | "cancelled" | "past_due";
+  subscriptionCycle?: "monthly" | "quarterly" | "annual";
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   subscriptionExpiresAt?: Date;
@@ -210,12 +211,14 @@ export function useUpdateUserSubscription() {
     mutationFn: async ({ 
       subscriptionPlan, 
       subscriptionStatus,
+      subscriptionCycle,
       stripeCustomerId,
       stripeSubscriptionId,
       subscriptionExpiresAt
     }: { 
       subscriptionPlan?: 'free' | 'premium' | 'university';
       subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
+      subscriptionCycle?: 'monthly' | 'quarterly' | 'annual';
       stripeCustomerId?: string;
       stripeSubscriptionId?: string;
       subscriptionExpiresAt?: Date;
@@ -223,6 +226,7 @@ export function useUpdateUserSubscription() {
       const res = await apiRequest('PUT', '/api/users/subscription', {
         subscriptionPlan,
         subscriptionStatus,
+        subscriptionCycle,
         stripeCustomerId,
         stripeSubscriptionId,
         subscriptionExpiresAt
