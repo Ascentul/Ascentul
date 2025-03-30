@@ -291,25 +291,8 @@ export default function Account() {
 
         <TabsContent value="subscription" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle>Subscription Details</CardTitle>
-              <div className="space-x-2">
-                {/* Always show upgrade button regardless of plan for easy access */}
-                <Button 
-                  variant={user.subscriptionPlan === 'free' ? "default" : "outline"} 
-                  size="sm" 
-                  onClick={upgradeSubscription}
-                >
-                  {user.subscriptionPlan === 'free' ? 'Upgrade Plan' : 'Change Plan'}
-                </Button>
-                
-                {/* Show cancel button only for paid subscriptions */}
-                {user.subscriptionStatus === 'active' && user.subscriptionPlan !== 'free' && (
-                  <Button variant="outline" size="sm" onClick={() => setIsCancellingSubscription(true)}>
-                    Cancel Subscription
-                  </Button>
-                )}
-              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
