@@ -404,16 +404,7 @@ export default function Account() {
                     Manage Payment Methods
                   </Button>
                 </div>
-                <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground mb-3">Want to cancel your subscription?</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full text-muted-foreground hover:text-foreground"
-                    onClick={() => setIsCancellingSubscription(true)}
-                  >
-                    Unsubscribe
-                  </Button>
-                </div>
+
               </CardFooter>
             )}
           </Card>
