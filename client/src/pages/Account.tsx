@@ -414,8 +414,8 @@ export default function Account() {
                 <div className="border-t pt-4">
                   <p className="text-sm text-muted-foreground mb-3">Want to cancel your subscription?</p>
                   <Button 
-                    variant="destructive" 
-                    className="w-full"
+                    variant="outline" 
+                    className="w-full text-muted-foreground hover:text-foreground"
                     onClick={() => setIsCancellingSubscription(true)}
                   >
                     Unsubscribe
