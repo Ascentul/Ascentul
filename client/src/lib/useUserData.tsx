@@ -33,6 +33,7 @@ interface UserContextType {
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
+  updateProfile: (data: { name?: string; email?: string; username?: string; profileImage?: string }) => Promise<User>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -87,6 +88,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const result = await refetch();
     return result.data || null;
   };
+  
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
+      const res = await apiRequest('PUT', '/api/users/profile', data);
+      const responseData = await res.json();
+      return responseData.user as User;
+    },
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(['/api/users/me'], updatedUser);
+    },
+  });
+  
+  const updateProfile = async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
+    return updateProfileMutation.mutateAsync(data);
+  };
 
   return (
     <UserContext.Provider
@@ -98,6 +114,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated,
         refetchUser,
+        updateProfile,
       }}
     >
       {children}
