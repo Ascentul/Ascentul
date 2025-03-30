@@ -24,7 +24,9 @@ export default function Account() {
   };
 
   // Plan name helper
-  const getPlanName = (plan: string) => {
+  const getPlanName = (plan: string | undefined) => {
+    if (!plan) return 'Free Plan';
+    
     switch (plan) {
       case 'free':
         return 'Free Plan';
@@ -85,11 +87,11 @@ export default function Account() {
               </div>
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground">User Type</h3>
-                <p className="capitalize">{user.userType.replace('_', ' ')}</p>
+                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
               </div>
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground">XP Level</h3>
-                <p>{user.level} ({user.xp} XP)</p>
+                <p>{user.level || 1} ({user.xp || 0} XP)</p>
               </div>
             </CardContent>
           </Card>
@@ -108,9 +110,11 @@ export default function Account() {
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground">Status</h3>
                 <p className="capitalize">
-                  {user.subscriptionStatus === 'active' ? 
-                    <span className="text-green-600 font-medium">Active</span> : 
-                    user.subscriptionStatus.replace('_', ' ')}
+                  {user.subscriptionStatus ? 
+                    (user.subscriptionStatus === 'active' ? 
+                      <span className="text-green-600 font-medium">Active</span> : 
+                      user.subscriptionStatus.replace('_', ' ')) : 
+                    <span className="text-gray-500">Free</span>}
                 </p>
               </div>
             </CardContent>
