@@ -28,6 +28,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: "password",
         name: "Alex Johnson",
         email: "alex@example.com",
+        userType: "university_student",
+        universityId: 1,
+        departmentId: 2,
+        studentId: "U12345",
+        graduationYear: 2025,
         profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80"
       });
       console.log("Created sample user:", sampleUser.id);
