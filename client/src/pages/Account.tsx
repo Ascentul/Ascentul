@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser, useChangeEmail } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
+import { loadStripe } from '@stripe/stripe-js';
+import { 
+  Elements, 
+  PaymentElement,
+  useStripe, 
+  useElements,
+  AddressElement
+} from '@stripe/react-stripe-js';
+
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,9 +19,110 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
+
+// Load Stripe outside of component to avoid recreating on renders
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+
+// Payment Method Form Component
+function PaymentMethodForm({ 
+  onSuccess, 
+  onCancel 
+}: { 
+  onSuccess: () => void; 
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stripe || !elements) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Use the card Element to tokenize payment details
+      const { error: submitError } = await elements.submit();
+      
+      if (submitError) {
+        throw new Error(submitError.message);
+      }
+      
+      // Confirm the SetupIntent
+      const { error: confirmError } = await stripe.confirmSetup({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/account',
+        },
+        redirect: 'if_required',
+      });
+      
+      if (confirmError) {
+        throw new Error(confirmError.message);
+      }
+      
+      // If we got here, then setup was successful
+      onSuccess();
+    } catch (err: any) {
+      console.error('Error updating payment method:', err);
+      setError(err.message || 'An error occurred while updating your payment method');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  return (
+    <div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Card Details</label>
+          <PaymentElement />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Billing Address</label>
+          <AddressElement options={{ mode: 'billing' }} />
+        </div>
+        
+        {error && (
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+        
+        <div className="flex justify-end space-x-2 pt-2">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={!stripe || !elements || isSubmitting}
+          >
+            {isSubmitting ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+            ) : (
+              'Save Payment Method'
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 export default function Account() {
   const { user, logout, updateProfile } = useUser();
@@ -21,12 +131,56 @@ export default function Account() {
   // State for dialogs
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
+  const [isManagingPaymentMethods, setIsManagingPaymentMethods] = useState(false);
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [isUpgradingPlan, setIsUpgradingPlan] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   
+  // State for Stripe payment elements
+  const [isLoading, setIsLoading] = useState(false);
+  const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
+  const [paymentMethodInfo, setPaymentMethodInfo] = useState<{
+    last4: string;
+    brand: string;
+    exp_month: number;
+    exp_year: number;
+  } | null>(null);
+  
   // Email change mutation using useChangeEmail hook from useUserData
   const changeEmailMutation = useChangeEmail();
+  
+  // Fetch current payment method when component mounts
+  useEffect(() => {
+    if (user && user.subscriptionPlan !== 'free') {
+      fetchPaymentMethodInfo();
+    }
+  }, [user]);
+  
+  // Function to fetch the user's current payment method info
+  const fetchPaymentMethodInfo = async () => {
+    try {
+      const response = await fetch('/api/payments/payment-methods', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch payment methods');
+      }
+      
+      const data = await response.json();
+      if (data?.default_payment_method) {
+        setPaymentMethodInfo({
+          last4: data.default_payment_method.card.last4,
+          brand: data.default_payment_method.card.brand,
+          exp_month: data.default_payment_method.card.exp_month,
+          exp_year: data.default_payment_method.card.exp_year
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching payment methods:', error);
+    }
+  };
   
   // Helper function to get pretty plan name
   const getPlanName = (plan: string | undefined): string => {
@@ -96,6 +250,39 @@ export default function Account() {
         description: error.message || "Failed to cancel subscription",
         variant: "destructive"
       });
+    }
+  };
+  
+  // Function to initialize the Stripe setup intent for managing payment methods
+  const initializePaymentMethodsUpdate = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Get a setup intent from the server
+      const response = await fetch('/api/payments/create-setup-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user?.id 
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to initialize payment method update');
+      }
+      
+      const { clientSecret } = await response.json();
+      setSetupIntentClientSecret(clientSecret);
+      
+    } catch (error: any) {
+      console.error('Error initializing payment method update:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initialize payment method management",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -374,7 +561,7 @@ export default function Account() {
                     <h3 className="font-medium">Subscription Management</h3>
                     <p className="text-sm text-muted-foreground">Need to make changes to your billing?</p>
                   </div>
-                  <Button variant="default" size="sm" onClick={() => setIsManagingSubscription(true)}>
+                  <Button variant="default" size="sm" onClick={() => setIsManagingPaymentMethods(true)}>
                     Manage Payment Methods
                   </Button>
                 </div>
@@ -658,6 +845,78 @@ export default function Account() {
             </div>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+    
+    {/* Payment Methods Management Dialog */}
+    <Dialog open={isManagingPaymentMethods} onOpenChange={setIsManagingPaymentMethods}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Payment Methods</DialogTitle>
+          <DialogDescription>
+            Manage your payment methods for subscription billing.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {!setupIntentClientSecret ? (
+          <div className="py-6 space-y-4">
+            {/* Current Payment Method */}
+            {paymentMethodInfo ? (
+              <div className="rounded-md border p-4">
+                <h3 className="font-medium mb-3">Current Payment Method</h3>
+                <div className="flex items-center">
+                  <div className="p-3 bg-muted rounded-md mr-4">
+                    <CreditCardIcon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-medium capitalize">{paymentMethodInfo.brand} •••• {paymentMethodInfo.last4}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Expires {paymentMethodInfo.exp_month}/{paymentMethodInfo.exp_year}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-md border p-4 text-center py-8">
+                <p className="text-muted-foreground mb-2">No payment methods found</p>
+                <p className="text-sm text-muted-foreground">Add a payment method to manage your subscription</p>
+              </div>
+            )}
+            
+            <div className="flex justify-end">
+              <Button 
+                onClick={initializePaymentMethodsUpdate}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading...</>
+                ) : (
+                  <>{paymentMethodInfo ? 'Update Payment Method' : 'Add Payment Method'}</>
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-6">
+            <Elements stripe={stripePromise} options={{ clientSecret: setupIntentClientSecret }}>
+              <PaymentMethodForm 
+                onSuccess={() => {
+                  setIsManagingPaymentMethods(false);
+                  setSetupIntentClientSecret(null);
+                  fetchPaymentMethodInfo();
+                  toast({
+                    title: "Payment method updated",
+                    description: "Your payment method has been updated successfully.",
+                    variant: "default",
+                  });
+                }}
+                onCancel={() => {
+                  setSetupIntentClientSecret(null);
+                }}
+              />
+            </Elements>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   </div>

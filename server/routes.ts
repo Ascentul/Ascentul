@@ -18,7 +18,7 @@ import {
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
-import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail } from "./services/stripe";
+import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods } from "./services/stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -1386,6 +1386,45 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
+  apiRouter.get("/payments/payment-methods", async (req: Request, res: Response) => {
+    try {
+      // For consistency in this demo, get the user from the session
+      const user = await storage.getUserByUsername("alex");
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const paymentMethods = await getUserPaymentMethods(user.id);
+      res.status(200).json(paymentMethods);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
+  apiRouter.post("/payments/create-setup-intent", async (req: Request, res: Response) => {
+    try {
+      const userId = req.body.userId;
+      let user;
+      
+      if (userId) {
+        user = await storage.getUser(userId);
+      } else {
+        // Fallback to the sample user if no userId is provided
+        user = await storage.getUserByUsername("alex");
+      }
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const setupIntent = await createSetupIntent(user.id);
+      res.status(200).json(setupIntent);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+  
   apiRouter.post("/payments/cancel-subscription", async (req: Request, res: Response) => {
     try {
       // We'll use the same approach as the /users/me endpoint

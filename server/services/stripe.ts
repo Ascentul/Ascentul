@@ -249,3 +249,70 @@ export async function verifyEmail(token: string) {
   
   return { success: true };
 }
+
+// Create a setup intent for adding/updating payment methods
+export async function createSetupIntent(userId: number) {
+  try {
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    // Ensure customer exists in Stripe
+    const customerId = await createOrRetrieveCustomer(
+      userId,
+      user.email,
+      user.name
+    );
+    
+    // Create setup intent
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session', // Allow the payment method to be used for recurring billing
+    });
+    
+    return {
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id
+    };
+  } catch (error: any) {
+    console.error('Error creating setup intent:', error);
+    throw new Error(`Error creating setup intent: ${error.message}`);
+  }
+}
+
+// Get user's payment methods from Stripe
+export async function getUserPaymentMethods(userId: number) {
+  try {
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    if (!user.stripeCustomerId) {
+      return { payment_methods: [] };
+    }
+    
+    // Retrieve customer with default payment method expanded
+    const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
+      expand: ['default_source', 'invoice_settings.default_payment_method']
+    }) as Stripe.Customer;
+    
+    // Retrieve all payment methods
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: user.stripeCustomerId,
+      type: 'card',
+    });
+    
+    return {
+      payment_methods: paymentMethods.data,
+      default_payment_method: customer.invoice_settings.default_payment_method
+    };
+  } catch (error: any) {
+    console.error('Error retrieving payment methods:', error);
+    throw new Error(`Error retrieving payment methods: ${error.message}`);
+  }
+}
