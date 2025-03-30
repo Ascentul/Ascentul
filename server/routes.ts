@@ -18,7 +18,7 @@ import {
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
-import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods } from "./services/stripe";
+import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -1360,11 +1360,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       let event;
       try {
-        // Verify webhook signature
-        const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-          apiVersion: '2023-10-16' as any,
-        });
-        event = stripeClient.webhooks.constructEvent(
+        // Verify webhook signature using imported instance
+        event = stripe.webhooks.constructEvent(
           req.body,
           sig as string,
           process.env.STRIPE_WEBHOOK_SECRET
