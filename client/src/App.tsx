@@ -49,7 +49,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center">
-            <a href="/university" className="mr-6 flex items-center space-x-2">
+            <Link href="/university" className="mr-6 flex items-center space-x-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -64,44 +64,40 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
               </svg>
               <span className="font-bold">University Edition</span>
-            </a>
+            </Link>
             <nav className="flex items-center space-x-6 text-sm font-medium">
               {isAdmin && (
-                <a
+                <Link
                   href="/university/admin"
                   className={`transition-colors hover:text-foreground/80 ${
                     location === "/university/admin" ? "text-foreground" : "text-foreground/60"
                   }`}
                 >
                   Admin Dashboard
-                </a>
+                </Link>
               )}
-              <a
+              <Link
                 href="/university/study-plan"
                 className={`transition-colors hover:text-foreground/80 ${
                   location === "/university/study-plan" ? "text-foreground" : "text-foreground/60"
                 }`}
               >
                 Study Plan
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/university/learning"
                 className={`transition-colors hover:text-foreground/80 ${
                   location === "/university/learning" ? "text-foreground" : "text-foreground/60"
                 }`}
               >
                 Learning Modules
-              </a>
+              </Link>
             </nav>
           </div>
           
           <div className="flex items-center space-x-4">
-            <a 
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = '/';
-              }}
+            <Link 
+              href="/dashboard"
               className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-md border border-foreground/20 bg-background hover:bg-background/80 transition-colors cursor-pointer"
             >
               <svg
@@ -118,7 +114,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
               <span>Career App</span>
-            </a>
+            </Link>
             
             {user && (
               <div className="flex items-center space-x-1">
