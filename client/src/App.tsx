@@ -10,7 +10,7 @@ import WorkHistory from "@/pages/WorkHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import Profile from "@/pages/Profile";
-import AccountSettings from "@/pages/AccountSettings";
+import Account from "@/pages/Account";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 
@@ -234,7 +234,7 @@ function App() {
         </Route>
         <Route path="/account">
           <ProtectedRoute>
-            <AccountSettings />
+            <Account />
           </ProtectedRoute>
         </Route>
         
