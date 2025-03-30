@@ -186,8 +186,7 @@ export default function Pricing() {
             : handleSubscribe('university'))
         : navigate('/auth'),
       buttonVariant: 'outline' as const,
-      highlighted: false,
-      badge: 'For Students'
+      highlighted: false
     }
   ];
   
