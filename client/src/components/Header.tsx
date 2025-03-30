@@ -43,11 +43,14 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               3
             </span>
           </Button>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" className="ml-2 text-neutral-700 hover:text-primary">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-2 text-neutral-700 hover:text-primary"
+            onClick={() => window.location.href = '/account'}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
           {user && (
             <Avatar className="ml-3 h-8 w-8 md:hidden">
               {user.profileImage ? (

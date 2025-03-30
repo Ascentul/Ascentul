@@ -141,10 +141,10 @@ export default function Sidebar() {
       
       {/* Settings */}
       <div className="border-t py-4">
-        <Link href="/account" className="flex items-center px-6 py-3 text-sm hover:bg-primary/5 transition-colors">
+        <a href="/account" className="flex items-center px-6 py-3 text-sm hover:bg-primary/5 transition-colors cursor-pointer">
           <Settings className="w-5 h-5 mr-3" />
           Account Settings
-        </Link>
+        </a>
         <button 
           className="flex items-center px-6 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
           onClick={() => logout()}
