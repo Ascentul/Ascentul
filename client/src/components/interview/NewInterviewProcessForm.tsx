@@ -1,28 +1,10 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -30,154 +12,122 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { X } from "lucide-react";
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { insertInterviewProcessSchema } from '@shared/schema';
 
-// Form schema
-const formSchema = z.object({
-  companyName: z.string().min(1, { message: "Company name is required" }),
-  position: z.string().min(1, { message: "Position is required" }),
-  status: z.string().min(1, { message: "Status is required" }),
+// Extend the insert schema with validation rules
+const formSchema = insertInterviewProcessSchema.extend({
+  companyName: z.string().min(1, 'Company name is required'),
+  position: z.string().min(1, 'Position is required'),
   jobDescription: z.string().optional(),
   contactName: z.string().optional(),
-  contactEmail: z.string().email({ message: "Invalid email format" }).optional().or(z.literal("")),
+  contactEmail: z.string().optional(),
   contactPhone: z.string().optional(),
   notes: z.string().optional(),
+  status: z.string().default('In Progress'),
 });
 
-type FormValues = z.infer<typeof formSchema>;
-
-interface NewInterviewProcessFormProps {
-  open: boolean;
+type NewInterviewProcessFormProps = {
+  isOpen: boolean;
   onClose: () => void;
-}
+};
 
-export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export const NewInterviewProcessForm = ({ isOpen, onClose }: NewInterviewProcessFormProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Initialize form with default values
-  const form = useForm<FormValues>({
+  
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      companyName: "",
-      position: "",
-      status: "In Progress",
-      jobDescription: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
-      notes: "",
+      companyName: '',
+      position: '',
+      jobDescription: '',
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+      notes: '',
+      status: 'In Progress',
     },
   });
 
-  // Create mutation for submitting the new interview process
-  const createInterviewProcessMutation = useMutation({
-    mutationFn: async (values: FormValues) => {
-      return apiRequest("POST", "/api/interview/processes", values);
+  const createProcessMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof formSchema>) => {
+      const response = await apiRequest('POST', '/api/interview/processes', data);
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/interview/processes"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       toast({
-        title: "Success",
-        description: "Interview process has been created",
+        title: 'Success',
+        description: 'Interview process created successfully',
       });
       form.reset();
       onClose();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to create interview process: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
+        title: 'Error',
+        description: `Failed to create interview process: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
       });
-    },
-    onSettled: () => {
-      setIsSubmitting(false);
     },
   });
 
-  // Handle form submission
-  const onSubmit = (values: FormValues) => {
-    setIsSubmitting(true);
-    createInterviewProcessMutation.mutate(values);
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    createProcessMutation.mutate(data);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle>New Interview Process</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle>New Interview Process</DialogTitle>
           <DialogDescription>
-            Track a new job interview process. Fill in the details below.
+            Create a new interview process to track your job application and interviews.
           </DialogDescription>
         </DialogHeader>
-
+        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Google" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="position"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Position*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Software Engineer" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="status"
+              name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status*</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Company Name*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter company name" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
+            <FormField
+              control={form.control}
+              name="position"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Position*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter job title/position" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="jobDescription"
@@ -185,32 +135,32 @@ export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFo
                 <FormItem>
                   <FormLabel>Job Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Details about the position..."
-                      className="min-h-[100px]"
-                      {...field}
+                    <Textarea 
+                      placeholder="Enter job description or key requirements" 
+                      className="h-24"
+                      {...field} 
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="contactName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contact Person</FormLabel>
+                    <FormLabel>Contact Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jane Smith" {...field} />
+                      <Input placeholder="Enter contact name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
+              
               <FormField
                 control={form.control}
                 name="contactEmail"
@@ -218,15 +168,15 @@ export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFo
                   <FormItem>
                     <FormLabel>Contact Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="jane@company.com" {...field} />
+                      <Input placeholder="Enter contact email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="contactPhone"
@@ -234,14 +184,14 @@ export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFo
                   <FormItem>
                     <FormLabel>Contact Phone</FormLabel>
                     <FormControl>
-                      <Input placeholder="(123) 456-7890" {...field} />
+                      <Input placeholder="Enter contact phone" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-
+            
             <FormField
               control={form.control}
               name="notes"
@@ -249,23 +199,23 @@ export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFo
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Any additional notes about this process..."
-                      className="min-h-[100px]"
-                      {...field}
+                    <Textarea 
+                      placeholder="Enter any additional notes" 
+                      className="h-20"
+                      {...field} 
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Process"}
+              <Button type="submit" disabled={createProcessMutation.isPending}>
+                {createProcessMutation.isPending ? 'Creating...' : 'Create Process'}
               </Button>
             </DialogFooter>
           </form>
@@ -273,4 +223,4 @@ export function NewInterviewProcessForm({ open, onClose }: NewInterviewProcessFo
       </DialogContent>
     </Dialog>
   );
-}
+};

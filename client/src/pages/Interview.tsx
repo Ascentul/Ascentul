@@ -1,899 +1,265 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  UserRound, 
-  CheckCircle, 
-  XCircle, 
-  ThumbsUp, 
-  ThumbsDown, 
-  MessageCircle, 
-  BookOpen, 
-  Search, 
-  BadgeCheck,
-  PlusCircle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
   Briefcase,
-  Circle,
-  Filter
+  CalendarDays,
+  Check,
+  Plus,
+  ListChecks,
+  Search,
+  BookOpenText,
 } from 'lucide-react';
-
-// Import interview components
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
+import { type InterviewProcess } from '@shared/schema';
 
-export default function Interview() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [category, setCategory] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string>('');
-  const [confidenceLevel, setConfidenceLevel] = useState<number>(3);
-  const [practiceMode, setPracticeMode] = useState<boolean>(false);
-  
-  // Fields for AI generated questions
-  const [jobTitle, setJobTitle] = useState<string>('');
-  const [skills, setSkills] = useState<string>('');
-  const [generatedQuestions, setGeneratedQuestions] = useState<any>(null);
-  
-  // Interview Process States
-  const [statusFilter, setStatusFilter] = useState<string[]>(['all']);
-  const [isNewProcessDialogOpen, setIsNewProcessDialogOpen] = useState(false);
-  const [selectedProcess, setSelectedProcess] = useState<any>(null);
-  
-  // Fetch interview questions
-  const { data: questions, isLoading } = useQuery({
-    queryKey: ['/api/interview/questions', category],
-    queryFn: async ({ queryKey }) => {
-      const url = category && category !== "all"
-        ? `/api/interview/questions?category=${encodeURIComponent(category)}` 
-        : '/api/interview/questions';
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch questions');
-      return res.json();
-    }
-  });
+const Interview = () => {
+  const [activeTab, setActiveTab] = useState('processes');
+  const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch practice history
-  const { data: practiceHistory } = useQuery({
-    queryKey: ['/api/interview/practice-history'],
-  });
-  
   // Fetch interview processes
-  const { data: interviewProcesses, isLoading: isLoadingProcesses } = useQuery({
+  const { data: processes, isLoading } = useQuery<InterviewProcess[]>({
     queryKey: ['/api/interview/processes'],
+    placeholderData: [],
   });
 
-  // Handle checkbox changes for status filter
-  const handleStatusFilterChange = (status: string) => {
-    if (status === 'all') {
-      setStatusFilter(['all']);
-      return;
-    }
-    
-    // Remove 'all' if it's there
-    const newFilter = statusFilter.filter(s => s !== 'all');
-    
-    if (newFilter.includes(status)) {
-      // Remove status if already selected
-      setStatusFilter(newFilter.filter(s => s !== status));
-    } else {
-      // Add status if not selected
-      setStatusFilter([...newFilter, status]);
-    }
-    
-    // If nothing selected, default to 'all'
-    if (newFilter.length === 0) {
-      setStatusFilter(['all']);
-    }
-  };
+  // Get selected process details
+  const selectedProcess = processes?.find(p => p.id === selectedProcessId) || null;
 
-  // Filter processes by status
-  const filteredProcesses = (processes: any[]) => {
-    if (!processes) return [];
-    
-    if (statusFilter.includes('all')) {
-      return processes;
-    }
-    
-    return processes.filter(process => statusFilter.includes(process.status));
-  };
-
-  // Save practice answer mutation
-  const savePracticeMutation = useMutation({
-    mutationFn: async ({ questionId, userAnswer, confidence }: { questionId: number, userAnswer: string, confidence: number }) => {
-      return apiRequest('POST', '/api/interview/practice', {
-        questionId,
-        userAnswer,
-        confidence
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/interview/practice-history'] });
-      toast({
-        title: 'Practice Saved',
-        description: 'Your answer has been recorded',
-      });
-      setUserAnswer('');
-      setConfidenceLevel(3);
-      setPracticeMode(false);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to save practice: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: 'destructive',
-      });
-    },
+  // Filter processes by search query
+  const filteredProcesses = processes?.filter(process => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      process.companyName.toLowerCase().includes(query) ||
+      process.position.toLowerCase().includes(query) ||
+      process.status.toLowerCase().includes(query)
+    );
   });
 
-  // Generate AI questions mutation
-  const generateQuestionsMutation = useMutation({
-    mutationFn: async () => {
-      const skillsArray = skills.split(',').map(s => s.trim());
-      const res = await apiRequest('POST', '/api/interview/generate-questions', {
-        jobTitle,
-        skills: skillsArray
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setGeneratedQuestions(data);
-      toast({
-        title: 'Questions Generated',
-        description: 'AI has generated interview questions based on your job target',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to generate questions: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: 'destructive',
-      });
-    },
-  });
+  // Group processes by status for dashboard view
+  const activeProcesses = processes?.filter(p => p.status !== 'Completed' && p.status !== 'Rejected') || [];
+  const completedProcesses = processes?.filter(p => p.status === 'Completed' || p.status === 'Rejected') || [];
 
-  const handleStartPractice = (questionId: number) => {
-    setSelectedQuestionId(questionId);
-    setUserAnswer('');
-    setConfidenceLevel(3);
-    setPracticeMode(true);
+  const renderProcessCard = (process: InterviewProcess) => {
+    return (
+      <Card 
+        key={process.id}
+        className={`cursor-pointer transition-colors hover:bg-accent/50 ${
+          selectedProcessId === process.id ? 'border-primary' : ''
+        }`}
+        onClick={() => setSelectedProcessId(process.id)}
+      >
+        <CardHeader className="p-4 pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-base">{process.companyName}</CardTitle>
+            <StatusBadge status={process.status} />
+          </div>
+          <CardDescription>{process.position}</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <CalendarDays className="h-3 w-3 mr-1" />
+            {new Date(process.createdAt).toLocaleDateString()}
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
-  const handleSubmitPractice = () => {
-    if (!selectedQuestionId || !userAnswer) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please provide an answer before submitting',
-        variant: 'destructive',
-      });
-      return;
+  // Status badge component
+  const StatusBadge = ({ status }: { status: string }) => {
+    switch (status) {
+      case 'In Progress':
+        return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
+      case 'Completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
+      case 'Rejected':
+        return <Badge className="bg-red-500 hover:bg-red-600">{status}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
     }
-
-    savePracticeMutation.mutate({
-      questionId: selectedQuestionId,
-      userAnswer,
-      confidence: confidenceLevel
-    });
   };
 
-  const handleGenerateQuestions = () => {
-    if (!jobTitle || !skills) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please provide job title and skills',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    generateQuestionsMutation.mutate();
-  };
-
-  const filteredQuestions = () => {
-    if (!questions) return [];
-    
-    let filtered = questions;
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((q: any) => 
-        q.question.toLowerCase().includes(query) || 
-        (q.suggestedAnswer && q.suggestedAnswer.toLowerCase().includes(query))
-      );
-    }
-    
-    return filtered;
-  };
-
-  // Calculate stats for the process tab
-  const calculateProcessStats = () => {
-    if (!interviewProcesses) return { upcoming: 0, followups: 0 };
-    
-    let upcomingInterviews = 0;
-    let dueFollowups = 0;
-    
-    interviewProcesses.forEach((process: any) => {
-      // Count upcoming interviews (stages with scheduledDate in the future)
-      if (process.stages) {
-        process.stages.forEach((stage: any) => {
-          if (stage.scheduledDate && !stage.completedDate) {
-            const stageDate = new Date(stage.scheduledDate);
-            if (stageDate > new Date()) {
-              upcomingInterviews++;
-            }
-          }
-        });
-      }
-      
-      // Count due follow-ups
-      if (process.followups) {
-        process.followups.forEach((followup: any) => {
-          if (followup.dueDate && !followup.completed) {
-            const dueDate = new Date(followup.dueDate);
-            if (dueDate > new Date()) {
-              dueFollowups++;
-            }
-          }
-        });
-      }
-    });
-    
-    return { upcoming: upcomingInterviews, followups: dueFollowups };
-  };
-  
-  const processStats = calculateProcessStats();
+  // Loading skeleton
+  const ProcessCardSkeleton = () => (
+    <Card className="cursor-pointer">
+      <CardHeader className="p-4 pb-2">
+        <div className="flex justify-between items-start">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-5 w-24" />
+        </div>
+        <Skeleton className="h-4 w-36 mt-2" />
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <Skeleton className="h-4 w-28" />
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Interview Preparation</h1>
-          <p className="text-neutral-500">Practice and prepare for your job interviews</p>
+          <h1 className="text-2xl font-bold">Interview Tracker</h1>
+          <p className="text-muted-foreground">Manage your job applications and interviews</p>
         </div>
+        <Button onClick={() => setShowCreateForm(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Interview Process
+        </Button>
       </div>
-      
-      <Tabs defaultValue="questions">
-        <TabsList className="mb-6">
-          <TabsTrigger value="questions">Question Library</TabsTrigger>
-          <TabsTrigger value="practice">Practice History</TabsTrigger>
-          <TabsTrigger value="generator">AI Question Generator</TabsTrigger>
-          <TabsTrigger value="process">Interview Processes</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="questions">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Filter by Category</label>
-                      <Select value={category} onValueChange={setCategory}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="All Categories" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Categories</SelectItem>
-                          <SelectItem value="behavioral">Behavioral</SelectItem>
-                          <SelectItem value="technical">Technical</SelectItem>
-                          <SelectItem value="situational">Situational</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm font-medium">Search Questions</label>
-                      <div className="relative">
-                        <Input
-                          placeholder="Search..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-9"
-                        />
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      </div>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium mb-2">Question Difficulty</h3>
-                      <div className="flex items-center space-x-2 text-sm">
-                        <div className="bg-green-100 text-green-800 px-2 py-1 rounded">Easy</div>
-                        <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded">Medium</div>
-                        <div className="bg-red-100 text-red-800 px-2 py-1 rounded">Hard</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="lg:col-span-3">
-              {isLoading ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                </div>
-              ) : practiceMode ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Practice Question</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium">
-                        {questions?.find((q: any) => q.id === selectedQuestionId)?.question}
-                      </h3>
-                      <div className="text-sm text-neutral-500">
-                        Category: <span className="font-medium text-primary">
-                          {questions?.find((q: any) => q.id === selectedQuestionId)?.category.charAt(0).toUpperCase() + 
-                            questions?.find((q: any) => q.id === selectedQuestionId)?.category.slice(1)}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Your Answer</label>
-                      <Textarea
-                        placeholder="Type your answer here..."
-                        value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
-                        className="min-h-[150px]"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">How confident are you about your answer?</label>
-                      <div className="flex items-center space-x-2">
-                        <ThumbsDown className="text-red-500 h-5 w-5" />
-                        <Slider
-                          value={[confidenceLevel]}
-                          min={1}
-                          max={5}
-                          step={1}
-                          onValueChange={(value) => setConfidenceLevel(value[0])}
-                          className="flex-1"
-                        />
-                        <ThumbsUp className="text-green-500 h-5 w-5" />
-                      </div>
-                      <div className="text-center text-sm text-neutral-500">
-                        {confidenceLevel === 1 && "Not confident at all"}
-                        {confidenceLevel === 2 && "Slightly confident"}
-                        {confidenceLevel === 3 && "Moderately confident"}
-                        {confidenceLevel === 4 && "Very confident"}
-                        {confidenceLevel === 5 && "Extremely confident"}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setPracticeMode(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSubmitPractice} disabled={!userAnswer}>
-                      Submit Answer
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ) : filteredQuestions().length > 0 ? (
-                <div className="space-y-4">
-                  {filteredQuestions().map((question: any) => (
-                    <Card key={question.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className={`px-2 py-1 text-xs rounded-full ${
-                                question.category === 'behavioral' ? 'bg-blue-100 text-blue-800' :
-                                question.category === 'technical' ? 'bg-purple-100 text-purple-800' :
-                                'bg-teal-100 text-teal-800'
-                              }`}>
-                                {question.category.charAt(0).toUpperCase() + question.category.slice(1)}
-                              </div>
-                              <div className={`px-2 py-1 text-xs rounded-full ${
-                                question.difficultyLevel === 1 ? 'bg-green-100 text-green-800' :
-                                question.difficultyLevel === 2 ? 'bg-amber-100 text-amber-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {question.difficultyLevel === 1 ? 'Easy' :
-                                 question.difficultyLevel === 2 ? 'Medium' : 'Hard'}
-                              </div>
-                            </div>
-                            <h3 className="text-lg font-medium">{question.question}</h3>
-                          </div>
-                          <Button onClick={() => handleStartPractice(question.id)}>
-                            Practice
-                          </Button>
-                        </div>
-                        
-                        <div className="mt-4 p-3 bg-primary/5 rounded-md border border-primary/10">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BookOpen className="text-primary h-4 w-4" />
-                            <h4 className="text-sm font-medium">Suggested Approach</h4>
-                          </div>
-                          <p className="text-sm text-neutral-700">{question.suggestedAnswer}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                  <UserRound className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No Questions Found</h3>
-                  <p className="text-neutral-500 mb-4">
-                    Try adjusting your filters or search terms
-                  </p>
-                </div>
-              )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="processes" className="flex-1">
+                <Briefcase className="h-4 w-4 mr-2" />
+                All Processes
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="flex-1">
+                <ListChecks className="h-4 w-4 mr-2" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="practice" className="flex-1">
+                <BookOpenText className="h-4 w-4 mr-2" />
+                Practice
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="w-full">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search company, position, or status..."
+                className="w-full pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="practice">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Practice Stats</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-1 text-sm">
-                        <span>Questions Practiced</span>
-                        <span className="font-medium">{practiceHistory?.length || 0}</span>
-                      </div>
-                      <Progress value={Math.min(100, ((practiceHistory?.length || 0) / 20) * 100)} className="h-2" />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-1 text-sm">
-                        <span>Average Confidence</span>
-                        <span className="font-medium">
-                          {practiceHistory?.length
-                            ? (practiceHistory.reduce((sum: any, p: any) => sum + p.confidence, 0) / practiceHistory.length).toFixed(1)
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <Progress 
-                        value={
-                          practiceHistory?.length
-                            ? (practiceHistory.reduce((sum: any, p: any) => sum + p.confidence, 0) / practiceHistory.length / 5) * 100
-                            : 0
-                        } 
-                        className="h-2" 
-                      />
-                    </div>
-                    
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium mb-2">Category Breakdown</h3>
-                      {practiceHistory?.length ? (
-                        <div className="space-y-3">
-                          {['behavioral', 'technical', 'situational'].map(cat => {
-                            const count = practiceHistory.filter((p: any) => {
-                              const question = questions?.find((q: any) => q.id === p.questionId);
-                              return question?.category === cat;
-                            }).length;
-                            
-                            return (
-                              <div key={cat}>
-                                <div className="flex justify-between items-center mb-1 text-xs">
-                                  <span className="capitalize">{cat}</span>
-                                  <span>{count} questions</span>
-                                </div>
-                                <Progress 
-                                  value={(count / (practiceHistory.length || 1)) * 100} 
-                                  className="h-1.5" 
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-neutral-500">No practice data yet</p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="lg:col-span-3">
-              {practiceHistory?.length ? (
-                <div className="space-y-4">
-                  {practiceHistory.map((practice: any) => {
-                    const question = questions?.find((q: any) => q.id === practice.questionId);
-                    
-                    return (
-                      <Card key={practice.id}>
-                        <CardContent className="p-4">
-                          <div className="mb-3">
-                            <div className="flex justify-between">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-medium">{question?.question || "Question not found"}</h3>
-                                <div className={`px-2 py-1 text-xs rounded-full ${
-                                  question?.category === 'behavioral' ? 'bg-blue-100 text-blue-800' :
-                                  question?.category === 'technical' ? 'bg-purple-100 text-purple-800' :
-                                  'bg-teal-100 text-teal-800'
-                                }`}>
-                                  {question?.category.charAt(0).toUpperCase() + question?.category.slice(1) || "Unknown"}
-                                </div>
-                              </div>
-                              <p className="text-xs text-neutral-500">
-                                {new Date(practice.practiceDate).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                              <MessageCircle className="h-4 w-4" />
-                              Your Answer
-                            </h4>
-                            <p className="text-sm bg-neutral-50 p-3 rounded-md border">
-                              {practice.userAnswer}
-                            </p>
-                          </div>
-                          
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-1 text-sm">
-                              <span>Confidence:</span>
-                              <div className="flex">
-                                {[1, 2, 3, 4, 5].map((level) => (
-                                  <div
-                                    key={level}
-                                    className={`h-2 w-5 mx-0.5 rounded-sm ${
-                                      level <= practice.confidence
-                                        ? 'bg-primary'
-                                        : 'bg-neutral-200'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-primary">
-                              <BadgeCheck className="h-4 w-4 mr-1" />
-                              Compare with Suggested
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                  <UserRound className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No Practice History</h3>
-                  <p className="text-neutral-500 mb-4">
-                    You haven't practiced any interview questions yet
-                  </p>
-                  <Button onClick={() => {
-                    document.querySelector('button[value="questions"]')?.click();
-                  }}>
-                    Go to Question Library
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="generator">
-          <div className="max-w-3xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Interview Question Generator</CardTitle>
-                <p className="text-sm text-neutral-500">Generate customized interview questions based on your job target</p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Job Title</label>
-                    <Input 
-                      placeholder="e.g. Software Engineer, Product Manager, Data Scientist"
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Required Skills</label>
-                    <Textarea 
-                      placeholder="Enter skills separated by commas (e.g. React, TypeScript, Node.js)"
-                      value={skills}
-                      onChange={(e) => setSkills(e.target.value)}
-                    />
-                    <p className="text-xs text-neutral-500 mt-1">These will be used to generate relevant technical questions</p>
-                  </div>
-                  
-                  <Button 
-                    className="w-full" 
-                    onClick={handleGenerateQuestions}
-                    disabled={generateQuestionsMutation.isPending}
-                  >
-                    {generateQuestionsMutation.isPending ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate Interview Questions"
-                    )}
-                  </Button>
-                </div>
-                
-                {generatedQuestions ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Generated Questions</h3>
-                    <div className="space-y-3">
-                      {generatedQuestions.map((q: any, index: number) => (
-                        <div key={index} className="p-3 bg-neutral-50 rounded-md border">
-                          <p className="font-medium">{q.question}</p>
-                          {q.explanation && (
-                            <p className="text-sm text-neutral-600 mt-2">{q.explanation}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex justify-end">
-                      <Button variant="outline" size="sm" onClick={() => setGeneratedQuestions(null)}>
-                        Clear Questions
-                      </Button>
-                    </div>
-                  </div>
-                ) : generateQuestionsMutation.isError ? (
-                  <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded-md">
-                    <h3 className="font-medium mb-1">Error Generating Questions</h3>
-                    <p className="text-sm">
-                      {generateQuestionsMutation.error instanceof Error
-                        ? generateQuestionsMutation.error.message
-                        : "An unknown error occurred"}
-                    </p>
-                    <p className="text-sm mt-2">Please try again with different parameters</p>
-                  </div>
+
+          <div className="space-y-3">
+            {activeTab === 'processes' && (
+              <>
+                {isLoading ? (
+                  <>
+                    <ProcessCardSkeleton />
+                    <ProcessCardSkeleton />
+                    <ProcessCardSkeleton />
+                  </>
+                ) : filteredProcesses && filteredProcesses.length > 0 ? (
+                  filteredProcesses.map(renderProcessCard)
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <UserRound className="h-12 w-12 text-neutral-300 mb-4" />
-                    <p className="text-neutral-500">
-                      Fill out the form to generate customized interview questions
-                    </p>
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No interview processes found.</p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => setShowCreateForm(true)}
+                      className="mt-2"
+                    >
+                      Create your first interview process
+                    </Button>
                   </div>
                 )}
-              </CardContent>
+              </>
+            )}
+
+            {activeTab === 'dashboard' && (
+              <>
+                <div className="space-y-3">
+                  <h3 className="font-medium flex items-center">
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Active Processes ({activeProcesses.length})
+                  </h3>
+                  {isLoading ? (
+                    <>
+                      <ProcessCardSkeleton />
+                      <ProcessCardSkeleton />
+                    </>
+                  ) : activeProcesses.length > 0 ? (
+                    activeProcesses.map(renderProcessCard)
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No active processes</p>
+                  )}
+                </div>
+
+                <div className="space-y-3 mt-6">
+                  <h3 className="font-medium flex items-center">
+                    <Check className="h-4 w-4 mr-2" />
+                    Completed Processes ({completedProcesses.length})
+                  </h3>
+                  {isLoading ? (
+                    <ProcessCardSkeleton />
+                  ) : completedProcesses.length > 0 ? (
+                    completedProcesses.map(renderProcessCard)
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No completed processes</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {activeTab === 'practice' && (
+              <div className="text-center py-8">
+                <h3 className="font-medium">Interview Practice</h3>
+                <p className="text-muted-foreground mt-2">
+                  Practice common interview questions and improve your skills.
+                </p>
+                <Button className="mt-4">
+                  Start Practice Session
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          {selectedProcess ? (
+            <InterviewProcessDetails process={selectedProcess} />
+          ) : (
+            <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
+              <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">No Process Selected</h3>
+              <p className="text-muted-foreground max-w-md mt-2">
+                Select an interview process from the list to view details, or create a new one to start tracking your interview journey.
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setShowCreateForm(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Process
+              </Button>
             </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="process">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Interview Processes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Button 
-                      className="w-full"
-                      onClick={() => setIsNewProcessDialogOpen(true)}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      New Interview Process
-                    </Button>
+          )}
+        </div>
+      </div>
 
-                    <div className="pt-4">
-                      <h3 className="text-sm font-medium mb-2 flex items-center">
-                        <Filter className="h-4 w-4 mr-1 text-neutral-500" />
-                        Status Filter
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="status-all" 
-                            checked={statusFilter.includes('all')} 
-                            onCheckedChange={() => handleStatusFilterChange('all')}
-                          />
-                          <label htmlFor="status-all" className="text-sm">All Processes</label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="status-active" 
-                            checked={statusFilter.includes('In Progress')}
-                            onCheckedChange={() => handleStatusFilterChange('In Progress')}
-                          />
-                          <label htmlFor="status-active" className="text-sm">Active</label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="status-completed" 
-                            checked={statusFilter.includes('Completed')}
-                            onCheckedChange={() => handleStatusFilterChange('Completed')}
-                          />
-                          <label htmlFor="status-completed" className="text-sm">Completed</label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="status-rejected" 
-                            checked={statusFilter.includes('Rejected')}
-                            onCheckedChange={() => handleStatusFilterChange('Rejected')}
-                          />
-                          <label htmlFor="status-rejected" className="text-sm">Rejected</label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <h3 className="text-sm font-medium mb-2">Timeline</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Upcoming Interviews</span>
-                          <Badge variant="secondary">{processStats.upcoming}</Badge>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Due Follow-ups</span>
-                          <Badge variant="secondary">{processStats.followups}</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <div className="lg:col-span-3">
-              {isLoadingProcesses ? (
-                <div className="flex justify-center items-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                </div>
-              ) : interviewProcesses && filteredProcesses(interviewProcesses).length > 0 ? (
-                <div className="space-y-4">
-                  {filteredProcesses(interviewProcesses).map((process: any) => (
-                    <Card key={process.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle>{process.companyName} - {process.position}</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                              Started {new Date(process.createdAt).toLocaleDateString()} · {process.status}
-                            </p>
-                          </div>
-                          <Badge 
-                            className={`${
-                              process.status === 'In Progress' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
-                              process.status === 'Completed' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
-                              process.status === 'Pending' ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' :
-                              'bg-red-100 text-red-800 hover:bg-red-200'
-                            }`}
-                          >
-                            {process.status}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium">Contact Person</p>
-                              <p className="text-sm">{process.contactName || 'N/A'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">Contact Information</p>
-                              <p className="text-sm">{process.contactEmail || 'N/A'}</p>
-                            </div>
-                          </div>
-                          
-                          {/* Stages */}
-                          <div>
-                            <p className="text-sm font-medium mb-2">Interview Progress</p>
-                            <div className="space-y-2">
-                              {process.stages?.map((stage: any) => (
-                                <div key={stage.id} className="flex items-center">
-                                  {stage.completedDate ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                  ) : (
-                                    <Circle className="h-4 w-4 text-neutral-300 mr-2" />
-                                  )}
-                                  <span className="text-sm">{stage.type}</span>
-                                  {stage.scheduledDate && !stage.completedDate && (
-                                    <Badge variant="outline" className="ml-2">
-                                      {new Date(stage.scheduledDate).toLocaleDateString()}
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
-                              
-                              {(!process.stages || process.stages.length === 0) && (
-                                <p className="text-sm text-neutral-400">No stages added yet</p>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {/* Follow-ups */}
-                          <div>
-                            <p className="text-sm font-medium mb-2">Pending Follow-ups</p>
-                            <div className="space-y-2">
-                              {process.followups?.filter((f: any) => !f.completed).map((followup: any) => (
-                                <div key={followup.id} className="flex items-center">
-                                  <XCircle className="h-4 w-4 text-neutral-300 mr-2" />
-                                  <span className="text-sm">{followup.description}</span>
-                                  {followup.dueDate && (
-                                    <Badge variant="outline" className="ml-2">
-                                      Due {new Date(followup.dueDate).toLocaleDateString()}
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
-                              
-                              {(!process.followups || process.followups.filter((f: any) => !f.completed).length === 0) && (
-                                <p className="text-sm text-neutral-400">No pending follow-ups</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between border-t p-4">
-                        <Button variant="outline" size="sm">View Details</Button>
-                        <Button 
-                          size="sm"
-                          onClick={() => setSelectedProcess(process)}
-                        >
-                          Manage Process
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-                  <Briefcase className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No Interview Processes</h3>
-                  <p className="text-neutral-500 mb-4">
-                    Start tracking your interview journeys
-                  </p>
-                  <Button onClick={() => setIsNewProcessDialogOpen(true)}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    New Interview Process
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Add Interview Process Dialog */}
-      <NewInterviewProcessForm 
-        open={isNewProcessDialogOpen}
-        onClose={() => setIsNewProcessDialogOpen(false)}
+      <NewInterviewProcessForm
+        isOpen={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
       />
-
-      {/* Interview Process Details Dialog */}
-      {selectedProcess && (
-        <InterviewProcessDetails
-          process={selectedProcess}
-          open={Boolean(selectedProcess)}
-          onClose={() => setSelectedProcess(null)}
-        />
-      )}
     </div>
   );
-}
+};
+
+export default Interview;

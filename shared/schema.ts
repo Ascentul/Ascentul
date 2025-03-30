@@ -499,6 +499,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   goals: many(goals),
   studyPlans: many(studyPlans),
   moduleEnrollments: many(moduleEnrollments),
+  interviewPractices: many(interviewPractice),
+  interviewProcesses: many(interviewProcesses),
 }));
 
 export const studyPlansRelations = relations(studyPlans, ({ one, many }) => ({
@@ -552,6 +554,54 @@ export const moduleEnrollmentsRelations = relations(moduleEnrollments, ({ one })
   user: one(users, {
     fields: [moduleEnrollments.userId],
     references: [users.id],
+  }),
+}));
+
+// Interview Questions Relations
+export const interviewQuestionsRelations = relations(interviewQuestions, ({ many }) => ({
+  practices: many(interviewPractice),
+}));
+
+// Interview Practice Relations
+export const interviewPracticeRelations = relations(interviewPractice, ({ one }) => ({
+  question: one(interviewQuestions, {
+    fields: [interviewPractice.questionId],
+    references: [interviewQuestions.id],
+  }),
+  user: one(users, {
+    fields: [interviewPractice.userId],
+    references: [users.id],
+  }),
+}));
+
+// Interview Process Relations
+export const interviewProcessesRelations = relations(interviewProcesses, ({ one, many }) => ({
+  user: one(users, {
+    fields: [interviewProcesses.userId],
+    references: [users.id],
+  }),
+  stages: many(interviewStages),
+  followupActions: many(followupActions),
+}));
+
+// Interview Stages Relations
+export const interviewStagesRelations = relations(interviewStages, ({ one, many }) => ({
+  process: one(interviewProcesses, {
+    fields: [interviewStages.processId],
+    references: [interviewProcesses.id],
+  }),
+  followupActions: many(followupActions),
+}));
+
+// Followup Actions Relations
+export const followupActionsRelations = relations(followupActions, ({ one }) => ({
+  process: one(interviewProcesses, {
+    fields: [followupActions.processId],
+    references: [interviewProcesses.id],
+  }),
+  stage: one(interviewStages, {
+    fields: [followupActions.stageId],
+    references: [interviewStages.id],
   }),
 }));
 

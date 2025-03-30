@@ -1,615 +1,566 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from '@/components/ui/dialog';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from '@/components/ui/accordion';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
-  CheckCircle, 
-  Circle, 
-  Clock, 
-  Edit, 
+  Check, 
+  Calendar, 
+  MapPin, 
+  Users, 
+  FileText, 
   Plus, 
-  Trash, 
-  X,
-  Calendar,
-  MapPin,
-  Users,
-  MessageCircle,
-  ArrowRight
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { NewInterviewStageForm } from "./NewInterviewStageForm";
-import { NewFollowupActionForm } from "./NewFollowupActionForm";
+  Circle,
+  Edit,
+  Trash,
+  PlusCircle,
+  CheckCircle
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
 
-interface InterviewStage {
-  id: number;
-  type: string;
-  scheduledDate: Date | null;
-  completedDate: Date | null;
-  location: string | null;
-  interviewers: string[] | null;
-  feedback: string | null;
-  outcome: string | null;
-  nextSteps: string | null;
-  notes: string | null;
-}
+type InterviewProcessDetailsProps = {
+  process: InterviewProcess & {
+    stages?: InterviewStage[];
+    followups?: FollowupAction[];
+  };
+};
 
-interface FollowupAction {
-  id: number;
-  type: string;
-  description: string;
-  dueDate: Date | null;
-  completed: boolean;
-  completedDate: Date | null;
-  stageId: number | null;
-  notes: string | null;
-}
-
-interface InterviewProcess {
-  id: number;
-  companyName: string;
-  position: string;
-  status: string;
-  jobDescription: string | null;
-  contactName: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  stages?: InterviewStage[];
-  followups?: FollowupAction[];
-}
-
-interface InterviewProcessDetailsProps {
-  process: InterviewProcess;
-  open: boolean;
-  onClose: () => void;
-}
-
-export function InterviewProcessDetails({ process, open, onClose }: InterviewProcessDetailsProps) {
-  const [isAddingStage, setIsAddingStage] = useState(false);
-  const [isAddingFollowup, setIsAddingFollowup] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<InterviewStage | null>(null);
-  const [selectedFollowup, setSelectedFollowup] = useState<FollowupAction | null>(null);
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState(process.notes || "");
-  
+export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  // Update interview process notes
-  const updateProcessNotesMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
-      return apiRequest("PATCH", `/api/interview/processes/${id}`, { notes });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/interview/processes"] });
-      toast({
-        title: "Success",
-        description: "Notes have been updated",
-      });
-      setEditingNotes(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update notes: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
-    },
+  const [isAddStageDialogOpen, setIsAddStageDialogOpen] = useState(false);
+  const [isAddFollowupDialogOpen, setIsAddFollowupDialogOpen] = useState(false);
+  const [newStage, setNewStage] = useState({
+    type: '',
+    scheduledDate: '',
+    location: '',
+    interviewers: '',
+    notes: ''
+  });
+  const [newFollowup, setNewFollowup] = useState({
+    type: '',
+    description: '',
+    dueDate: '',
+    notes: ''
   });
 
-  // Complete/uncomplete followup action
-  const toggleFollowupActionMutation = useMutation({
-    mutationFn: async ({ id, completed }: { id: number; completed: boolean }) => {
-      if (completed) {
-        return apiRequest("PUT", `/api/interview/followup-actions/${id}/complete`, {});
-      } else {
-        return apiRequest("PATCH", `/api/interview/followup-actions/${id}`, { completed });
-      }
+  // Add interview stage mutation
+  const addStageMutation = useMutation({
+    mutationFn: async (stageData: any) => {
+      const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, stageData);
+      return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/interview/processes"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       toast({
-        title: "Success",
-        description: "Follow-up action status updated",
+        title: 'Success',
+        description: 'Interview stage added successfully',
       });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update follow-up status: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Mark stage as completed
-  const completeInterviewStageMutation = useMutation({
-    mutationFn: async ({ id }: { id: number }) => {
-      return apiRequest("PATCH", `/api/interview/stages/${id}`, { 
-        completedDate: new Date().toISOString() 
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/interview/processes"] });
-      toast({
-        title: "Success",
-        description: "Interview stage marked as completed",
+      setIsAddStageDialogOpen(false);
+      setNewStage({
+        type: '',
+        scheduledDate: '',
+        location: '',
+        interviewers: '',
+        notes: ''
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to update stage: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
+        title: 'Error',
+        description: `Failed to add interview stage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
       });
     },
   });
 
-  const handleSaveNotes = () => {
-    updateProcessNotesMutation.mutate({ id: process.id, notes: notesValue });
-  };
+  // Add followup action mutation
+  const addFollowupMutation = useMutation({
+    mutationFn: async (followupData: any) => {
+      const response = await apiRequest('POST', `/api/interview/processes/${process.id}/followups`, followupData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      toast({
+        title: 'Success',
+        description: 'Followup action added successfully',
+      });
+      setIsAddFollowupDialogOpen(false);
+      setNewFollowup({
+        type: '',
+        description: '',
+        dueDate: '',
+        notes: ''
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to add followup action: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const handleToggleFollowup = (followup: FollowupAction) => {
-    toggleFollowupActionMutation.mutate({ 
-      id: followup.id, 
-      completed: !followup.completed 
+  // Complete followup action mutation
+  const completeFollowupMutation = useMutation({
+    mutationFn: async (followupId: number) => {
+      const response = await apiRequest('PUT', `/api/interview/followup-actions/${followupId}/complete`, {});
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      toast({
+        title: 'Success',
+        description: 'Followup action marked as completed',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to complete followup action: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleAddStage = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Format interviewers as an array
+    const interviewersArray = newStage.interviewers
+      ? newStage.interviewers.split(',').map(item => item.trim())
+      : [];
+      
+    addStageMutation.mutate({
+      ...newStage,
+      interviewers: interviewersArray
     });
   };
 
-  const handleCompleteStage = (stage: InterviewStage) => {
-    if (!stage.completedDate) {
-      completeInterviewStageMutation.mutate({ id: stage.id });
-    }
+  const handleAddFollowup = (e: React.FormEvent) => {
+    e.preventDefault();
+    addFollowupMutation.mutate(newFollowup);
   };
 
-  // Status badge color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "In Progress":
-        return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-      case "Completed":
-        return "bg-green-100 text-green-800 hover:bg-green-200";
-      case "Pending":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200";
-      case "Rejected":
-        return "bg-red-100 text-red-800 hover:bg-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 hover:bg-gray-200";
-    }
+  const handleCompleteFollowup = (followupId: number) => {
+    completeFollowupMutation.mutate(followupId);
   };
 
-  // Sort stages by scheduled date
+  // Sort stages by scheduled date (most recent first)
   const sortedStages = process.stages 
     ? [...process.stages].sort((a, b) => {
-        // If both have scheduled dates, sort by date
-        if (a.scheduledDate && b.scheduledDate) {
-          return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
-        }
-        // If only one has a scheduled date, prioritize the one with a date
-        if (a.scheduledDate) return -1;
-        if (b.scheduledDate) return 1;
-        // If neither has a scheduled date, sort by ID (creation order)
-        return a.id - b.id;
+        if (!a.scheduledDate) return 1;
+        if (!b.scheduledDate) return -1;
+        return new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime();
       })
     : [];
 
-  // Filter followups for pending and completed
-  const pendingFollowups = process.followups
-    ? process.followups.filter(f => !f.completed)
-      .sort((a, b) => {
-        // Sort by due date if available
-        if (a.dueDate && b.dueDate) {
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        }
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return a.id - b.id;
+  // Sort followups by due date
+  const sortedFollowups = process.followups
+    ? [...process.followups].sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       })
     : [];
 
-  const completedFollowups = process.followups
-    ? process.followups.filter(f => f.completed)
-      .sort((a, b) => {
-        // Sort by completed date if available, most recent first
-        if (a.completedDate && b.completedDate) {
-          return new Date(b.completedDate).getTime() - new Date(a.completedDate).getTime();
-        }
-        return b.id - a.id;
-      })
-    : [];
+  // Filter pending and completed followups
+  const pendingFollowups = sortedFollowups.filter(f => !f.completed);
+  const completedFollowups = sortedFollowups.filter(f => f.completed);
+
+  // Format status badges
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'In Progress':
+        return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
+      case 'Completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
+      case 'Rejected':
+        return <Badge className="bg-red-500 hover:bg-red-600">{status}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  // Format dates
+  const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return 'Not scheduled';
+    if (date instanceof Date) {
+      return format(date, 'MMM d, yyyy');
+    }
+    return format(new Date(date), 'MMM d, yyyy');
+  };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex justify-between items-center mb-1">
-              <DialogTitle className="text-2xl">{process.companyName}</DialogTitle>
-              <Badge className={getStatusColor(process.status)}>
-                {process.status}
-              </Badge>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl">{process.companyName}</CardTitle>
+              <p className="text-muted-foreground">{process.position}</p>
             </div>
-            <div className="text-base font-medium text-neutral-700">{process.position}</div>
-            <div className="text-sm text-neutral-500">
-              Started {formatDistanceToNow(new Date(process.createdAt), { addSuffix: true })}
+            <div>{getStatusBadge(process.status)}</div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {process.jobDescription && (
+            <div>
+              <h3 className="text-sm font-medium mb-1">Job Description</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{process.jobDescription}</p>
             </div>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Company & Contact Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-2">
-                    {process.contactName && (
-                      <div>
-                        <dt className="text-sm font-medium text-neutral-500">Contact Person</dt>
-                        <dd className="text-sm">{process.contactName}</dd>
-                      </div>
-                    )}
-                    {process.contactEmail && (
-                      <div>
-                        <dt className="text-sm font-medium text-neutral-500">Email</dt>
-                        <dd className="text-sm">
-                          <a href={`mailto:${process.contactEmail}`} className="text-primary hover:underline">
-                            {process.contactEmail}
-                          </a>
-                        </dd>
-                      </div>
-                    )}
-                    {process.contactPhone && (
-                      <div>
-                        <dt className="text-sm font-medium text-neutral-500">Phone</dt>
-                        <dd className="text-sm">
-                          <a href={`tel:${process.contactPhone}`} className="text-primary hover:underline">
-                            {process.contactPhone}
-                          </a>
-                        </dd>
-                      </div>
-                    )}
-                    {!process.contactName && !process.contactEmail && !process.contactPhone && (
-                      <div className="text-sm text-neutral-500">No contact information</div>
-                    )}
-                  </dl>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Job Description</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="max-h-[150px] overflow-y-auto text-sm text-neutral-700">
-                    {process.jobDescription 
-                      ? process.jobDescription 
-                      : <span className="text-neutral-500">No job description provided</span>
-                    }
-                  </div>
-                </CardContent>
-              </Card>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {process.contactName && (
+              <div>
+                <h3 className="text-sm font-medium mb-1">Contact</h3>
+                <p className="text-sm">{process.contactName}</p>
+              </div>
+            )}
+            {process.contactEmail && (
+              <div>
+                <h3 className="text-sm font-medium mb-1">Email</h3>
+                <p className="text-sm">{process.contactEmail}</p>
+              </div>
+            )}
+            {process.contactPhone && (
+              <div>
+                <h3 className="text-sm font-medium mb-1">Phone</h3>
+                <p className="text-sm">{process.contactPhone}</p>
+              </div>
+            )}
+            <div>
+              <h3 className="text-sm font-medium mb-1">Created</h3>
+              <p className="text-sm">{formatDate(process.createdAt)}</p>
             </div>
-
-            {/* Interview Stages */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">Interview Stages</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setIsAddingStage(true)}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Stage
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {sortedStages.length > 0 ? (
-                  <div className="space-y-4">
+          </div>
+          
+          {process.notes && (
+            <div>
+              <h3 className="text-sm font-medium mb-1">Notes</h3>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{process.notes}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="stages">
+          <AccordionTrigger className="text-base font-medium">
+            Interview Stages ({sortedStages.length})
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4">
+              {sortedStages.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {sortedStages.map((stage) => (
-                      <div 
-                        key={stage.id} 
-                        className={`p-3 rounded-md border ${
-                          stage.completedDate 
-                            ? "bg-green-50 border-green-100" 
-                            : "bg-white border-neutral-200"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start gap-4">
-                          <div className="flex items-start gap-3">
-                            <div className="mt-1">
-                              {stage.completedDate ? (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <Circle className="h-5 w-5 text-neutral-300" />
-                              )}
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-neutral-900">{stage.type}</h3>
-                              <div className="mt-1 space-y-1">
-                                {stage.scheduledDate && (
-                                  <div className="flex items-center text-sm text-neutral-500">
-                                    <Calendar className="h-4 w-4 mr-1" />
-                                    {new Date(stage.scheduledDate).toLocaleDateString(undefined, {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric'
-                                    })}
-                                    {stage.completedDate && (
-                                      <span className="ml-2 text-green-600 text-xs font-medium">
-                                        Completed
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                                {stage.location && (
-                                  <div className="flex items-center text-sm text-neutral-500">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    {stage.location}
-                                  </div>
-                                )}
-                                {stage.interviewers && stage.interviewers.length > 0 && (
-                                  <div className="flex items-center text-sm text-neutral-500">
-                                    <Users className="h-4 w-4 mr-1" />
-                                    {stage.interviewers.join(", ")}
-                                  </div>
-                                )}
-                                {stage.notes && (
-                                  <div className="flex items-start text-sm text-neutral-500 mt-2">
-                                    <MessageCircle className="h-4 w-4 mr-1 mt-0.5" />
-                                    <div className="flex-1">{stage.notes}</div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {!stage.completedDate && (
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={() => handleCompleteStage(stage)}
-                            >
-                              Complete
+                      <TableRow key={stage.id}>
+                        <TableCell className="font-medium">{stage.type}</TableCell>
+                        <TableCell>{formatDate(stage.scheduledDate)}</TableCell>
+                        <TableCell>
+                          {stage.completedDate ? (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+                              Completed
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                              Scheduled
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="ghost" size="icon">
+                              <Edit className="h-4 w-4" />
                             </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No interview stages added yet.
+                </div>
+              )}
+              
+              <Button 
+                onClick={() => setIsAddStageDialogOpen(true)} 
+                variant="outline" 
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Interview Stage
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="followups">
+          <AccordionTrigger className="text-base font-medium">
+            Followup Actions ({pendingFollowups.length} pending)
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4">
+              {pendingFollowups.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Pending Actions</h3>
+                  <div className="space-y-2">
+                    {pendingFollowups.map((followup) => (
+                      <div 
+                        key={followup.id} 
+                        className="flex items-start justify-between p-3 border rounded-md"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center">
+                            <Circle className="h-3 w-3 text-blue-500 mr-2" />
+                            <span className="font-medium">{followup.type}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{followup.description}</p>
+                          {followup.dueDate && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Due: {formatDate(followup.dueDate)}
+                            </div>
+                          )}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCompleteFollowup(followup.id)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {completedFollowups.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Completed Actions</h3>
+                  <div className="space-y-2">
+                    {completedFollowups.map((followup) => (
+                      <div 
+                        key={followup.id} 
+                        className="flex items-start justify-between p-3 border rounded-md bg-gray-50"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center">
+                            <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
+                            <span className="font-medium line-through text-muted-foreground">
+                              {followup.type}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {followup.description}
+                          </p>
+                          {followup.completedDate && (
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              Completed: {formatDate(followup.completedDate)}
+                            </div>
                           )}
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-4 text-neutral-500">
-                    <p>No interview stages added yet</p>
-                    <p className="text-sm mt-1">
-                      Click "Add Stage" to start tracking your interview steps
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Follow-up Actions */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">Follow-up Actions</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setIsAddingFollowup(true)}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Action
-                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="multiple" defaultValue={["pending"]} className="w-full">
-                  <AccordionItem value="pending" className="border-b">
-                    <AccordionTrigger className="py-3 hover:no-underline">
-                      <span className="font-medium">Pending Actions ({pendingFollowups.length})</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-4">
-                      {pendingFollowups.length > 0 ? (
-                        <div className="space-y-3">
-                          {pendingFollowups.map((followup) => (
-                            <div 
-                              key={followup.id} 
-                              className="p-3 rounded-md border border-neutral-200 bg-white"
-                            >
-                              <div className="flex justify-between items-start gap-2">
-                                <div className="flex items-start gap-3">
-                                  <button 
-                                    onClick={() => handleToggleFollowup(followup)}
-                                    className="mt-0.5 h-5 w-5 border border-neutral-300 rounded-full flex items-center justify-center hover:bg-neutral-100"
-                                  >
-                                    <span className="sr-only">Mark as complete</span>
-                                  </button>
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <h3 className="font-medium text-neutral-900">{followup.description}</h3>
-                                      <Badge variant="outline" className="font-normal">
-                                        {followup.type}
-                                      </Badge>
-                                    </div>
-                                    <div className="mt-1 space-y-1">
-                                      {followup.dueDate && (
-                                        <div className="flex items-center text-sm text-neutral-500">
-                                          <Clock className="h-4 w-4 mr-1" />
-                                          Due {new Date(followup.dueDate).toLocaleDateString()}
-                                        </div>
-                                      )}
-                                      {followup.notes && (
-                                        <div className="text-sm text-neutral-600 mt-1">
-                                          {followup.notes}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost" 
-                                  onClick={() => handleToggleFollowup(followup)}
-                                >
-                                  Complete
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-2 text-neutral-500">
-                          <p>No pending actions</p>
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                  
-                  <AccordionItem value="completed" className="border-b-0">
-                    <AccordionTrigger className="py-3 hover:no-underline">
-                      <span className="font-medium">Completed Actions ({completedFollowups.length})</span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-2 pb-4">
-                      {completedFollowups.length > 0 ? (
-                        <div className="space-y-3">
-                          {completedFollowups.map((followup) => (
-                            <div 
-                              key={followup.id} 
-                              className="p-3 rounded-md border border-neutral-200 bg-green-50"
-                            >
-                              <div className="flex items-start gap-3">
-                                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-medium text-neutral-900 line-through opacity-70">
-                                      {followup.description}
-                                    </h3>
-                                    <Badge variant="outline" className="font-normal">
-                                      {followup.type}
-                                    </Badge>
-                                  </div>
-                                  <div className="mt-1 space-y-1">
-                                    {followup.completedDate && (
-                                      <div className="flex items-center text-sm text-green-600">
-                                        <CheckCircle className="h-4 w-4 mr-1" />
-                                        Completed {new Date(followup.completedDate).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-2 text-neutral-500">
-                          <p>No completed actions</p>
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            {/* Notes Section */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">Notes</CardTitle>
-                  {!editingNotes && (
-                    <Button size="sm" variant="ghost" onClick={() => setEditingNotes(true)}>
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  )}
+              )}
+              
+              {sortedFollowups.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No followup actions added yet.
                 </div>
-              </CardHeader>
-              <CardContent>
-                {editingNotes ? (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={notesValue}
-                      onChange={(e) => setNotesValue(e.target.value)}
-                      className="min-h-[150px]"
-                      placeholder="Add notes about this interview process..."
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => {
-                          setNotesValue(process.notes || "");
-                          setEditingNotes(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={handleSaveNotes}
-                      >
-                        Save Notes
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="prose prose-sm max-w-none text-neutral-700 min-h-[50px]">
-                    {process.notes ? (
-                      <p>{process.notes}</p>
-                    ) : (
-                      <p className="text-neutral-500">No notes added yet</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-          </DialogFooter>
+              )}
+              
+              <Button 
+                onClick={() => setIsAddFollowupDialogOpen(true)} 
+                variant="outline" 
+                className="w-full"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Followup Action
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      
+      {/* Add Stage Dialog */}
+      <Dialog open={isAddStageDialogOpen} onOpenChange={setIsAddStageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Interview Stage</DialogTitle>
+            <DialogDescription>
+              Add a new interview stage to track your interview process.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleAddStage} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Type*</label>
+              <Input 
+                placeholder="e.g., Phone Screening, Technical Interview"
+                value={newStage.type}
+                onChange={(e) => setNewStage({...newStage, type: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Scheduled Date</label>
+              <Input 
+                type="date"
+                value={newStage.scheduledDate}
+                onChange={(e) => setNewStage({...newStage, scheduledDate: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Location</label>
+              <Input 
+                placeholder="e.g., Zoom, On-site, Phone"
+                value={newStage.location}
+                onChange={(e) => setNewStage({...newStage, location: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Interviewers</label>
+              <Input 
+                placeholder="Names separated by commas"
+                value={newStage.interviewers}
+                onChange={(e) => setNewStage({...newStage, interviewers: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground">Enter names separated by commas</p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea 
+                placeholder="Additional details about this interview stage"
+                value={newStage.notes}
+                onChange={(e) => setNewStage({...newStage, notes: e.target.value})}
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddStageDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!newStage.type || addStageMutation.isPending}>
+                {addStageMutation.isPending ? 'Adding...' : 'Add Stage'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-
-      {/* Add Stage Dialog */}
-      {isAddingStage && (
-        <NewInterviewStageForm
-          open={isAddingStage}
-          onClose={() => setIsAddingStage(false)}
-          processId={process.id}
-        />
-      )}
-
+      
       {/* Add Followup Dialog */}
-      {isAddingFollowup && (
-        <NewFollowupActionForm
-          open={isAddingFollowup}
-          onClose={() => setIsAddingFollowup(false)}
-          processId={process.id}
-          stages={sortedStages}
-        />
-      )}
-    </>
+      <Dialog open={isAddFollowupDialogOpen} onOpenChange={setIsAddFollowupDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Followup Action</DialogTitle>
+            <DialogDescription>
+              Add a new followup action to keep track of your next steps.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleAddFollowup} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Type*</label>
+              <Input 
+                placeholder="e.g., Thank You Email, Prepare Questions"
+                value={newFollowup.type}
+                onChange={(e) => setNewFollowup({...newFollowup, type: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description*</label>
+              <Textarea 
+                placeholder="Detailed description of the action"
+                value={newFollowup.description}
+                onChange={(e) => setNewFollowup({...newFollowup, description: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Due Date</label>
+              <Input 
+                type="date"
+                value={newFollowup.dueDate}
+                onChange={(e) => setNewFollowup({...newFollowup, dueDate: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea 
+                placeholder="Additional notes or details"
+                value={newFollowup.notes}
+                onChange={(e) => setNewFollowup({...newFollowup, notes: e.target.value})}
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddFollowupDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!newFollowup.type || !newFollowup.description || addFollowupMutation.isPending}
+              >
+                {addFollowupMutation.isPending ? 'Adding...' : 'Add Followup'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
-}
+};
