@@ -1,10 +1,38 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+
+// Declare session values on the Express Request type
+declare module "express-session" {
+  interface SessionData {
+    userId?: number;
+  }
+}
+
+// Extend the Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      session: session.Session & Partial<session.SessionData>;
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Configure session middleware
+app.use(session({
+  secret: "career-dev-platform-secret", // In production, use environment variable
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === "production", // Only secure in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

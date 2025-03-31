@@ -171,7 +171,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         }
       }
       
-      // For a real app, you would create a session here
+      // Create a session for this user
+      if (!req.session) {
+        req.session = {};
+      }
+      req.session.userId = user.id;
+      
+      // Set a cookie with the user ID
+      res.cookie('userId', user.id, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        path: '/',
+      });
+      
       const { password: pwd, ...safeUser } = user;
       
       res.status(200).json({ user: safeUser });
@@ -182,10 +194,32 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.post("/auth/logout", async (req: Request, res: Response) => {
     try {
-      // In a real app with sessions, you would destroy the session here
-      // We'll set a special header to indicate logout for the client
-      res.setHeader('X-Auth-Logout', 'true');
-      res.status(200).json({ message: "Logged out successfully" });
+      // Clear the session
+      if (req.session) {
+        req.session.userId = undefined;
+        
+        // Destroy the session
+        req.session.destroy((err) => {
+          if (err) {
+            return res.status(500).json({ message: "Error destroying session" });
+          }
+          
+          // Clear the cookie
+          res.clearCookie('userId');
+          res.clearCookie('connect.sid');
+          
+          // Set a special header to indicate logout for the client (for backward compatibility)
+          res.setHeader('X-Auth-Logout', 'true');
+          
+          res.status(200).json({ message: "Logged out successfully" });
+        });
+      } else {
+        // If there's no session, just clear the cookies
+        res.clearCookie('userId');
+        res.clearCookie('connect.sid');
+        res.setHeader('X-Auth-Logout', 'true');
+        res.status(200).json({ message: "Logged out successfully" });
+      }
     } catch (error) {
       res.status(500).json({ message: "Error during logout" });
     }
@@ -228,6 +262,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const newUser = await storage.createUser(userData);
       const { password: userPwd, ...safeUser } = newUser;
       
+      // Store user ID in session to log them in
+      if (!req.session) {
+        req.session = {};
+      }
+      req.session.userId = newUser.id;
+      
+      // Set a cookie with the user ID
+      res.cookie('userId', newUser.id, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+        path: '/',
+      });
+      
       res.status(201).json({ user: safeUser });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -253,9 +300,24 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      // For demo purposes, we're using the sample user
-      // In a real app, you would extract the user ID from the session
-      const user = await storage.getUserByUsername("alex");
+      // Get the user ID from the session
+      let userId;
+      
+      // Try to get user ID from the session
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+      
+      // If we still don't have a user ID, use the default "alex" for backward compatibility
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If we couldn't find the user by ID, fall back to the default user
+      if (!user) {
+        user = await storage.getUserByUsername("alex");
+      }
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -278,9 +340,22 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Update user profile
   apiRouter.put("/users/profile", async (req: Request, res: Response) => {
     try {
-      // In a real app, you would get the user ID from the session
-      // For demo purposes, we'll use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get user ID from session
+      let userId;
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+      
+      // Get the user by ID or fall back to default
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If not found, use the sample user for backward compatibility
+      if (!user) {
+        user = await storage.getUserByUsername("alex");
+      }
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });

@@ -14,6 +14,7 @@ import Account from "@/pages/Account";
 import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import NotFound from "@/pages/not-found";
+import AuthTest from "@/pages/AuthTest";
 
 // Public Pages
 import Home from "@/pages/Home";
@@ -148,7 +149,7 @@ function App() {
   const isSignUpRoute = location === "/sign-up";
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up"].includes(location);
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/auth-test"].includes(location);
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
@@ -224,6 +225,7 @@ function App() {
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />
+          <Route path="/auth-test" component={AuthTest} />
         </Switch>
       </PublicLayout>
     );
