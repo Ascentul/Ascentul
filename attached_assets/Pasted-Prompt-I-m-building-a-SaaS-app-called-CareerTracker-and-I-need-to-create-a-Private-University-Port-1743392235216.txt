@@ -1,0 +1,34 @@
+Prompt:
+I’m building a SaaS app called CareerTracker, and I need to create a Private University Portal + Invite-Only Sign Up Flow to support university partnerships.
+Here’s what I need you to build:
+🔐 1. Private University Sign-Up & Login Page
+Create a new route/page at /university with its own layout (use Tailwind or clean CSS).
+Include:
+School-branded welcome message (placeholder for logo/school name).
+Email field for sign-up (restricted to pre-approved domains like @northpark.edu).
+Password + confirm password field.
+Option to paste a university invite code (optional).
+Toggle for "I’m a Student" or "I’m an Admin".
+Link to university login if the user already has an account.
+📄 2. Backend Functionality
+Create a basic user model with:
+fullName, email, password, universityId, role (student/admin), isUniversityAccount, invited boolean
+Create a university model:
+universityId, name, domainWhitelist (array of allowed email domains), logoUrl, adminUsers
+Implement:
+Domain-based validation (if user signs up with @northpark.edu, auto-link to universityId)
+Invite code logic (if code is used, associate user with correct university)
+Prevent registration unless domain matches or invite is valid
+📬 3. Invite System (Admin Flow)
+Create an endpoint or admin dashboard (mock is fine) to:
+Generate invite codes for a university
+Upload a CSV of student emails to invite in bulk
+Track which invites were redeemed
+🔄 4. Link to Regular Signup Page
+On the main signup form, remove “University” as a visible toggle.
+Instead, under “Create Account,” add this text:
+“Are you a university student in a partner program? Access your portal here”
+💾 Bonus (Optional)
+Create a simple UI to switch to /university/northpark or /university/:slug if multiple school-specific landing pages are needed later.
+Store universityId in the user session to control dashboard access and content.
+Keep the structure clean and scalable. You can use basic mock data for universities and show conditional content based on isUniversityAccount.

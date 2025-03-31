@@ -26,7 +26,8 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
   const { login } = useUser();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(initialTab);
-  const [loginType, setLoginType] = useState<'regular' | 'university'>('regular');
+  // Always use regular account type for the main login dialog
+  const loginType = 'regular';
   
   // Set active tab when initialTab prop changes
   useEffect(() => {
@@ -161,7 +162,7 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
-            {loginType === 'regular' ? 'CareerPilot' : 'University Edition'}
+            CareerTracker.io
           </DialogTitle>
           <DialogDescription className="text-center">
             Access your personal career management platform
@@ -266,32 +267,9 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
         </Tabs>
 
         <div className="mt-4">
-          <div className="text-sm text-center mb-4">Choose account type:</div>
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant={loginType === 'regular' ? "default" : "outline"}
-              onClick={() => setLoginType('regular')}
-              className="flex flex-col items-center p-4 h-auto"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <span>Career App</span>
-              <span className="text-xs mt-1">Regular Account</span>
-            </Button>
-            <Button
-              variant={loginType === 'university' ? "default" : "outline"}
-              onClick={() => setLoginType('university')}
-              className="flex flex-col items-center p-4 h-auto"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-              </svg>
-              <span>University</span>
-              <span className="text-xs mt-1">Student & Admin</span>
-            </Button>
+          <div className="text-sm text-center mb-2">
+            <span className="text-muted-foreground">Are you a university student in a partner program?</span>{' '}
+            <a href="/university" className="text-primary hover:underline">Access your portal here</a>
           </div>
         </div>
 
