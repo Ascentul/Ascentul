@@ -131,51 +131,45 @@ export default function PlanSelection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Free Plan */}
           <div className="relative">
-            {selectedPlan === 'free' && (
-              <div className="absolute -top-4 right-4 z-10 bg-primary text-white px-3 py-1 rounded-md text-sm font-medium shadow-sm">
-                Selected
+            <div className="relative">
+              <div className="pt-10">
+                <Card className={`relative overflow-hidden ${selectedPlan === 'free' ? 'border-primary border-2' : ''}`}>
+                  <CardHeader className="pb-4 px-6 md:px-8">
+                    <CardTitle className="text-2xl">Free Plan</CardTitle>
+                    <CardDescription>
+                      Get started with basic career management tools
+                    </CardDescription>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">$0</span>
+                      <span className="text-muted-foreground ml-1">forever</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-4 px-6 md:px-8">
+                    <ul className="space-y-2">
+                      {planFeatures.free.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="px-6 md:px-8">
+                    <Button 
+                      variant={selectedPlan === 'free' ? 'default' : 'outline'} 
+                      className="w-full"
+                      onClick={() => handlePlanSelect('free')}
+                    >
+                      {selectedPlan === 'free' ? 'Selected' : 'Select Free Plan'}
+                    </Button>
+                  </CardFooter>
+                </Card>
               </div>
-            )}
-            <Card className={`relative overflow-hidden ${selectedPlan === 'free' ? 'border-primary border-2' : ''}`}>
-              <CardHeader className="pb-4 px-6 md:px-8">
-                <CardTitle className="text-2xl">Free Plan</CardTitle>
-                <CardDescription>
-                  Get started with basic career management tools
-                </CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">$0</span>
-                  <span className="text-muted-foreground ml-1">forever</span>
-                </div>
-              </CardHeader>
-              <CardContent className="pb-4 px-6 md:px-8">
-                <ul className="space-y-2">
-                  {planFeatures.free.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter className="px-6 md:px-8">
-                <Button 
-                  variant={selectedPlan === 'free' ? 'default' : 'outline'} 
-                  className="w-full"
-                  onClick={() => handlePlanSelect('free')}
-                >
-                  {selectedPlan === 'free' ? 'Selected' : 'Select Free Plan'}
-                </Button>
-              </CardFooter>
-            </Card>
+            </div>
           </div>
           
           {/* Pro Plan */}
           <div className="relative">
-            {selectedPlan === 'pro' && (
-              <div className="absolute -top-4 right-4 z-10 bg-primary text-white px-3 py-1 rounded-md text-sm font-medium shadow-sm">
-                Selected
-              </div>
-            )}
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 z-10 bg-primary text-white py-2 text-center font-medium rounded-t-lg flex items-center justify-center">
                 Most popular <span className="ml-1">✨</span>
