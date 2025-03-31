@@ -70,7 +70,7 @@ export default function SignUpPage() {
       }
       
       // Make API call to register
-      const registerResponse = await fetch('/api/auth/register', {
+      const registerResponse = await fetch('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export default function SignUpPage() {
       }
       
       // Log in the user automatically after registration with direct API call
-      const loginResponse = await fetch('/api/auth/login', {
+      const loginResponse = await fetch('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

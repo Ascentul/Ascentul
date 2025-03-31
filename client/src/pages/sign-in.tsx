@@ -35,7 +35,7 @@ export default function SignInPage() {
     
     try {
       // Make direct API call instead of using login function
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,6 +46,9 @@ export default function SignInPage() {
           loginType 
         }),
       });
+      
+      // Debug info for troubleshooting
+      console.log('Login response status:', response.status);
       
       const data = await response.json();
       

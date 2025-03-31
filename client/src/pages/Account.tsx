@@ -419,7 +419,7 @@ export default function Account() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch('/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
