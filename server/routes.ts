@@ -224,6 +224,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         if (loginType === "regular" && (user.userType === "university_student" || user.userType === "university_admin")) {
           return res.status(403).json({ message: "Access denied. Please use the university login portal." });
         }
+        
+        if (loginType === "admin" && user.userType !== "admin") {
+          return res.status(403).json({ message: "Access denied. You do not have administrator privileges." });
+        }
+        
+        if (loginType === "staff" && user.userType !== "staff" && user.userType !== "admin") {
+          return res.status(403).json({ message: "Access denied. You do not have staff privileges." });
+        }
       }
       
       // Set the user ID in session

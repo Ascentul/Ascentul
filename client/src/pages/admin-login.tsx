@@ -32,10 +32,11 @@ export default function AdminLoginPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook
-      const user = await login(loginUsername, loginPassword);
+      // Use the login function from useUser hook with a special 'admin' indicator
+      const user = await login(loginUsername, loginPassword, 'admin');
       
-      // Check if the logged-in user is an admin
+      // Check if the logged-in user is an admin - this is a fallback
+      // in case the server doesn't handle the login type correctly
       if (user.userType !== 'admin') {
         toast({
           title: "Access denied",
@@ -54,8 +55,11 @@ export default function AdminLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // Redirect to admin dashboard
-      window.location.href = '/admin';
+      // The redirect will be handled by useUserData.tsx, but this is a fallback
+      // in case the server doesn't provide a redirectPath
+      if (!user.redirectPath) {
+        window.location.href = '/admin';
+      }
     } catch (error) {
       toast({
         title: "Login failed",

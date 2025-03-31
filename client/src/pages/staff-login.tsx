@@ -32,10 +32,11 @@ export default function StaffLoginPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook
-      const user = await login(loginUsername, loginPassword);
+      // Use the login function from useUser hook with a special 'staff' indicator
+      const user = await login(loginUsername, loginPassword, 'staff');
       
-      // Check if the logged-in user is staff or admin
+      // Check if the logged-in user is staff or admin - this is a fallback
+      // in case the server doesn't handle the login type correctly
       if (user.userType !== 'staff' && user.userType !== 'admin') {
         toast({
           title: "Access denied",
@@ -54,8 +55,11 @@ export default function StaffLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // Redirect to staff dashboard
-      window.location.href = '/staff';
+      // The redirect will be handled by useUserData.tsx, but this is a fallback
+      // in case the server doesn't provide a redirectPath
+      if (!user.redirectPath) {
+        window.location.href = '/staff';
+      }
     } catch (error) {
       toast({
         title: "Login failed",

@@ -35,7 +35,7 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  login: (username: string, password: string, loginType?: 'regular' | 'university') => Promise<User>;
+  login: (username: string, password: string, loginType?: 'regular' | 'university' | 'staff' | 'admin') => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
@@ -68,14 +68,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }: { 
       username: string; 
       password: string; 
-      loginType?: 'regular' | 'university' 
+      loginType?: 'regular' | 'university' | 'staff' | 'admin' 
     }) => {
       const res = await apiRequest('POST', '/auth/login', { username, password, loginType });
       const data = await res.json();
-      return data.user as User;
+      // Return both user and redirectPath from the server response
+      return {
+        user: data.user as User,
+        redirectPath: data.redirectPath
+      };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/users/me'], data);
+      queryClient.setQueryData(['/api/users/me'], data.user);
       setIsAuthenticated(true);
       
       // Use the redirect path provided by the server, or fall back to role-based redirect
@@ -83,11 +87,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         window.location.href = data.redirectPath;
       } else {
         // Fall back to role-based redirection
-        if (data.userType === 'admin') {
+        const user = data.user;
+        if (user.userType === 'admin') {
           window.location.href = '/admin';
-        } else if (data.userType === 'staff') {
+        } else if (user.userType === 'staff') {
           window.location.href = '/staff';
-        } else if (data.userType === 'university_admin' || data.userType === 'university_student') {
+        } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
           window.location.href = '/university';
         } else { // regular user
           window.location.href = '/dashboard';
@@ -96,11 +101,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const login = async (username: string, password: string, loginType?: 'regular' | 'university') => {
+  const login = async (username: string, password: string, loginType?: 'regular' | 'university' | 'staff' | 'admin') => {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');
     
-    return loginMutation.mutateAsync({ username, password, loginType });
+    const result = await loginMutation.mutateAsync({ username, password, loginType });
+    return result.user;
   };
 
   const logout = () => {
