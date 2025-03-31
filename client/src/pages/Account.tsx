@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
 
@@ -728,6 +728,12 @@ export default function Account() {
                       Verification email sent to <span className="font-medium">{user.pendingEmail}</span>.
                       Please check your inbox to complete the change.
                     </p>
+                    <div className="mt-3">
+                      <Button variant="outline" size="sm" onClick={() => setIsChangingEmail(true)}>
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" />
+                        Try Again
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
