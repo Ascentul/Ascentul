@@ -1049,6 +1049,12 @@ export class MemStorage implements IStorage {
   }
 
   async createInterviewStage(processId: number, stageData: InsertInterviewStage): Promise<InterviewStage> {
+    // Validate process exists first
+    const process = await this.getInterviewProcess(processId);
+    if (!process) {
+      throw new Error(`Interview process with ID ${processId} not found`);
+    }
+    
     const id = this.interviewStageIdCounter++;
     const now = new Date();
     const interviewStage: InterviewStage = {
@@ -1058,13 +1064,13 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     };
+    
+    console.log(`Creating interview stage: ${JSON.stringify(interviewStage)}`);
+    
     this.interviewStages.set(id, interviewStage);
     
-    // Get the process to award XP to the user
-    const process = await this.getInterviewProcess(processId);
-    if (process) {
-      await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
-    }
+    // Award XP to the user
+    await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
     
     return interviewStage;
   }

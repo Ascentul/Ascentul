@@ -94,8 +94,18 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Add interview stage mutation
   const addStageMutation = useMutation({
     mutationFn: async (stageData: any) => {
-      const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, stageData);
-      return await response.json();
+      console.log('Adding stage to process ID:', process.id, 'with data:', stageData);
+      try {
+        const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, stageData);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to add interview stage');
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Invalidate both the process list and the specific stages query
@@ -115,6 +125,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       });
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast({
         title: 'Error',
         description: `Failed to add interview stage: ${error instanceof Error ? error.message : 'Unknown error'}`,

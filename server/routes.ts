@@ -1644,6 +1644,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
       
+      console.log(`Adding stage to process ID: ${processId}, parsed as: ${processIdNum}`);
+      
       if (isNaN(processIdNum)) {
         return res.status(400).json({ message: "Invalid process ID" });
       }
@@ -1654,10 +1656,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      console.log(`User ID: ${user.id}, looking for process with ID: ${processIdNum}`);
+      
       const process = await storage.getInterviewProcess(processIdNum);
       
+      console.log(`Process found:`, process ? `ID: ${process.id}, Company: ${process.companyName}` : 'Process not found');
+      
       if (!process) {
-        return res.status(404).json({ message: "Interview process not found" });
+        return res.status(400).json({ message: "Invalid interview process" });
       }
       
       // Ensure the process belongs to the current user
@@ -1665,10 +1671,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(403).json({ message: "You don't have permission to add stages to this interview process" });
       }
       
+      console.log(`Stage data before parsing:`, req.body);
       const stageData = insertInterviewStageSchema.parse(req.body);
+      console.log(`Stage data after parsing:`, stageData);
+      
       const stage = await storage.createInterviewStage(processIdNum, stageData);
       res.status(201).json(stage);
     } catch (error) {
+      console.error("Error adding interview stage:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid interview stage data", errors: error.errors });
       }
