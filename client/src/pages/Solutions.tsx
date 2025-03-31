@@ -3,19 +3,51 @@ import { Link } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Users, Building, Award, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { motion } from 'framer-motion';
 
 export default function Solutions() {
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.6 } }
+  };
+  
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+  
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+  
+  const staggerItem = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+
   return (
     <div>
       {/* Hero Section */}
       <section className="py-16 md:py-20">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="max-w-4xl mx-auto text-center"
+          >
             <h1 className="text-3xl md:text-4xl font-bold mb-6">Comprehensive Career Solutions</h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              CareerPilot provides tailored solutions for individuals at every career stage and organizations supporting professional development.
+              CareerTracker.io provides tailored solutions for individuals at every career stage and organizations supporting professional development.
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -30,8 +62,14 @@ export default function Solutions() {
             </TabsList>
             
             <TabsContent value="individuals" className="mt-6">
-              <div className="space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                variants={staggerContainer}
+                className="space-y-12"
+              >
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
                       <Briefcase className="h-8 w-8 text-primary" />
@@ -67,9 +105,9 @@ export default function Solutions() {
                       <p className="text-xl font-medium text-primary/70">Career Roadmap</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
                       <Award className="h-16 w-16 text-primary/60 mx-auto mb-4" />
@@ -105,9 +143,9 @@ export default function Solutions() {
                       </Button>
                     </Link>
                   </div>
-                </div>
+                </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-8 w-8 text-primary">
@@ -158,13 +196,19 @@ export default function Solutions() {
                       <p className="text-xl font-medium text-primary/70">Interview Mastery</p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </TabsContent>
             
             <TabsContent value="universities" className="mt-6">
-              <div className="space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                variants={staggerContainer}
+                className="space-y-12"
+              >
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
                       <GraduationCap className="h-8 w-8 text-primary" />
@@ -202,9 +246,9 @@ export default function Solutions() {
                       <p className="text-xl font-medium text-primary/70">University Solution</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-primary/60 mx-auto mb-4">
@@ -246,13 +290,19 @@ export default function Solutions() {
                       Learn More <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </TabsContent>
             
             <TabsContent value="organizations" className="mt-6">
-              <div className="space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <motion.div 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-50px" }}
+                variants={staggerContainer}
+                className="space-y-12"
+              >
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
                       <Building className="h-8 w-8 text-primary" />
@@ -269,154 +319,101 @@ export default function Solutions() {
                       </li>
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
+                        Management dashboard and analytics
+                      </li>
+                      <li className="flex items-start">
+                        <span className="text-primary mr-2">✓</span>
                         Integration with existing HR systems
                       </li>
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
-                        Admin dashboard for tracking utilization
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Custom career pathways aligned with organization structure
+                        Career path visualization for employees
                       </li>
                     </ul>
                     <Button variant="outline" className="flex items-center">
-                      Contact Sales <ArrowRight className="ml-2 h-4 w-4" />
+                      Contact Us <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                   <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
                       <Building className="h-16 w-16 text-primary/60 mx-auto mb-4" />
-                      <p className="text-xl font-medium text-primary/70">Corporate Solutions</p>
+                      <p className="text-xl font-medium text-primary/70">Corporate Solution</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
                       <Users className="h-16 w-16 text-primary/60 mx-auto mb-4" />
-                      <p className="text-xl font-medium text-primary/70">Talent Development</p>
+                      <p className="text-xl font-medium text-primary/70">Team Development</p>
                     </div>
                   </div>
                   <div className="order-1 md:order-2">
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
                       <Users className="h-8 w-8 text-primary" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Talent Management & Retention</h2>
+                    <h2 className="text-2xl font-bold mb-4">Team Skills Development</h2>
                     <p className="text-muted-foreground mb-6">
-                      Improve employee satisfaction and retention by providing clear career development paths and 
-                      resources. Help your team grow within your organization rather than looking elsewhere.
+                      Enhance your team's skills and productivity with our comprehensive skill development tools. 
+                      Track progress, identify skill gaps, and align individual growth with organizational goals.
                     </p>
                     <ul className="space-y-2 mb-6">
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
-                        Internal career path visualization
+                        Team skill assessment and gap analysis
                       </li>
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
-                        Skill gap analysis and development plans
+                        Personalized development plans
                       </li>
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
-                        Goal alignment with organizational objectives
+                        Progress tracking and reporting
                       </li>
                       <li className="flex items-start">
                         <span className="text-primary mr-2">✓</span>
-                        Progress reporting and achievement tracking
+                        Custom learning path creation
                       </li>
                     </ul>
                     <Button variant="outline" className="flex items-center">
-                      Request Demo <ArrowRight className="ml-2 h-4 w-4" />
+                      Learn More <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </TabsContent>
           </Tabs>
         </div>
       </section>
-
-      {/* Case Studies */}
+      
+      {/* CTA Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Success Stories</h2>
-            <p className="text-lg text-muted-foreground">
-              See how organizations and institutions are achieving their goals with CareerPilot.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="bg-card rounded-xl overflow-hidden shadow-sm">
-              <div className="h-48 bg-gradient-to-r from-primary/20 to-primary/40 flex items-center justify-center">
-                <GraduationCap className="h-16 w-16 text-primary" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">State University</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Increased graduate employment rates by 32% within one year of implementing CareerPilot's University Edition.
-                </p>
-                <Button variant="link" className="p-0 h-auto flex items-center text-primary">
-                  Read Case Study <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl overflow-hidden shadow-sm">
-              <div className="h-48 bg-gradient-to-r from-primary/20 to-primary/40 flex items-center justify-center">
-                <Building className="h-16 w-16 text-primary" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">TechCorp Inc.</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Reduced employee turnover by 24% and improved internal promotion rates through structured career development.
-                </p>
-                <Button variant="link" className="p-0 h-auto flex items-center text-primary">
-                  Read Case Study <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl overflow-hidden shadow-sm">
-              <div className="h-48 bg-gradient-to-r from-primary/20 to-primary/40 flex items-center justify-center">
-                <Users className="h-16 w-16 text-primary" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Global Consulting Group</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Streamlined onboarding and professional development, saving over 2,000 HR hours annually.
-                </p>
-                <Button variant="link" className="p-0 h-auto flex items-center text-primary">
-                  Read Case Study <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center bg-primary/5 rounded-xl p-10">
-            <h2 className="text-2xl font-bold mb-4">Find the Right Solution for Your Needs</h2>
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Career Journey?</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Whether you're an individual looking to advance your career, a university supporting your students, 
-              or an organization developing your talent, we have solutions designed for you.
+              Join thousands of professionals and organizations who trust CareerTracker.io for their career development needs.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/pricing">
-                <Button size="lg">
-                  View Pricing
-                  <ArrowRight className="ml-2 h-4 w-4" />
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link href="/auth">
+                <Button size="lg" className="w-full sm:w-auto">
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg">
-                Contact Sales
-              </Button>
+              <Link href="/pricing">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  View Pricing <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>

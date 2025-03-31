@@ -20,6 +20,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useIsSubscriptionActive } from '@/lib/useUserData';
+import { motion } from 'framer-motion';
 
 type PlanInterval = 'monthly' | 'quarterly' | 'annual';
 
@@ -29,6 +30,32 @@ export default function Pricing() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
+  
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.6 } }
+  };
+  
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+  
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+  
+  const staggerItem = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
   
   // Add state to track which plan is being processed
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
@@ -268,19 +295,29 @@ export default function Pricing() {
       {/* Pricing Header */}
       <section className="py-16 md:py-20">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto text-center"
+          >
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
             <p className="text-lg text-muted-foreground mb-8">
               Choose the plan that's right for your career stage. All plans include core features to help you succeed.
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Billing Interval Toggle */}
       <section className="pb-8">
         <div className="container mx-auto px-4">
-          <div className="max-w-md mx-auto">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+            className="max-w-md mx-auto"
+          >
             <Tabs 
               defaultValue="monthly" 
               className="w-full"
@@ -292,164 +329,221 @@ export default function Pricing() {
                 <TabsTrigger value="annual">Annual</TabsTrigger>
               </TabsList>
             </Tabs>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Pricing Cards */}
       <section className="pb-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
+          >
             {plans.map((plan) => (
-              <Card 
-                key={plan.name} 
-                className={`${plan.highlighted ? 'border-primary shadow-lg relative' : 'border-border'}`}
-              >
-                {plan.savings && (
-                  <div className="absolute -top-3 right-6 bg-primary text-white text-xs font-semibold py-1 px-3 rounded-full">
-                    {plan.savings}
-                  </div>
-                )}
-                <CardHeader>
-                  <CardTitle>{plan.name}</CardTitle>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold">${plan.price}</span>
-                    <span className="text-muted-foreground ml-1">/{plan.period}</span>
-                  </div>
-                  <CardDescription className="mt-3">{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center">
-                        <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    variant={plan.buttonVariant} 
-                    className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    onClick={plan.buttonAction}
-                    disabled={processingPlan === plan.id || 
-                             (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
-                             (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
-                  >
-                    {processingPlan === plan.id ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        {plan.buttonText}
-                        {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        }
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
+              <motion.div key={plan.id} variants={staggerItem}>
+                <Card 
+                  className={`${plan.highlighted ? 'border-primary shadow-lg relative' : 'border-border'}`}
+                >
+                  {plan.savings && (
+                    <div className="absolute -top-3 right-6 bg-primary text-white text-xs font-semibold py-1 px-3 rounded-full">
+                      {plan.savings}
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle>{plan.name}</CardTitle>
+                    <div className="mt-2">
+                      <span className="text-3xl font-bold">${plan.price}</span>
+                      <span className="text-muted-foreground ml-1">/{plan.period}</span>
+                    </div>
+                    <CardDescription className="mt-3">{plan.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-center">
+                          <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      variant={plan.buttonVariant} 
+                      className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                      onClick={plan.buttonAction}
+                      disabled={processingPlan === plan.id || 
+                               (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
+                               (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
+                    >
+                      {processingPlan === plan.id ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          {plan.buttonText}
+                          {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          }
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
-          <div className="max-w-3xl mx-auto mt-12 bg-muted/50 rounded-lg p-6 text-center">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto mt-12 bg-muted/50 rounded-lg p-6 text-center"
+          >
             <h3 className="text-xl font-semibold mb-3">University Licensing Available</h3>
             <p className="text-muted-foreground mb-4">
-              We offer special licensing for universities to provide CareerPilot to their students.
+              We offer special licensing for universities to provide CareerTracker.io to their students.
               Contact us for custom pricing and integration options.
             </p>
             <Button variant="outline">
               Contact Sales
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto"
+          >
             <h2 className="text-2xl font-bold text-center mb-10">Frequently Asked Questions</h2>
 
-            <div className="space-y-6">
-              <div className="bg-card rounded-lg p-6">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={staggerContainer}
+              className="space-y-6"
+            >
+              <motion.div variants={staggerItem} className="bg-card rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-3">Can I upgrade or downgrade my plan?</h3>
                 <p className="text-muted-foreground">
                   Yes, you can change your plan at any time. When upgrading, you'll be charged the prorated amount for the remainder of your billing cycle. When downgrading, your new plan will take effect at the end of your current billing cycle.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="bg-card rounded-lg p-6">
+              <motion.div variants={staggerItem} className="bg-card rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-3">What happens when I reach conversation limits with the AI coach?</h3>
                 <p className="text-muted-foreground">
                   Once you reach your monthly conversation limit with the AI coach, you'll need to wait until your plan resets at the beginning of your next billing cycle. You can also upgrade to a higher tier plan for more conversations.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="bg-card rounded-lg p-6">
+              <motion.div variants={staggerItem} className="bg-card rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-3">How do I verify my student status for the University Edition?</h3>
                 <p className="text-muted-foreground">
                   You can verify your student status by signing up with your university email address (.edu or equivalent) or by providing your student ID. Our team will verify your status within 24 hours.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="bg-card rounded-lg p-6">
+              <motion.div variants={staggerItem} className="bg-card rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-3">Is there a discount for annual subscriptions?</h3>
                 <p className="text-muted-foreground">
-                  Yes, we offer a 20% discount when you subscribe annually. The discount will be applied automatically when you select the annual billing option during checkout.
+                  Yes, we offer a significant discount when you subscribe annually. The discount will be applied automatically when you select the annual billing option during checkout.
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="bg-card rounded-lg p-6">
+              <motion.div variants={staggerItem} className="bg-card rounded-lg p-6">
                 <h3 className="text-lg font-semibold mb-3">Can I cancel my subscription?</h3>
                 <p className="text-muted-foreground">
                   Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period, after which it will revert to the Free plan.
                 </p>
-              </div>
-            </div>
-          </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16">
+      <section className="py-16 bg-gradient-to-b from-primary/10 to-primary/5">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">Ready to Accelerate Your Career?</h2>
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Career?</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of professionals using CareerPilot to achieve their career goals.
+              Join thousands of professionals who are taking control of their future with CareerTracker.io.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {user ? (
-                isSubscriptionActive ? (
-                  <Button size="lg" onClick={() => navigate('/account')} variant="outline">
-                    Manage Your Subscription
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button size="lg" onClick={() => handleSubscribeWithInterval('premium')}>
-                    Upgrade to Pro
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )
-              ) : (
-                <Button size="lg" onClick={() => navigate('/auth')}>
-                  Start Your Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-              
-              <Button variant="outline" size="lg">
-                Schedule a Demo
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => navigate('/auth')}
+              >
+                Get Started <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                Compare Plans <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
+
+      {/* Cancellation Section (only visible to subscribed users) */}
+      {isSubscriptionActive && (
+        <section className="py-12 border-t border-border">
+          <div className="container mx-auto px-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="bg-card rounded-lg p-6 border border-border">
+                <h3 className="text-lg font-semibold mb-3">Manage Your Subscription</h3>
+                <p className="text-muted-foreground mb-6">
+                  You're currently subscribed to the {user?.subscriptionPlan === 'premium' ? 'Pro' : 'University Edition'} plan.
+                  Your next billing date is {user?.subscriptionRenewalDate ? new Date(user.subscriptionRenewalDate).toLocaleDateString() : 'unknown'}.
+                </p>
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelSubscription}
+                    disabled={cancelSubscriptionMutation.isPending}
+                  >
+                    {cancelSubscriptionMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      'Cancel Subscription'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
