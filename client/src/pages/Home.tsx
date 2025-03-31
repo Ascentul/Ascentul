@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Target, Award, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LoginDialog from '@/components/LoginDialog';
 
 export default function Home() {
+  const [showSignupDialog, setShowSignupDialog] = useState(false);
+  
   return (
     <div>
       {/* Hero Section */}
@@ -17,12 +20,14 @@ export default function Home() {
               From resume building to interview prep, goal tracking to AI coaching, CareerPilot gives you the tools to take control of your professional future.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link href="/auth">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Get Started for Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => setShowSignupDialog(true)}
+              >
+                Get Started for Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
               <Button variant="outline" size="lg" className="w-full sm:w-auto">
                 Learn More
               </Button>
@@ -237,15 +242,22 @@ export default function Home() {
             <p className="text-lg text-muted-foreground mb-8">
               Join thousands of professionals and students who are taking control of their future with CareerPilot.
             </p>
-            <Link href="/auth">
-              <Button size="lg">
-                Get Started for Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              size="lg"
+              onClick={() => setShowSignupDialog(true)}
+            >
+              Get Started for Free
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
+      {/* Login/Signup Dialog */}
+      <LoginDialog 
+        open={showSignupDialog} 
+        onOpenChange={setShowSignupDialog} 
+        initialTab="signup" 
+      />
     </div>
   );
 }
