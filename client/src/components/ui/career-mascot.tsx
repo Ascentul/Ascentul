@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Mascot action types
@@ -20,56 +20,101 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
   
   const pixelSize = sizeMap[size];
 
-  // Get the appropriate mascot image based on the action
+  // Get the appropriate compass mascot image based on the action
   const getMascotImage = () => {
-    // This would ideally use actual images, but for now we're using SVGs
-    // In a real implementation, these would be replaced with proper character images
     switch (action) {
       case 'loading':
         return (
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-            <circle cx="50" cy="50" r="40" stroke="#0C29AB" strokeWidth="4" fill="none" />
+            {/* Outer circle */}
+            <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
+            
+            {/* Cardinal points */}
+            <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            
+            {/* Center pin */}
+            <circle cx="50" cy="50" r="3" fill="#0C29AB" />
+            
+            {/* Spinning needle */}
             <motion.path
-              d="M50 10 A 40 40 0 0 1 90 50"
+              d="M50 30 L50 70"
               stroke="#0C29AB"
               strokeWidth="4"
               strokeLinecap="round"
               fill="none"
               animate={{ rotate: 360 }}
               transition={{ 
-                duration: 1, 
+                duration: 2, 
                 repeat: Infinity, 
                 ease: "linear" 
               }}
               style={{ transformOrigin: "50px 50px" }}
             />
-            <circle cx="40" cy="40" r="5" fill="#0C29AB" />
-            <circle cx="60" cy="40" r="5" fill="#0C29AB" />
-            <path d="M40 60 Q 50 70 60 60" stroke="#0C29AB" strokeWidth="3" fill="none" />
+            
+            {/* Needle head */}
+            <motion.path
+              d="M40 40 L50 25 L60 40 Z"
+              fill="#0C29AB"
+              animate={{ rotate: 360 }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity, 
+                ease: "linear" 
+              }}
+              style={{ transformOrigin: "50px 50px" }}
+            />
           </svg>
         );
       case 'thinking':
         return (
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-            <circle cx="50" cy="50" r="40" stroke="#0C29AB" strokeWidth="4" fill="none" />
-            <circle cx="40" cy="40" r="5" fill="#0C29AB" />
-            <circle cx="60" cy="40" r="5" fill="#0C29AB" />
-            <motion.path 
-              d="M40 60 L 60 60" 
-              stroke="#0C29AB" 
-              strokeWidth="3" 
-              fill="none"
-              animate={{ 
-                d: ["M40 60 L 60 60", "M40 65 L 60 65", "M40 60 L 60 60"] 
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity, 
-                repeatType: "reverse" 
-              }}
-            />
+            {/* Outer circle */}
+            <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
+            
+            {/* Cardinal points */}
+            <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            
+            {/* Center pin */}
+            <circle cx="50" cy="50" r="3" fill="#0C29AB" />
+            
+            {/* Oscillating needle */}
             <motion.path
-              d="M75 30 Q 85 25 80 15"
+              d="M50 30 L50 70"
+              stroke="#0C29AB"
+              strokeWidth="4"
+              strokeLinecap="round"
+              fill="none"
+              animate={{ rotate: [-30, 30, -30] }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              style={{ transformOrigin: "50px 50px" }}
+            />
+            
+            {/* Needle head */}
+            <motion.path
+              d="M40 40 L50 25 L60 40 Z"
+              fill="#0C29AB"
+              animate={{ rotate: [-30, 30, -30] }}
+              transition={{ 
+                duration: 3, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              style={{ transformOrigin: "50px 50px" }}
+            />
+            
+            {/* Thinking bubble */}
+            <motion.path
+              d="M75 25 Q 85 20 80 15"
               stroke="#0C29AB"
               strokeWidth="2"
               strokeDasharray="4 2"
@@ -91,46 +136,50 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
       case 'success':
         return (
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-            <circle cx="50" cy="50" r="40" stroke="#0C29AB" strokeWidth="4" fill="none" />
-            <motion.circle 
-              cx="40" 
-              cy="40" 
-              r="5" 
-              fill="#0C29AB"
-              animate={{ scaleY: [1, 0.4, 1] }}
-              transition={{ 
-                duration: 0.5, 
-                repeat: 1, 
-                repeatDelay: 2.5
-              }}
-            />
-            <motion.circle 
-              cx="60" 
-              cy="40" 
-              r="5" 
-              fill="#0C29AB"
-              animate={{ scaleY: [1, 0.4, 1] }}
-              transition={{ 
-                duration: 0.5, 
-                repeat: 1, 
-                repeatDelay: 2.5
-              }}
-            />
-            <motion.path 
-              d="M40 60 Q 50 70 60 60" 
-              stroke="#0C29AB" 
-              strokeWidth="3" 
+            {/* Outer circle */}
+            <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
+            
+            {/* Cardinal points */}
+            <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            
+            {/* Center pin */}
+            <circle cx="50" cy="50" r="3" fill="#0C29AB" />
+            
+            {/* Needle pointing north */}
+            <motion.path
+              d="M50 30 L50 70"
+              stroke="#0C29AB"
+              strokeWidth="4"
+              strokeLinecap="round"
               fill="none"
-              animate={{ 
-                d: ["M40 60 Q 50 70 60 60", "M36 65 Q 50 80 64 65", "M40 60 Q 50 70 60 60"] 
-              }}
+              initial={{ rotate: 180 }}
+              animate={{ rotate: 0 }}
               transition={{ 
-                duration: 0.5,
-                delay: 1,
-                repeat: 1,
-                repeatDelay: 2
+                duration: 0.8,
+                type: "spring",
+                stiffness: 100
               }}
+              style={{ transformOrigin: "50px 50px" }}
             />
+            
+            {/* Needle head */}
+            <motion.path
+              d="M40 40 L50 25 L60 40 Z"
+              fill="#0C29AB"
+              initial={{ rotate: 180 }}
+              animate={{ rotate: 0 }}
+              transition={{ 
+                duration: 0.8,
+                type: "spring",
+                stiffness: 100
+              }}
+              style={{ transformOrigin: "50px 50px" }}
+            />
+            
+            {/* Success sparkle */}
             <motion.path
               d="M65 30 L 75 20 L 70 30 L 80 25"
               stroke="#FFD700"
@@ -139,7 +188,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ 
-                delay: 1.5,
+                delay: 0.5,
                 duration: 0.3
               }}
             />
@@ -148,10 +197,34 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
       case 'achievement':
         return (
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-            <circle cx="50" cy="50" r="40" stroke="#0C29AB" strokeWidth="4" fill="none" />
-            <circle cx="40" cy="40" r="5" fill="#0C29AB" />
-            <circle cx="60" cy="40" r="5" fill="#0C29AB" />
-            <path d="M40 60 Q 50 70 60 60" stroke="#0C29AB" strokeWidth="3" fill="none" />
+            {/* Outer circle */}
+            <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
+            
+            {/* Cardinal points */}
+            <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            
+            {/* Center pin */}
+            <circle cx="50" cy="50" r="3" fill="#0C29AB" />
+            
+            {/* Fixed needle pointing north */}
+            <path
+              d="M50 30 L50 70"
+              stroke="#0C29AB"
+              strokeWidth="4"
+              strokeLinecap="round"
+              fill="none"
+            />
+            
+            {/* Needle head */}
+            <path
+              d="M40 40 L50 25 L60 40 Z"
+              fill="#0C29AB"
+            />
+            
+            {/* Achievement medal */}
             <motion.g
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -162,13 +235,16 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
                 delay: 0.3
               }}
             >
-              <circle cx="50" cy="25" r="15" fill="#FFD700" stroke="#0C29AB" strokeWidth="2" />
-              <path d="M50 15 L 50 20 M 50 30 L 50 35 M 40 25 L 45 25 M 55 25 L 60 25" stroke="#0C29AB" strokeWidth="2" />
+              <circle cx="75" cy="25" r="12" fill="#FFD700" stroke="#0C29AB" strokeWidth="2" />
+              <path d="M70 25 L 80 25 M 75 20 L 75 30" stroke="#0C29AB" strokeWidth="2" strokeLinecap="round" />
             </motion.g>
+            
+            {/* Sparkles around compass */}
             <motion.path
-              d="M20 20 L 25 25 M 80 20 L 75 25 M 20 80 L 25 75 M 80 80 L 75 75"
+              d="M20 20 L 25 25 M 80 80 L 75 75 M 20 80 L 25 75"
               stroke="#FFD700"
               strokeWidth="2"
+              strokeLinecap="round"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.4 }}
@@ -178,10 +254,15 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
       default:
         return (
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-            <circle cx="50" cy="50" r="40" stroke="#0C29AB" strokeWidth="4" fill="none" />
-            <circle cx="40" cy="40" r="5" fill="#0C29AB" />
-            <circle cx="60" cy="40" r="5" fill="#0C29AB" />
-            <path d="M40 60 Q 50 70 60 60" stroke="#0C29AB" strokeWidth="3" fill="none" />
+            {/* Default static compass */}
+            <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
+            <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="50" cy="50" r="3" fill="#0C29AB" />
+            <path d="M50 30 L50 70" stroke="#0C29AB" strokeWidth="4" strokeLinecap="round" />
+            <path d="M40 40 L50 25 L60 40 Z" fill="#0C29AB" />
           </svg>
         );
     }

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ResumeForm from '@/components/ResumeForm';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,8 +28,9 @@ export default function Resume() {
   const queryClient = useQueryClient();
 
   // Fetch user's resumes
-  const { data: resumes, isLoading } = useQuery({
+  const { data: resumes = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/resumes'],
+    placeholderData: [],
   });
 
   // Job description for AI suggestions
@@ -141,10 +143,45 @@ export default function Resume() {
     
     getSuggestionsMutation.mutate();
   };
+  
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4 } }
+  };
+  
+  const subtleUp = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+  
+  const cardAnimation = {
+    hidden: { opacity: 0, y: 5 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+  
+  const staggeredContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
 
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+    <motion.div 
+      className="container mx-auto"
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
+    >
+      <motion.div 
+        className="flex flex-col md:flex-row md:items-center justify-between mb-6"
+        variants={subtleUp}
+      >
         <div>
           <h1 className="text-2xl font-bold font-poppins">Resume Builder</h1>
           <p className="text-neutral-500">Create and manage your professional resumes</p>
@@ -159,7 +196,7 @@ export default function Resume() {
           <Plus className="mr-2 h-4 w-4" />
           New Resume
         </Button>
-      </div>
+      </motion.div>
       
       <Tabs defaultValue="resumes">
         <TabsList className="mb-4">
@@ -169,7 +206,7 @@ export default function Resume() {
         
         <TabsContent value="resumes" className="space-y-6">
           {/* Search */}
-          <div className="relative max-w-md">
+          <motion.div className="relative max-w-md" variants={subtleUp}>
             <Input
               placeholder="Search resumes..."
               value={searchQuery}
@@ -192,7 +229,7 @@ export default function Resume() {
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
             </div>
-          </div>
+          </motion.div>
           
           {/* Resumes Grid */}
           {isLoading ? (
@@ -200,73 +237,81 @@ export default function Resume() {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : resumes && resumes.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredResumes().map((resume) => (
-                <Card key={resume.id} className="overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="bg-primary/5 p-6 flex items-center">
-                      <FileText className="h-10 w-10 text-primary mr-4" />
-                      <div>
-                        <h3 className="font-medium">{resume.name}</h3>
-                        <p className="text-sm text-neutral-500">
-                          {resume.template.charAt(0).toUpperCase() + resume.template.slice(1)} Template
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-1">
-                          Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
-                        </p>
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              variants={staggeredContainer}
+            >
+              {filteredResumes().map((resume: any) => (
+                <motion.div key={resume.id} variants={cardAnimation}>
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="bg-primary/5 p-6 flex items-center">
+                        <FileText className="h-10 w-10 text-primary mr-4" />
+                        <div>
+                          <h3 className="font-medium">{resume.name}</h3>
+                          <p className="text-sm text-neutral-500">
+                            {resume.template.charAt(0).toUpperCase() + resume.template.slice(1)} Template
+                          </p>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4 flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setPreviewResume(resume)}
-                    >
-                      Preview
-                    </Button>
-                    <div className="flex gap-2">
+                    </CardContent>
+                    <CardFooter className="p-4 flex justify-between">
                       <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => {
-                          setSelectedResume(resume);
-                          setIsAddResumeOpen(true);
-                        }}
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setPreviewResume(resume)}
                       >
-                        <Edit className="h-4 w-4" />
+                        Preview
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => duplicateResumeMutation.mutate(resume)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => handleDeleteResume(resume.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-primary hover:text-primary/80"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setSelectedResume(resume);
+                            setIsAddResumeOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => duplicateResumeMutation.mutate(resume)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => handleDeleteResume(resume.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-primary hover:text-primary/80"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+            <motion.div 
+              className="text-center py-12 bg-white rounded-lg shadow-sm"
+              variants={fadeIn}
+            >
               <FileText className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
               <h3 className="text-xl font-medium mb-2">No Resumes Created Yet</h3>
               <p className="text-neutral-500 mb-4">
@@ -281,12 +326,15 @@ export default function Resume() {
                 <Plus className="mr-2 h-4 w-4" />
                 Create First Resume
               </Button>
-            </div>
+            </motion.div>
           )}
         </TabsContent>
         
         <TabsContent value="suggestions">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            variants={subtleUp}
+          >
             <Card>
               <CardContent className="pt-6">
                 <h3 className="text-lg font-semibold mb-4">Get AI-Powered Resume Suggestions</h3>
@@ -327,11 +375,16 @@ export default function Resume() {
                 <h3 className="text-lg font-semibold mb-4">Suggestions</h3>
                 
                 {showSuggestions && getSuggestionsMutation.data ? (
-                  <div className="space-y-6">
+                  <motion.div 
+                    className="space-y-6"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <div className="space-y-2">
                       <h4 className="font-medium">Improvement Suggestions</h4>
                       <ul className="list-disc pl-5 space-y-2">
-                        {getSuggestionsMutation.data.suggestions.map((suggestion, index) => (
+                        {getSuggestionsMutation.data.suggestions.map((suggestion: any, index: number) => (
                           <li key={index} className="text-sm">{suggestion}</li>
                         ))}
                       </ul>
@@ -340,7 +393,7 @@ export default function Resume() {
                     <div className="space-y-2">
                       <h4 className="font-medium">Keywords to Include</h4>
                       <div className="flex flex-wrap gap-2">
-                        {getSuggestionsMutation.data.keywords.map((keyword, index) => (
+                        {getSuggestionsMutation.data.keywords.map((keyword: any, index: number) => (
                           <span 
                             key={index}
                             className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
@@ -350,7 +403,7 @@ export default function Resume() {
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="h-12 w-12 text-neutral-300 mb-4" />
@@ -361,7 +414,7 @@ export default function Resume() {
                 )}
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
       
@@ -426,7 +479,7 @@ export default function Resume() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
                   <div className="flex flex-wrap gap-2">
-                    {previewResume.content.skills.map((skill, index) => (
+                    {previewResume.content.skills.map((skill: any, index: number) => (
                       <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">
                         {skill}
                       </span>
@@ -439,7 +492,7 @@ export default function Resume() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
                   <div className="space-y-4">
-                    {previewResume.content.experience.map((exp, index) => (
+                    {previewResume.content.experience.map((exp: any, index: number) => (
                       <div key={index}>
                         <div className="flex justify-between">
                           <h4 className="font-medium">{exp.position}</h4>
@@ -459,7 +512,7 @@ export default function Resume() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
                   <div className="space-y-4">
-                    {previewResume.content.education.map((edu, index) => (
+                    {previewResume.content.education.map((edu: any, index: number) => (
                       <div key={index}>
                         <div className="flex justify-between">
                           <h4 className="font-medium">{edu.degree}{edu.field ? ` in ${edu.field}` : ''}</h4>
@@ -479,7 +532,7 @@ export default function Resume() {
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
                   <div className="space-y-4">
-                    {previewResume.content.projects.map((project, index) => (
+                    {previewResume.content.projects.map((project: any, index: number) => (
                       <div key={index}>
                         <h4 className="font-medium">
                           {project.name}
@@ -510,6 +563,6 @@ export default function Resume() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
