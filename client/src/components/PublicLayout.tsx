@@ -30,9 +30,9 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             <Link href="/home">
               <div className="flex items-center cursor-pointer">
                 <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center text-white font-bold mr-2">
-                  CP
+                  CT
                 </div>
-                <h1 className="text-xl font-semibold tracking-tight">CareerPilot</h1>
+                <h1 className="text-xl font-semibold tracking-tight">CareerTracker.io</h1>
               </div>
             </Link>
             
@@ -145,9 +145,9 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             <div>
               <div className="flex items-center">
                 <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center text-white font-bold mr-2">
-                  CP
+                  CT
                 </div>
-                <h2 className="text-lg font-semibold">CareerPilot</h2>
+                <h2 className="text-lg font-semibold">CareerTracker.io</h2>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
                 Navigating your career journey with AI-powered guidance and tools.
@@ -205,7 +205,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           
           <div className="mt-12 pt-6 border-t border-border flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © 2025 CareerPilot. All rights reserved.
+              © 2025 CareerTracker.io. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-muted-foreground hover:text-primary">

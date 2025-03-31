@@ -20,6 +20,33 @@ import {
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
+// Helper function to get the current user from the session
+async function getCurrentUser(req: Request): Promise<User | null> {
+  try {
+    // Check if user is logged in via session
+    if (req.session && req.session.userId) {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        return user;
+      }
+    }
+    
+    // Return null if no valid user found
+    return null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+}
+
+// Middleware to check if user is authenticated
+function requireAuth(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   
@@ -474,13 +501,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Goal Routes
-  apiRouter.get("/goals", async (req: Request, res: Response) => {
+  apiRouter.get("/goals", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goals = await storage.getGoals(user.id);
@@ -490,15 +517,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/goals", async (req: Request, res: Response) => {
+  apiRouter.post("/goals", requireAuth, async (req: Request, res: Response) => {
     try {
       const goalData = insertGoalSchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goal = await storage.createGoal(user.id, goalData);
@@ -511,7 +538,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/goals/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/goals/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const goalId = parseInt(id);
@@ -520,13 +547,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid goal ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const goal = await storage.getGoal(goalId);
       
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      // For demo purposes, we don't check if the goal belongs to the user
+      // Ensure the goal belongs to the current user
+      if (goal.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this goal" });
+      }
+      
       const updatedGoal = await storage.updateGoal(goalId, req.body);
       res.status(200).json(updatedGoal);
     } catch (error) {
@@ -534,7 +571,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/goals/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/goals/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const goalId = parseInt(id);
@@ -543,13 +580,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid goal ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const goal = await storage.getGoal(goalId);
       
       if (!goal) {
         return res.status(404).json({ message: "Goal not found" });
       }
       
-      // For demo purposes, we don't check if the goal belongs to the user
+      // Ensure the goal belongs to the current user
+      if (goal.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this goal" });
+      }
+      
       await storage.deleteGoal(goalId);
       res.status(204).send();
     } catch (error) {
@@ -579,13 +626,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Work History Routes
-  apiRouter.get("/work-history", async (req: Request, res: Response) => {
+  apiRouter.get("/work-history", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const workHistory = await storage.getWorkHistory(user.id);
@@ -595,15 +642,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/work-history", async (req: Request, res: Response) => {
+  apiRouter.post("/work-history", requireAuth, async (req: Request, res: Response) => {
     try {
       const workHistoryData = insertWorkHistorySchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const workHistoryItem = await storage.createWorkHistoryItem(user.id, workHistoryData);
@@ -616,7 +663,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/work-history/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/work-history/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const itemId = parseInt(id);
@@ -625,13 +672,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid work history ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const item = await storage.getWorkHistoryItem(itemId);
       
       if (!item) {
         return res.status(404).json({ message: "Work history item not found" });
       }
       
-      // For demo purposes, we don't check if the item belongs to the user
+      // Ensure the work history item belongs to the current user
+      if (item.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this work history item" });
+      }
+      
       const updatedItem = await storage.updateWorkHistoryItem(itemId, req.body);
       res.status(200).json(updatedItem);
     } catch (error) {
@@ -639,7 +696,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/work-history/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/work-history/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const itemId = parseInt(id);
@@ -648,13 +705,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid work history ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const item = await storage.getWorkHistoryItem(itemId);
       
       if (!item) {
         return res.status(404).json({ message: "Work history item not found" });
       }
       
-      // For demo purposes, we don't check if the item belongs to the user
+      // Ensure the work history item belongs to the current user
+      if (item.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this work history item" });
+      }
+      
       await storage.deleteWorkHistoryItem(itemId);
       res.status(204).send();
     } catch (error) {
@@ -663,13 +730,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Resume Routes
-  apiRouter.get("/resumes", async (req: Request, res: Response) => {
+  apiRouter.get("/resumes", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const resumes = await storage.getResumes(user.id);
@@ -679,7 +746,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/resumes/:id", async (req: Request, res: Response) => {
+  apiRouter.get("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const resumeId = parseInt(id);
@@ -688,28 +755,38 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid resume ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const resume = await storage.getResume(resumeId);
       
       if (!resume) {
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      // For demo purposes, we don't check if the resume belongs to the user
+      // Ensure the resume belongs to the current user
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this resume" });
+      }
+      
       res.status(200).json(resume);
     } catch (error) {
       res.status(500).json({ message: "Error fetching resume" });
     }
   });
   
-  apiRouter.post("/resumes", async (req: Request, res: Response) => {
+  apiRouter.post("/resumes", requireAuth, async (req: Request, res: Response) => {
     try {
       const resumeData = insertResumeSchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const resume = await storage.createResume(user.id, resumeData);
@@ -722,7 +799,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/resumes/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const resumeId = parseInt(id);
@@ -731,13 +808,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid resume ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const resume = await storage.getResume(resumeId);
       
       if (!resume) {
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      // For demo purposes, we don't check if the resume belongs to the user
+      // Ensure the resume belongs to the current user
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this resume" });
+      }
+      
       const updatedResume = await storage.updateResume(resumeId, req.body);
       res.status(200).json(updatedResume);
     } catch (error) {
@@ -745,7 +832,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/resumes/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const resumeId = parseInt(id);
@@ -754,13 +841,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid resume ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const resume = await storage.getResume(resumeId);
       
       if (!resume) {
         return res.status(404).json({ message: "Resume not found" });
       }
       
-      // For demo purposes, we don't check if the resume belongs to the user
+      // Ensure the resume belongs to the current user
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this resume" });
+      }
+      
       await storage.deleteResume(resumeId);
       res.status(204).send();
     } catch (error) {
@@ -784,13 +881,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Cover Letter Routes
-  apiRouter.get("/cover-letters", async (req: Request, res: Response) => {
+  apiRouter.get("/cover-letters", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const coverLetters = await storage.getCoverLetters(user.id);
@@ -800,7 +897,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/cover-letters/:id", async (req: Request, res: Response) => {
+  apiRouter.get("/cover-letters/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const letterId = parseInt(id);
@@ -809,28 +906,38 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid cover letter ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const letter = await storage.getCoverLetter(letterId);
       
       if (!letter) {
         return res.status(404).json({ message: "Cover letter not found" });
       }
       
-      // For demo purposes, we don't check if the letter belongs to the user
+      // Ensure the cover letter belongs to the current user
+      if (letter.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this cover letter" });
+      }
+      
       res.status(200).json(letter);
     } catch (error) {
       res.status(500).json({ message: "Error fetching cover letter" });
     }
   });
   
-  apiRouter.post("/cover-letters", async (req: Request, res: Response) => {
+  apiRouter.post("/cover-letters", requireAuth, async (req: Request, res: Response) => {
     try {
       const letterData = insertCoverLetterSchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const letter = await storage.createCoverLetter(user.id, letterData);
@@ -843,7 +950,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/cover-letters/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/cover-letters/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const letterId = parseInt(id);
@@ -852,13 +959,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid cover letter ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const letter = await storage.getCoverLetter(letterId);
       
       if (!letter) {
         return res.status(404).json({ message: "Cover letter not found" });
       }
       
-      // For demo purposes, we don't check if the letter belongs to the user
+      // Ensure the cover letter belongs to the current user
+      if (letter.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this cover letter" });
+      }
+      
       const updatedLetter = await storage.updateCoverLetter(letterId, req.body);
       res.status(200).json(updatedLetter);
     } catch (error) {
@@ -866,7 +983,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/cover-letters/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/cover-letters/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const letterId = parseInt(id);
@@ -875,13 +992,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid cover letter ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const letter = await storage.getCoverLetter(letterId);
       
       if (!letter) {
         return res.status(404).json({ message: "Cover letter not found" });
       }
       
-      // For demo purposes, we don't check if the letter belongs to the user
+      // Ensure the cover letter belongs to the current user
+      if (letter.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this cover letter" });
+      }
+      
       await storage.deleteCoverLetter(letterId);
       res.status(204).send();
     } catch (error) {
@@ -922,15 +1049,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/api/interview/practice", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/practice", requireAuth, async (req: Request, res: Response) => {
     try {
       const practiceData = insertInterviewPracticeSchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const practice = await storage.saveInterviewPractice(user.id, practiceData);
@@ -943,13 +1070,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/api/interview/practice-history", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/practice-history", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const practiceHistory = await storage.getUserInterviewPractice(user.id);
@@ -984,13 +1111,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/achievements/user", async (req: Request, res: Response) => {
+  apiRouter.get("/achievements/user", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const userAchievements = await storage.getUserAchievements(user.id);
@@ -1001,13 +1128,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // AI Coach Routes
-  apiRouter.get("/ai-coach/conversations", async (req: Request, res: Response) => {
+  apiRouter.get("/ai-coach/conversations", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const conversations = await storage.getAiCoachConversations(user.id);
@@ -1017,7 +1144,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/ai-coach/conversations", async (req: Request, res: Response) => {
+  apiRouter.post("/ai-coach/conversations", requireAuth, async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
       
@@ -1025,11 +1152,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Title is required" });
       }
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const conversation = await storage.createAiCoachConversation(user.id, { title });
@@ -1047,13 +1174,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/ai-coach/conversations/:id/messages", async (req: Request, res: Response) => {
+  apiRouter.get("/ai-coach/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const conversationId = parseInt(id);
       
       if (isNaN(conversationId)) {
         return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const conversation = await storage.getAiCoachConversation(conversationId);
@@ -1062,7 +1195,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(404).json({ message: "Conversation not found" });
       }
       
-      // For demo purposes, we don't check if the conversation belongs to the user
+      // Ensure the conversation belongs to the current user
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this conversation" });
+      }
+      
       const messages = await storage.getAiCoachMessages(conversationId);
       res.status(200).json(messages);
     } catch (error) {
@@ -1070,13 +1207,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/ai-coach/conversations/:id/messages", async (req: Request, res: Response) => {
+  apiRouter.post("/ai-coach/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const conversationId = parseInt(id);
       
       if (isNaN(conversationId)) {
         return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const { message } = req.body;
@@ -1091,7 +1234,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(404).json({ message: "Conversation not found" });
       }
       
-      // For demo purposes, we don't check if the conversation belongs to the user
+      // Ensure the conversation belongs to the current user
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this conversation" });
+      }
       
       // Add user message
       const userMessage = await storage.addAiCoachMessage({
@@ -1099,12 +1245,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         isUser: true,
         message
       });
-      
-      // Get user context
-      const user = await storage.getUser(conversation.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
       
       const goals = await storage.getGoals(user.id);
       const workHistoryItems = await storage.getWorkHistory(user.id);
@@ -1134,13 +1274,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   app.use("/api", apiRouter);
   
   // Interview Process Tracking Routes
-  apiRouter.get("/api/interview/processes", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes", requireAuth, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const processes = await storage.getInterviewProcesses(user.id);
@@ -1150,15 +1290,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/api/interview/processes", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes", requireAuth, async (req: Request, res: Response) => {
     try {
       const processData = insertInterviewProcessSchema.parse(req.body);
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const process = await storage.createInterviewProcess(user.id, processData);
@@ -1171,7 +1311,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/api/interview/processes/:id", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -1180,10 +1320,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processId);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this interview process" });
       }
       
       res.status(200).json(process);
@@ -1192,7 +1343,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/api/interview/processes/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/processes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -1201,10 +1352,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processId);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this interview process" });
       }
       
       const updatedProcess = await storage.updateInterviewProcess(processId, req.body);
@@ -1214,7 +1376,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/api/interview/processes/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/processes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const processId = parseInt(id);
@@ -1223,10 +1385,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processId);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this interview process" });
       }
       
       await storage.deleteInterviewProcess(processId);
@@ -1237,7 +1410,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Interview Stage Routes
-  apiRouter.get("/api/interview/processes/:processId/stages", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:processId/stages", requireAuth, async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1246,10 +1419,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processIdNum);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access stages for this interview process" });
       }
       
       const stages = await storage.getInterviewStages(processIdNum);
@@ -1259,7 +1443,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/api/interview/processes/:processId/stages", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes/:processId/stages", requireAuth, async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1268,10 +1452,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processIdNum);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to add stages to this interview process" });
       }
       
       const stageData = insertInterviewStageSchema.parse(req.body);
@@ -1285,7 +1480,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/api/interview/stages/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/stages/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const stageId = parseInt(id);
@@ -1294,10 +1489,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid stage ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const stage = await storage.getInterviewStage(stageId);
       
       if (!stage) {
         return res.status(404).json({ message: "Interview stage not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(stage.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this interview stage" });
       }
       
       const updatedStage = await storage.updateInterviewStage(stageId, req.body);
@@ -1307,7 +1519,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/api/interview/stages/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/stages/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const stageId = parseInt(id);
@@ -1316,10 +1528,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid stage ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const stage = await storage.getInterviewStage(stageId);
       
       if (!stage) {
         return res.status(404).json({ message: "Interview stage not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(stage.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this interview stage" });
       }
       
       await storage.deleteInterviewStage(stageId);
@@ -1330,7 +1559,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Followup Action Routes
-  apiRouter.get("/api/interview/processes/:processId/followups", async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes/:processId/followups", requireAuth, async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1340,10 +1569,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processIdNum);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access followups for this interview process" });
       }
       
       let stageIdNum: number | undefined = undefined;
@@ -1361,7 +1601,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/api/interview/processes/:processId/followups", async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes/:processId/followups", requireAuth, async (req: Request, res: Response) => {
     try {
       const { processId } = req.params;
       const processIdNum = parseInt(processId);
@@ -1370,10 +1610,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid process ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const process = await storage.getInterviewProcess(processIdNum);
       
       if (!process) {
         return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to add followups to this interview process" });
       }
       
       const actionData = insertFollowupActionSchema.parse(req.body);
@@ -1387,7 +1638,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/api/interview/followup-actions/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/followup-actions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);
@@ -1396,10 +1647,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid action ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const action = await storage.getFollowupAction(actionId);
       
       if (!action) {
         return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(action.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this followup action" });
       }
       
       const updatedAction = await storage.updateFollowupAction(actionId, req.body);
@@ -1409,7 +1677,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.put("/api/interview/followup-actions/:id/complete", async (req: Request, res: Response) => {
+  apiRouter.put("/api/interview/followup-actions/:id/complete", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);
@@ -1418,10 +1686,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid action ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const action = await storage.getFollowupAction(actionId);
       
       if (!action) {
         return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(action.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to complete this followup action" });
       }
       
       const completedAction = await storage.completeFollowupAction(actionId);
@@ -1431,7 +1716,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.delete("/api/interview/followup-actions/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/api/interview/followup-actions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const actionId = parseInt(id);
@@ -1440,10 +1725,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid action ID" });
       }
       
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       const action = await storage.getFollowupAction(actionId);
       
       if (!action) {
         return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(action.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this followup action" });
       }
       
       await storage.deleteFollowupAction(actionId);
@@ -1465,22 +1767,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
-  apiRouter.post("/payments/create-subscription", async (req: Request, res: Response) => {
+  apiRouter.post("/payments/create-subscription", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Get the authenticated user (for demo we're using alex)
-      // In a real app with auth, you'd get the user from the session
-      const userId = req.body.userId;
-      let user;
-      
-      if (userId) {
-        user = await storage.getUser(userId);
-      } else {
-        // Fallback to the sample user if no userId is provided
-        user = await storage.getUserByUsername("alex");
-      }
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const data = createSubscriptionSchema.parse({
@@ -1530,21 +1823,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
-  apiRouter.get("/payments/payment-methods", async (req: Request, res: Response) => {
+  apiRouter.get("/payments/payment-methods", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Get userId from query parameters
-      const userId = req.query.userId ? Number(req.query.userId) : undefined;
-      let user;
-      
-      if (userId) {
-        user = await storage.getUser(userId);
-      } else {
-        // Fallback to the sample user if no userId is provided
-        user = await storage.getUserByUsername("alex");
-      }
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const paymentMethods = await getUserPaymentMethods(user.id);
@@ -1554,20 +1839,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/payments/create-setup-intent", async (req: Request, res: Response) => {
+  apiRouter.post("/payments/create-setup-intent", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.body.userId;
-      let user;
-      
-      if (userId) {
-        user = await storage.getUser(userId);
-      } else {
-        // Fallback to the sample user if no userId is provided
-        user = await storage.getUserByUsername("alex");
-      }
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const setupIntent = await createSetupIntent(user.id);
@@ -1577,22 +1855,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/payments/cancel-subscription", async (req: Request, res: Response) => {
+  apiRouter.post("/payments/cancel-subscription", requireAuth, async (req: Request, res: Response) => {
     try {
-      // We'll use the same approach as the /users/me endpoint
-      // For consistency in this demo, get the user from the session
-      const userId = req.body.userId;
-      let user;
-      
-      if (userId) {
-        user = await storage.getUser(userId);
-      } else {
-        // Fallback to the sample user if no userId is provided
-        user = await storage.getUserByUsername("alex");
-      }
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const result = await cancelSubscription(user.id);
@@ -1603,12 +1872,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
 
   // Email verification routes
-  apiRouter.post("/auth/send-verification-email", async (req: Request, res: Response) => {
+  apiRouter.post("/auth/send-verification-email", requireAuth, async (req: Request, res: Response) => {
     try {
-      // In a real app, get userId from session
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const token = await generateEmailVerificationToken(user.id, user.email);
@@ -1626,7 +1896,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Send verification email for email address change
-  apiRouter.post("/auth/send-email-change-verification", async (req: Request, res: Response) => {
+  apiRouter.post("/auth/send-email-change-verification", requireAuth, async (req: Request, res: Response) => {
     try {
       const { email, currentPassword } = req.body;
       
@@ -1635,10 +1905,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ error: 'Invalid email address' });
       }
       
-      // In a real app, get userId from session and validate password
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // In a real app, validate the provided current password
@@ -1695,7 +1966,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Endpoint to change user password
-  apiRouter.post("/auth/change-password", async (req: Request, res: Response) => {
+  apiRouter.post("/auth/change-password", requireAuth, async (req: Request, res: Response) => {
     try {
       const { currentPassword, newPassword } = req.body;
       
@@ -1703,11 +1974,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ error: 'Current password and new password are required' });
       }
       
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get current user from session
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // For demo purposes only: if "Vinnie12!" is sent, allow the change

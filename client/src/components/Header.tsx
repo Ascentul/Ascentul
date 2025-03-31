@@ -23,7 +23,7 @@ export default function Header({ onMenuToggle }: HeaderProps) {
           >
             <Menu className="h-6 w-6" />
           </Button>
-          <h1 className="md:hidden text-lg font-bold text-primary font-poppins">CareerQuest</h1>
+          <h1 className="md:hidden text-lg font-bold text-primary font-poppins">CareerTracker.io</h1>
         </div>
         <div className="flex items-center">
           {/* University Toggle - only for university users */}

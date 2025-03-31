@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
     // In a real app, you would redirect to login here
     return (
       <div className="flex h-screen items-center justify-center flex-col">
-        <h1 className="text-2xl font-bold text-primary mb-4">CareerQuest</h1>
+        <h1 className="text-2xl font-bold text-primary mb-4">CareerTracker.io</h1>
         <p className="text-neutral-500">Please log in to continue</p>
       </div>
     );

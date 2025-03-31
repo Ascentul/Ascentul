@@ -47,7 +47,7 @@ export default function Sidebar() {
   return (
     <div className="hidden md:flex flex-col w-64 bg-white shadow-md z-10">
       <div className="flex items-center justify-center h-16 border-b">
-        <h1 className="text-xl font-bold text-primary font-poppins">CareerQuest</h1>
+        <h1 className="text-xl font-bold text-primary font-poppins">CareerTracker.io</h1>
       </div>
       
       {/* User Profile Summary */}
