@@ -861,7 +861,9 @@ export default function Account() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Current Password</span>
                   <div className="flex items-center">
-                    <span className="mr-3 tracking-widest text-muted-foreground">••••••••</span>
+                    <span className="mr-3 tracking-widest text-muted-foreground">
+                      {user.passwordLength ? '•'.repeat(user.passwordLength) : '••••••••'}
+                    </span>
                     <Button variant="outline" size="sm" onClick={() => setIsChangingPassword(true)}>
                       Change Password
                     </Button>

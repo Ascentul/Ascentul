@@ -26,6 +26,7 @@ export interface User {
   emailVerified: boolean;
   pendingEmail?: string; // Added for email change verification workflow
   passwordLastChanged?: Date; // Added for password change tracking
+  passwordLength?: number; // Added for password display purposes
 }
 
 interface UserContextType {

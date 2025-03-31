@@ -239,7 +239,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: userPassword, ...safeUser } = user;
       
-      res.status(200).json(safeUser);
+      // Add password length for visual representation, but never send actual password
+      const passwordLength = userPassword ? userPassword.length : 0;
+      
+      res.status(200).json({
+        ...safeUser,
+        passwordLength
+      });
     } catch (error) {
       res.status(500).json({ message: "Error fetching user" });
     }
@@ -1618,13 +1624,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(500).json({ error: 'Failed to update password' });
       }
       
+      // Calculate password length for display purposes without revealing the actual password
+      const passwordLength = newPassword.length;
+      
       // Send the updated user back
       res.status(200).json({ 
         message: 'Password updated successfully',
         user: {
           ...user,
           password: undefined, // Don't send password to client
-          passwordLastChanged: new Date()
+          passwordLastChanged: new Date(),
+          passwordLength: passwordLength // Include password length for display
         }
       });
     } catch (error) {
