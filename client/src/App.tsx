@@ -157,11 +157,16 @@ function App() {
   
   // Add alternate approach for root path handling
   if (location === "/" || location === "") {
-    return (
-      <PublicLayout>
-        <Home />
-      </PublicLayout>
-    );
+    const { user } = useUser();
+    
+    // Redirect to sign-in if not logged in, or to dashboard if logged in
+    if (!user) {
+      navigate("/sign-in");
+      return null;
+    } else {
+      navigate("/dashboard");
+      return null;
+    }
   }
 
   // Skip layout for auth routes

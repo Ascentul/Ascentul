@@ -23,7 +23,7 @@ export function RouteGuard({ children, requiresAuth = true }: RouteGuardProps) {
   // If auth is required and user isn't logged in
   if (requiresAuth && !user) {
     // Redirect to login
-    setLocation('/auth');
+    setLocation('/sign-in');
     return null;
   }
   
