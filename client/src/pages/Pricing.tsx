@@ -58,18 +58,11 @@ export default function Pricing() {
         // For now, we'll just navigate to a success page and show a toast
         toast({
           title: "Subscription Started",
-          description: "Redirecting to payment...",
+          description: "Your subscription has been activated successfully.",
         });
         
-        // Simulate redirect to checkout
-        setTimeout(() => {
-          // This would be a real checkout page in production
-          navigate('/');
-          toast({
-            title: "Subscription Active",
-            description: "Thank you for subscribing! You now have access to premium features.",
-          });
-        }, 1500);
+        // Refresh the current page to update the UI with new subscription status
+        window.location.reload();
       }
     },
     onError: (error: Error) => {
@@ -102,6 +95,11 @@ export default function Pricing() {
         title: "Subscription Cancelled",
         description: "Your subscription has been cancelled and will end at the end of your billing period.",
       });
+      
+      // Refresh the page to update UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
