@@ -25,7 +25,6 @@ export default function Checkout() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
   
   // Get client secret, plan type, and interval from URL
@@ -116,18 +115,8 @@ export default function Checkout() {
       // Then simulate payment confirmation
       await new Promise(resolve => setTimeout(resolve, 1500)); // simulate network delay
       
-      // Update with payment success
-      setPaymentSuccess(true);
-      
-      toast({
-        title: "Payment Successful",
-        description: "Your subscription has been activated successfully!",
-      });
-      
-      // Show success state briefly before redirecting
-      setTimeout(() => {
-        navigate('/subscription-success');
-      }, 1500);
+      // Redirect directly to success page without showing temporary success state
+      navigate('/subscription-success');
       
     } catch (error) {
       setIsProcessing(false);
@@ -150,30 +139,6 @@ export default function Checkout() {
           <CardContent className="flex justify-center py-8">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (paymentSuccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>Payment Successful!</CardTitle>
-            <CardDescription>Your subscription has been activated.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center py-8">
-            <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
-            <p className="text-center text-muted-foreground">
-              Thank you for your payment. You now have full access to all features.
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" onClick={() => navigate('/dashboard')}>
-              Go to Dashboard
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     );
