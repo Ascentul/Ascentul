@@ -3,11 +3,18 @@ import { Link, useLocation } from 'wouter';
 import { useUser } from '@/lib/useUserData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Table, 
   TableBody, 
@@ -28,6 +35,7 @@ import {
   FileText,
   RefreshCw,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   User,
   Plus,
@@ -36,6 +44,9 @@ import {
   MoreHorizontal,
   FileEdit,
   Bell,
+  Download,
+  Eye,
+  Trash2,
 } from 'lucide-react';
 // Import the components directly
 // This avoid the need for separate imports
@@ -564,13 +575,651 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-0">
-              <h2 className="text-2xl font-bold mb-4">Analytics</h2>
-              <p className="text-muted-foreground">This section is under development.</p>
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm">
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Export Data
+                    </Button>
+                    <Select defaultValue="30days">
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7days">Last 7 days</SelectItem>
+                        <SelectItem value="30days">Last 30 days</SelectItem>
+                        <SelectItem value="90days">Last 90 days</SelectItem>
+                        <SelectItem value="year">Last year</SelectItem>
+                        <SelectItem value="alltime">All time</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-medium">Engagement Rate</h3>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold">68.7%</span>
+                        <span className="ml-2 text-sm text-green-500 flex items-center">
+                          <TrendingUp className="h-4 w-4 mr-1" />
+                          4.3%
+                        </span>
+                      </div>
+                      <div className="h-[80px] my-4 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Chart would go here</p>
+                      </div>
+                      <div className="flex text-sm text-muted-foreground">
+                        <div>Across <span className="font-medium text-foreground">1,247</span> users</div>
+                        <div className="ml-auto">Updated today</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-medium">Retention Rate</h3>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold">76.2%</span>
+                        <span className="ml-2 text-sm text-green-500 flex items-center">
+                          <TrendingUp className="h-4 w-4 mr-1" />
+                          2.1%
+                        </span>
+                      </div>
+                      <div className="h-[80px] my-4 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Chart would go here</p>
+                      </div>
+                      <div className="flex text-sm text-muted-foreground">
+                        <div>30-day retention</div>
+                        <div className="ml-auto">Updated today</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-medium">Avg. Session Time</h3>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold">12:24</span>
+                        <span className="ml-2 text-sm text-green-500 flex items-center">
+                          <TrendingUp className="h-4 w-4 mr-1" />
+                          1:08
+                        </span>
+                      </div>
+                      <div className="h-[80px] my-4 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Chart would go here</p>
+                      </div>
+                      <div className="flex text-sm text-muted-foreground">
+                        <div>Per active user</div>
+                        <div className="ml-auto">Updated today</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-medium">Conversion Rate</h3>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold">21.8%</span>
+                        <span className="ml-2 text-sm text-red-500 flex items-center">
+                          <TrendingDown className="h-4 w-4 mr-1" />
+                          1.2%
+                        </span>
+                      </div>
+                      <div className="h-[80px] my-4 flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Chart would go here</p>
+                      </div>
+                      <div className="flex text-sm text-muted-foreground">
+                        <div>Free to paid conversion</div>
+                        <div className="ml-auto">Updated today</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid gap-6 mb-8 md:grid-cols-2">
+                  <Card className="col-span-1">
+                    <CardHeader>
+                      <CardTitle>User Growth by Segment</CardTitle>
+                      <CardDescription>
+                        Growth pattern across different user segments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[350px] flex items-center justify-center">
+                        <p className="text-sm text-muted-foreground">Stacked area chart visualization would go here</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="col-span-1">
+                    <CardHeader>
+                      <CardTitle>Feature Usage Distribution</CardTitle>
+                      <CardDescription>
+                        Most used platform features
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">Resume Builder</span>
+                            <span className="text-sm font-medium">87%</span>
+                          </div>
+                          <Progress value={87} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Most popular feature with 87% of users utilizing it regularly
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">Interview Prep</span>
+                            <span className="text-sm font-medium">76%</span>
+                          </div>
+                          <Progress value={76} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Second most popular feature with strong weekly engagement
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">AI Coach</span>
+                            <span className="text-sm font-medium">63%</span>
+                          </div>
+                          <Progress value={63} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Gaining popularity quickly with high retention rate
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium">Work History</span>
+                            <span className="text-sm font-medium">45%</span>
+                          </div>
+                          <Progress value={45} className="h-2" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Used primarily by active job seekers (45% of user base)
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="ghost" size="sm" className="w-full">
+                        View detailed usage metrics
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Satisfaction</CardTitle>
+                      <CardDescription>
+                        Based on feedback surveys
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col items-center">
+                        <div className="relative h-40 w-40">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="text-center">
+                              <p className="text-5xl font-bold">4.7</p>
+                              <p className="text-sm text-muted-foreground">out of 5</p>
+                            </div>
+                          </div>
+                          <div className="h-full w-full rounded-full border-8 border-primary/30">
+                            <div className="h-full w-full rounded-full border-8 border-t-primary border-r-primary border-b-primary border-l-transparent" style={{ transform: 'rotate(-45deg)' }}>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-6 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
+                              <span className="text-sm">Very Satisfied</span>
+                            </div>
+                            <span className="text-sm font-medium">78%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
+                              <span className="text-sm">Satisfied</span>
+                            </div>
+                            <span className="text-sm font-medium">16%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="h-3 w-3 rounded-full bg-yellow-500 mr-2"></div>
+                              <span className="text-sm">Neutral</span>
+                            </div>
+                            <span className="text-sm font-medium">4%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <div className="h-3 w-3 rounded-full bg-red-500 mr-2"></div>
+                              <span className="text-sm">Unsatisfied</span>
+                            </div>
+                            <span className="text-sm font-medium">2%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Demographics</CardTitle>
+                      <CardDescription>
+                        Key user segments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Age Distribution</h4>
+                          <div className="flex items-center">
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-4 overflow-hidden">
+                              <div className="flex h-full">
+                                <div className="bg-blue-400 h-full" style={{ width: '15%' }}></div>
+                                <div className="bg-blue-500 h-full" style={{ width: '35%' }}></div>
+                                <div className="bg-blue-600 h-full" style={{ width: '28%' }}></div>
+                                <div className="bg-blue-700 h-full" style={{ width: '17%' }}></div>
+                                <div className="bg-blue-800 h-full" style={{ width: '5%' }}></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                            <span>18-24</span>
+                            <span>25-34</span>
+                            <span>35-44</span>
+                            <span>45-54</span>
+                            <span>55+</span>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">User Type</h4>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="border rounded-md p-2">
+                              <p className="text-2xl font-bold">64%</p>
+                              <p className="text-xs text-muted-foreground">Regular</p>
+                            </div>
+                            <div className="border rounded-md p-2">
+                              <p className="text-2xl font-bold">28%</p>
+                              <p className="text-xs text-muted-foreground">University Students</p>
+                            </div>
+                            <div className="border rounded-md p-2">
+                              <p className="text-2xl font-bold">8%</p>
+                              <p className="text-xs text-muted-foreground">University Admins</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Top Locations</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">United States</span>
+                              <span className="text-sm font-medium">42%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Canada</span>
+                              <span className="text-sm font-medium">18%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">United Kingdom</span>
+                              <span className="text-sm font-medium">14%</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Australia</span>
+                              <span className="text-sm font-medium">8%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Key Metrics Trends</CardTitle>
+                      <CardDescription>
+                        30-day performance
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h4 className="text-sm font-medium">Daily Active Users</h4>
+                            <div className="flex items-center text-sm text-green-500">
+                              <TrendingUp className="h-4 w-4 mr-1" />
+                              <span>+12%</span>
+                            </div>
+                          </div>
+                          <div className="h-[60px] flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground">Area chart would go here</p>
+                          </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h4 className="text-sm font-medium">New Sign-ups</h4>
+                            <div className="flex items-center text-sm text-green-500">
+                              <TrendingUp className="h-4 w-4 mr-1" />
+                              <span>+8%</span>
+                            </div>
+                          </div>
+                          <div className="h-[60px] flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground">Bar chart would go here</p>
+                          </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <h4 className="text-sm font-medium">Premium Conversions</h4>
+                            <div className="flex items-center text-sm text-red-500">
+                              <TrendingDown className="h-4 w-4 mr-1" />
+                              <span>-2%</span>
+                            </div>
+                          </div>
+                          <div className="h-[60px] flex items-center justify-center">
+                            <p className="text-xs text-muted-foreground">Line chart would go here</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download full report
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="content" className="mt-0">
-              <h2 className="text-2xl font-bold mb-4">Content Management</h2>
-              <p className="text-muted-foreground">This section is under development.</p>
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">Content Management</h2>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Import Content
+                    </Button>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create New
+                    </Button>
+                  </div>
+                </div>
+
+                <Tabs defaultValue="learning" className="mb-6">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="learning">Learning Resources</TabsTrigger>
+                    <TabsTrigger value="templates">Templates</TabsTrigger>
+                    <TabsTrigger value="guides">Guides & Tutorials</TabsTrigger>
+                    <TabsTrigger value="faqs">FAQs</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="learning">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Learning resource cards */}
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Card key={i} className="overflow-hidden">
+                          <div className="aspect-video bg-muted relative">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <FileText className="h-10 w-10 text-muted-foreground/40" />
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <Badge variant={i % 3 === 0 ? "default" : i % 3 === 1 ? "secondary" : "outline"}>
+                                {i % 3 === 0 ? "New" : i % 3 === 1 ? "Popular" : "Draft"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <CardTitle className="text-lg">
+                                {["Resume Writing Tips", "Interview Preparation", "Networking Strategies", 
+                                  "Career Transition Guide", "Salary Negotiation", "LinkedIn Optimization"][i]}
+                              </CardTitle>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <CardDescription>
+                              {["For beginners", "Advanced techniques", "Interactive guide", 
+                                "Step-by-step tutorial", "Expert strategies", "Quick tips"][i]}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between text-sm text-muted-foreground mb-4">
+                              <div>Views: {[1452, 982, 2103, 764, 1289, 542][i]}</div>
+                              <div>Completion: {[92, 78, 84, 65, 87, 56][i]}%</div>
+                            </div>
+                            <Progress value={[92, 78, 84, 65, 87, 56][i]} className="h-1 mb-4" />
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center space-x-2">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <User className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="text-sm">Created by Admin</div>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Updated {[2, 5, 1, 7, 3, 10][i]} days ago
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="border-t px-6 py-4">
+                            <div className="flex justify-between w-full">
+                              <Button variant="ghost" size="sm">
+                                <FileEdit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </Button>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 flex justify-center">
+                      <Button variant="outline">Load More</Button>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="templates">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {/* Template cards */}
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <Card key={i}>
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between">
+                              <CardTitle>
+                                {["Modern Resume", "Cover Letter", "Thank You Note", 
+                                  "Reference List", "Professional Bio", "Job Application"][i]}
+                              </CardTitle>
+                              <Badge>{["Popular", "New", "Featured", "Standard", "Basic", "Premium"][i]}</Badge>
+                            </div>
+                            <CardDescription>
+                              {i % 2 === 0 ? "Professional template" : "Creative design"}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="border rounded-md aspect-[3/4] bg-slate-50 dark:bg-slate-900 flex items-center justify-center mb-4">
+                              <FileText className="h-12 w-12 text-primary/20" />
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span>Downloads: {[420, 256, 189, 344, 127, 205][i]}</span>
+                              <span>Rating: {[4.8, 4.5, 4.2, 4.7, 4.1, 4.6][i]}/5</span>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="border-t px-6 py-4">
+                            <div className="flex justify-between w-full">
+                              <Button variant="ghost" size="sm">
+                                <FileEdit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                            </div>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="guides">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[300px]">Title</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Author</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {Array.from({ length: 8 }).map((_, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">
+                                {["How to Ace Your Interview", "Resume Best Practices", "LinkedIn Profile Optimization", 
+                                  "Networking for Introverts", "Career Change Roadmap", "Remote Work Success", 
+                                  "Salary Negotiation Tactics", "Building a Personal Brand"][i]}
+                              </TableCell>
+                              <TableCell>
+                                {["Interview", "Resume", "Social Media", "Networking", "Career Planning", 
+                                  "Remote Work", "Negotiation", "Branding"][i]}
+                              </TableCell>
+                              <TableCell>Admin</TableCell>
+                              <TableCell>
+                                <Badge variant={i % 3 === 0 ? "default" : i % 3 === 1 ? "outline" : "secondary"}>
+                                  {i % 3 === 0 ? "Published" : i % 3 === 1 ? "Draft" : "Reviewing"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <FileEdit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-end">
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">Previous</Button>
+                        <Button variant="outline" size="sm">Next</Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="faqs">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Frequently Asked Questions</CardTitle>
+                        <CardDescription>
+                          Manage questions and answers that users commonly ask
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="border rounded-lg p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="font-medium">
+                                  {["How do I create a new resume?", 
+                                    "Can I export my data?", 
+                                    "How do I prepare for an interview?", 
+                                    "Is my data secure?", 
+                                    "How do I cancel my subscription?"][i]}
+                                </div>
+                                <div className="flex space-x-2">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <FileEdit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {["Go to the Resume Builder section and click 'Create New Resume'. Follow the step-by-step guide to build your professional resume.", 
+                                  "Yes, you can export your data in PDF, DOCX, or JSON formats from your profile settings.", 
+                                  "Our Interview Prep section offers practice questions, mock interviews, and personalized feedback to help you prepare.", 
+                                  "Yes, we use industry-standard encryption and security practices to protect all user data.", 
+                                  "Go to Account Settings > Subscription and click 'Cancel Subscription'. You'll still have access until the end of your billing period."][i]}
+                              </div>
+                              <div className="flex justify-between items-center mt-2">
+                                <div className="text-xs text-muted-foreground">
+                                  Category: {["Getting Started", "Data & Privacy", "Interview Prep", "Security", "Billing"][i]}
+                                </div>
+                                <div className="flex items-center">
+                                  <Badge variant={i % 2 === 0 ? "outline" : "secondary"} className="mr-2">
+                                    {i % 2 === 0 ? "Common" : "Featured"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                      <CardFooter>
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add New FAQ
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
             </TabsContent>
 
             <TabsContent value="billing" className="mt-0">
