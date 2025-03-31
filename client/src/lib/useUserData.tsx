@@ -38,6 +38,7 @@ interface UserContextType {
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
   updateProfile: (data: { name?: string; email?: string; username?: string; profileImage?: string }) => Promise<User>;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -132,6 +133,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
     return updateProfileMutation.mutateAsync(data);
   };
+  
+  const updateUser = (data: Partial<User>) => {
+    if (!user) return;
+    queryClient.setQueryData(['/api/users/me'], { ...user, ...data });
+  };
 
   return (
     <UserContext.Provider
@@ -144,6 +150,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         refetchUser,
         updateProfile,
+        updateUser,
       }}
     >
       {children}

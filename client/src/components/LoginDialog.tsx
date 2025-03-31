@@ -125,9 +125,9 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
         description: "Your account has been created successfully. You've been logged in.",
       });
       
-      // Redirect based on user type
+      // Redirect to onboarding flow for new regular users
       if (loginType === 'regular') {
-        window.location.href = '/dashboard';
+        window.location.href = '/onboarding';
       } else {
         window.location.href = '/university';
       }

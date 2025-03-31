@@ -24,6 +24,8 @@ import WhoWeServe from "@/pages/WhoWeServe";
 import PaymentPortal from "@/pages/PaymentPortal";
 import Checkout from "@/pages/Checkout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
+import PlanSelection from "@/pages/PlanSelection";
+import OnboardingFlow from "@/components/OnboardingFlow";
 
 // Public Layout
 import { PublicLayout } from "@/components/PublicLayout";
@@ -156,6 +158,10 @@ function App() {
   const isCheckoutRoute = location.startsWith("/checkout");
   const isSubscriptionSuccessRoute = location === "/subscription-success";
   
+  // Onboarding and plan selection routes
+  const isOnboardingRoute = location === "/onboarding";
+  const isPlanSelectionRoute = location === "/plan-selection";
+  
   // Root path should show home page, not redirect
   if (location === "/" || location === "") {
     // Just navigate to /home for consistency
@@ -210,6 +216,24 @@ function App() {
           <Route path="/subscription-success" component={SubscriptionSuccess} />
         </Switch>
       </PublicLayout>
+    );
+  }
+  
+  // Onboarding Flow Route
+  if (isOnboardingRoute) {
+    return (
+      <Switch>
+        <Route path="/onboarding" component={OnboardingFlow} />
+      </Switch>
+    );
+  }
+  
+  // Plan Selection Route
+  if (isPlanSelectionRoute) {
+    return (
+      <Switch>
+        <Route path="/plan-selection" component={PlanSelection} />
+      </Switch>
     );
   }
 
