@@ -62,7 +62,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: "admin@careertracker.io",
         userType: "admin", // Special admin type
         profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
-        subscriptionStatus: "active"
+        subscriptionStatus: "active",
+        needsUsername: false, // Admin account already has a username
+      });
+      
+      // Update admin with additional fields
+      await storage.updateUser(adminUser.id, {
+        subscriptionPlan: "premium",
+        emailVerified: true
       });
       console.log("Created admin user:", adminUser.id);
     }
@@ -82,8 +89,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         graduationYear: 2025,
         profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
         subscriptionStatus: "active",
-        stripeCustomerId: "cus_mock123",
-        stripeSubscriptionId: "sub_mock123",
+        needsUsername: false,
+      });
+      
+      // Then update with additional fields
+      await storage.updateUser(sampleUser.id, {
+        subscriptionPlan: "university",
+        emailVerified: true,
         subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 month from now
       });
       console.log("Created sample user:", sampleUser.id);
@@ -214,10 +226,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         }
       }
       
-      // Create a session for this user
-      if (!req.session) {
-        req.session = {};
-      }
+      // Set the user ID in session
       req.session.userId = user.id;
       
       // Set a cookie with the user ID
@@ -312,9 +321,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const { password: userPwd, ...safeUser } = newUser;
       
       // Store user ID in session to log them in
-      if (!req.session) {
-        req.session = {};
-      }
       req.session.userId = newUser.id;
       
       // Set a cookie with the user ID
@@ -394,8 +400,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         needsUsername: false
       });
       
+      // Check if user was updated successfully
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update username" });
+      }
+      
       // Remove password before sending response
-      const { password, ...safeUser } = updatedUser;
+      const { password: userPassword, ...safeUser } = updatedUser;
       
       res.status(200).json(safeUser);
     } catch (error) {
