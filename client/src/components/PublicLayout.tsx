@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import LoginDialog from './LoginDialog';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,9 @@ interface PublicLayoutProps {
 
 export function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [initialDialogTab, setInitialDialogTab] = useState<'login' | 'signup'>('login');
 
   const navItems = [
     { label: 'Home', href: '/home' },
@@ -52,16 +55,24 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/auth">
-              <a className="text-sm font-medium text-foreground/80 hover:text-primary">
-                Log in
-              </a>
-            </Link>
-            <Link href="/auth">
-              <Button className="flex items-center">
-                Sign up <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <button
+              className="text-sm font-medium text-foreground/80 hover:text-primary"
+              onClick={() => {
+                setInitialDialogTab('login');
+                setLoginDialogOpen(true);
+              }}
+            >
+              Log in
+            </button>
+            <Button 
+              className="flex items-center"
+              onClick={() => {
+                setInitialDialogTab('signup');
+                setLoginDialogOpen(true);
+              }}
+            >
+              Sign up <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
 
           <button
@@ -93,22 +104,26 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               ))}
             </nav>
             <div className="flex flex-col space-y-3 pt-3 border-t border-border">
-              <Link href="/auth">
-                <a 
-                  className="px-3 py-2 rounded-md text-sm font-medium text-foreground/80 hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Log in
-                </a>
-              </Link>
-              <Link href="/auth">
-                <Button 
-                  className="flex items-center justify-center"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign up <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <button
+                className="px-3 py-2 rounded-md text-sm font-medium text-foreground/80 hover:text-primary text-left"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setInitialDialogTab('login');
+                  setLoginDialogOpen(true);
+                }}
+              >
+                Log in
+              </button>
+              <Button 
+                className="flex items-center justify-center"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setInitialDialogTab('signup');
+                  setLoginDialogOpen(true);
+                }}
+              >
+                Sign up <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}
@@ -117,6 +132,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <main className="flex-1">
         {children}
       </main>
+      
+      <LoginDialog 
+        open={loginDialogOpen} 
+        onOpenChange={setLoginDialogOpen}
+        initialTab={initialDialogTab}
+      />
 
       <footer className="bg-muted/50 border-t border-border">
         <div className="container mx-auto px-4 py-12">

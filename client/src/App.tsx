@@ -155,28 +155,11 @@ function App() {
   const isCheckoutRoute = location.startsWith("/checkout");
   const isSubscriptionSuccessRoute = location === "/subscription-success";
   
-  // Add alternate approach for root path handling
+  // Root path should show home page, not redirect
   if (location === "/" || location === "") {
-    const { user, isLoading } = useUser();
-    
-    // Wait for loading to complete
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-      );
-    }
-    
-    // Redirect to sign-in if not logged in, or to dashboard if logged in
-    if (!user) {
-      // Use window.location for a full page navigation to ensure clean state
-      window.location.href = "/sign-in";
-      return null;
-    } else {
-      window.location.href = "/dashboard";
-      return null;
-    }
+    // Just navigate to /home for consistency
+    navigate("/home");
+    return null;
   }
 
   // Skip layout for auth routes
