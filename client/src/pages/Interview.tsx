@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ import { InterviewProcessDetails } from '@/components/interview/InterviewProcess
 import { PracticeSession } from '@/components/interview/PracticeSession';
 import { type InterviewProcess } from '@shared/schema';
 import { motion } from 'framer-motion';
+import { LoadingState } from '@/components/ui/loading-state';
+import { useLoading } from '@/contexts/loading-context';
 
 const Interview = () => {
   const [activeTab, setActiveTab] = useState('processes');
@@ -34,6 +36,7 @@ const Interview = () => {
   const [showPracticeSession, setShowPracticeSession] = useState(false);
   const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { showGlobalLoading, hideGlobalLoading } = useLoading();
 
   // Animation variants - keeping them subtle
   const fadeIn = {
@@ -67,6 +70,15 @@ const Interview = () => {
     queryKey: ['/api/interview/processes'],
     placeholderData: [],
   });
+
+  // Use global loading state for initial data fetch
+  useEffect(() => {
+    if (isLoading) {
+      showGlobalLoading("Loading your interview processes...", "thinking");
+    } else {
+      hideGlobalLoading();
+    }
+  }, [isLoading, showGlobalLoading, hideGlobalLoading]);
 
   // Get selected process details
   const selectedProcess = processes?.find(p => p.id === selectedProcessId) || null;
@@ -207,11 +219,14 @@ const Interview = () => {
             {activeTab === 'processes' && (
               <>
                 {isLoading ? (
-                  <motion.div variants={listContainer}>
-                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                  </motion.div>
+                  <div className="py-6">
+                    <LoadingState 
+                      message="Loading interview processes..." 
+                      size="md" 
+                      variant="card" 
+                      className="w-full rounded-lg"
+                    />
+                  </div>
                 ) : filteredProcesses && filteredProcesses.length > 0 ? (
                   <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
                     {filteredProcesses.map((process, index) => renderProcessCard(process, index))}
@@ -239,10 +254,14 @@ const Interview = () => {
                     Active Processes ({activeProcesses.length})
                   </h3>
                   {isLoading ? (
-                    <motion.div variants={listContainer}>
-                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                    </motion.div>
+                    <div className="py-4">
+                      <LoadingState 
+                        message="Loading active processes..." 
+                        size="sm" 
+                        variant="card" 
+                        className="w-full rounded-lg"
+                      />
+                    </div>
                   ) : activeProcesses.length > 0 ? (
                     <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
                       {activeProcesses.map((process, index) => renderProcessCard(process, index))}
@@ -258,7 +277,14 @@ const Interview = () => {
                     Completed Processes ({completedProcesses.length})
                   </h3>
                   {isLoading ? (
-                    <ProcessCardSkeleton />
+                    <div className="py-4">
+                      <LoadingState 
+                        message="Loading completed processes..." 
+                        size="sm" 
+                        variant="card" 
+                        className="w-full rounded-lg"
+                      />
+                    </div>
                   ) : completedProcesses.length > 0 ? (
                     <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
                       {completedProcesses.map((process, index) => renderProcessCard(process, index))}
@@ -279,10 +305,15 @@ const Interview = () => {
                   </p>
                   
                   {isLoading ? (
-                    <motion.div variants={listContainer}>
-                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
-                    </motion.div>
+                    <div className="py-4">
+                      <LoadingState 
+                        message="Loading practice interviews..." 
+                        size="sm" 
+                        variant="card"
+                        mascotAction="thinking"
+                        className="w-full rounded-lg"
+                      />
+                    </div>
                   ) : processes && processes.length > 0 ? (
                     <motion.div 
                       variants={listContainer} 

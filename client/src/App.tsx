@@ -15,6 +15,7 @@ import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
+import { LoadingProvider } from "@/contexts/loading-context";
 
 // Public Pages
 import Home from "@/pages/Home";
@@ -353,4 +354,13 @@ function App() {
   );
 }
 
-export default App;
+// Wrap the app with the LoadingProvider
+const AppWithLoading = () => {
+  return (
+    <LoadingProvider>
+      <App />
+    </LoadingProvider>
+  );
+};
+
+export default AppWithLoading;
