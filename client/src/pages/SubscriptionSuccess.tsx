@@ -59,7 +59,7 @@ export default function SubscriptionSuccess() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-3">
-          <Button className="w-full" onClick={() => navigate('/')}>
+          <Button className="w-full" onClick={() => navigate('/dashboard')}>
             Go to Dashboard
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
