@@ -16,13 +16,15 @@ import {
   LogOut,
   GraduationCap,
   BookOpen,
-  School
+  School,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useUser();
   const isUniversityUser = user?.userType === 'university_student' || user?.userType === 'university_admin';
+  const isAdminUser = user?.userType === 'university_admin' || user?.id === 1; // Assuming user with id 1 is a super admin
 
   if (!user) return null;
 
@@ -138,6 +140,23 @@ export default function Sidebar() {
           </>
         )}
       </nav>
+      
+      {/* Admin Dashboard - only show for admin users */}
+      {isAdminUser && (
+        <div className="border-t py-2">
+          <div className="px-6 py-2 text-xs font-medium text-neutral-400 uppercase">
+            Administration
+          </div>
+          <Link 
+            href="/admin"
+            className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+              ${location.startsWith("/admin") ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+          >
+            <ShieldCheck className="w-5 h-5 mr-3" />
+            Admin Dashboard
+          </Link>
+        </div>
+      )}
       
       {/* Settings */}
       <div className="border-t py-4">

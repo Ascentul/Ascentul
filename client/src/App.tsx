@@ -17,6 +17,9 @@ import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
 
+// Admin Pages
+import AdminDashboard from "@/pages/admin/Dashboard";
+
 // Public Pages
 import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
@@ -267,6 +270,21 @@ function App() {
     );
   }
 
+  const isAdminRoute = location.startsWith("/admin");
+  
+  // Admin Dashboard has its own layout
+  if (isAdminRoute) {
+    return (
+      <Switch>
+        <Route path="/admin">
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        </Route>
+      </Switch>
+    );
+  }
+  
   // Choose layout based on route
   const LayoutComponent = isUniversityRoute ? UniversityLayout : Layout;
 
