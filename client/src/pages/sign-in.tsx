@@ -38,19 +38,13 @@ export default function SignInPage() {
       localStorage.removeItem('auth-logout');
       
       // Use the login function from useUser hook
-      const user = await login(loginUsername, loginPassword, loginType);
+      // The login function in useUserData will handle the redirection based on the server response
+      await login(loginUsername, loginPassword, loginType);
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
-      
-      // Redirect based on user type
-      if (user.userType === 'regular') {
-        window.location.href = '/dashboard';
-      } else {
-        window.location.href = '/university';
-      }
     } catch (error) {
       toast({
         title: "Login failed",

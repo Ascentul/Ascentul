@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Activity, 
   Database, 
@@ -28,6 +29,8 @@ import {
   ExternalLink,
   AlertCircle,
   FileCog,
+  Code,
+  ClipboardCopy,
   RotateCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -105,8 +108,12 @@ interface SystemStatusData {
 }
 
 export default function SystemStatusModal({ open, onOpenChange }: SystemStatusModalProps) {
+  const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<typeof systemStatus.components[0] | null>(null);
+  const [currentCommand, setCurrentCommand] = useState<string | null>(null);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<{id: string, status: 'completed' | 'failed'} | null>(null);
   
   // Mock system status data - in a real app, this would come from an API
   const [systemStatus, setSystemStatus] = useState<SystemStatusData>({
@@ -400,10 +407,125 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
     }
   };
 
+  // Function to handle view command for database operations
+  const handleViewCommand = (actionId: string, command: string | undefined) => {
+    setCurrentCommand(command || "No command available");
+  };
+
+  // Function to close the command view modal
+  const closeCommandView = () => {
+    setCurrentCommand(null);
+  };
+
   // Function to handle actions for specific issues
-  const handleActionClick = (action: string) => {
-    // In a real app, this would trigger API calls or execute commands
-    alert(`Action initiated: ${action}`);
+  const handleActionClick = (actionId: string, actionTitle: string) => {
+    // Set the action in progress
+    setActionInProgress(actionId);
+    
+    // Simulate API call with a delay
+    setTimeout(() => {
+      // In a real app, this would make an actual API call to execute the command
+      const success = Math.random() > 0.2; // 80% success rate for demo purposes
+      
+      // Update component health based on the action
+      setSystemStatus(prev => {
+        const newComponents = [...prev.components];
+        
+        // Find the component we're working with
+        const componentIndex = newComponents.findIndex(c => c.id === selectedComponent?.id);
+        if (componentIndex === -1) return prev;
+        
+        // Modify the component's health based on action success
+        const component = {...newComponents[componentIndex]};
+        
+        if (success) {
+          // Calculate health improvement (between 3-10%)
+          const improvement = Math.floor(Math.random() * 8) + 3;
+          component.health = Math.min(100, component.health + improvement);
+          
+          // Update status based on new health
+          component.status = component.health > 95 ? 'operational' : component.health > 85 ? 'degraded' : 'outage';
+          
+          // Update the component in the list
+          newComponents[componentIndex] = component;
+          
+          // Update suggested action status in the component details
+          if (component.details?.suggestedActions) {
+            const updatedDetails = {...component.details};
+            
+            if (updatedDetails.suggestedActions) {
+              updatedDetails.suggestedActions = updatedDetails.suggestedActions.map(action => 
+                action.id === actionId 
+                  ? {...action, status: 'completed' as const} 
+                  : action
+              );
+            }
+            
+            // Add a log entry for this action
+            if (updatedDetails.logs) {
+              const now = new Date();
+              const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+              const logsArray = [...updatedDetails.logs];
+              updatedDetails.logs = [
+                {
+                  timestamp,
+                  message: `Action completed: ${actionTitle}`,
+                  level: 'info'
+                },
+                ...logsArray
+              ];
+            }
+            
+            // Update the component with the new details
+            newComponents[componentIndex] = {
+              ...component,
+              details: updatedDetails
+            };
+          }
+        } else {
+          // Add a log entry for the failed action
+          if (component.details?.logs) {
+            const now = new Date();
+            const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+            const updatedDetails = {...component.details};
+            // Only spread the logs if they exist
+            const logsArray = updatedDetails.logs ? [...updatedDetails.logs] : [];
+            updatedDetails.logs = [
+              {
+                timestamp,
+                message: `Action failed: ${actionTitle}. Please check system logs for details.`,
+                level: 'error'
+              },
+              ...logsArray
+            ];
+            
+            // Update the component with the new details
+            newComponents[componentIndex] = {
+              ...component,
+              details: updatedDetails
+            };
+          }
+        }
+        
+        return {
+          ...prev,
+          components: newComponents,
+          overall: {
+            ...prev.overall,
+            lastChecked: new Date().toLocaleTimeString()
+          }
+        };
+      });
+      
+      // Clear the action in progress and set success/failure
+      setActionInProgress(null);
+      setActionSuccess({id: actionId, status: success ? 'completed' : 'failed'});
+      
+      // Clear the success/failure message after 3 seconds
+      setTimeout(() => {
+        setActionSuccess(null);
+      }, 3000);
+    }, 1500); // Simulating server-side action execution
   };
   
   return (
@@ -656,7 +778,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => handleActionClick(issue.suggestedAction || '')}
+                                onClick={() => handleActionClick(issue.id || `issue-${i}`, issue.title)}
                               >
                                 <PlayCircle className="h-3 w-3 mr-1" />
                                 Apply Fix
@@ -748,7 +870,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                                     variant="outline" 
                                     size="sm" 
                                     className="h-7 text-xs"
-                                    onClick={() => handleActionClick(`View command: ${action.command}`)}
+                                    onClick={() => handleViewCommand(action.id, action.command)}
                                   >
                                     <FileCog className="h-3 w-3 mr-1" />
                                     View Command
@@ -758,10 +880,37 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                                   variant="default" 
                                   size="sm" 
                                   className="h-7 text-xs"
-                                  onClick={() => handleActionClick(`Apply action: ${action.title}`)}
+                                  onClick={() => handleActionClick(action.id, action.title)}
+                                  disabled={action.status === 'completed' || action.status === 'in_progress' || actionInProgress === action.id}
                                 >
-                                  <PlayCircle className="h-3 w-3 mr-1" />
-                                  Apply Fix
+                                  {actionInProgress === action.id ? (
+                                    <>
+                                      <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                      Applying...
+                                    </>
+                                  ) : action.status === 'completed' ? (
+                                    <>
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Applied
+                                    </>
+                                  ) : actionSuccess?.id === action.id ? (
+                                    actionSuccess.status === 'completed' ? (
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Success!
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        Failed
+                                      </>
+                                    )
+                                  ) : (
+                                    <>
+                                      <PlayCircle className="h-3 w-3 mr-1" />
+                                      Apply Fix
+                                    </>
+                                  )}
                                 </Button>
                               </div>
                             </div>
@@ -815,6 +964,43 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Command View Modal */}
+      <Dialog open={currentCommand !== null} onOpenChange={(open) => !open && closeCommandView()}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Code className="h-5 w-5" />
+              <span>Command Preview</span>
+            </DialogTitle>
+            <DialogDescription>
+              Review this command before executing it on the server
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-gray-50 dark:bg-gray-900 border rounded-md p-4 font-mono text-sm overflow-x-auto">
+            {currentCommand}
+          </div>
+          
+          <DialogFooter className="space-x-2">
+            <Button variant="outline" onClick={closeCommandView}>
+              Close
+            </Button>
+            <Button 
+              onClick={() => {
+                // In a real app, this would copy to clipboard
+                navigator.clipboard.writeText(currentCommand || '');
+                toast({
+                  title: "Command copied",
+                  description: "The command has been copied to your clipboard"
+                });
+              }}
+            >
+              <ClipboardCopy className="h-4 w-4 mr-2" />
+              Copy to Clipboard
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

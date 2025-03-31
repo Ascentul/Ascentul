@@ -238,7 +238,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: pwd, ...safeUser } = user;
       
-      res.status(200).json({ user: safeUser });
+      // Add redirect paths based on user role for frontend to handle
+      let redirectPath;
+      if (user.userType === "admin") {
+        redirectPath = "/admin";
+      } else if (user.userType === "staff") {
+        redirectPath = "/staff";
+      } else if (user.userType === "university_admin" || user.userType === "university_student") {
+        redirectPath = "/university";
+      } else {
+        redirectPath = "/dashboard";
+      }
+      
+      res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
     }
@@ -329,7 +341,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       return res.status(201).json({
         success: true,
-        user: safeUser
+        user: safeUser,
+        redirectPath: "/staff" // Direct staff to staff dashboard
       });
     } catch (error) {
       console.error("Staff registration error:", error);
@@ -393,7 +406,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         path: '/',
       });
       
-      res.status(201).json({ user: safeUser });
+      // Add redirect path for the frontend to handle
+      let redirectPath = "/onboarding"; // Default for new users
+      
+      // Advanced logic can be added here if certain user types should go to different onboarding flows
+      if (safeUser.userType === "university_admin" || safeUser.userType === "university_student") {
+        redirectPath = "/university";
+      }
+      
+      res.status(201).json({ user: safeUser, redirectPath });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });

@@ -108,11 +108,22 @@ export default function SignUpPage() {
         description: "Your account has been created and you are now logged in.",
       });
       
-      // Redirect based on user type
-      if (loginData.user.userType === 'regular') {
-        window.location.href = '/dashboard';
+      // Use the redirect path from the server response, or fall back to role-based redirection
+      if (loginData.redirectPath) {
+        window.location.href = loginData.redirectPath;
       } else {
-        window.location.href = '/university';
+        // Fall back to role-based redirection
+        if (loginData.user.userType === 'regular') {
+          window.location.href = '/dashboard';
+        } else if (loginData.user.userType === 'university_student' || loginData.user.userType === 'university_admin') {
+          window.location.href = '/university';
+        } else if (loginData.user.userType === 'admin') {
+          window.location.href = '/admin';
+        } else if (loginData.user.userType === 'staff') {
+          window.location.href = '/staff';
+        } else {
+          window.location.href = '/dashboard';
+        }
       }
     } catch (error) {
       toast({

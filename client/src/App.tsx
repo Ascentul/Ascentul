@@ -49,7 +49,9 @@ import {
   PublicRoute,
   AdminRoute,
   UniversityRoute,
-  StaffRoute
+  UniversityAdminRoute,
+  StaffRoute,
+  CareerRoute
 } from "@/components/RouteProtection";
 
 // User data hooks
@@ -348,54 +350,54 @@ function App() {
       <Switch>
         {/* Career App Routes - Protected for regular users */}
         <Route path="/dashboard">
-          <ProtectedRoute>
+          <CareerRoute>
             <Dashboard />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/goals">
-          <ProtectedRoute>
+          <CareerRoute>
             <Goals />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/resume">
-          <ProtectedRoute>
+          <CareerRoute>
             <Resume />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/cover-letter">
-          <ProtectedRoute>
+          <CareerRoute>
             <CoverLetter />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/interviews">
-          <ProtectedRoute>
+          <CareerRoute>
             <Interview />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/work-history">
-          <ProtectedRoute>
+          <CareerRoute>
             <WorkHistory />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/achievements">
-          <ProtectedRoute>
+          <CareerRoute>
             <Achievements />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/ai-coach">
-          <ProtectedRoute>
+          <CareerRoute>
             <AICoach />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/profile">
-          <ProtectedRoute>
+          <CareerRoute>
             <Profile />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         <Route path="/account">
-          <ProtectedRoute>
+          <CareerRoute>
             <Account />
-          </ProtectedRoute>
+          </CareerRoute>
         </Route>
         
         {/* University Edition Routes - Protected for university users */}
@@ -405,9 +407,9 @@ function App() {
           </UniversityRoute>
         </Route>
         <Route path="/university/admin">
-          <UniversityRoute>
+          <UniversityAdminRoute>
             <UniversityAdminDashboard />
-          </UniversityRoute>
+          </UniversityAdminRoute>
         </Route>
         <Route path="/university/study-plan">
           <UniversityRoute>

@@ -28,6 +28,7 @@ export interface User {
   pendingEmail?: string; // Added for email change verification workflow
   passwordLastChanged?: Date; // Added for password change tracking
   passwordLength?: number; // Added for password display purposes
+  redirectPath?: string; // Added for role-based redirection after login
 }
 
 interface UserContextType {
@@ -76,6 +77,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     onSuccess: (data) => {
       queryClient.setQueryData(['/api/users/me'], data);
       setIsAuthenticated(true);
+      
+      // Use the redirect path provided by the server, or fall back to role-based redirect
+      if (data.redirectPath) {
+        window.location.href = data.redirectPath;
+      } else {
+        // Fall back to role-based redirection
+        if (data.userType === 'admin') {
+          window.location.href = '/admin';
+        } else if (data.userType === 'staff') {
+          window.location.href = '/staff';
+        } else if (data.userType === 'university_admin' || data.userType === 'university_student') {
+          window.location.href = '/university';
+        } else { // regular user
+          window.location.href = '/dashboard';
+        }
+      }
     },
   });
 
