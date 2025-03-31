@@ -20,6 +20,7 @@ import Pricing from "@/pages/Pricing";
 import Solutions from "@/pages/Solutions";
 import WhoWeServe from "@/pages/WhoWeServe";
 import PaymentPortal from "@/pages/PaymentPortal";
+import Checkout from "@/pages/Checkout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 
 // Public Layout
@@ -149,6 +150,7 @@ function App() {
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
+  const isCheckoutRoute = location.startsWith("/checkout");
   const isSubscriptionSuccessRoute = location === "/subscription-success";
   
   // Add alternate approach for root path handling
@@ -175,6 +177,17 @@ function App() {
       <PublicLayout>
         <Switch>
           <Route path="/payment-portal/:planType" component={PaymentPortal} />
+        </Switch>
+      </PublicLayout>
+    );
+  }
+
+  // Checkout Route
+  if (isCheckoutRoute) {
+    return (
+      <PublicLayout>
+        <Switch>
+          <Route path="/checkout" component={Checkout} />
         </Switch>
       </PublicLayout>
     );

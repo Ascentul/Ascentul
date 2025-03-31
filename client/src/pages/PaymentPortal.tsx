@@ -117,12 +117,12 @@ export default function PaymentPortal() {
       // For the Stripe checkout flow, redirect to the checkout page with the client secret
       if (data.clientSecret) {
         toast({
-          title: "Subscription Started",
-          description: "Your subscription has been activated successfully.",
+          title: "Redirecting to Checkout",
+          description: "Please complete your payment to activate your subscription.",
         });
         
-        // Navigate to the subscription success page
-        navigate('/subscription-success');
+        // Navigate to the checkout page with the client secret
+        navigate(`/checkout?client_secret=${data.clientSecret}`);
       }
     },
     onError: (error: Error) => {
