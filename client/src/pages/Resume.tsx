@@ -144,29 +144,43 @@ export default function Resume() {
     getSuggestionsMutation.mutate();
   };
   
-  // Animation variants
+  // Animation variants - optimized for performance
   const fadeIn = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.4 } }
+    visible: { opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }
   };
   
   const subtleUp = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+    hidden: { opacity: 0, y: 8 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.2, 
+        ease: "easeOut" 
+      } 
+    }
   };
   
   const cardAnimation = {
-    hidden: { opacity: 0, y: 5 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+    hidden: { opacity: 0, y: 4 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { 
+        duration: 0.2, 
+        ease: "easeOut" 
+      } 
+    }
   };
   
   const staggeredContainer = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 }, // Start with opacity 1 for container to reduce unnecessary repaints
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
+        staggerChildren: 0.05, // Faster stagger
+        delayChildren: 0.1 // Shorter delay
       }
     }
   };
@@ -206,7 +220,7 @@ export default function Resume() {
         
         <TabsContent value="resumes" className="space-y-6">
           {/* Search */}
-          <motion.div className="relative max-w-md" variants={subtleUp}>
+          <motion.div className="relative max-w-md will-change-opacity will-change-transform" variants={subtleUp}>
             <Input
               placeholder="Search resumes..."
               value={searchQuery}
@@ -238,11 +252,16 @@ export default function Resume() {
             </div>
           ) : resumes && resumes.length > 0 ? (
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 will-change-opacity"
               variants={staggeredContainer}
+              style={{ backfaceVisibility: 'hidden' }}
             >
               {filteredResumes().map((resume: any) => (
-                <motion.div key={resume.id} variants={cardAnimation}>
+                <motion.div 
+                  key={resume.id} 
+                  variants={cardAnimation}
+                  className="will-change-transform"
+                  style={{ transform: 'translateZ(0)' }}>
                   <Card className="overflow-hidden">
                     <CardContent className="p-0">
                       <div className="bg-primary/5 p-6 flex items-center">
@@ -332,8 +351,9 @@ export default function Resume() {
         
         <TabsContent value="suggestions">
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
             variants={subtleUp}
+            style={{ transform: 'translateZ(0)' }}
           >
             <Card>
               <CardContent className="pt-6">
@@ -376,10 +396,11 @@ export default function Resume() {
                 
                 {showSuggestions && getSuggestionsMutation.data ? (
                   <motion.div 
-                    className="space-y-6"
+                    className="space-y-6 will-change-opacity"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    style={{ transform: 'translateZ(0)' }}
                   >
                     <div className="space-y-2">
                       <h4 className="font-medium">Improvement Suggestions</h4>
