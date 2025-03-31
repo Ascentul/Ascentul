@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useRoute, Link } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { 
   Card, 
   CardContent, 
@@ -40,16 +40,16 @@ type PlanDetails = {
 
 export default function PaymentPortal() {
   const [, navigate] = useLocation();
-  const [match, params] = useRoute('/payment-portal/:planType');
-  const planType = params?.planType as 'premium' | 'university';
+  const location = window.location.pathname;
+  const planType = location.includes('premium') ? 'premium' : location.includes('university') ? 'university' : 'premium';
   const { user } = useUser();
   const { toast } = useToast();
   
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Default to 'premium' if somehow the route doesn't have a plan type
-  const currentPlanType = planType || 'premium';
+  // Use the extracted plan type from the URL
+  const currentPlanType = planType;
 
   // Plan details based on the selected plan type
   const planDetails: Record<string, PlanDetails> = {
