@@ -316,13 +316,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         password, // In a real app, would hash this
         userType: "staff",
         profileImage: null,
-        xp: 0,
-        level: 1,
-        emailVerified: true, // Staff users don't need email verification
-        registrationDate: new Date(),
-        lastLoginDate: new Date(),
-        status: "active",
-        isOnboarded: true,
+        // Only include fields that are in the insertUserSchema
+        subscriptionStatus: "inactive",
         needsUsername: false
       });
       
