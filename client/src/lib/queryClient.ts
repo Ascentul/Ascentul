@@ -12,9 +12,28 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Prepare headers
+  const headers: Record<string, string> = {};
+  
+  // Add Content-Type for requests with body
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // Check if user is logged out from localStorage
+  const isLoggedOut = localStorage.getItem('auth-logout') === 'true';
+  if (isLoggedOut && url !== '/auth/login') {
+    headers["X-Auth-Logout"] = "true";
+  }
+  
+  // Clear the logout flag if this is a login request
+  if (url === '/auth/login' && method === 'POST') {
+    localStorage.removeItem('auth-logout');
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -29,8 +48,18 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Create headers object
+    const headers: Record<string, string> = {};
+    
+    // Check if user is logged out from localStorage
+    const isLoggedOut = localStorage.getItem('auth-logout') === 'true';
+    if (isLoggedOut) {
+      headers["X-Auth-Logout"] = "true";
+    }
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

@@ -78,21 +78,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
   });
 
   const login = async (username: string, password: string, loginType?: 'regular' | 'university') => {
+    // Clear any logout flag that might be set
+    localStorage.removeItem('auth-logout');
+    
     return loginMutation.mutateAsync({ username, password, loginType });
   };
 
   const logout = () => {
     // Make an API call to logout
     apiRequest('POST', '/auth/logout')
-      .then(() => {
+      .then((response) => {
+        // Check for the special header we added for logout
+        const logoutHeader = response.headers.get('X-Auth-Logout');
+        
+        // Set the auth-logout flag in localStorage for future requests
+        localStorage.setItem('auth-logout', 'true');
+        
+        // Clear local data
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
+        
         // Redirect to sign-in page
         window.location.href = '/sign-in';
       })
       .catch(error => {
         console.error('Logout error:', error);
         // Still clear local data and redirect even if the API call fails
+        localStorage.setItem('auth-logout', 'true');
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
         window.location.href = '/sign-in';

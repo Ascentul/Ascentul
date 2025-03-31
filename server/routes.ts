@@ -183,7 +183,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   apiRouter.post("/auth/logout", async (req: Request, res: Response) => {
     try {
       // In a real app with sessions, you would destroy the session here
-      // Since we're using client-side auth state management, we just return a success
+      // We'll set a special header to indicate logout for the client
+      res.setHeader('X-Auth-Logout', 'true');
       res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
       res.status(500).json({ message: "Error during logout" });
@@ -239,8 +240,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // User Routes
   apiRouter.get("/users/me", async (req: Request, res: Response) => {
     try {
-      // In a real app, you would get the user ID from the session
-      // For demo purposes, we'll use the sample user
+      // Check the authorization header
+      const authHeader = req.headers.authorization;
+      
+      // Normally we would validate the auth header here
+      // For demo purposes, we'll just check if the header exists
+      // and always return the sample user
+      
+      // Check if the browser has a special logout flag set (from localStorage)
+      const isLoggedOut = req.headers['x-auth-logout'] === 'true';
+      if (isLoggedOut) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // For demo purposes, we're using the sample user
+      // In a real app, you would extract the user ID from the session
       const user = await storage.getUserByUsername("alex");
       
       if (!user) {
