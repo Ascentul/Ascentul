@@ -16,10 +16,14 @@ import {
   Zap,
   Shield
 } from 'lucide-react';
+import SystemStatusModal from '@/components/staff/SystemStatusModal';
+import QuickActionsModal from '@/components/staff/QuickActionsModal';
 
 export default function StaffDashboard() {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState('overview');
+  const [systemStatusOpen, setSystemStatusOpen] = useState(false);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
 
   // Mock data for dashboard - in a real app, these would come from API calls
   const dashboardData = {
@@ -46,11 +50,18 @@ export default function StaffDashboard() {
             </p>
           </div>
           <div className="flex items-center mt-4 gap-4 md:mt-0">
-            <Button className="flex items-center" variant="outline">
+            <Button 
+              className="flex items-center" 
+              variant="outline"
+              onClick={() => setSystemStatusOpen(true)}
+            >
               <Shield className="mr-2 h-4 w-4" />
               System Status
             </Button>
-            <Button className="flex items-center">
+            <Button 
+              className="flex items-center"
+              onClick={() => setQuickActionsOpen(true)}
+            >
               <Zap className="mr-2 h-4 w-4" />
               Quick Actions
             </Button>
@@ -305,6 +316,15 @@ export default function StaffDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      {/* Modals */}
+      <SystemStatusModal 
+        open={systemStatusOpen} 
+        onOpenChange={setSystemStatusOpen}
+      />
+      <QuickActionsModal 
+        open={quickActionsOpen} 
+        onOpenChange={setQuickActionsOpen}
+      />
     </StaffLayout>
   );
 }
