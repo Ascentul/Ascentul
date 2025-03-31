@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { 
   ArrowRight, 
@@ -14,6 +14,7 @@ import {
   BookOpen,
   LucideIcon
 } from 'lucide-react';
+import { motion } from "framer-motion";
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import LoginDialog from '@/components/LoginDialog';
@@ -22,6 +23,32 @@ import heroImage from '@assets/magnet-me-315vPGsAFUk-unsplash_1743396890960.jpg'
 export default function Home() {
   const [showSignupDialog, setShowSignupDialog] = useState(false);
   const [, setLocation] = useLocation();
+  
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.6 } }
+  };
+  
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+  
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+  
+  const staggerItem = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
   
   return (
     <div>
@@ -148,15 +175,27 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl font-bold mb-4">Everything You Need for Career Success</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Our comprehensive suite of tools helps you plan, prepare, and progress at every stage of your career.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <Briefcase className="h-6 w-6 text-primary" />
               </div>
@@ -170,9 +209,9 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <Target className="h-6 w-6 text-primary" />
               </div>
@@ -186,9 +225,9 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
@@ -202,9 +241,9 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <BarChart className="h-6 w-6 text-primary" />
               </div>
@@ -218,9 +257,9 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <Award className="h-6 w-6 text-primary" />
               </div>
@@ -234,9 +273,9 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div className="bg-card rounded-xl p-6 shadow-sm" variants={staggerItem}>
               <div className="mb-4 bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -252,53 +291,78 @@ export default function Home() {
               >
                 Get started <ArrowRight className="ml-1 h-4 w-4" />
               </button>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Statistics Section */}
       <section className="py-16 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-12"
+          >
             <h2 className="text-3xl font-bold mb-4">Our Impact in Numbers</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               CareerTracker.io has helped thousands of professionals and students worldwide.
             </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+          </motion.div>
+          
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+          >
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
               <h3 className="text-4xl font-bold text-primary mb-2">10k+</h3>
               <p className="text-muted-foreground">Active Users</p>
-            </div>
-            <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+            </motion.div>
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
               <h3 className="text-4xl font-bold text-primary mb-2">93%</h3>
               <p className="text-muted-foreground">Interview Success Rate</p>
-            </div>
-            <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+            </motion.div>
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
               <h3 className="text-4xl font-bold text-primary mb-2">50+</h3>
               <p className="text-muted-foreground">University Partners</p>
-            </div>
-            <div className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
+            </motion.div>
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 text-center shadow-sm border border-border">
               <h3 className="text-4xl font-bold text-primary mb-2">4.9/5</h3>
               <p className="text-muted-foreground">Average Rating</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Testimonials */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Join thousands of professionals who have transformed their careers with CareerTracker.io.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 shadow-sm">
               <div className="flex items-center mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
@@ -322,9 +386,9 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground">Software Engineer</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 shadow-sm">
               <div className="flex items-center mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
@@ -348,9 +412,9 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground">Marketing Director</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-card rounded-xl p-6 shadow-sm">
+            <motion.div variants={staggerItem} className="bg-card rounded-xl p-6 shadow-sm">
               <div className="flex items-center mb-4">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
@@ -374,22 +438,34 @@ export default function Home() {
                   <p className="text-sm text-muted-foreground">Computer Science Student</p>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* FAQ Section */}
       <section className="py-16 bg-muted/20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="text-center mb-12"
+          >
             <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Get answers to common questions about CareerTracker.io.
             </p>
-          </div>
+          </motion.div>
           
-          <div className="max-w-3xl mx-auto">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={fadeIn}
+            className="max-w-3xl mx-auto"
+          >
             <Accordion type="single" collapsible className="space-y-4">
               <AccordionItem value="item-1" className="bg-card rounded-lg border border-border px-6">
                 <AccordionTrigger className="text-left font-medium py-4">
@@ -432,18 +508,24 @@ export default function Home() {
                   Can I cancel my subscription at any time?
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
-                  Yes, you can cancel your subscription at any time directly from your account settings. When you cancel, you'll continue to have access to Pro features until the end of your current billing period. We also offer a 14-day money-back guarantee for new subscribers.
+                  Yes, you can cancel your subscription at any time directly from your account settings. When you cancel, you'll continue to have access to Pro features until the end of your current billing period. We don't offer refunds for partial subscription periods.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-b from-primary/10 to-primary/5">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: "-100px" }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto text-center"
+          >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Start Your Career Journey Today</h2>
             <p className="text-lg text-muted-foreground mb-8">
               Join thousands of professionals and students who are taking control of their future with CareerTracker.io.
@@ -478,9 +560,10 @@ export default function Home() {
             <p className="mt-8 text-sm italic text-muted-foreground">
               Take the first step toward a better career today. Free accounts available for a limited time.
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
+      
       {/* Login/Signup Dialog */}
       <LoginDialog 
         open={showSignupDialog} 
