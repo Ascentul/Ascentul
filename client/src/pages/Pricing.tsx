@@ -54,15 +54,13 @@ export default function Pricing() {
     onSuccess: (data) => {
       // For the Stripe checkout flow, redirect to the checkout page with the client secret
       if (data.clientSecret) {
-        // In a real implementation, redirect to a checkout page that uses Stripe Elements
-        // For now, we'll just navigate to a success page and show a toast
         toast({
-          title: "Subscription Started",
-          description: "Your subscription has been activated successfully.",
+          title: "Redirecting to Checkout",
+          description: "Please complete your payment to activate your subscription.",
         });
         
-        // Refresh the current page to update the UI with new subscription status
-        window.location.reload();
+        // Navigate to the checkout page with the client secret
+        navigate(`/checkout?client_secret=${data.clientSecret}`);
       }
     },
     onError: (error: Error) => {
@@ -110,6 +108,21 @@ export default function Pricing() {
     }
   });
 
+  // New function that subscribes with the currently selected billing interval
+  const handleSubscribeWithInterval = async (planType: 'premium' | 'university') => {
+    if (!user) {
+      // Redirect to auth page if not logged in
+      navigate('/auth');
+      return;
+    }
+    
+    setProcessingPlan(planType);
+    
+    // Create the subscription with the selected billing interval
+    subscriptionMutation.mutate({ plan: planType, interval: billingInterval });
+  };
+  
+  // Keep original function for backward compatibility
   const handleSubscribe = async (planType: 'premium' | 'university') => {
     if (!user) {
       // Redirect to auth page if not logged in
@@ -203,7 +216,7 @@ export default function Pricing() {
       buttonAction: () => user 
         ? (isSubscriptionActive && user.subscriptionPlan === 'premium' 
             ? navigate('/') 
-            : handleSubscribe('premium'))
+            : handleSubscribeWithInterval('premium'))
         : navigate('/auth'),
       buttonVariant: 'default' as const,
       highlighted: true
@@ -230,7 +243,7 @@ export default function Pricing() {
       buttonAction: () => user 
         ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
             ? navigate('/') 
-            : handleSubscribe('university'))
+            : handleSubscribeWithInterval('university'))
         : navigate('/auth'),
       buttonVariant: 'outline' as const,
       highlighted: false
@@ -405,7 +418,7 @@ export default function Pricing() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button size="lg" onClick={() => handleSubscribe('premium')}>
+                  <Button size="lg" onClick={() => handleSubscribeWithInterval('premium')}>
                     Upgrade to Pro
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
