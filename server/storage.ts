@@ -68,6 +68,7 @@ export interface IStorage {
     verificationToken?: string | null;
     verificationExpires?: Date | null;
   }): Promise<User | undefined>;
+  updateUserPassword(userId: number, newPassword: string): Promise<User | undefined>;
   addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number>;
   
   // Goal operations
@@ -1245,6 +1246,19 @@ export class MemStorage implements IStorage {
       emailVerified: verificationInfo.emailVerified !== undefined ? verificationInfo.emailVerified : user.emailVerified,
       verificationToken: verificationInfo.verificationToken === null ? undefined : verificationInfo.verificationToken || user.verificationToken,
       verificationExpires: verificationInfo.verificationExpires === null ? undefined : verificationInfo.verificationExpires || user.verificationExpires,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserPassword(userId: number, newPassword: string): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const updatedUser = { 
+      ...user,
+      password: newPassword
     };
     
     this.users.set(userId, updatedUser);

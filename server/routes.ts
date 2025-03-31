@@ -1590,6 +1590,42 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Endpoint to change user password
+  apiRouter.post("/auth/change-password", async (req: Request, res: Response) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+      
+      // For demo purposes, use the sample user
+      const user = await storage.getUserByUsername("alex");
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // In a real application, we would verify the current password against a hashed value
+      // For this prototype, we'll simple check if currentPassword matches stored password
+      if (currentPassword !== user.password) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUserPassword(user.id, newPassword);
+      
+      if (!updatedUser) {
+        return res.status(500).json({ error: 'Failed to update password' });
+      }
+      
+      res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error in change-password:', error);
+      res.status(500).json({ error: 'An error occurred while changing password' });
+    }
+  });
+  
   // Endpoint to verify and confirm email changes
   apiRouter.get("/auth/verify-email-change", async (req: Request, res: Response) => {
     try {

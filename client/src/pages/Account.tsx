@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useUser, useChangeEmail } from '@/lib/useUserData';
+import { useUser, useChangeEmail, useChangePassword } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { loadStripe } from '@stripe/stripe-js';
 import { 
   Elements, 
@@ -15,13 +16,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
+import { z } from 'zod';
 
 // Load Stripe outside of component to avoid recreating on renders
 // Make sure we're using the public key (starts with pk_)
@@ -30,6 +32,97 @@ if (!stripePublicKey || !stripePublicKey.startsWith('pk_')) {
   console.error('Missing or invalid Stripe public key. Make sure VITE_STRIPE_PUBLIC_KEY is set correctly.');
 }
 const stripePromise = loadStripe(stripePublicKey);
+
+// Password Change Form schema and type
+const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string().min(1, "Please confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type PasswordChangeFormValues = z.infer<typeof passwordChangeSchema>;
+
+// Password Change Form component
+function PasswordChangeForm({ 
+  onSubmit, 
+  isPending 
+}: { 
+  onSubmit: (data: PasswordChangeFormValues) => void;
+  isPending: boolean;
+}) {
+  const form = useForm<PasswordChangeFormValues>({
+    resolver: zodResolver(passwordChangeSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+        <FormField
+          control={form.control}
+          name="currentPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Current Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Enter your current password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="newPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>New Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Enter your new password" {...field} />
+              </FormControl>
+              <FormDescription>
+                Password must be at least 8 characters and include uppercase, lowercase, and a number.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Confirm New Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Confirm your new password" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <DialogFooter className="mt-6">
+          <Button type="submit" disabled={isPending}>
+            {isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Changing Password...</> : "Change Password"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
 
 // Payment Method Form Component
 function PaymentMethodForm({ 
@@ -140,6 +233,7 @@ export default function Account() {
   const [isCancellingSubscription, setIsCancellingSubscription] = useState(false);
   const [isUpgradingPlan, setIsUpgradingPlan] = useState(false);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   
   // State for Stripe payment elements
@@ -152,8 +246,9 @@ export default function Account() {
     exp_year: number;
   } | null>(null);
   
-  // Email change mutation using useChangeEmail hook from useUserData
+  // Email and password change mutations using hooks from useUserData
   const changeEmailMutation = useChangeEmail();
+  const changePasswordMutation = useChangePassword();
   
   // Fetch current payment method when component mounts
   useEffect(() => {
@@ -762,12 +857,9 @@ export default function Account() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
                 Change Password
               </Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                Password change functionality coming soon.
-              </p>
             </CardContent>
           </Card>
           
@@ -786,6 +878,47 @@ export default function Account() {
           </Card>
         </TabsContent>
       </Tabs>
+    
+    {/* Password Change Dialog */}
+    <Dialog open={isChangingPassword} onOpenChange={setIsChangingPassword}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Enter your current password and choose a new secure password.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <PasswordChangeForm 
+          isPending={changePasswordMutation.isPending}
+          onSubmit={(data) => {
+            changePasswordMutation.mutate(
+              { 
+                currentPassword: data.currentPassword,
+                newPassword: data.newPassword
+              },
+              {
+                onSuccess: () => {
+                  toast({
+                    title: "Password Changed",
+                    description: "Your password has been updated successfully.",
+                    variant: "default",
+                  });
+                  setIsChangingPassword(false);
+                },
+                onError: (error: any) => {
+                  toast({
+                    title: "Failed to change password",
+                    description: error.message || "An error occurred. Please check your current password and try again.",
+                    variant: "destructive",
+                  });
+                }
+              }
+            );
+          }}
+        />
+      </DialogContent>
+    </Dialog>
     
     {/* Email Change Dialog */}
     <Dialog open={isChangingEmail} onOpenChange={setIsChangingEmail}>

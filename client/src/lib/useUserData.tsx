@@ -311,3 +311,31 @@ export function useVerifyEmailChange() {
   
   return verifyEmailChangeMutation;
 }
+
+// Hook for changing password
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+  
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ 
+      currentPassword, 
+      newPassword 
+    }: { 
+      currentPassword: string; 
+      newPassword: string;
+    }) => {
+      const res = await apiRequest('POST', '/api/auth/change-password', { 
+        currentPassword, 
+        newPassword 
+      });
+      const data = await res.json();
+      return data;
+    },
+    onSuccess: () => {
+      // Optionally refetch user data if needed
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+  });
+  
+  return changePasswordMutation;
+}
