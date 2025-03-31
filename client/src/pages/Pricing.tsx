@@ -35,10 +35,13 @@ export default function Pricing() {
 
   // Create subscription mutation
   const subscriptionMutation = useMutation({
-    mutationFn: async ({ planType, interval }: { planType: 'premium' | 'university', interval: PlanInterval }) => {
+    mutationFn: async ({ plan, interval }: { plan: 'premium' | 'university', interval: PlanInterval }) => {
       const response = await apiRequest('POST', '/api/payments/create-subscription', {
-        plan: planType,
+        plan: plan,
         interval: interval,
+        email: user?.email,
+        userId: user?.id,
+        userName: user?.name
       });
       
       if (!response.ok) {
@@ -117,7 +120,10 @@ export default function Pricing() {
     }
     
     setProcessingPlan(planType);
-    subscriptionMutation.mutate({ planType, interval: billingInterval });
+    subscriptionMutation.mutate({ 
+      plan: planType, 
+      interval: billingInterval 
+    });
   };
 
   const handleCancelSubscription = async () => {

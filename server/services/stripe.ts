@@ -11,6 +11,27 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16' as any, // Casting as any to bypass type checking
 });
 
+// Helper function to calculate subscription expiry date based on interval
+function getSubscriptionExpiryDate(interval: string): Date {
+  const now = new Date();
+  
+  switch (interval) {
+    case 'monthly':
+      now.setMonth(now.getMonth() + 1);
+      break;
+    case 'quarterly':
+      now.setMonth(now.getMonth() + 3);
+      break;
+    case 'annual':
+      now.setFullYear(now.getFullYear() + 1);
+      break;
+    default:
+      now.setMonth(now.getMonth() + 1); // Default to monthly
+  }
+  
+  return now;
+}
+
 // Product price IDs - these would be set in your Stripe dashboard
 // Using the values from the image for Pro plans
 const PRICE_IDS = {
@@ -63,10 +84,35 @@ export async function createOrRetrieveCustomer(userId: number, email: string, na
   const user = await storage.getUser(userId);
   
   if (user?.stripeCustomerId) {
+    // Check if this is a mock customer ID (for demo purposes)
+    if (user.stripeCustomerId.startsWith('cus_mock')) {
+      console.log('Using mock customer ID:', user.stripeCustomerId);
+      return user.stripeCustomerId;
+    }
+    
     // Retrieve existing customer
-    const customer = await stripe.customers.retrieve(user.stripeCustomerId);
-    if (customer.deleted) {
-      // If customer was deleted, create a new one
+    try {
+      const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      if (customer.deleted) {
+        // If customer was deleted, create a new one
+        const newCustomer = await stripe.customers.create({
+          email,
+          name,
+          metadata: { userId: userId.toString() },
+        });
+        
+        // Update user with new customer ID
+        await storage.updateUserStripeInfo(userId, {
+          stripeCustomerId: newCustomer.id,
+        });
+        
+        return newCustomer.id;
+      }
+      
+      return user.stripeCustomerId;
+    } catch (error: any) {
+      console.error('Error retrieving customer, creating new one:', error.message);
+      // If retrieving customer fails, create a new one
       const newCustomer = await stripe.customers.create({
         email,
         name,
@@ -80,8 +126,6 @@ export async function createOrRetrieveCustomer(userId: number, email: string, na
       
       return newCustomer.id;
     }
-    
-    return user.stripeCustomerId;
   } else {
     // Create new customer
     const customer = await stripe.customers.create({
@@ -108,6 +152,33 @@ export async function createSubscription(data: z.infer<typeof createSubscription
       data.userName
     );
     
+    // Check if this is a mock customer ID (for demo purposes)
+    const isMockCustomer = customerId.startsWith('cus_mock');
+    
+    if (isMockCustomer) {
+      console.log('Using mock subscription flow for customer:', customerId);
+      
+      // Generate mock subscription ID and client secret for demo
+      const mockSubscriptionId = 'sub_mock_' + Math.random().toString(36).substr(2, 9);
+      const mockClientSecret = 'pi_mock_secret_' + Math.random().toString(36).substr(2, 9);
+      
+      // Update user record with mock subscription information
+      await storage.updateUserStripeInfo(data.userId, {
+        stripeSubscriptionId: mockSubscriptionId,
+        subscriptionStatus: 'active', // For demo, make it active immediately
+        subscriptionPlan: data.plan,
+        subscriptionCycle: data.interval,
+        // Set mock expiration date for 1 month/quarter/year in the future
+        subscriptionExpiresAt: getSubscriptionExpiryDate(data.interval),
+      });
+      
+      return {
+        subscriptionId: mockSubscriptionId,
+        clientSecret: mockClientSecret,
+      };
+    }
+    
+    // For real customers, proceed with Stripe API
     // Get appropriate price ID
     const priceId = PRICE_IDS[data.plan][data.interval];
     
