@@ -64,7 +64,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  userType: text("user_type").notNull().default("regular"), // Options: "regular", "university_student", "university_admin"
+  userType: text("user_type").notNull().default("regular"), // Options: "regular", "university_student", "university_admin", "admin"
   universityId: integer("university_id"),
   departmentId: integer("department_id"),
   studentId: text("student_id"), // University-assigned student ID
@@ -99,7 +99,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   rank: true,
   createdAt: true,
   subscriptionPlan: true,
-  subscriptionStatus: true,
+  // subscriptionStatus is no longer omitted to allow setting it during user creation
   subscriptionCycle: true,
   stripeCustomerId: true,
   stripeSubscriptionId: true,
@@ -110,6 +110,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   passwordLastChanged: true,
 }).extend({
   needsUsername: z.boolean().optional().default(false),
+  subscriptionStatus: z.string().optional().default("inactive"),
 });
 
 // Goals model

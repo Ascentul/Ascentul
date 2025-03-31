@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useUser, useIsAdminUser } from '@/lib/useUserData';
+import { useLocation } from 'wouter';
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,6 +91,9 @@ interface User {
 }
 
 export default function UserManagement() {
+  const { user } = useUser();
+  const isAdmin = useIsAdminUser();
+  const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     userType: 'all',
@@ -103,6 +108,20 @@ export default function UserManagement() {
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
   const itemsPerPage = 10;
 
+  // Redirect if not admin
+  if (user && !isAdmin) {
+    setLocation('/dashboard');
+    return null;
+  }
+
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="animate-spin h-8 w-8 rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+  
   const queryClient = useQueryClient();
 
   // Fetch users with search and filters

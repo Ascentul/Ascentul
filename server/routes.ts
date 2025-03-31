@@ -50,8 +50,24 @@ function requireAuth(req: Request, res: Response, next: () => void) {
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   
-  // Create a sample user at startup (for demo purposes)
+  // Create admin and sample users at startup
   try {
+    // Create founder/admin account
+    const existingAdmin = await storage.getUserByUsername("admin");
+    if (!existingAdmin) {
+      const adminUser = await storage.createUser({
+        username: "admin",
+        password: "admin123", // In production, use a stronger password
+        name: "Admin User",
+        email: "admin@careertracker.io",
+        userType: "admin", // Special admin type
+        profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
+        subscriptionStatus: "active"
+      });
+      console.log("Created admin user:", adminUser.id);
+    }
+    
+    // Create a regular sample user for testing
     const existingUser = await storage.getUserByUsername("alex");
     if (!existingUser) {
       const sampleUser = await storage.createUser({

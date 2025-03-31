@@ -36,12 +36,12 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import { PublicLayout } from "@/components/PublicLayout";
 
 // Route Protection Components
-import { ProtectedRoute, PublicRoute } from "@/components/RouteProtection";
 import { 
-  UniversityRouteGuard, 
-  AdminRouteGuard, 
-  StudentRouteGuard 
-} from "@/components/university/UniversityRouteProtection";
+  ProtectedRoute, 
+  PublicRoute,
+  AdminRoute,
+  UniversityRoute
+} from "@/components/RouteProtection";
 
 // User data hooks
 import { useUser, useIsUniversityAdmin } from "@/lib/useUserData";
@@ -277,9 +277,9 @@ function App() {
     return (
       <Switch>
         <Route path="/admin">
-          <ProtectedRoute>
+          <AdminRoute>
             <AdminDashboard />
-          </ProtectedRoute>
+          </AdminRoute>
         </Route>
       </Switch>
     );
@@ -345,24 +345,24 @@ function App() {
         
         {/* University Edition Routes - Protected for university users */}
         <Route path="/university">
-          <StudentRouteGuard>
+          <UniversityRoute>
             <LearningModules />
-          </StudentRouteGuard>
+          </UniversityRoute>
         </Route>
         <Route path="/university/admin">
-          <AdminRouteGuard>
+          <UniversityRoute>
             <UniversityAdminDashboard />
-          </AdminRouteGuard>
+          </UniversityRoute>
         </Route>
         <Route path="/university/study-plan">
-          <StudentRouteGuard>
+          <UniversityRoute>
             <StudyPlan />
-          </StudentRouteGuard>
+          </UniversityRoute>
         </Route>
         <Route path="/university/learning">
-          <StudentRouteGuard>
+          <UniversityRoute>
             <LearningModules />
-          </StudentRouteGuard>
+          </UniversityRoute>
         </Route>
         
         {/* 404 Route */}

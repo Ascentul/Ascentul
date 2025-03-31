@@ -7,7 +7,7 @@ export interface User {
   username: string;
   name: string;
   email: string;
-  userType: "regular" | "university_student" | "university_admin";
+  userType: "regular" | "university_student" | "university_admin" | "admin";
   universityId?: number;
   departmentId?: number;
   studentId?: string;
@@ -217,6 +217,11 @@ export function useIsUniversityAdmin() {
 export function useIsUniversityUser() {
   const { user } = useUser();
   return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
+}
+
+export function useIsAdminUser() {
+  const { user } = useUser();
+  return !!user && (user.userType === 'admin' || user.userType === 'university_admin' || user.id === 1);
 }
 
 // Subscription helper hooks

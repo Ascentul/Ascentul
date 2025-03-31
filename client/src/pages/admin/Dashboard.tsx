@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useUser } from '@/lib/useUserData';
+import { useUser, useIsAdminUser } from '@/lib/useUserData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -53,11 +53,12 @@ import {
 
 export default function AdminDashboard() {
   const { user } = useUser();
+  const isAdmin = useIsAdminUser();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Redirect if not admin
-  if (user && user.userType !== 'university_admin' && user.id !== 1) {
+  if (user && !isAdmin) {
     setLocation('/dashboard');
     return null;
   }

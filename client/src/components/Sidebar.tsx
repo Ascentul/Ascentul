@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'wouter';
-import { useUser } from '@/lib/useUserData';
+import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -23,8 +23,8 @@ import {
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useUser();
-  const isUniversityUser = user?.userType === 'university_student' || user?.userType === 'university_admin';
-  const isAdminUser = user?.userType === 'university_admin' || user?.id === 1; // Assuming user with id 1 is a super admin
+  const isUnivUser = useIsUniversityUser();
+  const isAdmin = useIsAdminUser();
 
   if (!user) return null;
 
@@ -81,7 +81,7 @@ export default function Sidebar() {
         </div>
         
         {/* University user badge - only show for university users */}
-        {isUniversityUser && (
+        {isUnivUser && (
           <div className="mt-3 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium flex items-center">
             <GraduationCap className="w-3 h-3 mr-1" />
             University User
@@ -105,7 +105,7 @@ export default function Sidebar() {
         ))}
         
         {/* University Quick Access - only show for university users */}
-        {isUniversityUser && (
+        {isUnivUser && (
           <>
             <div className="px-6 py-3 mt-4 text-xs font-medium text-neutral-400 uppercase">
               University Resources
@@ -142,7 +142,7 @@ export default function Sidebar() {
       </nav>
       
       {/* Admin Dashboard - only show for admin users */}
-      {isAdminUser && (
+      {isAdmin && (
         <div className="border-t py-2">
           <div className="px-6 py-2 text-xs font-medium text-neutral-400 uppercase">
             Administration
