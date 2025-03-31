@@ -857,9 +857,20 @@ export default function Account() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
-                Change Password
-              </Button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Current Password</span>
+                  <div className="flex items-center">
+                    <span className="mr-3 tracking-widest text-muted-foreground">••••••••</span>
+                    <Button variant="outline" size="sm" onClick={() => setIsChangingPassword(true)}>
+                      Change Password
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <p>Password last changed: {user.passwordLastChanged ? new Date(user.passwordLastChanged).toLocaleDateString() : 'Not available'}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
           
