@@ -19,6 +19,8 @@ import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
 import Solutions from "@/pages/Solutions";
 import WhoWeServe from "@/pages/WhoWeServe";
+import PaymentPortal from "@/pages/PaymentPortal";
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 
 // Public Layout
 import { PublicLayout } from "@/components/PublicLayout";
@@ -141,8 +143,13 @@ function App() {
   const [location, navigate] = useLocation();
   const isUniversityRoute = location.startsWith("/university");
   const isAuthRoute = location === "/auth";
+
   // Always show public pages at public routes, regardless of authentication
   const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve"].includes(location);
+  
+  // Payment portal routes
+  const isPaymentPortalRoute = location.startsWith("/payment-portal");
+  const isSubscriptionSuccessRoute = location === "/subscription-success";
   
   // Add alternate approach for root path handling
   if (location === "/" || location === "") {
@@ -159,6 +166,28 @@ function App() {
       <Switch>
         <Route path="/auth" component={AuthPage} />
       </Switch>
+    );
+  }
+
+  // Payment Portal Routes with layout
+  if (isPaymentPortalRoute) {
+    return (
+      <PublicLayout>
+        <Switch>
+          <Route path="/payment-portal/:planType" component={PaymentPortal} />
+        </Switch>
+      </PublicLayout>
+    );
+  }
+
+  // Subscription Success Route
+  if (isSubscriptionSuccessRoute) {
+    return (
+      <PublicLayout>
+        <Switch>
+          <Route path="/subscription-success" component={SubscriptionSuccess} />
+        </Switch>
+      </PublicLayout>
     );
   }
 

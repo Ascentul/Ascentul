@@ -117,11 +117,8 @@ export default function Pricing() {
       return;
     }
     
-    setProcessingPlan(planType);
-    subscriptionMutation.mutate({ 
-      plan: planType, 
-      interval: billingInterval 
-    });
+    // Navigate to payment portal page instead of directly processing
+    navigate(`/payment-portal/${planType}`);
   };
 
   const handleCancelSubscription = async () => {
