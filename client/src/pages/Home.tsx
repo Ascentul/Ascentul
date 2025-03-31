@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Target, Award, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoginDialog from '@/components/LoginDialog';
 
 export default function Home() {
   const [showSignupDialog, setShowSignupDialog] = useState(false);
+  const [, setLocation] = useLocation();
   
   return (
     <div>
@@ -28,8 +29,14 @@ export default function Home() {
                 Get Started for Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => setLocation('/solutions')}
+              >
                 Learn More
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
           </div>
