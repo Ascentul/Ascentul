@@ -149,7 +149,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Username and password are required" });
       }
       
-      const user = await storage.getUserByUsername(username);
+      // Check if username is an email address (contains @ symbol)
+      let user;
+      if (username.includes('@')) {
+        user = await storage.getUserByEmail(username);
+      } else {
+        user = await storage.getUserByUsername(username);
+      }
       
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -178,10 +184,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   apiRouter.post("/auth/register", async (req: Request, res: Response) => {
     try {
       const userData = insertUserSchema.parse(req.body);
-      const existingUser = await storage.getUserByUsername(userData.username);
       
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(userData.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email address already in use" });
       }
       
       // Set the user type based on registration form or defaults to "regular"
@@ -247,6 +260,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Update only allowed fields
       const updateData: Partial<User> = {};
       const { name, username, profileImage, email, currentPassword } = req.body;
+
+      // Check if username already exists (if changed)
+      if (username !== undefined && username !== user.username) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser) {
+          return res.status(400).json({ 
+            message: "Username already taken",
+            field: "username"
+          });
+        }
+      }
       
       // Handle name, username, and profileImage updates directly
       if (name !== undefined) updateData.name = name;
@@ -255,6 +279,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Special handling for email changes
       if (email !== undefined && email !== user.email) {
+        // Check if email already exists
+        const userWithEmail = await storage.getUserByEmail(email);
+        if (userWithEmail) {
+          return res.status(400).json({ 
+            message: "Email address already in use", 
+            field: "email" 
+          });
+        }
+        
         // For security, require current password to change email
         if (!currentPassword) {
           return res.status(400).json({ 
