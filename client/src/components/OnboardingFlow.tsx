@@ -136,9 +136,9 @@ export default function OnboardingFlow() {
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
   const [progress, setProgress] = useState<number>(25);
 
-  // Update progress bar based on current step
+  // Update progress bar based on current step (now 3 steps instead of 4)
   useEffect(() => {
-    setProgress(step * 25);
+    setProgress(step * 33.33);
   }, [step]);
 
   const handleCareerStageSelect = (stage: CareerStage) => {
@@ -180,13 +180,13 @@ export default function OnboardingFlow() {
   };
 
   const handleNext = () => {
-    if (step < 4) {
+    if (step < 3) {
       setStep(step + 1);
     } else {
       // Save onboarding data to user profile
       saveOnboardingData();
       
-      // Navigate to plan selection page
+      // Navigate to plan selection page after step 3
       setLocation('/plan-selection');
     }
   };
@@ -283,81 +283,110 @@ export default function OnboardingFlow() {
         return data.careerStage === 'student' ? (
           <div className="space-y-6">
             <CardHeader>
-              <CardTitle className="text-2xl">Tell us about your education</CardTitle>
+              <CardTitle className="text-2xl">Are you a college student, a graduate student, or an intern?</CardTitle>
               <CardDescription>
                 This helps us tailor CareerTracker.io to your specific educational journey.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Are you currently a college student?</Label>
-                  <RadioGroup value={data.studentInfo.isCollegeStudent ? 'yes' : 'no'} onValueChange={(value) => handleStudentInfoChange('isCollegeStudent', value === 'yes')}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="college-yes" />
-                      <Label htmlFor="college-yes">Yes</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Undergraduate Option */}
+                <Card 
+                  className={`cursor-pointer hover:bg-muted/50 ${data.studentInfo.isGraduateStudent === 'undergraduate' ? 'border-primary' : ''}`} 
+                  onClick={() => {
+                    handleStudentInfoChange('isCollegeStudent', true);
+                    handleStudentInfoChange('isGraduateStudent', 'undergraduate');
+                  }}
+                >
+                  <CardHeader className="text-center pt-6">
+                    <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                      <GraduationCap className="h-6 w-6 text-primary" />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="college-no" />
-                      <Label htmlFor="college-no">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+                    <CardTitle className="text-lg">College Student</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground text-sm">
+                      Currently pursuing a bachelor's degree
+                    </p>
+                  </CardContent>
+                </Card>
                 
-                {data.studentInfo.isCollegeStudent && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="school">What school do you attend?</Label>
-                      <Input 
-                        id="school" 
-                        placeholder="Enter your school name" 
-                        value={data.studentInfo.school}
-                        onChange={(e) => handleStudentInfoChange('school', e.target.value)}
-                      />
+                {/* Graduate Student Option */}
+                <Card 
+                  className={`cursor-pointer hover:bg-muted/50 ${data.studentInfo.isGraduateStudent === 'graduate' ? 'border-primary' : ''}`} 
+                  onClick={() => {
+                    handleStudentInfoChange('isCollegeStudent', true);
+                    handleStudentInfoChange('isGraduateStudent', 'graduate');
+                  }}
+                >
+                  <CardHeader className="text-center pt-6">
+                    <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                      <GraduationCap className="h-6 w-6 text-primary" />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="grad-year">Expected graduation year</Label>
-                      <Select 
-                        value={data.studentInfo.graduationYear} 
-                        onValueChange={(value) => handleStudentInfoChange('graduationYear', value)}
-                      >
-                        <SelectTrigger id="grad-year">
-                          <SelectValue placeholder="Select graduation year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[new Date().getFullYear(), new Date().getFullYear() + 1, new Date().getFullYear() + 2, new Date().getFullYear() + 3, new Date().getFullYear() + 4, new Date().getFullYear() + 5].map((year) => (
-                            <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <CardTitle className="text-lg">Graduate Student</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground text-sm">
+                      Currently pursuing a master's or doctorate degree
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                {/* Intern Option */}
+                <Card 
+                  className={`cursor-pointer hover:bg-muted/50 ${data.studentInfo.isGraduateStudent === 'none' && data.studentInfo.isCollegeStudent ? 'border-primary' : ''}`} 
+                  onClick={() => {
+                    handleStudentInfoChange('isCollegeStudent', true);
+                    handleStudentInfoChange('isGraduateStudent', 'none');
+                  }}
+                >
+                  <CardHeader className="text-center pt-6">
+                    <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                      <Briefcase className="h-6 w-6 text-primary" />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Are you a graduate student?</Label>
-                      <RadioGroup 
-                        value={data.studentInfo.isGraduateStudent} 
-                        onValueChange={(value: StudentType) => handleStudentInfoChange('isGraduateStudent', value)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="undergraduate" id="undergrad" />
-                          <Label htmlFor="undergrad">No, I'm an undergraduate</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="graduate" id="grad" />
-                          <Label htmlFor="grad">Yes, I'm a graduate student</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="none" id="neither" />
-                          <Label htmlFor="neither">Neither/Other</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </>
-                )}
+                    <CardTitle className="text-lg">Intern</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground text-sm">
+                      Currently in an internship program
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
+              
+              {/* Optional additional details if a student type is selected */}
+              {data.studentInfo.isCollegeStudent && (
+                <div className="mt-6 space-y-4 p-4 border rounded-lg bg-muted/20">
+                  <div className="space-y-2">
+                    <Label htmlFor="school">What school do you attend?</Label>
+                    <Input 
+                      id="school" 
+                      placeholder="Enter your school name" 
+                      value={data.studentInfo.school}
+                      onChange={(e) => handleStudentInfoChange('school', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="grad-year">Expected graduation year</Label>
+                    <Select 
+                      value={data.studentInfo.graduationYear} 
+                      onValueChange={(value) => handleStudentInfoChange('graduationYear', value)}
+                    >
+                      <SelectTrigger id="grad-year">
+                        <SelectValue placeholder="Select graduation year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[new Date().getFullYear(), new Date().getFullYear() + 1, new Date().getFullYear() + 2, new Date().getFullYear() + 3, new Date().getFullYear() + 4, new Date().getFullYear() + 5].map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={handleBack}>
@@ -485,36 +514,6 @@ export default function OnboardingFlow() {
                 onClick={handleNext}
                 disabled={data.interests.length === 0}
               >
-                Next <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </div>
-        );
-      
-      case 4:
-        return (
-          <div className="space-y-6">
-            <CardHeader>
-              <CardTitle className="text-2xl">Almost there! Choose a plan that fits your needs</CardTitle>
-              <CardDescription>
-                We've personalized CareerTracker.io based on your preferences. Now let's find a plan that works for you.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center py-10">
-              <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Target className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Your profile is ready!</h3>
-              <p className="text-center text-muted-foreground mb-6 max-w-md">
-                Based on your responses, we've customized your CareerTracker.io experience. 
-                Continue to explore our plans and select the one that best suits your needs.
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext}>
                 Choose a Plan <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
@@ -538,7 +537,7 @@ export default function OnboardingFlow() {
         
         <div className="mb-8">
           <div className="flex justify-between text-sm mb-2">
-            <span>Step {step} of 4</span>
+            <span>Step {step} of 3</span>
             <span>{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />

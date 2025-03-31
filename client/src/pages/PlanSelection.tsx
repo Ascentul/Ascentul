@@ -120,7 +120,7 @@ export default function PlanSelection() {
 
   return (
     <div className="min-h-screen bg-muted/30 py-10">
-      <div className="container max-w-5xl mx-auto px-4">
+      <div className="container max-w-5xl mx-auto px-6 md:px-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
           <p className="text-muted-foreground">
@@ -136,7 +136,7 @@ export default function PlanSelection() {
                 Selected
               </div>
             )}
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 px-6 md:px-8">
               <CardTitle className="text-2xl">Free Plan</CardTitle>
               <CardDescription>
                 Get started with basic career management tools
@@ -146,7 +146,7 @@ export default function PlanSelection() {
                 <span className="text-muted-foreground ml-1">forever</span>
               </div>
             </CardHeader>
-            <CardContent className="pb-4">
+            <CardContent className="pb-4 px-6 md:px-8">
               <ul className="space-y-2">
                 {planFeatures.free.map((feature, index) => (
                   <li key={index} className="flex items-start">
@@ -156,7 +156,7 @@ export default function PlanSelection() {
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="px-6 md:px-8">
               <Button 
                 variant={selectedPlan === 'free' ? 'default' : 'outline'} 
                 className="w-full"
@@ -177,7 +177,7 @@ export default function PlanSelection() {
             <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 rounded-br-lg">
               Popular
             </div>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 px-6 md:px-8">
               <CardTitle className="text-2xl">Pro Plan</CardTitle>
               <CardDescription>
                 Advanced features for serious career development
@@ -197,7 +197,7 @@ export default function PlanSelection() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="pb-4">
+            <CardContent className="pb-4 px-6 md:px-8">
               <RadioGroup 
                 className="mb-4"
                 value={billingCycle}
@@ -247,7 +247,7 @@ export default function PlanSelection() {
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="px-6 md:px-8">
               <Button 
                 variant={selectedPlan === 'pro' ? 'default' : 'outline'} 
                 className="w-full"
