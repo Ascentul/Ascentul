@@ -25,6 +25,7 @@ export interface User {
   subscriptionExpiresAt?: Date;
   emailVerified: boolean;
   pendingEmail?: string; // Added for email change verification workflow
+  passwordLastChanged?: Date; // Added for password change tracking
 }
 
 interface UserContextType {

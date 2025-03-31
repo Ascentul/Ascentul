@@ -1258,7 +1258,8 @@ export class MemStorage implements IStorage {
 
     const updatedUser = { 
       ...user,
-      password: newPassword
+      password: newPassword,
+      passwordLastChanged: new Date()
     };
     
     this.users.set(userId, updatedUser);

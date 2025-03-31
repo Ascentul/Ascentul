@@ -87,6 +87,7 @@ export const users = pgTable("users", {
   pendingEmail: text("pending_email"), // Email address pending verification for change
   pendingEmailToken: text("pending_email_token"), // Token for pending email verification
   pendingEmailExpires: timestamp("pending_email_expires"), // When the pending email token expires
+  passwordLastChanged: timestamp("password_last_changed"), // When the user last changed their password
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -105,6 +106,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   emailVerified: true,
   verificationToken: true,
   verificationExpires: true,
+  passwordLastChanged: true,
 });
 
 // Goals model
