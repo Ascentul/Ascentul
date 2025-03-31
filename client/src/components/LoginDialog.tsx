@@ -76,9 +76,17 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       
       onOpenChange(false);
     } catch (error) {
+      console.error("Login error:", error);
+      
+      // Ensure we have a valid error message
+      let errorMessage = "Please check your credentials and try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -130,9 +138,17 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       
       onOpenChange(false);
     } catch (error) {
+      console.error("Registration error:", error);
+      
+      // Ensure we have a valid error message
+      let errorMessage = "Please check your information and try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "Please check your information and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
