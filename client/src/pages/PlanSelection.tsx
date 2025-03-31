@@ -53,8 +53,14 @@ export default function PlanSelection() {
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);
     
-    // Immediately handle the plan selection
-    handleContinue();
+    // Different actions based on selected plan
+    if (plan === 'free') {
+      // For free plan, handle directly
+      handleContinue();
+    } else {
+      // For pro plan, navigate to billing cycle selection 
+      setLocation('/billing-cycle?plan=pro');
+    }
   };
 
   const calculatePrice = (plan: string, cycle: string): number => {
@@ -131,7 +137,7 @@ export default function PlanSelection() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10">
           {/* Free Plan */}
           <div className="relative">
             <div className="relative">
@@ -186,19 +192,9 @@ export default function PlanSelection() {
                     <CardDescription className="text-sm">
                       Advanced features for serious career development
                     </CardDescription>
-                    <div className="mt-6 mb-2">
-                      <span className="text-4xl font-bold">${calculatePrice('pro', billingCycle)}</span>
-                      <span className="text-muted-foreground ml-1">
-                        {billingCycle === 'monthly' && '/month'}
-                        {billingCycle === 'quarterly' && '/quarter'}
-                        {billingCycle === 'yearly' && '/year'}
-                      </span>
-                      
-                      {calculateSavings('pro', billingCycle) > 0 && (
-                        <div className="text-green-600 text-sm mt-1">
-                          Save ${calculateSavings('pro', billingCycle)} with this plan
-                        </div>
-                      )}
+                    <div className="mt-6 mb-3">
+                      <span className="text-4xl font-bold">$15</span>
+                      <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                     
                     <Button 
@@ -210,51 +206,10 @@ export default function PlanSelection() {
                     </Button>
                     
                     <p className="text-xs text-muted-foreground text-center mb-4">
-                      {billingCycle === 'monthly' && '$15 when billed monthly'}
-                      {billingCycle === 'quarterly' && '$30 when billed quarterly'}
-                      {billingCycle === 'yearly' && '$72 when billed yearly'}
+                      Choose your billing cycle on the next step
                     </p>
                   </CardHeader>
                   <CardContent className="pb-4 px-6 md:px-8">
-                    <RadioGroup 
-                      className="mb-4"
-                      value={billingCycle}
-                      onValueChange={setBillingCycle}
-                    >
-                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('monthly')}>
-                        <div className="flex items-center">
-                          <RadioGroupItem value="monthly" id="monthly" />
-                          <Label htmlFor="monthly" className="ml-2 cursor-pointer">Monthly</Label>
-                        </div>
-                        <span className="font-medium">$15/mo</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('quarterly')}>
-                        <div className="flex items-center">
-                          <RadioGroupItem value="quarterly" id="quarterly" />
-                          <Label htmlFor="quarterly" className="ml-2 cursor-pointer">
-                            Quarterly
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                              Save $15
-                            </span>
-                          </Label>
-                        </div>
-                        <span className="font-medium">$30/qtr</span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('yearly')}>
-                        <div className="flex items-center">
-                          <RadioGroupItem value="yearly" id="yearly" />
-                          <Label htmlFor="yearly" className="ml-2 cursor-pointer">
-                            Yearly
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                              Save $108
-                            </span>
-                          </Label>
-                        </div>
-                        <span className="font-medium">$72/yr</span>
-                      </div>
-                    </RadioGroup>
                     
                     <p className="font-semibold mb-2">Everything in Free, plus:</p>
                     <ul className="space-y-2">

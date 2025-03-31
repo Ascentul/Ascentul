@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/lib/useUserData';
 import { apiRequest } from '@/lib/queryClient';
 
-type PlanInterval = 'monthly' | 'quarterly' | 'annual';
+type PlanInterval = 'monthly' | 'quarterly' | 'yearly';
 
 export default function Checkout() {
   const [, navigate] = useLocation();
@@ -27,18 +27,20 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
   
-  // Get client secret, plan type, and interval from URL
+  // Get plan type and cycle from URL
   const searchParams = new URLSearchParams(window.location.search);
-  const clientSecret = searchParams.get('client_secret');
-  const planType = searchParams.get('plan') || 'premium';
-  const intervalParam = searchParams.get('interval') as PlanInterval;
+  const planType = searchParams.get('plan') || 'pro';
+  const cycleParam = searchParams.get('cycle') as PlanInterval;
+  
+  // In a real implementation with Stripe, we would have a client_secret here
+  const clientSecret = 'mock_client_secret_for_demo';
   
   // Initialize billing interval from URL parameter if available
   useEffect(() => {
-    if (intervalParam && ['monthly', 'quarterly', 'annual'].includes(intervalParam)) {
-      setBillingInterval(intervalParam);
+    if (cycleParam && ['monthly', 'quarterly', 'yearly'].includes(cycleParam)) {
+      setBillingInterval(cycleParam);
     }
-  }, [intervalParam]);
+  }, [cycleParam]);
   
   useEffect(() => {
     if (!clientSecret) {
@@ -73,13 +75,13 @@ export default function Checkout() {
   
   // Function to get pricing details based on plan and interval
   const getPricing = (plan: string, interval: PlanInterval) => {
-    if (plan === 'premium') {
+    if (plan === 'pro') {
       switch (interval) {
         case 'monthly':
           return { price: '15.00', period: 'month' };
         case 'quarterly':
           return { price: '30.00', period: '3 months' };
-        case 'annual':
+        case 'yearly':
           return { price: '72.00', period: 'year' };
         default:
           return { price: '15.00', period: 'month' };
@@ -90,7 +92,7 @@ export default function Checkout() {
           return { price: '7.99', period: 'month' };
         case 'quarterly':
           return { price: '21.99', period: '3 months' };
-        case 'annual':
+        case 'yearly':
           return { price: '59.99', period: 'year' };
         default:
           return { price: '7.99', period: 'month' };
@@ -166,7 +168,7 @@ export default function Checkout() {
                   <Label htmlFor="monthly" className="cursor-pointer">Monthly</Label>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">${planType === 'premium' ? '15.00' : '7.99'}/month</p>
+                  <p className="font-medium">${planType === 'pro' ? '15.00' : '7.99'}/month</p>
                 </div>
               </div>
               
@@ -176,19 +178,19 @@ export default function Checkout() {
                   <Label htmlFor="quarterly" className="cursor-pointer">Quarterly</Label>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">${planType === 'premium' ? '30.00' : '21.99'}/3 months</p>
-                  <p className="text-xs text-muted-foreground">{planType === 'premium' ? 'Save $15' : 'Save $2'}</p>
+                  <p className="font-medium">${planType === 'pro' ? '30.00' : '21.99'}/3 months</p>
+                  <p className="text-xs text-muted-foreground">{planType === 'pro' ? 'Save $15' : 'Save $2'}</p>
                 </div>
               </div>
               
               <div className="flex items-center justify-between border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="annual" id="annual" />
-                  <Label htmlFor="annual" className="cursor-pointer">Annual</Label>
+                  <RadioGroupItem value="yearly" id="yearly" />
+                  <Label htmlFor="yearly" className="cursor-pointer">Yearly</Label>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium">${planType === 'premium' ? '72.00' : '59.99'}/year</p>
-                  <p className="text-xs text-muted-foreground">{planType === 'premium' ? 'Save $108' : 'Save $35.89'}</p>
+                  <p className="font-medium">${planType === 'pro' ? '72.00' : '59.99'}/year</p>
+                  <p className="text-xs text-muted-foreground">{planType === 'pro' ? 'Save $108' : 'Save $35.89'}</p>
                 </div>
               </div>
             </RadioGroup>
@@ -198,7 +200,7 @@ export default function Checkout() {
             <h3 className="font-medium mb-2">Payment Summary</h3>
             <div className="flex justify-between mb-1">
               <span>Plan</span>
-              <span>{planType === 'premium' ? 'Pro Plan' : 'University Edition'}</span>
+              <span>{planType === 'pro' ? 'Pro Plan' : 'University Edition'}</span>
             </div>
             <div className="flex justify-between mb-1">
               <span>Billing Period</span>

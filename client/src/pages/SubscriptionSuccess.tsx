@@ -35,14 +35,14 @@ export default function SubscriptionSuccess() {
           </div>
           <CardTitle className="text-2xl mb-2">Subscription Activated!</CardTitle>
           <CardDescription>
-            Thank you for subscribing to CareerPilot
+            Thank you for subscribing to CareerTracker.io
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="border p-4 rounded-lg bg-muted/50">
             <div className="flex justify-between mb-2">
               <span className="text-muted-foreground">Plan:</span>
-              <span className="font-medium">{user?.subscriptionPlan === 'premium' ? 'Pro Plan' : 'University Edition'}</span>
+              <span className="font-medium">{user?.subscriptionPlan === 'pro' ? 'Pro Plan' : 'University Edition'}</span>
             </div>
             <div className="flex justify-between mb-2">
               <span className="text-muted-foreground">Billing Cycle:</span>

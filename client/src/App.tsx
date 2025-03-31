@@ -25,6 +25,7 @@ import PaymentPortal from "@/pages/PaymentPortal";
 import Checkout from "@/pages/Checkout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import PlanSelection from "@/pages/PlanSelection";
+import BillingCycle from "@/pages/BillingCycle";
 import OnboardingFlow from "@/components/OnboardingFlow";
 
 // Public Layout
@@ -161,6 +162,7 @@ function App() {
   // Onboarding and plan selection routes
   const isOnboardingRoute = location === "/onboarding";
   const isPlanSelectionRoute = location === "/plan-selection";
+  const isBillingCycleRoute = location.startsWith("/billing-cycle");
   
   // Root path should show home page, not redirect
   if (location === "/" || location === "") {
@@ -233,6 +235,15 @@ function App() {
     return (
       <Switch>
         <Route path="/plan-selection" component={PlanSelection} />
+      </Switch>
+    );
+  }
+  
+  // Billing Cycle Route
+  if (isBillingCycleRoute) {
+    return (
+      <Switch>
+        <Route path="/billing-cycle" component={BillingCycle} />
       </Switch>
     );
   }
