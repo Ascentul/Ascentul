@@ -108,7 +108,7 @@ export default function Pricing() {
     }
   });
 
-  // New function that subscribes with the currently selected billing interval
+  // Function that subscribes with the currently selected billing interval
   const handleSubscribeWithInterval = async (planType: 'premium' | 'university') => {
     if (!user) {
       // Redirect to auth page if not logged in
@@ -118,11 +118,24 @@ export default function Pricing() {
     
     setProcessingPlan(planType);
     
-    // Create the subscription with the selected billing interval
-    subscriptionMutation.mutate({ plan: planType, interval: billingInterval });
+    try {
+      // Create the subscription with the selected billing interval
+      const response = await subscriptionMutation.mutateAsync({ 
+        plan: planType, 
+        interval: billingInterval 
+      });
+      
+      // If successful, redirect to checkout page with client_secret
+      if (response?.clientSecret) {
+        navigate(`/checkout?client_secret=${response.clientSecret}&plan=${planType}&interval=${billingInterval}`);
+      }
+    } catch (error) {
+      // Error is handled by the mutation error handler
+      setProcessingPlan(null);
+    }
   };
   
-  // Keep original function for backward compatibility
+  // Keep original function for detailed subscription flow
   const handleSubscribe = async (planType: 'premium' | 'university') => {
     if (!user) {
       // Redirect to auth page if not logged in
@@ -130,7 +143,7 @@ export default function Pricing() {
       return;
     }
     
-    // Navigate to payment portal page instead of directly processing
+    // Navigate to payment portal page for more detailed subscription options
     navigate(`/payment-portal/${planType}`);
   };
 

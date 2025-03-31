@@ -121,8 +121,8 @@ export default function PaymentPortal() {
           description: "Please complete your payment to activate your subscription.",
         });
         
-        // Navigate to the checkout page with the client secret
-        navigate(`/checkout?client_secret=${data.clientSecret}`);
+        // Navigate to the checkout page with the client secret, plan type, and billing interval
+        navigate(`/checkout?client_secret=${data.clientSecret}&plan=${currentPlanType}&interval=${billingInterval}`);
       }
     },
     onError: (error: Error) => {
