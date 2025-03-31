@@ -147,19 +147,7 @@ export default function Sidebar() {
         </a>
         <button 
           className="flex items-center px-6 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
-          onClick={async () => {
-            try {
-              await fetch('/auth/logout', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              });
-              window.location.href = '/sign-in';
-            } catch (error) {
-              console.error("Logout failed:", error);
-            }
-          }}
+          onClick={() => logout()}
         >
           <LogOut className="w-5 h-5 mr-3" />
           Logout

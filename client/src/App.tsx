@@ -148,7 +148,7 @@ function App() {
   const isSignUpRoute = location === "/sign-up";
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve"].includes(location);
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up"].includes(location);
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
@@ -157,14 +157,24 @@ function App() {
   
   // Add alternate approach for root path handling
   if (location === "/" || location === "") {
-    const { user } = useUser();
+    const { user, isLoading } = useUser();
+    
+    // Wait for loading to complete
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      );
+    }
     
     // Redirect to sign-in if not logged in, or to dashboard if logged in
     if (!user) {
-      navigate("/sign-in");
+      // Use window.location for a full page navigation to ensure clean state
+      window.location.href = "/sign-in";
       return null;
     } else {
-      navigate("/dashboard");
+      window.location.href = "/dashboard";
       return null;
     }
   }
@@ -226,6 +236,8 @@ function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/home" component={Home} />
+          <Route path="/sign-in" component={SignIn} />
+          <Route path="/sign-up" component={SignUp} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />

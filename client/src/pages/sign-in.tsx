@@ -34,43 +34,22 @@ export default function SignInPage() {
     setIsLoginLoading(true);
     
     try {
-      // Make direct API call instead of using login function
-      const response = await fetch('/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          username: loginUsername, 
-          password: loginPassword, 
-          loginType 
-        }),
+      // First clear any logout flag from localStorage
+      localStorage.removeItem('auth-logout');
+      
+      // Use the login function from useUser hook
+      const user = await login(loginUsername, loginPassword, loginType);
+      
+      toast({
+        title: "Login successful!",
+        description: "You have been logged in successfully.",
       });
       
-      // Debug info for troubleshooting
-      console.log('Login response status:', response.status);
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-      
-      // Update user data in our context
-      if (data.user) {
-        toast({
-          title: "Login successful!",
-          description: "You have been logged in successfully.",
-        });
-        
-        // Redirect based on user type
-        if (data.user.userType === 'regular') {
-          window.location.href = '/dashboard';
-        } else {
-          window.location.href = '/university';
-        }
+      // Redirect based on user type
+      if (user.userType === 'regular') {
+        window.location.href = '/dashboard';
       } else {
-        throw new Error('No user data returned from server');
+        window.location.href = '/university';
       }
     } catch (error) {
       toast({
