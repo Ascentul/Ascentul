@@ -149,12 +149,12 @@ export default function PlanSelection() {
                     <CardDescription className="text-sm">
                       Get started with basic career management tools
                     </CardDescription>
-                    <div className="mt-6 mb-4">
+                    <div className="mt-6 mb-6">
                       <span className="text-4xl font-bold">$0</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                   </CardHeader>
-                  <div className="mt-2 mb-2 px-6 md:px-8">
+                  <div className="mb-6 px-6 md:px-8">
                     <Button 
                       variant="outline" 
                       className="w-full"
@@ -163,8 +163,8 @@ export default function PlanSelection() {
                       Create account
                     </Button>
                   </div>
-                  <CardContent className="pb-4 px-6 md:px-8">
-                    <ul className="space-y-2">
+                  <CardContent className="pb-6 px-6 md:px-8">
+                    <ul className="space-y-3">
                       {planFeatures.free.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
@@ -186,33 +186,33 @@ export default function PlanSelection() {
               </div>
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
-                  <CardHeader className="pb-2 px-6 md:px-8">
+                  <CardHeader className="pb-4 px-6 md:px-8">
                     <p className="text-sm text-muted-foreground mb-2">For individuals and teams</p>
                     <CardTitle className="text-3xl font-bold mb-1">Pro Plan</CardTitle>
                     <CardDescription className="text-sm">
                       Advanced features for serious career development
                     </CardDescription>
-                    <div className="mt-6 mb-3">
+                    <div className="mt-6 mb-6">
                       <span className="text-4xl font-bold">$15</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                     
                     <Button 
                       variant="default" 
-                      className="w-full bg-primary mt-2 mb-2"
+                      className="w-full bg-primary"
                       onClick={() => handlePlanSelect('pro')}
                     >
                       Get started
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground text-center mb-4">
+                    <p className="text-xs text-muted-foreground text-center mt-2 mb-4">
                       Choose your billing cycle on the next step
                     </p>
                   </CardHeader>
-                  <CardContent className="pb-4 px-6 md:px-8">
+                  <CardContent className="pb-6 px-6 md:px-8">
                     
-                    <p className="font-semibold mb-2">Everything in Free, plus:</p>
-                    <ul className="space-y-2">
+                    <p className="font-semibold mb-4">Everything in Free, plus:</p>
+                    <ul className="space-y-3">
                       {planFeatures.pro.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
@@ -235,18 +235,6 @@ export default function PlanSelection() {
               Pro plan features will be immediately available after payment processing.
             </p>
           </div>
-          
-          {/* Only show Continue button if a plan has been explicitly selected */}
-          {selectedPlan && (
-            <Button 
-              size="lg" 
-              onClick={handleContinue}
-              className="px-8"
-            >
-              Continue with {selectedPlan === 'free' ? 'Free Plan' : 'Pro Plan'}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          )}
         </div>
       </div>
     </div>
