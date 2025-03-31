@@ -254,39 +254,45 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.post("/auth/register", async (req: Request, res: Response) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-      
-      // Check if username already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
+      // Extract the raw data from request before validation
+      const { email, name, password } = req.body;
       
       // Check if email already exists
-      const existingEmail = await storage.getUserByEmail(userData.email);
+      const existingEmail = await storage.getUserByEmail(email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email address already in use" });
       }
       
-      // Set the user type based on registration form or defaults to "regular"
-      if (!userData.userType) {
-        userData.userType = "regular";
-      }
+      // Generate a temporary username from the email
+      // Format: user_[first 8 chars of email hash]
+      const emailHash = crypto.createHash('md5').update(email).digest('hex').substring(0, 8);
+      const tempUsername = `user_${emailHash}`;
+      
+      // Prepare the user data with the temporary username and needsUsername flag
+      const userData = {
+        ...req.body,
+        username: tempUsername,
+        needsUsername: true,
+        userType: req.body.userType || "regular"
+      };
+      
+      // Validate with our schema after adding the required fields
+      const validatedUserData = insertUserSchema.parse(userData);
       
       // Validate university info for university users
-      if (userData.userType === "university_student" || userData.userType === "university_admin") {
-        if (!userData.universityId) {
+      if (validatedUserData.userType === "university_student" || validatedUserData.userType === "university_admin") {
+        if (!validatedUserData.universityId) {
           return res.status(400).json({ message: "University ID is required for university users" });
         }
         
         // If registering as university_admin, additional validation would be needed in a real app
-        if (userData.userType === "university_admin") {
+        if (validatedUserData.userType === "university_admin") {
           // This would typically involve checking an admin registration code or admin email domain
           // For demo purposes, we're allowing it without additional checks
         }
       }
       
-      const newUser = await storage.createUser(userData);
+      const newUser = await storage.createUser(validatedUserData);
       const { password: userPwd, ...safeUser } = newUser;
       
       // Store user ID in session to log them in
@@ -307,7 +313,78 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: error.errors });
       }
+      console.error("Error creating user:", error);
       res.status(500).json({ message: "Error creating user" });
+    }
+  });
+  
+  // Username validation and update endpoints
+  apiRouter.get("/users/check-username", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.query;
+      
+      if (!username || typeof username !== 'string') {
+        return res.status(400).json({ message: "Username parameter is required" });
+      }
+      
+      // Check if the username is valid format
+      if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+        return res.status(400).json({ 
+          message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores",
+          available: false
+        });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      
+      res.status(200).json({ available: !existingUser });
+    } catch (error) {
+      console.error("Error checking username availability:", error);
+      res.status(500).json({ message: "Error checking username availability" });
+    }
+  });
+  
+  apiRouter.post("/users/update-username", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { username } = req.body;
+      
+      if (!username) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+      
+      // Check if the username is valid format
+      if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+        return res.status(400).json({ 
+          message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores"
+        });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      
+      // Get current user
+      const currentUser = await getCurrentUser(req);
+      if (!currentUser) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Update the username and set needsUsername to false
+      const updatedUser = await storage.updateUser(currentUser.id, { 
+        username,
+        needsUsername: false
+      });
+      
+      // Remove password before sending response
+      const { password, ...safeUser } = updatedUser;
+      
+      res.status(200).json(safeUser);
+    } catch (error) {
+      console.error("Error updating username:", error);
+      res.status(500).json({ message: "Error updating username" });
     }
   });
   

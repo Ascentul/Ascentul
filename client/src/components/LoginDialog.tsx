@@ -100,6 +100,10 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
     setIsSignupLoading(true);
     
     try {
+      // Generate a temporary username from the email
+      // This will be updated during the onboarding flow
+      const tempUsername = `user_${Date.now().toString().slice(-6)}`;
+      
       // Make a direct API call for registration
       const response = await fetch('/auth/register', {
         method: 'POST',
@@ -107,11 +111,12 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: signupUsername,
+          username: tempUsername, // Use temporary username
           password: signupPassword,
           email: signupEmail,
           name: signupName,
           userType: loginType,
+          needsUsername: true, // Flag to indicate username needs to be set during onboarding
         }),
       });
       
@@ -235,16 +240,7 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="signup-username">Username</Label>
-                <Input
-                  id="signup-username"
-                  placeholder="Choose a username"
-                  value={signupUsername}
-                  onChange={(e) => setSignupUsername(e.target.value)}
-                  required
-                />
-              </div>
+              {/* Username field moved to onboarding flow */}
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Password</Label>
                 <Input

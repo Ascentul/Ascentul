@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useRoute } from 'wouter';
+import { useUser } from '@/lib/useUserData';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -8,7 +9,10 @@ import {
   Target,
   BarChart,
   FileText,
-  MessageSquare 
+  MessageSquare,
+  Check,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
 
 type CareerStage = 'student' | 'early-career' | 'mid-senior';
 type StudentType = 'undergraduate' | 'graduate' | 'none';
@@ -49,6 +54,7 @@ interface OnboardingData {
     role: JobRole | null;
   };
   interests: string[];
+  username?: string;
 }
 
 const defaultOnboardingData: OnboardingData = {
@@ -131,15 +137,35 @@ const features = [
 ];
 
 export default function OnboardingFlow() {
+  const { user } = useUser();
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState<number>(1);
+  
+  // If the user needs to set a username, we start at step 0 (username selection)
+  // Otherwise, start at step 1 (career stage)
+  const needsUsername = user?.needsUsername || false;
+  const [step, setStep] = useState<number>(needsUsername ? 0 : 1);
   const [data, setData] = useState<OnboardingData>(defaultOnboardingData);
-  const [progress, setProgress] = useState<number>(25);
+  const [progress, setProgress] = useState<number>(needsUsername ? 15 : 25);
+  
+  // Username state
+  const [username, setUsername] = useState<string>('');
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameChecking, setUsernameChecking] = useState<boolean>(false);
+  const [usernameError, setUsernameError] = useState<string>('');
+  const { toast } = useToast();
 
-  // Update progress bar based on current step (now 3 steps instead of 4)
+  // Update progress bar based on current step and check if user needs to set username
   useEffect(() => {
-    setProgress(step * 33.33);
-  }, [step]);
+    // We don't need to check user data here anymore as we get it from useUser() hook
+    // The useEffect is only needed for updating progress bar
+    
+    // If the user needs to set a username, we'll add a step (so 4 steps total)
+    if (needsUsername) {
+      setProgress(step * 25);
+    } else {
+      setProgress(step * 33.33);
+    }
+  }, [step, needsUsername]);
 
   const handleCareerStageSelect = (stage: CareerStage) => {
     setData({ ...data, careerStage: stage });
@@ -179,20 +205,101 @@ export default function OnboardingFlow() {
     setData({ ...data, interests });
   };
 
+  // Check if username is available
+  const checkUsernameAvailability = async (username: string) => {
+    if (username.length < 3) {
+      setUsernameError('Username must be at least 3 characters long');
+      setUsernameAvailable(false);
+      return;
+    }
+    
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameError('Username can only contain letters, numbers, and underscores');
+      setUsernameAvailable(false);
+      return;
+    }
+    
+    setUsernameChecking(true);
+    setUsernameError('');
+    
+    try {
+      const response = await fetch(`/api/users/check-username?username=${username}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setUsernameAvailable(data.available);
+        if (!data.available) {
+          setUsernameError('This username is already taken');
+        }
+      } else {
+        setUsernameError(data.message || 'Error checking username');
+        setUsernameAvailable(false);
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameError('Error checking username availability');
+      setUsernameAvailable(false);
+    } finally {
+      setUsernameChecking(false);
+    }
+  };
+
+  // Update username
+  const updateUsername = async () => {
+    if (!username || !usernameAvailable) return;
+    
+    try {
+      const response = await fetch('/api/users/update-username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to update username');
+      }
+      
+      // Set username in onboarding data
+      setData({ ...data, username });
+      
+      // Username is set, proceed with career stage selection
+      setStep(1);
+      
+      toast({
+        title: "Username set successfully",
+        description: `You'll be known as @${username} on CareerTracker.io`,
+      });
+    } catch (error) {
+      console.error('Error updating username:', error);
+      
+      toast({
+        title: "Failed to set username",
+        description: error instanceof Error ? error.message : 'Please try a different username',
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNext = () => {
-    if (step < 3) {
+    if (needsUsername && step === 0) {
+      // If username is needed, we handle it separately
+      updateUsername();
+    } else if ((needsUsername && step < 4) || (!needsUsername && step < 3)) {
       setStep(step + 1);
     } else {
       // Save onboarding data to user profile
       saveOnboardingData();
       
-      // Navigate to plan selection page after step 3
+      // Navigate to plan selection page after all steps are completed
       setLocation('/plan-selection');
     }
   };
 
   const handleBack = () => {
-    if (step > 1) {
+    if (step > (needsUsername ? 0 : 1)) {
       setStep(step - 1);
     }
   };
@@ -222,6 +329,96 @@ export default function OnboardingFlow() {
 
   const renderStep = () => {
     switch (step) {
+      case 0:
+        // This is only shown if the user needs to set a username
+        return (
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Create your username</CardTitle>
+              <CardDescription>
+                Choose a unique username that will identify you on CareerTracker.io.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <div className="relative">
+                    <Input
+                      id="username"
+                      placeholder="e.g., johndoe, career_pro"
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (e.target.value.length >= 3) {
+                          checkUsernameAvailability(e.target.value);
+                        } else {
+                          setUsernameAvailable(null);
+                        }
+                      }}
+                      className={`pr-10 ${
+                        usernameAvailable === true
+                          ? 'border-green-500 focus-visible:ring-green-500'
+                          : usernameAvailable === false
+                          ? 'border-red-500 focus-visible:ring-red-500'
+                          : ''
+                      }`}
+                    />
+                    {usernameChecking && (
+                      <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-3 text-muted-foreground" />
+                    )}
+                    {!usernameChecking && usernameAvailable === true && (
+                      <Check className="h-4 w-4 absolute right-3 top-3 text-green-500" />
+                    )}
+                    {!usernameChecking && usernameAvailable === false && (
+                      <AlertCircle className="h-4 w-4 absolute right-3 top-3 text-red-500" />
+                    )}
+                  </div>
+                  {usernameError && (
+                    <p className="text-sm text-red-500 mt-1">{usernameError}</p>
+                  )}
+                  {usernameAvailable === true && (
+                    <p className="text-sm text-green-500 mt-1">Username is available!</p>
+                  )}
+                </div>
+
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <h4 className="text-sm font-medium mb-2">Username requirements:</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li className="flex items-center gap-2">
+                      <div className={`h-4 w-4 rounded-full flex items-center justify-center ${username.length >= 3 ? 'bg-green-500' : 'bg-muted-foreground/30'}`}>
+                        {username.length >= 3 && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      At least 3 characters long
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className={`h-4 w-4 rounded-full flex items-center justify-center ${/^[a-zA-Z0-9_]+$/.test(username) ? 'bg-green-500' : 'bg-muted-foreground/30'}`}>
+                        {/^[a-zA-Z0-9_]+$/.test(username) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      Only letters, numbers, and underscores
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className={`h-4 w-4 rounded-full flex items-center justify-center ${usernameAvailable === true ? 'bg-green-500' : 'bg-muted-foreground/30'}`}>
+                        {usernameAvailable === true && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      Unique and available
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleNext} 
+                disabled={!usernameAvailable || username.length < 3}
+                className="w-full"
+              >
+                Continue <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </div>
+        );
+        
       case 1:
         return (
           <div className="space-y-6">

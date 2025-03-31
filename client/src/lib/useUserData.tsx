@@ -13,6 +13,7 @@ export interface User {
   studentId?: string;
   graduationYear?: number;
   isUniversityStudent: boolean;
+  needsUsername?: boolean;
   xp: number;
   level: number;
   rank: string;

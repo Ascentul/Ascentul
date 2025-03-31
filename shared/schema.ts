@@ -81,6 +81,7 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID for payments
   stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
   subscriptionExpiresAt: timestamp("subscription_expires_at"), // When the subscription expires
+  needsUsername: boolean("needs_username").default(false), // Whether the user needs to set a username during onboarding
   emailVerified: boolean("email_verified").default(false), // Whether the user's email has been verified
   verificationToken: text("verification_token"), // Token for email verification
   verificationExpires: timestamp("verification_expires"), // When the verification token expires
@@ -107,6 +108,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   verificationToken: true,
   verificationExpires: true,
   passwordLastChanged: true,
+}).extend({
+  needsUsername: z.boolean().optional().default(false),
 });
 
 // Goals model

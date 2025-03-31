@@ -90,7 +90,7 @@ export default function PlanSelection() {
         await updateUser({
           subscriptionPlan: 'free',
           subscriptionStatus: 'active',
-          subscriptionCycle: null
+          subscriptionCycle: undefined
         });
         
         toast({
