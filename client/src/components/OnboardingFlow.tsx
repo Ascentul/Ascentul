@@ -290,14 +290,16 @@ export default function OnboardingFlow() {
     if (needsUsername && step === 0) {
       // If username is needed, we handle it separately
       updateUsername();
-    } else if ((needsUsername && step < 4) || (!needsUsername && step < 3)) {
-      setStep(step + 1);
-    } else {
+    } else if (step === 3) {
+      // When we're on the final step (interests selection)
       // Save onboarding data to user profile
       saveOnboardingData();
       
       // Navigate to plan selection page after all steps are completed
       setLocation('/plan-selection');
+      console.log('Navigating to /plan-selection');
+    } else if ((needsUsername && step < 4) || (!needsUsername && step < 3)) {
+      setStep(step + 1);
     }
   };
 
