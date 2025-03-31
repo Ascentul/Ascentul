@@ -176,90 +176,94 @@ export default function PlanSelection() {
                 Selected
               </div>
             )}
-            <Card className={`relative overflow-hidden ${selectedPlan === 'pro' ? 'border-primary border-2' : ''}`}>
-              <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 rounded-br-lg">
-                Popular
+            <div className="relative">
+              <div className="absolute top-0 left-0 right-0 z-10 bg-primary text-white py-2 text-center font-medium rounded-t-lg flex items-center justify-center">
+                Most popular <span className="ml-1">✨</span>
               </div>
-              <CardHeader className="pb-4 px-6 md:px-8">
-                <CardTitle className="text-2xl">Pro Plan</CardTitle>
-                <CardDescription>
-                  Advanced features for serious career development
-                </CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${calculatePrice('pro', billingCycle)}</span>
-                  <span className="text-muted-foreground ml-1">
-                    {billingCycle === 'monthly' && '/month'}
-                    {billingCycle === 'quarterly' && '/quarter'}
-                    {billingCycle === 'yearly' && '/year'}
-                  </span>
-                  
-                  {calculateSavings('pro', billingCycle) > 0 && (
-                    <div className="text-green-600 text-sm mt-1">
-                      Save ${calculateSavings('pro', billingCycle)} with this plan
+              <div className="pt-10">
+                <Card className={`relative overflow-hidden ${selectedPlan === 'pro' ? 'border-primary border-2' : ''}`}>
+                  <CardHeader className="pb-4 px-6 md:px-8">
+                    <CardTitle className="text-2xl">Pro Plan</CardTitle>
+                    <CardDescription>
+                      Advanced features for serious career development
+                    </CardDescription>
+                    <div className="mt-4">
+                      <span className="text-4xl font-bold">${calculatePrice('pro', billingCycle)}</span>
+                      <span className="text-muted-foreground ml-1">
+                        {billingCycle === 'monthly' && '/month'}
+                        {billingCycle === 'quarterly' && '/quarter'}
+                        {billingCycle === 'yearly' && '/year'}
+                      </span>
+                      
+                      {calculateSavings('pro', billingCycle) > 0 && (
+                        <div className="text-green-600 text-sm mt-1">
+                          Save ${calculateSavings('pro', billingCycle)} with this plan
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pb-4 px-6 md:px-8">
-                <RadioGroup 
-                  className="mb-4"
-                  value={billingCycle}
-                  onValueChange={setBillingCycle}
-                >
-                  <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('monthly')}>
-                    <div className="flex items-center">
-                      <RadioGroupItem value="monthly" id="monthly" />
-                      <Label htmlFor="monthly" className="ml-2 cursor-pointer">Monthly</Label>
-                    </div>
-                    <span className="font-medium">$15/mo</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('quarterly')}>
-                    <div className="flex items-center">
-                      <RadioGroupItem value="quarterly" id="quarterly" />
-                      <Label htmlFor="quarterly" className="ml-2 cursor-pointer">
-                        Quarterly
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                          Save $15
-                        </span>
-                      </Label>
-                    </div>
-                    <span className="font-medium">$30/qtr</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('yearly')}>
-                    <div className="flex items-center">
-                      <RadioGroupItem value="yearly" id="yearly" />
-                      <Label htmlFor="yearly" className="ml-2 cursor-pointer">
-                        Yearly
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                          Save $108
-                        </span>
-                      </Label>
-                    </div>
-                    <span className="font-medium">$72/yr</span>
-                  </div>
-                </RadioGroup>
-                
-                <ul className="space-y-2">
-                  {planFeatures.pro.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter className="px-6 md:px-8">
-                <Button 
-                  variant={selectedPlan === 'pro' ? 'default' : 'outline'} 
-                  className="w-full"
-                  onClick={() => handlePlanSelect('pro')}
-                >
-                  {selectedPlan === 'pro' ? 'Selected' : 'Select Pro Plan'}
-                </Button>
-              </CardFooter>
-            </Card>
+                  </CardHeader>
+                  <CardContent className="pb-4 px-6 md:px-8">
+                    <RadioGroup 
+                      className="mb-4"
+                      value={billingCycle}
+                      onValueChange={setBillingCycle}
+                    >
+                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('monthly')}>
+                        <div className="flex items-center">
+                          <RadioGroupItem value="monthly" id="monthly" />
+                          <Label htmlFor="monthly" className="ml-2 cursor-pointer">Monthly</Label>
+                        </div>
+                        <span className="font-medium">$15/mo</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 mb-2 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('quarterly')}>
+                        <div className="flex items-center">
+                          <RadioGroupItem value="quarterly" id="quarterly" />
+                          <Label htmlFor="quarterly" className="ml-2 cursor-pointer">
+                            Quarterly
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              Save $15
+                            </span>
+                          </Label>
+                        </div>
+                        <span className="font-medium">$30/qtr</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50" onClick={() => setBillingCycle('yearly')}>
+                        <div className="flex items-center">
+                          <RadioGroupItem value="yearly" id="yearly" />
+                          <Label htmlFor="yearly" className="ml-2 cursor-pointer">
+                            Yearly
+                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              Save $108
+                            </span>
+                          </Label>
+                        </div>
+                        <span className="font-medium">$72/yr</span>
+                      </div>
+                    </RadioGroup>
+                    
+                    <ul className="space-y-2">
+                      {planFeatures.pro.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="px-6 md:px-8">
+                    <Button 
+                      variant={selectedPlan === 'pro' ? 'default' : 'outline'} 
+                      className="w-full"
+                      onClick={() => handlePlanSelect('pro')}
+                    >
+                      {selectedPlan === 'pro' ? 'Selected' : 'Select Pro Plan'}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
         
