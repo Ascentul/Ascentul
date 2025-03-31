@@ -25,6 +25,7 @@ import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProc
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { PracticeSession } from '@/components/interview/PracticeSession';
 import { type InterviewProcess } from '@shared/schema';
+import { motion } from 'framer-motion';
 
 const Interview = () => {
   const [activeTab, setActiveTab] = useState('processes');
@@ -33,6 +34,33 @@ const Interview = () => {
   const [showPracticeSession, setShowPracticeSession] = useState(false);
   const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Animation variants - keeping them subtle
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4 } }
+  };
+  
+  const subtleUp = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+  
+  const listContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05, // Very slight stagger for minimal distraction
+        when: "beforeChildren"
+      }
+    }
+  };
+  
+  const listItem = {
+    hidden: { opacity: 0, y: 5 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
+  };
 
   // Fetch interview processes
   const { data: processes, isLoading } = useQuery<InterviewProcess[]>({
@@ -58,29 +86,35 @@ const Interview = () => {
   const activeProcesses = processes?.filter(p => p.status !== 'Completed' && p.status !== 'Rejected') || [];
   const completedProcesses = processes?.filter(p => p.status === 'Completed' || p.status === 'Rejected') || [];
 
-  const renderProcessCard = (process: InterviewProcess) => {
+  const renderProcessCard = (process: InterviewProcess, index: number) => {
     return (
-      <Card 
+      <motion.div
+        variants={listItem}
+        initial="hidden"
+        animate="visible"
         key={process.id}
-        className={`cursor-pointer transition-colors hover:bg-accent/50 ${
-          selectedProcessId === process.id ? 'border-primary' : ''
-        }`}
-        onClick={() => setSelectedProcessId(process.id)}
       >
-        <CardHeader className="p-4 pb-2">
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-base">{process.companyName}</CardTitle>
-            <StatusBadge status={process.status} />
-          </div>
-          <CardDescription>{process.position}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <CalendarDays className="h-3 w-3 mr-1" />
-            {new Date(process.createdAt).toLocaleDateString()}
-          </div>
-        </CardContent>
-      </Card>
+        <Card 
+          className={`cursor-pointer transition-colors hover:bg-accent/50 ${
+            selectedProcessId === process.id ? 'border-primary' : ''
+          }`}
+          onClick={() => setSelectedProcessId(process.id)}
+        >
+          <CardHeader className="p-4 pb-2">
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-base">{process.companyName}</CardTitle>
+              <StatusBadge status={process.status} />
+            </div>
+            <CardDescription>{process.position}</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="flex items-center text-sm text-muted-foreground">
+              <CalendarDays className="h-3 w-3 mr-1" />
+              {new Date(process.createdAt).toLocaleDateString()}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   };
 
@@ -115,8 +149,16 @@ const Interview = () => {
   );
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
+      className="container mx-auto py-6 space-y-6"
+    >
+      <motion.div 
+        variants={subtleUp}
+        className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0"
+      >
         <div>
           <h1 className="text-2xl font-bold">Interview Tracker</h1>
           <p className="text-muted-foreground">Manage your job applications and interviews</p>
@@ -125,28 +167,30 @@ const Interview = () => {
           <Plus className="h-4 w-4 mr-2" />
           New Interview Process
         </Button>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="processes" className="flex-1">
-                <Briefcase className="h-4 w-4 mr-2" />
-                All Processes
-              </TabsTrigger>
-              <TabsTrigger value="dashboard" className="flex-1">
-                <ListChecks className="h-4 w-4 mr-2" />
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="practice" className="flex-1">
-                <BookOpenText className="h-4 w-4 mr-2" />
-                Practice
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <motion.div variants={subtleUp}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full">
+                <TabsTrigger value="processes" className="flex-1">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  All Processes
+                </TabsTrigger>
+                <TabsTrigger value="dashboard" className="flex-1">
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="practice" className="flex-1">
+                  <BookOpenText className="h-4 w-4 mr-2" />
+                  Practice
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </motion.div>
 
-          <div className="w-full">
+          <motion.div variants={subtleUp} className="w-full">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -157,21 +201,23 @@ const Interview = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-          </div>
+          </motion.div>
 
           <div className="space-y-3">
             {activeTab === 'processes' && (
               <>
                 {isLoading ? (
-                  <>
-                    <ProcessCardSkeleton />
-                    <ProcessCardSkeleton />
-                    <ProcessCardSkeleton />
-                  </>
+                  <motion.div variants={listContainer}>
+                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                    <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                  </motion.div>
                 ) : filteredProcesses && filteredProcesses.length > 0 ? (
-                  filteredProcesses.map(renderProcessCard)
+                  <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
+                    {filteredProcesses.map((process, index) => renderProcessCard(process, index))}
+                  </motion.div>
                 ) : (
-                  <div className="text-center py-8">
+                  <motion.div variants={fadeIn} className="text-center py-8">
                     <p className="text-muted-foreground">No interview processes found.</p>
                     <Button 
                       variant="link" 
@@ -180,25 +226,27 @@ const Interview = () => {
                     >
                       Create your first interview process
                     </Button>
-                  </div>
+                  </motion.div>
                 )}
               </>
             )}
 
             {activeTab === 'dashboard' && (
-              <>
+              <motion.div variants={fadeIn}>
                 <div className="space-y-3">
                   <h3 className="font-medium flex items-center">
                     <Briefcase className="h-4 w-4 mr-2" />
                     Active Processes ({activeProcesses.length})
                   </h3>
                   {isLoading ? (
-                    <>
-                      <ProcessCardSkeleton />
-                      <ProcessCardSkeleton />
-                    </>
+                    <motion.div variants={listContainer}>
+                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                    </motion.div>
                   ) : activeProcesses.length > 0 ? (
-                    activeProcesses.map(renderProcessCard)
+                    <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
+                      {activeProcesses.map((process, index) => renderProcessCard(process, index))}
+                    </motion.div>
                   ) : (
                     <p className="text-muted-foreground text-center py-4">No active processes</p>
                   )}
@@ -212,16 +260,18 @@ const Interview = () => {
                   {isLoading ? (
                     <ProcessCardSkeleton />
                   ) : completedProcesses.length > 0 ? (
-                    completedProcesses.map(renderProcessCard)
+                    <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
+                      {completedProcesses.map((process, index) => renderProcessCard(process, index))}
+                    </motion.div>
                   ) : (
                     <p className="text-muted-foreground text-center py-4">No completed processes</p>
                   )}
                 </div>
-              </>
+              </motion.div>
             )}
 
             {activeTab === 'practice' && (
-              <div className="space-y-6">
+              <motion.div variants={fadeIn} className="space-y-6">
                 <div className="space-y-2">
                   <h3 className="font-medium">Select an Interview Process</h3>
                   <p className="text-sm text-muted-foreground">
@@ -229,48 +279,54 @@ const Interview = () => {
                   </p>
                   
                   {isLoading ? (
-                    <>
-                      <ProcessCardSkeleton />
-                      <ProcessCardSkeleton />
-                    </>
+                    <motion.div variants={listContainer}>
+                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                      <motion.div variants={listItem}><ProcessCardSkeleton /></motion.div>
+                    </motion.div>
                   ) : processes && processes.length > 0 ? (
-                    <div className="space-y-3 mt-4">
-                      {processes.map(process => (
-                        <Card 
-                          key={process.id}
-                          className="cursor-pointer transition-colors hover:bg-accent/50"
-                          onClick={() => setSelectedProcessId(process.id)}
-                        >
-                          <CardHeader className="p-4 pb-2">
-                            <div className="flex justify-between items-start">
-                              <CardTitle className="text-base">{process.companyName}</CardTitle>
-                              <StatusBadge status={process.status} />
-                            </div>
-                            <CardDescription>{process.position}</CardDescription>
-                          </CardHeader>
-                          <CardContent className="p-4 pt-0">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center text-sm text-muted-foreground">
-                                <CalendarDays className="h-3 w-3 mr-1" />
-                                {new Date(process.createdAt).toLocaleDateString()}
+                    <motion.div 
+                      variants={listContainer} 
+                      initial="hidden" 
+                      animate="visible" 
+                      className="space-y-3 mt-4"
+                    >
+                      {processes.map((process, index) => (
+                        <motion.div variants={listItem} key={process.id}>
+                          <Card 
+                            className="cursor-pointer transition-colors hover:bg-accent/50"
+                            onClick={() => setSelectedProcessId(process.id)}
+                          >
+                            <CardHeader className="p-4 pb-2">
+                              <div className="flex justify-between items-start">
+                                <CardTitle className="text-base">{process.companyName}</CardTitle>
+                                <StatusBadge status={process.status} />
                               </div>
-                              <Button 
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPracticeProcessId(process.id);
-                                  setShowPracticeSession(true);
-                                }}
-                              >
-                                Practice
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                              <CardDescription>{process.position}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <CalendarDays className="h-3 w-3 mr-1" />
+                                  {new Date(process.createdAt).toLocaleDateString()}
+                                </div>
+                                <Button 
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPracticeProcessId(process.id);
+                                    setShowPracticeSession(true);
+                                  }}
+                                >
+                                  Practice
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   ) : (
-                    <div className="text-center py-8">
+                    <motion.div variants={fadeIn} className="text-center py-8">
                       <p className="text-muted-foreground">No interview processes found.</p>
                       <Button 
                         variant="link" 
@@ -282,11 +338,14 @@ const Interview = () => {
                       >
                         Create an interview process first
                       </Button>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
                 
-                <div className="text-center border-t pt-6 mt-6">
+                <motion.div 
+                  variants={subtleUp}
+                  className="text-center border-t pt-6 mt-6"
+                >
                   <h3 className="font-medium">General Interview Practice</h3>
                   <p className="text-muted-foreground mt-2">
                     Practice common interview questions and improve your skills without selecting a specific job.
@@ -300,33 +359,42 @@ const Interview = () => {
                   >
                     Start General Practice
                   </Button>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             )}
           </div>
         </div>
 
-        <div className="lg:col-span-2">
+        <motion.div 
+          variants={fadeIn}
+          className="lg:col-span-2"
+        >
           {selectedProcess ? (
             <InterviewProcessDetails process={selectedProcess} />
           ) : (
             <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
-              <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">No Process Selected</h3>
-              <p className="text-muted-foreground max-w-md mt-2">
-                Select an interview process from the list to view details, or create a new one to start tracking your interview journey.
-              </p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setShowCreateForm(true)}
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Create New Process
-              </Button>
+                <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No Process Selected</h3>
+                <p className="text-muted-foreground max-w-md mt-2">
+                  Select an interview process from the list to view details, or create a new one to start tracking your interview journey.
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setShowCreateForm(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Process
+                </Button>
+              </motion.div>
             </Card>
           )}
-        </div>
+        </motion.div>
       </div>
 
       <NewInterviewProcessForm
@@ -340,7 +408,7 @@ const Interview = () => {
         onClose={() => setShowPracticeSession(false)}
         process={processes?.find(p => p.id === practiceProcessId) || undefined}
       />
-    </div>
+    </motion.div>
   );
 };
 
