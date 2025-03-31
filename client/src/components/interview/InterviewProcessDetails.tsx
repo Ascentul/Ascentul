@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,8 @@ import {
   Trash,
   PlusCircle,
   CheckCircle,
-  PlayCircle
+  PlayCircle,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
@@ -73,6 +74,22 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     dueDate: '',
     notes: ''
   });
+  
+  // Fetch stages for this specific process
+  const { data: stages, isLoading: loadingStages } = useQuery<InterviewStage[]>({
+    queryKey: [`/api/interview/processes/${process.id}/stages`],
+    enabled: !!process.id, // Only run query if we have a process ID
+  });
+  
+  // Fetch followups for this specific process
+  const { data: followups, isLoading: loadingFollowups } = useQuery<FollowupAction[]>({
+    queryKey: [`/api/interview/processes/${process.id}/followups`],
+    enabled: !!process.id, // Only run query if we have a process ID
+  });
+  
+  // Combine server data with any data from the process prop
+  const processStages = stages || process.stages || [];
+  const processFollowups = followups || process.followups || [];
 
   // Add interview stage mutation
   const addStageMutation = useMutation({
@@ -81,7 +98,9 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       return await response.json();
     },
     onSuccess: () => {
+      // Invalidate both the process list and the specific stages query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
       toast({
         title: 'Success',
         description: 'Interview stage added successfully',
@@ -111,7 +130,9 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       return await response.json();
     },
     onSuccess: () => {
+      // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
       toast({
         title: 'Success',
         description: 'Followup action added successfully',
@@ -140,7 +161,9 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       return await response.json();
     },
     onSuccess: () => {
+      // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
       toast({
         title: 'Success',
         description: 'Followup action marked as completed',
@@ -179,8 +202,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   };
 
   // Sort stages by scheduled date (most recent first)
-  const sortedStages = process.stages 
-    ? [...process.stages].sort((a, b) => {
+  const sortedStages = processStages.length > 0
+    ? [...processStages].sort((a, b) => {
         if (!a.scheduledDate) return 1;
         if (!b.scheduledDate) return -1;
         return new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime();
@@ -188,8 +211,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     : [];
 
   // Sort followups by due date
-  const sortedFollowups = process.followups
-    ? [...process.followups].sort((a, b) => {
+  const sortedFollowups = processFollowups.length > 0
+    ? [...processFollowups].sort((a, b) => {
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
