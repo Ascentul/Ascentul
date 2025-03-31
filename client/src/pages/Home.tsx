@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Target, Award, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoginDialog from '@/components/LoginDialog';
@@ -18,7 +18,7 @@ export default function Home() {
               Navigate Your Career Journey with <span className="text-primary">AI-Powered</span> Guidance
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              From resume building to interview prep, goal tracking to AI coaching, CareerPilot gives you the tools to take control of your professional future.
+              From resume building to interview prep, goal tracking to AI coaching, CareerTracker.io gives you the tools to take control of your professional future.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Button 
@@ -62,11 +62,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Create customized resumes and cover letters tailored to specific job applications with AI assistance.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
 
             <div className="bg-card rounded-xl p-6 shadow-sm">
@@ -77,11 +78,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Set, track, and achieve your professional goals with intelligent progress tracking and reminders.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
 
             <div className="bg-card rounded-xl p-6 shadow-sm">
@@ -92,11 +94,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Specialized tools for university students including study plans, learning modules, and academic tracking.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
 
             <div className="bg-card rounded-xl p-6 shadow-sm">
@@ -107,11 +110,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Practice interviews with AI-generated questions specific to your industry and role, with feedback and improvement tips.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
 
             <div className="bg-card rounded-xl p-6 shadow-sm">
@@ -122,11 +126,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Earn XP, unlock achievements, and track your progress as you develop your career skills and hit milestones.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
 
             <div className="bg-card rounded-xl p-6 shadow-sm">
@@ -139,11 +144,12 @@ export default function Home() {
               <p className="text-muted-foreground mb-4">
                 Get personalized career advice and guidance from our AI coach that adapts to your unique situation.
               </p>
-              <Link href="/auth">
-                <a className="text-primary font-medium flex items-center hover:underline">
-                  Get started <ArrowRight className="ml-1 h-4 w-4" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setShowSignupDialog(true)}
+                className="text-primary font-medium flex items-center hover:underline bg-transparent border-none p-0 cursor-pointer"
+              >
+                Get started <ArrowRight className="ml-1 h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -155,7 +161,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Join thousands of professionals who have transformed their careers with CareerPilot.
+              Join thousands of professionals who have transformed their careers with CareerTracker.io.
             </p>
           </div>
 
@@ -173,7 +179,7 @@ export default function Home() {
                 ))}
               </div>
               <p className="text-muted-foreground mb-4">
-                "CareerPilot helped me land my dream job. The AI interview coach was incredibly useful in preparing me for tough questions."
+                "CareerTracker.io helped me land my dream job. The AI interview coach was incredibly useful in preparing me for tough questions."
               </p>
               <div className="flex items-center">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold mr-3">
@@ -247,7 +253,7 @@ export default function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-4">Start Your Career Journey Today</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of professionals and students who are taking control of their future with CareerPilot.
+              Join thousands of professionals and students who are taking control of their future with CareerTracker.io.
             </p>
             <Button 
               size="lg"
