@@ -52,6 +52,9 @@ export default function PlanSelection() {
 
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);
+    
+    // Immediately handle the plan selection
+    handleContinue();
   };
 
   const calculatePrice = (plan: string, cycle: string): number => {
@@ -133,17 +136,27 @@ export default function PlanSelection() {
           <div className="relative">
             <div className="relative">
               <div className="pt-10">
-                <Card className={`relative overflow-hidden ${selectedPlan === 'free' ? 'border-primary border-2' : ''}`}>
+                <Card className="relative overflow-hidden border rounded-lg">
                   <CardHeader className="pb-4 px-6 md:px-8">
-                    <CardTitle className="text-2xl">Free Plan</CardTitle>
-                    <CardDescription>
+                    <p className="text-sm text-muted-foreground mb-2">For individuals</p>
+                    <CardTitle className="text-3xl font-bold mb-1">Free Plan</CardTitle>
+                    <CardDescription className="text-sm">
                       Get started with basic career management tools
                     </CardDescription>
-                    <div className="mt-4">
+                    <div className="mt-6 mb-4">
                       <span className="text-4xl font-bold">$0</span>
-                      <span className="text-muted-foreground ml-1">forever</span>
+                      <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                   </CardHeader>
+                  <div className="mt-2 mb-2 px-6 md:px-8">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => handlePlanSelect('free')}
+                    >
+                      Create account
+                    </Button>
+                  </div>
                   <CardContent className="pb-4 px-6 md:px-8">
                     <ul className="space-y-2">
                       {planFeatures.free.map((feature, index) => (
@@ -154,15 +167,6 @@ export default function PlanSelection() {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardFooter className="px-6 md:px-8">
-                    <Button 
-                      variant={selectedPlan === 'free' ? 'default' : 'outline'} 
-                      className="w-full"
-                      onClick={() => handlePlanSelect('free')}
-                    >
-                      {selectedPlan === 'free' ? 'Selected' : 'Select Free Plan'}
-                    </Button>
-                  </CardFooter>
                 </Card>
               </div>
             </div>
@@ -175,13 +179,14 @@ export default function PlanSelection() {
                 Most popular <span className="ml-1">✨</span>
               </div>
               <div className="pt-10">
-                <Card className={`relative overflow-hidden ${selectedPlan === 'pro' ? 'border-primary border-2' : ''}`}>
-                  <CardHeader className="pb-4 px-6 md:px-8">
-                    <CardTitle className="text-2xl">Pro Plan</CardTitle>
-                    <CardDescription>
+                <Card className="relative overflow-hidden border rounded-lg">
+                  <CardHeader className="pb-2 px-6 md:px-8">
+                    <p className="text-sm text-muted-foreground mb-2">For individuals and teams</p>
+                    <CardTitle className="text-3xl font-bold mb-1">Pro Plan</CardTitle>
+                    <CardDescription className="text-sm">
                       Advanced features for serious career development
                     </CardDescription>
-                    <div className="mt-4">
+                    <div className="mt-6 mb-2">
                       <span className="text-4xl font-bold">${calculatePrice('pro', billingCycle)}</span>
                       <span className="text-muted-foreground ml-1">
                         {billingCycle === 'monthly' && '/month'}
@@ -195,6 +200,20 @@ export default function PlanSelection() {
                         </div>
                       )}
                     </div>
+                    
+                    <Button 
+                      variant="default" 
+                      className="w-full bg-primary mt-2 mb-2"
+                      onClick={() => handlePlanSelect('pro')}
+                    >
+                      Get started
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground text-center mb-4">
+                      {billingCycle === 'monthly' && '$15 when billed monthly'}
+                      {billingCycle === 'quarterly' && '$30 when billed quarterly'}
+                      {billingCycle === 'yearly' && '$72 when billed yearly'}
+                    </p>
                   </CardHeader>
                   <CardContent className="pb-4 px-6 md:px-8">
                     <RadioGroup 
@@ -237,6 +256,7 @@ export default function PlanSelection() {
                       </div>
                     </RadioGroup>
                     
+                    <p className="font-semibold mb-2">Everything in Free, plus:</p>
                     <ul className="space-y-2">
                       {planFeatures.pro.map((feature, index) => (
                         <li key={index} className="flex items-start">
@@ -246,15 +266,6 @@ export default function PlanSelection() {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardFooter className="px-6 md:px-8">
-                    <Button 
-                      variant={selectedPlan === 'pro' ? 'default' : 'outline'} 
-                      className="w-full"
-                      onClick={() => handlePlanSelect('pro')}
-                    >
-                      {selectedPlan === 'pro' ? 'Selected' : 'Select Pro Plan'}
-                    </Button>
-                  </CardFooter>
                 </Card>
               </div>
             </div>
@@ -270,14 +281,17 @@ export default function PlanSelection() {
             </p>
           </div>
           
-          <Button 
-            size="lg" 
-            onClick={handleContinue}
-            className="px-8"
-          >
-            Continue with {selectedPlan === 'free' ? 'Free Plan' : 'Pro Plan'}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          {/* Only show Continue button if a plan has been explicitly selected */}
+          {selectedPlan && (
+            <Button 
+              size="lg" 
+              onClick={handleContinue}
+              className="px-8"
+            >
+              Continue with {selectedPlan === 'free' ? 'Free Plan' : 'Pro Plan'}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
