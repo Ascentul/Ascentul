@@ -68,16 +68,31 @@ interface SystemStatusData {
         trend?: 'up' | 'down' | 'stable';
       }[];
       issues?: {
+        id: string;
         title: string;
         description: string;
         severity: string;
         timeDetected: string;
         suggestedAction?: string;
+        impact?: string;
+        status?: 'open' | 'in_progress' | 'resolved';
       }[];
       logs?: {
         timestamp: string;
         message: string;
         level: string;
+      }[];
+      suggestedActions?: {
+        id: string;
+        title: string;
+        description: string;
+        impact: 'high' | 'medium' | 'low';
+        effort: 'easy' | 'medium' | 'complex';
+        eta: string;
+        command?: string;
+        requiresConfirmation?: boolean;
+        requiresCredentials?: boolean;
+        status?: 'available' | 'in_progress' | 'completed' | 'failed';
       }[];
     };
   }[];
@@ -138,16 +153,43 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
           ],
           issues: [
             { 
+              id: 'api-timeout',
               title: 'Occasional timeout on heavy requests',
               description: 'Some complex queries experience timeouts during peak loads.',
               severity: 'low',
               timeDetected: '2 days ago',
-              suggestedAction: 'Implement request caching for complex operations'
+              suggestedAction: 'Implement request caching for complex operations',
+              impact: 'Affects approximately 2% of API requests during peak hours',
+              status: 'open'
             }
           ],
           logs: [
             { timestamp: '13:21:05', message: 'Rate limiting applied to IP 192.168.1.45', level: 'warning' },
             { timestamp: '11:42:32', message: 'API versioning update completed', level: 'info' }
+          ],
+          suggestedActions: [
+            {
+              id: 'api-cache',
+              title: 'Implement API Response Caching',
+              description: 'Add Redis caching layer for frequently accessed endpoints to reduce database load and improve response times.',
+              impact: 'high',
+              effort: 'medium',
+              eta: '30 minutes',
+              command: 'npm run deploy:cache-layer',
+              requiresConfirmation: true,
+              status: 'available'
+            },
+            {
+              id: 'api-optimize',
+              title: 'Optimize Query Execution Plans',
+              description: 'Analyze and optimize the execution plans for the most resource-intensive API queries.',
+              impact: 'medium',
+              effort: 'easy',
+              eta: '15 minutes',
+              command: 'npm run optimize-queries',
+              requiresConfirmation: false,
+              status: 'available'
+            }
           ]
         }
       },
@@ -168,24 +210,64 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
           ],
           issues: [
             { 
+              id: 'db-query-performance',
               title: 'Database query performance degraded',
               description: 'Elevated query times caused by index fragmentation and increasing table sizes.',
               severity: 'medium',
               timeDetected: '15 hours ago',
-              suggestedAction: 'Run VACUUM ANALYZE on primary tables and rebuild indexes'
+              suggestedAction: 'Run VACUUM ANALYZE on primary tables and rebuild indexes',
+              impact: 'Affecting response time of data-intensive operations',
+              status: 'open'
             },
             { 
+              id: 'db-connection-pool',
               title: 'Connection pool nearing capacity',
               description: 'High number of concurrent connections during peak hours.',
               severity: 'low',
               timeDetected: '2 days ago',
-              suggestedAction: 'Increase max_connections parameter and implement connection pooling'
+              suggestedAction: 'Increase max_connections parameter and implement connection pooling',
+              impact: 'May cause connection timeouts during high traffic periods',
+              status: 'in_progress'
             }
           ],
           logs: [
             { timestamp: '14:35:22', message: 'Slow query detected: SELECT * FROM interview_processes WHERE...', level: 'warning' },
             { timestamp: '12:18:43', message: 'Temporary disk space shortage during backup', level: 'warning' },
             { timestamp: '08:42:15', message: 'Automated backup completed successfully', level: 'info' }
+          ],
+          suggestedActions: [
+            {
+              id: 'db-vacuum',
+              title: 'Run Database Maintenance',
+              description: 'Execute VACUUM ANALYZE to reclaim space and update statistics for better query planning.',
+              impact: 'high',
+              effort: 'easy',
+              eta: '10 minutes',
+              command: 'VACUUM ANALYZE interview_processes, users, work_history;',
+              requiresConfirmation: true,
+              status: 'available'
+            },
+            {
+              id: 'db-index-rebuild',
+              title: 'Rebuild Fragmented Indexes',
+              description: 'Drop and recreate heavily fragmented indexes to improve query performance.',
+              impact: 'high',
+              effort: 'medium',
+              eta: '20 minutes',
+              command: 'npm run db:rebuild-indexes',
+              requiresConfirmation: true,
+              status: 'available'
+            },
+            {
+              id: 'db-optimize-config',
+              title: 'Optimize PostgreSQL Configuration',
+              description: 'Update PostgreSQL configuration parameters for better performance with current workload.',
+              impact: 'medium',
+              effort: 'complex',
+              eta: '45 minutes',
+              requiresCredentials: true,
+              status: 'available'
+            }
           ]
         }
       },
@@ -610,7 +692,102 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                     </div>
                   </div>
                 )}
+
+                {/* Suggested Actions Section */}
+                {selectedComponent.details?.suggestedActions && selectedComponent.details.suggestedActions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-3">Suggested Actions</h3>
+                    <div className="space-y-3">
+                      {selectedComponent.details.suggestedActions.map((action, i) => (
+                        <div key={i} className="border rounded-md p-3 hover:border-primary transition-colors">
+                          <div className="flex items-start space-x-2 mb-2">
+                            <div className={`p-1 rounded-full ${
+                              action.impact === 'high' 
+                                ? 'bg-red-100 text-red-700' 
+                                : action.impact === 'medium'
+                                ? 'bg-yellow-100 text-yellow-700' 
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              <AlertCircle className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-sm">{action.title}</h4>
+                                <div className="flex items-center space-x-1">
+                                  <Badge className={`text-xs ${
+                                    action.impact === 'high' 
+                                      ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                                      : action.impact === 'medium'
+                                      ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' 
+                                      : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                  }`}>
+                                    {action.impact} impact
+                                  </Badge>
+                                  <Badge className="text-xs bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                    {action.effort} effort
+                                  </Badge>
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
+                              
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                <span className="mr-2">
+                                  <strong>ETA:</strong> {action.eta}
+                                </span>
+                                {action.requiresConfirmation && (
+                                  <span className="mr-2 text-yellow-600">Requires confirmation</span>
+                                )}
+                                {action.requiresCredentials && (
+                                  <span className="text-red-600">Requires credentials</span>
+                                )}
+                              </div>
+                              
+                              <div className="mt-3 flex justify-end space-x-2">
+                                {action.command && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-7 text-xs"
+                                    onClick={() => handleActionClick(`View command: ${action.command}`)}
+                                  >
+                                    <FileCog className="h-3 w-3 mr-1" />
+                                    View Command
+                                  </Button>
+                                )}
+                                <Button 
+                                  variant="default" 
+                                  size="sm" 
+                                  className="h-7 text-xs"
+                                  onClick={() => handleActionClick(`Apply action: ${action.title}`)}
+                                >
+                                  <PlayCircle className="h-3 w-3 mr-1" />
+                                  Apply Fix
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Footer Actions */}
+              <DialogFooter className="flex justify-between items-center border-t pt-4 mt-2">
+                <div className="text-xs text-muted-foreground">
+                  Last updated: {new Date().toLocaleTimeString()}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={refreshStatus}
+                >
+                  <RotateCw className="h-3.5 w-3.5 mr-1.5" />
+                  Refresh Data
+                </Button>
+              </DialogFooter>
               
               <DialogFooter>
                 {selectedComponent.status !== 'operational' && (
