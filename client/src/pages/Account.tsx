@@ -601,6 +601,19 @@ export default function Account() {
           <Card>
             <CardHeader>
               <CardTitle>Subscription Details</CardTitle>
+              {user.subscriptionPlan === 'free' && (
+                <div className="flex justify-end">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => setIsUpgradingPlan(true)}
+                    className="mt-2"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Upgrade Plan
+                  </Button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
