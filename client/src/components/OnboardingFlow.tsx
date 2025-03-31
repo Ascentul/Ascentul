@@ -12,7 +12,10 @@ import {
   MessageSquare,
   Check,
   AlertCircle,
-  Loader2
+  Loader2,
+  Users,
+  UserCog,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -625,27 +628,75 @@ export default function OnboardingFlow() {
                 
                 <div className="space-y-2">
                   <Label>My role is:</Label>
-                  <RadioGroup 
-                    value={data.professionalInfo.role || ''} 
-                    onValueChange={(value: JobRole) => handleProfessionalInfoChange('role', value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="team-member" id="team-member" />
-                      <Label htmlFor="team-member">Team member</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="manager" id="manager" />
-                      <Label htmlFor="manager">Manager</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="director" id="director" />
-                      <Label htmlFor="director">Director</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="executive" id="executive" />
-                      <Label htmlFor="executive">CEO or Owner</Label>
-                    </div>
-                  </RadioGroup>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                    <Card 
+                      className={`cursor-pointer hover:bg-muted/50 ${data.professionalInfo.role === 'team-member' ? 'border-primary' : ''}`} 
+                      onClick={() => handleProfessionalInfoChange('role', 'team-member')}
+                    >
+                      <CardHeader className="text-center pt-6">
+                        <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">Team Member</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground text-sm">
+                          Individual contributor
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card 
+                      className={`cursor-pointer hover:bg-muted/50 ${data.professionalInfo.role === 'manager' ? 'border-primary' : ''}`} 
+                      onClick={() => handleProfessionalInfoChange('role', 'manager')}
+                    >
+                      <CardHeader className="text-center pt-6">
+                        <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                          <UserCog className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">Manager</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground text-sm">
+                          Team or project manager
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card 
+                      className={`cursor-pointer hover:bg-muted/50 ${data.professionalInfo.role === 'director' ? 'border-primary' : ''}`} 
+                      onClick={() => handleProfessionalInfoChange('role', 'director')}
+                    >
+                      <CardHeader className="text-center pt-6">
+                        <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                          <Briefcase className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">Director</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground text-sm">
+                          Department or division head
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card 
+                      className={`cursor-pointer hover:bg-muted/50 ${data.professionalInfo.role === 'executive' ? 'border-primary' : ''}`} 
+                      onClick={() => handleProfessionalInfoChange('role', 'executive')}
+                    >
+                      <CardHeader className="text-center pt-6">
+                        <div className="mx-auto mb-3 bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                          <Crown className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle className="text-lg">CEO or Owner</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-center text-muted-foreground text-sm">
+                          Executive leadership
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </div>
             </CardContent>
