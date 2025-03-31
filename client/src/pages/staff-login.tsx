@@ -122,7 +122,14 @@ export default function StaffLoginPage() {
                 </div>
               </form>
             </CardContent>
-            <CardFooter className="flex justify-center">
+            <CardFooter className="flex flex-col gap-2 items-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation('/staff-signup')}
+                className="text-sm w-full"
+              >
+                Create a staff account
+              </Button>
               <Button 
                 variant="ghost" 
                 onClick={() => setLocation('/sign-in')}

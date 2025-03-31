@@ -15,6 +15,7 @@ import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import AdminLogin from "@/pages/admin-login";
 import StaffLogin from "@/pages/staff-login";
+import StaffSignup from "@/pages/staff-signup";
 import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
@@ -162,7 +163,7 @@ function App() {
   const isSignUpRoute = location === "/sign-up";
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/auth-test"].includes(location);
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test"].includes(location);
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
@@ -213,6 +214,16 @@ function App() {
     return (
       <Switch>
         <Route path="/staff-login" component={StaffLogin} />
+      </Switch>
+    );
+  }
+  
+  const isStaffSignupRoute = location === "/staff-signup";
+  
+  if (isStaffSignupRoute) {
+    return (
+      <Switch>
+        <Route path="/staff-signup" component={StaffSignup} />
       </Switch>
     );
   }

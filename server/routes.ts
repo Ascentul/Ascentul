@@ -277,6 +277,74 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Staff Registration endpoint
+  apiRouter.post("/api/staff/register", async (req: Request, res: Response) => {
+    const { username, name, email, password, registrationCode } = req.body;
+    
+    // Validate registration code (simple mechanism for demo)
+    if (registrationCode !== 'STAFF2025') {
+      return res.status(403).json({
+        success: false, 
+        message: "Invalid registration code" 
+      });
+    }
+    
+    try {
+      // Check if username already exists
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already exists"
+        });
+      }
+      
+      // Check if email already exists
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already exists"
+        });
+      }
+      
+      // Create the staff user
+      const newUser = await storage.createUser({
+        username,
+        email,
+        name,
+        password, // In a real app, would hash this
+        userType: "staff",
+        profileImage: null,
+        xp: 0,
+        level: 1,
+        emailVerified: true, // Staff users don't need email verification
+        registrationDate: new Date(),
+        lastLoginDate: new Date(),
+        status: "active",
+        isOnboarded: true,
+        needsUsername: false
+      });
+      
+      // Set user in session
+      req.session.userId = newUser.id;
+      
+      // Return user without password
+      const { password: pwd, ...safeUser } = newUser;
+      
+      return res.status(201).json({
+        success: true,
+        user: safeUser
+      });
+    } catch (error) {
+      console.error("Staff registration error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred during registration"
+      });
+    }
+  });
+  
   apiRouter.post("/auth/register", async (req: Request, res: Response) => {
     try {
       // Extract the raw data from request before validation
