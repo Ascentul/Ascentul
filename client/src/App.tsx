@@ -25,6 +25,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
+// We'll directly use the Layout component already imported below
 
 // Public Pages
 import Home from "@/pages/Home";
@@ -330,9 +331,7 @@ function App() {
     return (
       <Switch>
         <Route path="/staff">
-          <StaffRoute>
-            <StaffDashboard />
-          </StaffRoute>
+          <StaffDashboard />
         </Route>
       </Switch>
     );
