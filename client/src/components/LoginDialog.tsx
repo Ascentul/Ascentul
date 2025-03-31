@@ -262,12 +262,6 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
           </TabsContent>
         </Tabs>
 
-        <div className="mt-4">
-          <div className="text-sm text-center mb-2">
-            <span className="text-muted-foreground">Are you a university student in a partner program?</span>{' '}
-            <a href="/university" className="text-primary hover:underline">Access your portal here</a>
-          </div>
-        </div>
 
         <DialogFooter className="sm:justify-start">
           <div className="text-xs text-muted-foreground mt-4">
