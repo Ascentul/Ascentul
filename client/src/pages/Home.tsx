@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Target, Award, BarChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LoginDialog from '@/components/LoginDialog';
+import heroImage from '@assets/magnet-me-315vPGsAFUk-unsplash_1743396890960.jpg';
 
 export default function Home() {
   const [showSignupDialog, setShowSignupDialog] = useState(false);
@@ -13,31 +14,40 @@ export default function Home() {
       {/* Hero Section */}
       <section className="py-20 md:py-28">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
-              Navigate Your Career Journey with <span className="text-primary">AI-Powered</span> Guidance
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              From resume building to interview prep, goal tracking to AI coaching, CareerTracker.io gives you the tools to take control of your professional future.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto"
-                onClick={() => setShowSignupDialog(true)}
-              >
-                Get Started for Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="w-full sm:w-auto"
-                onClick={() => setLocation('/solutions')}
-              >
-                Learn More
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="text-left">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6">
+                Navigate Your Career Journey with <span className="text-primary">AI-Powered</span> Guidance
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8">
+                From resume building to interview prep, goal tracking to AI coaching, CareerTracker.io gives you the tools to take control of your professional future.
+              </p>
+              <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowSignupDialog(true)}
+                >
+                  Get Started for Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                  onClick={() => setLocation('/solutions')}
+                >
+                  Learn More
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="order-first md:order-last">
+              <img 
+                src={heroImage} 
+                alt="Professional woman working on laptop" 
+                className="w-full h-auto rounded-xl shadow-lg object-cover"
+              />
             </div>
           </div>
         </div>
