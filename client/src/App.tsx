@@ -14,12 +14,16 @@ import Account from "@/pages/Account";
 import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import AdminLogin from "@/pages/admin-login";
+import StaffLogin from "@/pages/staff-login";
 import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
+
+// Staff Pages
+import StaffDashboard from "@/pages/staff/Dashboard";
 
 // Public Pages
 import Home from "@/pages/Home";
@@ -41,7 +45,8 @@ import {
   ProtectedRoute, 
   PublicRoute,
   AdminRoute,
-  UniversityRoute
+  UniversityRoute,
+  StaffRoute
 } from "@/components/RouteProtection";
 
 // User data hooks
@@ -157,7 +162,7 @@ function App() {
   const isSignUpRoute = location === "/sign-up";
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/auth-test"].includes(location);
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/auth-test"].includes(location);
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
@@ -178,6 +183,7 @@ function App() {
 
   // Skip layout for auth routes
   const isAdminLoginRoute = location === "/admin-login";
+  const isStaffLoginRoute = location === "/staff-login";
   
   if (isSignInRoute) {
     return (
@@ -199,6 +205,14 @@ function App() {
     return (
       <Switch>
         <Route path="/admin-login" component={AdminLogin} />
+      </Switch>
+    );
+  }
+  
+  if (isStaffLoginRoute) {
+    return (
+      <Switch>
+        <Route path="/staff-login" component={StaffLogin} />
       </Switch>
     );
   }
@@ -273,6 +287,7 @@ function App() {
           <Route path="/sign-in" component={SignIn} />
           <Route path="/sign-up" component={SignUp} />
           <Route path="/admin-login" component={AdminLogin} />
+          <Route path="/staff-login" component={StaffLogin} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />
@@ -292,6 +307,21 @@ function App() {
           <AdminRoute>
             <AdminDashboard />
           </AdminRoute>
+        </Route>
+      </Switch>
+    );
+  }
+  
+  const isStaffRoute = location.startsWith("/staff") && location !== "/staff-login";
+  
+  // Staff Dashboard has its own layout
+  if (isStaffRoute) {
+    return (
+      <Switch>
+        <Route path="/staff">
+          <StaffRoute>
+            <StaffDashboard />
+          </StaffRoute>
         </Route>
       </Switch>
     );

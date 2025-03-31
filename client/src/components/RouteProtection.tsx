@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
+import { useUser, useIsAdminUser, useIsUniversityUser, useIsStaffUser } from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
@@ -98,4 +98,35 @@ export function UniversityRouteGuard({ children }: UniversityRouteGuardProps) {
 
 export function UniversityRoute({ children }: { children: ReactNode }) {
   return <UniversityRouteGuard>{children}</UniversityRouteGuard>;
+}
+
+interface StaffRouteGuardProps {
+  children: ReactNode;
+}
+
+export function StaffRouteGuard({ children }: StaffRouteGuardProps) {
+  const { user, isLoading } = useUser();
+  const isStaff = useIsStaffUser();
+  const [, setLocation] = useLocation();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // If user isn't logged in or isn't a staff member
+  if (!user || !isStaff) {
+    // Redirect to dashboard or sign-in
+    setLocation(user ? '/dashboard' : '/sign-in');
+    return null;
+  }
+  
+  return <>{children}</>;
+}
+
+export function StaffRoute({ children }: { children: ReactNode }) {
+  return <StaffRouteGuard>{children}</StaffRouteGuard>;
 }
