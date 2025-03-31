@@ -70,7 +70,7 @@ export default function SignUpPage() {
       }
       
       // Make API call to register
-      const response = await fetch('/api/auth/register', {
+      const registerResponse = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,19 +78,42 @@ export default function SignUpPage() {
         body: JSON.stringify(userData),
       });
       
-      const data = await response.json();
+      const registerData = await registerResponse.json();
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+      if (!registerResponse.ok) {
+        throw new Error(registerData.message || 'Registration failed');
       }
       
-      // Log in the user automatically after registration
-      await login(registerUsername, registerPassword, loginType);
+      // Log in the user automatically after registration with direct API call
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username: registerUsername, 
+          password: registerPassword, 
+          loginType 
+        }),
+      });
+      
+      const loginData = await loginResponse.json();
+      
+      if (!loginResponse.ok) {
+        throw new Error(loginData.message || 'Auto-login failed after registration');
+      }
       
       toast({
         title: "Registration successful!",
         description: "Your account has been created and you are now logged in.",
       });
+      
+      // Redirect based on user type
+      if (loginData.user.userType === 'regular') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/university';
+      }
     } catch (error) {
       toast({
         title: "Registration failed",

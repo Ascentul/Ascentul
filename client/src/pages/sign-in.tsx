@@ -34,15 +34,41 @@ export default function SignInPage() {
     setIsLoginLoading(true);
     
     try {
-      // Pass loginType to the login function
-      await login(loginUsername, loginPassword, loginType);
-      
-      // Redirect based on user type after successful login
-      // This will happen automatically due to the user redirect above
-      toast({
-        title: "Login successful!",
-        description: "You have been logged in successfully.",
+      // Make direct API call instead of using login function
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username: loginUsername, 
+          password: loginPassword, 
+          loginType 
+        }),
       });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      // Update user data in our context
+      if (data.user) {
+        toast({
+          title: "Login successful!",
+          description: "You have been logged in successfully.",
+        });
+        
+        // Redirect based on user type
+        if (data.user.userType === 'regular') {
+          window.location.href = '/dashboard';
+        } else {
+          window.location.href = '/university';
+        }
+      } else {
+        throw new Error('No user data returned from server');
+      }
     } catch (error) {
       toast({
         title: "Login failed",

@@ -417,9 +417,23 @@ export default function Account() {
     },
   });
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/auth';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      window.location.href = '/sign-in';
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast({
+        title: "Logout failed",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleEditProfile = () => {
