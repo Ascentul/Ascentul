@@ -11,7 +11,8 @@ import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
-import AuthPage from "@/pages/auth-page";
+import SignIn from "@/pages/sign-in";
+import SignUp from "@/pages/sign-up";
 import NotFound from "@/pages/not-found";
 
 // Public Pages
@@ -143,7 +144,8 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
 function App() {
   const [location, navigate] = useLocation();
   const isUniversityRoute = location.startsWith("/university");
-  const isAuthRoute = location === "/auth";
+  const isSignInRoute = location === "/sign-in";
+  const isSignUpRoute = location === "/sign-up";
 
   // Always show public pages at public routes, regardless of authentication
   const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve"].includes(location);
@@ -162,11 +164,19 @@ function App() {
     );
   }
 
-  // Skip layout for auth route
-  if (isAuthRoute) {
+  // Skip layout for auth routes
+  if (isSignInRoute) {
     return (
       <Switch>
-        <Route path="/auth" component={AuthPage} />
+        <Route path="/sign-in" component={SignIn} />
+      </Switch>
+    );
+  }
+  
+  if (isSignUpRoute) {
+    return (
+      <Switch>
+        <Route path="/sign-up" component={SignUp} />
       </Switch>
     );
   }
@@ -225,9 +235,6 @@ function App() {
   return (
     <LayoutComponent>
       <Switch>
-        {/* Authentication Route */}
-        <Route path="/auth" component={AuthPage} />
-        
         {/* Career App Routes - Protected for regular users */}
         <Route path="/dashboard">
           <ProtectedRoute>

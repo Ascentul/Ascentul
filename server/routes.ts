@@ -180,6 +180,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  apiRouter.post("/auth/logout", async (req: Request, res: Response) => {
+    try {
+      // In a real app with sessions, you would destroy the session here
+      // Since we're using client-side auth state management, we just return a success
+      res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Error during logout" });
+    }
+  });
+  
   apiRouter.post("/auth/register", async (req: Request, res: Response) => {
     try {
       const userData = insertUserSchema.parse(req.body);

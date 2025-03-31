@@ -82,9 +82,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // In a real app, you would call an API to logout
-    queryClient.setQueryData(['/api/users/me'], null);
-    setIsAuthenticated(false);
+    // Make an API call to logout
+    apiRequest('POST', '/api/auth/logout')
+      .then(() => {
+        queryClient.setQueryData(['/api/users/me'], null);
+        setIsAuthenticated(false);
+        // Redirect to sign-in page
+        window.location.href = '/sign-in';
+      })
+      .catch(error => {
+        console.error('Logout error:', error);
+        // Still clear local data and redirect even if the API call fails
+        queryClient.setQueryData(['/api/users/me'], null);
+        setIsAuthenticated(false);
+        window.location.href = '/sign-in';
+      });
   };
 
   const refetchUser = async () => {
