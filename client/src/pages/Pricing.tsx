@@ -19,6 +19,7 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import ContactDialog from '@/components/ContactDialog';
+import LoginDialog from '@/components/LoginDialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useIsSubscriptionActive } from '@/lib/useUserData';
 import { motion } from 'framer-motion';
@@ -32,6 +33,8 @@ export default function Pricing() {
   const [, navigate] = useLocation();
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('annual');
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [initialDialogTab, setInitialDialogTab] = useState<'login' | 'signup'>('signup');
 
   // Animation variants
   const fadeIn = {
@@ -230,8 +233,15 @@ export default function Pricing() {
         'Basic interview preparation',
         'Limited goal tracking',
       ],
-      buttonText: user ? 'Current Plan' : 'Get Started',
-      buttonAction: () => navigate(user ? '/' : '/auth'),
+      buttonText: user ? 'Current Plan' : 'Create Account',
+      buttonAction: () => {
+        if (user) {
+          navigate('/');
+        } else {
+          setInitialDialogTab('signup');
+          setLoginDialogOpen(true);
+        }
+      },
       buttonVariant: 'outline' as const,
       highlighted: false
     },
@@ -257,11 +267,18 @@ export default function Pricing() {
       buttonText: isSubscriptionActive && user?.subscriptionPlan === 'premium' 
         ? 'Current Plan' 
         : (user ? 'Subscribe Now' : 'Sign Up'),
-      buttonAction: () => user 
-        ? (isSubscriptionActive && user.subscriptionPlan === 'premium' 
-            ? navigate('/') 
-            : handleSubscribeWithInterval('premium'))
-        : navigate('/auth'),
+      buttonAction: () => {
+        if (user) {
+          if (isSubscriptionActive && user.subscriptionPlan === 'premium') {
+            navigate('/');
+          } else {
+            handleSubscribeWithInterval('premium');
+          }
+        } else {
+          setInitialDialogTab('signup');
+          setLoginDialogOpen(true);
+        }
+      },
       buttonVariant: 'default' as const,
       highlighted: true
     },
@@ -527,7 +544,10 @@ export default function Pricing() {
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto"
-                onClick={() => navigate('/auth')}
+                onClick={() => {
+                  setInitialDialogTab('signup');
+                  setLoginDialogOpen(true);
+                }}
               >
                 Get Started <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -553,6 +573,11 @@ export default function Pricing() {
         onOpenChange={setContactDialogOpen}
         subject="University Sales Inquiry"
         description="Contact our sales team to learn more about our University Edition plan."
+      />
+      <LoginDialog 
+        open={loginDialogOpen}
+        onOpenChange={setLoginDialogOpen}
+        initialTab={initialDialogTab}
       />
     </div>
   );
