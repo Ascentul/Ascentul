@@ -9,10 +9,17 @@ import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users, ChevronDown
+  Briefcase, Mail, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 
 // Define types for our data outside the component
@@ -61,7 +68,6 @@ const DEFAULT_STATS: Stats = {
 export default function Dashboard() {
   const { user } = useUser();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Fetch user statistics
   const { data: statsData } = useQuery<Stats>({
@@ -93,25 +99,6 @@ export default function Dashboard() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const conversationRef = useRef<HTMLDivElement>(null);
-  const quickActionsRef = useRef<HTMLDivElement>(null);
-  
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isDropdownOpen && 
-        quickActionsRef.current && 
-        !quickActionsRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
   
   // Function to handle sending a message to the coach
   const handleSendMessage = (e: React.FormEvent) => {
@@ -231,60 +218,81 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
           <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
         </div>
-        <div className="mt-4 md:mt-0 relative z-[9999]" ref={quickActionsRef}>
-          <Button 
-            className="bg-primary hover:bg-primary/90 text-white relative z-[9999]"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Quick Actions
-            <ChevronDown 
-              className={`ml-2 h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
-            />
-          </Button>
-          
-          {/* Quick Actions Dropdown Menu */}
-          <div 
-            className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-md shadow-xl bg-white border border-border transition-all duration-200 z-[9999] 
-              ${isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
-            style={{
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              position: 'absolute'
-            }}
-          >
-            <div className="py-1">
-              <Link href="/goals/new">
-                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
-                  <Target className="mr-3 h-4 w-4 text-primary" />
-                  <span>Create a Goal</span>
-                </div>
-              </Link>
-              <Link href="/resumes/new">
-                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
-                  <FileText className="mr-3 h-4 w-4 text-blue-500" />
-                  <span>Create a Resume</span>
-                </div>
-              </Link>
-              <Link href="/cover-letters/new">
-                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
-                  <Mail className="mr-3 h-4 w-4 text-purple-500" />
-                  <span>Create a Cover Letter</span>
-                </div>
-              </Link>
-              <Link href="/interview/processes/new">
-                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
-                  <Users className="mr-3 h-4 w-4 text-green-500" />
-                  <span>Start Interview Process</span>
-                </div>
-              </Link>
-              <Link href="/work-history/new">
-                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
-                  <Briefcase className="mr-3 h-4 w-4 text-amber-500" />
-                  <span>Add Work History</span>
-                </div>
-              </Link>
-            </div>
-          </div>
+        <div className="mt-4 md:mt-0">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white">
+                <Plus className="mr-2 h-4 w-4" />
+                Quick Actions
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-center">Quick Actions</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-1 gap-2 py-4">
+                <Link href="/goals/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Target className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Create a Goal</div>
+                      <div className="text-xs text-muted-foreground">Track your career objectives</div>
+                    </div>
+                  </div>
+                </Link>
+                
+                <Link href="/resumes/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Create a Resume</div>
+                      <div className="text-xs text-muted-foreground">Build a professional resume</div>
+                    </div>
+                  </div>
+                </Link>
+                
+                <Link href="/cover-letters/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Mail className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Create a Cover Letter</div>
+                      <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
+                    </div>
+                  </div>
+                </Link>
+                
+                <Link href="/interview/processes/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Users className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Start Interview Process</div>
+                      <div className="text-xs text-muted-foreground">Track your job applications</div>
+                    </div>
+                  </div>
+                </Link>
+                
+                <Link href="/work-history/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Briefcase className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Add Work History</div>
+                      <div className="text-xs text-muted-foreground">Record your work experience</div>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </motion.div>
       
