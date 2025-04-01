@@ -26,8 +26,7 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
   const { login } = useUser();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(initialTab);
-  // Always use regular account type for the main login dialog
-  const loginType = 'regular';
+  // Remove account type restriction (allow all user types to login)
   
   // Set active tab when initialTab prop changes
   useEffect(() => {
@@ -36,8 +35,8 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
     }
   }, [initialTab]);
   
-  // Form state for login
-  const [loginUsername, setLoginUsername] = useState('');
+  // Form state for login (using email instead of username)
+  const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   
@@ -56,8 +55,8 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook
-      const user = await login(loginUsername, loginPassword, loginType);
+      // Use the login function from useUser hook, passing email instead of username
+      const user = await login(loginEmail, loginPassword);
       
       toast({
         title: "Login successful!",
@@ -115,7 +114,7 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
           password: signupPassword,
           email: signupEmail,
           name: signupName,
-          userType: loginType,
+          userType: 'regular', // Default to regular account type
           needsUsername: true, // Flag to indicate username needs to be set during onboarding
         }),
       });
@@ -131,12 +130,8 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
         description: "Your account has been created successfully. You've been logged in.",
       });
       
-      // Redirect to onboarding flow for new regular users
-      if (loginType === 'regular') {
-        window.location.href = '/onboarding';
-      } else {
-        window.location.href = '/university';
-      }
+      // Redirect to onboarding flow for new users
+      window.location.href = '/onboarding';
       
       if (onSuccess) {
         onSuccess();
@@ -188,12 +183,13 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
           <TabsContent value="login" className="mt-4">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-username">Username</Label>
+                <Label htmlFor="login-email">Email</Label>
                 <Input
-                  id="login-username"
-                  placeholder="Enter your username"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
+                  id="login-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
                   required
                 />
               </div>
