@@ -30,18 +30,18 @@ export default function Pricing() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
-  
+
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.6 } }
   };
-  
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 40 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
-  
+
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -51,12 +51,12 @@ export default function Pricing() {
       }
     }
   };
-  
+
   const staggerItem = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   };
-  
+
   // Add state to track which plan is being processed
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
@@ -70,12 +70,12 @@ export default function Pricing() {
         userId: user?.id,
         userName: user?.name
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create subscription');
       }
-      
+
       return await response.json();
     },
     onSuccess: (data) => {
@@ -85,7 +85,7 @@ export default function Pricing() {
           title: "Redirecting to Checkout",
           description: "Please complete your payment to activate your subscription.",
         });
-        
+
         // Navigate to the checkout page with the client secret
         navigate(`/checkout?client_secret=${data.clientSecret}`);
       }
@@ -107,12 +107,12 @@ export default function Pricing() {
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest('POST', '/api/payments/cancel-subscription', {});
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to cancel subscription');
       }
-      
+
       return await response.json();
     },
     onSuccess: () => {
@@ -120,7 +120,7 @@ export default function Pricing() {
         title: "Subscription Cancelled",
         description: "Your subscription has been cancelled and will end at the end of your billing period.",
       });
-      
+
       // Refresh the page to update UI
       setTimeout(() => {
         window.location.reload();
@@ -142,16 +142,16 @@ export default function Pricing() {
       navigate('/auth');
       return;
     }
-    
+
     setProcessingPlan(planType);
-    
+
     try {
       // Create the subscription with the selected billing interval
       const response = await subscriptionMutation.mutateAsync({ 
         plan: planType, 
         interval: billingInterval 
       });
-      
+
       // If successful, redirect to checkout page with client_secret
       if (response?.clientSecret) {
         navigate(`/checkout?client_secret=${response.clientSecret}&plan=${planType}&interval=${billingInterval}`);
@@ -161,7 +161,7 @@ export default function Pricing() {
       setProcessingPlan(null);
     }
   };
-  
+
   // Keep original function for detailed subscription flow
   const handleSubscribe = async (planType: 'premium' | 'university') => {
     if (!user) {
@@ -169,7 +169,7 @@ export default function Pricing() {
       navigate('/auth');
       return;
     }
-    
+
     // Navigate to payment portal page for more detailed subscription options
     navigate(`/payment-portal/${planType}`);
   };
@@ -178,7 +178,7 @@ export default function Pricing() {
     if (!user || !isSubscriptionActive) {
       return;
     }
-    
+
     cancelSubscriptionMutation.mutate();
   };
 
@@ -186,13 +186,13 @@ export default function Pricing() {
   const getPricing = (interval: PlanInterval) => {
     switch (interval) {
       case 'monthly':
-        return { price: '15.00', period: 'month', savings: '' };
+        return { price: '30.00', period: 'month', savings: '' }; // Updated price here
       case 'quarterly':
-        return { price: '30.00', period: '3 months', savings: 'Save $15' };
+        return { price: '60.00', period: '3 months', savings: 'Save $30' }; // Updated price here
       case 'annual':
-        return { price: '72.00', period: 'year', savings: 'Save $108' };
+        return { price: '144.00', period: 'year', savings: 'Save $216' }; // Updated price here
       default:
-        return { price: '15.00', period: 'month', savings: '' };
+        return { price: '30.00', period: 'month', savings: '' }; // Updated price here
     }
   };
 
@@ -209,11 +209,11 @@ export default function Pricing() {
         return { price: '7.99', period: 'month', savings: '47% off Pro' };
     }
   };
-  
+
   // Current plan pricing
   const proPricing = getPricing(billingInterval);
   const universityPricing = getUniversityPricing(billingInterval);
-  
+
   const plans = [
     {
       id: 'free',
@@ -289,7 +289,7 @@ export default function Pricing() {
       highlighted: false
     }
   ];
-  
+
   return (
     <div>
       {/* Pricing Header */}
