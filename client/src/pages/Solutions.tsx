@@ -99,7 +99,10 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setLoginDialogOpen(true)}
+                      onClick={() => {
+                        // setInitialDialogTab('signup'); //This line would go here if setInitialDialogTab was a prop passed to the button
+                        setLoginDialogOpen(true);
+                      }}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -144,7 +147,10 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setLoginDialogOpen(true)}
+                      onClick={() => {
+                        // setInitialDialogTab('signup'); //This line would go here if setInitialDialogTab was a prop passed to the button
+                        setLoginDialogOpen(true);
+                      }}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -188,7 +194,10 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setLoginDialogOpen(true)}
+                      onClick={() => {
+                        // setInitialDialogTab('signup'); //This line would go here if setInitialDialogTab was a prop passed to the button
+                        setLoginDialogOpen(true);
+                      }}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -322,7 +331,10 @@ export default function Solutions() {
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto"
-                onClick={() => setLoginDialogOpen(true)}
+                onClick={() => {
+                  // setInitialDialogTab('signup'); //This line would go here if setInitialDialogTab was a prop passed to the button
+                  setLoginDialogOpen(true);
+                }}
               >
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -335,9 +347,9 @@ export default function Solutions() {
           </motion.div>
         </div>
       </section>
-      
+
       {/* Dialogs */}
-      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} initialDialogTab={'signup'}/> {/* Added initialDialogTab prop */}
       <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </div>
   );
