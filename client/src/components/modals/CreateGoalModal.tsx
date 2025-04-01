@@ -84,9 +84,41 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
       const response = await apiRequest('POST', '/api/goals', formattedData);
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate and refetch goals query
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches 
+      await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
+      
+      // Snapshot the previous goals
+      const previousGoals = queryClient.getQueryData(['/api/goals']);
+      
+      // Create a temporary optimistic goal
+      const optimisticGoal = {
+        id: Date.now(), // Temporary ID that will be replaced after successful creation
+        title: newData.title,
+        description: newData.description || '',
+        status: newData.status,
+        progress: newData.status === 'completed' ? 100 : 
+                 newData.status === 'in_progress' ? 50 : 0,
+        dueDate: newData.dueDate ? newData.dueDate.toISOString() : null,
+        createdAt: new Date().toISOString(),
+        userId: 1, // This will be replaced with the actual user ID from the server
+      };
+      
+      // Add the optimistic goal to the cached data
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
+        return old ? [optimisticGoal, ...old] : [optimisticGoal];
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousGoals };
+    },
+    onSuccess: (data) => {
+      // Update with the actual goal data from the server
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
+        if (!old) return [data];
+        // Replace our temporary optimistic goal with the real one
+        return old.map(goal => goal.id === Date.now() ? data : goal);
+      });
       
       // Show success message
       toast({
@@ -98,12 +130,21 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
       form.reset();
       onClose();
     },
-    onError: (error) => {
+    onError: (error, newData, context: any) => {
+      // Roll back to the previous state if there's an error
+      if (context?.previousGoals) {
+        queryClient.setQueryData(['/api/goals'], context.previousGoals);
+      }
+      
       toast({
         title: "Failed to create goal",
         description: error.message || "There was a problem creating your goal. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
     },
   });
   

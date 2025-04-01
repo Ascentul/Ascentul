@@ -107,9 +107,42 @@ export default function EditGoalModal({ isOpen, onClose, goalId, goals }: EditGo
       const response = await apiRequest('PUT', `/api/goals/${goalId}`, formattedData);
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate and refetch goals query
-      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+    onMutate: async (newData) => {
+      // Cancel any outgoing refetches 
+      await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
+      
+      // Snapshot the previous value
+      const previousGoals = queryClient.getQueryData(['/api/goals']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
+        if (!old) return [];
+        
+        return old.map(goal => {
+          if (goal.id === goalId) {
+            return {
+              ...goal,
+              title: newData.title,
+              description: newData.description || '',
+              status: newData.status,
+              progress: newData.status === 'completed' ? 100 : 
+                        newData.status === 'in_progress' ? 50 : 0,
+              dueDate: newData.dueDate ? newData.dueDate.toISOString() : goal.dueDate
+            };
+          }
+          return goal;
+        });
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousGoals };
+    },
+    onSuccess: (data) => {
+      // Update with the actual server data if needed
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
+        if (!old) return [data];
+        return old.map(goal => goal.id === goalId ? data : goal);
+      });
       
       // Show success message
       toast({
@@ -121,12 +154,21 @@ export default function EditGoalModal({ isOpen, onClose, goalId, goals }: EditGo
       form.reset();
       onClose();
     },
-    onError: (error) => {
+    onError: (error, newData, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousGoals) {
+        queryClient.setQueryData(['/api/goals'], context.previousGoals);
+      }
+      
       toast({
         title: "Failed to update goal",
         description: error.message || "There was a problem updating your goal. Please try again.",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
     },
   });
   
