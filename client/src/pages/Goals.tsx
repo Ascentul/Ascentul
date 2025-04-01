@@ -5,6 +5,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   Dialog, 
   DialogContent, 
@@ -134,7 +136,7 @@ export default function Goals() {
           });
         });
       }
-    }, 1500); // This should match the CSS transition time
+    }, 2500); // This should match the CSS transition time (2.5 seconds)
   };
 
   const sortedAndFilteredGoals = () => {

@@ -61,7 +61,7 @@ export default function GoalCard({
       if (onComplete) {
         onComplete(goalId);
       }
-    }, 1500); // 1.5 seconds to match our animation duration
+    }, 2500); // 2.5 seconds to match our animation duration
   };
 
   // Convert status to badge styling
