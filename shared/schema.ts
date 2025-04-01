@@ -363,6 +363,36 @@ export const insertFollowupActionSchema = createInsertSchema(followupActions).om
   completedDate: true,
 });
 
+// Career Mentor Chat Conversations
+export const mentorChatConversations = pgTable("mentor_chat_conversations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  category: text("category").notNull().default("general"), // general, interview, resume, career_change, etc.
+  mentorPersona: text("mentor_persona").notNull().default("career_coach"), // career_coach, industry_expert, interviewer, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMentorChatConversationSchema = createInsertSchema(mentorChatConversations).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
+// Career Mentor Chat Messages
+export const mentorChatMessages = pgTable("mentor_chat_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull(),
+  isUser: boolean("is_user").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertMentorChatMessageSchema = createInsertSchema(mentorChatMessages).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Study Plan Model (University Edition)
 export const studyPlans = pgTable("study_plans", {
   id: serial("id").primaryKey(),
@@ -529,6 +559,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   moduleEnrollments: many(moduleEnrollments),
   interviewPractices: many(interviewPractice),
   interviewProcesses: many(interviewProcesses),
+  mentorChatConversations: many(mentorChatConversations),
 }));
 
 export const studyPlansRelations = relations(studyPlans, ({ one, many }) => ({
@@ -633,6 +664,23 @@ export const followupActionsRelations = relations(followupActions, ({ one }) => 
   }),
 }));
 
+// Mentor Chat Conversations Relations
+export const mentorChatConversationsRelations = relations(mentorChatConversations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [mentorChatConversations.userId],
+    references: [users.id],
+  }),
+  messages: many(mentorChatMessages),
+}));
+
+// Mentor Chat Messages Relations
+export const mentorChatMessagesRelations = relations(mentorChatMessages, ({ one }) => ({
+  conversation: one(mentorChatConversations, {
+    fields: [mentorChatMessages.conversationId],
+    references: [mentorChatConversations.id],
+  }),
+}));
+
 // Types
 export type University = typeof universities.$inferSelect;
 export type InsertUniversity = z.infer<typeof insertUniversitySchema>;
@@ -705,3 +753,31 @@ export type InsertInterviewStage = z.infer<typeof insertInterviewStageSchema>;
 
 export type FollowupAction = typeof followupActions.$inferSelect;
 export type InsertFollowupAction = z.infer<typeof insertFollowupActionSchema>;
+
+// Contact Messages model
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  read: boolean("read").notNull().default(false),
+  archived: boolean("archived").notNull().default(false),
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  timestamp: true,
+  read: true,
+  archived: true,
+});
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+
+export type MentorChatConversation = typeof mentorChatConversations.$inferSelect;
+export type InsertMentorChatConversation = z.infer<typeof insertMentorChatConversationSchema>;
+
+export type MentorChatMessage = typeof mentorChatMessages.$inferSelect;
+export type InsertMentorChatMessage = z.infer<typeof insertMentorChatMessageSchema>;

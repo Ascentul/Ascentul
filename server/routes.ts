@@ -15,6 +15,9 @@ import {
   insertInterviewProcessSchema,
   insertInterviewStageSchema,
   insertFollowupActionSchema,
+  insertContactMessageSchema,
+  insertMentorChatConversationSchema,
+  insertMentorChatMessageSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
@@ -2190,6 +2193,80 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting followup action" });
+    }
+  });
+
+  // Contact form endpoints
+  apiRouter.post("/contact", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertContactMessageSchema.parse(req.body);
+      
+      const contactMessage = await storage.createContactMessage(validatedData);
+      
+      res.status(201).json({
+        success: true,
+        message: "Contact message sent successfully",
+        id: contactMessage.id
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error submitting contact message:", error);
+      res.status(500).json({ message: "Failed to submit contact message" });
+    }
+  });
+
+  // Staff contact message management endpoints
+  apiRouter.get("/contact/messages", requireStaff, async (req: Request, res: Response) => {
+    try {
+      const messages = await storage.getContactMessages();
+      res.status(200).json(messages);
+    } catch (error) {
+      console.error("Error retrieving contact messages:", error);
+      res.status(500).json({ message: "Failed to retrieve contact messages" });
+    }
+  });
+
+  apiRouter.put("/contact/messages/:id/read", requireStaff, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const message = await storage.markContactMessageAsRead(id);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Contact message not found" });
+      }
+      
+      res.status(200).json({ 
+        success: true,
+        message: "Contact message marked as read"
+      });
+    } catch (error) {
+      console.error("Error marking contact message as read:", error);
+      res.status(500).json({ message: "Failed to mark contact message as read" });
+    }
+  });
+
+  apiRouter.put("/contact/messages/:id/archive", requireStaff, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const message = await storage.markContactMessageAsArchived(id);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Contact message not found" });
+      }
+      
+      res.status(200).json({ 
+        success: true,
+        message: "Contact message archived"
+      });
+    } catch (error) {
+      console.error("Error archiving contact message:", error);
+      res.status(500).json({ message: "Failed to archive contact message" });
     }
   });
 

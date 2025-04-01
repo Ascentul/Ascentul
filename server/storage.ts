@@ -28,6 +28,9 @@ import {
   type InsertUserAchievement,
   aiCoachConversations,
   type AiCoachConversation,
+  contactMessages,
+  type ContactMessage,
+  type InsertContactMessage,
   type InsertAiCoachConversation,
   aiCoachMessages,
   type AiCoachMessage,
@@ -43,7 +46,13 @@ import {
   type InsertInterviewStage,
   followupActions,
   type FollowupAction,
-  type InsertFollowupAction
+  type InsertFollowupAction,
+  mentorChatConversations,
+  type MentorChatConversation,
+  type InsertMentorChatConversation,
+  mentorChatMessages,
+  type MentorChatMessage,
+  type InsertMentorChatMessage
 } from "@shared/schema";
 
 export interface IStorage {
@@ -203,6 +212,20 @@ export interface IStorage {
   // XP History operations
   getXpHistory(userId: number): Promise<XpHistory[]>;
   
+  // Contact message operations
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  getContactMessages(): Promise<ContactMessage[]>;
+  getContactMessage(id: number): Promise<ContactMessage | undefined>;
+  markContactMessageAsRead(id: number): Promise<ContactMessage | undefined>;
+  markContactMessageAsArchived(id: number): Promise<ContactMessage | undefined>;
+  
+  // Career Mentor Chat operations
+  getMentorChatConversations(userId: number): Promise<MentorChatConversation[]>;
+  getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined>;
+  createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation>;
+  getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]>;
+  addMentorChatMessage(message: InsertMentorChatMessage): Promise<MentorChatMessage>;
+  
   // Stats operations
   getUserStatistics(userId: number): Promise<{
     activeGoals: number;
@@ -245,6 +268,9 @@ export class MemStorage implements IStorage {
   private interviewProcesses: Map<number, InterviewProcess>;
   private interviewStages: Map<number, InterviewStage>;
   private followupActions: Map<number, FollowupAction>;
+  private contactMessages: Map<number, ContactMessage>;
+  private mentorChatConversations: Map<number, MentorChatConversation>;
+  private mentorChatMessages: Map<number, MentorChatMessage>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -261,6 +287,9 @@ export class MemStorage implements IStorage {
   private interviewProcessIdCounter: number;
   private interviewStageIdCounter: number;
   private followupActionIdCounter: number;
+  private contactMessageIdCounter: number;
+  private mentorChatConversationIdCounter: number;
+  private mentorChatMessageIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -278,6 +307,9 @@ export class MemStorage implements IStorage {
     this.interviewProcesses = new Map();
     this.interviewStages = new Map();
     this.followupActions = new Map();
+    this.contactMessages = new Map();
+    this.mentorChatConversations = new Map();
+    this.mentorChatMessages = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -294,6 +326,9 @@ export class MemStorage implements IStorage {
     this.interviewProcessIdCounter = 1;
     this.interviewStageIdCounter = 1;
     this.followupActionIdCounter = 1;
+    this.contactMessageIdCounter = 1;
+    this.mentorChatConversationIdCounter = 1;
+    this.mentorChatMessageIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -957,6 +992,48 @@ export class MemStorage implements IStorage {
     return Array.from(this.xpHistory.values())
       .filter(record => record.userId === userId)
       .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
+  }
+
+  // Contact message operations
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const id = this.contactMessageIdCounter++;
+    const now = new Date();
+    const contactMessage: ContactMessage = {
+      ...message,
+      id,
+      timestamp: now,
+      read: false,
+      archived: false
+    };
+    this.contactMessages.set(id, contactMessage);
+    return contactMessage;
+  }
+
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return Array.from(this.contactMessages.values())
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  async getContactMessage(id: number): Promise<ContactMessage | undefined> {
+    return this.contactMessages.get(id);
+  }
+
+  async markContactMessageAsRead(id: number): Promise<ContactMessage | undefined> {
+    const message = this.contactMessages.get(id);
+    if (!message) return undefined;
+    
+    const updatedMessage = { ...message, read: true };
+    this.contactMessages.set(id, updatedMessage);
+    return updatedMessage;
+  }
+
+  async markContactMessageAsArchived(id: number): Promise<ContactMessage | undefined> {
+    const message = this.contactMessages.get(id);
+    if (!message) return undefined;
+    
+    const updatedMessage = { ...message, archived: true };
+    this.contactMessages.set(id, updatedMessage);
+    return updatedMessage;
   }
   
   // Stats operations
@@ -1726,6 +1803,70 @@ export class MemStorage implements IStorage {
     
     this.users.set(userId, updatedUser);
     return updatedUser;
+  }
+  
+  // Career Mentor Chat operations
+  async getMentorChatConversations(userId: number): Promise<MentorChatConversation[]> {
+    return Array.from(this.mentorChatConversations.values())
+      .filter(conversation => conversation.userId === userId)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+  
+  async getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined> {
+    return this.mentorChatConversations.get(id);
+  }
+  
+  async createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation> {
+    const id = this.mentorChatConversationIdCounter++;
+    const now = new Date();
+    
+    const newConversation: MentorChatConversation = {
+      ...conversation,
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.mentorChatConversations.set(id, newConversation);
+    
+    // Award XP for starting a new conversation with the mentor
+    await this.addUserXP(userId, 25, "mentor_chat_started", "Started a conversation with the Career Mentor");
+    
+    return newConversation;
+  }
+  
+  async getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]> {
+    return Array.from(this.mentorChatMessages.values())
+      .filter(message => message.conversationId === conversationId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+  
+  async addMentorChatMessage(message: InsertMentorChatMessage): Promise<MentorChatMessage> {
+    const id = this.mentorChatMessageIdCounter++;
+    const now = new Date();
+    
+    const newMessage: MentorChatMessage = {
+      ...message,
+      id,
+      createdAt: now
+    };
+    
+    this.mentorChatMessages.set(id, newMessage);
+    
+    // Update the conversation's updatedAt timestamp
+    const conversation = await this.getMentorChatConversation(message.conversationId);
+    if (conversation) {
+      conversation.updatedAt = now;
+      this.mentorChatConversations.set(conversation.id, conversation);
+      
+      // Award XP for user messages only (not system or assistant)
+      if (message.role === 'user') {
+        await this.addUserXP(conversation.userId, 5, "mentor_chat_message", "Engaged with the Career Mentor");
+      }
+    }
+    
+    return newMessage;
   }
 }
 

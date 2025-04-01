@@ -4,6 +4,7 @@ import { ArrowRight, Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import LoginDialog from './LoginDialog';
+import ContactDialog from './ContactDialog';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [initialDialogTab, setInitialDialogTab] = useState<'login' | 'signup'>('login');
 
   const navItems = [
@@ -138,6 +140,11 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         onOpenChange={setLoginDialogOpen}
         initialTab={initialDialogTab}
       />
+      
+      <ContactDialog 
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+      />
 
       <footer className="bg-muted/50 border-t border-border">
         <div className="container mx-auto px-4 py-12">
@@ -185,7 +192,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                   <a href="#" className="text-sm text-muted-foreground hover:text-primary">About Us</a>
                 </li>
                 <li>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-primary">Contact</a>
+                  <button 
+                    onClick={() => setContactDialogOpen(true)} 
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Contact
+                  </button>
                 </li>
               </ul>
             </div>
