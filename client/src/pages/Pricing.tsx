@@ -30,6 +30,7 @@ export default function Pricing() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   // Animation variants
   const fadeIn = {
@@ -280,9 +281,13 @@ export default function Pricing() {
       buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
         ? 'Current Plan' 
         : 'Contact Sales',
-      buttonAction: () => user 
-        ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
-            ? navigate('/') 
+      buttonAction: () => {
+        if (isSubscriptionActive && user?.subscriptionPlan === 'university') {
+          navigate('/');
+        } else {
+          setContactDialogOpen(true);
+        }
+      }, 
             : handleSubscribeWithInterval('university'))
         : navigate('/auth'),
       buttonVariant: 'outline' as const,
@@ -544,6 +549,12 @@ export default function Pricing() {
           </div>
         </section>
       )}
+      <ContactDialog 
+        open={contactDialogOpen} 
+        onOpenChange={setContactDialogOpen}
+        subject="University Sales Inquiry"
+        description="Contact our sales team to learn more about our University Edition plan."
+      />
     </div>
   );
 }

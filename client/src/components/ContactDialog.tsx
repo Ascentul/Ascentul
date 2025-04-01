@@ -18,6 +18,8 @@ import { apiRequest } from '@/lib/queryClient';
 interface ContactDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  subject?: string;
+  description?: string;
 }
 
 export default function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
@@ -86,10 +88,10 @@ export default function ContactDialog({ open, onOpenChange }: ContactDialogProps
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
-            Contact Us
+            {subject || "Contact Us"}
           </DialogTitle>
           <DialogDescription className="text-center">
-            Send us a message and we'll get back to you as soon as possible.
+            {description || "Send us a message and we'll get back to you as soon as possible."}
           </DialogDescription>
         </DialogHeader>
 
