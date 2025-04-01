@@ -231,9 +231,9 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
           <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
         </div>
-        <div className="mt-4 md:mt-0 relative" ref={quickActionsRef}>
+        <div className="mt-4 md:mt-0 relative z-[9999]" ref={quickActionsRef}>
           <Button 
-            className="bg-primary hover:bg-primary/90 text-white relative z-20"
+            className="bg-primary hover:bg-primary/90 text-white relative z-[9999]"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -245,8 +245,12 @@ export default function Dashboard() {
           
           {/* Quick Actions Dropdown Menu */}
           <div 
-            className={`absolute right-0 mt-2 w-64 p-2 rounded-md shadow-lg bg-white border border-border transition-all duration-200 z-50 
+            className={`absolute right-0 top-full mt-2 w-64 p-2 rounded-md shadow-xl bg-white border border-border transition-all duration-200 z-[9999] 
               ${isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+            style={{
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              position: 'absolute'
+            }}
           >
             <div className="py-1">
               <Link href="/goals/new">
