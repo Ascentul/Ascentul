@@ -38,21 +38,23 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               </div>
             </Link>
             
-            <nav className="hidden md:flex ml-10 space-x-1">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <a
-                    className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      location === item.href
-                        ? "text-primary bg-primary/5"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    )}
-                  >
-                    {item.label}
-                  </a>
-                </Link>
-              ))}
+            <nav className="hidden md:flex ml-10">
+              <div className="flex flex-wrap gap-1 justify-center">
+                {navItems.map((item) => (
+                  <Link key={item.href} href={item.href}>
+                    <a
+                      className={cn(
+                        "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
+                        location === item.href
+                          ? "text-primary bg-primary/5"
+                          : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                      )}
+                    >
+                      {item.label}
+                    </a>
+                  </Link>
+                ))}
+              </div>
             </nav>
           </div>
 
