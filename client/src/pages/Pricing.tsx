@@ -356,9 +356,45 @@ export default function Pricing() {
                       <span className="text-muted-foreground ml-1">/{plan.period}</span>
                     </div>
                     <CardDescription className="mt-3">{plan.description}</CardDescription>
+                    
+                    {/* Buttons moved up here */}
+                    <div className="mt-4">
+                      {plan.id === 'university' ? (
+                        <Button
+                          variant="outline"
+                          className="w-full text-primary border-primary hover:bg-primary/10"
+                          onClick={() => setContactDialogOpen(true)}
+                        >
+                          Contact Sales
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant={plan.buttonVariant} 
+                          className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                          onClick={plan.buttonAction}
+                          disabled={processingPlan === plan.id || 
+                                  (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
+                                  (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
+                        >
+                          {processingPlan === plan.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              {plan.buttonText}
+                              {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              }
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <ul className="space-y-3 mb-3">
+                    <ul className="space-y-3">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-center">
                           <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
@@ -366,43 +402,7 @@ export default function Pricing() {
                         </li>
                       ))}
                     </ul>
-                    {plan.id === 'university' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2 text-primary border-primary hover:bg-primary/10"
-                        onClick={() => setContactDialogOpen(true)}
-                      >
-                        Contact Sales
-                      </Button>
-                    )}
                   </CardContent>
-                  {plan.id !== 'university' && (
-                    <CardFooter>
-                      <Button 
-                        variant={plan.buttonVariant} 
-                        className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                        onClick={plan.buttonAction}
-                        disabled={processingPlan === plan.id || 
-                                (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
-                                (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
-                      >
-                        {processingPlan === plan.id ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            {plan.buttonText}
-                            {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            }
-                          </>
-                        )}
-                      </Button>
-                    </CardFooter>
-                  )}
                 </Card>
               </motion.div>
             ))}
