@@ -7,6 +7,11 @@ import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
+import CreateGoalModal from '@/components/modals/CreateGoalModal';
+import CreateResumeModal from '@/components/modals/CreateResumeModal';
+import CreateCoverLetterModal from '@/components/modals/CreateCoverLetterModal';
+import CreateInterviewProcessModal from '@/components/modals/CreateInterviewProcessModal';
+import CreateWorkHistoryModal from '@/components/modals/CreateWorkHistoryModal';
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
   Briefcase, Mail, Users
@@ -68,6 +73,13 @@ const DEFAULT_STATS: Stats = {
 export default function Dashboard() {
   const { user } = useUser();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  
+  // Modal states
+  const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
+  const [createResumeModalOpen, setCreateResumeModalOpen] = useState(false);
+  const [createCoverLetterModalOpen, setCreateCoverLetterModalOpen] = useState(false);
+  const [createInterviewProcessModalOpen, setCreateInterviewProcessModalOpen] = useState(false);
+  const [createWorkHistoryModalOpen, setCreateWorkHistoryModalOpen] = useState(false);
 
   // Fetch user statistics
   const { data: statsData } = useQuery<Stats>({
@@ -231,65 +243,80 @@ export default function Dashboard() {
                 <DialogTitle className="text-center">Quick Actions</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 gap-2 py-4">
-                <Link href="/goals/new" className="w-full">
-                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Target className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Create a Goal</div>
-                      <div className="text-xs text-muted-foreground">Track your career objectives</div>
-                    </div>
+                <div 
+                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCreateGoalModalOpen(true);
+                  }}
+                >
+                  <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <Target className="h-5 w-5 text-primary" />
                   </div>
-                </Link>
+                  <div>
+                    <div className="font-medium">Create a Goal</div>
+                    <div className="text-xs text-muted-foreground">Track your career objectives</div>
+                  </div>
+                </div>
                 
-                <Link href="/resumes/new" className="w-full">
-                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                      <FileText className="h-5 w-5 text-blue-500" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Create a Resume</div>
-                      <div className="text-xs text-muted-foreground">Build a professional resume</div>
-                    </div>
+                <div 
+                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCreateResumeModalOpen(true);
+                  }}
+                >
+                  <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <FileText className="h-5 w-5 text-blue-500" />
                   </div>
-                </Link>
+                  <div>
+                    <div className="font-medium">Create a Resume</div>
+                    <div className="text-xs text-muted-foreground">Build a professional resume</div>
+                  </div>
+                </div>
                 
-                <Link href="/cover-letters/new" className="w-full">
-                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Mail className="h-5 w-5 text-purple-500" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Create a Cover Letter</div>
-                      <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
-                    </div>
+                <div 
+                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCreateCoverLetterModalOpen(true);
+                  }}
+                >
+                  <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <Mail className="h-5 w-5 text-purple-500" />
                   </div>
-                </Link>
+                  <div>
+                    <div className="font-medium">Create a Cover Letter</div>
+                    <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
+                  </div>
+                </div>
                 
-                <Link href="/interview/processes/new" className="w-full">
-                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Users className="h-5 w-5 text-green-500" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Start Interview Process</div>
-                      <div className="text-xs text-muted-foreground">Track your job applications</div>
-                    </div>
+                <div 
+                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCreateInterviewProcessModalOpen(true);
+                  }}
+                >
+                  <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <Users className="h-5 w-5 text-green-500" />
                   </div>
-                </Link>
+                  <div>
+                    <div className="font-medium">Start Interview Process</div>
+                    <div className="text-xs text-muted-foreground">Track your job applications</div>
+                  </div>
+                </div>
                 
-                <Link href="/work-history/new" className="w-full">
-                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
-                    <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Briefcase className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <div>
-                      <div className="font-medium">Add Work History</div>
-                      <div className="text-xs text-muted-foreground">Record your work experience</div>
-                    </div>
+                <div 
+                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
+                  onClick={() => {
+                    setCreateWorkHistoryModalOpen(true);
+                  }}
+                >
+                  <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <Briefcase className="h-5 w-5 text-amber-500" />
                   </div>
-                </Link>
+                  <div>
+                    <div className="font-medium">Add Work History</div>
+                    <div className="text-xs text-muted-foreground">Record your work experience</div>
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -375,11 +402,22 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
-                <Link href="/goals">
-                  <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    View All
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCreateWorkHistoryModalOpen(true)}
+                    className="text-xs"
+                  >
+                    <Briefcase className="mr-1 h-3 w-3" />
+                    Test Work History
                   </Button>
-                </Link>
+                  <Link href="/goals">
+                    <Button variant="link" className="text-sm text-primary p-0 h-auto">
+                      View All
+                    </Button>
+                  </Link>
+                </div>
               </div>
               
               {/* Goals List */}
@@ -401,9 +439,13 @@ export default function Dashboard() {
                   <div className="text-center py-8 text-neutral-500">
                     <Target className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
                     <p>No goals yet. Create your first career goal!</p>
-                    <Link href="/goals">
-                      <Button variant="link" className="mt-2">Create Goal</Button>
-                    </Link>
+                    <Button 
+                      variant="link" 
+                      className="mt-2"
+                      onClick={() => setCreateGoalModalOpen(true)}
+                    >
+                      Create Goal
+                    </Button>
                   </div>
                 )}
               </div>
@@ -646,6 +688,32 @@ export default function Dashboard() {
           )}
         </motion.div>
       </motion.div>
+      
+      {/* Modal Components */}
+      <CreateGoalModal 
+        isOpen={createGoalModalOpen}
+        onClose={() => setCreateGoalModalOpen(false)}
+      />
+      
+      <CreateResumeModal
+        isOpen={createResumeModalOpen}
+        onClose={() => setCreateResumeModalOpen(false)}
+      />
+      
+      <CreateCoverLetterModal
+        isOpen={createCoverLetterModalOpen}
+        onClose={() => setCreateCoverLetterModalOpen(false)}
+      />
+      
+      <CreateInterviewProcessModal
+        isOpen={createInterviewProcessModalOpen}
+        onClose={() => setCreateInterviewProcessModalOpen(false)}
+      />
+      
+      <CreateWorkHistoryModal
+        isOpen={createWorkHistoryModalOpen}
+        onClose={() => setCreateWorkHistoryModalOpen(false)}
+      />
     </motion.div>
   );
 }
