@@ -316,41 +316,20 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Level Progress */}
+      {/* AI Coach & Level Progress */}
       <motion.div 
-        className="mb-6 will-change-opacity"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        <motion.div 
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <LevelProgress 
-            level={user.level}
-            xp={user.xp}
-            nextLevelXp={nextLevelXp}
-            rank={user.rank}
-            nextRank={nextRank}
-          />
-        </motion.div>
-      </motion.div>
-      
-      {/* AI Coach */}
-      <motion.div 
-        className="mb-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        {/* AI Coach Preview */}
+        {/* AI Coach Preview - Takes up 2/3 width */}
         <motion.div
+          className="lg:col-span-2 will-change-transform"
           variants={cardAnimation}
-          className="will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
-          <Card>
-            <CardContent className="p-5">
+          <Card className="h-full">
+            <CardContent className="p-5 h-full flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
                 <Link href="/ai-coach">
@@ -375,7 +354,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
               ) : (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
+                <Card className="border border-neutral-200 shadow-none p-3 mb-4 flex-1">
                   <div className="flex items-start">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                       <Bot className="h-4 w-4" />
@@ -390,7 +369,7 @@ export default function Dashboard() {
                 </Card>
               )}
               
-              <div className="mt-4">
+              <div className="mt-auto">
                 <Link href="/ai-coach">
                   <Button className="w-full">
                     Ask Career Question
@@ -399,6 +378,21 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+        
+        {/* Level Progress - Takes up 1/3 width */}
+        <motion.div 
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <LevelProgress 
+            level={user.level}
+            xp={user.xp}
+            nextLevelXp={nextLevelXp}
+            rank={user.rank}
+            nextRank={nextRank}
+          />
         </motion.div>
       </motion.div>
       
