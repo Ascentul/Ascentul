@@ -157,7 +157,9 @@ export default function GoalCard({
             <p className="text-sm text-neutral-500 mt-1">{description}</p>
           </div>
           <Badge variant="outline" className={getBadgeStyles()}>
-            {status}
+            {status === 'not_started' ? 'Not started' : 
+             status === 'in_progress' ? 'In progress' : 
+             status.charAt(0).toUpperCase() + status.slice(1)}
           </Badge>
         </div>
 

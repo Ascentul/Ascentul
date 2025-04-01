@@ -24,6 +24,7 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
+import { type Goal, type GoalChecklistItem } from '@shared/schema';
 
 // Define types for our data outside the component
 interface Stats {
@@ -34,6 +35,9 @@ interface Stats {
   monthlyXp: Array<{ month: string; xp: number }>;
 }
 
+// We're importing the proper Goal type from schema.ts now, no need for this interface
+// This is only kept for reference
+/*
 interface Goal {
   id: number;
   title: string;
@@ -41,7 +45,9 @@ interface Goal {
   progress: number;
   status: string;
   dueDate?: string;
+  checklist?: GoalChecklistItem[];
 }
+*/
 
 interface Achievement {
   id: number;
