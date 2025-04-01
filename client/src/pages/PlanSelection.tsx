@@ -130,9 +130,9 @@ export default function PlanSelection() {
   return (
     <div className="min-h-screen bg-muted/30 py-10">
       <div className="container max-w-5xl mx-auto px-6 md:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
-          <p className="text-muted-foreground">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold mb-4">Choose Your Plan</h1>
+          <p className="text-muted-foreground text-lg">
             Select the plan that best fits your career development needs
           </p>
         </div>
@@ -143,13 +143,13 @@ export default function PlanSelection() {
             <div className="relative">
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
-                  <CardHeader className="pb-4 px-6 md:px-8">
-                    <p className="text-sm text-muted-foreground mb-2">For individuals</p>
-                    <CardTitle className="text-3xl font-bold mb-1">Free Plan</CardTitle>
-                    <CardDescription className="text-sm">
+                  <CardHeader className="pb-6 px-6 md:px-8">
+                    <p className="text-sm text-muted-foreground mb-4">For individuals</p>
+                    <CardTitle className="text-3xl font-bold mb-3">Free Plan</CardTitle>
+                    <CardDescription className="text-sm mb-6">
                       Get started with basic career management tools
                     </CardDescription>
-                    <div className="mt-6 mb-6">
+                    <div className="mt-8 mb-6">
                       <span className="text-4xl font-bold">$0</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
@@ -164,11 +164,11 @@ export default function PlanSelection() {
                     </Button>
                   </div>
                   <CardContent className="pb-6 px-6 md:px-8">
-                    <ul className="space-y-3">
+                    <ul className="space-y-4">
                       {planFeatures.free.map((feature, index) => (
                         <li key={index} className="flex items-start">
-                          <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>{feature}</span>
+                          <Check className="h-5 w-5 text-primary mr-3 mt-0.5" />
+                          <span className="leading-relaxed">{feature}</span>
                         </li>
                       ))}
                     </ul>
