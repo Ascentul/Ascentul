@@ -96,7 +96,7 @@ export default function StaffDashboard() {
               Last updated: {new Date().toLocaleString()}
             </div>
           </div>
-          
+
           <TabsContent value="overview" className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
@@ -162,24 +162,24 @@ export default function StaffDashboard() {
                 </CardHeader>
                 <CardContent className="px-2">
                   <div className="h-[200px] flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <div className="flex justify-between items-center">
+                    <div className="text-center space-y-4 w-full px-6">
+                      <div className="flex justify-between items-center px-4">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
+                          <div className="w-3 h-3 rounded-full bg-primary mr-3"></div>
                           <span>Free Users</span>
                         </div>
                         <span>{dashboardData.activeUsers - dashboardData.premiumUsers - dashboardData.universityUsers}</span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center px-4">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500 mr-3"></div>
                           <span>Premium Users</span>
                         </div>
                         <span>{dashboardData.premiumUsers}</span>
                       </div>
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center px-4">
                         <div className="flex items-center">
-                          <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                          <div className="w-3 h-3 rounded-full bg-blue-500 mr-3"></div>
                           <span>University Users</span>
                         </div>
                         <span>{dashboardData.universityUsers}</span>
