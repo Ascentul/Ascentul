@@ -133,13 +133,16 @@ export default function GoalCard({
     },
   });
 
-  // Check if all checklist items are completed
+  // Check if all checklist items are completed or if the status should be updated to "in progress"
   useEffect(() => {
     // Only proceed if we have a checklist
     if (!checklist || checklist.length === 0) return;
     
     const allCompleted = checklist.every(item => item.completed);
+    const hasAtLeastOneChecked = checklist.some(item => item.completed);
     const totalItems = checklist.length;
+    const hasAtLeastTwoItems = totalItems >= 2;
+    const isNotStarted = status.toLowerCase() === 'not_started' || status.toLowerCase() === 'active';
     
     // If all items are completed and we're not in completed status
     if (allCompleted && totalItems > 0 && status.toLowerCase() !== 'completed' && !completionCelebratedRef.current) {
@@ -185,6 +188,15 @@ export default function GoalCard({
       if (onComplete) {
         onComplete(id);
       }
+    }
+    // Check if we should update to "in progress" status
+    // This happens when loading the goal initially, rather than on user interaction
+    else if (hasAtLeastTwoItems && hasAtLeastOneChecked && !allCompleted && isNotStarted) {
+      // Update status to in_progress
+      updateChecklistMutation.mutate({
+        status: 'in_progress',
+        checklist: checklist
+      });
     }
   }, [checklist, status, id, onComplete]);
 
@@ -254,11 +266,33 @@ export default function GoalCard({
         onComplete(id);
       }
     } else {
-      // Just update the checklist and progress
-      updateChecklistMutation.mutate({
-        checklist: updatedChecklist,
-        progress: newProgress
-      });
+      // Check if we should update the status to "in_progress"
+      // Condition: Has 2+ checklist items and at least one is checked, but not all are checked
+      const hasAtLeastTwoItems = updatedChecklist.length >= 2;
+      const hasAtLeastOneChecked = updatedChecklist.some(item => item.completed);
+      const areAllChecked = updatedChecklist.every(item => item.completed);
+      const isNotStarted = status.toLowerCase() === 'not_started' || status.toLowerCase() === 'active';
+      
+      if (hasAtLeastTwoItems && hasAtLeastOneChecked && !areAllChecked && isNotStarted) {
+        // Update to in-progress status
+        updateChecklistMutation.mutate({
+          checklist: updatedChecklist,
+          progress: newProgress,
+          status: 'in_progress'
+        });
+        
+        // Show a subtle notification
+        toast({
+          title: "Goal in progress",
+          description: "Your goal status has been updated to 'In Progress'",
+        });
+      } else {
+        // Just update the checklist and progress
+        updateChecklistMutation.mutate({
+          checklist: updatedChecklist,
+          progress: newProgress
+        });
+      }
     }
   };
 

@@ -79,11 +79,36 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
   
   const createGoalMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      // Check if we should automatically set status to 'in_progress'
+      let status = data.status;
+      
+      // Condition: If there are 2+ checklist items and at least one is checked, 
+      // but not all are checked, set status to 'in_progress'
+      if (data.checklist.length >= 2) {
+        const hasAtLeastOneChecked = data.checklist.some(item => item.completed);
+        const areAllChecked = data.checklist.every(item => item.completed);
+        
+        if (hasAtLeastOneChecked && !areAllChecked && status === 'not_started') {
+          status = 'in_progress';
+        }
+      }
+      
+      // Calculate progress based on checklist items
+      let progress = 0;
+      if (data.checklist.length > 0) {
+        const completedItems = data.checklist.filter(item => item.completed).length;
+        progress = Math.round((completedItems / data.checklist.length) * 100);
+      } else {
+        // Default progress if no checklist
+        progress = status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0;
+      }
+      
       // Convert date to ISO string for API
       const formattedData = {
         ...data,
+        status,
+        progress,
         dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
-        progress: data.status === 'completed' ? 100 : data.status === 'in_progress' ? 50 : 0,
       };
       
       const response = await apiRequest('POST', '/api/goals', formattedData);
@@ -96,14 +121,35 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
       // Snapshot the previous goals
       const previousGoals = queryClient.getQueryData(['/api/goals']);
       
+      // Check if we should automatically set status to 'in_progress' for optimistic update
+      let status = newData.status;
+      
+      // Apply the same conditions as in mutationFn
+      if (newData.checklist.length >= 2) {
+        const hasAtLeastOneChecked = newData.checklist.some(item => item.completed);
+        const areAllChecked = newData.checklist.every(item => item.completed);
+        
+        if (hasAtLeastOneChecked && !areAllChecked && status === 'not_started') {
+          status = 'in_progress';
+        }
+      }
+      
+      // Calculate progress
+      let progress = 0;
+      if (newData.checklist.length > 0) {
+        const completedItems = newData.checklist.filter(item => item.completed).length;
+        progress = Math.round((completedItems / newData.checklist.length) * 100);
+      } else {
+        progress = status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0;
+      }
+      
       // Create a temporary optimistic goal
       const optimisticGoal = {
         id: Date.now(), // Temporary ID that will be replaced after successful creation
         title: newData.title,
         description: newData.description || '',
-        status: newData.status,
-        progress: newData.status === 'completed' ? 100 : 
-                 newData.status === 'in_progress' ? 50 : 0,
+        status: status, // Use the potentially updated status
+        progress: progress, // Use the calculated progress
         dueDate: newData.dueDate ? newData.dueDate.toISOString() : null,
         createdAt: new Date().toISOString(),
         userId: 1, // This will be replaced with the actual user ID from the server
