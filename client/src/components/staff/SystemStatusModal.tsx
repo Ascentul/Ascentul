@@ -114,7 +114,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
   const [currentCommand, setCurrentCommand] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<{id: string, status: 'completed' | 'failed'} | null>(null);
-  
+
   // Use a default status object for initial state
   const defaultStatus: SystemStatusData = {
     overall: {
@@ -135,13 +135,13 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
     ],
     alerts: []
   };
-  
-  const { data: systemStatus, isLoading } = useQuery({
+
+  const { data: systemStatus, isLoading, error } = useQuery({
     queryKey: ['/api/system/status'],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: 1
   });
-  
+
   // Use the selectedComponent state after defining systemStatus
   const [selectedComponent, setSelectedComponent] = useState<typeof defaultStatus.components[0] | null>(null);
 
@@ -369,24 +369,24 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
   // Function to simulate refreshing status data
   const refreshStatus = () => {
     setIsRefreshing(true);
-    
+
     // Simulate API call delay
     setTimeout(() => {
       // Update some values to simulate real-time changes
       setLocalSystemStatus(prev => {
         const newComponents = [...prev.components];
-        
+
         // Randomly improve or degrade a component
         const randomIndex = Math.floor(Math.random() * newComponents.length);
         const randomHealth = Math.max(80, Math.min(100, newComponents[randomIndex].health + (Math.random() > 0.5 ? 2 : -2)));
-        
+
         // Make sure to preserve all other properties including details
         newComponents[randomIndex] = {
           ...newComponents[randomIndex],
           health: randomHealth,
           status: randomHealth > 95 ? 'operational' : randomHealth > 85 ? 'degraded' : 'outage'
         };
-        
+
         return {
           ...prev,
           components: newComponents,
@@ -397,11 +397,11 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
           }
         };
       });
-      
+
       setIsRefreshing(false);
     }, 1500);
   };
-  
+
   // Helper function to get status badge
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -415,7 +415,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
         return <Badge>Unknown</Badge>;
     }
   };
-  
+
   // Helper function to get alert icon
   const getAlertIcon = (severity: string) => {
     switch(severity) {
@@ -433,7 +433,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
   // Helper function to get trend indicator for metrics
   const getTrendIndicator = (trend?: 'up' | 'down' | 'stable') => {
     if (!trend) return null;
-    
+
     switch(trend) {
       case 'up':
         return <ArrowUp className="h-3 w-3 text-red-500" />;
@@ -458,38 +458,38 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
   const handleActionClick = (actionId: string, actionTitle: string) => {
     // Set the action in progress
     setActionInProgress(actionId);
-    
+
     // Simulate API call with a delay
     setTimeout(() => {
       // In a real app, this would make an actual API call to execute the command
       const success = Math.random() > 0.2; // 80% success rate for demo purposes
-      
+
       // Update component health based on the action
       setLocalSystemStatus(prev => {
         const newComponents = [...prev.components];
-        
+
         // Find the component we're working with
         const componentIndex = newComponents.findIndex(c => c.id === selectedComponent?.id);
         if (componentIndex === -1) return prev;
-        
+
         // Modify the component's health based on action success
         const component = {...newComponents[componentIndex]};
-        
+
         if (success) {
           // Calculate health improvement (between 3-10%)
           const improvement = Math.floor(Math.random() * 8) + 3;
           component.health = Math.min(100, component.health + improvement);
-          
+
           // Update status based on new health
           component.status = component.health > 95 ? 'operational' : component.health > 85 ? 'degraded' : 'outage';
-          
+
           // Update the component in the list
           newComponents[componentIndex] = component;
-          
+
           // Update suggested action status in the component details
           if (component.details?.suggestedActions) {
             const updatedDetails = {...component.details};
-            
+
             if (updatedDetails.suggestedActions) {
               updatedDetails.suggestedActions = updatedDetails.suggestedActions.map(action => 
                 action.id === actionId 
@@ -497,7 +497,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                   : action
               );
             }
-            
+
             // Add a log entry for this action
             if (updatedDetails.logs) {
               const now = new Date();
@@ -512,7 +512,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                 ...logsArray
               ];
             }
-            
+
             // Update the component with the new details
             newComponents[componentIndex] = {
               ...component,
@@ -535,7 +535,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
               },
               ...logsArray
             ];
-            
+
             // Update the component with the new details
             newComponents[componentIndex] = {
               ...component,
@@ -543,7 +543,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
             };
           }
         }
-        
+
         return {
           ...prev,
           components: newComponents,
@@ -553,18 +553,18 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
           }
         };
       });
-      
+
       // Clear the action in progress and set success/failure
       setActionInProgress(null);
       setActionSuccess({id: actionId, status: success ? 'completed' : 'failed'});
-      
+
       // Clear the success/failure message after 3 seconds
       setTimeout(() => {
         setActionSuccess(null);
       }, 3000);
     }, 1500); // Simulating server-side action execution
   };
-  
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -578,46 +578,55 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
               Real-time overview of CareerTracker.io platform health
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Overall System Status */}
-            <div className="rounded-lg border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold">Platform Status</h3>
-                <Badge className="bg-green-500 hover:bg-green-600">
-                  {localSystemStatus.overall.uptime}% Uptime
-                </Badge>
-              </div>
-              
-              <Progress 
-                value={parseFloat(localSystemStatus.overall.uptime.toString())} 
-                className="h-2 mb-2" 
-              />
-              
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Last incident: {localSystemStatus.overall.lastIncident}</span>
-                <span>Last checked: {localSystemStatus.overall.lastChecked || 'Now'}</span>
-              </div>
+
+          {error ? (
+            <div className="p-4 text-center">
+              <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
+              <p className="text-red-500">Failed to load system status</p>
+              <Button variant="outline" onClick={refreshStatus} className="mt-2">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
             </div>
-            
-            {/* Component Status Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {localSystemStatus.components.map((component, i) => {
-                const Icon = component.icon;
-                return (
-                  <div 
-                    key={i} 
-                    className={`rounded-lg border p-3 transition-colors hover:border-primary cursor-pointer ${
-                      component.status === 'operational' 
-                        ? 'bg-card' 
-                        : component.status === 'degraded'
-                        ? 'bg-yellow-50' 
-                        : 'bg-red-50'
-                    }`}
-                    onClick={() => setSelectedComponent(component)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
+          ) : (
+            <div className="space-y-6">
+              {/* Overall System Status */}
+              <div className="rounded-lg border bg-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold">Platform Status</h3>
+                  <Badge className="bg-green-500 hover:bg-green-600">
+                    {localSystemStatus.overall.uptime}% Uptime
+                  </Badge>
+                </div>
+
+                <Progress 
+                  value={parseFloat(localSystemStatus.overall.uptime.toString())} 
+                  className="h-2 mb-2" 
+                />
+
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Last incident: {localSystemStatus.overall.lastIncident}</span>
+                  <span>Last checked: {localSystemStatus.overall.lastChecked || 'Now'}</span>
+                </div>
+              </div>
+
+              {/* Component Status Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {localSystemStatus.components.map((component, i) => {
+                  const Icon = component.icon;
+                  return (
+                    <div 
+                      key={i} 
+                      className={`rounded-lg border p-3 transition-colors hover:border-primary cursor-pointer ${
+                        component.status === 'operational' 
+                          ? 'bg-card' 
+                          : component.status === 'degraded'
+                          ? 'bg-yellow-50' 
+                          : 'bg-red-50'
+                      }`}
+                      onClick={() => setSelectedComponent(component)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
                         <div className={`p-1.5 rounded-full ${
                           component.status === 'operational' 
                             ? 'bg-green-100 text-green-700' 
@@ -629,67 +638,66 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                         </div>
                         <h4 className="font-medium">{component.name}</h4>
                       </div>
-                      {getStatusBadge(component.status)}
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <Progress 
-                        value={component.health} 
-                        className={`h-1.5 ${
-                          component.status === 'operational' 
-                            ? 'bg-green-100' 
-                            : component.status === 'degraded'
-                            ? 'bg-yellow-100' 
-                            : 'bg-red-100'
-                        }`} 
-                      />
-                      <span className="ml-3 text-xs text-muted-foreground">
-                        Response: {component.responseTime}
-                      </span>
-                    </div>
-                    {component.status !== 'operational' && (
-                      <div className="mt-2 flex justify-end">
-                        <Button variant="link" size="sm" className="h-auto p-0 text-xs">
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          View details
-                        </Button>
+
+                      <div className="flex justify-between items-center">
+                        <Progress 
+                          value={component.health} 
+                          className={`h-1.5 ${
+                            component.status === 'operational' 
+                              ? 'bg-green-100' 
+                              : component.status === 'degraded'
+                              ? 'bg-yellow-100' 
+                              : 'bg-red-100'
+                          }`} 
+                        />
+                        <span className="ml-3 text-xs text-muted-foreground">
+                          Response: {component.responseTime}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Alerts */}
-            {localSystemStatus.alerts.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2">Active Alerts</h3>
-                <div className="space-y-2">
-                  {localSystemStatus.alerts.map((alert, i) => (
-                    <div key={i} className={`p-3 border rounded-md ${
-                      alert.severity === 'warning' 
-                        ? 'border-yellow-200 bg-yellow-50'
-                        : alert.severity === 'error'
-                        ? 'border-red-200 bg-red-50'
-                        : 'border-blue-200 bg-blue-50'
-                    }`}>
-                      <div className="flex justify-between">
-                        <div className="flex space-x-2">
-                          {getAlertIcon(alert.severity)}
-                          <span className="font-medium">{alert.title}</span>
+                      {component.status !== 'operational' && (
+                        <div className="mt-2 flex justify-end">
+                          <Button variant="link" size="sm" className="h-auto p-0 text-xs">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            View details
+                          </Button>
                         </div>
-                        <span className="text-xs text-muted-foreground">{alert.time}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {alert.description}
-                      </p>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-          
+
+              {/* Alerts */}
+              {localSystemStatus.alerts.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Active Alerts</h3>
+                  <div className="space-y-2">
+                    {localSystemStatus.alerts.map((alert, i) => (
+                      <div key={i} className={`p-3 border rounded-md ${
+                        alert.severity === 'warning' 
+                          ? 'border-yellow-200 bg-yellow-50'
+                          : alert.severity === 'error'
+                          ? 'border-red-200 bg-red-50'
+                          : 'border-blue-200 bg-blue-50'
+                      }`}>
+                        <div className="flex justify-between">
+                          <div className="flex space-x-2">
+                            {getAlertIcon(alert.severity)}
+                            <span className="font-medium">{alert.title}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{alert.time}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {alert.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <DialogFooter className="flex justify-between items-center">
             <div className="text-xs text-muted-foreground">
               This data refreshes automatically every 5 minutes
@@ -729,7 +737,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                   {selectedComponent.details?.description || `Detailed information about the ${selectedComponent.name} component.`}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="space-y-6 py-2">
                 {/* Health Overview */}
                 <div className="space-y-2">
@@ -748,7 +756,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                     }`} 
                   />
                 </div>
-                
+
                 {/* Metrics Section */}
                 {selectedComponent.details?.metrics && selectedComponent.details.metrics.length > 0 && (
                   <div>
@@ -782,7 +790,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                     </div>
                   </div>
                 )}
-                
+
                 {/* Issues Section */}
                 {selectedComponent.details?.issues && selectedComponent.details.issues.length > 0 && (
                   <div>
@@ -806,7 +814,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                             </div>
                             <span className="text-xs text-muted-foreground">Detected {issue.timeDetected}</span>
                           </div>
-                          
+
                           {issue.suggestedAction && (
                             <div className="mt-3 pt-3 border-t flex justify-between items-center">
                               <p className="text-xs text-muted-foreground">
@@ -827,7 +835,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                     </div>
                   </div>
                 )}
-                
+
                 {/* Logs Section */}
                 {selectedComponent.details?.logs && selectedComponent.details.logs.length > 0 && (
                   <div>
@@ -840,7 +848,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                             log.level === 'error' 
                               ? 'text-red-500' 
                               : log.level === 'warning'
-                              ? 'text-yellow-600'
+                              ? 'textyellow-600'
                               : 'text-blue-500'
                           }`}>
                             {log.level.toUpperCase()}:
@@ -888,7 +896,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                                 </div>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
-                              
+
                               <div className="mt-2 text-xs text-muted-foreground">
                                 <span className="mr-2">
                                   <strong>ETA:</strong> {action.eta}
@@ -900,7 +908,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                                   <span className="text-red-600">Requires credentials</span>
                                 )}
                               </div>
-                              
+
                               <div className="mt-3 flex justify-end space-x-2">
                                 {action.command && (
                                   <Button 
@@ -974,7 +982,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
                   Refresh Data
                 </Button>
               </DialogFooter>
-              
+
               <DialogFooter>
                 {selectedComponent.status !== 'operational' && (
                   <div className="flex space-x-2 w-full justify-between">
@@ -1015,11 +1023,11 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
               Review this command before executing it on the server
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="bg-gray-50 dark:bg-gray-900 border rounded-md p-4 font-mono text-sm overflow-x-auto">
             {currentCommand}
           </div>
-          
+
           <DialogFooter className="space-x-2">
             <Button variant="outline" onClick={closeCommandView}>
               Close
