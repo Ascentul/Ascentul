@@ -24,6 +24,7 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import Confetti from '@/components/Confetti';
 import { type Goal, type GoalChecklistItem } from '@shared/schema';
 
 // Define types for our data outside the component
@@ -98,6 +99,7 @@ export default function Dashboard() {
   // State to track goals that should be hidden (recently completed)
   // Only track completely hidden goals (after animation completes)
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Fetch achievements
   const { data: achievements = [] } = useQuery<Achievement[]>({
@@ -171,10 +173,31 @@ export default function Dashboard() {
 
   // Handle when a goal is completed - simplified approach
   const handleGoalCompletion = (id: number) => {
+    // Show confetti for completed goals
+    setShowConfetti(true);
+    setTimeout(() => {
+      setShowConfetti(false);
+    }, 2000);
+    
+    // Find the completed goal element and apply dissolve effect manually
+    const goalElement = document.getElementById(`goal-${id}`);
+    if (goalElement) {
+      setTimeout(() => {
+        // Apply dissolve effect manually to only the completed goal
+        goalElement.style.transition = 'all 0.75s ease';
+        goalElement.style.opacity = '0';
+        goalElement.style.filter = 'blur(4px)';
+        goalElement.style.transform = 'scale(0.95)';
+        goalElement.style.height = '0';
+        goalElement.style.marginBottom = '0';
+        goalElement.style.overflow = 'hidden';
+      }, 2200);
+    }
+    
     // Add completed goal to hidden list after animation completes
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
-    }, 750); // Delay allows for confetti and visual feedback
+    }, 3000); // Longer delay to allow for confetti and dissolve animation
   };
 
   const handleEditGoal = (id: number) => {
@@ -232,6 +255,8 @@ export default function Dashboard() {
       animate="visible"
       variants={fadeIn}
     >
+      {/* Global Confetti component for goal completion celebrations */}
+      <Confetti active={showConfetti} duration={2000} />
       <motion.div 
         className="flex flex-col md:flex-row md:items-center justify-between mb-6 will-change-opacity will-change-transform"
         variants={subtleUp}
@@ -436,17 +461,8 @@ export default function Dashboard() {
                           key={goal.id}
                           initial={{ opacity: 1 }}
                           animate={{ opacity: 1 }}
-                          exit={{ 
-                            opacity: 0, 
-                            scale: 0.95, 
-                            filter: "blur(4px)",
-                            height: 0, 
-                            marginBottom: 0,
-                            transition: { duration: 0.75 } 
-                          }}
-                          // No transition for new goals
-                          transition={{ duration: 0 }}
-                          className="transition-none"
+                          // Only apply exit animation for completed goals via onComplete handler
+                          className="mb-4"
                         >
                           <GoalCard
                             id={goal.id}

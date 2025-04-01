@@ -231,7 +231,7 @@ export default function GoalCard({
       {/* Render the confetti when goal is completed */}
       <Confetti active={showConfetti} duration={1750} targetRef={cardRef} />
       
-      <div>
+      <div id={`goal-${id}`}>
         <Card ref={cardRef} className="border border-neutral-200 shadow-none">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
