@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import StaffLayout from '@/components/StaffLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,18 +26,33 @@ export default function StaffDashboard() {
   const [systemStatusOpen, setSystemStatusOpen] = useState(false);
   const [quickActionsOpen, setQuickActionsOpen] = useState(false);
 
-  // Mock data for dashboard - in a real app, these would come from API calls
+  const { data: systemStatus } = useQuery({
+    queryKey: ['systemStatus'],
+    queryFn: async () => {
+      const response = await fetch('/api/system/status');
+      return response.json();
+    }
+  });
+
+  const { data: userStats } = useQuery({
+    queryKey: ['userStats'],
+    queryFn: async () => {
+      const response = await fetch('/api/users/statistics');
+      return response.json();
+    }
+  });
+
   const dashboardData = {
-    activeUsers: 2458,
-    supportTickets: 18,
-    revenue: 24859.99,
-    conversionRate: 4.3,
-    newSignups: 128,
-    sessions: 12436,
-    premiumUsers: 783,
-    universityUsers: 1542,
-    systemHealth: 99.7,
-    alertsCount: 2
+    activeUsers: userStats?.totalUsers || 0,
+    supportTickets: userStats?.activeTickets || 0,
+    revenue: userStats?.monthlyRevenue || 0,
+    conversionRate: userStats?.conversionRate || 0,
+    newSignups: userStats?.newSignups24h || 0,
+    sessions: userStats?.activeSessions || 0,
+    premiumUsers: userStats?.premiumUsers || 0,
+    universityUsers: userStats?.universityUsers || 0,
+    systemHealth: systemStatus?.overall?.uptime || 0,
+    alertsCount: systemStatus?.alerts?.length || 0
   };
 
   return (
