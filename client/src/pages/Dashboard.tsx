@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser } from '@/lib/useUserData';
 import StatCard from '@/components/StatCard';
+import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
-import AICoachMessage from '@/components/AICoachMessage';
 import { Target, Award, FileText, Clock, Plus, Bot, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -63,7 +63,7 @@ export default function Dashboard() {
   const { data: statsData } = useQuery<Stats>({
     queryKey: ['/api/users/statistics'],
   });
-
+  
   // Use default stats if data is not available
   const stats: Stats = statsData || DEFAULT_STATS;
 
@@ -98,13 +98,13 @@ export default function Dashboard() {
   if (!user || !stats) {
     return <div className="h-full flex items-center justify-center">Loading dashboard data...</div>;
   }
-
+  
   // Animation variants - optimized for performance
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }
   };
-
+  
   const subtleUp = {
     hidden: { opacity: 0, y: 8 },
     visible: { 
@@ -116,7 +116,7 @@ export default function Dashboard() {
       } 
     }
   };
-
+  
   const cardAnimation = {
     hidden: { opacity: 0, y: 4 },
     visible: { 
@@ -128,7 +128,7 @@ export default function Dashboard() {
       } 
     }
   };
-
+  
   const staggeredContainer = {
     hidden: { opacity: 1 },
     visible: {
@@ -165,7 +165,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </motion.div>
-
+      
       {/* Stats Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 will-change-opacity"
@@ -185,7 +185,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-
+        
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Award className="h-5 w-5 text-[#8bc34a]" />}
@@ -199,7 +199,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-
+        
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<FileText className="h-5 w-5 text-secondary" />}
@@ -213,7 +213,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-
+        
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Clock className="h-5 w-5 text-[#ff9800]" />}
@@ -228,9 +228,45 @@ export default function Dashboard() {
           />
         </motion.div>
       </motion.div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Current Goals */}
+      
+      {/* Career Progress & Goals Section */}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
+        variants={staggeredContainer}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
+        {/* Career Journey Chart */}
+        <motion.div 
+          className="lg:col-span-2 will-change-transform" 
+          variants={cardAnimation}
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <CareerJourneyChart data={stats.monthlyXp || []} />
+        </motion.div>
+        
+        {/* Level Progress */}
+        <motion.div 
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <LevelProgress 
+            level={user.level}
+            xp={user.xp}
+            nextLevelXp={nextLevelXp}
+            rank={user.rank}
+            nextRank={nextRank}
+          />
+        </motion.div>
+      </motion.div>
+      
+      {/* Current Goals & AI Coach */}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 will-change-opacity"
+        variants={staggeredContainer}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
+        {/* Goals Card */}
         <motion.div 
           className="lg:col-span-2 will-change-transform"
           variants={cardAnimation}
@@ -246,7 +282,7 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-
+              
               {/* Goals List */}
               <div className="space-y-4">
                 {goals && goals.length > 0 ? (
@@ -275,220 +311,84 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Today's Recommendations */}
-        <motion.div 
-          variants={subtleUp}
-          style={{ backfaceVisibility: 'hidden' }}
-          className="lg:col-span-1"
-        >
-          <Card className="border border-neutral-200 shadow-none h-full">
-            <CardContent className="p-5">
-              <h3 className="text-lg font-medium mb-4">Today's Recommendations</h3>
-              <ul className="space-y-3">
-                <li className="flex items-start">
-                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Complete the Python course section on data structures</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* AI Coach */}
-      <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        {/* AI Coach */}
+        
+        {/* AI Coach Preview */}
         <motion.div
-          variants={cardAnimation}
-          className="lg:col-span-2 will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">AI Career Coach</h2>
-                <Link href="/ai-coach">
-                  <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    View All Conversations
-                  </Button>
-                </Link>
-              </div>
-
-              <div className={`transition-all duration-200 ease-in-out ${conversations && conversations.length > 0 ? 'min-h-[200px] max-h-[500px]' : 'h-[200px]'}`}>
-                <Card className="border border-neutral-200 shadow-none">
-                  <CardContent className="p-4">
-                    {conversations && conversations.length > 0 ? (
-                      <div className="space-y-4">
-                        <div className="flex items-start">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <Bot className="h-4 w-4" />
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <p className="text-sm font-medium">Career Coach</p>
-                            <p className="text-sm text-neutral-600 mt-1">
-                              {conversations[0].lastMessage}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                          <Bot className="h-4 w-4" />
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <p className="text-sm font-medium">Career Coach</p>
-                          <p className="text-sm text-neutral-600 mt-1">
-                            Welcome! I'm your AI career coach. How can I help you today?
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <div className="mt-4">
-                  <Link href="/ai-coach">
-                    <Button className="w-full">
-                      Ask Career Question
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Level Progress */}
-        <motion.div 
           variants={cardAnimation}
           className="will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
-          <LevelProgress 
-            level={user.level}
-            xp={user.xp}
-            nextLevelXp={nextLevelXp}
-            rank={user.rank}
-            nextRank={nextRank}
-          />
-        </motion.div>
-      </motion.div>
-
-      {/* Skills Development Section */}
-      <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        {/* Skills Suggestion */}
-        <motion.div
-          variants={cardAnimation}
-          className="lg:col-span-3 will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Recommended Skills to Develop</h2>
-                <Link href="/skills">
+                <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
+                <Link href="/ai-coach">
                   <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    View All Skills
+                    Open Coach
                   </Button>
                 </Link>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="p-4 border border-neutral-200">
-                  <div className="flex items-start mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
-                      <CheckCircle className="h-4 w-4" />
+              
+              {conversations && conversations[0] ? (
+                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
+                  <div className="flex items-start">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Bot className="h-4 w-4" />
                     </div>
-                    <div>
-                      <h3 className="font-medium">Project Management</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Learn Agile and Scrum methodologies</p>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium">Career Coach</p>
+                      <p className="text-sm text-neutral-600 mt-1">
+                        I noticed you're making good progress on your LinkedIn profile goal. Would you like some tips to make your profile stand out?
+                      </p>
                     </div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-neutral-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }}></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">35% complete</p>
                   </div>
                 </Card>
-
-                <Card className="p-4 border border-neutral-200">
-                  <div className="flex items-start mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
-                      <CheckCircle className="h-4 w-4" />
+              ) : (
+                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
+                  <div className="flex items-start">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Bot className="h-4 w-4" />
                     </div>
-                    <div>
-                      <h3 className="font-medium">Data Analysis</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Improve your SQL knowledge</p>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium">Career Coach</p>
+                      <p className="text-sm text-neutral-600 mt-1">
+                        Welcome to CareerQuest! I'm your AI career coach. How can I help you today?
+                      </p>
                     </div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-neutral-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '20%' }}></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">20% complete</p>
                   </div>
                 </Card>
-
-                <Card className="p-4 border border-neutral-200">
-                  <div className="flex items-start mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
-                      <CheckCircle className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Communication</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Practice presenting complex ideas simply</p>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-neutral-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '60%' }}></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">60% complete</p>
-                  </div>
-                </Card>
-
-                <Card className="p-4 border border-neutral-200">
-                  <div className="flex items-start mb-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
-                      <CheckCircle className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium">Cloud Services</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Learn about AWS, Azure, or Google Cloud</p>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="w-full bg-neutral-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: '15%' }}></div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">15% complete</p>
-                  </div>
-                </Card>
+              )}
+              
+              <Card className="border border-neutral-200 shadow-none p-3">
+                <h3 className="text-sm font-medium mb-2">Today's Recommendations</h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                    <span className="text-sm">Complete the Python course section on data structures</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                    <span className="text-sm">Practice 2 interview questions in the system design category</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                    <span className="text-sm">Update your work experience section with quantifiable achievements</span>
+                  </li>
+                </ul>
+              </Card>
+              
+              <div className="mt-4">
+                <Link href="/ai-coach">
+                  <Button className="w-full">
+                    Ask Career Question
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
-
+      
       {/* Recent Achievements */}
       <motion.div 
         className="mt-6 will-change-opacity"
@@ -503,7 +403,7 @@ export default function Dashboard() {
             </Button>
           </Link>
         </div>
-
+        
         <motion.div 
           className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
           variants={staggeredContainer}
