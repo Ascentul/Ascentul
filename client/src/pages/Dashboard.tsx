@@ -318,7 +318,7 @@ export default function Dashboard() {
           style={{ transform: 'translateZ(0)' }}
         >
           <Card>
-            <CardContent className="p-5">
+            <CardContent className={`p-5 ${!conversations || conversations.length === 0 ? 'h-[200px]' : 'h-auto min-h-[200px] max-h-[500px]'}`}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">AI Career Coach</h2>
                 <Link href="/ai-coach">
