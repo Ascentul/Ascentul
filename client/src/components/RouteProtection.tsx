@@ -52,15 +52,20 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
     );
   }
   
-  // If user isn't logged in or is not a regular career app user
+  // If user isn't logged in
   if (!user) {
     // Redirect to login
     setLocation('/sign-in');
     return null;
   }
   
-  // Admins, university users, and staff should have access to career features too
+  // Staff users should be redirected to their dashboard
+  if (user.userType === 'staff') {
+    setLocation('/staff');
+    return null;
+  }
   
+  // Admins, university users, and regular users should have access to career features
   return <>{children}</>;
 }
 

@@ -101,6 +101,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Helper function to determine the redirect path based on user role
+  const getRedirectPathByRole = (userType: string): string => {
+    switch (userType) {
+      case 'admin':
+        return '/admin';
+      case 'staff':
+        return '/staff';
+      case 'university_student':
+      case 'university_admin':
+        return '/university';
+      case 'regular':
+      default:
+        return '/dashboard';
+    }
+  };
+
   const login = async (username: string, password: string, loginType?: 'regular' | 'university' | 'staff' | 'admin') => {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');

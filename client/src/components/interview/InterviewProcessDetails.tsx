@@ -95,19 +95,46 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   const addStageMutation = useMutation({
     mutationFn: async (stageData: any) => {
       console.log('Adding stage to process ID:', process.id, 'with data:', stageData);
+      
+      // Enhanced validation
+      if (!process.id) {
+        throw new Error('Process ID is missing. Please select a valid interview process.');
+      }
+      
       try {
-        const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, stageData);
+        // Add processId to the request payload for additional validation on the server
+        const payload = {
+          ...stageData,
+          processId: process.id
+        };
+        
+        // Enhanced error logging
+        console.log('Sending request to create stage with payload:', payload);
+        
+        const response = await apiRequest('POST', `/api/interview/processes/${process.id}/stages`, payload);
+        
+        // Additional response validation
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to add interview stage');
+          let errorMessage = 'Failed to add interview stage';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
         }
-        return await response.json();
+        
+        const data = await response.json();
+        console.log('Successfully created stage, received data:', data);
+        return data;
       } catch (error) {
         console.error('Error in mutation:', error);
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Stage added successfully:', data);
       // Invalidate both the process list and the specific stages query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
@@ -137,10 +164,47 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Add followup action mutation
   const addFollowupMutation = useMutation({
     mutationFn: async (followupData: any) => {
-      const response = await apiRequest('POST', `/api/interview/processes/${process.id}/followups`, followupData);
-      return await response.json();
+      console.log('Adding followup to process ID:', process.id, 'with data:', followupData);
+      
+      // Enhanced validation
+      if (!process.id) {
+        throw new Error('Process ID is missing. Please select a valid interview process.');
+      }
+      
+      try {
+        // Add processId to the request payload for additional validation on the server
+        const payload = {
+          ...followupData,
+          processId: process.id
+        };
+        
+        // Enhanced error logging
+        console.log('Sending request to create followup with payload:', payload);
+        
+        const response = await apiRequest('POST', `/api/interview/processes/${process.id}/followups`, payload);
+        
+        // Additional response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to add followup action';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('Successfully created followup, received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Followup added successfully:', data);
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
@@ -168,10 +232,39 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   // Complete followup action mutation
   const completeFollowupMutation = useMutation({
     mutationFn: async (followupId: number) => {
-      const response = await apiRequest('PUT', `/api/interview/followup-actions/${followupId}/complete`, {});
-      return await response.json();
+      console.log('Completing followup action ID:', followupId);
+      
+      if (!followupId) {
+        throw new Error('Followup action ID is missing');
+      }
+      
+      try {
+        const response = await apiRequest('PUT', `/api/interview/followup-actions/${followupId}/complete`, {
+          processId: process.id // Send process ID for additional server validation
+        });
+        
+        // Additional response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to complete followup action';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('Successfully completed followup action, received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Followup action completed successfully:', data);
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
