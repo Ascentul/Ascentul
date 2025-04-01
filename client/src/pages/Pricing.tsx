@@ -544,38 +544,7 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* Cancellation Section (only visible to subscribed users) */}
-      {isSubscriptionActive && (
-        <section className="py-12 border-t border-border">
-          <div className="container mx-auto px-4">
-            <div className="max-w-3xl mx-auto">
-              <div className="bg-card rounded-lg p-6 border border-border">
-                <h3 className="text-lg font-semibold mb-3">Manage Your Subscription</h3>
-                <p className="text-muted-foreground mb-6">
-                  You're currently subscribed to the {user?.subscriptionPlan === 'premium' ? 'Pro' : 'University Edition'} plan.
-                  {/* Renewal date would be shown here when available */}
-                </p>
-                <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleCancelSubscription}
-                    disabled={cancelSubscriptionMutation.isPending}
-                  >
-                    {cancelSubscriptionMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Cancel Subscription'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      
       <ContactDialog 
         open={contactDialogOpen} 
         onOpenChange={setContactDialogOpen}
