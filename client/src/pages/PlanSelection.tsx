@@ -143,18 +143,18 @@ export default function PlanSelection() {
             <div className="relative">
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
-                  <CardHeader className="pb-6 px-6 md:px-8">
+                  <CardHeader className="pb-8 px-6 md:px-8">
                     <p className="text-sm text-muted-foreground mb-4">For individuals</p>
-                    <CardTitle className="text-3xl font-bold mb-3">Free Plan</CardTitle>
-                    <CardDescription className="text-sm mb-6">
+                    <CardTitle className="text-3xl font-bold mb-4">Free Plan</CardTitle>
+                    <CardDescription className="text-sm mb-8">
                       Get started with basic career management tools
                     </CardDescription>
-                    <div className="mt-8 mb-6">
+                    <div className="mt-8 mb-8">
                       <span className="text-4xl font-bold">$0</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                   </CardHeader>
-                  <div className="mb-6 px-6 md:px-8">
+                  <div className="mb-8 px-6 md:px-8">
                     <Button 
                       variant="outline" 
                       className="w-full"
@@ -163,8 +163,8 @@ export default function PlanSelection() {
                       Create account
                     </Button>
                   </div>
-                  <CardContent className="pb-6 px-6 md:px-8">
-                    <ul className="space-y-4">
+                  <CardContent className="pb-8 px-6 md:px-8">
+                    <ul className="space-y-5">
                       {planFeatures.free.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-3 mt-0.5" />
@@ -186,13 +186,13 @@ export default function PlanSelection() {
               </div>
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
-                  <CardHeader className="pb-4 px-6 md:px-8">
-                    <p className="text-sm text-muted-foreground mb-2">For individuals and teams</p>
-                    <CardTitle className="text-3xl font-bold mb-1">Pro Plan</CardTitle>
-                    <CardDescription className="text-sm">
+                  <CardHeader className="pb-8 px-6 md:px-8">
+                    <p className="text-sm text-muted-foreground mb-4">For individuals and teams</p>
+                    <CardTitle className="text-3xl font-bold mb-4">Pro Plan</CardTitle>
+                    <CardDescription className="text-sm mb-8">
                       Advanced features for serious career development
                     </CardDescription>
-                    <div className="mt-6 mb-6">
+                    <div className="mt-8 mb-8">
                       <span className="text-4xl font-bold">$15</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
@@ -205,7 +205,7 @@ export default function PlanSelection() {
                       Get started
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground text-center mt-2 mb-4">
+                    <p className="text-xs text-muted-foreground text-center mt-4 mb-4">
                       Choose your billing cycle on the next step
                     </p>
                   </CardHeader>
