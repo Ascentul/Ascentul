@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tabs";
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import ContactDialog from '@/components/ContactDialog';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useIsSubscriptionActive } from '@/lib/useUserData';
 import { motion } from 'framer-motion';
@@ -281,13 +282,9 @@ export default function Pricing() {
       buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
         ? 'Current Plan' 
         : 'Contact Sales',
-      buttonAction: () => {
-        if (isSubscriptionActive && user?.subscriptionPlan === 'university') {
-          navigate('/');
-        } else {
-          setContactDialogOpen(true);
-        }
-      }, 
+      buttonAction: () => user 
+        ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
+            ? navigate('/') 
             : handleSubscribeWithInterval('university'))
         : navigate('/auth'),
       buttonVariant: 'outline' as const,

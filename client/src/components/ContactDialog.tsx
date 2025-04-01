@@ -22,13 +22,13 @@ interface ContactDialogProps {
   description?: string;
 }
 
-export default function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
+export default function ContactDialog({ open, onOpenChange, subject, description }: ContactDialogProps) {
   const { toast } = useToast();
   
   // Form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
+  const [subjectValue, setSubjectValue] = useState(subject || '');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -40,7 +40,7 @@ export default function ContactDialog({ open, onOpenChange }: ContactDialogProps
       const response = await apiRequest('POST', '/api/contact', {
         name,
         email,
-        subject,
+        subject: subjectValue,
         message,
         timestamp: new Date().toISOString()
       });
@@ -59,7 +59,7 @@ export default function ContactDialog({ open, onOpenChange }: ContactDialogProps
       // Reset form
       setName('');
       setEmail('');
-      setSubject('');
+      setSubjectValue('');
       setMessage('');
       
       // Close dialog
@@ -132,8 +132,8 @@ export default function ContactDialog({ open, onOpenChange }: ContactDialogProps
             <Input
               id="contact-subject"
               placeholder="Enter subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              value={subjectValue}
+              onChange={(e) => setSubjectValue(e.target.value)}
               required
             />
           </div>
