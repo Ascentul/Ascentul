@@ -384,16 +384,6 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
                 <div className="flex space-x-2">
-                  <Link href="/work-history">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                    >
-                      <Briefcase className="mr-1 h-3 w-3" />
-                      Add Work History
-                    </Button>
-                  </Link>
                   <Link href="/goals">
                     <Button variant="link" className="text-sm text-primary p-0 h-auto">
                       View All
