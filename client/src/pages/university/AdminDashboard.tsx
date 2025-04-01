@@ -134,7 +134,7 @@ export default function UniversityAdminDashboard() {
       if (!response.ok) {
         throw new Error('Failed to fetch students');
       }
-      return response.json();
+      return [
         {
           id: 1,
           name: "Emma Wilson",
