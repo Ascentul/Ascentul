@@ -8,10 +8,7 @@ import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
 import CreateGoalModal from '@/components/modals/CreateGoalModal';
-import CreateResumeModal from '@/components/modals/CreateResumeModal';
-import CreateCoverLetterModal from '@/components/modals/CreateCoverLetterModal';
-import CreateInterviewProcessModal from '@/components/modals/CreateInterviewProcessModal';
-import CreateWorkHistoryModal from '@/components/modals/CreateWorkHistoryModal';
+
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
   Briefcase, Mail, Users
@@ -74,12 +71,8 @@ export default function Dashboard() {
   const { user } = useUser();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   
-  // Modal states
+  // Modal state - Only for Goal creation
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
-  const [createResumeModalOpen, setCreateResumeModalOpen] = useState(false);
-  const [createCoverLetterModalOpen, setCreateCoverLetterModalOpen] = useState(false);
-  const [createInterviewProcessModalOpen, setCreateInterviewProcessModalOpen] = useState(false);
-  const [createWorkHistoryModalOpen, setCreateWorkHistoryModalOpen] = useState(false);
 
   // Fetch user statistics
   const { data: statsData } = useQuery<Stats>({
@@ -391,15 +384,16 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
                 <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setCreateWorkHistoryModalOpen(true)}
-                    className="text-xs"
-                  >
-                    <Briefcase className="mr-1 h-3 w-3" />
-                    Test Work History
-                  </Button>
+                  <Link href="/work-history/new">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                    >
+                      <Briefcase className="mr-1 h-3 w-3" />
+                      Add Work History
+                    </Button>
+                  </Link>
                   <Link href="/goals">
                     <Button variant="link" className="text-sm text-primary p-0 h-auto">
                       View All
@@ -677,30 +671,10 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Modal Components */}
+      {/* Goal Modal */}
       <CreateGoalModal 
         isOpen={createGoalModalOpen}
         onClose={() => setCreateGoalModalOpen(false)}
-      />
-      
-      <CreateResumeModal
-        isOpen={createResumeModalOpen}
-        onClose={() => setCreateResumeModalOpen(false)}
-      />
-      
-      <CreateCoverLetterModal
-        isOpen={createCoverLetterModalOpen}
-        onClose={() => setCreateCoverLetterModalOpen(false)}
-      />
-      
-      <CreateInterviewProcessModal
-        isOpen={createInterviewProcessModalOpen}
-        onClose={() => setCreateInterviewProcessModalOpen(false)}
-      />
-      
-      <CreateWorkHistoryModal
-        isOpen={createWorkHistoryModalOpen}
-        onClose={() => setCreateWorkHistoryModalOpen(false)}
       />
     </motion.div>
   );
