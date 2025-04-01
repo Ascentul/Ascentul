@@ -355,14 +355,14 @@ export default function Pricing() {
                       <span className="text-3xl font-bold">${plan.price}</span>
                       <span className="text-muted-foreground ml-1">/{plan.period}</span>
                     </div>
-                    <CardDescription className="mt-3">{plan.description}</CardDescription>
+                    <CardDescription className="mt-3 min-h-[60px]">{plan.description}</CardDescription>
                     
-                    {/* Buttons moved up here */}
-                    <div className="mt-4">
+                    {/* Buttons moved up here with fixed height and extra padding */}
+                    <div className="mt-6 mb-6 h-[48px]">
                       {plan.id === 'university' ? (
                         <Button
                           variant="outline"
-                          className="w-full text-primary border-primary hover:bg-primary/10"
+                          className="w-full text-primary border-primary hover:bg-primary/10 py-6"
                           onClick={() => setContactDialogOpen(true)}
                         >
                           Contact Sales
@@ -370,7 +370,7 @@ export default function Pricing() {
                       ) : (
                         <Button 
                           variant={plan.buttonVariant} 
-                          className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                          className={`w-full py-6 ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
                           onClick={plan.buttonAction}
                           disabled={processingPlan === plan.id || 
                                   (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
