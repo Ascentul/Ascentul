@@ -18,6 +18,7 @@ import StaffLogin from "@/pages/staff-login";
 import StaffSignup from "@/pages/staff-signup";
 import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
+import AuthPage from "@/pages/auth-page";
 import { LoadingProvider } from "@/contexts/loading-context";
 
 // Admin Pages
@@ -31,6 +32,7 @@ import StaffLayout from "@/components/StaffLayout";
 // Public Pages
 import Home from "@/pages/Home";
 import Pricing from "@/pages/Pricing";
+import PricingPage from "@/pages/PricingPage";
 import Solutions from "@/pages/Solutions";
 import WhoWeServe from "@/pages/WhoWeServe";
 import PaymentPortal from "@/pages/PaymentPortal";
@@ -165,9 +167,10 @@ function App() {
   const isUniversityRoute = location.startsWith("/university");
   const isSignInRoute = location === "/sign-in";
   const isSignUpRoute = location === "/sign-up";
+  const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test"].includes(location);
+  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test", "/auth"].includes(location);
   
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
@@ -228,6 +231,14 @@ function App() {
     return (
       <Switch>
         <Route path="/staff-signup" component={StaffSignup} />
+      </Switch>
+    );
+  }
+  
+  if (isAuthRoute) {
+    return (
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
       </Switch>
     );
   }
@@ -303,7 +314,7 @@ function App() {
           <Route path="/sign-up" component={SignUp} />
           <Route path="/admin-login" component={AdminLogin} />
           <Route path="/staff-login" component={StaffLogin} />
-          <Route path="/pricing" component={Pricing} />
+          <Route path="/pricing" component={PricingPage} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />
           <Route path="/auth-test" component={AuthTest} />
