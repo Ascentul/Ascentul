@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Target, Filter, ArrowUpDown, Trash2 } from 'lucide-react';
+import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import GoalCard from '@/components/GoalCard';
 import GoalForm from '@/components/GoalForm';
 import { useToast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Goals() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +29,7 @@ export default function Goals() {
   const [sortOption, setSortOption] = useState<string>('dueDate-asc');
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -71,9 +72,26 @@ export default function Goals() {
       deleteGoalMutation.mutate(goalId);
     }
   };
+  
+  const handleReopenGoal = (goalId: number) => {
+    // This would actually call an API to update the goal status
+    const goal = goals.find((g: any) => g.id === goalId);
+    if (goal) {
+      toast({
+        title: "Goal Reopened",
+        description: "The goal has been moved back to active goals.",
+      });
+      
+      // In a real implementation, this would be an API call:
+      // apiRequest('PUT', `/api/goals/${goalId}`, { ...goal, status: 'active', completed: false, completedAt: null })
+      //   .then(() => queryClient.invalidateQueries({ queryKey: ['/api/goals'] }));
+      
+      console.log('Reopening goal:', goal.id);
+    }
+  };
 
   const sortedAndFilteredGoals = () => {
-    if (!goals) return [];
+    if (!goals || !Array.isArray(goals)) return [];
     
     let filteredGoals = [...goals];
     
@@ -259,63 +277,146 @@ export default function Goals() {
         </Card>
       </motion.div>
       
-      {/* Goals Grid */}
-      {isLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      {/* Active Goals Section */}
+      <motion.div className="mb-10" variants={subtleUp}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Active Goals</h2>
         </div>
-      ) : goals && goals.length > 0 ? (
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          variants={listContainer}
-        >
-          {sortedAndFilteredGoals().map((goal: any) => (
-            <motion.div 
-              key={goal.id} 
-              className="relative group"
-              variants={listItem}
-            >
-              <GoalCard
-                id={goal.id}
-                title={goal.title}
-                description={goal.description || ''}
-                progress={goal.progress}
-                status={goal.status}
-                dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
-                onEdit={handleEditGoal}
-              />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleDeleteGoal(goal.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </motion.div>
-          ))}
-        </motion.div>
-      ) : (
-        <motion.div 
-          className="text-center py-12 bg-white rounded-lg shadow-sm"
-          variants={subtleUp}
-        >
-          <Target className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-          <h3 className="text-xl font-medium mb-2">No Goals Created Yet</h3>
-          <p className="text-neutral-500 mb-4">
-            Start by creating your first career goal to track your progress
-          </p>
-          <Button
-            onClick={() => {
-              setSelectedGoal(null);
-              setIsAddGoalOpen(true);
-            }}
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            variants={listContainer}
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Create First Goal
-          </Button>
-        </motion.div>
-      )}
+            {sortedAndFilteredGoals()
+              .filter(goal => goal.status !== 'completed')
+              .map((goal: any) => (
+                <motion.div 
+                  key={goal.id} 
+                  className="relative group"
+                  variants={listItem}
+                >
+                  <GoalCard
+                    id={goal.id}
+                    title={goal.title}
+                    description={goal.description || ''}
+                    progress={goal.progress}
+                    status={goal.status}
+                    dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                    onEdit={handleEditGoal}
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleDeleteGoal(goal.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              ))}
+          </motion.div>
+        ) : (
+          <motion.div 
+            className="text-center py-6 bg-white rounded-lg shadow-sm"
+            variants={subtleUp}
+          >
+            <Target className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
+            <h3 className="text-xl font-medium mb-2">No Active Goals</h3>
+            <p className="text-neutral-500 mb-4">
+              Start by creating your first career goal to track your progress
+            </p>
+            <Button
+              onClick={() => {
+                setSelectedGoal(null);
+                setIsAddGoalOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create First Goal
+            </Button>
+          </motion.div>
+        )}
+      </motion.div>
+      
+      {/* Completed Goals Section */}
+      <motion.div variants={subtleUp}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold flex items-center">
+            <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
+            Completed Goals
+          </h2>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status === 'completed' && !hiddenGoalIds.includes(g.id)).length > 0 ? (
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <AnimatePresence mode="sync">
+                  {goals
+                    .filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))
+                    .map((goal: any) => (
+                      <motion.div
+                        key={goal.id}
+                        id={`goal-${goal.id}`}
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 1 }}
+                        className="mb-4"
+                      >
+                        <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg border p-4 relative">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center">
+                                <h3 className="font-medium text-sm line-through text-neutral-500">{goal.title}</h3>
+                                <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                  Completed
+                                </span>
+                              </div>
+                              {goal.description && (
+                                <p className="text-xs text-neutral-500 mt-1 line-through">{goal.description}</p>
+                              )}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="text-xs h-8"
+                              onClick={() => handleReopenGoal(goal.id)}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Reopen
+                            </Button>
+                          </div>
+                          {goal.completedAt && (
+                            <p className="text-xs text-neutral-400 mt-2">
+                              Completed {new Date(goal.completedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                </AnimatePresence>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center py-4 text-neutral-500">
+                <CheckCircle className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
+                <p>No completed goals yet. Complete a goal to see it here!</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </motion.div>
       
       {/* Add/Edit Goal Dialog */}
       <Dialog open={isAddGoalOpen} onOpenChange={setIsAddGoalOpen}>

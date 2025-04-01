@@ -495,12 +495,8 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              {/* Active Goals Section */}
-              <div className="mb-6">
-                <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center">
-                  <Target className="h-4 w-4 mr-1 text-primary" />
-                  Active Goals
-                </h3>
+              {/* Goals Section */}
+              <div>
                 <div className="space-y-4">
                   {Array.isArray(goals) && goals.filter((goal: Goal) => goal.status !== 'completed' && !hiddenGoalIds.includes(goal.id)).length > 0 ? (
                     <AnimatePresence mode="sync">
@@ -540,70 +536,6 @@ export default function Dashboard() {
                       >
                         Create Goal
                       </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Completed Goals Section */}
-              <div>
-                <h3 className="text-sm font-medium mb-3 text-muted-foreground flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                  Completed Goals
-                </h3>
-                <div className="space-y-4">
-                  {Array.isArray(goals) && goals.filter((goal: Goal) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id)).length > 0 ? (
-                    <AnimatePresence mode="sync">
-                      {goals
-                        .filter((goal: Goal) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))
-                        .slice(0, 3)
-                        .map((goal: Goal) => (
-                          <motion.div
-                            key={goal.id}
-                            id={`goal-${goal.id}`}
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 1 }}
-                            className="mb-4"
-                          >
-                            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg border p-4 relative">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex items-center">
-                                    <h3 className="font-medium text-sm line-through text-neutral-500">{goal.title}</h3>
-                                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                      Completed
-                                    </span>
-                                  </div>
-                                  {goal.description && (
-                                    <p className="text-xs text-neutral-500 mt-1 line-through">{goal.description}</p>
-                                  )}
-                                </div>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  className="text-xs h-8"
-                                  onClick={() => {
-                                    // API call would go here to reopen the goal
-                                    console.log('Reopening goal:', goal.id);
-                                  }}
-                                >
-                                  <RefreshCw className="h-3 w-3 mr-1" />
-                                  Reopen
-                                </Button>
-                              </div>
-                              {goal.completedAt && (
-                                <p className="text-xs text-neutral-400 mt-2">
-                                  Completed {new Date(goal.completedAt).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                    </AnimatePresence>
-                  ) : (
-                    <div className="text-center py-4 text-neutral-500 bg-muted/30 rounded-lg">
-                      <CheckCircle className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
-                      <p>No completed goals yet. Complete a goal to see it here!</p>
                     </div>
                   )}
                 </div>
