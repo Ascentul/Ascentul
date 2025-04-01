@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { ArrowRight, GraduationCap, Briefcase, Building, Users, ArrowUpRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import LoginDialog from '@/components/LoginDialog';
 
 export default function WhoWeServe() {
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0 },
@@ -100,11 +103,12 @@ export default function WhoWeServe() {
                 </motion.div>
               </motion.div>
               
-              <Link href="/auth">
-                <Button className="flex items-center">
-                  Get Student Access <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <Button 
+                className="flex items-center"
+                onClick={() => setLoginDialogOpen(true)}
+              >
+                Get Student Access <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
             <motion.div 
               initial="hidden"
@@ -189,11 +193,12 @@ export default function WhoWeServe() {
                 </motion.div>
               </motion.div>
               
-              <Link href="/auth">
-                <Button className="flex items-center">
-                  Advance Your Career <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <Button 
+                className="flex items-center"
+                onClick={() => setLoginDialogOpen(true)}
+              >
+                Advance Your Career <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -393,11 +398,13 @@ export default function WhoWeServe() {
               Join thousands of professionals, students, and organizations who trust CareerTracker.io for their career development needs.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/auth">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => setLoginDialogOpen(true)}
+              >
+                Get Started <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
               <Link href="/pricing">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   View Pricing <ArrowRight className="ml-2 h-5 w-5" />
@@ -407,6 +414,9 @@ export default function WhoWeServe() {
           </motion.div>
         </div>
       </section>
+
+      {/* Dialogs */}
+      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} initialTab="signup" />
     </div>
   );
 }
