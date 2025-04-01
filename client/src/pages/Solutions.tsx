@@ -4,9 +4,12 @@ import { ArrowRight, Briefcase, GraduationCap, Users, Building, Award, Target } 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
+import LoginDialog from '@/components/LoginDialog';
+import ContactDialog from '@/components/ContactDialog';
 
 export default function Solutions() {
-  const [showSignupDialog, setShowSignupDialog] = useState(false); // Added state for signup dialog
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   // Animation variants
   const fadeIn = {
@@ -96,7 +99,7 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setShowSignupDialog(true)}
+                      onClick={() => setLoginDialogOpen(true)}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -141,7 +144,7 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setShowSignupDialog(true)}
+                      onClick={() => setLoginDialogOpen(true)}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -185,7 +188,7 @@ export default function Solutions() {
                     </ul>
                     <Button 
                       className="flex items-center"
-                      onClick={() => setShowSignupDialog(true)}
+                      onClick={() => setLoginDialogOpen(true)}
                     >
                       Get Started <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -240,7 +243,7 @@ export default function Solutions() {
                         Bulk license management for student access
                       </li>
                     </ul>
-                    <Button variant="outline" className="flex items-center">
+                    <Button variant="outline" className="flex items-center" onClick={() => setContactDialogOpen(true)}>
                       Contact Us <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
@@ -319,7 +322,7 @@ export default function Solutions() {
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto"
-                onClick={() => setShowSignupDialog(true)}
+                onClick={() => setLoginDialogOpen(true)}
               >
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -332,6 +335,10 @@ export default function Solutions() {
           </motion.div>
         </div>
       </section>
+      
+      {/* Dialogs */}
+      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+      <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </div>
   );
 }
