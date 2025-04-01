@@ -251,7 +251,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                <Link href="/resumes/new" className="w-full">
+                <Link href="/resume" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <FileText className="h-5 w-5 text-blue-500" />
@@ -263,7 +263,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
                 
-                <Link href="/cover-letters/new" className="w-full">
+                <Link href="/cover-letter" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <Mail className="h-5 w-5 text-purple-500" />
@@ -275,7 +275,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
                 
-                <Link href="/interview/processes/new" className="w-full">
+                <Link href="/interviews" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <Users className="h-5 w-5 text-green-500" />
@@ -287,7 +287,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
                 
-                <Link href="/work-history/new" className="w-full">
+                <Link href="/work-history" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <Briefcase className="h-5 w-5 text-amber-500" />
@@ -384,7 +384,7 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
                 <div className="flex space-x-2">
-                  <Link href="/work-history/new">
+                  <Link href="/work-history">
                     <Button 
                       variant="outline" 
                       size="sm"
