@@ -9,25 +9,50 @@ import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
 import CreateGoalModal from '@/components/modals/CreateGoalModal';
 import EditGoalModal from '@/components/modals/EditGoalModal';
+import Confetti from '@/components/Confetti';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users, Eye
+  Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp, Square, CheckSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
 } from '@/components/ui/dialog';
-import { motion, AnimatePresence } from 'framer-motion';
-import Confetti from '@/components/Confetti';
-import { type Goal, type GoalChecklistItem } from '@shared/schema';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Textarea } from '@/components/ui/textarea';
+import { queryClient } from '@/lib/queryClient';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
-// Define types for our data outside the component
+interface Goal {
+  id: number;
+  userId: number;
+  title: string;
+  description: string | null;
+  progress: number;
+  status: string;
+  dueDate: Date | null;
+  completed: boolean;
+  completedAt: Date | null;
+  checklist: GoalChecklistItem[] | null;
+  xpReward: number;
+  createdAt: Date;
+}
+
+interface GoalChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 interface Stats {
   activeGoals: number;
   achievementsCount: number;
@@ -35,20 +60,6 @@ interface Stats {
   pendingTasks: number;
   monthlyXp: Array<{ month: string; xp: number }>;
 }
-
-// We're importing the proper Goal type from schema.ts now, no need for this interface
-// This is only kept for reference
-/*
-interface Goal {
-  id: number;
-  title: string;
-  description?: string;
-  progress: number;
-  status: string;
-  dueDate?: string;
-  checklist?: GoalChecklistItem[];
-}
-*/
 
 interface Achievement {
   id: number;
@@ -66,24 +77,32 @@ interface Conversation {
   createdAt: string;
 }
 
-// Default values
+// Default stats for when the API doesn't return data
 const DEFAULT_STATS: Stats = {
   activeGoals: 0,
   achievementsCount: 0,
   resumesCount: 0,
   pendingTasks: 0,
-  monthlyXp: []
+  monthlyXp: [
+    { month: 'Jan', xp: 120 },
+    { month: 'Feb', xp: 240 },
+    { month: 'Mar', xp: 180 },
+    { month: 'Apr', xp: 320 },
+    { month: 'May', xp: 290 },
+    { month: 'Jun', xp: 450 }
+  ]
 };
 
 export default function Dashboard() {
   const { user } = useUser();
-  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const { toast } = useToast();
   
   // Modal states
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
   const [editGoalModalOpen, setEditGoalModalOpen] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
 
-  // Fetch user statistics
+  // Get stats data from API
   const { data: statsData } = useQuery<Stats>({
     queryKey: ['/api/users/statistics'],
   });
@@ -91,15 +110,64 @@ export default function Dashboard() {
   // Use default stats if data is not available
   const stats: Stats = statsData || DEFAULT_STATS;
 
-  // Fetch goals
-  const { data: goals = [] } = useQuery<Goal[]>({
-    queryKey: ['/api/goals'],
-  });
-  
   // State to track goals that should be hidden (recently completed)
   // Only track completely hidden goals (after animation completes)
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Handle when a goal is completed - simplified approach
+  const handleGoalCompletion = (id: number) => {
+    // Show confetti for completed goals
+    setShowConfetti(true);
+    setTimeout(() => {
+      setShowConfetti(false);
+    }, 2000);
+    
+    // Find the completed goal element and apply dissolve effect manually
+    const goalElement = document.getElementById(`goal-${id}`);
+    if (goalElement) {
+      setTimeout(() => {
+        // Apply dissolve effect manually to only the completed goal
+        goalElement.style.transition = 'all 0.75s ease';
+        goalElement.style.opacity = '0';
+        goalElement.style.filter = 'blur(4px)';
+        goalElement.style.transform = 'scale(0.95)';
+        goalElement.style.height = '0';
+        goalElement.style.marginBottom = '0';
+        goalElement.style.overflow = 'hidden';
+      }, 2200);
+    }
+    
+    // Add completed goal to hidden list after animation completes
+    setTimeout(() => {
+      setHiddenGoalIds(prev => [...prev, id]);
+    }, 3000); // Longer delay to allow for confetti and dissolve animation
+  };
+  
+  // Fetch goals
+  const { data: goals = [] } = useQuery<Goal[]>({
+    queryKey: ['/api/goals']
+  });
+  
+  // Auto-dissolve completed goals when goals data changes
+  useEffect(() => {
+    if (!goals || !Array.isArray(goals)) return;
+    
+    // Auto-dissolve any completed goals that have all checklist items completed
+    goals.forEach((goal: Goal) => {
+      if (
+        goal.status === 'completed' && 
+        goal.checklist && 
+        goal.checklist.length > 0 && 
+        goal.checklist.every((item: GoalChecklistItem) => item.completed)
+      ) {
+        // Add a small delay to let the UI render first
+        setTimeout(() => {
+          handleGoalCompletion(goal.id);
+        }, 500);
+      }
+    });
+  }, [goals]);
 
   // Fetch achievements
   const { data: achievements = [] } = useQuery<Achievement[]>({
@@ -170,35 +238,6 @@ export default function Dashboard() {
     : user && user.level < 10 
       ? "Career Navigator" 
       : "Career Master";
-
-  // Handle when a goal is completed - simplified approach
-  const handleGoalCompletion = (id: number) => {
-    // Show confetti for completed goals
-    setShowConfetti(true);
-    setTimeout(() => {
-      setShowConfetti(false);
-    }, 2000);
-    
-    // Find the completed goal element and apply dissolve effect manually
-    const goalElement = document.getElementById(`goal-${id}`);
-    if (goalElement) {
-      setTimeout(() => {
-        // Apply dissolve effect manually to only the completed goal
-        goalElement.style.transition = 'all 0.75s ease';
-        goalElement.style.opacity = '0';
-        goalElement.style.filter = 'blur(4px)';
-        goalElement.style.transform = 'scale(0.95)';
-        goalElement.style.height = '0';
-        goalElement.style.marginBottom = '0';
-        goalElement.style.overflow = 'hidden';
-      }, 2200);
-    }
-    
-    // Add completed goal to hidden list after animation completes
-    setTimeout(() => {
-      setHiddenGoalIds(prev => [...prev, id]);
-    }, 3000); // Longer delay to allow for confetti and dissolve animation
-  };
 
   const handleEditGoal = (id: number) => {
     setSelectedGoalId(id);
@@ -451,12 +490,12 @@ export default function Dashboard() {
               
               {/* Goals List */}
               <div className="space-y-4">
-                {goals && goals.length > 0 ? (
+                {Array.isArray(goals) && goals.length > 0 ? (
                   <AnimatePresence mode="sync">
                     {goals
-                      .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out fully hidden goals
+                      .filter((goal: Goal) => !hiddenGoalIds.includes(goal.id)) // Filter out fully hidden goals
                       .slice(0, 3)
-                      .map((goal) => (
+                      .map((goal: Goal) => (
                         <motion.div
                           key={goal.id}
                           initial={{ opacity: 1 }}
@@ -579,26 +618,24 @@ export default function Dashboard() {
                     <div key={index} className="pl-11 pr-1 mb-3">
                       <div className="bg-muted/50 rounded-lg p-3 text-sm relative">
                         <p>{message.content}</p>
-                        <div className="absolute top-0 right-0 transform -translate-y-1/2 translate-x-1/2 w-6 h-6 rounded-full bg-background flex items-center justify-center border border-border">
-                          <div className="text-xs text-primary font-medium">You</div>
-                        </div>
                       </div>
                     </div>
                   )
                 ))}
                 
-                {/* Loading indicator */}
+                {/* Show typing indicator */}
                 {isTyping && (
                   <Card className="border border-neutral-200 shadow-none p-3 mb-3">
                     <div className="flex items-start">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                         <Bot className="h-4 w-4" />
                       </div>
-                      <div className="ml-3 flex-1">
-                        <div className="flex space-x-1 items-center">
-                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">Career Coach</p>
+                        <div className="flex space-x-1 mt-2">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '600ms' }}></div>
                         </div>
                       </div>
                     </div>
@@ -607,142 +644,145 @@ export default function Dashboard() {
               </div>
               
               {/* Input Area */}
-              <div className="mt-auto relative">
-                <form className="relative" onSubmit={handleSendMessage}>
-                  <input 
-                    type="text" 
-                    placeholder="Ask your career question..." 
-                    className="w-full rounded-md border border-border bg-background px-4 py-2 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <form onSubmit={handleSendMessage} className="mt-auto">
+                <div className="flex items-center border rounded-lg overflow-hidden bg-background">
+                  <Input
+                    type="text"
+                    placeholder="Ask me anything about your career..."
+                    className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     value={userQuestion}
                     onChange={(e) => setUserQuestion(e.target.value)}
                     disabled={isTyping}
                   />
-                  <button 
+                  <Button 
                     type="submit" 
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary p-1.5 text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!userQuestion.trim() || isTyping}
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-10 w-10 rounded-none"
+                    disabled={isTyping || !userQuestion.trim()}
                   >
-                    <Send className="h-4 w-4" />
-                  </button>
-                </form>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  For more in-depth coaching, open the <Link href="/ai-coach" className="text-primary hover:underline">full AI Coach</Link>
-                </p>
-              </div>
+                    <Send className="h-5 w-5 text-primary" />
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </motion.div>
         
         {/* Level Progress - Takes up 1/3 width */}
-        <motion.div 
+        <motion.div
           variants={cardAnimation}
           className="will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
-          <LevelProgress 
-            level={user.level}
-            xp={user.xp}
-            nextLevelXp={nextLevelXp}
-            rank={user.rank}
-            nextRank={nextRank}
-          />
+          <Card className="h-full">
+            <CardContent className="p-5 flex flex-col h-full">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Your Level</h2>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center flex-1">
+                <LevelProgress 
+                  level={user.level || 1}
+                  xp={user.xp || 0}
+                  nextLevelXp={nextLevelXp}
+                  rank={user.rank || 'Career Novice'}
+                  nextRank={nextRank}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </motion.div>
       
-      {/* Recent Achievements */}
+      {/* Career Journey Chart & Recent Achievements */}
       <motion.div 
-        className="mt-6 will-change-opacity"
-        variants={subtleUp}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
+        variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold font-poppins">Recent Achievements</h2>
-          <Link href="/achievements">
-            <Button variant="link" className="text-sm text-primary p-0 h-auto">
-              View All
-            </Button>
-          </Link>
-        </div>
-        
-        <motion.div 
-          className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-          variants={staggeredContainer}
+        {/* Career Journey - Takes up 2/3 width */}
+        <motion.div
+          className="lg:col-span-2 will-change-transform"
+          variants={cardAnimation}
+          style={{ transform: 'translateZ(0)' }}
         >
-          {achievements && achievements.length > 0 ? (
-            achievements.slice(0, 4).map((achievement) => (
-              <motion.div 
-                key={achievement.id}
-                variants={cardAnimation}
-                className="will-change-transform"
-                style={{ transform: 'translateZ(0)' }}
-              >
-                <AchievementBadge 
-                  name={achievement.name}
-                  description={achievement.description}
-                  icon={achievement.icon}
-                  xpReward={achievement.xpReward}
-                  unlocked={true}
-                  earnedAt={new Date(achievement.earnedAt)}
-                />
-              </motion.div>
-            ))
-          ) : (
-            <>
-              <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-                <AchievementBadge 
-                  name="First Resume"
-                  description="Created your first resume"
-                  icon="rocket"
-                  xpReward={100}
-                  unlocked={true}
-                  earnedAt={new Date()}
-                />
-              </motion.div>
-              <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-                <AchievementBadge 
-                  name="Goal Setter"
-                  description="Set 5 career goals"
-                  icon="target"
-                  xpReward={150}
-                  unlocked={true}
-                  earnedAt={new Date()}
-                />
-              </motion.div>
-              <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-                <AchievementBadge 
-                  name="Skill Builder"
-                  description="Added 10+ skills"
-                  icon="graduation-cap"
-                  xpReward={200}
-                  unlocked={true}
-                  earnedAt={new Date()}
-                />
-              </motion.div>
-              <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-                <AchievementBadge 
-                  name="Job Master"
-                  description="Apply to 10 jobs"
-                  icon="briefcase"
-                  xpReward={300}
-                  unlocked={false}
-                />
-              </motion.div>
-            </>
-          )}
+          <Card>
+            <CardContent className="p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Career Journey</h2>
+                <p className="text-xs text-neutral-500">Your XP growth over time</p>
+              </div>
+              
+              <div className="h-[300px]">
+                <CareerJourneyChart data={stats.monthlyXp} />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        {/* Recent Achievements - Takes up 1/3 width */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card>
+            <CardContent className="p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Recent Achievements</h2>
+              </div>
+              
+              <div className="space-y-4">
+                {Array.isArray(achievements) && achievements.length > 0 ? (
+                  achievements.slice(0, 3).map((achievement) => (
+                    <div key={achievement.id} className="flex items-start">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3 flex-shrink-0">
+                        <Award className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{achievement.name}</p>
+                        <p className="text-xs text-neutral-500">{achievement.description}</p>
+                        <p className="text-xs text-primary mt-1">+{achievement.xpReward} XP</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Award className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
+                    <p>No achievements yet. Complete goals to earn rewards!</p>
+                  </div>
+                )}
+                
+                <div className="pt-2">
+                  <Link href="/achievements">
+                    <Button variant="outline" size="sm" className="w-full">
+                      View All Achievements
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       </motion.div>
       
-      {/* Goal Modals */}
-      <CreateGoalModal 
-        isOpen={createGoalModalOpen}
-        onClose={() => setCreateGoalModalOpen(false)}
-      />
-      <EditGoalModal 
-        isOpen={editGoalModalOpen}
-        onClose={() => setEditGoalModalOpen(false)}
-        goalId={selectedGoalId}
-        goals={goals}
-      />
+      {/* Modals */}
+      {createGoalModalOpen && (
+        <CreateGoalModal 
+          isOpen={createGoalModalOpen} 
+          onClose={() => setCreateGoalModalOpen(false)} 
+        />
+      )}
+      
+      {editGoalModalOpen && selectedGoalId && (
+        <EditGoalModal 
+          isOpen={editGoalModalOpen} 
+          onClose={() => setEditGoalModalOpen(false)}
+          goalId={selectedGoalId}
+          goals={Array.isArray(goals) ? goals : []}
+        />
+      )}
     </motion.div>
   );
 }

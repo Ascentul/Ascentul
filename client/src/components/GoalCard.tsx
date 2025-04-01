@@ -167,6 +167,25 @@ export default function GoalCard({
         onComplete(id);
       }
     }
+    // Also trigger the dissolution if the goal is already marked as completed and all checklist items are done
+    else if (allCompleted && totalItems > 0 && status.toLowerCase() === 'completed' && !completionCelebratedRef.current) {
+      // Set the flag to avoid showing confetti multiple times for the same completion
+      completionCelebratedRef.current = true;
+      
+      // Start confetti celebration
+      setShowConfetti(true);
+      
+      // Show success toast
+      toast({
+        title: "Goal completed! 🎉",
+        description: "Congratulations on completing your goal!",
+      });
+      
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete(id);
+      }
+    }
   }, [checklist, status, id, onComplete]);
 
   // Toggle checklist item
@@ -212,6 +231,25 @@ export default function GoalCard({
       });
       
       // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete(id);
+      }
+    } 
+    // If already completed and all items are now done, dissolve the goal
+    else if (allCompleted && status.toLowerCase() === 'completed' && !completionCelebratedRef.current) {
+      // Update checklist 
+      updateChecklistMutation.mutate({
+        checklist: updatedChecklist,
+        progress: 100
+      });
+      
+      // Set the flag to avoid showing confetti multiple times
+      completionCelebratedRef.current = true;
+      
+      // Start confetti celebration
+      setShowConfetti(true);
+      
+      // Call the onComplete callback to handle the dissolve effect
       if (onComplete) {
         onComplete(id);
       }
