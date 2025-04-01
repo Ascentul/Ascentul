@@ -174,7 +174,7 @@ export default function Dashboard() {
     // This delay helps coordinate the confetti celebration and the fade-out animation
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
-    }, 1500); // Increased delay to sync with confetti celebration
+    }, 750); // Adjusted delay to sync with the new shorter animations
   };
 
   const handleEditGoal = (id: number) => {
@@ -438,7 +438,7 @@ export default function Dashboard() {
                           key={goal.id}
                           initial={{ opacity: 1 }}
                           animate={{ opacity: 1 }}
-                          exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 1.5 } }}
+                          exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.75 } }}
                           className="transition-all duration-500"
                         >
                           <GoalCard
