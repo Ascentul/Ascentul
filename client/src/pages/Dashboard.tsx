@@ -229,34 +229,82 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Today's Recommendations */}
-      <motion.div 
-        className="mb-6"
-        variants={subtleUp}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        <Card className="border border-neutral-200 shadow-none">
-          <CardContent className="p-5">
-            <h3 className="text-lg font-medium mb-4">Today's Recommendations</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start">
-                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                <span className="text-sm">Complete the Python course section on data structures</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                <span className="text-sm">Practice 2 interview questions in the system design category</span>
-              </li>
-              <li className="flex items-start">
-                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                <span className="text-sm">Update your work experience section with quantifiable achievements</span>
-              </li>
-            </ul>
-          </CardContent>
-        </Card>
-      </motion.div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Current Goals */}
+        <motion.div 
+          className="lg:col-span-2 will-change-transform"
+          variants={cardAnimation}
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
+                <Link href="/goals">
+                  <Button variant="link" className="text-sm text-primary p-0 h-auto">
+                    View All
+                  </Button>
+                </Link>
+              </div>
 
-      {/* Current Goals & AI Coach */}
+              {/* Goals List */}
+              <div className="space-y-4">
+                {goals && goals.length > 0 ? (
+                  goals.slice(0, 3).map((goal) => (
+                    <GoalCard
+                      key={goal.id}
+                      id={goal.id}
+                      title={goal.title}
+                      description={goal.description || ''}
+                      progress={goal.progress}
+                      status={goal.status}
+                      dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                      onEdit={handleEditGoal}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Target className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
+                    <p>No goals yet. Create your first career goal!</p>
+                    <Link href="/goals">
+                      <Button variant="link" className="mt-2">Create Goal</Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Today's Recommendations */}
+        <motion.div 
+          variants={subtleUp}
+          style={{ backfaceVisibility: 'hidden' }}
+          className="lg:col-span-1"
+        >
+          <Card className="border border-neutral-200 shadow-none h-full">
+            <CardContent className="p-5">
+              <h3 className="text-lg font-medium mb-4">Today's Recommendations</h3>
+              <ul className="space-y-3">
+                <li className="flex items-start">
+                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Complete the Python course section on data structures</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* AI Coach */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
