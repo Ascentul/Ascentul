@@ -30,6 +30,8 @@ export default function Goals() {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
+  // Add a state to track goals that are currently being dissolved
+  const [dissolvingGoalIds, setDissolvingGoalIds] = useState<number[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -88,6 +90,51 @@ export default function Goals() {
       
       console.log('Reopening goal:', goal.id);
     }
+  };
+  
+  // Handle when a goal has been completed and should dissolve
+  const handleGoalComplete = (goalId: number) => {
+    // First, mark this goal as dissolving so we know it's in the animation phase
+    setDissolvingGoalIds(prev => [...prev, goalId]);
+    
+    // After the animation completes (1.5s), update the goal status via API and remove from dissolving state
+    setTimeout(() => {
+      // Find the goal in the current goals list
+      const goal = goals.find((g: any) => g.id === goalId);
+      if (goal) {
+        // Update the goal status to completed via the API
+        apiRequest('PUT', `/api/goals/${goalId}`, { 
+          ...goal, 
+          status: 'completed',
+          progress: 100,
+          completed: true,
+          completedAt: new Date().toISOString()
+        })
+        .then(() => {
+          // Remove goal from dissolving state
+          setDissolvingGoalIds(prev => prev.filter(id => id !== goalId));
+          
+          // Refresh goals data
+          queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+          
+          toast({
+            title: "Goal Saved as Completed",
+            description: "Your goal has been moved to the completed section.",
+          });
+        })
+        .catch((error) => {
+          console.error('Error updating goal:', error);
+          // Remove from dissolving state even if there's an error
+          setDissolvingGoalIds(prev => prev.filter(id => id !== goalId));
+          
+          toast({
+            title: "Error",
+            description: "Failed to save completed goal. Please try again.",
+            variant: "destructive",
+          });
+        });
+      }
+    }, 1500); // This should match the CSS transition time
   };
 
   const sortedAndFilteredGoals = () => {
@@ -287,13 +334,14 @@ export default function Goals() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
-        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
+        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed' || dissolvingGoalIds.includes(g.id)).length > 0 ? (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             variants={listContainer}
           >
+            {/* Regular active goals */}
             {sortedAndFilteredGoals()
-              .filter(goal => goal.status !== 'completed')
+              .filter(goal => goal.status !== 'completed' && !dissolvingGoalIds.includes(goal.id))
               .map((goal: any) => (
                 <motion.div 
                   key={goal.id} 
@@ -307,7 +355,9 @@ export default function Goals() {
                     progress={goal.progress}
                     status={goal.status}
                     dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                    checklist={goal.checklist || []}
                     onEdit={handleEditGoal}
+                    onComplete={handleGoalComplete}
                   />
                   <Button
                     variant="destructive"
@@ -317,6 +367,40 @@ export default function Goals() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                </motion.div>
+              ))}
+              
+            {/* Dissolving goals that are fading out */}
+            {goals
+              .filter(goal => dissolvingGoalIds.includes(goal.id))
+              .map((goal: any) => (
+                <motion.div 
+                  key={`dissolving-${goal.id}`} 
+                  className="relative group"
+                  variants={listItem}
+                >
+                  <div className="goal-card dissolving">
+                    <Card className="border border-neutral-200 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{goal.title}</h3>
+                            <p className="text-sm text-neutral-500 mt-1">{goal.description || ''}</p>
+                          </div>
+                          <Badge variant="outline" className="bg-green-100 text-green-800">
+                            Completed
+                          </Badge>
+                        </div>
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Progress</span>
+                            <span>100%</span>
+                          </div>
+                          <Progress value={100} className="h-2" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </motion.div>
               ))}
           </motion.div>

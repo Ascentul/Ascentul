@@ -313,8 +313,9 @@ export default function GoalCard({
       <div 
         id={`goal-${id}`}
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
+        ref={cardRef}
       >
-        <Card ref={cardRef} className="border border-neutral-200 shadow-none">
+        <Card className="border border-neutral-200 shadow-none">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
