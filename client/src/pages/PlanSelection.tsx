@@ -149,22 +149,22 @@ export default function PlanSelection() {
                     <CardDescription className="text-sm mb-8">
                       Get started with basic career management tools
                     </CardDescription>
-                    <div className="mt-8 mb-8">
+                    <div className="mt-8 mb-14">
                       <span className="text-4xl font-bold">$0</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
                   </CardHeader>
-                  <div className="mb-8 px-6 md:px-8">
+                  <div className="px-6 md:px-8 mb-16">
                     <Button 
                       variant="outline" 
-                      className="w-full"
+                      className="w-full h-11"
                       onClick={() => handlePlanSelect('free')}
                     >
                       Create account
                     </Button>
                   </div>
                   <CardContent className="pb-8 px-6 md:px-8">
-                    <ul className="space-y-5">
+                    <ul className="space-y-6">
                       {planFeatures.free.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <Check className="h-5 w-5 text-primary mr-3 mt-0.5" />
@@ -192,31 +192,31 @@ export default function PlanSelection() {
                     <CardDescription className="text-sm mb-8">
                       Advanced features for serious career development
                     </CardDescription>
-                    <div className="mt-8 mb-8">
+                    <div className="mt-8 mb-14">
                       <span className="text-4xl font-bold">$15</span>
                       <span className="text-muted-foreground ml-1">/month</span>
                     </div>
-                    
+                  </CardHeader>
+                  <div className="px-6 md:px-8 mb-16">
                     <Button 
                       variant="default" 
-                      className="w-full bg-primary"
+                      className="w-full h-11 bg-primary"
                       onClick={() => handlePlanSelect('pro')}
                     >
                       Get started
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground text-center mt-4 mb-4">
+                    <p className="text-xs text-muted-foreground text-center mt-4">
                       Choose your billing cycle on the next step
                     </p>
-                  </CardHeader>
+                  </div>
                   <CardContent className="pb-6 px-6 md:px-8">
-                    
                     <p className="font-semibold mb-4">Everything in Free, plus:</p>
-                    <ul className="space-y-3">
+                    <ul className="space-y-6">
                       {planFeatures.pro.map((feature, index) => (
                         <li key={index} className="flex items-start">
-                          <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
-                          <span>{feature}</span>
+                          <Check className="h-5 w-5 text-primary mr-3 mt-0.5" />
+                          <span className="leading-relaxed">{feature}</span>
                         </li>
                       ))}
                     </ul>
