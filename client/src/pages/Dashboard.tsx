@@ -420,6 +420,7 @@ export default function Dashboard() {
                       progress={goal.progress}
                       status={goal.status}
                       dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                      checklist={goal.checklist || []}
                       onEdit={handleEditGoal}
                     />
                   ))

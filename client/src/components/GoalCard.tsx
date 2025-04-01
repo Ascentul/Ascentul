@@ -1,9 +1,16 @@
-import { Edit, Calendar } from 'lucide-react';
+import { Edit, Calendar, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+
+// Import the checklist item type
+import { type GoalChecklistItem } from '@shared/schema';
 
 interface GoalCardProps {
   id: number;
@@ -12,6 +19,7 @@ interface GoalCardProps {
   progress: number;
   status: string;
   dueDate?: Date;
+  checklist?: GoalChecklistItem[] | null;
   onEdit: (id: number) => void;
 }
 
@@ -22,8 +30,13 @@ export default function GoalCard({
   progress,
   status,
   dueDate,
+  checklist = [],
   onEdit,
 }: GoalCardProps) {
+  const [showChecklist, setShowChecklist] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Convert status to badge styling
   const getBadgeStyles = () => {
     switch (status.toLowerCase()) {
@@ -57,6 +70,82 @@ export default function GoalCard({
     return `Due in ${formatDistanceToNow(dueTime)}`;
   };
 
+  // Update checklist item mutation
+  const updateChecklistMutation = useMutation({
+    mutationFn: async (updatedGoal: any) => {
+      const response = await apiRequest('PUT', `/api/goals/${id}`, updatedGoal);
+      return response.json();
+    },
+    onMutate: async (updatedGoal) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
+      
+      // Snapshot the previous value
+      const previousGoals = queryClient.getQueryData(['/api/goals']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
+        if (!old) return [];
+        
+        return old.map(goal => {
+          if (goal.id === id) {
+            return {
+              ...goal,
+              ...updatedGoal
+            };
+          }
+          return goal;
+        });
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousGoals };
+    },
+    onError: (error, newData, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousGoals) {
+        queryClient.setQueryData(['/api/goals'], context.previousGoals);
+      }
+      
+      toast({
+        title: "Failed to update checklist",
+        description: error.message || "There was a problem updating the checklist. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure cache consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+    },
+  });
+
+  // Toggle checklist item
+  const toggleChecklistItem = (itemId: string) => {
+    if (!checklist) return;
+    
+    const updatedChecklist = checklist.map(item => {
+      if (item.id === itemId) {
+        return { ...item, completed: !item.completed };
+      }
+      return item;
+    });
+    
+    // Calculate new progress based on checklist items
+    const completedItems = updatedChecklist.filter(item => item.completed).length;
+    const totalItems = updatedChecklist.length;
+    const newProgress = totalItems > 0 
+      ? Math.round((completedItems / totalItems) * 100) 
+      : progress;
+    
+    // Update the goal with new checklist and progress
+    updateChecklistMutation.mutate({
+      checklist: updatedChecklist,
+      progress: newProgress
+    });
+  };
+
+  const hasChecklist = checklist && checklist.length > 0;
+
   return (
     <Card className="border border-neutral-200 shadow-none">
       <CardContent className="p-4">
@@ -77,6 +166,46 @@ export default function GoalCard({
           </div>
           <Progress value={progress} className="h-2" />
         </div>
+
+        {/* Checklist Toggle and Checklist Items */}
+        {hasChecklist && (
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
+              onClick={() => setShowChecklist(!showChecklist)}
+            >
+              <span>Checklist ({checklist.filter(item => item.completed).length}/{checklist.length})</span>
+              {showChecklist ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </Button>
+            
+            {showChecklist && (
+              <div className="mt-2 space-y-1.5">
+                {checklist.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleChecklistItem(item.id)}
+                      className="h-5 w-5 p-0 mt-0.5"
+                    >
+                      {item.completed ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
+                      {item.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-neutral-500 flex items-center">
