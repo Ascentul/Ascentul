@@ -377,30 +377,32 @@ export default function Pricing() {
                       </Button>
                     )}
                   </CardContent>
-                  <CardFooter>
-                    <Button 
-                      variant={plan.buttonVariant} 
-                      className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
-                      onClick={plan.buttonAction}
-                      disabled={processingPlan === plan.id || 
-                               (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
-                               (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
-                    >
-                      {processingPlan === plan.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          {plan.buttonText}
-                          {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          }
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
+                  {plan.id !== 'university' && (
+                    <CardFooter>
+                      <Button 
+                        variant={plan.buttonVariant} 
+                        className={`w-full ${plan.highlighted ? 'bg-primary hover:bg-primary/90' : ''}`}
+                        onClick={plan.buttonAction}
+                        disabled={processingPlan === plan.id || 
+                                (plan.id === 'free' && user?.subscriptionPlan !== 'free') ||
+                                (plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id)}
+                      >
+                        {processingPlan === plan.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            {plan.buttonText}
+                            {!(plan.id !== 'free' && isSubscriptionActive && user?.subscriptionPlan === plan.id) && 
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            }
+                          </>
+                        )}
+                      </Button>
+                    </CardFooter>
+                  )}
                 </Card>
               </motion.div>
             ))}
