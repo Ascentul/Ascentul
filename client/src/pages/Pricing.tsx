@@ -30,7 +30,7 @@ export default function Pricing() {
   const isSubscriptionActive = useIsSubscriptionActive();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [billingInterval, setBillingInterval] = useState<PlanInterval>('monthly');
+  const [billingInterval, setBillingInterval] = useState<PlanInterval>('annual');
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   // Animation variants
@@ -333,7 +333,7 @@ export default function Pricing() {
             className="max-w-md mx-auto"
           >
             <Tabs 
-              defaultValue="monthly" 
+              defaultValue="annual" 
               className="w-full"
               onValueChange={(value) => setBillingInterval(value as PlanInterval)}
             >
