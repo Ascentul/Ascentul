@@ -498,6 +498,7 @@ export default function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange('isCollegeStudent', true);
                     handleStudentInfoChange('isGraduateStudent', 'undergraduate');
+                    handleNext();
                   }}
                 >
                   <CardHeader className="text-center pt-6">
@@ -519,6 +520,7 @@ export default function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange('isCollegeStudent', true);
                     handleStudentInfoChange('isGraduateStudent', 'graduate');
+                    handleNext();
                   }}
                 >
                   <CardHeader className="text-center pt-6">
@@ -540,6 +542,7 @@ export default function OnboardingFlow() {
                   onClick={() => {
                     handleStudentInfoChange('isCollegeStudent', true);
                     handleStudentInfoChange('isGraduateStudent', 'none');
+                    handleNext();
                   }}
                 >
                   <CardHeader className="text-center pt-6">
