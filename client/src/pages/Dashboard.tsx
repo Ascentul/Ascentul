@@ -258,65 +258,53 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                <div 
-                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
-                  onClick={() => {
-                    setCreateResumeModalOpen(true);
-                  }}
-                >
-                  <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                    <FileText className="h-5 w-5 text-blue-500" />
+                <Link href="/resumes/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <FileText className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Create a Resume</div>
+                      <div className="text-xs text-muted-foreground">Build a professional resume</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium">Create a Resume</div>
-                    <div className="text-xs text-muted-foreground">Build a professional resume</div>
-                  </div>
-                </div>
+                </Link>
                 
-                <div 
-                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
-                  onClick={() => {
-                    setCreateCoverLetterModalOpen(true);
-                  }}
-                >
-                  <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                    <Mail className="h-5 w-5 text-purple-500" />
+                <Link href="/cover-letters/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Mail className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Create a Cover Letter</div>
+                      <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium">Create a Cover Letter</div>
-                    <div className="text-xs text-muted-foreground">Craft a compelling cover letter</div>
-                  </div>
-                </div>
+                </Link>
                 
-                <div 
-                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
-                  onClick={() => {
-                    setCreateInterviewProcessModalOpen(true);
-                  }}
-                >
-                  <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                    <Users className="h-5 w-5 text-green-500" />
+                <Link href="/interview/processes/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Users className="h-5 w-5 text-green-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Start Interview Process</div>
+                      <div className="text-xs text-muted-foreground">Track your job applications</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium">Start Interview Process</div>
-                    <div className="text-xs text-muted-foreground">Track your job applications</div>
-                  </div>
-                </div>
+                </Link>
                 
-                <div 
-                  className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors"
-                  onClick={() => {
-                    setCreateWorkHistoryModalOpen(true);
-                  }}
-                >
-                  <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
-                    <Briefcase className="h-5 w-5 text-amber-500" />
+                <Link href="/work-history/new" className="w-full">
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <Briefcase className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Add Work History</div>
+                      <div className="text-xs text-muted-foreground">Record your work experience</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-medium">Add Work History</div>
-                    <div className="text-xs text-muted-foreground">Record your work experience</div>
-                  </div>
-                </div>
+                </Link>
               </div>
             </DialogContent>
           </Dialog>

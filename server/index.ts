@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
+import { sessionStore } from "./session-store";
 
 // Declare session values on the Express Request type
 declare module "express-session" {
@@ -28,6 +29,7 @@ app.use(session({
   secret: "career-dev-platform-secret", // In production, use environment variable
   resave: false,
   saveUninitialized: false,
+  store: sessionStore,
   cookie: { 
     secure: process.env.NODE_ENV === "production", // Only secure in production
     maxAge: 24 * 60 * 60 * 1000 // 24 hours

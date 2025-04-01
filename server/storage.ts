@@ -54,8 +54,13 @@ import {
   type MentorChatMessage,
   type InsertMentorChatMessage
 } from "@shared/schema";
+import session from "express-session";
+import { sessionStore } from "./session-store";
 
 export interface IStorage {
+  // Session store
+  sessionStore: session.Store;
+  
   // System operations
   getSystemMetrics(): Promise<{
     status: string;
@@ -290,8 +295,13 @@ export class MemStorage implements IStorage {
   private contactMessageIdCounter: number;
   private mentorChatConversationIdCounter: number;
   private mentorChatMessageIdCounter: number;
+  
+  public sessionStore: session.Store;
 
   constructor() {
+    // Use the external session store
+    this.sessionStore = sessionStore;
+    
     this.users = new Map();
     this.goals = new Map();
     this.workHistory = new Map();
