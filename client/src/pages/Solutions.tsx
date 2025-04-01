@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, Briefcase, GraduationCap, Users, Building, Award, Target } from 'lucide-react';
+import { ArrowRight, Briefcase, GraduationCap, Award, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
@@ -50,7 +50,7 @@ export default function Solutions() {
           >
             <h1 className="text-3xl md:text-4xl font-bold mb-6">Comprehensive Career Solutions</h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              CareerTracker.io provides tailored solutions for individuals at every career stage and organizations supporting professional development.
+              CareerTracker.io provides tailored solutions for individuals at every career stage and universities supporting professional development.
             </p>
           </motion.div>
         </div>
@@ -325,7 +325,7 @@ export default function Solutions() {
           >
             <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Career Journey?</h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of professionals and organizations who trust CareerTracker.io for their career development needs.
+              Join thousands of professionals who trust CareerTracker.io for their career development needs.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button 
