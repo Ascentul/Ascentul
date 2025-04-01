@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbar styling for conversation container */
+.conversation-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.conversation-container::-webkit-scrollbar {
+  width: 5px;
+}
+
+.conversation-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversation-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+}
+
+.conversation-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
 @layer base {
   * {
     @apply border-border;

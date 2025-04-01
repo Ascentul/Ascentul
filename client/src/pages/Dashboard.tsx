@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser } from '@/lib/useUserData';
@@ -7,7 +7,7 @@ import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
-import { Target, Award, FileText, Clock, Plus, Bot, CheckCircle } from 'lucide-react';
+import { Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
@@ -81,6 +81,58 @@ export default function Dashboard() {
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ['/api/ai-coach/conversations'],
   });
+  
+  // States for dashboard AI coach mini-conversation
+  const [userQuestion, setUserQuestion] = useState('');
+  const [miniCoachMessages, setMiniCoachMessages] = useState<Array<{role: string, content: string}>>([
+    { role: 'assistant', content: 'Welcome to CareerQuest! I\'m your AI career coach. How can I help you today?' }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  
+  // Function to handle sending a message to the coach
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userQuestion.trim()) return;
+    
+    // Add user's question to the conversation
+    const newMessages = [
+      ...miniCoachMessages,
+      { role: 'user', content: userQuestion.trim() }
+    ];
+    setMiniCoachMessages(newMessages);
+    setUserQuestion('');
+    setIsTyping(true);
+    
+    // Simulate AI response - in a real app, this would call an API
+    setTimeout(() => {
+      let response = '';
+      
+      // Simple pattern matching for demo purposes - in real app we'd use the backend
+      if (userQuestion.toLowerCase().includes('resume')) {
+        response = "For your resume, focus on highlighting relevant skills, quantifiable achievements, and using industry keywords. Make sure your resume is tailored for each job application.";
+      } else if (userQuestion.toLowerCase().includes('interview')) {
+        response = "To prepare for interviews, research the company, practice common questions, prepare your own questions, and plan your attire. Don't forget to follow up with a thank-you note afterward.";
+      } else {
+        response = "That's a great question! I'd recommend focusing on continuous learning, networking, and setting SMART goals. Would you like more specific guidance on this topic?";
+      }
+      
+      setMiniCoachMessages([...newMessages, { role: 'assistant', content: response }]);
+      setIsTyping(false);
+      
+      // Scroll to bottom of conversation
+      if (conversationRef.current) {
+        conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
+      }
+    }, 1000);
+  };
+  
+  // Auto-scroll conversation to bottom when new messages appear
+  useEffect(() => {
+    if (conversationRef.current) {
+      conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
+    }
+  }, [miniCoachMessages]);
 
   // Calculate next level XP requirement
   const nextLevelXp = 1000;
@@ -334,47 +386,85 @@ export default function Dashboard() {
                 <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
                 <Link href="/ai-coach">
                   <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    Open Coach
+                    Open Full Coach
                   </Button>
                 </Link>
               </div>
               
-              {conversations && conversations[0] ? (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
+              {/* Conversation Area */}
+              <div 
+                ref={conversationRef}
+                className="flex-1 min-h-[240px] max-h-[400px] overflow-y-auto mb-4 pr-1 conversation-container"
+              >
+                {/* Map through all messages */}
+                {miniCoachMessages.map((message, index) => (
+                  message.role === 'assistant' ? (
+                    <Card key={index} className="border border-neutral-200 shadow-none p-3 mb-3">
+                      <div className="flex items-start">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <p className="text-sm font-medium">Career Coach</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {message.content}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  ) : (
+                    <div key={index} className="pl-11 pr-1 mb-3">
+                      <div className="bg-muted/50 rounded-lg p-3 text-sm relative">
+                        <p>{message.content}</p>
+                        <div className="absolute top-0 right-0 transform -translate-y-1/2 translate-x-1/2 w-6 h-6 rounded-full bg-background flex items-center justify-center border border-border">
+                          <div className="text-xs text-primary font-medium">You</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        I noticed you're making good progress on your LinkedIn profile goal. Would you like some tips to make your profile stand out?
-                      </p>
+                  )
+                ))}
+                
+                {/* Loading indicator */}
+                {isTyping && (
+                  <Card className="border border-neutral-200 shadow-none p-3 mb-3">
+                    <div className="flex items-start">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <div className="flex space-x-1 items-center">
+                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="h-2 w-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ) : (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4 flex-1">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        Welcome to CareerQuest! I'm your AI career coach. How can I help you today?
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              )}
+                  </Card>
+                )}
+              </div>
               
-              <div className="mt-auto">
-                <Link href="/ai-coach">
-                  <Button className="w-full">
-                    Ask Career Question
-                  </Button>
-                </Link>
+              {/* Input Area */}
+              <div className="mt-auto relative">
+                <form className="relative" onSubmit={handleSendMessage}>
+                  <input 
+                    type="text" 
+                    placeholder="Ask your career question..." 
+                    className="w-full rounded-md border border-border bg-background px-4 py-2 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={userQuestion}
+                    onChange={(e) => setUserQuestion(e.target.value)}
+                    disabled={isTyping}
+                  />
+                  <button 
+                    type="submit" 
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary p-1.5 text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!userQuestion.trim() || isTyping}
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </form>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  For more in-depth coaching, open the <Link href="/ai-coach" className="text-primary hover:underline">full AI Coach</Link>
+                </p>
               </div>
             </CardContent>
           </Card>
