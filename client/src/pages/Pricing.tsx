@@ -279,9 +279,7 @@ export default function Pricing() {
         'Academic goal integration',
         'University-specific career resources',
       ],
-      buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
-        ? 'Current Plan' 
-        : 'Contact Sales',
+      buttonText: 'Sign Up',
       buttonAction: () => setContactDialogOpen(true),
       buttonVariant: 'outline' as const,
       highlighted: false
@@ -372,7 +370,7 @@ export default function Pricing() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full mt-2"
+                        className="w-full mt-2 text-primary border-primary hover:bg-primary/10"
                         onClick={() => setContactDialogOpen(true)}
                       >
                         Contact Sales
