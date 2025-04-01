@@ -264,9 +264,9 @@ export default function Pricing() {
     {
       id: 'university',
       name: 'University Edition',
-      price: universityPricing.price,
-      period: universityPricing.period,
-      savings: universityPricing.savings,
+      price: '',
+      period: '',
+      savings: '',
       description: 'Special plan for university students with academic tools.',
       features: [
         'All Pro features',
@@ -279,7 +279,7 @@ export default function Pricing() {
       ],
       buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
         ? 'Current Plan' 
-        : (user ? 'Get Student Access' : 'Sign Up'),
+        : 'Contact Sales',
       buttonAction: () => user 
         ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
             ? navigate('/') 
