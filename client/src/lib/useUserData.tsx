@@ -70,7 +70,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       password: string; 
       loginType?: 'regular' | 'university' | 'staff' | 'admin' 
     }) => {
-      const res = await apiRequest('POST', '/auth/login', { username, password, loginType });
+      const res = await apiRequest('POST', '/api/auth/login', { username, password, loginType });
       const data = await res.json();
       // Return both user and redirectPath from the server response
       return {
@@ -127,7 +127,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     // Make an API call to logout
-    apiRequest('POST', '/auth/logout')
+    apiRequest('POST', '/api/auth/logout')
       .then((response) => {
         // Check for the special header we added for logout
         const logoutHeader = response.headers.get('X-Auth-Logout');
@@ -330,7 +330,7 @@ export function useVerifyEmail() {
   
   const verifyEmailMutation = useMutation({
     mutationFn: async (token: string) => {
-      const res = await apiRequest('POST', '/auth/verify-email', { token });
+      const res = await apiRequest('POST', '/api/auth/verify-email', { token });
       const data = await res.json();
       return data;
     },
@@ -345,7 +345,7 @@ export function useVerifyEmail() {
 export function useSendVerificationEmail() {
   const sendVerificationMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await apiRequest('POST', '/auth/send-verification-email', { email });
+      const res = await apiRequest('POST', '/api/auth/send-verification-email', { email });
       const data = await res.json();
       return data;
     },
@@ -360,7 +360,7 @@ export function useChangeEmail() {
   
   const changeEmailMutation = useMutation({
     mutationFn: async ({ email, currentPassword }: { email: string; currentPassword: string }) => {
-      const res = await apiRequest('POST', '/auth/send-email-change-verification', { 
+      const res = await apiRequest('POST', '/api/auth/send-email-change-verification', { 
         email, 
         currentPassword 
       });
@@ -382,7 +382,7 @@ export function useVerifyEmailChange() {
   
   const verifyEmailChangeMutation = useMutation({
     mutationFn: async (token: string) => {
-      const res = await apiRequest('GET', `/auth/verify-email-change?token=${token}`);
+      const res = await apiRequest('GET', `/api/auth/verify-email-change?token=${token}`);
       const data = await res.json();
       return data;
     },
@@ -407,7 +407,7 @@ export function useChangePassword() {
       currentPassword: string; 
       newPassword: string;
     }) => {
-      const res = await apiRequest('POST', '/auth/change-password', { 
+      const res = await apiRequest('POST', '/api/auth/change-password', { 
         currentPassword, 
         newPassword 
       });
