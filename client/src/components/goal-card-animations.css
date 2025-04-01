@@ -1,0 +1,11 @@
+.goal-card {
+  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.goal-card.dissolving {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  pointer-events: none;
+}

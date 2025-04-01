@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import '@/assets/css/goal-card-animations.css';
 
 // Import the checklist item type
 import { type GoalChecklistItem } from '@shared/schema';
@@ -310,18 +310,9 @@ export default function GoalCard({
       {/* Render the confetti when goal is completed */}
       <Confetti active={showConfetti} duration={1750} targetRef={cardRef} />
       
-      <motion.div 
+      <div 
         id={`goal-${id}`}
-        animate={isDissolving ? { 
-          opacity: 0,
-          y: 10,
-          scale: 0.98,
-          transition: { duration: 1.5, ease: "easeOut" } 
-        } : { 
-          opacity: 1,
-          y: 0,
-          scale: 1
-        }}
+        className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
       >
         <Card ref={cardRef} className="border border-neutral-200 shadow-none">
           <CardContent className="p-4">
@@ -403,7 +394,7 @@ export default function GoalCard({
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </>
   );
 }
