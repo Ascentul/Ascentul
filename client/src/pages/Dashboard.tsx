@@ -229,34 +229,13 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Level Progress */}
+      {/* Current Goals & Today's Recommendations */}
       <motion.div 
-        className="mb-6 will-change-opacity"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        <motion.div 
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <LevelProgress 
-            level={user.level}
-            xp={user.xp}
-            nextLevelXp={nextLevelXp}
-            rank={user.rank}
-            nextRank={nextRank}
-          />
-        </motion.div>
-      </motion.div>
-      
-      {/* Current Goals */}
-      <motion.div 
-        className="mb-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        {/* Goals Card */}
+        {/* Current Goals */}
         <motion.div 
           className="will-change-transform"
           variants={cardAnimation}
@@ -301,11 +280,66 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
+        
+        {/* Today's Recommendations */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card>
+            <CardContent className="p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Today's Recommendations</h2>
+              </div>
+              
+              <ul className="space-y-4">
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Complete the Python course section on data structures</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Review feedback from your last mock interview session</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
       
-      {/* AI Coach & Today's Recommendations side by side */}
+      {/* Level Progress */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
+        className="mb-6 will-change-opacity"
+        variants={staggeredContainer}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
+        <motion.div 
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <LevelProgress 
+            level={user.level}
+            xp={user.xp}
+            nextLevelXp={nextLevelXp}
+            rank={user.rank}
+            nextRank={nextRank}
+          />
+        </motion.div>
+      </motion.div>
+      
+      {/* AI Coach */}
+      <motion.div 
+        className="mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
@@ -363,40 +397,6 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        {/* Today's Recommendations */}
-        <motion.div
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <Card>
-            <CardContent className="p-5">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Today's Recommendations</h2>
-              </div>
-              
-              <ul className="space-y-4">
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Complete the Python course section on data structures</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Review feedback from your last mock interview session</span>
-                </li>
-              </ul>
             </CardContent>
           </Card>
         </motion.div>
