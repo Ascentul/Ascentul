@@ -41,6 +41,7 @@ export default function GoalCard({
 }: GoalCardProps) {
   const [showChecklist, setShowChecklist] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isDissolving, setIsDissolving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -48,6 +49,20 @@ export default function GoalCard({
   const completionCelebratedRef = useRef(false);
   // Reference to the card element for confetti positioning
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Function to handle the dissolve animation when a goal is completed
+  const handleDissolveAnimation = (goalId: number) => {
+    // Start the dissolve animation
+    setIsDissolving(true);
+    
+    // After the animation finishes (matching our animation duration),
+    // call the onComplete handler to move the goal to the Completed Goals section
+    setTimeout(() => {
+      if (onComplete) {
+        onComplete(goalId);
+      }
+    }, 1500); // 1.5 seconds to match our animation duration
+  };
 
   // Convert status to badge styling
   const getBadgeStyles = () => {
@@ -165,10 +180,8 @@ export default function GoalCard({
         description: "Congratulations on completing your goal!",
       });
       
-      // Call the onComplete callback if provided
-      if (onComplete) {
-        onComplete(id);
-      }
+      // Start the dissolve animation
+      handleDissolveAnimation(id);
     }
     // Also trigger the dissolution if the goal is already marked as completed and all checklist items are done
     else if (allCompleted && totalItems > 0 && status.toLowerCase() === 'completed' && !completionCelebratedRef.current) {
@@ -184,10 +197,8 @@ export default function GoalCard({
         description: "Congratulations on completing your goal!",
       });
       
-      // Call the onComplete callback if provided
-      if (onComplete) {
-        onComplete(id);
-      }
+      // Start the dissolve animation
+      handleDissolveAnimation(id);
     }
     // Check if we should update to "in progress" status
     // This happens when loading the goal initially, rather than on user interaction
@@ -242,10 +253,8 @@ export default function GoalCard({
         description: "Congratulations on completing your goal!",
       });
       
-      // Call the onComplete callback if provided
-      if (onComplete) {
-        onComplete(id);
-      }
+      // Start the dissolve animation
+      handleDissolveAnimation(id);
     } 
     // If already completed and all items are now done, dissolve the goal
     else if (allCompleted && status.toLowerCase() === 'completed' && !completionCelebratedRef.current) {
@@ -261,10 +270,8 @@ export default function GoalCard({
       // Start confetti celebration
       setShowConfetti(true);
       
-      // Call the onComplete callback to handle the dissolve effect
-      if (onComplete) {
-        onComplete(id);
-      }
+      // Start the dissolve animation
+      handleDissolveAnimation(id);
     } else {
       // Check if we should update the status to "in_progress"
       // Condition: Has 2+ checklist items and at least one is checked, but not all are checked
@@ -303,7 +310,19 @@ export default function GoalCard({
       {/* Render the confetti when goal is completed */}
       <Confetti active={showConfetti} duration={1750} targetRef={cardRef} />
       
-      <div id={`goal-${id}`}>
+      <motion.div 
+        id={`goal-${id}`}
+        animate={isDissolving ? { 
+          opacity: 0,
+          y: 10,
+          scale: 0.98,
+          transition: { duration: 1.5, ease: "easeOut" } 
+        } : { 
+          opacity: 1,
+          y: 0,
+          scale: 1
+        }}
+      >
         <Card ref={cardRef} className="border border-neutral-200 shadow-none">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
@@ -384,7 +403,7 @@ export default function GoalCard({
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </>
   );
 }
