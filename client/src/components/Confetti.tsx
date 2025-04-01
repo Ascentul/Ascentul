@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 interface ConfettiProps {
   active: boolean;
   duration?: number;
+  targetRef?: React.RefObject<HTMLElement>;
 }
 
 interface Particle {
@@ -18,7 +19,7 @@ interface Particle {
   rotationSpeed: number;
 }
 
-export default function Confetti({ active, duration = 3000 }: ConfettiProps) {
+export default function Confetti({ active, duration = 2000, targetRef }: ConfettiProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isActive, setIsActive] = useState(active);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -28,6 +29,7 @@ export default function Confetti({ active, duration = 3000 }: ConfettiProps) {
   const colors = [
     '#f94144', '#f3722c', '#f8961e', '#f9c74f', 
     '#90be6d', '#43aa8b', '#4d908e', '#577590', '#277da1',
+    '#0C29AB', '#4361ee', '#3a86ff', '#fc2f68', '#ff006e',
   ];
   
   // Generate random particles when confetti is activated
@@ -43,11 +45,29 @@ export default function Confetti({ active, duration = 3000 }: ConfettiProps) {
       const height = canvas.height;
       const newParticles: Particle[] = [];
       
+      // Calculate target element position for confetti if provided
+      let targetX = width / 2;
+      let targetY = height / 3;
+      let targetWidth = width / 2;
+      let targetHeight = 200;
+      
+      if (targetRef?.current) {
+        const rect = targetRef.current.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height / 2;
+        targetWidth = rect.width * 1.5; // Make confetti area slightly larger than the target
+        targetHeight = rect.height * 1.5;
+      }
+      
       // Create 150 particles
       for (let i = 0; i < 150; i++) {
+        // Generate confetti around the target element or in default position
+        const randomX = targetX - targetWidth / 2 + Math.random() * targetWidth;
+        const randomY = targetY - targetHeight / 2 - Math.random() * 50; // Start slightly above the target
+        
         newParticles.push({
-          x: Math.random() * width,
-          y: -20 - Math.random() * 100, // Start above the visible area
+          x: randomX,
+          y: randomY,
           size: 5 + Math.random() * 10,
           color: colors[Math.floor(Math.random() * colors.length)],
           velocity: {

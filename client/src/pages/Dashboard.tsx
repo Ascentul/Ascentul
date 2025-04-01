@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { type Goal, type GoalChecklistItem } from '@shared/schema';
 
 // Define types for our data outside the component
@@ -170,10 +170,10 @@ export default function Dashboard() {
 
   // Handle when a goal is completed
   const handleGoalCompletion = (id: number) => {
-    // Wait for confetti animation to complete before hiding the goal
+    // Add the goal to hidden list with a small delay to let confetti appear first
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
-    }, 3500); // Wait a bit longer than the confetti duration (3000ms)
+    }, 500); // Shorter delay for a more immediate fade-out while confetti is still visible
   };
 
   const handleEditGoal = (id: number) => {
@@ -428,30 +428,32 @@ export default function Dashboard() {
               {/* Goals List */}
               <div className="space-y-4">
                 {goals && goals.length > 0 ? (
-                  goals
-                    .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out hidden goals
-                    .slice(0, 3)
-                    .map((goal) => (
-                      <motion.div
-                        key={goal.id}
-                        initial={{ opacity: 1 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.5 } }}
-                        className="transition-all duration-500"
-                      >
-                        <GoalCard
-                          id={goal.id}
-                          title={goal.title}
-                          description={goal.description || ''}
-                          progress={goal.progress}
-                          status={goal.status}
-                          dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
-                          checklist={goal.checklist || []}
-                          onEdit={handleEditGoal}
-                          onComplete={handleGoalCompletion}
-                        />
-                      </motion.div>
-                    ))
+                  <AnimatePresence>
+                    {goals
+                      .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out hidden goals
+                      .slice(0, 3)
+                      .map((goal) => (
+                        <motion.div
+                          key={goal.id}
+                          initial={{ opacity: 1 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.5 } }}
+                          className="transition-all duration-500"
+                        >
+                          <GoalCard
+                            id={goal.id}
+                            title={goal.title}
+                            description={goal.description || ''}
+                            progress={goal.progress}
+                            status={goal.status}
+                            dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
+                            checklist={goal.checklist || []}
+                            onEdit={handleEditGoal}
+                            onComplete={handleGoalCompletion}
+                          />
+                        </motion.div>
+                      ))}
+                  </AnimatePresence>
                 ) : (
                   <div className="text-center py-8 text-neutral-500">
                     <Target className="mx-auto h-10 w-10 text-neutral-300 mb-2" />

@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import the checklist item type
 import { type GoalChecklistItem } from '@shared/schema';
@@ -45,6 +46,8 @@ export default function GoalCard({
   
   // Reference to track if we've shown confetti for this goal completion
   const completionCelebratedRef = useRef(false);
+  // Reference to the card element for confetti positioning
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Convert status to badge styling
   const getBadgeStyles = () => {
@@ -223,91 +226,113 @@ export default function GoalCard({
 
   const hasChecklist = checklist && checklist.length > 0;
 
+  // Animation for goal completion fade-out
+  const fadeOut = {
+    initial: { opacity: 1 },
+    animate: { opacity: 1 },
+    exit: { 
+      opacity: 0,
+      scale: 0.95,
+      filter: "blur(4px)",
+      transition: { 
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+  
   return (
     <>
       {/* Render the confetti when goal is completed */}
-      <Confetti active={showConfetti} duration={3000} />
+      <Confetti active={showConfetti} duration={2000} targetRef={cardRef} />
       
-      <Card className="border border-neutral-200 shadow-none">
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-medium">{title}</h3>
-              <p className="text-sm text-neutral-500 mt-1">{description}</p>
+      <motion.div
+        variants={fadeOut}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <Card ref={cardRef} className="border border-neutral-200 shadow-none">
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-medium">{title}</h3>
+                <p className="text-sm text-neutral-500 mt-1">{description}</p>
+              </div>
+              <Badge variant="outline" className={getBadgeStyles()}>
+                {status === 'not_started' ? 'Not started' : 
+                 status === 'in_progress' ? 'In progress' : 
+                 status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
             </div>
-            <Badge variant="outline" className={getBadgeStyles()}>
-              {status === 'not_started' ? 'Not started' : 
-               status === 'in_progress' ? 'In progress' : 
-               status.charAt(0).toUpperCase() + status.slice(1)}
-            </Badge>
-          </div>
 
-          <div className="mt-3">
-            <div className="flex justify-between text-xs mb-1">
-              <span>Progress</span>
-              <span>{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-
-          {/* Checklist Toggle and Checklist Items */}
-          {hasChecklist && (
             <div className="mt-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
-                onClick={() => setShowChecklist(!showChecklist)}
-              >
-                <span>Checklist ({checklist.filter(item => item.completed).length}/{checklist.length})</span>
-                {showChecklist ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </Button>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
 
-              {showChecklist && (
-                <div className="mt-2 space-y-1.5">
-                  {checklist.map((item) => (
-                    <div key={item.id} className="flex items-start gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleChecklistItem(item.id)}
-                        className="h-5 w-5 p-0 mt-0.5"
-                      >
-                        {item.completed ? (
-                          <CheckSquare className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
-                        {item.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            {/* Checklist Toggle and Checklist Items */}
+            {hasChecklist && (
+              <div className="mt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
+                  onClick={() => setShowChecklist(!showChecklist)}
+                >
+                  <span>Checklist ({checklist.filter(item => item.completed).length}/{checklist.length})</span>
+                  {showChecklist ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </Button>
 
-          <div className="mt-3 flex justify-between items-center">
-            <div className="text-xs text-neutral-500 flex items-center">
-              <Calendar className="h-3 w-3 mr-1" />
-              {formatDueDate()}
+                {showChecklist && (
+                  <div className="mt-2 space-y-1.5">
+                    {checklist.map((item) => (
+                      <div key={item.id} className="flex items-start gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleChecklistItem(item.id)}
+                          className="h-5 w-5 p-0 mt-0.5"
+                        >
+                          {item.completed ? (
+                            <CheckSquare className="h-4 w-4 text-primary" />
+                          ) : (
+                            <Square className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
+                          {item.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-3 flex justify-between items-center">
+              <div className="text-xs text-neutral-500 flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {formatDueDate()}
+              </div>
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary/80 p-1 h-auto"
+                  onClick={() => onEdit(id)}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-primary hover:text-primary/80 p-1 h-auto"
-                onClick={() => onEdit(id)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     </>
   );
 }
