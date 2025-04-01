@@ -190,7 +190,7 @@ export default function Pricing() {
       case 'monthly':
         return { price: '30.00', period: 'month', savings: '', displayPrice: '30.00', displayPeriod: 'month' }; // Updated price here
       case 'quarterly':
-        return { price: '60.00', period: '3 months', savings: 'Save $30', displayPrice: '60.00', displayPeriod: '3 months' }; // Updated price here
+        return { price: '60.00', period: '3 months', savings: 'Save $30', displayPrice: '22.00', displayPeriod: 'quarterly' }; // Updated price here
       case 'annual':
         return { price: '144.00', period: 'year', savings: 'Save $216', displayPrice: '15.00', displayPeriod: 'month' }; // Updated price here
       default:
