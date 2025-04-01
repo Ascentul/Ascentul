@@ -317,7 +317,7 @@ export default function Dashboard() {
           style={{ transform: 'translateZ(0)' }}
         >
           <Card>
-            <CardContent className={`p-5 ${!conversations || conversations.length === 0 ? 'h-[200px]' : 'h-auto min-h-[200px] max-h-[500px]'}`}>
+            <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">AI Career Coach</h2>
                 <Link href="/ai-coach">
@@ -327,10 +327,47 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              <AICoachMessage 
-                conversationId={conversations && conversations[0] ? conversations[0].id : undefined}
-                compact={true}
-              />
+              <div className={`transition-all duration-200 ease-in-out ${conversations && conversations.length > 0 ? 'min-h-[200px] max-h-[500px]' : 'h-[200px]'}`}>
+                <Card className="border border-neutral-200 shadow-none">
+                  <CardContent className="p-4">
+                    {conversations && conversations.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="flex items-start">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <Bot className="h-4 w-4" />
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm font-medium">Career Coach</p>
+                            <p className="text-sm text-neutral-600 mt-1">
+                              {conversations[0].lastMessage}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <p className="text-sm font-medium">Career Coach</p>
+                          <p className="text-sm text-neutral-600 mt-1">
+                            Welcome! I'm your AI career coach. How can I help you today?
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="mt-4">
+                  <Link href="/ai-coach">
+                    <Button className="w-full">
+                      Ask Career Question
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
