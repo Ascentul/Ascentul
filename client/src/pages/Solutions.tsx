@@ -11,12 +11,12 @@ export default function Solutions() {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.6 } }
   };
-  
+
   const fadeInUp = {
     hidden: { opacity: 0, y: 40 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
-  
+
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -26,7 +26,7 @@ export default function Solutions() {
       }
     }
   };
-  
+
   const staggerItem = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
@@ -55,12 +55,11 @@ export default function Solutions() {
       <section className="pb-20">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="individuals" className="max-w-4xl mx-auto">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="individuals">For Individuals</TabsTrigger>
               <TabsTrigger value="universities">For Universities</TabsTrigger>
-              <TabsTrigger value="organizations">For Organizations</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="individuals" className="mt-6">
               <motion.div 
                 initial="hidden"
@@ -106,7 +105,7 @@ export default function Solutions() {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
@@ -144,7 +143,7 @@ export default function Solutions() {
                     </Link>
                   </div>
                 </motion.div>
-                
+
                 <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
@@ -199,7 +198,7 @@ export default function Solutions() {
                 </motion.div>
               </motion.div>
             </TabsContent>
-            
+
             <TabsContent value="universities" className="mt-6">
               <motion.div 
                 initial="hidden"
@@ -247,7 +246,7 @@ export default function Solutions() {
                     </div>
                   </div>
                 </motion.div>
-                
+
                 <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
@@ -293,100 +292,10 @@ export default function Solutions() {
                 </motion.div>
               </motion.div>
             </TabsContent>
-            
-            <TabsContent value="organizations" className="mt-6">
-              <motion.div 
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
-                variants={staggerContainer}
-                className="space-y-12"
-              >
-                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                  <div>
-                    <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
-                      <Building className="h-8 w-8 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-4">Corporate Career Development</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Invest in your employees' growth with tools that support their professional development. 
-                      Our corporate solutions help organizations build a culture of continuous learning and advancement.
-                    </p>
-                    <ul className="space-y-2 mb-6">
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Bulk employee access with custom branding
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Management dashboard and analytics
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Integration with existing HR systems
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Career path visualization for employees
-                      </li>
-                    </ul>
-                    <Button variant="outline" className="flex items-center">
-                      Contact Us <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
-                    <div className="text-center">
-                      <Building className="h-16 w-16 text-primary/60 mx-auto mb-4" />
-                      <p className="text-xl font-medium text-primary/70">Corporate Solution</p>
-                    </div>
-                  </div>
-                </motion.div>
-                
-                <motion.div variants={staggerItem} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                  <div className="order-2 md:order-1 rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
-                    <div className="text-center">
-                      <Users className="h-16 w-16 text-primary/60 mx-auto mb-4" />
-                      <p className="text-xl font-medium text-primary/70">Team Development</p>
-                    </div>
-                  </div>
-                  <div className="order-1 md:order-2">
-                    <div className="bg-primary/10 h-14 w-14 rounded-lg flex items-center justify-center mb-4">
-                      <Users className="h-8 w-8 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold mb-4">Team Skills Development</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Enhance your team's skills and productivity with our comprehensive skill development tools. 
-                      Track progress, identify skill gaps, and align individual growth with organizational goals.
-                    </p>
-                    <ul className="space-y-2 mb-6">
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Team skill assessment and gap analysis
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Personalized development plans
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Progress tracking and reporting
-                      </li>
-                      <li className="flex items-start">
-                        <span className="text-primary mr-2">✓</span>
-                        Custom learning path creation
-                      </li>
-                    </ul>
-                    <Button variant="outline" className="flex items-center">
-                      Learn More <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            </TabsContent>
           </Tabs>
         </div>
       </section>
-      
+
       {/* CTA Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
