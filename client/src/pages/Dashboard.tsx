@@ -61,6 +61,7 @@ const DEFAULT_STATS: Stats = {
 export default function Dashboard() {
   const { user } = useUser();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Fetch user statistics
   const { data: statsData } = useQuery<Stats>({
@@ -92,6 +93,25 @@ export default function Dashboard() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const conversationRef = useRef<HTMLDivElement>(null);
+  const quickActionsRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isDropdownOpen && 
+        quickActionsRef.current && 
+        !quickActionsRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
   
   // Function to handle sending a message to the coach
   const handleSendMessage = (e: React.FormEvent) => {
@@ -211,15 +231,23 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
           <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
         </div>
-        <div className="mt-4 md:mt-0 relative group">
-          <Button className="bg-primary hover:bg-primary/90 text-white">
+        <div className="mt-4 md:mt-0 relative" ref={quickActionsRef}>
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-white relative z-20"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Quick Actions
-            <ChevronDown className="ml-2 h-4 w-4 transition-transform group-hover:rotate-180" />
+            <ChevronDown 
+              className={`ml-2 h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+            />
           </Button>
           
           {/* Quick Actions Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-64 p-2 rounded-md shadow-lg bg-white border border-border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+          <div 
+            className={`absolute right-0 mt-2 w-64 p-2 rounded-md shadow-lg bg-white border border-border transition-all duration-200 z-50 
+              ${isDropdownOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+          >
             <div className="py-1">
               <Link href="/goals/new">
                 <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
