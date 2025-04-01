@@ -188,13 +188,13 @@ export default function Pricing() {
   const getPricing = (interval: PlanInterval) => {
     switch (interval) {
       case 'monthly':
-        return { price: '30.00', period: 'month', savings: '' }; // Updated price here
+        return { price: '30.00', period: 'month', savings: '', displayPrice: '30.00', displayPeriod: 'month' }; // Updated price here
       case 'quarterly':
-        return { price: '60.00', period: '3 months', savings: 'Save $30' }; // Updated price here
+        return { price: '60.00', period: '3 months', savings: 'Save $30', displayPrice: '60.00', displayPeriod: '3 months' }; // Updated price here
       case 'annual':
-        return { price: '144.00', period: 'year', savings: 'Save $216' }; // Updated price here
+        return { price: '144.00', period: 'year', savings: 'Save $216', displayPrice: '15.00', displayPeriod: 'month' }; // Updated price here
       default:
-        return { price: '30.00', period: 'month', savings: '' }; // Updated price here
+        return { price: '30.00', period: 'month', savings: '', displayPrice: '30.00', displayPeriod: 'month' }; // Updated price here
     }
   };
 
@@ -240,6 +240,8 @@ export default function Pricing() {
       name: 'Pro',
       price: proPricing.price,
       period: proPricing.period,
+      displayPrice: proPricing.displayPrice || proPricing.price,
+      displayPeriod: proPricing.displayPeriod || proPricing.period,
       savings: proPricing.savings,
       description: 'Everything you need for professional career development.',
       features: [
@@ -354,8 +356,8 @@ export default function Pricing() {
                     <div className="mt-2">
                       {plan.id !== 'university' ? (
                         <>
-                          <span className="text-3xl font-bold">${plan.price}</span>
-                          <span className="text-muted-foreground ml-1">/{plan.period}</span>
+                          <span className="text-3xl font-bold">${plan.displayPrice || plan.price}</span>
+                          <span className="text-muted-foreground ml-1">/{plan.displayPeriod || plan.period}</span>
                         </>
                       ) : (
                         <span className="text-3xl font-bold">Custom Pricing</span>
