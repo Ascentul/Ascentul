@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,14 @@ const Interview = () => {
   const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { showGlobalLoading, hideGlobalLoading } = useLoading();
+  const [location] = useLocation();
+
+  // Check for create=true query parameter to automatically open the form
+  useEffect(() => {
+    if (location.includes('create=true')) {
+      setShowCreateForm(true);
+    }
+  }, [location]);
 
   // Animation variants - keeping them subtle
   const fadeIn = {

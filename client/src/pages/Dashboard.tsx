@@ -275,7 +275,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
                 
-                <Link href="/interviews" className="w-full">
+                <Link href="/interviews?create=true" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <Users className="h-5 w-5 text-green-500" />
