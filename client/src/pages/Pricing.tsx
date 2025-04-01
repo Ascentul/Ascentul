@@ -360,7 +360,7 @@ export default function Pricing() {
                     <CardDescription className="mt-3">{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ul className="space-y-3">
+                    <ul className="space-y-3 mb-3">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-center">
                           <Check className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
@@ -368,6 +368,16 @@ export default function Pricing() {
                         </li>
                       ))}
                     </ul>
+                    {plan.id === 'university' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => setContactDialogOpen(true)}
+                      >
+                        Contact Sales
+                      </Button>
+                    )}
                   </CardContent>
                   <CardFooter>
                     <Button 
