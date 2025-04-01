@@ -8,6 +8,7 @@ import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
 import CreateGoalModal from '@/components/modals/CreateGoalModal';
+import EditGoalModal from '@/components/modals/EditGoalModal';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -71,8 +72,9 @@ export default function Dashboard() {
   const { user } = useUser();
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   
-  // Modal state - Only for Goal creation
+  // Modal states
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
+  const [editGoalModalOpen, setEditGoalModalOpen] = useState(false);
 
   // Fetch user statistics
   const { data: statsData } = useQuery<Stats>({
@@ -159,7 +161,7 @@ export default function Dashboard() {
 
   const handleEditGoal = (id: number) => {
     setSelectedGoalId(id);
-    // In a real app, this would open a modal or navigate to edit page
+    setEditGoalModalOpen(true);
   };
 
   if (!user || !stats) {
@@ -675,10 +677,16 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Goal Modal */}
+      {/* Goal Modals */}
       <CreateGoalModal 
         isOpen={createGoalModalOpen}
         onClose={() => setCreateGoalModalOpen(false)}
+      />
+      <EditGoalModal 
+        isOpen={editGoalModalOpen}
+        onClose={() => setEditGoalModalOpen(false)}
+        goalId={selectedGoalId}
+        goals={goals}
       />
     </motion.div>
   );
