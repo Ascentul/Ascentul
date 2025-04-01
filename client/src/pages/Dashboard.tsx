@@ -7,7 +7,10 @@ import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
-import { Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send } from 'lucide-react';
+import { 
+  Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
+  Briefcase, Mail, Users, ChevronDown
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
@@ -208,13 +211,48 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
           <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
         </div>
-        <div className="mt-4 md:mt-0">
-          <Link href="/goals">
-            <Button className="bg-primary hover:bg-primary/90 text-white">
-              <Plus className="mr-2 h-4 w-4" />
-              New Goal
-            </Button>
-          </Link>
+        <div className="mt-4 md:mt-0 relative group">
+          <Button className="bg-primary hover:bg-primary/90 text-white">
+            <Plus className="mr-2 h-4 w-4" />
+            Quick Actions
+            <ChevronDown className="ml-2 h-4 w-4 transition-transform group-hover:rotate-180" />
+          </Button>
+          
+          {/* Quick Actions Dropdown Menu */}
+          <div className="absolute right-0 mt-2 w-64 p-2 rounded-md shadow-lg bg-white border border-border invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+            <div className="py-1">
+              <Link href="/goals/new">
+                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <Target className="mr-3 h-4 w-4 text-primary" />
+                  <span>Create a Goal</span>
+                </div>
+              </Link>
+              <Link href="/resumes/new">
+                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <FileText className="mr-3 h-4 w-4 text-blue-500" />
+                  <span>Create a Resume</span>
+                </div>
+              </Link>
+              <Link href="/cover-letters/new">
+                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <Mail className="mr-3 h-4 w-4 text-purple-500" />
+                  <span>Create a Cover Letter</span>
+                </div>
+              </Link>
+              <Link href="/interview/processes/new">
+                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <Users className="mr-3 h-4 w-4 text-green-500" />
+                  <span>Start Interview Process</span>
+                </div>
+              </Link>
+              <Link href="/work-history/new">
+                <div className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md cursor-pointer">
+                  <Briefcase className="mr-3 h-4 w-4 text-amber-500" />
+                  <span>Add Work History</span>
+                </div>
+              </Link>
+            </div>
+          </div>
         </div>
       </motion.div>
       
