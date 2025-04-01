@@ -310,47 +310,59 @@ export default function Dashboard() {
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* Goals Card */}
-        <motion.div 
-          className="lg:col-span-2 will-change-transform"
+        {/* AI Coach Preview */}
+        <motion.div
           variants={cardAnimation}
+          className="lg:col-span-2 will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Current Goals</h2>
-                <Link href="/goals">
+                <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
+                <Link href="/ai-coach">
                   <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    View All
+                    Open Coach
                   </Button>
                 </Link>
               </div>
 
-              {/* Goals List */}
-              <div className="space-y-4">
-                {goals && goals.length > 0 ? (
-                  goals.slice(0, 3).map((goal) => (
-                    <GoalCard
-                      key={goal.id}
-                      id={goal.id}
-                      title={goal.title}
-                      description={goal.description || ''}
-                      progress={goal.progress}
-                      status={goal.status}
-                      dueDate={goal.dueDate ? new Date(goal.dueDate) : undefined}
-                      onEdit={handleEditGoal}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-neutral-500">
-                    <Target className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
-                    <p>No goals yet. Create your first career goal!</p>
-                    <Link href="/goals">
-                      <Button variant="link" className="mt-2">Create Goal</Button>
-                    </Link>
+              {conversations && conversations[0] ? (
+                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
+                  <div className="flex items-start">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium">Career Coach</p>
+                      <p className="text-sm text-neutral-600 mt-1">
+                        I noticed you're making good progress on your LinkedIn profile goal. Would you like some tips to make your profile stand out?
+                      </p>
+                    </div>
                   </div>
-                )}
+                </Card>
+              ) : (
+                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
+                  <div className="flex items-start">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Bot className="h-4 w-4" />
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <p className="text-sm font-medium">Career Coach</p>
+                      <p className="text-sm text-neutral-600 mt-1">
+                        Welcome to CareerQuest! I'm your AI career coach. How can I help you today?
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              <div className="mt-4">
+                <Link href="/ai-coach">
+                  <Button className="w-full">
+                    Ask Career Question
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
