@@ -307,8 +307,24 @@ export default function Pricing() {
         </div>
       </section>
 
+      {/* Save with Annual Text */}
+      <section className="pb-2">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={fadeIn}
+            className="max-w-md mx-auto text-center"
+          >
+            <p className="text-lg font-medium">
+              Save up to <span className="text-primary font-bold">50%</span> with annual billing
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Billing Interval Toggle */}
-      <section className="pb-8">
+      <section className="pb-8 pt-2">
         <div className="container mx-auto px-4">
           <motion.div 
             initial="hidden"
