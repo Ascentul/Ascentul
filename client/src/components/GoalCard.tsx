@@ -51,22 +51,24 @@ export default function GoalCard({
         return 'bg-green-100 text-green-800';
       case 'overdue':
         return 'bg-red-100 text-red-800';
+      case 'not_started':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   // Format due date display
   const formatDueDate = () => {
     if (!dueDate) return 'No due date';
-    
+
     const now = new Date();
     const dueTime = new Date(dueDate).getTime();
-    
+
     if (dueTime < now.getTime()) {
       return `Overdue by ${formatDistanceToNow(dueTime)}`;
     }
-    
+
     return `Due in ${formatDistanceToNow(dueTime)}`;
   };
 
@@ -79,14 +81,14 @@ export default function GoalCard({
     onMutate: async (updatedGoal) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
-      
+
       // Snapshot the previous value
       const previousGoals = queryClient.getQueryData(['/api/goals']);
-      
+
       // Optimistically update to the new value
       queryClient.setQueryData(['/api/goals'], (old: any[]) => {
         if (!old) return [];
-        
+
         return old.map(goal => {
           if (goal.id === id) {
             return {
@@ -97,7 +99,7 @@ export default function GoalCard({
           return goal;
         });
       });
-      
+
       // Return a context object with the snapshotted value
       return { previousGoals };
     },
@@ -106,7 +108,7 @@ export default function GoalCard({
       if (context?.previousGoals) {
         queryClient.setQueryData(['/api/goals'], context.previousGoals);
       }
-      
+
       toast({
         title: "Failed to update checklist",
         description: error.message || "There was a problem updating the checklist. Please try again.",
@@ -122,21 +124,21 @@ export default function GoalCard({
   // Toggle checklist item
   const toggleChecklistItem = (itemId: string) => {
     if (!checklist) return;
-    
+
     const updatedChecklist = checklist.map(item => {
       if (item.id === itemId) {
         return { ...item, completed: !item.completed };
       }
       return item;
     });
-    
+
     // Calculate new progress based on checklist items
     const completedItems = updatedChecklist.filter(item => item.completed).length;
     const totalItems = updatedChecklist.length;
     const newProgress = totalItems > 0 
       ? Math.round((completedItems / totalItems) * 100) 
       : progress;
-    
+
     // Update the goal with new checklist and progress
     updateChecklistMutation.mutate({
       checklist: updatedChecklist,
@@ -158,7 +160,7 @@ export default function GoalCard({
             {status}
           </Badge>
         </div>
-        
+
         <div className="mt-3">
           <div className="flex justify-between text-xs mb-1">
             <span>Progress</span>
@@ -179,7 +181,7 @@ export default function GoalCard({
               <span>Checklist ({checklist.filter(item => item.completed).length}/{checklist.length})</span>
               {showChecklist ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
-            
+
             {showChecklist && (
               <div className="mt-2 space-y-1.5">
                 {checklist.map((item) => (
@@ -206,7 +208,7 @@ export default function GoalCard({
             )}
           </div>
         )}
-        
+
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-neutral-500 flex items-center">
             <Calendar className="h-3 w-3 mr-1" />
