@@ -138,78 +138,80 @@ export default function AICoachMessage({
 
   return (
     <div className={`flex flex-col ${compact ? 'h-[400px]' : 'h-[calc(100vh-12rem)]'}`}>
-      <ScrollArea className="flex-1 px-2 pt-2">
-        <div className="space-y-4">
-          {messages.length === 0 ? (
-            <div className="flex items-start p-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Bot className="h-4 w-4" />
+      <div className="flex flex-col flex-grow overflow-hidden">
+        <ScrollArea className="flex-grow px-2 pt-2">
+          <div className="space-y-4">
+            {messages.length === 0 ? (
+              <div className="flex items-start p-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium">Career Coach</p>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    Welcome to CareerTracker! I'm your AI career coach. I can see your profile data 
+                    and can help with personalized career advice. What would you like to know?
+                  </p>
+                </div>
               </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium">Career Coach</p>
-                <p className="text-sm text-neutral-600 mt-1">
-                  Welcome to CareerTracker! I'm your AI career coach. I can see your profile data 
-                  and can help with personalized career advice. What would you like to know?
-                </p>
-              </div>
-            </div>
-          ) : (
-            messages.map((msg, index) => (
-              <div 
-                key={index}
-                className={`flex items-start ${msg.role === 'user' ? 'justify-end' : ''}`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                )}
-                
-                <Card 
-                  className={`
-                    max-w-[80%] p-3 
-                    ${msg.role === 'user' 
-                      ? 'ml-2 bg-primary/10' 
-                      : 'ml-2 border border-neutral-200'
-                    }
-                  `}
+            ) : (
+              messages.map((msg, index) => (
+                <div 
+                  key={index}
+                  className={`flex items-start ${msg.role === 'user' ? 'justify-end' : ''}`}
                 >
-                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <p className="text-sm font-medium">
-                      {msg.role === 'user' ? 'You' : 'Career Coach'}
-                    </p>
-                    <div className="text-sm mt-1 prose prose-sm max-w-none">
-                      <ReactMarkdown>
-                        {msg.content}
-                      </ReactMarkdown>
+                  {msg.role === 'assistant' && (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Bot className="h-4 w-4" />
                     </div>
+                  )}
+                  
+                  <Card 
+                    className={`
+                      max-w-[80%] p-3 
+                      ${msg.role === 'user' 
+                        ? 'ml-2 bg-primary/10' 
+                        : 'ml-2 border border-neutral-200'
+                      }
+                    `}
+                  >
+                    <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                      <p className="text-sm font-medium">
+                        {msg.role === 'user' ? 'You' : 'Career Coach'}
+                      </p>
+                      <div className="text-sm mt-1 prose prose-sm max-w-none">
+                        <ReactMarkdown>
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              ))
+            )}
+            
+            {isPending && (
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <Card className="ml-2 p-3 border border-neutral-200">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-150"></div>
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-300"></div>
+                    <span className="text-sm">Thinking...</span>
                   </div>
                 </Card>
               </div>
-            ))
-          )}
-          
-          {isPending && (
-            <div className="flex items-start">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Bot className="h-4 w-4" />
-              </div>
-              <Card className="ml-2 p-3 border border-neutral-200">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-150"></div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-300"></div>
-                  <span className="text-sm">Thinking...</span>
-                </div>
-              </Card>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+      </div>
       
-      <div className="p-2 mt-auto border-t">
+      <div className="p-2 mt-2 border-t sticky bottom-0 bg-background">
         <div className="flex space-x-2">
           <Input
             placeholder="Ask a career question..."
