@@ -235,7 +235,7 @@ export default function GoalCard({
       scale: 0.95,
       filter: "blur(4px)",
       transition: { 
-        duration: 0.5,
+        duration: 1.5,
         ease: "easeOut"
       }
     }
@@ -244,7 +244,7 @@ export default function GoalCard({
   return (
     <>
       {/* Render the confetti when goal is completed */}
-      <Confetti active={showConfetti} duration={2000} targetRef={cardRef} />
+      <Confetti active={showConfetti} duration={3500} targetRef={cardRef} />
       
       <motion.div
         variants={fadeOut}

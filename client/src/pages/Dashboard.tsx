@@ -170,10 +170,11 @@ export default function Dashboard() {
 
   // Handle when a goal is completed
   const handleGoalCompletion = (id: number) => {
-    // Add the goal to hidden list with a small delay to let confetti appear first
+    // Add the goal to hidden list with a delay to let confetti appear first
+    // This delay helps coordinate the confetti celebration and the fade-out animation
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
-    }, 500); // Shorter delay for a more immediate fade-out while confetti is still visible
+    }, 1500); // Increased delay to sync with confetti celebration
   };
 
   const handleEditGoal = (id: number) => {
@@ -437,7 +438,7 @@ export default function Dashboard() {
                           key={goal.id}
                           initial={{ opacity: 1 }}
                           animate={{ opacity: 1 }}
-                          exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.5 } }}
+                          exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 1.5 } }}
                           className="transition-all duration-500"
                         >
                           <GoalCard
