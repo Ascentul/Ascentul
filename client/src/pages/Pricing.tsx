@@ -282,11 +282,7 @@ export default function Pricing() {
       buttonText: isSubscriptionActive && user?.subscriptionPlan === 'university' 
         ? 'Current Plan' 
         : 'Contact Sales',
-      buttonAction: () => user 
-        ? (isSubscriptionActive && user.subscriptionPlan === 'university' 
-            ? navigate('/') 
-            : handleSubscribeWithInterval('university'))
-        : navigate('/auth'),
+      buttonAction: () => setContactDialogOpen(true),
       buttonVariant: 'outline' as const,
       highlighted: false
     }
@@ -414,7 +410,7 @@ export default function Pricing() {
               We offer special licensing for universities to provide CareerTracker.io to their students.
               Contact us for custom pricing and integration options.
             </p>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setContactDialogOpen(true)}>
               Contact Sales
             </Button>
           </motion.div>
@@ -523,7 +519,7 @@ export default function Pricing() {
                 <h3 className="text-lg font-semibold mb-3">Manage Your Subscription</h3>
                 <p className="text-muted-foreground mb-6">
                   You're currently subscribed to the {user?.subscriptionPlan === 'premium' ? 'Pro' : 'University Edition'} plan.
-                  Your next billing date is {user?.subscriptionRenewalDate ? new Date(user.subscriptionRenewalDate).toLocaleDateString() : 'unknown'}.
+                  {/* Renewal date would be shown here when available */}
                 </p>
                 <div className="flex justify-end">
                   <Button 
