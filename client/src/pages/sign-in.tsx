@@ -70,7 +70,7 @@ export default function SignInPage() {
       <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
           <h1 className="text-3xl font-bold mb-6 text-center">
-            {loginType === 'regular' ? 'Career Coach' : 'University Edition'}
+            {loginType === 'regular' ? <span className="text-primary">CareerTracker.io</span> : 'University Edition'}
           </h1>
           
           <Card>
