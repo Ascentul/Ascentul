@@ -1558,6 +1558,173 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Career Mentor Routes
+  apiRouter.get("/mentor-chat/conversations", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const conversations = await storage.getMentorChatConversations(user.id);
+      res.status(200).json(conversations);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching mentor conversations" });
+    }
+  });
+  
+  apiRouter.post("/mentor-chat/conversations", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { title, category, mentorPersona } = req.body;
+      
+      if (!title) {
+        return res.status(400).json({ message: "Title is required" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const conversation = await storage.createMentorChatConversation(user.id, { 
+        title,
+        category: category || "general",
+        mentorPersona: mentorPersona || "career_coach" 
+      });
+      
+      // Add initial AI message based on persona
+      let welcomeMessage = "Hello! I'm your career mentor. How can I help you today?";
+      
+      switch(mentorPersona) {
+        case 'interviewer':
+          welcomeMessage = "Hi there! I'm your interview specialist. I can help you prepare for interviews, practice responses, and develop strategies to impress potential employers. What would you like to discuss today?";
+          break;
+        case 'industry_expert':
+          welcomeMessage = "Hello! I'm your industry advisor. I can provide insights about industry trends, company cultures, and market demands. What industry questions can I help with today?";
+          break;
+        case 'resume_expert':
+          welcomeMessage = "Welcome! I specialize in resume and cover letter optimization. I can help you craft compelling documents that highlight your strengths and catch recruiters' attention. How can I assist with your application materials?";
+          break;
+        default:
+          welcomeMessage = "Hello! I'm your career coach and mentor. I'm here to guide you through your professional journey with personalized advice and actionable strategies. What's on your mind today?";
+      }
+      
+      await storage.addMentorChatMessage({
+        conversationId: conversation.id,
+        isUser: false,
+        message: welcomeMessage,
+        role: "assistant"
+      });
+      
+      res.status(201).json(conversation);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating mentor conversation" });
+    }
+  });
+  
+  apiRouter.get("/mentor-chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const conversationId = parseInt(id);
+      
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const conversation = await storage.getMentorChatConversation(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Ensure the conversation belongs to the current user
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this conversation" });
+      }
+      
+      const messages = await storage.getMentorChatMessages(conversationId);
+      res.status(200).json(messages);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching mentor messages" });
+    }
+  });
+  
+  apiRouter.post("/mentor-chat/conversations/:id/messages", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const conversationId = parseInt(id);
+      
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      const conversation = await storage.getMentorChatConversation(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+      
+      // Ensure the conversation belongs to the current user
+      if (conversation.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to access this conversation" });
+      }
+      
+      // Add user message
+      const userMessage = await storage.addMentorChatMessage({
+        conversationId,
+        isUser: true,
+        message,
+        role: "user"
+      });
+      
+      // Get relevant user context for the AI
+      const goals = await storage.getGoals(user.id);
+      const workHistoryItems = await storage.getWorkHistory(user.id);
+      
+      const userContext = {
+        goals: goals.map(g => g.title),
+        workHistory: workHistoryItems.map(w => `${w.position} at ${w.company}`)
+      };
+      
+      // Get AI response based on mentor persona
+      const aiResponse = await getCareerAdvice(message, userContext);
+      
+      // Add AI message
+      const aiMessage = await storage.addMentorChatMessage({
+        conversationId,
+        isUser: false,
+        message: aiResponse,
+        role: "assistant"
+      });
+      
+      res.status(201).json([userMessage, aiMessage]);
+    } catch (error) {
+      res.status(500).json({ message: "Error adding mentor message" });
+    }
+  });
+  
   // AI Coach Routes
   apiRouter.get("/ai-coach/conversations", requireAuth, async (req: Request, res: Response) => {
     try {

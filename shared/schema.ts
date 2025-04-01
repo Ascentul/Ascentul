@@ -386,6 +386,7 @@ export const mentorChatMessages = pgTable("mentor_chat_messages", {
   isUser: boolean("is_user").notNull(),
   message: text("message").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
+  role: text("role"),
 });
 
 export const insertMentorChatMessageSchema = createInsertSchema(mentorChatMessages).omit({
