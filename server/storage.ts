@@ -47,6 +47,66 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  // System operations
+  getSystemMetrics(): Promise<{
+    status: string;
+    uptime: number;
+    lastIncident: string;
+    lastChecked: string;
+  }>;
+  
+  getComponentStatus(): Promise<{
+    id: string;
+    name: string;
+    status: string;
+    health: number;
+    responseTime: string;
+    icon: string;
+    details?: {
+      description: string;
+      metrics: {
+        name: string;
+        value: string;
+        change?: string;
+        trend?: 'up' | 'down' | 'stable';
+      }[];
+      issues?: {
+        id: string;
+        title: string;
+        description: string;
+        severity: string;
+        timeDetected: string;
+        suggestedAction?: string;
+        impact?: string;
+        status?: 'open' | 'in_progress' | 'resolved';
+      }[];
+      logs?: {
+        timestamp: string;
+        message: string;
+        level: string;
+      }[];
+      suggestedActions?: {
+        id: string;
+        title: string;
+        description: string;
+        impact: 'high' | 'medium' | 'low';
+        effort: 'easy' | 'medium' | 'complex';
+        eta: string;
+        command?: string;
+        requiresConfirmation?: boolean;
+        requiresCredentials?: boolean;
+        status?: 'available' | 'in_progress' | 'completed' | 'failed';
+      }[];
+    };
+  }[]>;
+
+  getRecentAlerts(): Promise<{
+    title: string;
+    description: string;
+    severity: string;
+    time: string;
+  }[]>;
+  
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -964,6 +1024,402 @@ export class MemStorage implements IStorage {
       monthlyXp: monthlyXpArray
     };
   }
+  
+  // System monitoring methods
+  async getSystemMetrics(): Promise<{
+    status: string;
+    uptime: number;
+    lastIncident: string;
+    lastChecked: string;
+  }> {
+    // In a real application, these values would be retrieved from monitoring systems
+    return {
+      status: "operational",
+      uptime: 99.98,
+      lastIncident: "2 days ago",
+      lastChecked: new Date().toLocaleTimeString()
+    };
+  }
+  
+  async getComponentStatus(): Promise<{
+    id: string;
+    name: string;
+    status: string;
+    health: number;
+    responseTime: string;
+    icon: string;
+    details?: {
+      description: string;
+      metrics: {
+        name: string;
+        value: string;
+        change?: string;
+        trend?: 'up' | 'down' | 'stable';
+      }[];
+      issues?: {
+        id: string;
+        title: string;
+        description: string;
+        severity: string;
+        timeDetected: string;
+        suggestedAction?: string;
+        impact?: string;
+        status?: 'open' | 'in_progress' | 'resolved';
+      }[];
+      logs?: {
+        timestamp: string;
+        message: string;
+        level: string;
+      }[];
+      suggestedActions?: {
+        id: string;
+        title: string;
+        description: string;
+        impact: 'high' | 'medium' | 'low';
+        effort: 'easy' | 'medium' | 'complex';
+        eta: string;
+        command?: string;
+        requiresConfirmation?: boolean;
+        requiresCredentials?: boolean;
+        status?: 'available' | 'in_progress' | 'completed' | 'failed';
+      }[];
+    };
+  }[]> {
+    // This data would normally come from actual system monitoring
+    // Using mock data for demonstration purposes
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toLocaleTimeString();
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000).toLocaleTimeString();
+    
+    return [
+      {
+        id: "auth-service",
+        name: "Authentication Service",
+        status: "operational",
+        health: 98,
+        responseTime: "42ms",
+        icon: "Shield", // Corresponds to lucide-react icon
+        details: {
+          description: "Handles user authentication and session management",
+          metrics: [
+            {
+              name: "Success Rate",
+              value: "99.7%",
+              change: "+0.2%",
+              trend: "up"
+            },
+            {
+              name: "Avg. Response Time",
+              value: "42ms",
+              change: "-3ms",
+              trend: "down"
+            },
+            {
+              name: "Active Sessions",
+              value: "2,457",
+              change: "+125",
+              trend: "up"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "User login rate normal",
+              level: "info"
+            },
+            {
+              timestamp: fiveMinutesAgo,
+              message: "Session cleanup completed",
+              level: "info"
+            },
+            {
+              timestamp: tenMinutesAgo,
+              message: "Rate limiting applied to IP 192.168.1.127",
+              level: "warning"
+            }
+          ]
+        }
+      },
+      {
+        id: "api-gateway",
+        name: "API Gateway",
+        status: "operational",
+        health: 97,
+        responseTime: "65ms",
+        icon: "Network",
+        details: {
+          description: "Entry point for all API calls to the platform",
+          metrics: [
+            {
+              name: "Request Rate",
+              value: "876/min",
+              change: "+12%",
+              trend: "up"
+            },
+            {
+              name: "Avg. Response Time",
+              value: "65ms",
+              change: "+5ms",
+              trend: "up"
+            },
+            {
+              name: "Error Rate",
+              value: "0.2%",
+              change: "-0.1%",
+              trend: "down"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "Traffic within normal parameters",
+              level: "info"
+            },
+            {
+              timestamp: fiveMinutesAgo,
+              message: "API rate limits adjusted",
+              level: "info"
+            }
+          ]
+        }
+      },
+      {
+        id: "database",
+        name: "Database",
+        status: "degraded",
+        health: 89,
+        responseTime: "120ms",
+        icon: "Database",
+        details: {
+          description: "Primary data storage for user and application data",
+          metrics: [
+            {
+              name: "Query Response Time",
+              value: "120ms",
+              change: "+35ms",
+              trend: "up"
+            },
+            {
+              name: "Connection Pool Usage",
+              value: "78%",
+              change: "+15%",
+              trend: "up"
+            },
+            {
+              name: "Disk Space",
+              value: "67%",
+              change: "+3%",
+              trend: "up"
+            }
+          ],
+          issues: [
+            {
+              id: "db-1",
+              title: "Increased query latency",
+              description: "Some queries are taking longer than expected due to index fragmentation",
+              severity: "medium",
+              timeDetected: "30 minutes ago",
+              suggestedAction: "Run REINDEX operation",
+              impact: "Affects approximately 15% of user requests",
+              status: "in_progress"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "Connection pool near capacity",
+              level: "warning"
+            },
+            {
+              timestamp: fiveMinutesAgo,
+              message: "Query optimizer statistics update started",
+              level: "info"
+            },
+            {
+              timestamp: tenMinutesAgo,
+              message: "Slow query detected: SELECT * FROM resumes WHERE...",
+              level: "warning"
+            }
+          ],
+          suggestedActions: [
+            {
+              id: "db-action-1",
+              title: "Optimize Database Indexes",
+              description: "Run maintenance task to rebuild fragmented indexes",
+              impact: "medium",
+              effort: "easy",
+              eta: "5 minutes",
+              command: "REINDEX DATABASE;",
+              requiresConfirmation: true,
+              status: "available"
+            },
+            {
+              id: "db-action-2",
+              title: "Increase Connection Pool",
+              description: "Adjust max connections from 100 to 150",
+              impact: "high",
+              effort: "medium",
+              eta: "10 minutes",
+              requiresConfirmation: true,
+              requiresCredentials: true,
+              status: "available"
+            }
+          ]
+        }
+      },
+      {
+        id: "ai-service",
+        name: "AI Service",
+        status: "operational",
+        health: 95,
+        responseTime: "320ms",
+        icon: "Brain",
+        details: {
+          description: "Handles all AI-related features including career advice and resume suggestions",
+          metrics: [
+            {
+              name: "API Usage",
+              value: "43%",
+              change: "-2%",
+              trend: "down"
+            },
+            {
+              name: "Response Time",
+              value: "320ms",
+              change: "-15ms",
+              trend: "down"
+            },
+            {
+              name: "Token Usage",
+              value: "2.1M/day",
+              change: "+0.2M",
+              trend: "up"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "API quota usage within acceptable range",
+              level: "info"
+            },
+            {
+              timestamp: fiveMinutesAgo,
+              message: "Model cache refreshed",
+              level: "info"
+            }
+          ]
+        }
+      },
+      {
+        id: "storage-service",
+        name: "File Storage",
+        status: "operational",
+        health: 99,
+        responseTime: "18ms",
+        icon: "HardDrive",
+        details: {
+          description: "Handles all file storage including resume documents and profile images",
+          metrics: [
+            {
+              name: "Storage Utilization",
+              value: "42%",
+              change: "+1%",
+              trend: "up"
+            },
+            {
+              name: "Upload Success Rate",
+              value: "99.9%",
+              trend: "stable"
+            },
+            {
+              name: "Download Speed",
+              value: "15MB/s",
+              trend: "stable"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "Routine maintenance complete",
+              level: "info"
+            },
+            {
+              timestamp: tenMinutesAgo,
+              message: "Storage quota increased for premium users",
+              level: "info"
+            }
+          ]
+        }
+      },
+      {
+        id: "payment-service",
+        name: "Payment Processing",
+        status: "operational",
+        health: 100,
+        responseTime: "205ms",
+        icon: "CreditCard",
+        details: {
+          description: "Handles all subscription and payment processing through Stripe",
+          metrics: [
+            {
+              name: "Transaction Success",
+              value: "100%",
+              trend: "stable"
+            },
+            {
+              name: "Response Time",
+              value: "205ms",
+              change: "-10ms",
+              trend: "down"
+            },
+            {
+              name: "Active Subscriptions",
+              value: "1,205",
+              change: "+15",
+              trend: "up"
+            }
+          ],
+          logs: [
+            {
+              timestamp: timestamp,
+              message: "Webhook processing normal",
+              level: "info"
+            },
+            {
+              timestamp: fiveMinutesAgo,
+              message: "Reconciliation process completed",
+              level: "info"
+            }
+          ]
+        }
+      }
+    ];
+  }
+  
+  async getRecentAlerts(): Promise<{
+    title: string;
+    description: string;
+    severity: string;
+    time: string;
+  }[]> {
+    // This would normally come from a monitoring or alerting system
+    return [
+      {
+        title: "Database performance degraded",
+        description: "Some database operations are experiencing increased latency. Our team is investigating.",
+        severity: "warning",
+        time: "15 minutes ago"
+      },
+      {
+        title: "System maintenance completed",
+        description: "Scheduled maintenance has been completed successfully with no service interruptions.",
+        severity: "success",
+        time: "2 hours ago"
+      }
+    ];
+  }
+  
   // Interview Process Tracking operations
   async getInterviewProcesses(userId: number): Promise<InterviewProcess[]> {
     return Array.from(this.interviewProcesses.values())

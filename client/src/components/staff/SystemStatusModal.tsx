@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -111,24 +111,42 @@ interface SystemStatusData {
 export default function SystemStatusModal({ open, onOpenChange }: SystemStatusModalProps) {
   const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedComponent, setSelectedComponent] = useState<typeof systemStatus.components[0] | null>(null);
   const [currentCommand, setCurrentCommand] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<{id: string, status: 'completed' | 'failed'} | null>(null);
   
+  // Use a default status object for initial state
+  const defaultStatus: SystemStatusData = {
+    overall: {
+      status: 'loading',
+      uptime: 0,
+      lastIncident: 'Loading...',
+      lastChecked: new Date().toLocaleTimeString()
+    },
+    components: [
+      { 
+        id: 'web-app',
+        name: 'Web Application', 
+        status: 'operational', 
+        health: 100,
+        responseTime: '42ms',
+        icon: Globe
+      }
+    ],
+    alerts: []
+  };
+  
   const { data: systemStatus, isLoading } = useQuery({
     queryKey: ['/api/system/status'],
-    queryFn: async () => {
-      const response = await fetch('/api/system/status');
-      if (!response.ok) {
-        throw new Error('Failed to fetch system status');
-      }
-      return response.json();
-    },
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1
   });
+  
+  // Use the selectedComponent state after defining systemStatus
+  const [selectedComponent, setSelectedComponent] = useState<typeof defaultStatus.components[0] | null>(null);
 
-  const [localStatus, setLocalStatus] = useState(systemStatus || {
+  // Set local status from the API result or use default
+  const [localSystemStatus, setLocalSystemStatus] = useState<SystemStatusData>({
     overall: {
       status: 'loading',
       uptime: 0,
@@ -341,6 +359,13 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
     ]
   });
 
+  // Update local state when API data is loaded
+  useEffect(() => {
+    if (systemStatus) {
+      setLocalSystemStatus(systemStatus);
+    }
+  }, [systemStatus]);
+
   // Function to simulate refreshing status data
   const refreshStatus = () => {
     setIsRefreshing(true);
@@ -348,7 +373,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
     // Simulate API call delay
     setTimeout(() => {
       // Update some values to simulate real-time changes
-      setSystemStatus(prev => {
+      setLocalSystemStatus(prev => {
         const newComponents = [...prev.components];
         
         // Randomly improve or degrade a component
@@ -440,7 +465,7 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
       const success = Math.random() > 0.2; // 80% success rate for demo purposes
       
       // Update component health based on the action
-      setSystemStatus(prev => {
+      setLocalSystemStatus(prev => {
         const newComponents = [...prev.components];
         
         // Find the component we're working with
@@ -560,24 +585,24 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold">Platform Status</h3>
                 <Badge className="bg-green-500 hover:bg-green-600">
-                  {systemStatus.overall.uptime}% Uptime
+                  {localSystemStatus.overall.uptime}% Uptime
                 </Badge>
               </div>
               
               <Progress 
-                value={parseFloat(systemStatus.overall.uptime.toString())} 
+                value={parseFloat(localSystemStatus.overall.uptime.toString())} 
                 className="h-2 mb-2" 
               />
               
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Last incident: {systemStatus.overall.lastIncident}</span>
-                <span>Last checked: {systemStatus.overall.lastChecked || 'Now'}</span>
+                <span>Last incident: {localSystemStatus.overall.lastIncident}</span>
+                <span>Last checked: {localSystemStatus.overall.lastChecked || 'Now'}</span>
               </div>
             </div>
             
             {/* Component Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {systemStatus.components.map((component, i) => {
+              {localSystemStatus.components.map((component, i) => {
                 const Icon = component.icon;
                 return (
                   <div 
@@ -636,11 +661,11 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
             </div>
             
             {/* Alerts */}
-            {systemStatus.alerts.length > 0 && (
+            {localSystemStatus.alerts.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2">Active Alerts</h3>
                 <div className="space-y-2">
-                  {systemStatus.alerts.map((alert, i) => (
+                  {localSystemStatus.alerts.map((alert, i) => (
                     <div key={i} className={`p-3 border rounded-md ${
                       alert.severity === 'warning' 
                         ? 'border-yellow-200 bg-yellow-50'

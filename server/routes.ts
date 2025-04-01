@@ -1962,7 +1962,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
 
   // System Status Routes
-  apiRouter.get("/system/status", requireAuth, async (req: Request, res: Response) => {
+  apiRouter.get("/system/status", async (req: Request, res: Response) => {
     try {
       // Get current system metrics
       const systemMetrics = await storage.getSystemMetrics();
