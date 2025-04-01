@@ -317,19 +317,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Auth Routes
   apiRouter.post("/auth/login", async (req: Request, res: Response) => {
     try {
-      const { username, password, loginType } = req.body;
+      const { email, password, loginType } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
       
-      // Check if username is an email address (contains @ symbol)
-      let user;
-      if (username.includes('@')) {
-        user = await storage.getUserByEmail(username);
-      } else {
-        user = await storage.getUserByUsername(username);
-      }
+      // Find user by email
+      let user = await storage.getUserByEmail(email);
       
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -361,9 +356,12 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           return res.status(403).json({ message: "Access denied. This account is not associated with a university." });
         }
         
-        if (loginType === "regular" && (user.userType === "university_student" || user.userType === "university_admin")) {
-          return res.status(403).json({ message: "Access denied. Please use the university login portal." });
-        }
+        // MODIFICATION: Allow university users to log in through the regular portal
+        // This enables university students to access both portals with the same credentials
+        // Original code blocked university users from using the regular login portal:
+        // if (loginType === "regular" && (user.userType === "university_student" || user.userType === "university_admin")) {
+        //   return res.status(403).json({ message: "Access denied. Please use the university login portal." });
+        // }
         
         if (loginType === "admin" && user.userType !== "admin") {
           return res.status(403).json({ message: "Access denied. You do not have administrator privileges." });

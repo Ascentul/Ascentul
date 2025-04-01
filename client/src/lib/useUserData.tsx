@@ -35,7 +35,7 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  login: (username: string, password: string, loginType?: 'regular' | 'university' | 'staff' | 'admin') => Promise<User>;
+  login: (email: string, password: string, loginType?: 'staff' | 'admin') => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
@@ -62,15 +62,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async ({ 
-      username, 
+      email, 
       password, 
       loginType 
     }: { 
-      username: string; 
+      email: string; 
       password: string; 
-      loginType?: 'regular' | 'university' | 'staff' | 'admin' 
+      loginType?: 'staff' | 'admin' 
     }) => {
-      const res = await apiRequest('POST', '/api/auth/login', { username, password, loginType });
+      const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
       const data = await res.json();
       // Return both user and redirectPath from the server response
       return {
@@ -117,11 +117,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string, loginType?: 'regular' | 'university' | 'staff' | 'admin') => {
+  const login = async (email: string, password: string, loginType?: 'staff' | 'admin') => {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');
     
-    const result = await loginMutation.mutateAsync({ username, password, loginType });
+    const result = await loginMutation.mutateAsync({ email, password, loginType });
     return result.user;
   };
 
