@@ -184,7 +184,7 @@ export default function StaffDashboard() {
                         </div>
                         <span>{dashboardData.universityUsers}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground mt-8">
+                      <div className="text-sm text-muted-foreground mt-12">
                         {((dashboardData.premiumUsers + dashboardData.universityUsers) / dashboardData.activeUsers * 100).toFixed(1)}% paid conversion
                       </div>
                     </div>
