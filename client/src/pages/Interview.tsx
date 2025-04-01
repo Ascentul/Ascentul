@@ -42,7 +42,10 @@ const Interview = () => {
 
   // Check for create=true query parameter to automatically open the form
   useEffect(() => {
-    if (location.includes('create=true')) {
+    // Parse the URL to check for the create=true parameter
+    const url = new URL(window.location.href);
+    const shouldCreate = url.searchParams.get('create');
+    if (shouldCreate === 'true') {
       setShowCreateForm(true);
     }
   }, [location]);
