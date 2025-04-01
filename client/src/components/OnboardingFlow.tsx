@@ -593,12 +593,9 @@ export default function OnboardingFlow() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex justify-start">
               <Button variant="outline" onClick={handleBack}>
                 <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext}>
-                Next <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
           </div>
