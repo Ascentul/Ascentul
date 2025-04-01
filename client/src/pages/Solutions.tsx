@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { ArrowRight, Briefcase, GraduationCap, Users, Building, Award, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';
 
 export default function Solutions() {
+  const [showSignupDialog, setShowSignupDialog] = useState(false); // Added state for signup dialog
+
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0 },
@@ -92,11 +94,12 @@ export default function Solutions() {
                         Progress visualization and milestone tracking
                       </li>
                     </ul>
-                    <Link href="/auth">
-                      <Button className="flex items-center">
-                        Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      className="flex items-center"
+                      onClick={() => setShowSignupDialog(true)}
+                    >
+                      Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
@@ -136,11 +139,12 @@ export default function Solutions() {
                         Cover letter generation with personalization
                       </li>
                     </ul>
-                    <Link href="/auth">
-                      <Button className="flex items-center">
-                        Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      className="flex items-center"
+                      onClick={() => setShowSignupDialog(true)}
+                    >
+                      Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                 </motion.div>
 
@@ -179,11 +183,12 @@ export default function Solutions() {
                         Interview process tracking with follow-up reminders
                       </li>
                     </ul>
-                    <Link href="/auth">
-                      <Button className="flex items-center">
-                        Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      className="flex items-center"
+                      onClick={() => setShowSignupDialog(true)}
+                    >
+                      Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="rounded-lg bg-gradient-to-br from-primary/5 to-primary/20 p-8 h-80 flex items-center justify-center">
                     <div className="text-center">
@@ -311,11 +316,13 @@ export default function Solutions() {
               Join thousands of professionals and organizations who trust CareerTracker.io for their career development needs.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/auth">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="w-full sm:w-auto"
+                onClick={() => setShowSignupDialog(true)}
+              >
+                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
               <Link href="/pricing">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   View Pricing <ArrowRight className="ml-2 h-4 w-4" />
