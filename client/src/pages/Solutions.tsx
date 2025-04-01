@@ -338,7 +338,7 @@ export default function Solutions() {
               >
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-              <Link href="/pricing">
+              <Link href="/pricing" onClick={() => window.scrollTo(0, 0)}>
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
                   View Pricing <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>

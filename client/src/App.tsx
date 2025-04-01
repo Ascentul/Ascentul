@@ -19,6 +19,7 @@ import StaffSignup from "@/pages/staff-signup";
 import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -434,6 +435,7 @@ function App() {
 const AppWithLoading = () => {
   return (
     <LoadingProvider>
+      <ScrollToTop />
       <App />
     </LoadingProvider>
   );

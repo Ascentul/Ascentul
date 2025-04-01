@@ -29,7 +29,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center">
-            <Link href="/home">
+            <Link href="/home" onClick={() => window.scrollTo(0, 0)}>
               <div className="flex items-center cursor-pointer">
                 <div className="h-8 w-8 bg-primary rounded-md flex items-center justify-center text-white font-bold mr-2">
                   CT
@@ -40,7 +40,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             
             <nav className="hidden md:flex ml-10 space-x-1">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
+                <Link key={item.href} href={item.href} onClick={() => window.scrollTo(0, 0)}>
                   <a
                     className={cn(
                       "px-3 py-2 rounded-md text-sm font-medium transition-colors",
@@ -98,7 +98,10 @@ export function PublicLayout({ children }: PublicLayoutProps) {
                         ? "text-primary bg-primary/5"
                         : "text-foreground/80 hover:text-primary"
                     )}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      window.scrollTo(0, 0);
+                    }}
                   >
                     {item.label}
                   </a>
@@ -165,12 +168,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <h3 className="font-medium mb-4">Product</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/solutions">
+                  <Link href="/solutions" onClick={() => window.scrollTo(0, 0)}>
                     <a className="text-sm text-muted-foreground hover:text-primary">Solutions</a>
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing">
+                  <Link href="/pricing" onClick={() => window.scrollTo(0, 0)}>
                     <a className="text-sm text-muted-foreground hover:text-primary">Pricing</a>
                   </Link>
                 </li>
@@ -184,7 +187,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <h3 className="font-medium mb-4">Company</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/who-we-serve">
+                  <Link href="/who-we-serve" onClick={() => window.scrollTo(0, 0)}>
                     <a className="text-sm text-muted-foreground hover:text-primary">Who We Serve</a>
                   </Link>
                 </li>
