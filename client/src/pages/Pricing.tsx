@@ -266,9 +266,9 @@ export default function Pricing() {
     {
       id: 'university',
       name: 'University Edition',
-      price: '',
-      period: '',
-      savings: '',
+      price: null,
+      period: null,
+      savings: null,
       description: 'Special plan for university students with academic tools.',
       features: [
         'All Pro features',
