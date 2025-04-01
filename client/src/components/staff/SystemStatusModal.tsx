@@ -115,12 +115,23 @@ export default function SystemStatusModal({ open, onOpenChange }: SystemStatusMo
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<{id: string, status: 'completed' | 'failed'} | null>(null);
   
-  // Mock system status data - in a real app, this would come from an API
-  const [systemStatus, setSystemStatus] = useState<SystemStatusData>({
+  const { data: systemStatus, isLoading } = useQuery({
+    queryKey: ['/api/system/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/system/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system status');
+      }
+      return response.json();
+    },
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  const [localStatus, setLocalStatus] = useState(systemStatus || {
     overall: {
-      status: 'operational',
-      uptime: 99.97,
-      lastIncident: '8 days ago',
+      status: 'loading',
+      uptime: 0,
+      lastIncident: 'Loading...',
       lastChecked: new Date().toLocaleTimeString()
     },
     components: [

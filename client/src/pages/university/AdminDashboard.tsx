@@ -130,8 +130,11 @@ export default function UniversityAdminDashboard() {
   const { data: students, isLoading: studentsLoading } = useQuery({
     queryKey: ["/api/university/students"],
     queryFn: async () => {
-      // Mock data for now
-      return [
+      const response = await fetch('/api/university/students');
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+      return response.json();
         {
           id: 1,
           name: "Emma Wilson",

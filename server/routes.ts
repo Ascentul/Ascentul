@@ -1961,6 +1961,24 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
+  // System Status Routes
+  apiRouter.get("/system/status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current system metrics
+      const systemMetrics = await storage.getSystemMetrics();
+      const componentStatus = await storage.getComponentStatus();
+      const recentAlerts = await storage.getRecentAlerts();
+      
+      res.status(200).json({
+        overall: systemMetrics,
+        components: componentStatus,
+        alerts: recentAlerts
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching system status" });
+    }
+  });
+
   // Mount the API router to the Express app
   // Payment and Subscription Routes
   apiRouter.post("/payments/create-payment-intent", async (req: Request, res: Response) => {
