@@ -226,32 +226,12 @@ export default function GoalCard({
 
   const hasChecklist = checklist && checklist.length > 0;
 
-  // Animation for goal completion fade-out
-  const fadeOut = {
-    initial: { opacity: 1 },
-    animate: { opacity: 1 },
-    exit: { 
-      opacity: 0,
-      scale: 0.95,
-      filter: "blur(4px)",
-      transition: { 
-        duration: 0.75,
-        ease: "easeOut"
-      }
-    }
-  };
-  
   return (
     <>
       {/* Render the confetti when goal is completed */}
       <Confetti active={showConfetti} duration={1750} targetRef={cardRef} />
       
-      <motion.div
-        variants={fadeOut}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-      >
+      <div>
         <Card ref={cardRef} className="border border-neutral-200 shadow-none">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
@@ -332,7 +312,7 @@ export default function GoalCard({
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </>
   );
 }

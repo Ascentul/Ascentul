@@ -97,6 +97,8 @@ export default function Dashboard() {
   
   // State to track goals that should be hidden (recently completed)
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
+  // Track IDs of goals that are fading out (completed goals being animated)
+  const [fadingGoalIds, setFadingGoalIds] = useState<number[]>([]);
 
   // Fetch achievements
   const { data: achievements = [] } = useQuery<Achievement[]>({
@@ -168,10 +170,12 @@ export default function Dashboard() {
       ? "Career Navigator" 
       : "Career Master";
 
-  // Handle when a goal is completed
+  // Handle when a goal is completed - separates fade animation from hiding
   const handleGoalCompletion = (id: number) => {
-    // Add the goal to hidden list with a delay to let confetti appear first
-    // This delay helps coordinate the confetti celebration and the fade-out animation
+    // First add to fading list - this triggers the animation
+    setFadingGoalIds(prev => [...prev, id]);
+    
+    // After the animation completes, move to fully hidden
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
     }, 750); // Adjusted delay to sync with the new shorter animations
@@ -431,13 +435,18 @@ export default function Dashboard() {
                 {goals && goals.length > 0 ? (
                   <AnimatePresence>
                     {goals
-                      .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out hidden goals
+                      .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out fully hidden goals
                       .slice(0, 3)
                       .map((goal) => (
                         <motion.div
                           key={goal.id}
                           initial={{ opacity: 1 }}
-                          animate={{ opacity: 1 }}
+                          animate={{ 
+                            opacity: fadingGoalIds.includes(goal.id) ? 0 : 1,
+                            scale: fadingGoalIds.includes(goal.id) ? 0.95 : 1,
+                            filter: fadingGoalIds.includes(goal.id) ? "blur(4px)" : "blur(0px)",
+                            transition: { duration: 0.75 }
+                          }}
                           exit={{ opacity: 0, height: 0, marginBottom: 0, transition: { duration: 0.75 } }}
                           className="transition-all duration-500"
                         >
