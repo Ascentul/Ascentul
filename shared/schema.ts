@@ -113,6 +113,15 @@ export const insertUserSchema = createInsertSchema(users).omit({
   subscriptionStatus: z.string().optional().default("inactive"),
 });
 
+// Goal checklist item type for json storage
+export const goalChecklistItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  completed: z.boolean().default(false),
+});
+
+export type GoalChecklistItem = z.infer<typeof goalChecklistItemSchema>;
+
 // Goals model
 export const goals = pgTable("goals", {
   id: serial("id").primaryKey(),
@@ -124,6 +133,7 @@ export const goals = pgTable("goals", {
   dueDate: timestamp("due_date"),
   completed: boolean("completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
+  checklist: jsonb("checklist").$type<GoalChecklistItem[]>().default([]),
   xpReward: integer("xp_reward").notNull().default(100),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

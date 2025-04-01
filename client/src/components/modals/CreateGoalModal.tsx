@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Plus, X, CheckSquare, Square } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
@@ -41,12 +41,16 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 
+// Import the schema for consistency
+import { goalChecklistItemSchema, type GoalChecklistItem } from '@shared/schema';
+
 // Form schema
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(100),
   description: z.string().max(500).optional(),
   dueDate: z.date().optional(),
   status: z.enum(['not_started', 'in_progress', 'completed']),
+  checklist: z.array(goalChecklistItemSchema).default([]),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -65,6 +69,7 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
     title: '',
     description: '',
     status: 'not_started',
+    checklist: [],
   };
   
   const form = useForm<FormData>({
@@ -102,6 +107,8 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
         dueDate: newData.dueDate ? newData.dueDate.toISOString() : null,
         createdAt: new Date().toISOString(),
         userId: 1, // This will be replaced with the actual user ID from the server
+        checklist: newData.checklist || [],
+        xpReward: 100, // Default XP reward
       };
       
       // Add the optimistic goal to the cached data
@@ -260,6 +267,78 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
                 )}
               />
             </div>
+            
+            {/* Checklist Field */}
+            <FormField
+              control={form.control}
+              name="checklist"
+              render={({ field }) => {
+                const { fields, append, remove, update } = useFieldArray({
+                  name: "checklist",
+                  control: form.control
+                });
+                
+                const generateId = () => {
+                  return Math.random().toString(36).substring(2, 11);
+                };
+                
+                return (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Goal Checklist (Optional)</FormLabel>
+                    <div className="flex flex-col space-y-2">
+                      {fields.map((item, index) => (
+                        <div key={item.id} className="flex items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const newItem = { ...item, completed: !item.completed };
+                              update(index, newItem);
+                            }}
+                            className="h-6 w-6"
+                          >
+                            {item.completed ? (
+                              <CheckSquare className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Input 
+                            value={item.text}
+                            onChange={(e) => {
+                              const newItem = { ...item, text: e.target.value };
+                              update(index, newItem);
+                            }}
+                            className="h-8 flex-1"
+                            placeholder="Enter a task..."
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => remove(index)}
+                            className="h-6 w-6"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => append({ id: generateId(), text: '', completed: false })}
+                      className="mt-1"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Checklist Item
+                    </Button>
+                  </FormItem>
+                );
+              }}
+            />
             
             <DialogFooter className="mt-6">
               <Button
