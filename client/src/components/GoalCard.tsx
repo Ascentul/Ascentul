@@ -28,7 +28,8 @@ export default function GoalCard({
   const getBadgeStyles = () => {
     switch (status.toLowerCase()) {
       case 'in-progress':
-        return 'bg-amber-100 text-amber-800';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
       case 'active':
         return 'bg-primary/10 text-primary';
       case 'on-track':
