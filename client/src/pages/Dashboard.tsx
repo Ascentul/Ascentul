@@ -186,32 +186,30 @@ export default function Dashboard() {
     return <div className="h-full flex items-center justify-center">Loading dashboard data...</div>;
   }
   
-  // Animation variants - optimized for performance
+  // Animation variants - instant (no animations for smooth adding/removing)
   const fadeIn = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }
+    hidden: { opacity: 1 },
+    visible: { opacity: 1, transition: { duration: 0 } }
   };
   
   const subtleUp = {
-    hidden: { opacity: 0, y: 8 },
+    hidden: { opacity: 1, y: 0 },
     visible: { 
       opacity: 1, 
       y: 0, 
       transition: { 
-        duration: 0.2, 
-        ease: "easeOut" 
+        duration: 0
       } 
     }
   };
   
   const cardAnimation = {
-    hidden: { opacity: 0, y: 4 },
+    hidden: { opacity: 1, y: 0 },
     visible: { 
       opacity: 1, 
       y: 0, 
       transition: { 
-        duration: 0.2, 
-        ease: "easeOut" 
+        duration: 0
       } 
     }
   };
@@ -221,8 +219,8 @@ export default function Dashboard() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.1
+        staggerChildren: 0,
+        delayChildren: 0
       }
     }
   };
@@ -429,7 +427,7 @@ export default function Dashboard() {
               {/* Goals List */}
               <div className="space-y-4">
                 {goals && goals.length > 0 ? (
-                  <AnimatePresence>
+                  <AnimatePresence mode="sync">
                     {goals
                       .filter(goal => !hiddenGoalIds.includes(goal.id)) // Filter out fully hidden goals
                       .slice(0, 3)
@@ -446,7 +444,9 @@ export default function Dashboard() {
                             marginBottom: 0,
                             transition: { duration: 0.75 } 
                           }}
-                          className="transition-all duration-500"
+                          // No transition for new goals
+                          transition={{ duration: 0 }}
+                          className="transition-none"
                         >
                           <GoalCard
                             id={goal.id}
