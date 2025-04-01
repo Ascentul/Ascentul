@@ -349,7 +349,7 @@ export default function Solutions() {
       </section>
 
       {/* Dialogs */}
-      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} initialDialogTab={'signup'}/> {/* Added initialDialogTab prop */}
+      <LoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} initialTab="signup" /> {/* Set to open on signup tab */}
       <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
     </div>
   );
