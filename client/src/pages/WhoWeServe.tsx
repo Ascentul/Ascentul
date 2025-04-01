@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, GraduationCap, Briefcase, Building, Users, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, GraduationCap, Briefcase, Building, Users, ArrowUpRight, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -296,78 +296,6 @@ export default function WhoWeServe() {
         </div>
       </section>
 
-      {/* Organizations */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeInUp}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-5xl mx-auto"
-          >
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-              variants={fadeIn}
-              className="order-2 lg:order-1 rounded-xl bg-gradient-to-br from-primary/5 to-primary/20 p-10 flex items-center justify-center"
-            >
-              <div className="text-center">
-                <Building className="h-24 w-24 text-primary/40 mx-auto mb-6" />
-                <p className="text-xl font-medium text-primary/70">Organization Solutions</p>
-                <p className="mt-2 text-sm text-muted-foreground max-w-xs mx-auto">
-                  Supporting employee development and retention
-                </p>
-              </div>
-            </motion.div>
-            <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary mb-6">
-                <Building className="h-4 w-4 mr-2" /> Organizations & HR Leaders
-              </div>
-              <h2 className="text-3xl font-bold mb-4">Develop and Retain Top Talent</h2>
-              <p className="text-muted-foreground mb-6">
-                Help your workforce grow within your organization by providing structured career 
-                development resources that integrate with your existing HR processes.
-              </p>
-              
-              <motion.div 
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
-                variants={staggerContainer}
-                className="space-y-4 mb-8"
-              >
-                <motion.div variants={staggerItem} className="bg-background p-4 rounded-lg border border-border">
-                  <h3 className="font-medium mb-2">Enterprise Career Development</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Customized career pathways aligned with your organizational structure and needs.
-                  </p>
-                </motion.div>
-                
-                <motion.div variants={staggerItem} className="bg-background p-4 rounded-lg border border-border">
-                  <h3 className="font-medium mb-2">HR Integration & Analytics</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Connect with existing HR systems and gain insights through comprehensive reporting.
-                  </p>
-                </motion.div>
-                
-                <motion.div variants={staggerItem} className="bg-background p-4 rounded-lg border border-border">
-                  <h3 className="font-medium mb-2">Employee Retention Tools</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Foster internal mobility and growth to improve retention and satisfaction.
-                  </p>
-                </motion.div>
-              </motion.div>
-              
-              <Button variant="outline" className="flex items-center">
-                Request Enterprise Demo <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Resources Section */}
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
@@ -437,10 +365,10 @@ export default function WhoWeServe() {
             </motion.div>
 
             <motion.div variants={staggerItem} className="bg-card p-6 rounded-xl shadow-sm">
-              <Building className="h-8 w-8 text-primary mb-4" />
-              <h3 className="text-lg font-medium mb-2">Enterprise Solutions</h3>
+              <FileText className="h-8 w-8 text-primary mb-4" />
+              <h3 className="text-lg font-medium mb-2">Career Guides</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Implementation guides and best practices for organizational deployment.
+                In-depth career path guides and industry-specific development resources.
               </p>
               <Button variant="link" className="p-0 h-auto flex items-center text-primary">
                 View Resources <ArrowUpRight className="ml-1 h-4 w-4" />
