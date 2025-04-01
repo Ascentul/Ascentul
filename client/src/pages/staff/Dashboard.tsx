@@ -161,8 +161,8 @@ export default function StaffDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-2">
-                  <div className="h-[200px] flex items-center justify-center">
-                    <div className="text-center space-y-4 w-full px-6">
+                  <div className="h-[200px] flex flex-col">
+                    <div className="text-center space-y-4 w-full px-6 flex-grow">
                       <div className="flex justify-between items-center px-4">
                         <div className="flex items-center">
                           <div className="w-3 h-3 rounded-full bg-primary mr-3"></div>
@@ -184,9 +184,9 @@ export default function StaffDashboard() {
                         </div>
                         <span>{dashboardData.universityUsers}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground mt-8">
-                        {((dashboardData.premiumUsers + dashboardData.universityUsers) / dashboardData.activeUsers * 100).toFixed(1)}% paid conversion
-                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground text-center pb-2">
+                      {((dashboardData.premiumUsers + dashboardData.universityUsers) / dashboardData.activeUsers * 100).toFixed(1)}% paid conversion
                     </div>
                   </div>
                 </CardContent>
