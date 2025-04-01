@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser } from '@/lib/useUserData';
 import StatCard from '@/components/StatCard';
-import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
@@ -352,58 +351,101 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
 
-      {/* Career Journey & AI Coach Section */}
+      {/* Skills Development Section */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* Career Journey Chart */}
-        <motion.div 
-          className="lg:col-span-2 will-change-transform" 
-          variants={cardAnimation}
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <CareerJourneyChart data={stats.monthlyXp || []} />
-        </motion.div>
-
         {/* Skills Suggestion */}
         <motion.div
           variants={cardAnimation}
-          className="will-change-transform"
+          className="lg:col-span-3 will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Skills to Develop</h2>
-              </div>
-
-              <ul className="space-y-3">
-                <li className="flex items-start">
-                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Project Management: Learn Agile and Scrum methodologies</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Data Analysis: Improve your SQL knowledge</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Communication: Practice presenting complex ideas simply</span>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
-                  <span className="text-sm">Technical: Learn more about cloud services</span>
-                </li>
-              </ul>
-
-              <div className="mt-4">
+                <h2 className="text-lg font-semibold font-poppins">Recommended Skills to Develop</h2>
                 <Link href="/skills">
-                  <Button variant="outline" className="w-full">
+                  <Button variant="link" className="text-sm text-primary p-0 h-auto">
                     View All Skills
                   </Button>
                 </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="p-4 border border-neutral-200">
+                  <div className="flex items-start mb-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Project Management</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Learn Agile and Scrum methodologies</p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-neutral-100 rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }}></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">35% complete</p>
+                  </div>
+                </Card>
+
+                <Card className="p-4 border border-neutral-200">
+                  <div className="flex items-start mb-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Data Analysis</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Improve your SQL knowledge</p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-neutral-100 rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '20%' }}></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">20% complete</p>
+                  </div>
+                </Card>
+
+                <Card className="p-4 border border-neutral-200">
+                  <div className="flex items-start mb-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Communication</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Practice presenting complex ideas simply</p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-neutral-100 rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '60%' }}></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">60% complete</p>
+                  </div>
+                </Card>
+
+                <Card className="p-4 border border-neutral-200">
+                  <div className="flex items-start mb-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Cloud Services</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Learn about AWS, Azure, or Google Cloud</p>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-neutral-100 rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '15%' }}></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">15% complete</p>
+                  </div>
+                </Card>
               </div>
             </CardContent>
           </Card>
