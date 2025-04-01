@@ -229,22 +229,12 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Career Progress & Goals Section */}
+      {/* Level Progress */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
+        className="mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* Career Journey Chart */}
-        <motion.div 
-          className="lg:col-span-2 will-change-transform" 
-          variants={cardAnimation}
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <CareerJourneyChart data={stats.monthlyXp || []} />
-        </motion.div>
-        
-        {/* Level Progress */}
         <motion.div 
           variants={cardAnimation}
           className="will-change-transform"
@@ -260,15 +250,15 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Current Goals & AI Coach */}
+      {/* Current Goals */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 will-change-opacity"
+        className="mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
         {/* Goals Card */}
         <motion.div 
-          className="lg:col-span-2 will-change-transform"
+          className="will-change-transform"
           variants={cardAnimation}
           style={{ transform: 'translateZ(0)' }}
         >
@@ -311,7 +301,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        
+      </motion.div>
+      
+      {/* AI Coach & Today's Recommendations side by side */}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
+        variants={staggeredContainer}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
         {/* AI Coach Preview */}
         <motion.div
           variants={cardAnimation}
@@ -359,24 +356,6 @@ export default function Dashboard() {
                 </Card>
               )}
               
-              <Card className="border border-neutral-200 shadow-none p-3">
-                <h3 className="text-sm font-medium mb-2">Today's Recommendations</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-start">
-                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                    <span className="text-sm">Complete the Python course section on data structures</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                    <span className="text-sm">Practice 2 interview questions in the system design category</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
-                    <span className="text-sm">Update your work experience section with quantifiable achievements</span>
-                  </li>
-                </ul>
-              </Card>
-              
               <div className="mt-4">
                 <Link href="/ai-coach">
                   <Button className="w-full">
@@ -384,6 +363,40 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+        
+        {/* Today's Recommendations */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card>
+            <CardContent className="p-5">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Today's Recommendations</h2>
+              </div>
+              
+              <ul className="space-y-4">
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Complete the Python course section on data structures</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
+                </li>
+                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
+                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <span className="text-sm">Review feedback from your last mock interview session</span>
+                </li>
+              </ul>
             </CardContent>
           </Card>
         </motion.div>
