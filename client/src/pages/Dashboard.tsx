@@ -11,7 +11,7 @@ import CreateGoalModal from '@/components/modals/CreateGoalModal';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
-  Briefcase, Mail, Users
+  Briefcase, Mail, Users, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -394,7 +394,12 @@ export default function Dashboard() {
                     Create Goal
                   </Button>
                   <Link href="/goals">
-                    <Button variant="link" className="text-sm text-primary p-0 h-auto">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-xs"
+                    >
+                      <Eye className="mr-1 h-3 w-3" />
                       View All
                     </Button>
                   </Link>
