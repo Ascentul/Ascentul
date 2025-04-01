@@ -63,7 +63,7 @@ export default function Dashboard() {
   const { data: statsData } = useQuery<Stats>({
     queryKey: ['/api/users/statistics'],
   });
-  
+
   // Use default stats if data is not available
   const stats: Stats = statsData || DEFAULT_STATS;
 
@@ -98,13 +98,13 @@ export default function Dashboard() {
   if (!user || !stats) {
     return <div className="h-full flex items-center justify-center">Loading dashboard data...</div>;
   }
-  
+
   // Animation variants - optimized for performance
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }
   };
-  
+
   const subtleUp = {
     hidden: { opacity: 0, y: 8 },
     visible: { 
@@ -116,7 +116,7 @@ export default function Dashboard() {
       } 
     }
   };
-  
+
   const cardAnimation = {
     hidden: { opacity: 0, y: 4 },
     visible: { 
@@ -128,7 +128,7 @@ export default function Dashboard() {
       } 
     }
   };
-  
+
   const staggeredContainer = {
     hidden: { opacity: 1 },
     visible: {
@@ -165,7 +165,34 @@ export default function Dashboard() {
           </Link>
         </div>
       </motion.div>
-      
+
+      {/* Today's Recommendations */}
+      <motion.div 
+        className="mb-6"
+        variants={subtleUp}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
+        <Card className="border border-neutral-200 shadow-none">
+          <CardContent className="p-5">
+            <h3 className="text-lg font-medium mb-4">Today's Recommendations</h3>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                <span className="text-sm">Complete the Python course section on data structures</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                <span className="text-sm">Practice 2 interview questions in the system design category</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="text-green-500 h-4 w-4 mt-1 mr-2" />
+                <span className="text-sm">Update your work experience section with quantifiable achievements</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Stats Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 will-change-opacity"
@@ -185,7 +212,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-        
+
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Award className="h-5 w-5 text-[#8bc34a]" />}
@@ -199,7 +226,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-        
+
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<FileText className="h-5 w-5 text-secondary" />}
@@ -213,7 +240,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-        
+
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Clock className="h-5 w-5 text-[#ff9800]" />}
@@ -228,7 +255,7 @@ export default function Dashboard() {
           />
         </motion.div>
       </motion.div>
-      
+
       {/* Career Progress & Goals Section */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
@@ -243,7 +270,7 @@ export default function Dashboard() {
         >
           <CareerJourneyChart data={stats.monthlyXp || []} />
         </motion.div>
-        
+
         {/* Level Progress */}
         <motion.div 
           variants={cardAnimation}
@@ -259,7 +286,7 @@ export default function Dashboard() {
           />
         </motion.div>
       </motion.div>
-      
+
       {/* Current Goals & AI Coach */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 will-change-opacity"
@@ -282,7 +309,7 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              
+
               {/* Goals List */}
               <div className="space-y-4">
                 {goals && goals.length > 0 ? (
@@ -311,7 +338,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        
+
         {/* AI Coach Preview */}
         <motion.div
           variants={cardAnimation}
@@ -328,7 +355,7 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              
+
               {conversations && conversations[0] ? (
                 <Card className="border border-neutral-200 shadow-none p-3 mb-4">
                   <div className="flex items-start">
@@ -358,8 +385,9 @@ export default function Dashboard() {
                   </div>
                 </Card>
               )}
-              
-              <Card className="border border-neutral-200 shadow-none p-3">
+
+              {/* Removed this section as it's now at the top */}
+              {/* <Card className="border border-neutral-200 shadow-none p-3">
                 <h3 className="text-sm font-medium mb-2">Today's Recommendations</h3>
                 <ul className="space-y-2">
                   <li className="flex items-start">
@@ -375,8 +403,8 @@ export default function Dashboard() {
                     <span className="text-sm">Update your work experience section with quantifiable achievements</span>
                   </li>
                 </ul>
-              </Card>
-              
+              </Card> */}
+
               <div className="mt-4">
                 <Link href="/ai-coach">
                   <Button className="w-full">
@@ -388,7 +416,7 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </motion.div>
-      
+
       {/* Recent Achievements */}
       <motion.div 
         className="mt-6 will-change-opacity"
@@ -403,7 +431,7 @@ export default function Dashboard() {
             </Button>
           </Link>
         </div>
-        
+
         <motion.div 
           className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
           variants={staggeredContainer}
