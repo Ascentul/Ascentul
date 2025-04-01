@@ -24,6 +24,7 @@ interface GoalCardProps {
   dueDate?: Date;
   checklist?: GoalChecklistItem[] | null;
   onEdit: (id: number) => void;
+  onComplete?: (id: number) => void;
 }
 
 export default function GoalCard({
@@ -35,6 +36,7 @@ export default function GoalCard({
   dueDate,
   checklist = [],
   onEdit,
+  onComplete,
 }: GoalCardProps) {
   const [showChecklist, setShowChecklist] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -156,8 +158,13 @@ export default function GoalCard({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
       });
+      
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete(id);
+      }
     }
-  }, [checklist, status]);
+  }, [checklist, status, id, onComplete]);
 
   // Toggle checklist item
   const toggleChecklistItem = (itemId: string) => {
@@ -200,6 +207,11 @@ export default function GoalCard({
         title: "Goal completed! 🎉",
         description: "Congratulations on completing your goal!",
       });
+      
+      // Call the onComplete callback if provided
+      if (onComplete) {
+        onComplete(id);
+      }
     } else {
       // Just update the checklist and progress
       updateChecklistMutation.mutate({
