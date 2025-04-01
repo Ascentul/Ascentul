@@ -47,6 +47,114 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   next();
 }
 
+// Middleware to check if user is an admin
+async function requireAdmin(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || user.userType !== 'admin') {
+    console.log(`Access denied: User ${req.session.userId} tried to access admin route`);
+    return res.status(403).json({ message: "Access denied. Admin privileges required." });
+  }
+  
+  next();
+}
+
+// Middleware to check if user is a staff member
+async function requireStaff(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || (user.userType !== 'staff' && user.userType !== 'admin')) {
+    console.log(`Access denied: User ${req.session.userId} tried to access staff route`);
+    return res.status(403).json({ message: "Access denied. Staff privileges required." });
+  }
+  
+  next();
+}
+
+// Middleware to check if user is a university admin
+async function requireUniversityAdmin(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || user.userType !== 'university_admin') {
+    console.log(`Access denied: User ${req.session.userId} tried to access university admin route`);
+    return res.status(403).json({ message: "Access denied. University admin privileges required." });
+  }
+  
+  next();
+}
+
+// Middleware to check if user belongs to a university
+async function requireUniversityUser(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || (user.userType !== 'university_student' && user.userType !== 'university_admin')) {
+    console.log(`Access denied: User ${req.session.userId} tried to access university route`);
+    return res.status(403).json({ message: "Access denied. University access required." });
+  }
+  
+  next();
+}
+
+// Middleware for data validation to ensure users can only access their own data
+async function validateUserAccess(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  // Get the requested resource ID (usually from URL params)
+  const resourceId = req.params.id ? parseInt(req.params.id) : null;
+  const resourceUserId = req.params.userId ? parseInt(req.params.userId) : null;
+  
+  if (!resourceId && !resourceUserId) {
+    // If no specific resource is targeted, allow the request to proceed
+    return next();
+  }
+  
+  const user = await storage.getUser(req.session.userId);
+  if (!user) {
+    return res.status(401).json({ message: "User not found" });
+  }
+  
+  // Admins can access any data
+  if (user.userType === 'admin') {
+    return next();
+  }
+  
+  // Check if the targeted resource belongs to the user
+  // This will need to be customized based on the specific resource type
+  // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
+  // Then check if resource.userId === user.id
+  
+  // For university admins, check if the resource belongs to a student from their university
+  if (user.userType === 'university_admin' && resourceUserId) {
+    const targetUser = await storage.getUser(resourceUserId);
+    if (targetUser && targetUser.universityId === user.universityId) {
+      return next();
+    }
+  }
+  
+  // For all other cases, only allow access to own data
+  if (resourceUserId && resourceUserId !== user.id) {
+    console.log(`Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`);
+    return res.status(403).json({ message: "Access denied. You can only access your own data." });
+  }
+  
+  // Default case - proceed to the route handler
+  next();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   
@@ -55,9 +163,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Create founder/admin account
     const existingAdmin = await storage.getUserByUsername("admin");
     if (!existingAdmin) {
+      // Hash admin password
+      const adminPwd = "admin123"; // In production, use a stronger password
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(adminPwd, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+      
       const adminUser = await storage.createUser({
         username: "admin",
-        password: "admin123", // In production, use a stronger password
+        password: securePassword,
         name: "Admin User",
         email: "admin@careertracker.io",
         userType: "admin", // Special admin type
@@ -77,9 +191,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Create a regular sample user for testing
     const existingUser = await storage.getUserByUsername("alex");
     if (!existingUser) {
+      // Hash sample user password
+      const userPwd = "password";
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(userPwd, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+      
       const sampleUser = await storage.createUser({
         username: "alex",
-        password: "password",
+        password: securePassword,
         name: "Alex Johnson",
         email: "alex@example.com",
         userType: "university_student",
@@ -211,7 +331,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         user = await storage.getUserByUsername(username);
       }
       
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Verify password using crypto
+      try {
+        // Check if the stored password has salt (in the format hash.salt)
+        if (user.password.includes('.')) {
+          const [storedHash, salt] = user.password.split('.');
+          const inputHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+          if (storedHash !== inputHash) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        } else {
+          // For backward compatibility with non-hashed passwords
+          if (user.password !== password) {
+            return res.status(401).json({ message: "Invalid credentials" });
+          }
+        }
+      } catch (error) {
+        console.error("Password verification error:", error);
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
@@ -298,6 +438,87 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Staff Registration endpoint
+  // Only allow admins to create staff users
+  apiRouter.post("/admin/create-staff", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { username, name, email, password } = req.body;
+      
+      // Validate required fields
+      if (!username || !name || !email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: "All fields are required"
+        });
+      }
+      
+      // Check if username already exists
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already exists"
+        });
+      }
+      
+      // Check if email already exists
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already exists"
+        });
+      }
+      
+      // Create the staff user with hashed password
+      // Use crypto instead of bcrypt for password hashing
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+        
+      const newUser = await storage.createUser({
+        username,
+        email,
+        name,
+        password: securePassword, // Use securePassword with salt
+        userType: "staff",
+        profileImage: null,
+        subscriptionStatus: "active",
+        needsUsername: false
+      });
+      
+      // Update user with additional fields
+      await storage.updateUser(newUser.id, {
+        xp: 0,
+        level: 1,
+        rank: "Beginner",
+        subscriptionPlan: "pro",
+        subscriptionCycle: "monthly",
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        emailVerified: true
+      });
+      
+      // Log the action
+      console.log(`Admin ${req.session.userId} created staff user: ${newUser.id}`);
+      
+      // Return user without password
+      const { password: pwd, ...safeUser } = newUser;
+      
+      return res.status(201).json({
+        success: true,
+        user: safeUser,
+        message: "Staff user created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating staff user:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while creating staff user"
+      });
+    }
+  });
+  
+  // Public staff registration endpoint (using registration code)
   apiRouter.post("/api/staff/register", async (req: Request, res: Response) => {
     const { username, name, email, password, registrationCode } = req.body;
     
@@ -328,12 +549,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         });
       }
       
+      // Hash the password
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+      
       // Create the staff user
       const newUser = await storage.createUser({
         username,
         email,
         name,
-        password, // In a real app, would hash this
+        password: securePassword, // Use hashed password
         userType: "staff",
         profileImage: null,
         // Only include fields that are in the insertUserSchema
@@ -386,6 +612,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       };
       
       // Validate with our schema after adding the required fields
+      // Hash the password
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+      
+      // Replace the plain password with the hashed one
+      userData.password = securePassword;
+      
       const validatedUserData = insertUserSchema.parse(userData);
       
       // Validate university info for university users
