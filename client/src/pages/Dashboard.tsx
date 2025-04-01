@@ -7,6 +7,7 @@ import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
 import GoalCard from '@/components/GoalCard';
 import AchievementBadge from '@/components/AchievementBadge';
+import AICoachMessage from '@/components/AICoachMessage';
 import { Target, Award, FileText, Clock, Plus, Bot, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -310,7 +311,7 @@ export default function Dashboard() {
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* AI Coach Preview */}
+        {/* AI Coach */}
         <motion.div
           variants={cardAnimation}
           className="lg:col-span-2 will-change-transform"
@@ -319,51 +320,18 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
+                <h2 className="text-lg font-semibold font-poppins">AI Career Coach</h2>
                 <Link href="/ai-coach">
                   <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    Open Coach
+                    View All Conversations
                   </Button>
                 </Link>
               </div>
 
-              {conversations && conversations[0] ? (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        I noticed you're making good progress on your LinkedIn profile goal. Would you like some tips to make your profile stand out?
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        Welcome to CareerQuest! I'm your AI career coach. How can I help you today?
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              <div className="mt-4">
-                <Link href="/ai-coach">
-                  <Button className="w-full">
-                    Ask Career Question
-                  </Button>
-                </Link>
-              </div>
+              <AICoachMessage 
+                conversationId={conversations && conversations[0] ? conversations[0].id : undefined}
+                compact={true}
+              />
             </CardContent>
           </Card>
         </motion.div>
@@ -399,7 +367,7 @@ export default function Dashboard() {
           <CareerJourneyChart data={stats.monthlyXp || []} />
         </motion.div>
 
-        {/* AI Coach Preview */}
+        {/* Skills Suggestion */}
         <motion.div
           variants={cardAnimation}
           className="will-change-transform"
@@ -408,49 +376,32 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">AI Coach</h2>
-                <Link href="/ai-coach">
-                  <Button variant="link" className="text-sm text-primary p-0 h-auto">
-                    Open Coach
-                  </Button>
-                </Link>
+                <h2 className="text-lg font-semibold font-poppins">Skills to Develop</h2>
               </div>
 
-              {conversations && conversations[0] ? (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        I noticed you're making good progress on your LinkedIn profile goal. Would you like some tips to make your profile stand out?
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <Card className="border border-neutral-200 shadow-none p-3 mb-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Bot className="h-4 w-4" />
-                    </div>
-                    <div className="ml-3 flex-1">
-                      <p className="text-sm font-medium">Career Coach</p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        Welcome to CareerQuest! I'm your AI career coach. How can I help you today?
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
+              <ul className="space-y-3">
+                <li className="flex items-start">
+                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Project Management: Learn Agile and Scrum methodologies</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Data Analysis: Improve your SQL knowledge</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Communication: Practice presenting complex ideas simply</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="text-primary h-4 w-4 mt-1 mr-2" />
+                  <span className="text-sm">Technical: Learn more about cloud services</span>
+                </li>
+              </ul>
 
               <div className="mt-4">
-                <Link href="/ai-coach">
-                  <Button className="w-full">
-                    Ask Career Question
+                <Link href="/skills">
+                  <Button variant="outline" className="w-full">
+                    View All Skills
                   </Button>
                 </Link>
               </div>
