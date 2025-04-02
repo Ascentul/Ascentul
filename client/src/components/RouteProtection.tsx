@@ -61,7 +61,7 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
   
   // Staff users should be redirected to their dashboard
   if (user.userType === 'staff') {
-    setLocation('/staff');
+    setLocation('/staff-dashboard');
     return null;
   }
   
@@ -96,11 +96,11 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'staff') {
-      setLocation('/staff');
+      setLocation('/staff-dashboard');
     } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-      setLocation('/university');
+      setLocation('/university-dashboard');
     } else {
-      setLocation('/dashboard');
+      setLocation('/career-dashboard');
     }
     return null;
   }
@@ -134,11 +134,11 @@ export function UniversityRouteGuard({ children }: UniversityRouteGuardProps) {
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'admin') {
-      setLocation('/admin');
+      setLocation('/admin-dashboard');
     } else if (user.userType === 'staff') {
-      setLocation('/staff');
+      setLocation('/staff-dashboard');
     } else {
-      setLocation('/dashboard');
+      setLocation('/career-dashboard');
     }
     return null;
   }
@@ -172,9 +172,9 @@ export function StaffRouteGuard({ children }: StaffRouteGuardProps) {
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-      setLocation('/university');
+      setLocation('/university-dashboard');
     } else {
-      setLocation('/dashboard');
+      setLocation('/career-dashboard');
     }
     return null;
   }
@@ -209,15 +209,15 @@ export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuar
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'university_student') {
-      setLocation('/university');
+      setLocation('/university-dashboard');
       // Show access denied message
       alert('You need university administrator privileges to access this section');
     } else if (user.userType === 'admin') {
-      setLocation('/admin');
+      setLocation('/admin-dashboard');
     } else if (user.userType === 'staff') {
-      setLocation('/staff');
+      setLocation('/staff-dashboard');
     } else {
-      setLocation('/dashboard');
+      setLocation('/career-dashboard');
     }
     return null;
   }

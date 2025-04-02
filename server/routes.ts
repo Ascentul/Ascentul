@@ -393,13 +393,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Add redirect paths based on user role for frontend to handle
       let redirectPath;
       if (user.userType === "admin") {
-        redirectPath = "/admin";
+        redirectPath = "/admin-dashboard";
       } else if (user.userType === "staff") {
-        redirectPath = "/staff";
+        redirectPath = "/staff-dashboard";
       } else if (user.userType === "university_admin" || user.userType === "university_student") {
-        redirectPath = "/university";
+        redirectPath = "/university-dashboard";
       } else {
-        redirectPath = "/dashboard";
+        redirectPath = "/career-dashboard";
       }
       
       res.status(200).json({ user: safeUser, redirectPath });
@@ -580,7 +580,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       return res.status(201).json({
         success: true,
         user: safeUser,
-        redirectPath: "/staff" // Direct staff to staff dashboard
+        redirectPath: "/staff-dashboard" // Direct staff to staff dashboard
       });
     } catch (error) {
       console.error("Staff registration error:", error);
@@ -657,7 +657,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Advanced logic can be added here if certain user types should go to different onboarding flows
       if (safeUser.userType === "university_admin" || safeUser.userType === "university_student") {
-        redirectPath = "/university";
+        redirectPath = "/university-dashboard";
+      } else if (safeUser.userType === "regular") {
+        // After onboarding, regular users will go to the career dashboard
+        // But for now, send them to onboarding
+        redirectPath = "/onboarding"; 
       }
       
       res.status(201).json({ user: safeUser, redirectPath });

@@ -40,7 +40,7 @@ export default function Sidebar() {
 
   // Career app navigation items
   const careerNavigationItems = [
-    { href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
+    { href: '/career-dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
     { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goals' },
     { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
     { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
@@ -125,9 +125,9 @@ export default function Sidebar() {
             </div>
             
             <Link 
-              href="/university"
+              href="/university-dashboard"
               className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-                ${location === "/university" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+                ${location === "/university-dashboard" || location === "/university" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
             >
               <School className="w-5 h-5 mr-3" />
               University Dashboard
@@ -161,9 +161,9 @@ export default function Sidebar() {
             Administration
           </div>
           <Link 
-            href="/admin"
+            href="/admin-dashboard"
             className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-              ${location.startsWith("/admin") ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+              ${location.startsWith("/admin") || location === "/admin-dashboard" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
           >
             <ShieldCheck className="w-5 h-5 mr-3" />
             Admin Dashboard

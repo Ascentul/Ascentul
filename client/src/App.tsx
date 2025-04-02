@@ -122,7 +122,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           
           <div className="flex items-center space-x-4">
             <Link 
-              href="/dashboard"
+              href="/career-dashboard"
               className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-md border border-foreground/20 bg-background hover:bg-background/80 transition-colors cursor-pointer"
             >
               <svg
@@ -163,7 +163,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
 
 function App() {
   const [location, navigate] = useLocation();
-  const isUniversityRoute = location.startsWith("/university");
+  const isUniversityRoute = location.startsWith("/university") || location === "/university-dashboard";
   const isSignInRoute = location === "/sign-in";
   const isSignUpRoute = location === "/sign-up";
   const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
@@ -326,12 +326,17 @@ function App() {
     );
   }
 
-  const isAdminRoute = location.startsWith("/admin") && location !== "/admin-login";
+  const isAdminRoute = (location.startsWith("/admin") && location !== "/admin-login") || location === "/admin-dashboard";
   
   // Admin Dashboard has its own layout
   if (isAdminRoute) {
     return (
       <Switch>
+        <Route path="/admin-dashboard">
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        </Route>
         <Route path="/admin">
           <AdminRoute>
             <AdminDashboard />
@@ -341,12 +346,17 @@ function App() {
     );
   }
   
-  const isStaffRoute = location.startsWith("/staff") && location !== "/staff-login";
+  const isStaffRoute = (location.startsWith("/staff") && location !== "/staff-login") || location === "/staff-dashboard";
   
   // Staff Dashboard has its own layout
   if (isStaffRoute) {
     return (
       <Switch>
+        <Route path="/staff-dashboard">
+          <StaffRoute>
+            <StaffDashboard />
+          </StaffRoute>
+        </Route>
         <Route path="/staff">
           <StaffRoute>
             <StaffDashboard />
@@ -363,6 +373,11 @@ function App() {
     <LayoutComponent>
       <Switch>
         {/* Career App Routes - Protected for regular users */}
+        <Route path="/career-dashboard">
+          <CareerRoute>
+            <Dashboard />
+          </CareerRoute>
+        </Route>
         <Route path="/dashboard">
           <CareerRoute>
             <Dashboard />
@@ -415,6 +430,11 @@ function App() {
         </Route>
         
         {/* University Edition Routes - Protected for university users */}
+        <Route path="/university-dashboard">
+          <UniversityRoute>
+            <LearningModules />
+          </UniversityRoute>
+        </Route>
         <Route path="/university">
           <UniversityRoute>
             <LearningModules />
