@@ -295,8 +295,14 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
                         )}
                       </Button>
                       <Input 
-                        value={item.text}
+                        defaultValue={item.text}
                         onChange={(e) => {
+                          // Using onChange with defaultValue
+                          // This doesn't trigger a re-render immediately
+                          // The text is stored in the input's DOM value
+                        }}
+                        onBlur={(e) => {
+                          // Only update the state when the input loses focus
                           const newItem = { ...item, text: e.target.value };
                           update(index, newItem);
                         }}
