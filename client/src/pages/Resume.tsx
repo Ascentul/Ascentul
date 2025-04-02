@@ -70,7 +70,7 @@ export default function Resume() {
       });
     },
   });
-  
+
   // Generate full resume
   const generateResumeMutation = useMutation({
     mutationFn: async () => {
@@ -132,7 +132,7 @@ export default function Resume() {
       delete newResume.id;
       delete newResume.createdAt;
       delete newResume.updatedAt;
-      
+
       return apiRequest('POST', '/api/resumes', newResume);
     },
     onSuccess: () => {
@@ -153,17 +153,17 @@ export default function Resume() {
 
   const filteredResumes = () => {
     if (!resumes) return [];
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return resumes.filter(
         (resume) => resume.name.toLowerCase().includes(query)
       );
     }
-    
+
     return resumes;
   };
-  
+
   // Function to generate suggestions
   const generateSuggestions = () => {
     if (!jobDescription) {
@@ -174,7 +174,7 @@ export default function Resume() {
       });
       return;
     }
-    
+
     // Check if we have work history data available in the database
     if (Array.isArray(workHistoryData) && workHistoryData.length > 0) {
       // Format work history data for AI processing
@@ -182,17 +182,17 @@ export default function Resume() {
         const duration = job.currentJob 
           ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
           : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
-        
+
         const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
           ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
           : '';
-        
+
         return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
       }).join('\n---\n\n');
-      
+
       // Set the formatted work history to use in the API call
       setUserWorkHistory(formattedWorkHistory);
-      
+
       // Call the API with the job description and formatted work history
       getSuggestionsMutation.mutate();
     } else {
@@ -204,7 +204,7 @@ export default function Resume() {
       });
     }
   };
-  
+
   // Function to generate a full resume
   const generateFullResume = () => {
     if (!jobDescription) {
@@ -215,7 +215,7 @@ export default function Resume() {
       });
       return;
     }
-    
+
     // Check if we have work history data available in the database
     if (Array.isArray(workHistoryData) && workHistoryData.length > 0) {
       // Format work history data for AI processing
@@ -223,17 +223,17 @@ export default function Resume() {
         const duration = job.currentJob 
           ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
           : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
-        
+
         const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
           ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
           : '';
-        
+
         return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
       }).join('\n---\n\n');
-      
+
       // Set the formatted work history to use in the API call
       setUserWorkHistory(formattedWorkHistory);
-      
+
       // Call the API with the job description and formatted work history
       generateResumeMutation.mutate();
     } else {
@@ -245,13 +245,13 @@ export default function Resume() {
       });
     }
   };
-  
+
   // Animation variants - optimized for performance
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.25, ease: "easeOut" } }
   };
-  
+
   const subtleUp = {
     hidden: { opacity: 0, y: 8 },
     visible: { 
@@ -263,7 +263,7 @@ export default function Resume() {
       } 
     }
   };
-  
+
   const cardAnimation = {
     hidden: { opacity: 0, y: 4 },
     visible: { 
@@ -275,7 +275,7 @@ export default function Resume() {
       } 
     }
   };
-  
+
   const staggeredContainer = {
     hidden: { opacity: 1 }, // Start with opacity 1 for container to reduce unnecessary repaints
     visible: {
@@ -313,13 +313,13 @@ export default function Resume() {
           New Resume
         </Button>
       </motion.div>
-      
+
       <Tabs defaultValue="resumes">
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="resumes" className="space-y-6">
           {/* Search */}
           <motion.div className="relative max-w-md will-change-opacity will-change-transform" variants={subtleUp}>
@@ -346,7 +346,7 @@ export default function Resume() {
               </svg>
             </div>
           </motion.div>
-          
+
           {/* Resumes Grid */}
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
@@ -450,7 +450,7 @@ export default function Resume() {
             </motion.div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="suggestions">
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
@@ -470,13 +470,13 @@ export default function Resume() {
                       className="min-h-[150px]"
                     />
                   </div>
-                  
+
                   <div className="pt-2">
                     <p className="text-sm text-neutral-500 mb-4">
                       Your work history will be automatically used from your profile to generate relevant suggestions.
                     </p>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       className="w-full" 
@@ -497,11 +497,11 @@ export default function Resume() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <h3 className="text-lg font-semibold mb-4">Suggestions</h3>
-                
+
                 {showSuggestions && getSuggestionsMutation.data ? (
                   <motion.div 
                     className="space-y-6 will-change-opacity"
@@ -518,7 +518,7 @@ export default function Resume() {
                         ))}
                       </ul>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <h4 className="font-medium">Keywords to Include</h4>
                       <div className="flex flex-wrap gap-2">
@@ -546,7 +546,7 @@ export default function Resume() {
           </motion.div>
         </TabsContent>
       </Tabs>
-      
+
       {/* Add/Edit Resume Dialog */}
       <Dialog open={isAddResumeOpen} onOpenChange={setIsAddResumeOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
@@ -559,7 +559,7 @@ export default function Resume() {
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Resume Preview Dialog */}
       <Dialog open={!!previewResume} onOpenChange={() => setPreviewResume(null)}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
@@ -567,7 +567,7 @@ export default function Resume() {
             <DialogTitle>Resume Preview: {previewResume?.name}</DialogTitle>
           </DialogHeader>
           {previewResume && (
-            <div className="bg-white p-6 border rounded-md">
+            <div id="resume-preview" className="bg-white p-6 border rounded-md">
               <div className="mb-6 border-b pb-4">
                 <h2 className="text-2xl font-bold text-center">
                   {previewResume.content.personalInfo.fullName || 'Full Name'}
@@ -596,14 +596,14 @@ export default function Resume() {
                   )}
                 </div>
               </div>
-              
+
               {previewResume.content.summary && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                   <p className="text-sm">{previewResume.content.summary}</p>
                 </div>
               )}
-              
+
               {previewResume.content.skills && previewResume.content.skills.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -616,7 +616,7 @@ export default function Resume() {
                   </div>
                 </div>
               )}
-              
+
               {previewResume.content.experience && previewResume.content.experience.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -636,7 +636,7 @@ export default function Resume() {
                   </div>
                 </div>
               )}
-              
+
               {previewResume.content.education && previewResume.content.education.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -656,7 +656,7 @@ export default function Resume() {
                   </div>
                 </div>
               )}
-              
+
               {previewResume.content.projects && previewResume.content.projects.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
@@ -692,7 +692,7 @@ export default function Resume() {
           </div>
         </DialogContent>
       </Dialog>
-      
+
       {/* Generated Resume Dialog */}
       <Dialog open={isGeneratedResumeOpen} onOpenChange={setIsGeneratedResumeOpen}>
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
@@ -702,7 +702,7 @@ export default function Resume() {
               This resume was tailored to match the job description you provided. You can save it as a new resume or make further edits.
             </p>
           </DialogHeader>
-          
+
           {generatedResume && (
             <div className="bg-white p-6 border rounded-md">
               <div className="mb-6 border-b pb-4">
@@ -721,14 +721,14 @@ export default function Resume() {
                   )}
                 </div>
               </div>
-              
+
               {generatedResume.summary && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                   <p className="text-sm">{generatedResume.summary}</p>
                 </div>
               )}
-              
+
               {generatedResume.skills && generatedResume.skills.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -741,7 +741,7 @@ export default function Resume() {
                   </div>
                 </div>
               )}
-              
+
               {generatedResume.experience && generatedResume.experience.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -768,7 +768,7 @@ export default function Resume() {
                   </div>
                 </div>
               )}
-              
+
               {generatedResume.education && generatedResume.education.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -790,7 +790,7 @@ export default function Resume() {
               )}
             </div>
           )}
-          
+
           <div className="flex justify-between mt-4">
             <Button variant="outline" onClick={() => setIsGeneratedResumeOpen(false)}>
               Close
@@ -814,10 +814,10 @@ export default function Resume() {
                     projects: []
                   }
                 };
-                
+
                 // Close this dialog
                 setIsGeneratedResumeOpen(false);
-                
+
                 // Set selected resume to this new one and open the edit dialog
                 setSelectedResume(newResume);
                 setIsAddResumeOpen(true);
