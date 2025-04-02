@@ -1102,8 +1102,17 @@ export class MemStorage implements IStorage {
     const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
     
     const goals = await this.getGoals(userId);
-    // Count specifically goals with status 'in_progress' (with underscore, not hyphen)
-    const activeGoals = goals.filter(g => g.status === 'in_progress' && !g.completed).length;
+    // Count goals that are in_progress and not completed, or have another active status
+    const activeGoals = goals.filter(g => {
+      // Consider a goal active if:
+      // 1. Status is 'in_progress' and not completed
+      // 2. Status is 'not_started' and not completed 
+      // 3. Status is 'active' and not completed (legacy status)
+      return (
+        (g.status === 'in_progress' || g.status === 'not_started' || g.status === 'active') && 
+        !g.completed
+      );
+    }).length;
     
     const achievements = await this.getUserAchievements(userId);
     const achievementsCount = achievements.length;
