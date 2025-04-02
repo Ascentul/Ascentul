@@ -144,14 +144,57 @@ export default function TodaysRecommendations() {
   // Handle recommendation completion toggle
   const handleToggleComplete = (recommendation: Recommendation) => {
     if (!recommendation.completed) {
+      // Create a timestamp for completion
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString();
+      
+      // Create a manual temporary completion message
+      const completionDateContainer = document.createElement('span');
+      completionDateContainer.className = 'text-xs text-muted-foreground ml-2';
+      completionDateContainer.textContent = `Completed ${formattedDate}`;
+      
+      // Get DOM elements to update
+      const badgeContainer = document.querySelector(`li[data-recommendation-id="${recommendation.id}"] .badge-container`);
+      const textElement = document.querySelector(`span[data-recommendation-id="${recommendation.id}"]`);
+      const recItem = document.querySelector(`li[data-recommendation-id="${recommendation.id}"]`);
+      
+      // Apply visual changes immediately
+      if (textElement) {
+        textElement.classList.add('line-through');
+      }
+      
+      if (recItem) {
+        // Change the appearance of the completed item
+        recItem.classList.add('bg-muted/30', 'text-muted-foreground', 'border-border/50');
+        recItem.classList.remove('bg-background', 'border-border', 'hover:border-primary/30');
+        
+        // Show the check icon and hide the circle
+        const circleIcon = recItem.querySelector('.circle-icon');
+        const checkIcon = recItem.querySelector('.check-icon');
+        
+        if (circleIcon instanceof HTMLElement) {
+          circleIcon.style.display = 'none';
+        }
+        
+        if (checkIcon instanceof HTMLElement) {
+          checkIcon.style.display = 'block';
+        }
+        
+        // Add completion date if not already present
+        if (badgeContainer && !recItem.querySelector('.completion-date')) {
+          completionDateContainer.classList.add('completion-date');
+          badgeContainer.appendChild(completionDateContainer);
+        }
+      }
+      
       // Apply optimistic update to local state before calling the API
       const updatedRecommendations = sortedRecommendations.map(rec => 
         rec.id === recommendation.id
-          ? { ...rec, completed: true, completedAt: new Date().toISOString() }
+          ? { ...rec, completed: true, completedAt: now.toISOString() }
           : rec
       );
       
-      // Update the local state first for immediate UI feedback
+      // Update the local state for proper data consistency
       queryClient.setQueryData<Recommendation[]>(['/api/recommendations/daily'], updatedRecommendations);
       
       // Then call the API
@@ -262,6 +305,7 @@ export default function TodaysRecommendations() {
             return (
               <li
                 key={recommendation.id}
+                data-recommendation-id={recommendation.id}
                 className={`flex items-start p-3 rounded-lg border transition-all duration-300 ${
                   recommendation.completed
                     ? 'bg-muted/30 text-muted-foreground border-border/50'
@@ -269,19 +313,26 @@ export default function TodaysRecommendations() {
                 }`}
               >
                 <div 
+                  data-recommendation-id={recommendation.id}
                   className="mt-0.5 mr-3 flex-shrink-0 cursor-pointer" 
                   onClick={() => handleToggleComplete(recommendation)}
                 >
-                  {recommendation.completed ? (
-                    <CheckCircle className="text-green-500 h-5 w-5" />
-                  ) : (
-                    <Circle className="text-muted-foreground h-5 w-5 hover:text-primary" />
-                  )}
+                  <CheckCircle 
+                    className="text-green-500 h-5 w-5 check-icon" 
+                    style={{ display: recommendation.completed ? 'block' : 'none' }}
+                  />
+                  <Circle 
+                    className="text-muted-foreground h-5 w-5 hover:text-primary circle-icon" 
+                    style={{ display: recommendation.completed ? 'none' : 'block' }}
+                  />
                 </div>
                 
                 <div className="flex-1">
                   <div className="flex flex-wrap items-start justify-between">
-                    <span className={`text-sm ${recommendation.completed ? 'line-through' : ''}`}>
+                    <span 
+                      data-recommendation-id={recommendation.id} 
+                      className={`text-sm recommendation-text ${recommendation.completed ? 'line-through' : ''}`}
+                    >
                       {recommendation.text}
                     </span>
                     
@@ -294,7 +345,7 @@ export default function TodaysRecommendations() {
                     )}
                   </div>
                   
-                  <div className="mt-1 flex items-center space-x-2">
+                  <div className="mt-1 flex items-center space-x-2 badge-container">
                     <Badge
                       className={`px-2 py-0 h-5 text-xs text-white ${getTypeColor(recommendation.type)}`}
                     >
@@ -302,7 +353,7 @@ export default function TodaysRecommendations() {
                     </Badge>
                     
                     {recommendation.completed && recommendation.completedAt && (
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground completion-date">
                         Completed {new Date(recommendation.completedAt).toLocaleDateString()}
                       </span>
                     )}
