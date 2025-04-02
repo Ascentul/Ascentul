@@ -1,10 +1,11 @@
+
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Plus, X, CheckSquare, Square } from 'lucide-react';
 import { format } from 'date-fns';
 
 import {
@@ -33,12 +34,15 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 
+// Import the schema for consistency
+import { goalChecklistItemSchema } from '@shared/schema';
+
 const goalSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }).max(100),
   description: z.string().optional(),
-  status: z.string().default('active'),
+  status: z.string().default('not_started'),
   dueDate: z.date().optional(),
-  xpReward: z.number().min(50).max(500).default(100),
+  checklist: z.array(goalChecklistItemSchema).default([]),
 });
 
 type GoalFormValues = z.infer<typeof goalSchema>;
@@ -50,7 +54,7 @@ interface GoalFormProps {
     description?: string;
     status: string;
     dueDate?: string;
-    xpReward: number;
+    checklist?: Array<{ id: string; text: string; completed: boolean; }>;
   };
   onSuccess?: () => void;
 }
@@ -65,15 +69,36 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
     defaultValues: {
       title: goal?.title || '',
       description: goal?.description || '',
-      status: goal?.status || 'active',
+      status: goal?.status || 'not_started',
       dueDate: goal?.dueDate ? new Date(goal.dueDate) : undefined,
-      xpReward: goal?.xpReward || 100,
+      checklist: goal?.checklist || [],
     },
   });
 
   const createGoalMutation = useMutation({
     mutationFn: async (data: GoalFormValues) => {
-      return apiRequest('POST', '/api/goals', data);
+      let status = data.status;
+      
+      // Update status based on checklist
+      if (data.checklist.length >= 2) {
+        const hasAtLeastOneChecked = data.checklist.some(item => item.completed);
+        const areAllChecked = data.checklist.every(item => item.completed);
+        
+        if (hasAtLeastOneChecked && !areAllChecked && status === 'not_started') {
+          status = 'in_progress';
+        }
+      }
+      
+      // Calculate progress
+      let progress = 0;
+      if (data.checklist.length > 0) {
+        const completedItems = data.checklist.filter(item => item.completed).length;
+        progress = Math.round((completedItems / data.checklist.length) * 100);
+      } else {
+        progress = status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0;
+      }
+
+      return apiRequest('POST', '/api/goals', { ...data, status, progress });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
@@ -127,6 +152,10 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const generateId = () => {
+    return Math.random().toString(36).substring(2, 11);
   };
 
   return (
@@ -232,6 +261,74 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
             )}
           />
         </div>
+
+        {/* Checklist Field */}
+        <FormField
+          control={form.control}
+          name="checklist"
+          render={() => {
+            const { fields, append, remove, update } = useFieldArray({
+              name: "checklist",
+              control: form.control
+            });
+            
+            return (
+              <FormItem className="space-y-3">
+                <FormLabel>Goal Checklist (Optional)</FormLabel>
+                <div className="flex flex-col space-y-2">
+                  {fields.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newItem = { ...item, completed: !item.completed };
+                          update(index, newItem);
+                        }}
+                        className="h-6 w-6"
+                      >
+                        {item.completed ? (
+                          <CheckSquare className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Input 
+                        value={item.text}
+                        onChange={(e) => {
+                          const newItem = { ...item, text: e.target.value };
+                          update(index, newItem);
+                        }}
+                        className="h-8 flex-1"
+                        placeholder="Enter a task..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => remove(index)}
+                        className="h-6 w-6"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ id: generateId(), text: '', completed: false })}
+                  className="mt-1"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Checklist Item
+                </Button>
+              </FormItem>
+            );
+          }}
+        />
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => form.reset()}>
