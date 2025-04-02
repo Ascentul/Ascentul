@@ -343,13 +343,20 @@ export default function OnboardingFlow() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to save onboarding data');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server response error:', errorData);
+        throw new Error(errorData.message || 'Failed to save onboarding data');
       }
       
       console.log('Onboarding data saved successfully');
       return true;
     } catch (error) {
       console.error('Error saving onboarding data:', error);
+      toast({
+        title: "Error saving profile data",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
       return false;
     }
   };

@@ -901,6 +901,69 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(500).json({ message: "Error updating user profile" });
     }
   });
+
+  apiRouter.put("/users/subscription", async (req: Request, res: Response) => {
+    try {
+      // Get user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Extract subscription data from request
+      const { 
+        subscriptionPlan,
+        subscriptionStatus,
+        subscriptionCycle,
+        stripeCustomerId,
+        stripeSubscriptionId,
+        subscriptionExpiresAt
+      } = req.body;
+      
+      // Only allow certain fields to be updated
+      const updateData: Partial<User> = {};
+      
+      if (subscriptionPlan !== undefined) {
+        updateData.subscriptionPlan = subscriptionPlan;
+      }
+      
+      if (subscriptionStatus !== undefined) {
+        updateData.subscriptionStatus = subscriptionStatus;
+      }
+      
+      if (subscriptionCycle !== undefined) {
+        updateData.subscriptionCycle = subscriptionCycle;
+      }
+      
+      if (stripeCustomerId !== undefined) {
+        updateData.stripeCustomerId = stripeCustomerId;
+      }
+      
+      if (stripeSubscriptionId !== undefined) {
+        updateData.stripeSubscriptionId = stripeSubscriptionId;
+      }
+      
+      if (subscriptionExpiresAt !== undefined) {
+        updateData.subscriptionExpiresAt = new Date(subscriptionExpiresAt);
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(user.id, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update subscription" });
+      }
+      
+      // Remove sensitive data before sending response
+      const { password: userPassword, ...safeUser } = updatedUser;
+      
+      res.status(200).json(safeUser);
+    } catch (error) {
+      console.error("Error updating user subscription:", error);
+      res.status(500).json({ message: "Error updating subscription" });
+    }
+  });
   
   apiRouter.get("/users/statistics", async (req: Request, res: Response) => {
     try {

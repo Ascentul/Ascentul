@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useUser } from '@/lib/useUserData';
+import { useUser, useUpdateUserSubscription } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 
 const planFeatures = {
@@ -40,7 +40,8 @@ export default function PlanSelection() {
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [billingCycle, setBillingCycle] = useState<string>('monthly');
-  const { user, updateUser } = useUser();
+  const { user } = useUser();
+  const updateSubscriptionMutation = useUpdateUserSubscription();
   const { toast } = useToast();
   
   // Redirect to dashboard if the user already has a plan
@@ -95,8 +96,8 @@ export default function PlanSelection() {
   const handleContinue = async () => {
     if (selectedPlan === 'free') {
       try {
-        // Update user with free plan
-        await updateUser({
+        // Update user with free plan using the server-side API
+        await updateSubscriptionMutation.mutateAsync({
           subscriptionPlan: 'free',
           subscriptionStatus: 'active',
           subscriptionCycle: undefined
@@ -107,8 +108,10 @@ export default function PlanSelection() {
           description: 'You now have access to all free features of CareerTracker.io',
         });
         
-        // Redirect to dashboard
-        setLocation('/dashboard');
+        // Redirect to dashboard with a slight delay to ensure data is updated
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
       } catch (error) {
         console.error('Error activating free plan:', error);
         toast({
