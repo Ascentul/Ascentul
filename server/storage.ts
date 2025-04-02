@@ -674,8 +674,8 @@ export class MemStorage implements IStorage {
     const id = this.goalIdCounter++;
     const now = new Date();
     
-    // Ensure status is set to 'in-progress' by default for proper counting in statistics
-    const status = goalData.status || 'in-progress';
+    // Ensure status is set to 'in_progress' by default for proper counting in statistics
+    const status = goalData.status || 'in_progress';
     
     const goal: Goal = {
       ...goalData,
@@ -1091,8 +1091,8 @@ export class MemStorage implements IStorage {
     const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
     
     const goals = await this.getGoals(userId);
-    // Count specifically goals with status 'in-progress'
-    const activeGoals = goals.filter(g => g.status === 'in-progress' && !g.completed).length;
+    // Count specifically goals with status 'in_progress' (with underscore, not hyphen)
+    const activeGoals = goals.filter(g => g.status === 'in_progress' && !g.completed).length;
     
     const achievements = await this.getUserAchievements(userId);
     const achievementsCount = achievements.length;

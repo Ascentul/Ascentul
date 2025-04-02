@@ -180,7 +180,7 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="in-progress">In Progress</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="on-track">On Track</SelectItem>
                     <SelectItem value="at-risk">At Risk</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>

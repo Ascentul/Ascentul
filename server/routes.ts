@@ -228,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createGoal(sampleUser.id, {
         title: "Update LinkedIn Profile",
         description: "Add recent projects and update skills",
-        status: "in-progress",
+        status: "in_progress",
         dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
         xpReward: 100
       });
