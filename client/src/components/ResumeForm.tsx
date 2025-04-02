@@ -891,31 +891,56 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
             type="submit" 
             disabled={isSubmitting}
             onClick={async () => {
-              if (!resume) return;
-              
               try {
                 setIsSubmitting(true);
-                const response = await apiRequest('PUT', `/api/resumes/${resume.id}`, {
-                  name: resume.name,
-                  template: resume.template,
-                  content: resume.content
-                });
                 
-                if (response.ok) {
-                  // Invalidate and refetch resumes query
-                  queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
-                  
-                  toast({
-                    title: "Resume updated",
-                    description: "Your resume has been updated successfully.",
+                // Check if we're updating an existing resume or creating a new one
+                if (resume && resume.id) {
+                  // Update existing resume
+                  const response = await apiRequest('PUT', `/api/resumes/${resume.id}`, {
+                    name: resume.name,
+                    template: resume.template,
+                    content: resume.content
                   });
+                  
+                  if (response.ok) {
+                    // Invalidate and refetch resumes query
+                    queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+                    
+                    toast({
+                      title: "Resume updated",
+                      description: "Your resume has been updated successfully.",
+                    });
+                  } else {
+                    throw new Error('Failed to update resume');
+                  }
                 } else {
-                  throw new Error('Failed to update resume');
+                  // Create new resume
+                  const response = await apiRequest('POST', '/api/resumes', {
+                    name: resume?.name || form.getValues().name,
+                    template: resume?.template || form.getValues().template,
+                    content: resume?.content || form.getValues().content
+                  });
+                  
+                  if (response.ok) {
+                    // Invalidate and refetch resumes query
+                    queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+                    
+                    toast({
+                      title: "Resume created",
+                      description: "Your new resume has been created successfully.",
+                    });
+                    
+                    // Call onSuccess callback if provided
+                    if (onSuccess) onSuccess();
+                  } else {
+                    throw new Error('Failed to create resume');
+                  }
                 }
               } catch (error: any) {
                 toast({
                   title: "Error",
-                  description: error.message || "There was a problem updating your resume.",
+                  description: error.message || "There was a problem with your resume.",
                   variant: "destructive",
                 });
               } finally {
@@ -923,7 +948,7 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
               }
             }}
           >
-            {isSubmitting ? 'Saving...' : resume ? 'Update Resume' : 'Create Resume'}
+            {isSubmitting ? 'Saving...' : resume && resume.id ? 'Update Resume' : 'Create Resume'}
           </Button>
         </div>
       </form>
