@@ -144,17 +144,10 @@ export default function TodaysRecommendations() {
   // Handle recommendation completion toggle
   const handleToggleComplete = (recommendation: Recommendation) => {
     if (!recommendation.completed) {
-      // Create a timestamp for completion
+      // Create a timestamp for completion but don't display it
       const now = new Date();
-      const formattedDate = now.toLocaleDateString();
-      
-      // Create a manual temporary completion message
-      const completionDateContainer = document.createElement('span');
-      completionDateContainer.className = 'text-xs text-muted-foreground ml-2';
-      completionDateContainer.textContent = `Completed ${formattedDate}`;
       
       // Get DOM elements to update
-      const badgeContainer = document.querySelector(`li[data-recommendation-id="${recommendation.id}"] .badge-container`);
       const textElement = document.querySelector(`span[data-recommendation-id="${recommendation.id}"]`);
       const recItem = document.querySelector(`li[data-recommendation-id="${recommendation.id}"]`);
       
@@ -178,12 +171,6 @@ export default function TodaysRecommendations() {
         
         if (checkIcon instanceof HTMLElement) {
           checkIcon.style.display = 'block';
-        }
-        
-        // Add completion date if not already present
-        if (badgeContainer && !recItem.querySelector('.completion-date')) {
-          completionDateContainer.classList.add('completion-date');
-          badgeContainer.appendChild(completionDateContainer);
         }
       }
       
@@ -345,7 +332,13 @@ export default function TodaysRecommendations() {
                     )}
                   </div>
                   
-                  <div className="mt-1 flex items-center justify-center space-x-2 badge-container">
+                  <div className="mt-1 flex items-center space-x-2 badge-container">
+                    <Badge
+                      className={`px-2 py-0 h-5 text-xs text-white ${getTypeColor(recommendation.type)}`}
+                    >
+                      {getTypeLabel(recommendation.type)}
+                    </Badge>
+                    {/* Completion date removed as requested */}
                   </div>
                 </div>
               </li>
