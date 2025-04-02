@@ -673,8 +673,13 @@ export class MemStorage implements IStorage {
   async createGoal(userId: number, goalData: InsertGoal): Promise<Goal> {
     const id = this.goalIdCounter++;
     const now = new Date();
+    
+    // Ensure status is set to 'in-progress' by default for proper counting in statistics
+    const status = goalData.status || 'in-progress';
+    
     const goal: Goal = {
       ...goalData,
+      status,
       id,
       userId,
       progress: 0,

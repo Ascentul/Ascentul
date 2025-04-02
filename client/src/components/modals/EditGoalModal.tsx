@@ -224,6 +224,8 @@ export default function EditGoalModal({ isOpen, onClose, goalId, goals }: EditGo
     onSettled: () => {
       // Always refetch after error or success to ensure cache consistency
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      // Also invalidate user statistics to update the Active Goals count
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
     },
   });
   

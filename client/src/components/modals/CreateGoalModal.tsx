@@ -68,7 +68,7 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
   const defaultValues: FormData = {
     title: '',
     description: '',
-    status: 'not_started',
+    status: 'in_progress', // Default to in-progress so goals show up in Active Goals count
     checklist: [],
   };
   
@@ -198,6 +198,8 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
     onSettled: () => {
       // Always refetch after error or success to ensure cache consistency
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      // Also invalidate user statistics to update the Active Goals count
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
     },
   });
   
