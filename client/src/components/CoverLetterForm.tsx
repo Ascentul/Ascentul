@@ -402,10 +402,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess }: CoverLetterF
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
-            Cancel
-          </Button>
+        <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : coverLetter ? 'Update Cover Letter' : 'Create Cover Letter'}
           </Button>
