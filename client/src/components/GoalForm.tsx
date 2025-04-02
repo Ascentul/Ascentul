@@ -330,10 +330,7 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
           }}
         />
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
-            Cancel
-          </Button>
+        <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : goal ? 'Update Goal' : 'Create Goal'}
           </Button>
