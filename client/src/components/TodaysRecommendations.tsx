@@ -328,7 +328,7 @@ export default function TodaysRecommendations() {
                 </div>
                 
                 <div className="flex-1">
-                  <div className="flex flex-wrap items-center justify-center text-center">
+                  <div className="flex flex-wrap items-start">
                     <span 
                       data-recommendation-id={recommendation.id} 
                       className={`text-sm recommendation-text ${recommendation.completed ? 'line-through' : ''}`}
