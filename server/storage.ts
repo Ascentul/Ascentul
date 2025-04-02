@@ -1719,6 +1719,15 @@ export class MemStorage implements IStorage {
     // Award XP to the user
     await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
     
+    // If this stage has a scheduled date in the future, it should affect upcoming interviews
+    if (stageData.scheduledDate) {
+      const stageDate = new Date(stageData.scheduledDate);
+      const now = new Date();
+      if (stageDate >= now) {
+        console.log(`Stage has future date, should increment upcoming interviews: ${stageDate}`);
+      }
+    }
+    
     return interviewStage;
   }
 

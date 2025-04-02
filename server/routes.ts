@@ -2090,6 +2090,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log(`Stage data after parsing:`, stageData);
       
       const stage = await storage.createInterviewStage(processIdNum, stageData);
+      
+      // Invalidate statistics cache since this may affect the "Upcoming Interviews" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(201).json(stage);
     } catch (error) {
       console.error("Error adding interview stage:", error);
@@ -2133,6 +2137,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const updatedStage = await storage.updateInterviewStage(stageId, req.body);
+      
+      // Invalidate statistics cache since this may affect the "Upcoming Interviews" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(200).json(updatedStage);
     } catch (error) {
       res.status(500).json({ message: "Error updating interview stage" });
@@ -2172,6 +2180,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       await storage.deleteInterviewStage(stageId);
+      
+      // Invalidate statistics cache since this may affect the "Upcoming Interviews" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting interview stage" });
