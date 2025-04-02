@@ -399,7 +399,7 @@ const Interview = () => {
                             {activeProcesses.map((process, index) => (
                               <motion.div variants={listItem} key={process.id}>
                                 <Card 
-                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : process.status === 'Hired' ? 'bg-green-100/70' : ''}`}
+                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : ''}`}
                                   onClick={() => setSelectedProcessId(process.id)}
                                 >
                                   <CardHeader className="p-4 pb-2">
@@ -448,7 +448,7 @@ const Interview = () => {
                             {completedProcesses.map((process, index) => (
                               <motion.div variants={listItem} key={process.id}>
                                 <Card 
-                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : process.status === 'Hired' ? 'bg-green-100/70' : ''}`}
+                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : ''}`}
                                   onClick={() => setSelectedProcessId(process.id)}
                                 >
                                   <CardHeader className="p-4 pb-2">
