@@ -240,6 +240,7 @@ export interface IStorage {
     achievementsCount: number;
     resumesCount: number;
     pendingTasks: number;
+    upcomingInterviews: number;
     monthlyXp: { month: string; xp: number }[];
   }>;
   
@@ -1093,6 +1094,7 @@ export class MemStorage implements IStorage {
     achievementsCount: number;
     resumesCount: number;
     pendingTasks: number;
+    upcomingInterviews: number;
     monthlyXp: { month: string; xp: number }[];
   }> {
     const user = await this.getUser(userId);
@@ -1131,6 +1133,29 @@ export class MemStorage implements IStorage {
       const dueDate = new Date(g.dueDate);
       return dueDate <= oneWeekFromNow;
     }).length;
+    
+    // Count upcoming interviews (stages with status "scheduled" and not completed)
+    // First get all interview processes for this user
+    const processes = await this.getInterviewProcesses(userId);
+    
+    // Track all interview stages that are scheduled
+    let upcomingInterviews = 0;
+    
+    // For each process, get its stages and check for scheduled ones
+    for (const process of processes) {
+      const stages = await this.getInterviewStages(process.id);
+      
+      // Count stages that are scheduled but not completed
+      const scheduledStages = stages.filter(stage => {
+        // Check if stage has a scheduled date in the future and is not completed
+        return stage.scheduledDate && 
+               !stage.completedDate && 
+               stage.outcome !== "passed" &&
+               stage.outcome !== "failed";
+      });
+      
+      upcomingInterviews += scheduledStages.length;
+    }
     
     // Default empty XP data for regular users
     let monthlyXpArray: { month: string; xp: number }[] = [];
@@ -1181,6 +1206,7 @@ export class MemStorage implements IStorage {
       achievementsCount,
       resumesCount,
       pendingTasks,
+      upcomingInterviews,
       monthlyXp: monthlyXpArray
     };
   }

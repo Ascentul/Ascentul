@@ -60,6 +60,7 @@ interface Stats {
   achievementsCount: number;
   resumesCount: number;
   pendingTasks: number;
+  upcomingInterviews: number;
   monthlyXp: Array<{ month: string; xp: number }>;
 }
 
@@ -93,6 +94,7 @@ const DEFAULT_STATS: Stats = {
   achievementsCount: 0,
   resumesCount: 0,
   pendingTasks: 0,
+  upcomingInterviews: 0,
   monthlyXp: [
     { month: 'Jan', xp: 120 },
     { month: 'Feb', xp: 240 },
