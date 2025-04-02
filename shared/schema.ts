@@ -70,9 +70,10 @@ export const users = pgTable("users", {
   studentId: text("student_id"), // University-assigned student ID
   graduationYear: integer("graduation_year"),
   isUniversityStudent: boolean("is_university_student").default(false),
-  xp: integer("xp").notNull().default(0),
-  level: integer("level").notNull().default(1),
-  rank: text("rank").notNull().default("Career Explorer"),
+  // XP, level and rank are only used for university users
+  xp: integer("xp").default(0),  // No longer notNull for regular users
+  level: integer("level").default(1), // No longer notNull for regular users
+  rank: text("rank").default("Career Explorer"), // No longer notNull for regular users
   profileImage: text("profile_image"),
   // Subscription fields
   subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium", "university"

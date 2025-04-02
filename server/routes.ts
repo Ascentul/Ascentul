@@ -249,8 +249,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         xpReward: 250
       });
       
-      // Add some XP to the user
-      await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
+      // Add some XP to the user if they are a university user
+      if (sampleUser.userType === "university_student" || sampleUser.userType === "university_admin") {
+        await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
+      }
       
       // Create a sample conversation
       const conversation = await storage.createAiCoachConversation(sampleUser.id, {
@@ -925,8 +927,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(404).json({ message: "User not found" });
       }
       
-      const xpHistory = await storage.getXpHistory(user.id);
-      res.status(200).json(xpHistory);
+      // Check if user is a university user
+      const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
+      
+      // Only return XP history for university users
+      if (isUniversityUser) {
+        const xpHistory = await storage.getXpHistory(user.id);
+        res.status(200).json(xpHistory);
+      } else {
+        // For regular users, return an empty array
+        res.status(200).json([]);
+      }
     } catch (error) {
       res.status(500).json({ message: "Error fetching XP history" });
     }

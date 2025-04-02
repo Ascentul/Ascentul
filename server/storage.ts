@@ -608,9 +608,17 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
 
-  async addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number> {
+  async addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number | null> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
+    
+    // Only process XP for university users
+    const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
+    
+    // Skip XP handling for regular users
+    if (!isUniversityUser) {
+      return null;
+    }
     
     // Add XP history record
     const xpHistoryId = this.xpHistoryIdCounter++;
@@ -625,16 +633,17 @@ export class MemStorage implements IStorage {
     this.xpHistory.set(xpHistoryId, xpRecord);
     
     // Update user XP
-    const newXp = user.xp + amount;
+    const currentXp = user.xp || 0; // Use 0 as default if xp is undefined
+    const newXp = currentXp + amount;
     
     // Check for level up (simple level calculation - can be refined)
-    let newLevel = user.level;
-    let newRank = user.rank;
+    let newLevel = user.level || 1; // Use 1 as default if level is undefined
+    let newRank = user.rank || "Career Explorer"; // Use default if rank is undefined
     
     // Level up logic: 1000 XP per level
     const calculatedLevel = Math.floor(newXp / 1000) + 1;
     
-    if (calculatedLevel > user.level) {
+    if (calculatedLevel > newLevel) {
       newLevel = calculatedLevel;
       
       // Update rank based on level
@@ -1070,6 +1079,12 @@ export class MemStorage implements IStorage {
     pendingTasks: number;
     monthlyXp: { month: string; xp: number }[];
   }> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Determine if this is a university user
+    const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
+    
     const goals = await this.getGoals(userId);
     const activeGoals = goals.filter(g => !g.completed).length;
     
@@ -1091,33 +1106,49 @@ export class MemStorage implements IStorage {
       return dueDate <= oneWeekFromNow;
     }).length;
     
-    // Calculate monthly XP for the past 6 months
-    const xpHistory = await this.getXpHistory(userId);
-    const monthlyXp: { [key: string]: number } = {};
+    // Default empty XP data for regular users
+    let monthlyXpArray: { month: string; xp: number }[] = [];
     
     // Get the month names for the past 6 months
-    const months = [];
+    const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
       const monthName = d.toLocaleString('default', { month: 'short' });
       months.push(monthName);
-      monthlyXp[monthName] = 0;
     }
     
-    // Calculate XP for each month
-    xpHistory.forEach(record => {
-      const recordMonth = new Date(record.earnedAt).toLocaleString('default', { month: 'short' });
-      if (months.includes(recordMonth)) {
-        monthlyXp[recordMonth] = (monthlyXp[recordMonth] || 0) + record.amount;
-      }
-    });
-    
-    // Convert to array format
-    const monthlyXpArray = months.map(month => ({
-      month,
-      xp: monthlyXp[month] || 0
-    }));
+    // Only process XP history for university users
+    if (isUniversityUser) {
+      // Calculate monthly XP for the past 6 months
+      const xpHistory = await this.getXpHistory(userId);
+      const monthlyXp: { [key: string]: number } = {};
+      
+      // Initialize monthlyXp object with zeros
+      months.forEach(month => {
+        monthlyXp[month] = 0;
+      });
+      
+      // Calculate XP for each month
+      xpHistory.forEach(record => {
+        const recordMonth = new Date(record.earnedAt).toLocaleString('default', { month: 'short' });
+        if (months.includes(recordMonth)) {
+          monthlyXp[recordMonth] = (monthlyXp[recordMonth] || 0) + record.amount;
+        }
+      });
+      
+      // Convert to array format
+      monthlyXpArray = months.map(month => ({
+        month,
+        xp: monthlyXp[month] || 0
+      }));
+    } else {
+      // For regular users, return an array with zero XP values
+      monthlyXpArray = months.map(month => ({
+        month,
+        xp: 0
+      }));
+    }
     
     return {
       activeGoals,

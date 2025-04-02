@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { useUser } from '@/lib/useUserData';
+import { useUser, useIsUniversityUser } from '@/lib/useUserData';
 import StatCard from '@/components/StatCard';
 import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
@@ -98,6 +98,7 @@ const DEFAULT_STATS: Stats = {
 export default function Dashboard() {
   const { user } = useUser();
   const { toast } = useToast();
+  const isUnivUser = useIsUniversityUser();
   
   // Modal states
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
@@ -560,15 +561,15 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* AI Coach & Level Progress */}
+      {/* AI Coach & Level Progress (if university user) */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
+        className={`grid grid-cols-1 ${isUnivUser ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 mb-6 will-change-opacity`}
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* AI Coach Preview - Takes up 2/3 width */}
+        {/* AI Coach Preview - Takes up 2/3 width if university user, full width otherwise */}
         <motion.div
-          className="lg:col-span-2 will-change-transform"
+          className={`${isUnivUser ? 'lg:col-span-2' : ''} will-change-transform`}
           variants={cardAnimation}
           style={{ transform: 'translateZ(0)' }}
         >
@@ -659,103 +660,107 @@ export default function Dashboard() {
           </Card>
         </motion.div>
         
-        {/* Level Progress - Takes up 1/3 width */}
-        <motion.div
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <Card className="h-full">
-            <CardContent className="p-5 flex flex-col h-full">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Your Level</h2>
-              </div>
-              
-              <div className="flex flex-col items-center justify-center flex-1">
-                <LevelProgress 
-                  level={user.level || 1}
-                  xp={user.xp || 0}
-                  nextLevelXp={nextLevelXp}
-                  rank={user.rank || 'Career Novice'}
-                  nextRank={nextRank}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Level Progress - Takes up 1/3 width - only for university users */}
+        {isUnivUser && (
+          <motion.div
+            variants={cardAnimation}
+            className="will-change-transform"
+            style={{ transform: 'translateZ(0)' }}
+          >
+            <Card className="h-full">
+              <CardContent className="p-5 flex flex-col h-full">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold font-poppins">Your Level</h2>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center flex-1">
+                  <LevelProgress 
+                    level={user.level || 1}
+                    xp={user.xp || 0}
+                    nextLevelXp={nextLevelXp}
+                    rank={user.rank || 'Career Novice'}
+                    nextRank={nextRank}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </motion.div>
       
-      {/* Career Journey Chart & Recent Achievements */}
-      <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        {/* Career Journey - Takes up 2/3 width */}
-        <motion.div
-          className="lg:col-span-2 will-change-transform"
-          variants={cardAnimation}
-          style={{ transform: 'translateZ(0)' }}
+      {/* Career Journey Chart & Recent Achievements - Only for university users */}
+      {isUnivUser && (
+        <motion.div 
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
+          variants={staggeredContainer}
+          style={{ backfaceVisibility: 'hidden' }}
         >
-          <Card>
-            <CardContent className="p-5">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Career Journey</h2>
-                <p className="text-xs text-neutral-500">Your XP growth over time</p>
-              </div>
-              
-              <div className="h-[300px]">
-                <CareerJourneyChart data={stats.monthlyXp} />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-        
-        {/* Recent Achievements - Takes up 1/3 width */}
-        <motion.div
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <Card>
-            <CardContent className="p-5">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Recent Achievements</h2>
-              </div>
-              
-              <div className="space-y-4">
-                {Array.isArray(achievements) && achievements.length > 0 ? (
-                  achievements.slice(0, 3).map((achievement) => (
-                    <div key={achievement.id} className="flex items-start">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3 flex-shrink-0">
-                        <Award className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{achievement.name}</p>
-                        <p className="text-xs text-neutral-500">{achievement.description}</p>
-                        <p className="text-xs text-primary mt-1">+{achievement.xpReward} XP</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-neutral-500">
-                    <Award className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
-                    <p>No achievements yet. Complete goals to earn rewards!</p>
-                  </div>
-                )}
-                
-                <div className="pt-2">
-                  <Link href="/achievements">
-                    <Button variant="outline" size="sm" className="w-full">
-                      View All Achievements
-                    </Button>
-                  </Link>
+          {/* Career Journey - Takes up 2/3 width */}
+          <motion.div
+            className="lg:col-span-2 will-change-transform"
+            variants={cardAnimation}
+            style={{ transform: 'translateZ(0)' }}
+          >
+            <Card>
+              <CardContent className="p-5">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold font-poppins">Career Journey</h2>
+                  <p className="text-xs text-neutral-500">Your XP growth over time</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                
+                <div className="h-[300px]">
+                  <CareerJourneyChart data={stats.monthlyXp} />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+          
+          {/* Recent Achievements - Takes up 1/3 width */}
+          <motion.div
+            variants={cardAnimation}
+            className="will-change-transform"
+            style={{ transform: 'translateZ(0)' }}
+          >
+            <Card>
+              <CardContent className="p-5">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold font-poppins">Recent Achievements</h2>
+                </div>
+                
+                <div className="space-y-4">
+                  {Array.isArray(achievements) && achievements.length > 0 ? (
+                    achievements.slice(0, 3).map((achievement) => (
+                      <div key={achievement.id} className="flex items-start">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3 flex-shrink-0">
+                          <Award className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{achievement.name}</p>
+                          <p className="text-xs text-neutral-500">{achievement.description}</p>
+                          <p className="text-xs text-primary mt-1">+{achievement.xpReward} XP</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-neutral-500">
+                      <Award className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
+                      <p>No achievements yet. Complete goals to earn rewards!</p>
+                    </div>
+                  )}
+                  
+                  <div className="pt-2">
+                    <Link href="/achievements">
+                      <Button variant="outline" size="sm" className="w-full">
+                        View All Achievements
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
       
       {/* Modals */}
       {createGoalModalOpen && (

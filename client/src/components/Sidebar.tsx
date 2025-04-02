@@ -28,11 +28,15 @@ export default function Sidebar() {
 
   if (!user) return null;
 
-  // Calculate XP progress percentage
-  const xpToNextLevel = 1000; // For simplicity, each level requires 1000 XP
-  const currentLevelBaseXP = (user.level - 1) * xpToNextLevel;
-  const xpInCurrentLevel = user.xp - currentLevelBaseXP;
-  const progressPercentage = Math.min(100, (xpInCurrentLevel / xpToNextLevel) * 100);
+  // Calculate XP progress percentage - only for university users
+  let progressPercentage = 0;
+  
+  if (isUnivUser && user.xp !== undefined && user.level !== undefined) {
+    const xpToNextLevel = 1000; // For simplicity, each level requires 1000 XP
+    const currentLevelBaseXP = ((user.level || 1) - 1) * xpToNextLevel;
+    const xpInCurrentLevel = (user.xp || 0) - currentLevelBaseXP;
+    progressPercentage = Math.min(100, (xpInCurrentLevel / xpToNextLevel) * 100);
+  }
 
   // Career app navigation items
   const careerNavigationItems = [
@@ -64,21 +68,30 @@ export default function Sidebar() {
               </AvatarFallback>
             )}
           </Avatar>
-          <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-            {user.level}
-          </div>
+          {/* Only show level badge for university users */}
+          {isUnivUser && user.level !== undefined && (
+            <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+              {user.level}
+            </div>
+          )}
         </div>
         <h2 className="mt-3 font-medium text-lg">{user.name}</h2>
-        <div className="mt-1 text-sm text-neutral-400">{user.rank}</div>
         
-        {/* XP Progress */}
-        <div className="mt-3 w-full px-6">
-          <div className="flex justify-between text-xs mb-1">
-            <span>Level {user.level}</span>
-            <span>{user.xp} XP</span>
+        {/* Only show rank for university users */}
+        {isUnivUser && user.rank && (
+          <div className="mt-1 text-sm text-neutral-400">{user.rank}</div>
+        )}
+        
+        {/* XP Progress - only show for university users */}
+        {isUnivUser && user.xp !== undefined && user.level !== undefined && (
+          <div className="mt-3 w-full px-6">
+            <div className="flex justify-between text-xs mb-1">
+              <span>Level {user.level}</span>
+              <span>{user.xp} XP</span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
           </div>
-          <Progress value={progressPercentage} className="h-2" />
-        </div>
+        )}
         
         {/* University user badge - only show for university users */}
         {isUnivUser && (
