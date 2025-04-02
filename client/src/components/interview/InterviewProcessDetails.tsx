@@ -296,6 +296,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate the generic followup actions endpoint used by the Dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/followup-actions'] });
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
@@ -535,6 +537,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate the generic followup actions endpoint used by the Dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/followup-actions'] });
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
@@ -590,6 +594,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate the generic followup actions endpoint used by the Dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/followup-actions'] });
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
