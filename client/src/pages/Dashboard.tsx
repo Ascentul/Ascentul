@@ -561,7 +561,7 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* AI Coach & Level Progress (if university user) */}
+      {/* AI Coach & Level Progress (if university user) - Moved up right after Career Goals */}
       <motion.div 
         className={`grid grid-cols-1 ${isUnivUser ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 mb-6 will-change-opacity`}
         variants={staggeredContainer}
