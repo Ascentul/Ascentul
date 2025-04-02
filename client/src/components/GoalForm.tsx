@@ -235,27 +235,6 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="xpReward"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>XP Reward</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={50}
-                  max={500}
-                  placeholder="100"
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => form.reset()}>
             Cancel
