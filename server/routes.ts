@@ -21,7 +21,7 @@ import {
   insertRecommendationSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
 // Helper function to get the current user from the session
@@ -1387,14 +1387,94 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       const { workHistory, jobDescription } = req.body;
       
-      if (!workHistory || !jobDescription) {
-        return res.status(400).json({ message: "Work history and job description are required" });
+      if (!jobDescription) {
+        return res.status(400).json({ message: "Job description is required" });
       }
       
-      const suggestions = await generateResumeSuggestions(workHistory, jobDescription);
+      // If we have a logged-in user, use their work history from the database
+      let userWorkHistory = workHistory;
+      if (req.session.userId && !workHistory) {
+        const userHistoryEntries = await storage.getWorkHistory(req.session.userId);
+        
+        if (userHistoryEntries && userHistoryEntries.length > 0) {
+          userWorkHistory = userHistoryEntries.map((job: any) => {
+            const duration = job.currentJob 
+              ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+              : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+            
+            const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+              ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+              : '';
+            
+            return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+          }).join('\n---\n\n');
+        }
+      }
+      
+      if (!userWorkHistory) {
+        return res.status(400).json({ message: "No work history provided and none found in user profile" });
+      }
+      
+      // Generate more specific suggestions that highlight exactly what to emphasize from work history
+      const suggestions = await generateResumeSuggestions(userWorkHistory, jobDescription);
       res.status(200).json(suggestions);
-    } catch (error) {
-      res.status(500).json({ message: "Error generating resume suggestions" });
+    } catch (error: any) {
+      console.error("Error generating resume suggestions:", error);
+      res.status(500).json({ message: `Error generating resume suggestions: ${error.message}` });
+    }
+  });
+  
+  apiRouter.post("/resumes/generate", async (req: Request, res: Response) => {
+    try {
+      const { workHistory, jobDescription } = req.body;
+      
+      if (!jobDescription) {
+        return res.status(400).json({ message: "Job description is required" });
+      }
+      
+      // If we have a logged-in user, use their work history from the database
+      let userWorkHistory = workHistory;
+      let userData: any = null;
+      
+      if (req.session.userId) {
+        // Get user data for personal info
+        userData = await getCurrentUser(req);
+        
+        if (!workHistory) {
+          const userHistoryEntries = await storage.getWorkHistory(req.session.userId);
+          
+          if (userHistoryEntries && userHistoryEntries.length > 0) {
+            // Format work history for AI processing
+            userWorkHistory = userHistoryEntries.map((job: any) => {
+              const duration = job.currentJob 
+                ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+                : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+              
+              const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+                ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+                : '';
+              
+              return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+            }).join('\n---\n\n');
+            
+            // Save the raw work history entries for later processing
+            userData.workHistory = userHistoryEntries;
+          }
+        }
+      }
+      
+      if (!userWorkHistory) {
+        return res.status(400).json({ message: "No work history provided and none found in user profile" });
+      }
+      
+      // Generate a complete resume tailored to the job description
+      const resumeContent = await generateFullResume(userWorkHistory, jobDescription, userData);
+      
+      // Return the generated resume
+      res.status(200).json(resumeContent);
+    } catch (error: any) {
+      console.error("Error generating resume:", error);
+      res.status(500).json({ message: `Error generating resume: ${error.message}` });
     }
   });
   

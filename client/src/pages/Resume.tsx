@@ -24,6 +24,8 @@ export default function Resume() {
   const [isAddResumeOpen, setIsAddResumeOpen] = useState(false);
   const [selectedResume, setSelectedResume] = useState<any>(null);
   const [previewResume, setPreviewResume] = useState<any>(null);
+  const [generatedResume, setGeneratedResume] = useState<any>(null);
+  const [isGeneratedResumeOpen, setIsGeneratedResumeOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,25 +45,6 @@ export default function Resume() {
     queryKey: ['/api/work-history'],
     placeholderData: []
   });
-
-  // Format work history data when it loads
-  useEffect(() => {
-    if (workHistoryData && workHistoryData.length > 0) {
-      const formattedWorkHistory = workHistoryData.map((job: any) => {
-        const duration = job.currentJob 
-          ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
-          : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
-        
-        const achievements = job.achievements && job.achievements.length > 0
-          ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
-          : '';
-        
-        return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
-      }).join('\n---\n\n');
-      
-      setUserWorkHistory(formattedWorkHistory);
-    }
-  }, [workHistoryData]);
 
   // Fetch suggestions
   const getSuggestionsMutation = useMutation({
@@ -83,6 +66,32 @@ export default function Resume() {
       toast({
         title: 'Error',
         description: `Failed to generate suggestions: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Generate full resume
+  const generateResumeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/resumes/generate', {
+        jobDescription,
+        workHistory: userWorkHistory,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Resume Generated',
+        description: 'Your AI-tailored resume is ready to view and customize',
+      });
+      setGeneratedResume(data);
+      setIsGeneratedResumeOpen(true);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to generate resume: ${error.message}`,
         variant: 'destructive',
       });
     },
@@ -166,8 +175,9 @@ export default function Resume() {
       return;
     }
     
-    // If work history is empty and we have work history data, format it and use it
-    if (!userWorkHistory.trim() && Array.isArray(workHistoryData) && workHistoryData.length > 0) {
+    // Check if we have work history data available in the database
+    if (Array.isArray(workHistoryData) && workHistoryData.length > 0) {
+      // Format work history data for AI processing
       const formattedWorkHistory = workHistoryData.map((job: any) => {
         const duration = job.currentJob 
           ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
@@ -180,24 +190,60 @@ export default function Resume() {
         return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
       }).join('\n---\n\n');
       
+      // Set the formatted work history to use in the API call
       setUserWorkHistory(formattedWorkHistory);
+      
+      // Call the API with the job description and formatted work history
+      getSuggestionsMutation.mutate();
+    } else {
+      // No work history available
       toast({
-        title: 'Work Experience Auto-populated',
-        description: 'Your work history has been automatically loaded from your profile',
+        title: 'Missing Work History',
+        description: 'Please add some work history entries in your profile first',
+        variant: 'destructive',
       });
     }
-    
-    // If work history is still empty after auto-population attempt
-    if (!userWorkHistory.trim()) {
+  };
+  
+  // Function to generate a full resume
+  const generateFullResume = () => {
+    if (!jobDescription) {
       toast({
         title: 'Missing Information',
-        description: 'Please add your work experience or create some work history entries first',
+        description: 'Please provide a job description to generate a tailored resume',
         variant: 'destructive',
       });
       return;
     }
     
-    getSuggestionsMutation.mutate();
+    // Check if we have work history data available in the database
+    if (Array.isArray(workHistoryData) && workHistoryData.length > 0) {
+      // Format work history data for AI processing
+      const formattedWorkHistory = workHistoryData.map((job: any) => {
+        const duration = job.currentJob 
+          ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+          : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+        
+        const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+          ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+          : '';
+        
+        return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+      }).join('\n---\n\n');
+      
+      // Set the formatted work history to use in the API call
+      setUserWorkHistory(formattedWorkHistory);
+      
+      // Call the API with the job description and formatted work history
+      generateResumeMutation.mutate();
+    } else {
+      // No work history available
+      toast({
+        title: 'Missing Work History',
+        description: 'Please add some work history entries in your profile first',
+        variant: 'destructive',
+      });
+    }
   };
   
   // Animation variants - optimized for performance
@@ -425,23 +471,29 @@ export default function Resume() {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Work Experience</label>
-                    <Textarea
-                      placeholder="Provide a brief overview of your relevant work experience..."
-                      value={userWorkHistory}
-                      onChange={(e) => setUserWorkHistory(e.target.value)}
-                      className="min-h-[150px]"
-                    />
+                  <div className="pt-2">
+                    <p className="text-sm text-neutral-500 mb-4">
+                      Your work history will be automatically used from your profile to generate relevant suggestions.
+                    </p>
                   </div>
                   
-                  <Button 
-                    className="w-full" 
-                    onClick={generateSuggestions}
-                    disabled={getSuggestionsMutation.isPending}
-                  >
-                    {getSuggestionsMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      className="w-full" 
+                      onClick={generateSuggestions}
+                      disabled={getSuggestionsMutation.isPending}
+                    >
+                      {getSuggestionsMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
+                    </Button>
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={generateFullResume}
+                      disabled={generateResumeMutation?.isPending}
+                    >
+                      {generateResumeMutation?.isPending ? 'Creating...' : 'Generate Resume'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -637,6 +689,142 @@ export default function Resume() {
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Generated Resume Dialog */}
+      <Dialog open={isGeneratedResumeOpen} onOpenChange={setIsGeneratedResumeOpen}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>AI-Generated Resume</DialogTitle>
+            <p className="text-sm text-neutral-500">
+              This resume was tailored to match the job description you provided. You can save it as a new resume or make further edits.
+            </p>
+          </DialogHeader>
+          
+          {generatedResume && (
+            <div className="bg-white p-6 border rounded-md">
+              <div className="mb-6 border-b pb-4">
+                <h2 className="text-2xl font-bold text-center">
+                  {generatedResume.personalInfo?.fullName || 'Your Name'}
+                </h2>
+                <div className="flex flex-wrap justify-center gap-3 mt-2 text-sm text-neutral-600">
+                  {generatedResume.personalInfo?.email && (
+                    <span>{generatedResume.personalInfo.email}</span>
+                  )}
+                  {generatedResume.personalInfo?.phone && (
+                    <span>| {generatedResume.personalInfo.phone}</span>
+                  )}
+                  {generatedResume.personalInfo?.location && (
+                    <span>| {generatedResume.personalInfo.location}</span>
+                  )}
+                </div>
+              </div>
+              
+              {generatedResume.summary && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
+                  <p className="text-sm">{generatedResume.summary}</p>
+                </div>
+              )}
+              
+              {generatedResume.skills && generatedResume.skills.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {generatedResume.skills.map((skill: string, index: number) => (
+                      <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {generatedResume.experience && generatedResume.experience.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
+                  <div className="space-y-4">
+                    {generatedResume.experience.map((exp: any, index: number) => (
+                      <div key={index}>
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">{exp.position}</h4>
+                          <div className="text-sm text-neutral-600">
+                            {exp.startDate} - {exp.currentJob ? 'Present' : exp.endDate}
+                          </div>
+                        </div>
+                        <div className="text-sm font-medium text-primary">{exp.company}</div>
+                        {exp.description && <p className="text-sm mt-2">{exp.description}</p>}
+                        {exp.achievements && exp.achievements.length > 0 && (
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            {exp.achievements.map((achievement: string, idx: number) => (
+                              <li key={idx} className="text-sm">{achievement}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {generatedResume.education && generatedResume.education.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
+                  <div className="space-y-4">
+                    {generatedResume.education.map((edu: any, index: number) => (
+                      <div key={index}>
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">{edu.degree}{edu.field ? ` in ${edu.field}` : ''}</h4>
+                          <div className="text-sm text-neutral-600">
+                            {edu.startDate} - {edu.endDate || 'Present'}
+                          </div>
+                        </div>
+                        <div className="text-sm font-medium text-primary">{edu.institution}</div>
+                        {edu.description && <p className="text-sm mt-2">{edu.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="flex justify-between mt-4">
+            <Button variant="outline" onClick={() => setIsGeneratedResumeOpen(false)}>
+              Close
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+              <Button onClick={() => {
+                // Set up a new resume using the generated content
+                const newResume = {
+                  name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
+                  template: 'modern',
+                  content: {
+                    personalInfo: generatedResume.personalInfo || {},
+                    summary: generatedResume.summary || '',
+                    skills: generatedResume.skills || [],
+                    experience: generatedResume.experience || [],
+                    education: generatedResume.education || [],
+                    projects: []
+                  }
+                };
+                
+                // Close this dialog
+                setIsGeneratedResumeOpen(false);
+                
+                // Set selected resume to this new one and open the edit dialog
+                setSelectedResume(newResume);
+                setIsAddResumeOpen(true);
+              }}>
+                Save as Resume
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

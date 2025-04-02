@@ -52,7 +52,7 @@ export async function generateResumeSuggestions(workHistory: string, jobDescript
   keywords: string[];
 }> {
   try {
-    const prompt = `Based on the user's work history and the job description, provide suggestions to improve their resume and highlight relevant keywords they should include.
+    const prompt = `Based on the user's work history and the job description, provide specific and actionable suggestions to improve their resume by highlighting relevant experience and skills.
 
 User's Work History:
 ${workHistory}
@@ -61,7 +61,7 @@ Job Description:
 ${jobDescription}
 
 Provide your response in JSON format with these fields:
-1. suggestions: An array of 3-5 specific improvements for the resume
+1. suggestions: An array of 5-7 specific improvements for the resume, focusing on exactly what aspects of their work history should be emphasized to match the job description. Be very specific about which skills, achievements, and experiences from their work history align with the job requirements.
 2. keywords: An array of 5-10 relevant keywords/skills from the job description that should be highlighted in the resume`;
 
     const response = await openai.chat.completions.create({
@@ -92,6 +92,70 @@ Provide your response in JSON format with these fields:
       suggestions: ["Unable to generate suggestions at this time."],
       keywords: []
     };
+  }
+}
+
+// Generate a complete resume tailored to a specific job description
+export async function generateFullResume(
+  workHistory: string, 
+  jobDescription: string, 
+  userData?: any
+): Promise<any> {
+  try {
+    const userInfo = userData ? `
+User's Personal Information:
+Name: ${userData.name || 'N/A'}
+Email: ${userData.email || 'N/A'}
+Phone: ${userData.phone || 'N/A'}
+Location: ${userData.location || 'N/A'}
+` : '';
+
+    const prompt = `You are an expert resume writer and career counselor. Create a complete, professional resume tailored to the job description, using only the candidate's actual work history to avoid fabrication. The resume should strategically frame the candidate's experience to best match the job requirements.
+
+${userInfo}
+
+User's Work History:
+${workHistory}
+
+Job Description:
+${jobDescription}
+
+Provide your response in JSON format with these fields:
+1. personalInfo: An object with fullName, email, phone, and location
+2. summary: A compelling professional summary paragraph tailored to the job
+3. skills: An array of 8-12 skills extracted from the work history that are relevant to the job
+4. experience: An array of work experience objects, each containing:
+   - company
+   - position
+   - startDate
+   - endDate
+   - currentJob (boolean)
+   - description (an improved bullet-point style description that highlights relevant achievements)
+   - achievements (an array of 2-3 specific, quantifiable achievements from each position)
+5. education: An array of education objects (if found in the work history)
+
+Important: Use ONLY information provided in the work history. Do not invent or fabricate any details. Format dates consistently. The description and achievements for each position should be tailored to emphasize aspects that align with the job description.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 2500,
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const parsedResponse = JSON.parse(content);
+    
+    return parsedResponse;
+  } catch (error: any) {
+    console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      throw new Error("There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.");
+    }
+    
+    throw new Error("An error occurred while generating the resume. Please try again later.");
   }
 }
 
