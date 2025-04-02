@@ -122,6 +122,9 @@ const Interview = () => {
   ) || [];
 
   const renderProcessCard = (process: InterviewProcess, index: number) => {
+    // Determine if the card should have a red background
+    const isRejected = process.status === 'Not Selected';
+    
     return (
       <motion.div
         variants={listItem}
@@ -132,7 +135,7 @@ const Interview = () => {
         <Card 
           className={`cursor-pointer transition-colors hover:bg-accent/50 ${
             selectedProcessId === process.id ? 'border-primary' : ''
-          }`}
+          } ${isRejected ? 'bg-red-100/70' : ''}`}
           onClick={() => setSelectedProcessId(process.id)}
         >
           <CardHeader className="p-4 pb-2">
@@ -395,7 +398,7 @@ const Interview = () => {
                             {activeProcesses.map((process, index) => (
                               <motion.div variants={listItem} key={process.id}>
                                 <Card 
-                                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : ''}`}
                                   onClick={() => setSelectedProcessId(process.id)}
                                 >
                                   <CardHeader className="p-4 pb-2">
@@ -444,7 +447,7 @@ const Interview = () => {
                             {completedProcesses.map((process, index) => (
                               <motion.div variants={listItem} key={process.id}>
                                 <Card 
-                                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                                  className={`cursor-pointer transition-colors hover:bg-accent/50 ${process.status === 'Not Selected' ? 'bg-red-100/70' : ''}`}
                                   onClick={() => setSelectedProcessId(process.id)}
                                 >
                                   <CardHeader className="p-4 pb-2">
