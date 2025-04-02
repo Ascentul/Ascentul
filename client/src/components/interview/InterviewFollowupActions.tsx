@@ -271,40 +271,24 @@ const InterviewFollowupActions = ({
 
   // Return based on showCard prop
   if (isLoading) {
-    return showCard ? (
-      <Card>
-        <CardHeader>
-          {showTitle && <CardTitle className="text-lg">Interview Followups</CardTitle>}
-        </CardHeader>
-        <CardContent>{loadingContent}</CardContent>
-      </Card>
-    ) : loadingContent;
+    return loadingContent;
   }
 
-  if (showCard) {
-    return (
-      <Card>
-        {showTitle && (
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg">Interview Followups</CardTitle>
-              {pendingActions.length > 0 && (
-                <Badge variant="outline" className="ml-2">
-                  {pendingActions.length} pending
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-        )}
-        <CardContent>
-          {contentUI}
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  // Return content without card wrapper
-  return contentUI;
+  return (
+    <div>
+      {showTitle && (
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold font-poppins">Interview Followups</h2>
+          {pendingActions.length > 0 && (
+            <Badge variant="outline" className="ml-2">
+              {pendingActions.length} pending
+            </Badge>
+          )}
+        </div>
+      )}
+      {contentUI}
+    </div>
+  );
 };
 
 export { InterviewFollowupActions };
