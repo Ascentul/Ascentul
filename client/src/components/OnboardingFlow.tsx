@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { useUser } from '@/lib/useUserData';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -171,7 +172,21 @@ export default function OnboardingFlow() {
   }, [step, needsUsername]);
 
   const handleCareerStageSelect = (stage: CareerStage) => {
-    setData({ ...data, careerStage: stage });
+    // If selecting the same career stage again, do nothing
+    if (data.careerStage === stage) {
+      return;
+    }
+    
+    // Update the career stage
+    setData({ 
+      ...data, 
+      careerStage: stage,
+      // Reset relevant stage-specific data when changing career stage
+      studentInfo: stage !== 'student' ? defaultOnboardingData.studentInfo : data.studentInfo,
+      professionalInfo: stage === 'student' ? defaultOnboardingData.professionalInfo : data.professionalInfo
+    });
+    
+    // Move to step 2
     setStep(2);
   };
 
@@ -226,7 +241,8 @@ export default function OnboardingFlow() {
     setUsernameError('');
     
     try {
-      const response = await fetch(`/api/users/check-username?username=${username}`);
+      // Use apiRequest from queryClient for consistency with the rest of the app
+      const response = await apiRequest('GET', `/api/users/check-username?username=${username}`);
       const data = await response.json();
       
       if (response.ok) {
@@ -252,13 +268,8 @@ export default function OnboardingFlow() {
     if (!username || !usernameAvailable) return;
     
     try {
-      const response = await fetch('/api/users/update-username', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username }),
-      });
+      // Use apiRequest from queryClient for consistency with the rest of the app
+      const response = await apiRequest('POST', '/api/users/update-username', { username });
       
       if (!response.ok) {
         const data = await response.json();
@@ -275,6 +286,8 @@ export default function OnboardingFlow() {
         title: "Username set successfully",
         description: `You'll be known as @${username} on CareerTracker.io`,
       });
+      
+      return true;
     } catch (error) {
       console.error('Error updating username:', error);
       
@@ -283,21 +296,33 @@ export default function OnboardingFlow() {
         description: error instanceof Error ? error.message : 'Please try a different username',
         variant: "destructive",
       });
+      
+      return false;
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (needsUsername && step === 0) {
       // If username is needed, we handle it separately
-      updateUsername();
+      await updateUsername();
     } else if (step === 3) {
       // When we're on the final step (interests selection)
-      // Save onboarding data to user profile
-      saveOnboardingData();
+      // Save onboarding data to user profile and wait for it to complete
+      const success = await saveOnboardingData();
       
-      // Navigate to plan selection page after all steps are completed
-      setLocation('/plan-selection');
-      console.log('Navigating to /plan-selection');
+      if (success) {
+        // Use window.location.href for navigation to ensure full page refresh
+        // This ensures the authentication state is properly carried over
+        window.location.href = '/plan-selection';
+        console.log('Navigating to /plan-selection');
+      } else {
+        // Show error toast if saving failed
+        toast({
+          title: "Error saving onboarding data",
+          description: "There was an error saving your profile information. Please try again.",
+          variant: "destructive",
+        });
+      }
     } else if ((needsUsername && step < 4) || (!needsUsername && step < 3)) {
       setStep(step + 1);
     }
@@ -311,15 +336,10 @@ export default function OnboardingFlow() {
 
   const saveOnboardingData = async () => {
     try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          onboardingCompleted: true,
-          onboardingData: data,
-        }),
+      // Use apiRequest from queryClient for consistency with the rest of the app
+      const response = await apiRequest('PUT', '/api/users/profile', {
+        onboardingCompleted: true,
+        onboardingData: data,
       });
       
       if (!response.ok) {
@@ -327,8 +347,10 @@ export default function OnboardingFlow() {
       }
       
       console.log('Onboarding data saved successfully');
+      return true;
     } catch (error) {
       console.error('Error saving onboarding data:', error);
+      return false;
     }
   };
 
