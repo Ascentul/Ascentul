@@ -10,6 +10,7 @@ import AchievementBadge from '@/components/AchievementBadge';
 import CreateGoalModal from '@/components/modals/CreateGoalModal';
 import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
+import TodaysRecommendations from '@/components/TodaysRecommendations';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -552,28 +553,8 @@ export default function Dashboard() {
         >
           <Card>
             <CardContent className="p-5">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Today's Recommendations</h2>
-              </div>
-              
-              <ul className="space-y-4">
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Complete the Python course section on data structures</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Practice 2 interview questions in the system design category</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Update your work experience section with quantifiable achievements</span>
-                </li>
-                <li className="flex items-start bg-background p-3 rounded-lg border border-border">
-                  <CheckCircle className="text-green-500 h-5 w-5 mt-0.5 mr-3 flex-shrink-0" />
-                  <span className="text-sm">Review feedback from your last mock interview session</span>
-                </li>
-              </ul>
+              {/* Replace static recommendations with the new TodaysRecommendations component */}
+              <TodaysRecommendations />
             </CardContent>
           </Card>
         </motion.div>
