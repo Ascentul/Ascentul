@@ -271,6 +271,8 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  // Simple in-memory cache for expensive operations
+  private cache: Map<string, any> = new Map();
   private users: Map<number, User>;
   private goals: Map<number, Goal>;
   private workHistory: Map<number, WorkHistory>;
@@ -1097,6 +1099,17 @@ export class MemStorage implements IStorage {
     upcomingInterviews: number;
     monthlyXp: { month: string; xp: number }[];
   }> {
+    // Use cache for expensive statistics calculations
+    const cacheKey = `user-stats-${userId}`;
+    
+    // Check if cached stats are available
+    const cachedStats = this.cache.get(cacheKey);
+    if (cachedStats) {
+      console.log(`Using cached statistics for user ${userId}`);
+      return cachedStats;
+    }
+    
+    console.log(`Calculating new statistics for user ${userId}`);
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
     
@@ -1206,7 +1219,7 @@ export class MemStorage implements IStorage {
       }));
     }
     
-    return {
+    const stats = {
       activeGoals,
       achievementsCount,
       resumesCount,
@@ -1214,6 +1227,14 @@ export class MemStorage implements IStorage {
       upcomingInterviews,
       monthlyXp: monthlyXpArray
     };
+    
+    // Cache the statistics for 5 minutes (300000 ms)
+    this.cache.set(cacheKey, stats);
+    setTimeout(() => {
+      this.cache.delete(cacheKey);
+    }, 300000);
+    
+    return stats;
   }
   
   // System monitoring methods
@@ -1725,6 +1746,10 @@ export class MemStorage implements IStorage {
       const now = new Date();
       if (stageDate >= now) {
         console.log(`Stage has future date, should increment upcoming interviews: ${stageDate}`);
+        
+        // Directly update the statistics cache to have correct upcoming interviews count
+        const userStatsCacheKey = `user-stats-${process.userId}`;
+        this.cache.delete(userStatsCacheKey);
       }
     }
     
@@ -1735,11 +1760,11 @@ export class MemStorage implements IStorage {
     const stage = this.interviewStages.get(id);
     if (!stage) return undefined;
     
-    const now = new Date();
+    const currentDate = new Date();
     const updatedStage = { 
       ...stage, 
       ...stageData,
-      updatedAt: now 
+      updatedAt: currentDate 
     };
     
     // If marking as completed and wasn't completed before
@@ -1752,6 +1777,18 @@ export class MemStorage implements IStorage {
     }
     
     this.interviewStages.set(id, updatedStage);
+    
+    // Invalidate user statistics cache since this affects upcoming interviews counts
+    if (stageData.scheduledDate || stageData.completedDate || stageData.outcome) {
+      // Get the process to invalidate the cache for the correct user
+      const process = await this.getInterviewProcess(stage.processId);
+      if (process) {
+        const userStatsCacheKey = `user-stats-${process.userId}`;
+        console.log(`Invalidating cache for ${userStatsCacheKey} due to interview stage update`);
+        this.cache.delete(userStatsCacheKey);
+      }
+    }
+    
     return updatedStage;
   }
 
@@ -1760,11 +1797,26 @@ export class MemStorage implements IStorage {
     const stage = this.interviewStages.get(id);
     if (!stage) return false;
     
+    // Get the process to find user id
+    const process = await this.getInterviewProcess(stage.processId);
+    
     const followupActions = Array.from(this.followupActions.values())
       .filter(action => action.stageId === id);
     
     for (const action of followupActions) {
       await this.deleteFollowupAction(action.id);
+    }
+    
+    // Invalidate the user statistics cache if the stage was scheduled or this was an upcoming interview
+    if (process && stage.scheduledDate) {
+      const currentTime = new Date();
+      const stageDate = new Date(stage.scheduledDate);
+      
+      if (stageDate >= currentTime && !stage.completedDate) {
+        // This was an upcoming interview - invalidate stats
+        const userStatsCacheKey = `user-stats-${process.userId}`;
+        this.cache.delete(userStatsCacheKey);
+      }
     }
     
     return this.interviewStages.delete(id);
