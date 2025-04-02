@@ -78,12 +78,24 @@ export function NewInterviewStageForm({ open, onClose, processId }: NewInterview
       // Process interviewers into an array if present
       const formattedValues = {
         ...values,
-        interviewers: values.interviewers ? values.interviewers.split(',').map(name => name.trim()) : null
+        // The scheduledDate is already a Date object (or null), so we don't need to convert it
+        interviewers: values.interviewers ? values.interviewers.split(',').map(name => name.trim()) : []
       };
-      return apiRequest("POST", `/api/interview/processes/${processId}/stages`, formattedValues);
+      
+      console.log('Submitting interview stage with data:', formattedValues);
+      
+      const response = await apiRequest("POST", `/api/interview/processes/${processId}/stages`, formattedValues);
+      
+      // Also invalidate upcoming interviews data
+      queryClient.invalidateQueries({ queryKey: ["/api/users/statistics"] });
+      
+      return response;
     },
     onSuccess: () => {
+      // Invalidate both interview processes and stages queries to refresh all related data
       queryClient.invalidateQueries({ queryKey: ["/api/interview/processes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/interview/processes", processId, "stages"] });
+      
       toast({
         title: "Success",
         description: "Interview stage has been added",
@@ -92,6 +104,7 @@ export function NewInterviewStageForm({ open, onClose, processId }: NewInterview
       onClose();
     },
     onError: (error) => {
+      console.error('Error adding interview stage:', error);
       toast({
         title: "Error",
         description: `Failed to add interview stage: ${error instanceof Error ? error.message : "Unknown error"}`,

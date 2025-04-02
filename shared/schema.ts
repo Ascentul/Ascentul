@@ -146,6 +146,11 @@ export const insertGoalSchema = createInsertSchema(goals).omit({
   completed: true,
   completedAt: true,
   createdAt: true,
+}).extend({
+  // Convert dueDate string to Date object if it's not already a Date
+  dueDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Work History model
@@ -167,6 +172,15 @@ export const insertWorkHistorySchema = createInsertSchema(workHistory).omit({
   id: true,
   userId: true,
   createdAt: true,
+}).extend({
+  // Convert startDate string to Date object if it's not already a Date
+  startDate: z.date().or(
+    z.string().transform((val) => new Date(val))
+  ),
+  // Convert endDate string to Date object if it's not already a Date
+  endDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Resume model
@@ -350,6 +364,15 @@ export const insertInterviewStageSchema = createInsertSchema(interviewStages).om
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Convert scheduledDate string to Date object if it's not already a Date
+  scheduledDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
+  // Same for completedDate
+  completedDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 export const followupActions = pgTable("followup_actions", {
@@ -372,6 +395,11 @@ export const insertFollowupActionSchema = createInsertSchema(followupActions).om
   updatedAt: true,
   completed: true,
   completedDate: true,
+}).extend({
+  // Convert dueDate string to Date object if it's not already a Date
+  dueDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Career Mentor Chat Conversations
@@ -423,6 +451,15 @@ export const insertStudyPlanSchema = createInsertSchema(studyPlans).omit({
   userId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Convert startDate string to Date object if it's not already a Date
+  startDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
+  // Convert endDate string to Date object if it's not already a Date
+  endDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Study Plan Course Model
@@ -467,6 +504,11 @@ export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments
   createdAt: true,
   completed: true,
   completedAt: true,
+}).extend({
+  // Convert dueDate string to Date object if it's not already a Date
+  dueDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Learning Module for LMS (University Edition)
@@ -814,6 +856,11 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).om
   completed: true,
   completedAt: true,
   createdAt: true,
+}).extend({
+  // Convert expiresAt string to Date object if it's not already a Date
+  expiresAt: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 export type Recommendation = typeof recommendations.$inferSelect;
