@@ -36,12 +36,7 @@ export default function StatCard({
         </div>
         
         {change && (
-          <div className={cn(
-            "mt-3 flex items-center text-xs",
-            change.type === 'increase' ? 'text-green-500' : 
-            change.type === 'decrease' ? 'text-red-500' : 
-            'text-neutral-500'
-          )}>
+          <div className="mt-3 flex items-center text-xs text-muted-foreground">
             {change.type === 'increase' ? (
               <ArrowUp className="mr-1 h-3 w-3" />
             ) : change.type === 'decrease' ? (
