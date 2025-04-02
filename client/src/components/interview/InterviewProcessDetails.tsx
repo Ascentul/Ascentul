@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Dialog, 
   DialogContent, 
@@ -778,7 +779,21 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                       >
                         <div className="space-y-1">
                           <div className="flex items-center">
-                            <Circle className="h-3 w-3 text-blue-500 mr-2" />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div 
+                                    onClick={() => handleCompleteFollowup(followup.id)}
+                                    className="cursor-pointer hover:opacity-75 transition-opacity"
+                                  >
+                                    <Circle className="h-3 w-3 text-blue-500 mr-2" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Click to mark as completed</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <span className="font-medium">{followup.type}</span>
                           </div>
                           <p className="text-sm text-muted-foreground">{followup.description}</p>
