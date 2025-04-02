@@ -194,78 +194,7 @@ const InterviewFollowupActions = ({
         </div>
       )}
 
-      {/* Toggle to show completed actions */}
-      {completedActions.length > 0 && (
-        <div className="mt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={() => setShowCompleted(!showCompleted)}
-          >
-            {showCompleted ? "Hide completed" : "Show completed"} ({completedActions.length})
-          </Button>
-          
-          {/* Completed Followups */}
-          {showCompleted && (
-            <div className="space-y-2 mt-4">
-              {completedActions.slice(0, limit).map((action) => (
-                <div
-                  key={action.id}
-                  className="flex items-start justify-between p-3 border rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              onClick={() => handleUncompleteFollowup(action.id)}
-                              className="cursor-pointer hover:opacity-75 transition-opacity"
-                            >
-                              <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Click to mark as pending</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <span className="font-medium line-through text-muted-foreground">
-                        {action.type}
-                      </span>
-                    </div>
-                    <p className="text-sm line-through text-muted-foreground">
-                      {action.description}
-                    </p>
-                    {action.completedDate && (
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        Completed: {formatDate(action.completedDate)}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleUncompleteFollowup(action.id)}
-                    className="h-8 w-8 p-0"
-                    title="Mark as pending"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              {completedActions.length > limit && (
-                <div className="text-center text-sm text-muted-foreground mt-2">
-                  + {completedActions.length - limit} more completed
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      
     </div>
   );
 
