@@ -904,11 +904,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/statistics", async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get the current authenticated user
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const stats = await storage.getUserStatistics(user.id);
@@ -920,11 +920,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/xp-history", async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use the sample user
-      const user = await storage.getUserByUsername("alex");
+      // Get the current authenticated user
+      const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // Check if user is a university user

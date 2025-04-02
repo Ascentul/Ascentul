@@ -1086,7 +1086,8 @@ export class MemStorage implements IStorage {
     const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
     
     const goals = await this.getGoals(userId);
-    const activeGoals = goals.filter(g => !g.completed).length;
+    // Count specifically goals with status 'in-progress'
+    const activeGoals = goals.filter(g => g.status === 'in-progress' && !g.completed).length;
     
     const achievements = await this.getUserAchievements(userId);
     const achievementsCount = achievements.length;
