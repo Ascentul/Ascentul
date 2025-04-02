@@ -11,6 +11,7 @@ import CreateGoalModal from '@/components/modals/CreateGoalModal';
 import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
+import { InterviewFollowupActions } from '@/components/interview/InterviewFollowupActions';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -871,6 +872,34 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
       )}
+      
+      {/* Interview Followup Actions Card */}
+      <motion.div
+        className="mb-6 will-change-opacity"
+        variants={staggeredContainer}
+        style={{ backfaceVisibility: 'hidden' }}
+      >
+        <motion.div
+          className="will-change-transform"
+          variants={cardAnimation}
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Interview Followup Actions</h2>
+                <Link href="/interviews">
+                  <Button variant="outline" size="sm" className="text-xs">
+                    <Eye className="mr-1 h-3 w-3" />
+                    View All Interviews
+                  </Button>
+                </Link>
+              </div>
+              <InterviewFollowupActions limit={5} showTitle={false} />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
       
       {/* Modals */}
       {createGoalModalOpen && (

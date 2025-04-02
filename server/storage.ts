@@ -1877,6 +1877,24 @@ export class MemStorage implements IStorage {
       return new Date(aDate).getTime() - new Date(bDate).getTime();
     });
   }
+  
+  async getFollowupActionsByUser(userId: number): Promise<FollowupAction[]> {
+    // First, get all processes belonging to this user
+    const userProcesses = Array.from(this.interviewProcesses.values())
+      .filter(process => process.userId === userId)
+      .map(process => process.id);
+    
+    // Then, get all followup actions for these processes
+    const actions = Array.from(this.followupActions.values())
+      .filter(action => userProcesses.includes(action.processId));
+    
+    return actions.sort((a, b) => {
+      // Sort by due date if available, otherwise by creation date
+      const aDate = a.dueDate || a.createdAt;
+      const bDate = b.dueDate || b.createdAt;
+      return new Date(aDate).getTime() - new Date(bDate).getTime();
+    });
+  }
 
   async getFollowupAction(id: number): Promise<FollowupAction | undefined> {
     return this.followupActions.get(id);

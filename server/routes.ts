@@ -2462,6 +2462,42 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Get all followup actions for the authenticated user (across all processes)
+  apiRouter.get("/api/interview/followup-actions", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get all followup actions for this user
+      const actions = await storage.getFollowupActionsByUser(user.id);
+      
+      // For each action, fetch process information to enhance the response
+      // We'll need this when displaying actions on the Dashboard
+      const enhancedActions = await Promise.all(actions.map(async (action) => {
+        const process = await storage.getInterviewProcess(action.processId);
+        return {
+          ...action,
+          processInfo: process 
+            ? { 
+                id: process.id,
+                companyName: process.companyName,
+                position: process.position,
+                status: process.status 
+              } 
+            : null
+        };
+      }));
+      
+      res.status(200).json(enhancedActions);
+    } catch (error) {
+      console.error("Error fetching user followup actions:", error);
+      res.status(500).json({ message: "Error fetching followup actions" });
+    }
+  });
+  
   apiRouter.delete("/api/interview/followup-actions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
