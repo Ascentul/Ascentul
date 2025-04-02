@@ -115,64 +115,11 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
       return response.json();
     },
     onMutate: async (newData) => {
-      // Cancel any outgoing refetches 
-      await queryClient.cancelQueries({ queryKey: ['/api/goals'] });
-      
-      // Snapshot the previous goals
-      const previousGoals = queryClient.getQueryData(['/api/goals']);
-      
-      // Check if we should automatically set status to 'in_progress' for optimistic update
-      let status = newData.status;
-      
-      // Apply the same conditions as in mutationFn
-      if (newData.checklist.length >= 2) {
-        const hasAtLeastOneChecked = newData.checklist.some(item => item.completed);
-        const areAllChecked = newData.checklist.every(item => item.completed);
-        
-        if (hasAtLeastOneChecked && !areAllChecked && status === 'not_started') {
-          status = 'in_progress';
-        }
-      }
-      
-      // Calculate progress
-      let progress = 0;
-      if (newData.checklist.length > 0) {
-        const completedItems = newData.checklist.filter(item => item.completed).length;
-        progress = Math.round((completedItems / newData.checklist.length) * 100);
-      } else {
-        progress = status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0;
-      }
-      
-      // Create a temporary optimistic goal
-      const optimisticGoal = {
-        id: Date.now(), // Temporary ID that will be replaced after successful creation
-        title: newData.title,
-        description: newData.description || '',
-        status: status, // Use the potentially updated status
-        progress: progress, // Use the calculated progress
-        dueDate: newData.dueDate ? newData.dueDate.toISOString() : null,
-        createdAt: new Date().toISOString(),
-        userId: 1, // This will be replaced with the actual user ID from the server
-        checklist: newData.checklist || [],
-        xpReward: 100, // Default XP reward
-      };
-      
-      // Add the optimistic goal to the cached data
-      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
-        return old ? [optimisticGoal, ...old] : [optimisticGoal];
-      });
-      
-      // Return a context object with the snapshotted value
-      return { previousGoals };
+      // Instead of using optimistic updates, we'll let the server handle it
+      // and simply invalidate the queries after success
+      return { previousGoals: undefined };
     },
     onSuccess: (data) => {
-      // Update with the actual goal data from the server
-      queryClient.setQueryData(['/api/goals'], (old: any[]) => {
-        if (!old) return [data];
-        // Replace our temporary optimistic goal with the real one
-        return old.map(goal => goal.id === Date.now() ? data : goal);
-      });
-      
       // Show success message
       toast({
         title: "Goal created",

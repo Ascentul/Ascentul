@@ -1228,11 +1228,11 @@ export class MemStorage implements IStorage {
       monthlyXp: monthlyXpArray
     };
     
-    // Cache the statistics for 5 minutes (300000 ms)
+    // Cache the statistics for 30 seconds to ensure more frequent updates
     this.cache.set(cacheKey, stats);
     setTimeout(() => {
       this.cache.delete(cacheKey);
-    }, 300000);
+    }, 30000); // 30 seconds instead of 5 minutes
     
     return stats;
   }
