@@ -308,7 +308,7 @@ export default function TodaysRecommendations() {
                 data-recommendation-id={recommendation.id}
                 className={`flex items-start p-3 rounded-lg border transition-all duration-300 ${
                   recommendation.completed
-                    ? 'bg-muted/30 text-muted-foreground border-border/50'
+                    ? 'bg-green-50/50 text-muted-foreground border-border/50'
                     : 'bg-background border-border hover:border-primary/30'
                 }`}
               >
