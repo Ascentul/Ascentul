@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser, useIsUniversityUser } from '@/lib/useUserData';
@@ -61,6 +61,14 @@ interface Stats {
   resumesCount: number;
   pendingTasks: number;
   monthlyXp: Array<{ month: string; xp: number }>;
+}
+
+interface UpcomingInterview {
+  id: number;
+  companyName: string;
+  position: string;
+  scheduledDate: string;
+  type: string;
 }
 
 interface Achievement {
@@ -182,6 +190,48 @@ export default function Dashboard() {
   const { data: achievements = [] } = useQuery<Achievement[]>({
     queryKey: ['/api/achievements/user'],
   });
+  
+  // Fetch interview processes and stages to check for upcoming interviews
+  const { data: interviewProcesses = [] } = useQuery({
+    queryKey: ['/api/interview/processes'],
+  });
+  
+  // Find upcoming interviews (scheduled within the next 2 weeks)
+  const upcomingInterviews = useMemo(() => {
+    const now = new Date();
+    const twoWeeksFromNow = new Date();
+    twoWeeksFromNow.setDate(now.getDate() + 14); // 2 weeks from now
+    
+    const upcoming: UpcomingInterview[] = [];
+    
+    // Check if we have interview processes
+    if (!interviewProcesses || !Array.isArray(interviewProcesses)) return [];
+    
+    // For each process, check if it has any stages with scheduled dates in the next 2 weeks
+    interviewProcesses.forEach((process: any) => {
+      if (process.stages && Array.isArray(process.stages)) {
+        process.stages.forEach((stage: any) => {
+          if (stage.scheduledDate) {
+            const stageDate = new Date(stage.scheduledDate);
+            if (stageDate >= now && stageDate <= twoWeeksFromNow) {
+              upcoming.push({
+                id: stage.id,
+                companyName: process.companyName,
+                position: process.position,
+                scheduledDate: stage.scheduledDate,
+                type: stage.type
+              });
+            }
+          }
+        });
+      }
+    });
+    
+    // Sort by date (earliest first)
+    return upcoming.sort((a, b) => 
+      new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
+    );
+  }, [interviewProcesses]);
 
   // Fetch AI coach conversations for preview
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -417,14 +467,14 @@ export default function Dashboard() {
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
-            icon={<Award className="h-5 w-5 text-[#8bc34a]" />}
+            icon={<Calendar className="h-5 w-5 text-[#8bc34a]" />}
             iconBgColor="bg-[#8bc34a]/10"
             iconColor="text-[#8bc34a]"
-            label="Achievements"
-            value={stats.achievementsCount}
+            label="Upcoming Interviews"
+            value={upcomingInterviews.length}
             change={{
-              type: 'increase',
-              text: '3 new this week'
+              type: upcomingInterviews.length > 0 ? 'increase' : 'no-change',
+              text: upcomingInterviews.length > 0 ? `${upcomingInterviews.length} in the next 2 weeks` : 'No upcoming interviews'
             }}
           />
         </motion.div>
@@ -715,7 +765,7 @@ export default function Dashboard() {
             </Card>
           </motion.div>
           
-          {/* Recent Achievements - Takes up 1/3 width */}
+          {/* Upcoming Interviews - Takes up 1/3 width */}
           <motion.div
             variants={cardAnimation}
             className="will-change-transform"
@@ -724,34 +774,43 @@ export default function Dashboard() {
             <Card>
               <CardContent className="p-5">
                 <div className="mb-4">
-                  <h2 className="text-lg font-semibold font-poppins">Recent Achievements</h2>
+                  <h2 className="text-lg font-semibold font-poppins">Upcoming Interviews</h2>
                 </div>
                 
                 <div className="space-y-4">
-                  {Array.isArray(achievements) && achievements.length > 0 ? (
-                    achievements.slice(0, 3).map((achievement) => (
-                      <div key={achievement.id} className="flex items-start">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3 flex-shrink-0">
-                          <Award className="h-4 w-4" />
+                  {Array.isArray(upcomingInterviews) && upcomingInterviews.length > 0 ? (
+                    upcomingInterviews.slice(0, 3).map((interview) => (
+                      <div key={interview.id} className="p-3 bg-background border rounded-md">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-medium text-sm">{interview.companyName}</p>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {interview.type.replace('_', ' ')}
+                          </Badge>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{achievement.name}</p>
-                          <p className="text-xs text-neutral-500">{achievement.description}</p>
-                          <p className="text-xs text-primary mt-1">+{achievement.xpReward} XP</p>
+                        <p className="text-xs text-neutral-500">{interview.position}</p>
+                        <div className="flex items-center mt-2 text-xs text-neutral-400">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {new Date(interview.scheduledDate).toLocaleDateString()} at {' '}
+                          {new Date(interview.scheduledDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-8 text-neutral-500">
-                      <Award className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
-                      <p>No achievements yet. Complete goals to earn rewards!</p>
+                      <Calendar className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
+                      <p>No upcoming interviews scheduled</p>
+                      <Link href="/interviews?create=true">
+                        <Button variant="link" className="text-xs mt-2">
+                          Schedule an interview
+                        </Button>
+                      </Link>
                     </div>
                   )}
                   
                   <div className="pt-2">
-                    <Link href="/achievements">
+                    <Link href="/interviews">
                       <Button variant="outline" size="sm" className="w-full">
-                        View All Achievements
+                        View All Interviews
                       </Button>
                     </Link>
                   </div>
