@@ -560,7 +560,7 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Current Goals & Today's Recommendations */}
+      {/* Current Goals & Interview Followup Actions */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
@@ -648,7 +648,7 @@ export default function Dashboard() {
           </Card>
         </motion.div>
         
-        {/* Today's Recommendations */}
+        {/* Interview Followup Actions */}
         <motion.div
           variants={cardAnimation}
           className="will-change-transform"
@@ -656,8 +656,16 @@ export default function Dashboard() {
         >
           <Card>
             <CardContent className="p-5">
-              {/* Replace static recommendations with the new TodaysRecommendations component */}
-              <TodaysRecommendations />
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold font-poppins">Interview Followup Actions</h2>
+                <Link href="/interviews">
+                  <Button variant="outline" size="sm" className="text-xs">
+                    <Eye className="mr-1 h-3 w-3" />
+                    View All Interviews
+                  </Button>
+                </Link>
+              </div>
+              <InterviewFollowupActions limit={3} showTitle={false} />
             </CardContent>
           </Card>
         </motion.div>
@@ -873,7 +881,7 @@ export default function Dashboard() {
         </motion.div>
       )}
       
-      {/* Interview Followup Actions Card */}
+      {/* Today's Recommendations Card */}
       <motion.div
         className="mb-6 will-change-opacity"
         variants={staggeredContainer}
@@ -886,16 +894,7 @@ export default function Dashboard() {
         >
           <Card>
             <CardContent className="p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Interview Followup Actions</h2>
-                <Link href="/interviews">
-                  <Button variant="outline" size="sm" className="text-xs">
-                    <Eye className="mr-1 h-3 w-3" />
-                    View All Interviews
-                  </Button>
-                </Link>
-              </div>
-              <InterviewFollowupActions limit={5} showTitle={false} />
+              <TodaysRecommendations />
             </CardContent>
           </Card>
         </motion.div>
