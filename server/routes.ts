@@ -2785,6 +2785,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      // Check if a refresh is requested
+      const shouldRefresh = req.query.refresh === 'true';
+      
+      if (shouldRefresh) {
+        // If refresh is requested, clear today's recommendations first
+        await storage.clearTodaysRecommendations(user.id);
+      }
+      
       // Generate or get today's recommendations
       const recommendations = await storage.generateDailyRecommendations(user.id);
       res.status(200).json(recommendations);

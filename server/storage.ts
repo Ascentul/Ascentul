@@ -266,6 +266,7 @@ export interface IStorage {
   updateRecommendation(id: number, recommendationData: Partial<Recommendation>): Promise<Recommendation | undefined>;
   completeRecommendation(id: number): Promise<Recommendation | undefined>;
   generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
+  clearTodaysRecommendations(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -2122,6 +2123,27 @@ export class MemStorage implements IStorage {
     }
     
     return createdRecommendations;
+  }
+
+  async clearTodaysRecommendations(userId: number): Promise<void> {
+    // Get today's date (start of the day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get all recommendations for the user
+    const existingRecommendations = await this.getRecommendations(userId);
+    
+    // Filter to get only today's recommendations
+    const todaysRecommendations = existingRecommendations.filter(rec => {
+      const recDate = new Date(rec.createdAt);
+      recDate.setHours(0, 0, 0, 0);
+      return recDate.getTime() === today.getTime();
+    });
+    
+    // Remove today's recommendations from the map
+    for (const rec of todaysRecommendations) {
+      this.recommendations.delete(rec.id);
+    }
   }
 }
 

@@ -125,7 +125,27 @@ export default function TodaysRecommendations() {
   // Handle refresh
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    
+    // First, get a new set of recommendations by calling the API directly
+    try {
+      // This will trigger the server to generate new recommendations
+      const res = await apiRequest('GET', '/api/recommendations/daily?refresh=true');
+      if (res.ok) {
+        // Then, refetch to update the UI
+        await refetch(); 
+        toast({
+          title: "Recommendations refreshed",
+          description: "New recommendations have been generated for you.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to refresh recommendations",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    }
+    
     setRefreshing(false);
   };
   
