@@ -241,9 +241,9 @@ export default function Dashboard() {
     // Check if we have interview processes
     if (!interviewProcesses || !Array.isArray(interviewProcesses)) return 0;
     
-    // Count only the interview processes with status other than "completed"
+    // Count only the interview processes with status "In Progress" or "Offer Extended"
     return interviewProcesses.filter((process: any) => 
-      process.status !== 'completed'
+      process.status === 'In Progress' || process.status === 'Offer Extended'
     ).length;
   }, [interviewProcesses]);
   
