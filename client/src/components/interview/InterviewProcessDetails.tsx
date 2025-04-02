@@ -16,6 +16,16 @@ import {
   DialogFooter 
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -66,9 +76,20 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddStageDialogOpen, setIsAddStageDialogOpen] = useState(false);
+  const [isEditStageDialogOpen, setIsEditStageDialogOpen] = useState(false);
+  const [isDeleteStageDialogOpen, setIsDeleteStageDialogOpen] = useState(false);
   const [isAddFollowupDialogOpen, setIsAddFollowupDialogOpen] = useState(false);
   const [showPracticeSession, setShowPracticeSession] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<InterviewStage | null>(null);
   const [newStage, setNewStage] = useState({
+    type: '',
+    scheduledDate: '',
+    location: '',
+    interviewers: '',
+    notes: ''
+  });
+  const [editStage, setEditStage] = useState({
+    id: 0,
     type: '',
     scheduledDate: '',
     location: '',
@@ -240,6 +261,127 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
   });
 
+  // Update interview stage mutation
+  const updateStageMutation = useMutation({
+    mutationFn: async (stageData: any) => {
+      console.log('Updating interview stage ID:', stageData.id);
+      
+      if (!stageData.id) {
+        throw new Error('Stage ID is missing');
+      }
+      
+      try {
+        // Prepare a clean payload with only the fields we want to update
+        const payload = {
+          type: stageData.type,
+          scheduledDate: stageData.scheduledDate,
+          location: stageData.location,
+          notes: stageData.notes,
+          interviewers: Array.isArray(stageData.interviewers) 
+            ? stageData.interviewers 
+            : stageData.interviewers.split(',').map((item: string) => item.trim()),
+          processId: process.id // Send process ID for additional server validation
+        };
+        
+        const response = await apiRequest('PUT', `/api/interview/stages/${stageData.id}`, payload);
+        
+        // Response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to update interview stage';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('Successfully updated interview stage, received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Interview stage updated successfully:', data);
+      // Invalidate both the process list and the specific stages query
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+      toast({
+        title: 'Success',
+        description: 'Interview stage updated successfully',
+      });
+      setIsEditStageDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to update interview stage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Delete interview stage mutation
+  const deleteStageMutation = useMutation({
+    mutationFn: async (stageId: number) => {
+      console.log('Deleting interview stage ID:', stageId);
+      
+      if (!stageId) {
+        throw new Error('Stage ID is missing');
+      }
+      
+      try {
+        const response = await apiRequest('DELETE', `/api/interview/stages/${stageId}`, {
+          processId: process.id // Send process ID for additional server validation
+        });
+        
+        // Response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to delete interview stage';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        return stageId;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
+    },
+    onSuccess: (stageId) => {
+      console.log('Interview stage deleted successfully:', stageId);
+      // Invalidate both the process list and the specific stages query
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+      toast({
+        title: 'Success',
+        description: 'Interview stage deleted successfully',
+      });
+      setIsDeleteStageDialogOpen(false);
+      setSelectedStage(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to delete interview stage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
   // Complete interview stage mutation
   const completeInterviewStageMutation = useMutation({
     mutationFn: async (stageId: number) => {
@@ -376,6 +518,46 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
   
   const handleCompleteStage = (stageId: number) => {
     completeInterviewStageMutation.mutate(stageId);
+  };
+  
+  const handleEditStage = (stage: InterviewStage) => {
+    // Format interviewers array to string if it exists
+    const interviewersString = stage.interviewers && Array.isArray(stage.interviewers) 
+      ? stage.interviewers.join(', ')
+      : '';
+    
+    // Format scheduledDate to YYYY-MM-DD format for input[type="date"]
+    const scheduledDateFormatted = stage.scheduledDate 
+      ? new Date(stage.scheduledDate).toISOString().split('T')[0]
+      : '';
+      
+    setEditStage({
+      id: stage.id,
+      type: stage.type,
+      scheduledDate: scheduledDateFormatted,
+      location: stage.location || '',
+      interviewers: interviewersString,
+      notes: stage.notes || ''
+    });
+    
+    setSelectedStage(stage);
+    setIsEditStageDialogOpen(true);
+  };
+  
+  const handleUpdateStage = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateStageMutation.mutate(editStage);
+  };
+  
+  const handleDeleteStage = (stage: InterviewStage) => {
+    setSelectedStage(stage);
+    setIsDeleteStageDialogOpen(true);
+  };
+  
+  const confirmDeleteStage = () => {
+    if (selectedStage) {
+      deleteStageMutation.mutate(selectedStage.id);
+    }
   };
 
   // Sort stages by scheduled date (most recent first)
@@ -539,12 +721,17 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                                     Mark as Completed
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditStage(stage)}
+                                >
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit Details
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteStage(stage)}
+                                >
                                   <Trash className="mr-2 h-4 w-4" />
                                   Delete
                                 </DropdownMenuItem>
@@ -806,6 +993,106 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
         onClose={() => setShowPracticeSession(false)}
         process={process}
       />
+      
+      {/* Edit Stage Dialog */}
+      <Dialog open={isEditStageDialogOpen} onOpenChange={setIsEditStageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Interview Stage</DialogTitle>
+            <DialogDescription>
+              Update the details of this interview stage.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleUpdateStage} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Type*</label>
+              <Input 
+                placeholder="e.g., Phone Screening, Technical Interview"
+                value={editStage.type}
+                onChange={(e) => setEditStage({...editStage, type: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Scheduled Date</label>
+              <Input 
+                type="date"
+                value={editStage.scheduledDate}
+                onChange={(e) => setEditStage({...editStage, scheduledDate: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Location</label>
+              <Input 
+                placeholder="e.g., Zoom, On-site, Phone"
+                value={editStage.location}
+                onChange={(e) => setEditStage({...editStage, location: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Interviewers</label>
+              <Input 
+                placeholder="Names separated by commas"
+                value={editStage.interviewers}
+                onChange={(e) => setEditStage({...editStage, interviewers: e.target.value})}
+              />
+              <p className="text-xs text-muted-foreground">Enter names separated by commas</p>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea 
+                placeholder="Additional details about this interview stage"
+                value={editStage.notes}
+                onChange={(e) => setEditStage({...editStage, notes: e.target.value})}
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditStageDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!editStage.type || updateStageMutation.isPending}
+              >
+                {updateStageMutation.isPending ? 'Updating...' : 'Update Stage'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Stage Confirmation Dialog */}
+      <AlertDialog open={isDeleteStageDialogOpen} onOpenChange={setIsDeleteStageDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the interview stage "{selectedStage?.type}".
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteStage}
+              disabled={deleteStageMutation.isPending}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleteStageMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
