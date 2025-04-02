@@ -138,6 +138,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific stages query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      // Also invalidate user statistics to update the upcoming interviews count
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Success',
         description: 'Interview stage added successfully',
@@ -208,6 +210,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Success',
         description: 'Followup action added successfully',
@@ -268,6 +272,8 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       // Invalidate both the process list and the specific followups query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Success',
         description: 'Followup action marked as completed',

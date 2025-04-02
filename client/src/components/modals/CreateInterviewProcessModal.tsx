@@ -94,6 +94,8 @@ export default function CreateInterviewProcessModal({ isOpen, onClose }: CreateI
     onSuccess: () => {
       // Invalidate and refetch interview processes query
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       
       // Show success message
       toast({

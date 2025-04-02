@@ -115,9 +115,11 @@ export default function Dashboard() {
   const [editGoalModalOpen, setEditGoalModalOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
 
-  // Get stats data from API
+  // Get stats data from API with regular refresh
   const { data: statsData } = useQuery<Stats>({
     queryKey: ['/api/users/statistics'],
+    // Refresh every 30 seconds to keep statistics up to date
+    refetchInterval: 30000,
   });
   
   // Use default stats if data is not available

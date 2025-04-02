@@ -68,6 +68,8 @@ export const NewInterviewProcessForm = ({ isOpen, onClose }: NewInterviewProcess
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Success',
         description: 'Interview process created successfully',
