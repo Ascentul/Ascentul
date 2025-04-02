@@ -695,6 +695,11 @@ export class MemStorage implements IStorage {
     // Award XP for creating a goal
     await this.addUserXP(userId, 50, "goals_created", "Created a new career goal");
     
+    // Force statistics cache refresh when creating a new goal
+    const userStatsCacheKey = `user-stats-${userId}`;
+    this.cache.delete(userStatsCacheKey);
+    console.log(`Deleted stats cache for user ${userId} on goal creation`);
+    
     return goal;
   }
 
@@ -718,11 +723,21 @@ export class MemStorage implements IStorage {
       
       // Award XP for completing a goal
       await this.addUserXP(goal.userId, goal.xpReward, "goals_completed", `Completed goal: ${goal.title}`);
+      
+      // Force statistics cache refresh when completing a goal
+      const userStatsCacheKey = `user-stats-${goal.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${goal.userId} on goal completion`);
     }
     
     // Also check if the status is being set to 'completed' directly
     if (goalData.status === 'completed' && !updatedGoal.completed) {
       updatedGoal.completed = true;
+      
+      // Force statistics cache refresh when marking a goal as completed
+      const userStatsCacheKey = `user-stats-${goal.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${goal.userId} on status change to completed`);
       updatedGoal.completedAt = updatedGoal.completedAt || new Date();
       updatedGoal.progress = 100;
     }
@@ -732,7 +747,24 @@ export class MemStorage implements IStorage {
   }
 
   async deleteGoal(id: number): Promise<boolean> {
-    return this.goals.delete(id);
+    // Get the goal first to know which user it belongs to
+    const goal = this.goals.get(id);
+    if (!goal) return false;
+    
+    // Store the userId for cache invalidation
+    const userId = goal.userId;
+    
+    // Delete the goal
+    const result = this.goals.delete(id);
+    
+    // If successfully deleted, invalidate the cache
+    if (result) {
+      const userStatsCacheKey = `user-stats-${userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${userId} on goal deletion`);
+    }
+    
+    return result;
   }
   
   // Work history operations
@@ -1118,15 +1150,13 @@ export class MemStorage implements IStorage {
     
     const goals = await this.getGoals(userId);
     // Count goals that are in_progress and not completed, or have another active status
+    console.log("All goals for user:", JSON.stringify(goals.map(g => ({ id: g.id, title: g.title, status: g.status, completed: g.completed }))));
     const activeGoals = goals.filter(g => {
-      // Consider a goal active if:
-      // 1. Status is 'in_progress' and not completed
-      // 2. Status is 'not_started' and not completed 
-      // 3. Status is 'active' and not completed (legacy status)
-      return (
-        (g.status === 'in_progress' || g.status === 'not_started' || g.status === 'active') && 
-        !g.completed
-      );
+      // Consider a goal active if its status is NOT 'completed'
+      // and it's not marked as completed
+      const isActive = g.status !== 'completed' && !g.completed;
+      console.log(`Goal ${g.id} "${g.title}" - status: ${g.status}, completed: ${g.completed}, isActive: ${isActive}`);
+      return isActive;
     }).length;
     
     const achievements = await this.getUserAchievements(userId);
