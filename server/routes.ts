@@ -972,6 +972,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const goal = await storage.createGoal(user.id, goalData);
+      
+      // Invalidate statistics cache since this affects the "Active Goals" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(201).json(goal);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1008,6 +1012,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const updatedGoal = await storage.updateGoal(goalId, req.body);
+      
+      // Invalidate statistics cache since this affects the "Active Goals" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(200).json(updatedGoal);
     } catch (error) {
       res.status(500).json({ message: "Error updating goal" });
@@ -1041,6 +1049,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       await storage.deleteGoal(goalId);
+      
+      // Invalidate statistics cache since this affects the "Active Goals" count
+      res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting goal" });

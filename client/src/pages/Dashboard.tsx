@@ -30,7 +30,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Textarea } from '@/components/ui/textarea';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 
@@ -157,11 +157,47 @@ export default function Dashboard() {
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
       
-      // Then after another short delay, remove it from hidden list
-      // so it appears in the Completed Goals section
-      setTimeout(() => {
-        setHiddenGoalIds(prev => prev.filter(goalId => goalId !== id));
-      }, 500);
+      // After the animation, find the goal and update its status in the database
+      const goal = goals.find((g: Goal) => g.id === id);
+      if (goal) {
+        // Update the goal status to completed via the API
+        apiRequest('PUT', `/api/goals/${id}`, { 
+          ...goal, 
+          status: 'completed',
+          progress: 100,
+          completed: true,
+          completedAt: new Date().toISOString()
+        })
+        .then(() => {
+          // Refresh goals data and user statistics
+          queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+          
+          toast({
+            title: "Goal Completed",
+            description: "Your goal has been marked as completed.",
+          });
+          
+          // After another short delay, remove it from hidden list
+          // so it appears in the Completed Goals section
+          setTimeout(() => {
+            setHiddenGoalIds(prev => prev.filter(goalId => goalId !== id));
+          }, 500);
+        })
+        .catch((error) => {
+          console.error('Error updating goal:', error);
+          // Still remove from hidden state even if there's an error
+          setTimeout(() => {
+            setHiddenGoalIds(prev => prev.filter(goalId => goalId !== id));
+          }, 500);
+          
+          toast({
+            title: "Error",
+            description: "Failed to update goal status. Please try again.",
+            variant: "destructive",
+          });
+        });
+      }
     }, 3000); // Longer delay to allow for confetti and dissolve animation
   };
   
