@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { InterviewProcessStatusBadge } from './InterviewProcessStatusBadge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -700,20 +701,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
 
   // Format status badges
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Application Submitted':
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">{status}</Badge>;
-      case 'In Progress':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
-      case 'Offer Extended':
-        return <Badge className="bg-green-300 hover:bg-green-400">{status}</Badge>;
-      case 'Hired':
-        return <Badge className="bg-green-600 hover:bg-green-700">{status}</Badge>;
-      case 'Not Selected':
-        return <Badge className="bg-red-500 hover:bg-red-600">{status}</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
+    return <InterviewProcessStatusBadge status={status} />;
   };
 
   // Format dates
@@ -756,35 +744,35 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                     className={process.status === 'Application Submitted' ? 'bg-accent text-accent-foreground' : ''} 
                     onClick={() => updateProcessStatusMutation.mutate('Application Submitted')}
                   >
-                    <Badge className="bg-yellow-500 hover:bg-yellow-600 mr-2">Application Submitted</Badge>
+                    <div className="mr-2"><InterviewProcessStatusBadge status="Application Submitted" /></div>
                     {process.status === 'Application Submitted' && <Check className="h-4 w-4 ml-auto" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className={process.status === 'In Progress' ? 'bg-accent text-accent-foreground' : ''} 
                     onClick={() => updateProcessStatusMutation.mutate('In Progress')}
                   >
-                    <Badge className="bg-blue-500 hover:bg-blue-600 mr-2">In Progress</Badge>
+                    <div className="mr-2"><InterviewProcessStatusBadge status="In Progress" /></div>
                     {process.status === 'In Progress' && <Check className="h-4 w-4 ml-auto" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className={process.status === 'Offer Extended' ? 'bg-accent text-accent-foreground' : ''} 
                     onClick={() => updateProcessStatusMutation.mutate('Offer Extended')}
                   >
-                    <Badge className="bg-green-300 hover:bg-green-400 text-green-800 mr-2">Offer Extended</Badge>
+                    <div className="mr-2"><InterviewProcessStatusBadge status="Offer Extended" /></div>
                     {process.status === 'Offer Extended' && <Check className="h-4 w-4 ml-auto" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className={process.status === 'Hired' ? 'bg-accent text-accent-foreground' : ''} 
                     onClick={() => updateProcessStatusMutation.mutate('Hired')}
                   >
-                    <Badge className="bg-green-600 hover:bg-green-700 mr-2">Hired</Badge>
+                    <div className="mr-2"><InterviewProcessStatusBadge status="Hired" /></div>
                     {process.status === 'Hired' && <Check className="h-4 w-4 ml-auto" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className={process.status === 'Not Selected' ? 'bg-accent text-accent-foreground' : ''} 
                     onClick={() => updateProcessStatusMutation.mutate('Not Selected')}
                   >
-                    <Badge className="bg-red-500 hover:bg-red-600 mr-2">Not Selected</Badge>
+                    <div className="mr-2"><InterviewProcessStatusBadge status="Not Selected" /></div>
                     {process.status === 'Not Selected' && <Check className="h-4 w-4 ml-auto" />}
                   </DropdownMenuItem>
                 </DropdownMenuContent>

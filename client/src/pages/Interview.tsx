@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { InterviewProcessStatusBadge } from '@/components/interview/InterviewProcessStatusBadge';
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { PracticeSession } from '@/components/interview/PracticeSession';
@@ -107,8 +108,8 @@ const Interview = () => {
   });
 
   // Group processes by status for dashboard view
-  const activeProcesses = processes?.filter(p => p.status !== 'Completed' && p.status !== 'Rejected') || [];
-  const completedProcesses = processes?.filter(p => p.status === 'Completed' || p.status === 'Rejected') || [];
+  const activeProcesses = processes?.filter(p => p.status !== 'Completed' && p.status !== 'Rejected' && p.status !== 'Not Selected') || [];
+  const completedProcesses = processes?.filter(p => p.status === 'Completed' || p.status === 'Rejected' || p.status === 'Not Selected') || [];
 
   const renderProcessCard = (process: InterviewProcess, index: number) => {
     return (
@@ -127,15 +128,7 @@ const Interview = () => {
           <CardHeader className="p-4 pb-2">
             <div className="flex justify-between items-start">
               <CardTitle className="text-base">{process.companyName}</CardTitle>
-              <Badge className={`
-                                ${process.status === 'Application Submitted' ? 'bg-blue-500 hover:bg-blue-600' :
-                                  process.status === 'In Progress' ? 'bg-blue-500 hover:bg-blue-600' :
-                                  process.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' :
-                                  process.status === 'Rejected' ? 'bg-red-500 hover:bg-red-600' :
-                                  ''}`}
-                              >
-                                {process.status}
-                              </Badge>
+              <InterviewProcessStatusBadge status={process.status} />
             </div>
             <CardDescription>{process.position}</CardDescription>
           </CardHeader>
@@ -337,15 +330,7 @@ const Interview = () => {
                             <CardHeader className="p-4 pb-2">
                               <div className="flex justify-between items-start">
                                 <CardTitle className="text-base">{process.companyName}</CardTitle>
-                                <Badge className={`
-                                ${process.status === 'Application Submitted' ? 'bg-blue-500 hover:bg-blue-600' :
-                                  process.status === 'In Progress' ? 'bg-blue-500 hover:bg-blue-600' :
-                                  process.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' :
-                                  process.status === 'Rejected' ? 'bg-red-500 hover:bg-red-600' :
-                                  ''}`}
-                              >
-                                {process.status}
-                              </Badge>
+                                <InterviewProcessStatusBadge status={process.status} />
                               </div>
                               <CardDescription>{process.position}</CardDescription>
                             </CardHeader>
