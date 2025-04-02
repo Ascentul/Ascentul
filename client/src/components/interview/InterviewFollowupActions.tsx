@@ -69,6 +69,7 @@ const InterviewFollowupActions = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [endpoint] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/followup-actions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: ['/users/statistics'] });
@@ -98,6 +99,7 @@ const InterviewFollowupActions = ({
     },
     onSuccess: () => {
       // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: [endpoint] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/followup-actions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: ['/users/statistics'] });
