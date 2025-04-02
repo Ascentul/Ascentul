@@ -744,7 +744,51 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                 <PlayCircle className="h-4 w-4 mr-1" /> 
                 Practice
               </Button>
-              {getStatusBadge(process.status)}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-1 py-1 px-2 border border-input hover:bg-accent hover:text-accent-foreground">
+                    {getStatusBadge(process.status)}
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    className={process.status === 'Application Submitted' ? 'bg-accent text-accent-foreground' : ''} 
+                    onClick={() => updateProcessStatusMutation.mutate('Application Submitted')}
+                  >
+                    <Badge className="bg-yellow-500 hover:bg-yellow-600 mr-2">Application Submitted</Badge>
+                    {process.status === 'Application Submitted' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={process.status === 'In Progress' ? 'bg-accent text-accent-foreground' : ''} 
+                    onClick={() => updateProcessStatusMutation.mutate('In Progress')}
+                  >
+                    <Badge className="bg-blue-500 hover:bg-blue-600 mr-2">In Progress</Badge>
+                    {process.status === 'In Progress' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={process.status === 'Offer Extended' ? 'bg-accent text-accent-foreground' : ''} 
+                    onClick={() => updateProcessStatusMutation.mutate('Offer Extended')}
+                  >
+                    <Badge className="bg-green-300 hover:bg-green-400 text-green-800 mr-2">Offer Extended</Badge>
+                    {process.status === 'Offer Extended' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={process.status === 'Hired' ? 'bg-accent text-accent-foreground' : ''} 
+                    onClick={() => updateProcessStatusMutation.mutate('Hired')}
+                  >
+                    <Badge className="bg-green-600 hover:bg-green-700 mr-2">Hired</Badge>
+                    {process.status === 'Hired' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className={process.status === 'Not Selected' ? 'bg-accent text-accent-foreground' : ''} 
+                    onClick={() => updateProcessStatusMutation.mutate('Not Selected')}
+                  >
+                    <Badge className="bg-red-500 hover:bg-red-600 mr-2">Not Selected</Badge>
+                    {process.status === 'Not Selected' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
