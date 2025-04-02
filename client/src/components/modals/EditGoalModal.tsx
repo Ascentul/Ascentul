@@ -379,8 +379,8 @@ export default function EditGoalModal({ isOpen, onClose, goalId, goals }: EditGo
                             )}
                           </Button>
                           <Input 
-                            value={item.text}
-                            onChange={(e) => {
+                            defaultValue={item.text}
+                            onBlur={(e) => {
                               const newItem = { ...item, text: e.target.value };
                               update(index, newItem);
                             }}
