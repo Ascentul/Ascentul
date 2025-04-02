@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -37,6 +37,31 @@ export default function Resume() {
   const [jobDescription, setJobDescription] = useState('');
   const [userWorkHistory, setUserWorkHistory] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Fetch user's work history
+  const { data: workHistoryData = [] } = useQuery<any[]>({
+    queryKey: ['/api/work-history'],
+    placeholderData: []
+  });
+
+  // Format work history data when it loads
+  useEffect(() => {
+    if (workHistoryData && workHistoryData.length > 0) {
+      const formattedWorkHistory = workHistoryData.map((job: any) => {
+        const duration = job.currentJob 
+          ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+          : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+        
+        const achievements = job.achievements && job.achievements.length > 0
+          ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+          : '';
+        
+        return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+      }).join('\n---\n\n');
+      
+      setUserWorkHistory(formattedWorkHistory);
+    }
+  }, [workHistoryData]);
 
   // Fetch suggestions
   const getSuggestionsMutation = useMutation({
@@ -132,10 +157,41 @@ export default function Resume() {
   
   // Function to generate suggestions
   const generateSuggestions = () => {
-    if (!jobDescription || !userWorkHistory) {
+    if (!jobDescription) {
       toast({
         title: 'Missing Information',
-        description: 'Please provide both the job description and your work history',
+        description: 'Please provide a job description to generate suggestions',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // If work history is empty and we have work history data, format it and use it
+    if (!userWorkHistory.trim() && Array.isArray(workHistoryData) && workHistoryData.length > 0) {
+      const formattedWorkHistory = workHistoryData.map((job: any) => {
+        const duration = job.currentJob 
+          ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+          : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+        
+        const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+          ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+          : '';
+        
+        return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+      }).join('\n---\n\n');
+      
+      setUserWorkHistory(formattedWorkHistory);
+      toast({
+        title: 'Work Experience Auto-populated',
+        description: 'Your work history has been automatically loaded from your profile',
+      });
+    }
+    
+    // If work history is still empty after auto-population attempt
+    if (!userWorkHistory.trim()) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please add your work experience or create some work history entries first',
         variant: 'destructive',
       });
       return;
