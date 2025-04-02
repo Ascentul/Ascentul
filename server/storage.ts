@@ -1896,9 +1896,14 @@ export class MemStorage implements IStorage {
     };
     this.followupActions.set(id, followupAction);
     
-    // Get the process to award XP to the user
+    // Get the process to award XP to the user and invalidate cache
     const process = await this.getInterviewProcess(processId);
     if (process) {
+      // Clear the user statistics cache so the pending tasks count gets updated
+      const userStatsCacheKey = `user-stats-${process.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${process.userId} on followup action creation`);
+      
       await this.addUserXP(process.userId, 25, "followup_action_created", `Added followup action: ${actionData.type}`);
     }
     
