@@ -484,10 +484,10 @@ export default function Dashboard() {
             iconBgColor="bg-[#8bc34a]/10"
             iconColor="text-[#8bc34a]"
             label="Upcoming Interviews"
-            value={upcomingInterviews.length}
+            value={stats.upcomingInterviews}
             change={{
-              type: upcomingInterviews.length > 0 ? 'increase' : 'no-change',
-              text: upcomingInterviews.length > 0 ? `${upcomingInterviews.length} in the next 2 weeks` : 'No upcoming interviews'
+              type: stats.upcomingInterviews > 0 ? 'increase' : 'no-change',
+              text: stats.upcomingInterviews > 0 ? `${stats.upcomingInterviews} in the next 2 weeks` : 'No upcoming interviews'
             }}
           />
         </motion.div>
@@ -791,7 +791,7 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="space-y-4">
-                  {Array.isArray(upcomingInterviews) && upcomingInterviews.length > 0 ? (
+                  {stats.upcomingInterviews > 0 && Array.isArray(upcomingInterviews) && upcomingInterviews.length > 0 ? (
                     upcomingInterviews.slice(0, 3).map((interview) => (
                       <div key={interview.id} className="p-3 bg-background border rounded-md">
                         <div className="flex items-center justify-between mb-1">
