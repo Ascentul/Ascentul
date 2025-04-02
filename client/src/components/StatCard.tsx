@@ -35,18 +35,7 @@ export default function StatCard({
           </div>
         </div>
         
-        {change && (
-          <div className="mt-3 flex items-center text-xs text-muted-foreground">
-            {change.type === 'increase' ? (
-              <ArrowUp className="mr-1 h-3 w-3" />
-            ) : change.type === 'decrease' ? (
-              <ArrowDown className="mr-1 h-3 w-3" />
-            ) : (
-              <Minus className="mr-1 h-3 w-3" />
-            )}
-            <span>{change.text}</span>
-          </div>
-        )}
+        
       </CardContent>
     </Card>
   );
