@@ -1940,6 +1940,11 @@ export class MemStorage implements IStorage {
     // Get the process to award XP to the user
     const process = await this.getInterviewProcess(action.processId);
     if (process) {
+      // Clear the user statistics cache so the pending tasks count gets updated
+      const userStatsCacheKey = `user-stats-${process.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${process.userId} on followup action completion`);
+      
       await this.addUserXP(process.userId, 50, "followup_action_completed", `Completed followup action: ${action.type}`);
     }
     
@@ -1964,11 +1969,37 @@ export class MemStorage implements IStorage {
     };
     this.followupActions.set(id, updatedAction);
     
+    // Get the process to invalidate the user statistics cache
+    const process = await this.getInterviewProcess(action.processId);
+    if (process) {
+      // Clear the user statistics cache so the pending tasks count gets updated
+      const userStatsCacheKey = `user-stats-${process.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${process.userId} on followup action uncompleted`);
+    }
+    
     return updatedAction;
   }
 
   async deleteFollowupAction(id: number): Promise<boolean> {
-    return this.followupActions.delete(id);
+    // Get the action first to get the process and user info
+    const action = this.followupActions.get(id);
+    if (!action) return false;
+    
+    // Get the process to invalidate the user statistics cache
+    const process = await this.getInterviewProcess(action.processId);
+    
+    // Delete the action
+    const result = this.followupActions.delete(id);
+    
+    // Clear stats cache if we found the process and user
+    if (result && process) {
+      const userStatsCacheKey = `user-stats-${process.userId}`;
+      this.cache.delete(userStatsCacheKey);
+      console.log(`Deleted stats cache for user ${process.userId} on followup action deletion`);
+    }
+    
+    return result;
   }
 
   // Subscription and verification methods
