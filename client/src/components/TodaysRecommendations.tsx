@@ -96,22 +96,48 @@ export default function TodaysRecommendations() {
       const res = await apiRequest('POST', `/api/recommendations/${id}/complete`);
       return await res.json();
     },
-    onSuccess: () => {
-      // Invalidate the recommendations query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/recommendations/daily'] });
+    onMutate: async (recommendationId: number) => {
+      // Cancel any outgoing refetches 
+      await queryClient.cancelQueries({ queryKey: ['/api/recommendations/daily'] });
       
+      // Snapshot the previous value
+      const previousRecommendations = queryClient.getQueryData<Recommendation[]>(['/api/recommendations/daily']);
+      
+      // Optimistically update to the new value
+      if (previousRecommendations) {
+        queryClient.setQueryData<Recommendation[]>(['/api/recommendations/daily'], 
+          previousRecommendations.map(rec => 
+            rec.id === recommendationId
+              ? { ...rec, completed: true, completedAt: new Date().toISOString() }
+              : rec
+          )
+        );
+      }
+      
+      return { previousRecommendations };
+    },
+    onSuccess: (data) => {
       // Show success toast
       toast({
         title: "Recommendation completed!",
         description: "You've earned 15 XP for completing this recommendation.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, recommendationId, context: any) => {
+      // If the mutation fails, roll back to the previous value
+      if (context?.previousRecommendations) {
+        queryClient.setQueryData(['/api/recommendations/daily'], context.previousRecommendations);
+      }
+      
       toast({
         title: "Failed to complete recommendation",
         description: error.message,
         variant: "destructive"
       });
+    },
+    onSettled: () => {
+      // Always invalidate the query to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ['/api/recommendations/daily'] });
     }
   });
   
