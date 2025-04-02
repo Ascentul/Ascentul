@@ -887,7 +887,42 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
         </Tabs>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            onClick={async () => {
+              if (!resume) return;
+              
+              try {
+                setIsSubmitting(true);
+                const response = await apiRequest('PUT', `/api/resumes/${resume.id}`, {
+                  name: resume.name,
+                  template: resume.template,
+                  content: resume.content
+                });
+                
+                if (response.ok) {
+                  // Invalidate and refetch resumes query
+                  queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+                  
+                  toast({
+                    title: "Resume updated",
+                    description: "Your resume has been updated successfully.",
+                  });
+                } else {
+                  throw new Error('Failed to update resume');
+                }
+              } catch (error: any) {
+                toast({
+                  title: "Error",
+                  description: error.message || "There was a problem updating your resume.",
+                  variant: "destructive",
+                });
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+          >
             {isSubmitting ? 'Saving...' : resume ? 'Update Resume' : 'Create Resume'}
           </Button>
         </div>
