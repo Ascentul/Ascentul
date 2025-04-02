@@ -671,15 +671,15 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* AI Coach & Level Progress (if university user) - Moved up right after Career Goals */}
+      {/* AI Coach & Today's Recommendations */}
       <motion.div 
-        className={`grid grid-cols-1 ${isUnivUser ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} gap-6 mb-6 will-change-opacity`}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* AI Coach Preview - Takes up 2/3 width if university user, full width otherwise */}
+        {/* AI Coach Preview */}
         <motion.div
-          className={`${isUnivUser ? 'lg:col-span-2' : ''} will-change-transform`}
+          className="will-change-transform"
           variants={cardAnimation}
           style={{ transform: 'translateZ(0)' }}
         >
@@ -770,20 +770,39 @@ export default function Dashboard() {
           </Card>
         </motion.div>
         
-        {/* Level Progress - Takes up 1/3 width - only for university users */}
-        {isUnivUser && (
+        {/* Today's Recommendations */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <Card className="h-full">
+            <CardContent className="p-5 h-full">
+              <TodaysRecommendations />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+      
+      {/* Level Progress - only for university users */}
+      {isUnivUser && (
+        <motion.div
+          className="mb-6 will-change-opacity"
+          variants={staggeredContainer}
+          style={{ backfaceVisibility: 'hidden' }}
+        >
           <motion.div
             variants={cardAnimation}
             className="will-change-transform"
             style={{ transform: 'translateZ(0)' }}
           >
-            <Card className="h-full">
-              <CardContent className="p-5 flex flex-col h-full">
+            <Card>
+              <CardContent className="p-5 flex flex-col">
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold font-poppins">Your Level</h2>
                 </div>
                 
-                <div className="flex flex-col items-center justify-center flex-1">
+                <div className="flex flex-col items-center justify-center">
                   <LevelProgress 
                     level={user.level || 1}
                     xp={user.xp || 0}
@@ -795,8 +814,8 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </motion.div>
-        )}
-      </motion.div>
+        </motion.div>
+      )}
       
       {/* Career Journey Chart & Recent Achievements - Only for university users */}
       {isUnivUser && (
@@ -880,25 +899,6 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
       )}
-      
-      {/* Today's Recommendations Card */}
-      <motion.div
-        className="mb-6 will-change-opacity"
-        variants={staggeredContainer}
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-        <motion.div
-          className="will-change-transform"
-          variants={cardAnimation}
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <Card>
-            <CardContent className="p-5">
-              <TodaysRecommendations />
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
       
       {/* Modals */}
       {createGoalModalOpen && (
