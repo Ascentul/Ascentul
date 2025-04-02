@@ -886,10 +886,7 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
-            Cancel
-          </Button>
+        <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : resume ? 'Update Resume' : 'Create Resume'}
           </Button>
