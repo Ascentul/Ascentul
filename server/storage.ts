@@ -1171,7 +1171,8 @@ export class MemStorage implements IStorage {
     const oneWeekFromNow = new Date();
     oneWeekFromNow.setDate(now.getDate() + 7);
     
-    const pendingTasks = goals.filter(g => {
+    // Start with goals that have pending due dates
+    let pendingTasks = goals.filter(g => {
       if (g.completed) return false;
       if (!g.dueDate) return false;
       const dueDate = new Date(g.dueDate);
@@ -1204,6 +1205,13 @@ export class MemStorage implements IStorage {
       });
       
       upcomingInterviews += scheduledStages.length;
+      
+      // Get and count pending followup actions for this process
+      const followups = await this.getFollowupActions(process.id);
+      const pendingFollowups = followups.filter(followup => !followup.completed);
+      
+      // Add pending followups to the pending tasks count
+      pendingTasks += pendingFollowups.length;
     }
     
     // Default empty XP data for regular users
