@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -286,6 +286,83 @@ export default function Resume() {
       }
     }
   };
+  
+  // Function to download resume as PDF
+  const handleDownloadPDF = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      toast({
+        title: 'Error',
+        description: 'Could not find the resume content to download',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Create a filename based on resume name or default
+    const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
+    const filename = `${resumeName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    
+    // Clone the element to modify it for PDF generation
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    clonedElement.style.padding = '20px';
+    clonedElement.style.border = 'none';
+    
+    // Create the print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Error',
+        description: 'Unable to open print window. Please check your popup settings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Setup the print document
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${filename}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            .resume-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h2, h3, h4 { margin-top: 0; }
+            p { margin: 0 0 8px; }
+            .section { margin-bottom: 16px; }
+            .skills { display: flex; flex-wrap: wrap; gap: 6px; }
+            .skill-tag { background-color: #f1f5ff; color: #0C29AB; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
+            .header { margin-bottom: 24px; text-align: center; }
+            .header h2 { margin-bottom: 8px; }
+            @media print {
+              body { padding: 0; margin: 0; }
+              .resume-container { width: 100%; max-width: none; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="resume-container">
+            ${clonedElement.outerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    
+    toast({
+      title: 'PDF Download',
+      description: 'Your resume is being prepared for download',
+    });
+  };
 
   return (
     <motion.div 
@@ -419,6 +496,13 @@ export default function Resume() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-primary hover:text-primary/80"
+                          onClick={() => {
+                            // Set this resume for preview and then trigger PDF download
+                            setPreviewResume(resume);
+                            setTimeout(() => {
+                              handleDownloadPDF('resume-preview');
+                            }, 500);
+                          }}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -685,7 +769,7 @@ export default function Resume() {
             </div>
           )}
           <div className="flex justify-end">
-            <Button>
+            <Button onClick={() => handleDownloadPDF('resume-preview')}>
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
@@ -704,7 +788,7 @@ export default function Resume() {
           </DialogHeader>
 
           {generatedResume && (
-            <div className="bg-white p-6 border rounded-md">
+            <div id="generated-resume" className="bg-white p-6 border rounded-md">
               <div className="mb-6 border-b pb-4">
                 <h2 className="text-2xl font-bold text-center">
                   {generatedResume.personalInfo?.fullName || 'Your Name'}
@@ -796,7 +880,10 @@ export default function Resume() {
               Close
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => handleDownloadPDF('generated-resume')}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download PDF
               </Button>
