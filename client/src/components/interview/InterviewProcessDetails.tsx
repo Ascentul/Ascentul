@@ -29,6 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { 
   Check, 
   Calendar, 
@@ -233,6 +240,62 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
   });
 
+  // Complete interview stage mutation
+  const completeInterviewStageMutation = useMutation({
+    mutationFn: async (stageId: number) => {
+      console.log('Completing interview stage ID:', stageId);
+      
+      if (!stageId) {
+        throw new Error('Stage ID is missing');
+      }
+      
+      try {
+        const response = await apiRequest('PUT', `/api/interview/stages/${stageId}`, {
+          completedDate: new Date().toISOString().split('T')[0], // Send today's date as completion date
+          processId: process.id // Send process ID for additional server validation
+        });
+        
+        // Response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to complete interview stage';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('Successfully completed interview stage, received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Interview stage completed successfully:', data);
+      // Invalidate both the process list and the specific stages query
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+      toast({
+        title: 'Success',
+        description: 'Interview stage marked as completed',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to complete interview stage: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Complete followup action mutation
   const completeFollowupMutation = useMutation({
     mutationFn: async (followupId: number) => {
@@ -309,6 +372,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
 
   const handleCompleteFollowup = (followupId: number) => {
     completeFollowupMutation.mutate(followupId);
+  };
+  
+  const handleCompleteStage = (stageId: number) => {
+    completeInterviewStageMutation.mutate(stageId);
   };
 
   // Sort stages by scheduled date (most recent first)
@@ -456,9 +523,33 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end space-x-2">
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {!stage.completedDate && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleCompleteStage(stage.id)}
+                                    disabled={completeInterviewStageMutation.isPending}
+                                  >
+                                    <Check className="mr-2 h-4 w-4" />
+                                    Mark as Completed
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-600">
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
