@@ -346,12 +346,6 @@ export default function TodaysRecommendations() {
                   </div>
                   
                   <div className="mt-1 flex items-center justify-center space-x-2 badge-container">
-                    
-                    {recommendation.completed && recommendation.completedAt && (
-                      <span className="text-xs text-muted-foreground completion-date">
-                        Completed {new Date(recommendation.completedAt).toLocaleDateString()}
-                      </span>
-                    )}
                   </div>
                 </div>
               </li>
