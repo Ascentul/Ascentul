@@ -55,12 +55,12 @@ const Interview = () => {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.4 } }
   };
-  
+
   const subtleUp = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   };
-  
+
   const listContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -71,7 +71,7 @@ const Interview = () => {
       }
     }
   };
-  
+
   const listItem = {
     hidden: { opacity: 0, y: 5 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.2 } }
@@ -127,7 +127,15 @@ const Interview = () => {
           <CardHeader className="p-4 pb-2">
             <div className="flex justify-between items-start">
               <CardTitle className="text-base">{process.companyName}</CardTitle>
-              <StatusBadge status={process.status} />
+              <Badge className={`
+                                ${process.status === 'Application Submitted' ? 'bg-blue-500 hover:bg-blue-600' :
+                                  process.status === 'In Progress' ? 'bg-blue-500 hover:bg-blue-600' :
+                                  process.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' :
+                                  process.status === 'Rejected' ? 'bg-red-500 hover:bg-red-600' :
+                                  ''}`}
+                              >
+                                {process.status}
+                              </Badge>
             </div>
             <CardDescription>{process.position}</CardDescription>
           </CardHeader>
@@ -142,19 +150,6 @@ const Interview = () => {
     );
   };
 
-  // Status badge component
-  const StatusBadge = ({ status }: { status: string }) => {
-    switch (status) {
-      case 'In Progress':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">{status}</Badge>;
-      case 'Completed':
-        return <Badge className="bg-green-500 hover:bg-green-600">{status}</Badge>;
-      case 'Rejected':
-        return <Badge className="bg-red-500 hover:bg-red-600">{status}</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
 
   // Loading skeleton
   const ProcessCardSkeleton = () => (
@@ -315,7 +310,7 @@ const Interview = () => {
                   <p className="text-sm text-muted-foreground">
                     Choose an interview process to practice for. We'll generate relevant questions based on the job description.
                   </p>
-                  
+
                   {isLoading ? (
                     <div className="py-4">
                       <LoadingState 
@@ -342,7 +337,15 @@ const Interview = () => {
                             <CardHeader className="p-4 pb-2">
                               <div className="flex justify-between items-start">
                                 <CardTitle className="text-base">{process.companyName}</CardTitle>
-                                <StatusBadge status={process.status} />
+                                <Badge className={`
+                                ${process.status === 'Application Submitted' ? 'bg-blue-500 hover:bg-blue-600' :
+                                  process.status === 'In Progress' ? 'bg-blue-500 hover:bg-blue-600' :
+                                  process.status === 'Completed' ? 'bg-green-500 hover:bg-green-600' :
+                                  process.status === 'Rejected' ? 'bg-red-500 hover:bg-red-600' :
+                                  ''}`}
+                              >
+                                {process.status}
+                              </Badge>
                               </div>
                               <CardDescription>{process.position}</CardDescription>
                             </CardHeader>
@@ -384,7 +387,7 @@ const Interview = () => {
                     </motion.div>
                   )}
                 </div>
-                
+
                 <motion.div 
                   variants={subtleUp}
                   className="text-center border-t pt-6 mt-6"
@@ -444,7 +447,7 @@ const Interview = () => {
         isOpen={showCreateForm}
         onClose={() => setShowCreateForm(false)}
       />
-      
+
       {/* Practice Session Dialog */}
       <PracticeSession
         isOpen={showPracticeSession}
