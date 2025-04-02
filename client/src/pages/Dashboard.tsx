@@ -196,6 +196,17 @@ export default function Dashboard() {
     queryKey: ['/api/interview/processes'],
   });
   
+  // Calculate active interview processes count
+  const activeInterviewProcesses = useMemo(() => {
+    // Check if we have interview processes
+    if (!interviewProcesses || !Array.isArray(interviewProcesses)) return 0;
+    
+    // Count only the interview processes with status other than "completed"
+    return interviewProcesses.filter((process: any) => 
+      process.status !== 'completed'
+    ).length;
+  }, [interviewProcesses]);
+  
   // Find upcoming interviews (scheduled within the next 2 weeks)
   const upcomingInterviews = useMemo(() => {
     const now = new Date();
@@ -481,14 +492,14 @@ export default function Dashboard() {
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
-            icon={<FileText className="h-5 w-5 text-secondary" />}
+            icon={<Briefcase className="h-5 w-5 text-secondary" />}
             iconBgColor="bg-secondary/10"
             iconColor="text-secondary"
-            label="Resumes"
-            value={stats.resumesCount}
+            label="Interview Processes"
+            value={activeInterviewProcesses}
             change={{
-              type: 'no-change',
-              text: 'No change'
+              type: activeInterviewProcesses > 0 ? 'increase' : 'no-change',
+              text: activeInterviewProcesses > 0 ? `${activeInterviewProcesses} in progress` : 'No active processes'
             }}
           />
         </motion.div>
