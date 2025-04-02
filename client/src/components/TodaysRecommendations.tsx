@@ -144,6 +144,17 @@ export default function TodaysRecommendations() {
   // Handle recommendation completion toggle
   const handleToggleComplete = (recommendation: Recommendation) => {
     if (!recommendation.completed) {
+      // Apply optimistic update to local state before calling the API
+      const updatedRecommendations = sortedRecommendations.map(rec => 
+        rec.id === recommendation.id
+          ? { ...rec, completed: true, completedAt: new Date().toISOString() }
+          : rec
+      );
+      
+      // Update the local state first for immediate UI feedback
+      queryClient.setQueryData<Recommendation[]>(['/api/recommendations/daily'], updatedRecommendations);
+      
+      // Then call the API
       completeMutation.mutate(recommendation.id);
     }
   };
