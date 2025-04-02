@@ -2423,6 +2423,45 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  apiRouter.put("/api/interview/followup-actions/:id/uncomplete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const actionId = parseInt(id);
+      
+      if (isNaN(actionId)) {
+        return res.status(400).json({ message: "Invalid action ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const action = await storage.getFollowupAction(actionId);
+      
+      if (!action) {
+        return res.status(404).json({ message: "Followup action not found" });
+      }
+      
+      // Get the process to check ownership
+      const process = await storage.getInterviewProcess(action.processId);
+      if (!process) {
+        return res.status(404).json({ message: "Interview process not found" });
+      }
+      
+      // Ensure the process belongs to the current user
+      if (process.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to uncomplete this followup action" });
+      }
+      
+      const uncompletedAction = await storage.uncompleteFollowupAction(actionId);
+      res.status(200).json(uncompletedAction);
+    } catch (error) {
+      res.status(500).json({ message: "Error uncompleting followup action" });
+    }
+  });
+  
   apiRouter.delete("/api/interview/followup-actions/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;

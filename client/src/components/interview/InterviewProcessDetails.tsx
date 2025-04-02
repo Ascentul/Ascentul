@@ -60,7 +60,8 @@ import {
   PlusCircle,
   CheckCircle,
   PlayCircle,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
@@ -493,6 +494,61 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       });
     },
   });
+  
+  // Uncomplete followup action mutation
+  const uncompleteFollowupMutation = useMutation({
+    mutationFn: async (followupId: number) => {
+      console.log('Uncompleting followup action ID:', followupId);
+      
+      if (!followupId) {
+        throw new Error('Followup action ID is missing');
+      }
+      
+      try {
+        const response = await apiRequest('PUT', `/api/interview/followup-actions/${followupId}/uncomplete`, {
+          processId: process.id // Send process ID for additional server validation
+        });
+        
+        // Additional response validation
+        if (!response.ok) {
+          let errorMessage = 'Failed to uncomplete followup action';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log('Successfully uncompleted followup action, received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in mutation:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Followup action uncompleted successfully:', data);
+      // Invalidate both the process list and the specific followups query
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/followups`] });
+      // Also invalidate user statistics to update any related data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+      toast({
+        title: 'Success',
+        description: 'Followup action marked as pending',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to uncomplete followup action: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleAddStage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -515,6 +571,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
 
   const handleCompleteFollowup = (followupId: number) => {
     completeFollowupMutation.mutate(followupId);
+  };
+  
+  const handleUncompleteFollowup = (followupId: number) => {
+    uncompleteFollowupMutation.mutate(followupId);
   };
   
   const handleCompleteStage = (stageId: number) => {
@@ -828,7 +888,21 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                       >
                         <div className="space-y-1">
                           <div className="flex items-center">
-                            <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div 
+                                    onClick={() => handleUncompleteFollowup(followup.id)}
+                                    className="cursor-pointer hover:opacity-75 transition-opacity"
+                                  >
+                                    <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Click to mark as pending</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <span className="font-medium line-through text-muted-foreground">
                               {followup.type}
                             </span>
@@ -843,6 +917,15 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                             </div>
                           )}
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleUncompleteFollowup(followup.id)}
+                          className="h-8 w-8 p-0"
+                          title="Mark as pending"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))}
                   </div>

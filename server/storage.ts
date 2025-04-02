@@ -204,6 +204,7 @@ export interface IStorage {
   updateFollowupAction(id: number, actionData: Partial<FollowupAction>): Promise<FollowupAction | undefined>;
   deleteFollowupAction(id: number): Promise<boolean>;
   completeFollowupAction(id: number): Promise<FollowupAction | undefined>;
+  uncompleteFollowupAction(id: number): Promise<FollowupAction | undefined>;
   
   // Achievement operations
   getAchievements(): Promise<Achievement[]>;
@@ -1933,6 +1934,27 @@ export class MemStorage implements IStorage {
     if (process) {
       await this.addUserXP(process.userId, 50, "followup_action_completed", `Completed followup action: ${action.type}`);
     }
+    
+    return updatedAction;
+  }
+
+  async uncompleteFollowupAction(id: number): Promise<FollowupAction | undefined> {
+    const action = this.followupActions.get(id);
+    if (!action) return undefined;
+    
+    if (!action.completed) {
+      // Already uncompleted
+      return action;
+    }
+    
+    const now = new Date();
+    const updatedAction = {
+      ...action,
+      completed: false,
+      completedDate: null,
+      updatedAt: now
+    };
+    this.followupActions.set(id, updatedAction);
     
     return updatedAction;
   }
