@@ -141,8 +141,30 @@ const features = [
 ];
 
 export default function OnboardingFlow() {
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
   const [, setLocation] = useLocation();
+  
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      // Redirect to sign in if not authenticated
+      setLocation('/sign-in');
+    }
+  }, [user, isLoading, setLocation]);
+  
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // If no user after loading is complete, show a message (this is a fallback)
+  if (!user) {
+    return <div className="flex justify-center items-center min-h-screen">Redirecting to sign in...</div>;
+  }
   
   // If the user needs to set a username, we start at step 0 (username selection)
   // Otherwise, start at step 1 (career stage)

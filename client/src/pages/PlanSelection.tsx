@@ -40,16 +40,29 @@ export default function PlanSelection() {
   const [, setLocation] = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
   const [billingCycle, setBillingCycle] = useState<string>('monthly');
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
   const updateSubscriptionMutation = useUpdateUserSubscription();
   const { toast } = useToast();
   
-  // Redirect to dashboard if the user already has a plan
+  // Check if user is authenticated
   useEffect(() => {
-    if (user?.subscriptionPlan && user?.subscriptionPlan !== 'free' && user?.subscriptionStatus === 'active') {
+    if (!isLoading && !user) {
+      // Redirect to sign in if not authenticated
+      setLocation('/sign-in');
+    }
+  }, [user, isLoading, setLocation]);
+  
+  // Handle user loading and subscription status
+  useEffect(() => {
+    if (isLoading || !user) {
+      return; // Wait for user data to load
+    }
+    
+    // If already subscribed, redirect to dashboard
+    if (user.subscriptionPlan && user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active') {
       setLocation('/dashboard');
     }
-  }, [user, setLocation]);
+  }, [user, isLoading, setLocation]);
 
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);

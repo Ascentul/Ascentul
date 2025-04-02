@@ -271,7 +271,11 @@ function App() {
   if (isOnboardingRoute) {
     return (
       <Switch>
-        <Route path="/onboarding" component={OnboardingFlow} />
+        <Route path="/onboarding">
+          <ProtectedRoute>
+            <OnboardingFlow />
+          </ProtectedRoute>
+        </Route>
       </Switch>
     );
   }
@@ -280,7 +284,11 @@ function App() {
   if (isPlanSelectionRoute) {
     return (
       <Switch>
-        <Route path="/plan-selection" component={PlanSelection} />
+        <Route path="/plan-selection">
+          <ProtectedRoute>
+            <PlanSelection />
+          </ProtectedRoute>
+        </Route>
       </Switch>
     );
   }
@@ -289,7 +297,11 @@ function App() {
   if (isBillingCycleRoute) {
     return (
       <Switch>
-        <Route path="/billing-cycle" component={BillingCycle} />
+        <Route path="/billing-cycle">
+          <ProtectedRoute>
+            <BillingCycle />
+          </ProtectedRoute>
+        </Route>
       </Switch>
     );
   }

@@ -13,22 +13,43 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/lib/useUserData';
 
 export default function BillingCycle() {
   const [location, setLocation] = useLocation();
   const [billingCycle, setBillingCycle] = useState<string>('monthly');
   const { toast } = useToast();
+  const { user, isLoading } = useUser();
   
   // Parse the URL parameters
   const params = new URLSearchParams(location.split('?')[1]);
   const plan = params.get('plan');
   
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      // Redirect to sign in if not authenticated
+      setLocation('/sign-in');
+    }
+  }, [user, isLoading, setLocation]);
+  
+  // Handle URL parameters and subscription status
   useEffect(() => {
     // If no plan specified, redirect back to plan selection
     if (!plan) {
       setLocation('/plan-selection');
     }
-  }, [plan, setLocation]);
+    
+    // Skip other checks if still loading or no user
+    if (isLoading || !user) {
+      return;
+    }
+    
+    // If already subscribed with active subscription, redirect to dashboard
+    if (user.subscriptionPlan && user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active') {
+      setLocation('/dashboard');
+    }
+  }, [plan, setLocation, user, isLoading]);
 
   const calculatePrice = (cycle: string): number => {
     // Pro plan pricing
@@ -67,8 +88,17 @@ export default function BillingCycle() {
     setLocation('/plan-selection');
   };
 
-  if (!plan) {
-    return <div className="flex justify-center items-center min-h-screen">Redirecting...</div>;
+  if (!plan || isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        {!plan ? "Redirecting..." : "Loading..."}
+      </div>
+    );
+  }
+  
+  // If no user after loading is complete, redirect to sign in (this is a fallback)
+  if (!user) {
+    return <div className="flex justify-center items-center min-h-screen">Redirecting to sign in...</div>;
   }
 
   return (
