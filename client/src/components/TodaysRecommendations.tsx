@@ -328,7 +328,7 @@ export default function TodaysRecommendations() {
                 </div>
                 
                 <div className="flex-1">
-                  <div className="flex flex-wrap items-start justify-between">
+                  <div className="flex flex-wrap items-center justify-center text-center">
                     <span 
                       data-recommendation-id={recommendation.id} 
                       className={`text-sm recommendation-text ${recommendation.completed ? 'line-through' : ''}`}
@@ -345,12 +345,7 @@ export default function TodaysRecommendations() {
                     )}
                   </div>
                   
-                  <div className="mt-1 flex items-center space-x-2 badge-container">
-                    <Badge
-                      className={`px-2 py-0 h-5 text-xs text-white ${getTypeColor(recommendation.type)}`}
-                    >
-                      {getTypeLabel(recommendation.type)}
-                    </Badge>
+                  <div className="mt-1 flex items-center justify-center space-x-2 badge-container">
                     
                     {recommendation.completed && recommendation.completedAt && (
                       <span className="text-xs text-muted-foreground completion-date">
