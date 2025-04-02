@@ -171,7 +171,8 @@ export default function GoalCard({
       updateChecklistMutation.mutate({
         status: 'completed',
         progress: 100,
-        checklist: checklist
+        checklist: checklist,
+        completed: true
       });
       
       // Show success toast
@@ -238,7 +239,8 @@ export default function GoalCard({
       updateChecklistMutation.mutate({
         checklist: updatedChecklist,
         progress: 100,
-        status: 'completed'
+        status: 'completed',
+        completed: true
       });
       
       // Set the flag to avoid showing confetti multiple times

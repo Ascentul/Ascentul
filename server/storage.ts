@@ -709,8 +709,19 @@ export class MemStorage implements IStorage {
       updatedGoal.completedAt = new Date();
       updatedGoal.progress = 100;
       
+      // Make sure to set the status to 'completed' as well
+      updatedGoal.status = 'completed';
+      updatedGoal.completed = true;
+      
       // Award XP for completing a goal
       await this.addUserXP(goal.userId, goal.xpReward, "goals_completed", `Completed goal: ${goal.title}`);
+    }
+    
+    // Also check if the status is being set to 'completed' directly
+    if (goalData.status === 'completed' && !updatedGoal.completed) {
+      updatedGoal.completed = true;
+      updatedGoal.completedAt = updatedGoal.completedAt || new Date();
+      updatedGoal.progress = 100;
     }
     
     this.goals.set(id, updatedGoal);
