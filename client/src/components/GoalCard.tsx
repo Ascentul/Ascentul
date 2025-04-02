@@ -145,6 +145,8 @@ export default function GoalCard({
     onSettled: () => {
       // Always refetch after error or success to ensure cache consistency
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      // Also invalidate user statistics to update the active goals count
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
     },
   });
 

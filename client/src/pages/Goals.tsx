@@ -49,6 +49,7 @@ export default function Goals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Goal Deleted',
         description: 'Your goal has been deleted successfully',
@@ -78,19 +79,35 @@ export default function Goals() {
   };
   
   const handleReopenGoal = (goalId: number) => {
-    // This would actually call an API to update the goal status
+    // Get the goal from the cache
     const goal = goals.find((g: any) => g.id === goalId);
     if (goal) {
-      toast({
-        title: "Goal Reopened",
-        description: "The goal has been moved back to active goals.",
+      // Update the goal status via the API
+      apiRequest('PUT', `/api/goals/${goalId}`, { 
+        ...goal, 
+        status: 'active', 
+        completed: false, 
+        completedAt: null 
+      })
+      .then(() => {
+        // Refresh goals data and user statistics
+        queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+        
+        toast({
+          title: "Goal Reopened",
+          description: "The goal has been moved back to active goals.",
+        });
+      })
+      .catch((error) => {
+        console.error('Error reopening goal:', error);
+        
+        toast({
+          title: "Error",
+          description: "Failed to reopen goal. Please try again.",
+          variant: "destructive",
+        });
       });
-      
-      // In a real implementation, this would be an API call:
-      // apiRequest('PUT', `/api/goals/${goalId}`, { ...goal, status: 'active', completed: false, completedAt: null })
-      //   .then(() => queryClient.invalidateQueries({ queryKey: ['/api/goals'] }));
-      
-      console.log('Reopening goal:', goal.id);
     }
   };
   
@@ -116,8 +133,9 @@ export default function Goals() {
           // Remove goal from dissolving state
           setDissolvingGoalIds(prev => prev.filter(id => id !== goalId));
           
-          // Refresh goals data
+          // Refresh goals data and user statistics
           queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
           
           toast({
             title: "Goal Saved as Completed",

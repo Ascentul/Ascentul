@@ -77,6 +77,7 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Goal Created',
         description: 'Your career goal has been created successfully',
@@ -99,6 +100,7 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
         title: 'Goal Updated',
         description: 'Your career goal has been updated successfully',
