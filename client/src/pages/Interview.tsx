@@ -108,8 +108,18 @@ const Interview = () => {
   });
 
   // Group processes by status for dashboard view
-  const activeProcesses = processes?.filter(p => p.status !== 'Completed' && p.status !== 'Rejected' && p.status !== 'Not Selected') || [];
-  const completedProcesses = processes?.filter(p => p.status === 'Completed' || p.status === 'Rejected' || p.status === 'Not Selected') || [];
+  const activeProcesses = processes?.filter(p => 
+    p.status !== 'Completed' && 
+    p.status !== 'Rejected' && 
+    p.status !== 'Not Selected' && 
+    p.status !== 'Hired'
+  ) || [];
+  const completedProcesses = processes?.filter(p => 
+    p.status === 'Completed' || 
+    p.status === 'Rejected' || 
+    p.status === 'Not Selected' || 
+    p.status === 'Hired'
+  ) || [];
 
   const renderProcessCard = (process: InterviewProcess, index: number) => {
     return (
@@ -228,8 +238,60 @@ const Interview = () => {
                     />
                   </div>
                 ) : filteredProcesses && filteredProcesses.length > 0 ? (
-                  <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
-                    {filteredProcesses.map((process, index) => renderProcessCard(process, index))}
+                  <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
+                    {/* Active section */}
+                    <div className="space-y-3">
+                      <h3 className="font-medium flex items-center">
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Active Interview Processes
+                      </h3>
+                      {filteredProcesses.filter(p => 
+                        p.status !== 'Completed' && 
+                        p.status !== 'Rejected' && 
+                        p.status !== 'Not Selected' && 
+                        p.status !== 'Hired'
+                      ).length > 0 ? (
+                        <div className="space-y-3">
+                          {filteredProcesses
+                            .filter(p => 
+                              p.status !== 'Completed' && 
+                              p.status !== 'Rejected' && 
+                              p.status !== 'Not Selected' && 
+                              p.status !== 'Hired'
+                            )
+                            .map((process, index) => renderProcessCard(process, index))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-2">No active processes</p>
+                      )}
+                    </div>
+                    
+                    {/* Completed section */}
+                    <div className="space-y-3 pt-2">
+                      <h3 className="font-medium flex items-center">
+                        <Check className="h-4 w-4 mr-2" />
+                        Completed Interview Processes
+                      </h3>
+                      {filteredProcesses.filter(p => 
+                        p.status === 'Completed' || 
+                        p.status === 'Rejected' || 
+                        p.status === 'Not Selected' || 
+                        p.status === 'Hired'
+                      ).length > 0 ? (
+                        <div className="space-y-3">
+                          {filteredProcesses
+                            .filter(p => 
+                              p.status === 'Completed' || 
+                              p.status === 'Rejected' || 
+                              p.status === 'Not Selected' || 
+                              p.status === 'Hired'
+                            )
+                            .map((process, index) => renderProcessCard(process, index))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-2">No completed processes</p>
+                      )}
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div variants={fadeIn} className="text-center py-8">
@@ -319,42 +381,105 @@ const Interview = () => {
                       variants={listContainer} 
                       initial="hidden" 
                       animate="visible" 
-                      className="space-y-3 mt-4"
+                      className="space-y-6 mt-4"
                     >
-                      {processes.map((process, index) => (
-                        <motion.div variants={listItem} key={process.id}>
-                          <Card 
-                            className="cursor-pointer transition-colors hover:bg-accent/50"
-                            onClick={() => setSelectedProcessId(process.id)}
-                          >
-                            <CardHeader className="p-4 pb-2">
-                              <div className="flex justify-between items-start">
-                                <CardTitle className="text-base">{process.companyName}</CardTitle>
-                                <InterviewProcessStatusBadge status={process.status} />
-                              </div>
-                              <CardDescription>{process.position}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0">
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <CalendarDays className="h-3 w-3 mr-1" />
-                                  {new Date(process.createdAt).toLocaleDateString()}
-                                </div>
-                                <Button 
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPracticeProcessId(process.id);
-                                    setShowPracticeSession(true);
-                                  }}
+                      {/* Active processes for practice */}
+                      <div className="space-y-3">
+                        <h3 className="font-medium flex items-center text-sm">
+                          <Briefcase className="h-4 w-4 mr-2" />
+                          Active Processes
+                        </h3>
+                        
+                        {activeProcesses.length > 0 ? (
+                          <div className="space-y-3">
+                            {activeProcesses.map((process, index) => (
+                              <motion.div variants={listItem} key={process.id}>
+                                <Card 
+                                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                                  onClick={() => setSelectedProcessId(process.id)}
                                 >
-                                  Practice
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
+                                  <CardHeader className="p-4 pb-2">
+                                    <div className="flex justify-between items-start">
+                                      <CardTitle className="text-base">{process.companyName}</CardTitle>
+                                      <InterviewProcessStatusBadge status={process.status} />
+                                    </div>
+                                    <CardDescription>{process.position}</CardDescription>
+                                  </CardHeader>
+                                  <CardContent className="p-4 pt-0">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <CalendarDays className="h-3 w-3 mr-1" />
+                                        {new Date(process.createdAt).toLocaleDateString()}
+                                      </div>
+                                      <Button 
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPracticeProcessId(process.id);
+                                          setShowPracticeSession(true);
+                                        }}
+                                      >
+                                        Practice
+                                      </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-center py-2">No active processes</p>
+                        )}
+                      </div>
+                      
+                      {/* Completed processes for practice */}
+                      <div className="space-y-3">
+                        <h3 className="font-medium flex items-center text-sm">
+                          <Check className="h-4 w-4 mr-2" />
+                          Completed Processes
+                        </h3>
+                        
+                        {completedProcesses.length > 0 ? (
+                          <div className="space-y-3">
+                            {completedProcesses.map((process, index) => (
+                              <motion.div variants={listItem} key={process.id}>
+                                <Card 
+                                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                                  onClick={() => setSelectedProcessId(process.id)}
+                                >
+                                  <CardHeader className="p-4 pb-2">
+                                    <div className="flex justify-between items-start">
+                                      <CardTitle className="text-base">{process.companyName}</CardTitle>
+                                      <InterviewProcessStatusBadge status={process.status} />
+                                    </div>
+                                    <CardDescription>{process.position}</CardDescription>
+                                  </CardHeader>
+                                  <CardContent className="p-4 pt-0">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center text-sm text-muted-foreground">
+                                        <CalendarDays className="h-3 w-3 mr-1" />
+                                        {new Date(process.createdAt).toLocaleDateString()}
+                                      </div>
+                                      <Button 
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPracticeProcessId(process.id);
+                                          setShowPracticeSession(true);
+                                        }}
+                                      >
+                                        Practice
+                                      </Button>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </motion.div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground text-center py-2">No completed processes</p>
+                        )}
+                      </div>
                     </motion.div>
                   ) : (
                     <motion.div variants={fadeIn} className="text-center py-8">
