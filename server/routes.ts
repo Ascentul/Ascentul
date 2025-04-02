@@ -18,6 +18,7 @@ import {
   insertContactMessageSchema,
   insertMentorChatConversationSchema,
   insertMentorChatMessageSchema,
+  insertRecommendationSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
@@ -2757,6 +2758,75 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+  
+  // Recommendations API
+  apiRouter.get("/recommendations", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get all recommendations for the user
+      const recommendations = await storage.getRecommendations(user.id);
+      res.status(200).json(recommendations);
+    } catch (error: any) {
+      console.error("Error fetching recommendations:", error);
+      res.status(500).json({ message: "Error fetching recommendations", error: error.message });
+    }
+  });
+  
+  apiRouter.get("/recommendations/daily", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Generate or get today's recommendations
+      const recommendations = await storage.generateDailyRecommendations(user.id);
+      res.status(200).json(recommendations);
+    } catch (error: any) {
+      console.error("Error generating daily recommendations:", error);
+      res.status(500).json({ message: "Error generating daily recommendations", error: error.message });
+    }
+  });
+  
+  apiRouter.post("/recommendations/:id/complete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const recommendationId = parseInt(req.params.id);
+      if (isNaN(recommendationId)) {
+        return res.status(400).json({ message: "Invalid recommendation ID" });
+      }
+      
+      // Get the recommendation to verify ownership
+      const recommendation = await storage.getRecommendation(recommendationId);
+      if (!recommendation) {
+        return res.status(404).json({ message: "Recommendation not found" });
+      }
+      
+      // Check if the recommendation belongs to the current user
+      if (recommendation.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied. You can only update your own recommendations." });
+      }
+      
+      // Complete the recommendation
+      const completedRecommendation = await storage.completeRecommendation(recommendationId);
+      if (!completedRecommendation) {
+        return res.status(500).json({ message: "Failed to complete recommendation" });
+      }
+      
+      res.status(200).json(completedRecommendation);
+    } catch (error: any) {
+      console.error("Error completing recommendation:", error);
+      res.status(500).json({ message: "Error completing recommendation", error: error.message });
     }
   });
 

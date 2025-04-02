@@ -26,6 +26,9 @@ import {
   userAchievements,
   type UserAchievement,
   type InsertUserAchievement,
+  recommendations,
+  type Recommendation,
+  type InsertRecommendation,
   aiCoachConversations,
   type AiCoachConversation,
   contactMessages,
@@ -255,6 +258,14 @@ export interface IStorage {
     verificationToken?: string | null;
     verificationExpires?: Date | null;
   }): Promise<User | undefined>;
+  
+  // Recommendation operations
+  getRecommendations(userId: number): Promise<Recommendation[]>;
+  getRecommendation(id: number): Promise<Recommendation | undefined>;
+  createRecommendation(userId: number, recommendation: InsertRecommendation): Promise<Recommendation>;
+  updateRecommendation(id: number, recommendationData: Partial<Recommendation>): Promise<Recommendation | undefined>;
+  completeRecommendation(id: number): Promise<Recommendation | undefined>;
+  generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -276,6 +287,7 @@ export class MemStorage implements IStorage {
   private contactMessages: Map<number, ContactMessage>;
   private mentorChatConversations: Map<number, MentorChatConversation>;
   private mentorChatMessages: Map<number, MentorChatMessage>;
+  private recommendations: Map<number, Recommendation>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -295,6 +307,7 @@ export class MemStorage implements IStorage {
   private contactMessageIdCounter: number;
   private mentorChatConversationIdCounter: number;
   private mentorChatMessageIdCounter: number;
+  private recommendationIdCounter: number;
   
   public sessionStore: session.Store;
 
@@ -320,6 +333,7 @@ export class MemStorage implements IStorage {
     this.contactMessages = new Map();
     this.mentorChatConversations = new Map();
     this.mentorChatMessages = new Map();
+    this.recommendations = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -339,6 +353,7 @@ export class MemStorage implements IStorage {
     this.contactMessageIdCounter = 1;
     this.mentorChatConversationIdCounter = 1;
     this.mentorChatMessageIdCounter = 1;
+    this.recommendationIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -1877,6 +1892,236 @@ export class MemStorage implements IStorage {
     }
     
     return newMessage;
+  }
+  
+  // Recommendation operations
+  async getRecommendations(userId: number): Promise<Recommendation[]> {
+    return Array.from(this.recommendations.values())
+      .filter(recommendation => recommendation.userId === userId)
+      .sort((a, b) => {
+        // First, sort by completion status
+        if (a.completed !== b.completed) {
+          return a.completed ? 1 : -1; // Incomplete first
+        }
+        // Then, sort by creation date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }
+
+  async getRecommendation(id: number): Promise<Recommendation | undefined> {
+    return this.recommendations.get(id);
+  }
+
+  async createRecommendation(userId: number, recommendationData: InsertRecommendation): Promise<Recommendation> {
+    const id = this.recommendationIdCounter++;
+    const now = new Date();
+    const recommendation: Recommendation = {
+      ...recommendationData,
+      id,
+      userId,
+      completed: false,
+      completedAt: null,
+      createdAt: now
+    };
+    this.recommendations.set(id, recommendation);
+    return recommendation;
+  }
+
+  async updateRecommendation(id: number, recommendationData: Partial<Recommendation>): Promise<Recommendation | undefined> {
+    const recommendation = this.recommendations.get(id);
+    if (!recommendation) return undefined;
+    
+    const updatedRecommendation = { ...recommendation, ...recommendationData };
+    this.recommendations.set(id, updatedRecommendation);
+    return updatedRecommendation;
+  }
+
+  async completeRecommendation(id: number): Promise<Recommendation | undefined> {
+    const recommendation = this.recommendations.get(id);
+    if (!recommendation) return undefined;
+    
+    const now = new Date();
+    const completedRecommendation = {
+      ...recommendation,
+      completed: true,
+      completedAt: now
+    };
+    
+    this.recommendations.set(id, completedRecommendation);
+    
+    // Award XP for completing a recommendation
+    await this.addUserXP(recommendation.userId, 15, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
+    
+    return completedRecommendation;
+  }
+
+  async generateDailyRecommendations(userId: number): Promise<Recommendation[]> {
+    // Get user's active goals
+    const goals = await this.getGoals(userId);
+    const activeGoals = goals.filter(goal => !goal.completed);
+    
+    // Get user's interview processes
+    const interviewProcesses = await this.getInterviewProcesses(userId);
+    const activeProcesses = interviewProcesses.filter(process => process.status === "in_progress");
+    
+    // Get upcoming stages
+    const upcomingStages: InterviewStage[] = [];
+    for (const process of activeProcesses) {
+      const stages = await this.getInterviewStages(process.id);
+      const upcoming = stages.filter(stage => stage.completedDate === null && stage.scheduledDate !== null);
+      upcomingStages.push(...upcoming);
+    }
+    
+    // Get pending followup actions
+    const pendingActions: FollowupAction[] = [];
+    for (const process of activeProcesses) {
+      const actions = await this.getFollowupActions(process.id);
+      const pending = actions.filter(action => !action.completed);
+      pendingActions.push(...pending);
+    }
+    
+    // The date for today's recommendations
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Check if we already generated recommendations today
+    const existingRecommendations = await this.getRecommendations(userId);
+    const todaysRecommendations = existingRecommendations.filter(rec => {
+      const recDate = new Date(rec.createdAt);
+      recDate.setHours(0, 0, 0, 0);
+      return recDate.getTime() === today.getTime();
+    });
+    
+    // If we already have recommendations for today, return them
+    if (todaysRecommendations.length > 0) {
+      return todaysRecommendations;
+    }
+    
+    // Generate new recommendations based on user's data
+    const newRecommendations: InsertRecommendation[] = [];
+    
+    // 1. Goal-based recommendations
+    if (activeGoals.length > 0) {
+      // For each goal, create a recommendation
+      activeGoals.forEach(goal => {
+        if (goal.status === "not_started") {
+          newRecommendations.push({
+            userId,
+            text: `Start working on your goal: "${goal.title}"`,
+            type: "goal",
+            relatedEntityId: goal.id,
+            relatedEntityType: "goal"
+          });
+        } else if (goal.progress < 50) {
+          newRecommendations.push({
+            userId,
+            text: `Continue progress on your goal: "${goal.title}"`,
+            type: "goal",
+            relatedEntityId: goal.id,
+            relatedEntityType: "goal"
+          });
+        }
+      });
+    } else {
+      // If no active goals, recommend creating one
+      newRecommendations.push({
+        userId,
+        text: "Create a new career goal to track your progress",
+        type: "system",
+        relatedEntityType: "system"
+      });
+    }
+    
+    // 2. Interview process recommendations
+    if (activeProcesses.length > 0) {
+      // For each process, create recommendations
+      activeProcesses.forEach(process => {
+        newRecommendations.push({
+          userId,
+          text: `Update status for your interview with ${process.companyName}`,
+          type: "interview",
+          relatedEntityId: process.id,
+          relatedEntityType: "interview_process"
+        });
+      });
+    }
+    
+    // 3. Upcoming interview recommendations
+    if (upcomingStages.length > 0) {
+      upcomingStages.forEach(stage => {
+        if (stage.scheduledDate) {
+          const stageDate = new Date(stage.scheduledDate);
+          const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 7) { // If within a week
+            const process = activeProcesses.find(p => p.id === stage.processId);
+            if (process) {
+              newRecommendations.push({
+                userId,
+                text: `Prepare for your upcoming ${stage.type} with ${process.companyName} (${daysDiff} days away)`,
+                type: "interview",
+                relatedEntityId: stage.id,
+                relatedEntityType: "interview_stage"
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    // 4. Pending followup recommendations
+    if (pendingActions.length > 0) {
+      pendingActions.forEach(action => {
+        if (action.dueDate) {
+          const dueDate = new Date(action.dueDate);
+          const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 3) { // If due within 3 days
+            newRecommendations.push({
+              userId,
+              text: `Complete action: "${action.description}" (due ${daysDiff <= 0 ? 'today' : `in ${daysDiff} days`})`,
+              type: "followup",
+              relatedEntityId: action.id,
+              relatedEntityType: "followup_action"
+            });
+          }
+        }
+      });
+    }
+    
+    // 5. System recommendations
+    // If less than 5 recommendations, add generic career development recommendations
+    if (newRecommendations.length < 5) {
+      const genericRecommendations = [
+        "Update your work history with recent experiences",
+        "Update your resume with your latest skills and achievements",
+        "Practice a new interview question today",
+        "Connect with the AI Career Coach for personalized advice",
+        "Review and update the skills section of your profile",
+        "Add a recent achievement to showcase your progress"
+      ];
+      
+      // Add random generic recommendations until we have at least 5
+      while (newRecommendations.length < 5 && genericRecommendations.length > 0) {
+        const randomIndex = Math.floor(Math.random() * genericRecommendations.length);
+        const recommendation = genericRecommendations.splice(randomIndex, 1)[0];
+        
+        newRecommendations.push({
+          userId,
+          text: recommendation,
+          type: "system",
+          relatedEntityType: "system"
+        });
+      }
+    }
+    
+    // Create all the recommendations in the database
+    const createdRecommendations: Recommendation[] = [];
+    for (const rec of newRecommendations) {
+      createdRecommendations.push(await this.createRecommendation(userId, rec));
+    }
+    
+    return createdRecommendations;
   }
 }
 

@@ -792,3 +792,28 @@ export type InsertMentorChatConversation = z.infer<typeof insertMentorChatConver
 
 export type MentorChatMessage = typeof mentorChatMessages.$inferSelect;
 export type InsertMentorChatMessage = z.infer<typeof insertMentorChatMessageSchema>;
+
+// Daily Recommendations
+export const recommendations = pgTable("recommendations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  text: text("text").notNull(),
+  type: text("type").notNull().default("general"), // general, goal_related, interview_related, etc.
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  relatedEntityType: text("related_entity_type"), // 'goal', 'interview_process', etc.
+  relatedEntityId: integer("related_entity_id"),
+  expiresAt: timestamp("expires_at"), // When the recommendation expires (e.g., end of day)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
+  id: true,
+  userId: true,
+  completed: true,
+  completedAt: true,
+  createdAt: true,
+});
+
+export type Recommendation = typeof recommendations.$inferSelect;
+export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
