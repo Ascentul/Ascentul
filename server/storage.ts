@@ -1148,7 +1148,12 @@ export class MemStorage implements IStorage {
       // Count stages that are scheduled but not completed
       const scheduledStages = stages.filter(stage => {
         // Check if stage has a scheduled date in the future and is not completed
-        return stage.scheduledDate && 
+        const now = new Date();
+        const stageDate = stage.scheduledDate ? new Date(stage.scheduledDate) : null;
+        
+        // Scheduled date must exist, be in the future, and the stage must not be completed
+        return stageDate && 
+               stageDate >= now &&
                !stage.completedDate && 
                stage.outcome !== "passed" &&
                stage.outcome !== "failed";
