@@ -181,10 +181,8 @@ export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="not_started">Not Started</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="on-track">On Track</SelectItem>
-                    <SelectItem value="at-risk">At Risk</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
