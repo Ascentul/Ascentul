@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
+import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw, LayoutList, GanttChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,8 +20,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GoalCard from '@/components/GoalCard';
 import GoalForm from '@/components/GoalForm';
+import GoalTimeline from '@/components/goals/GoalTimeline';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,6 +36,8 @@ export default function Goals() {
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
   // Add a state to track goals that are currently being dissolved
   const [dissolvingGoalIds, setDissolvingGoalIds] = useState<number[]>([]);
+  // Add state for view mode (list or timeline)
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -454,6 +458,18 @@ export default function Goals() {
             <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
             Completed Goals
           </h2>
+          <Tabs defaultValue="list" className="w-[200px]">
+            <TabsList>
+              <TabsTrigger value="list" onClick={() => setViewMode('list')}>
+                <LayoutList className="h-4 w-4 mr-1" />
+                List
+              </TabsTrigger>
+              <TabsTrigger value="timeline" onClick={() => setViewMode('timeline')}>
+                <GanttChart className="h-4 w-4 mr-1" />
+                Timeline
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         
         {isLoading ? (
@@ -461,55 +477,71 @@ export default function Goals() {
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
           </div>
         ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status === 'completed' && !hiddenGoalIds.includes(g.id)).length > 0 ? (
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <AnimatePresence mode="sync">
-                  {goals
-                    .filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))
-                    .map((goal: any) => (
-                      <motion.div
-                        key={goal.id}
-                        id={`goal-${goal.id}`}
-                        initial={{ opacity: 1 }}
-                        animate={{ opacity: 1 }}
-                        className="mb-4"
-                      >
-                        <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg border p-4 relative">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center">
-                                <h3 className="font-medium text-sm line-through text-neutral-500">{goal.title}</h3>
-                                <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                  Completed
-                                </span>
+          <>
+            {/* Timeline View */}
+            {viewMode === 'timeline' && (
+              <Card>
+                <CardContent className="p-6">
+                  <GoalTimeline 
+                    goals={goals.filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))} 
+                  />
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* List View */}
+            {viewMode === 'list' && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <AnimatePresence mode="sync">
+                      {goals
+                        .filter((goal: any) => goal.status === 'completed' && !hiddenGoalIds.includes(goal.id))
+                        .map((goal: any) => (
+                          <motion.div
+                            key={goal.id}
+                            id={`goal-${goal.id}`}
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 1 }}
+                            className="mb-4"
+                          >
+                            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg border p-4 relative">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center">
+                                    <h3 className="font-medium text-sm line-through text-neutral-500">{goal.title}</h3>
+                                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                      Completed
+                                    </span>
+                                  </div>
+                                  {goal.description && (
+                                    <p className="text-xs text-neutral-500 mt-1 line-through">{goal.description}</p>
+                                  )}
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-xs h-8"
+                                  onClick={() => handleReopenGoal(goal.id)}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Reopen
+                                </Button>
                               </div>
-                              {goal.description && (
-                                <p className="text-xs text-neutral-500 mt-1 line-through">{goal.description}</p>
+                              {goal.completedAt && (
+                                <p className="text-xs text-neutral-400 mt-2">
+                                  Completed {new Date(goal.completedAt).toLocaleDateString()}
+                                </p>
                               )}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="text-xs h-8"
-                              onClick={() => handleReopenGoal(goal.id)}
-                            >
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                              Reopen
-                            </Button>
-                          </div>
-                          {goal.completedAt && (
-                            <p className="text-xs text-neutral-400 mt-2">
-                              Completed {new Date(goal.completedAt).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                </AnimatePresence>
-              </div>
-            </CardContent>
-          </Card>
+                          </motion.div>
+                        ))}
+                    </AnimatePresence>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         ) : (
           <Card>
             <CardContent className="p-6">

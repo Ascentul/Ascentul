@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Goal timeline animations and styles */
+.goal-card.dissolving {
+  animation: dissolve 2.5s forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes dissolve {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.03);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
 /* Custom scrollbar styling for conversation container */
 .conversation-container {
   scrollbar-width: thin;
