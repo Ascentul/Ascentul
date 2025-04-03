@@ -130,14 +130,7 @@ const GoalTimeline = ({ goals, className }: GoalTimelineProps) => {
                     </div>
                   )}
                   
-                  {goal.checklist && goal.checklist.length > 0 && (
-                    <div className="mt-2 text-xs">
-                      <div className="flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        <span>{goal.checklist.filter(item => item.completed).length}/{goal.checklist.length} tasks completed</span>
-                      </div>
-                    </div>
-                  )}
+                  
                 </div>
               </div>
               
