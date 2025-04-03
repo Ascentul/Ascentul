@@ -138,11 +138,6 @@ const GoalTimeline = ({ goals, className }: GoalTimelineProps) => {
                       </div>
                     </div>
                   )}
-                  
-                  <div className="mt-2 flex items-center justify-start gap-1">
-                    <Zap className="h-3 w-3 text-yellow-500" />
-                    <span className="text-xs">{goal.xpReward} XP reward</span>
-                  </div>
                 </div>
               </div>
               
