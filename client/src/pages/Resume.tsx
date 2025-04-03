@@ -357,11 +357,6 @@ export default function Resume() {
     `);
     
     printWindow.document.close();
-    
-    toast({
-      title: 'PDF Download',
-      description: 'Your resume is being prepared for download',
-    });
   };
 
   return (
