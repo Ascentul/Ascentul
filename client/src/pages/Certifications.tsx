@@ -117,7 +117,7 @@ const mockCertifications: Certification[] = [
     id: 4,
     name: 'Certified Kubernetes Administrator',
     provider: 'Cloud Native Computing Foundation',
-    issueDate: new Date().toISOString().split('T')[0], // Current date as issue date for in-progress cert
+    issueDate: '2023-01-15', // Fixed date instead of dynamic date
     status: 'in-progress',
     skills: ['Kubernetes', 'Container Orchestration', 'DevOps'],
     description: 'Preparing for the CKA exam to demonstrate proficiency in Kubernetes administration.'
@@ -170,7 +170,7 @@ export default function Certifications() {
       id: certifications.length + 1,
       name: values.name,
       provider: values.provider,
-      issueDate: values.issueDate || new Date().toISOString().split('T')[0],
+      issueDate: values.issueDate || '2023-01-01',
       expiryDate: values.expiryDate,
       credentialId: values.credentialId,
       credentialUrl: values.credentialUrl,
