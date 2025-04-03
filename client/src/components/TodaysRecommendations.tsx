@@ -46,7 +46,7 @@ const getTypeLabel = (type: string) => {
       return 'Follow-up';
     case 'system':
     default:
-      return 'Tip';
+      return '';
   }
 };
 
