@@ -168,6 +168,9 @@ export async function generateCoverLetter(
   userSkills: string[]
 ): Promise<string> {
   try {
+    // Note: userExperience may contain additional work history data added by the server
+    // but the user doesn't need to know this - the AI will seamlessly incorporate it
+    
     const prompt = `Write a professional cover letter for a ${jobTitle} position at ${companyName}. 
 
 Job Description:
@@ -179,7 +182,7 @@ ${userExperience}
 My Skills:
 ${userSkills.join(", ")}
 
-The cover letter should be professional, concise, and highlight how my experience and skills match the job requirements. Focus on specific achievements and how they relate to this position.`;
+The cover letter should be professional, concise, and highlight how my experience and skills match the job requirements. Focus on specific achievements and how they relate to this position. If the experience section mentions "Additional Work History", use those details to enrich the letter, but don't explicitly mention them as separate work history items - integrate them naturally.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

@@ -1626,11 +1626,42 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Missing required fields" });
       }
       
+      // Automatically include user's work history if they're logged in
+      let enrichedExperience = userExperience;
+      
+      if (req.session.userId) {
+        try {
+          // Fetch the user's work history
+          const workHistoryEntries = await storage.getWorkHistory(req.session.userId);
+          
+          if (workHistoryEntries && workHistoryEntries.length > 0) {
+            // Format work history for AI processing
+            const formattedWorkHistory = workHistoryEntries.map((job: any) => {
+              const duration = job.currentJob 
+                ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+                : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+              
+              const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+                ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+                : '';
+              
+              return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+            }).join('\n---\n\n');
+            
+            // Add the work history to the user experience without showing it to the user
+            enrichedExperience = `${userExperience}\n\nAdditional Work History:\n${formattedWorkHistory}`;
+          }
+        } catch (historyError) {
+          console.error("Error fetching work history:", historyError);
+          // Continue with original user experience if there's an error fetching history
+        }
+      }
+      
       const coverLetter = await generateCoverLetter(
         jobTitle,
         companyName,
         jobDescription,
-        userExperience,
+        enrichedExperience,
         userSkills
       );
       
