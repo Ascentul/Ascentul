@@ -148,7 +148,7 @@ export default function Certifications() {
       toast({
         title: "Certification Created",
         description: "Your certification has been added successfully",
-        variant: "success",
+        variant: "default",
       });
       setShowAddCertification(false);
       form.reset();
@@ -181,7 +181,7 @@ export default function Certifications() {
       toast({
         title: "Certification Updated",
         description: "Your certification has been updated successfully",
-        variant: "success",
+        variant: "default",
       });
       setShowAddCertification(false);
       setIsEditing(false);
