@@ -48,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Check, 
   Calendar, 
@@ -63,12 +64,14 @@ import {
   PlayCircle,
   Loader2,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  GitBranch // Using GitBranch icon as a substitute for Timeline
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
 import { PracticeSession } from './PracticeSession';
 import { GamePracticeSession } from './GamePracticeSession';
+import InterviewTimeline from './InterviewTimeline';
 
 type InterviewProcessDetailsProps = {
   process: InterviewProcess & {
@@ -837,17 +840,30 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
           <AccordionContent>
             <div className="space-y-4">
               {sortedStages.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedStages.map((stage) => (
+                <Tabs defaultValue="table" className="mb-4">
+                  <TabsList>
+                    <TabsTrigger value="table" className="flex items-center gap-1">
+                      <FileText className="h-4 w-4" />
+                      <span>Table View</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="timeline" className="flex items-center gap-1">
+                      <GitBranch className="h-4 w-4" />
+                      <span>Timeline</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="table" className="mt-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sortedStages.map((stage) => (
                       <TableRow key={stage.id}>
                         <TableCell className="font-medium">{stage.type}</TableCell>
                         <TableCell>{formatDate(stage.scheduledDate)}</TableCell>
@@ -902,6 +918,12 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
                     ))}
                   </TableBody>
                 </Table>
+                  </TabsContent>
+                  
+                  <TabsContent value="timeline" className="mt-4">
+                    <InterviewTimeline stages={sortedStages} />
+                  </TabsContent>
+                </Tabs>
               ) : (
                 <div className="text-center py-4 text-muted-foreground">
                   No interview stages added yet.
