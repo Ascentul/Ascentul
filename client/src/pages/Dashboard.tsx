@@ -690,13 +690,13 @@ export default function Dashboard() {
       
       {/* AI Coach & Today's Recommendations */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* AI Coach Preview */}
+        {/* AI Coach Preview - takes up 2/3 width */}
         <motion.div
-          className="will-change-transform"
+          className="will-change-transform lg:col-span-2"
           variants={cardAnimation}
           style={{ transform: 'translateZ(0)' }}
         >
