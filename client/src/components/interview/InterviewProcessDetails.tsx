@@ -68,6 +68,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
 import { PracticeSession } from './PracticeSession';
+import { GamePracticeSession } from './GamePracticeSession';
 
 type InterviewProcessDetailsProps = {
   process: InterviewProcess & {
@@ -1183,7 +1184,7 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
       </Dialog>
 
       {/* Practice Session Dialog */}
-      <PracticeSession
+      <GamePracticeSession
         isOpen={showPracticeSession}
         onClose={() => setShowPracticeSession(false)}
         process={process}

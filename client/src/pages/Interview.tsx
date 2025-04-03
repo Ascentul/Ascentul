@@ -26,6 +26,7 @@ import { InterviewProcessStatusBadge } from '@/components/interview/InterviewPro
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { PracticeSession } from '@/components/interview/PracticeSession';
+import { GamePracticeSession } from '@/components/interview/GamePracticeSession';
 import { type InterviewProcess } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -563,7 +564,7 @@ const Interview = () => {
       />
 
       {/* Practice Session Dialog */}
-      <PracticeSession
+      <GamePracticeSession
         isOpen={showPracticeSession}
         onClose={() => setShowPracticeSession(false)}
         process={processes?.find(p => p.id === practiceProcessId) || undefined}
