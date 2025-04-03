@@ -64,13 +64,20 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
   const [feedbackQuality, setFeedbackQuality] = useState<{[key: number]: 'helpful' | 'not-helpful' | null}>({});
 
   // Generate/fetch questions based on the job position
-  const { data: questions, isLoading } = useQuery({
+  const { data: questionsResponse, isLoading } = useQuery({
     queryKey: ['/api/interview/questions', process?.id],
     queryFn: async () => {
       if (!process) {
         // Fetch general interview questions if no process is provided
         const res = await apiRequest('GET', '/api/interview/questions');
-        return res.json();
+        const data = await res.json();
+        return {
+          behavioral: data.map((q: any) => ({
+            question: q.question,
+            description: '',
+            suggestedAnswer: q.suggestedAnswer || ''
+          }))
+        };
       } else {
         // Generate specific questions based on job description
         setQuestionGenerationStatus('loading');
@@ -80,7 +87,7 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
             skills: extractSkills(process.jobDescription || '')
           });
           setQuestionGenerationStatus('success');
-          return res.json();
+          return await res.json();
         } catch (error) {
           setQuestionGenerationStatus('error');
           throw error;
@@ -89,6 +96,12 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
     },
     enabled: isOpen, // Only run this query when the dialog is open
   });
+  
+  // Process the questions into a flat array for the UI
+  const questions = questionsResponse ? [
+    ...(questionsResponse.behavioral || []),
+    ...(questionsResponse.technical || [])
+  ] : [];
 
   // Function to extract skills from job description
   const extractSkills = (jobDescription: string): string[] => {
@@ -122,6 +135,8 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
     },
   });
 
+  // Define the handleGetFeedback function before using it in the useEffect
+  
   // Handle timer for questions
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -132,55 +147,34 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
       }, 1000);
     } else if (timeRemaining === 0 && timerActive) {
       setTimerActive(false);
-      // If time runs out, automatically move to feedback
-      handleGetFeedback();
+      
+      // If time runs out, go to feedback if we have an answer
+      if (userAnswers[currentQuestion]) {
+        setGameState('feedback');
+        
+        // Generate simple feedback for timeout
+        setFeedback({
+          ...feedback,
+          [currentQuestion]: "Time expired! It's important to practice answering questions concisely within the allocated time. Try to structure your answers more efficiently next time."
+        });
+      } else {
+        // Skip to next question if no answer provided
+        if (currentQuestion < (questions?.length || 0) - 1) {
+          setCurrentQuestion(prev => prev + 1);
+          setGameState('intro');
+        } else {
+          setGameState('summary');
+        }
+      }
     }
     
     return () => clearInterval(interval);
-  }, [timerActive, timeRemaining]);
+  }, [timerActive, timeRemaining, currentQuestion, questions, userAnswers, feedback]);
 
-  // Play sound effect
-  const playSound = (type: 'success' | 'error' | 'next' | 'complete') => {
-    if (!soundEnabled) return;
-    
-    // In a real implementation, we would play actual sound effects here
-    console.log(`Playing sound: ${type}`);
-  };
-
-  const startQuestion = () => {
-    setGameState('question');
-    setTimerActive(true);
-    setTimeRemaining(120); // Reset timer for each question
-    setShowHint(false);
-    playSound('next');
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestion < (questions?.length || 0) - 1) {
-      // Calculate score based on answer quality and time spent
-      if (feedback[currentQuestion]) {
-        const baseScore = 100;
-        const timeBonus = Math.max(0, Math.floor(timeRemaining / 10)); // More time left = higher bonus
-        const confidenceBonus = (confidenceLevel[currentQuestion] || 3) * 5; // Confidence provides a bonus
-        
-        const questionScore = baseScore + timeBonus + confidenceBonus;
-        setScore(prevScore => prevScore + questionScore);
-        
-        playSound('success');
-      }
-      
-      setCurrentQuestion(prev => prev + 1);
-      setTimerActive(false);
-      setGameState('intro');
-    } else {
-      // End of practice session
-      setGameState('summary');
-      playSound('complete');
-    }
-  };
-
+  // Define the feedback function first so it can be referenced by other functions
   const handleGetFeedback = async () => {
-    if (!userAnswers[currentQuestion] && gameState !== 'question') return;
+    if (!questions || questions.length === 0) return;
+    if (currentQuestion >= questions.length) return;
     
     setTimerActive(false);
     setIsSubmitting(true);
@@ -221,6 +215,51 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  // Play sound effect
+  const playSound = (type: 'success' | 'error' | 'next' | 'complete') => {
+    if (!soundEnabled) return;
+    
+    // In a real implementation, we would play actual sound effects here
+    console.log(`Playing sound: ${type}`);
+  };
+
+  const startQuestion = () => {
+    if (!questions || questions.length === 0) return;
+    if (currentQuestion >= questions.length) return;
+    
+    setGameState('question');
+    setTimerActive(true);
+    setTimeRemaining(120); // Reset timer for each question
+    setShowHint(false);
+    playSound('next');
+  };
+
+  const handleNextQuestion = () => {
+    if (!questions || questions.length === 0) return;
+    
+    if (currentQuestion < questions.length - 1) {
+      // Calculate score based on answer quality and time spent
+      if (feedback[currentQuestion]) {
+        const baseScore = 100;
+        const timeBonus = Math.max(0, Math.floor(timeRemaining / 10)); // More time left = higher bonus
+        const confidenceBonus = (confidenceLevel[currentQuestion] || 3) * 5; // Confidence provides a bonus
+        
+        const questionScore = baseScore + timeBonus + confidenceBonus;
+        setScore(prevScore => prevScore + questionScore);
+        
+        playSound('success');
+      }
+      
+      setCurrentQuestion(prev => prev + 1);
+      setTimerActive(false);
+      setGameState('intro');
+    } else {
+      // End of practice session
+      setGameState('summary');
+      playSound('complete');
     }
   };
 
