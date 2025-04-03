@@ -413,43 +413,7 @@ export default function AICoach() {
             </CardContent>
           </Card>
           
-          {/* Coach Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Coach Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Conversations</span>
-                  <span className="font-medium">{mockConversations.length}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">XP Earned from Coach</span>
-                  <span className="font-medium">
-                    {mockConversations.length * 50} XP
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Goals Recommended</span>
-                  <span className="font-medium">
-                    {Math.floor(mockConversations.length * 1.5)}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Last Session</span>
-                  <span className="font-medium">
-                    {mockConversations.length > 0
-                      ? new Date(mockConversations[0].createdAt).toLocaleDateString()
-                      : "Never"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+
         </div>
         
         {/* Chat Area */}

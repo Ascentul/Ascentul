@@ -81,35 +81,7 @@ async function requireStaff(req: Request, res: Response, next: () => void) {
   next();
 }
 
-// Middleware to check if user is a university admin
-async function requireUniversityAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
-  const user = await storage.getUser(req.session.userId);
-  if (!user || user.userType !== 'university_admin') {
-    console.log(`Access denied: User ${req.session.userId} tried to access university admin route`);
-    return res.status(403).json({ message: "Access denied. University admin privileges required." });
-  }
-  
-  next();
-}
-
-// Middleware to check if user belongs to a university
-async function requireUniversityUser(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-
-  const user = await storage.getUser(req.session.userId);
-  if (!user || (user.userType !== 'university_student' && user.userType !== 'university_admin')) {
-    console.log(`Access denied: User ${req.session.userId} tried to access university route`);
-    return res.status(403).json({ message: "Access denied. University access required." });
-  }
-  
-  next();
-}
+// User type middleware removed as university-specific features are no longer used
 
 // Middleware for data validation to ensure users can only access their own data
 async function validateUserAccess(req: Request, res: Response, next: () => void) {
@@ -141,13 +113,7 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
   // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
   // Then check if resource.userId === user.id
   
-  // For university admins, check if the resource belongs to a student from their university
-  if (user.userType === 'university_admin' && resourceUserId) {
-    const targetUser = await storage.getUser(resourceUserId);
-    if (targetUser && targetUser.universityId === user.universityId) {
-      return next();
-    }
-  }
+  // University-specific code removed
   
   // For all other cases, only allow access to own data
   if (resourceUserId && resourceUserId !== user.id) {
@@ -206,11 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: securePassword,
         name: "Alex Johnson",
         email: "alex@example.com",
-        userType: "university_student",
-        universityId: 1,
-        departmentId: 2,
-        studentId: "U12345",
-        graduationYear: 2025,
+        userType: "regular",
         profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
         subscriptionStatus: "active",
         needsUsername: false,
@@ -218,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Then update with additional fields
       await storage.updateUser(sampleUser.id, {
-        subscriptionPlan: "university",
+        subscriptionPlan: "premium",
         emailVerified: true,
         subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 1 month from now
       });
@@ -249,10 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         xpReward: 250
       });
       
-      // Add some XP to the user if they are a university user
-      if (sampleUser.userType === "university_student" || sampleUser.userType === "university_admin") {
-        await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
-      }
+      // Add some XP to the sample user
+      await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
       
       // Create a sample conversation
       const conversation = await storage.createAiCoachConversation(sampleUser.id, {
@@ -396,8 +356,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/admin-dashboard";
       } else if (user.userType === "staff") {
         redirectPath = "/staff-dashboard";
-      } else if (user.userType === "university_admin" || user.userType === "university_student") {
-        redirectPath = "/university-dashboard";
       } else {
         redirectPath = "/career-dashboard";
       }
@@ -626,18 +584,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const validatedUserData = insertUserSchema.parse(userData);
       
-      // Validate university info for university users
-      if (validatedUserData.userType === "university_student" || validatedUserData.userType === "university_admin") {
-        if (!validatedUserData.universityId) {
-          return res.status(400).json({ message: "University ID is required for university users" });
-        }
-        
-        // If registering as university_admin, additional validation would be needed in a real app
-        if (validatedUserData.userType === "university_admin") {
-          // This would typically involve checking an admin registration code or admin email domain
-          // For demo purposes, we're allowing it without additional checks
-        }
-      }
+      // Validate user data based on type
+      // Note: All university-specific validation has been removed
       
       const newUser = await storage.createUser(validatedUserData);
       const { password: userPwd, ...safeUser } = newUser;
@@ -655,10 +603,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Add redirect path for the frontend to handle
       let redirectPath = "/onboarding"; // Default for new users
       
-      // Advanced logic can be added here if certain user types should go to different onboarding flows
-      if (safeUser.userType === "university_admin" || safeUser.userType === "university_student") {
-        redirectPath = "/university-dashboard";
-      } else if (safeUser.userType === "regular") {
+      // Different user types can be directed to different onboarding flows
+      if (safeUser.userType === "regular") {
         // After onboarding, regular users will go to the career dashboard
         // But for now, send them to onboarding
         redirectPath = "/onboarding"; 
@@ -994,17 +940,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      // Check if user is a university user
-      const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
-      
-      // Only return XP history for university users
-      if (isUniversityUser) {
-        const xpHistory = await storage.getXpHistory(user.id);
-        res.status(200).json(xpHistory);
-      } else {
-        // For regular users, return an empty array
-        res.status(200).json([]);
-      }
+      // Return XP history for all users
+      const xpHistory = await storage.getXpHistory(user.id);
+      res.status(200).json(xpHistory);
     } catch (error) {
       res.status(500).json({ message: "Error fetching XP history" });
     }

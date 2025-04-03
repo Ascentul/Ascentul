@@ -3,80 +3,20 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// University Model for University Edition
-export const universities = pgTable("universities", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  domain: text("domain").notNull().unique(),
-  logo: text("logo"),
-  primaryColor: text("primary_color"),
-  secondaryColor: text("secondary_color"),
-  contactEmail: text("contact_email").notNull(),
-  contactPhone: text("contact_phone"),
-  address: text("address"),
-  subscriptionPlan: text("subscription_plan").notNull().default("basic"),
-  licenseCount: integer("license_count").notNull().default(0),
-  activeLicenses: integer("active_licenses").notNull().default(0),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUniversitySchema = createInsertSchema(universities).omit({
-  id: true,
-  createdAt: true,
-});
-
-// University Administrators
-export const universityAdmins = pgTable("university_admins", {
-  id: serial("id").primaryKey(),
-  universityId: integer("university_id").notNull(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  role: text("role").notNull().default("admin"), // admin, super_admin, etc.
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUniversityAdminSchema = createInsertSchema(universityAdmins).omit({
-  id: true,
-  createdAt: true,
-});
-
-// University Departments
-export const departments = pgTable("departments", {
-  id: serial("id").primaryKey(),
-  universityId: integer("university_id").notNull(),
-  name: text("name").notNull(),
-  code: text("code"),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertDepartmentSchema = createInsertSchema(departments).omit({
-  id: true,
-  createdAt: true,
-});
-
-// User model (Extended for University Edition)
+// User model
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  userType: text("user_type").notNull().default("regular"), // Options: "regular", "university_student", "university_admin", "admin", "staff"
-  universityId: integer("university_id"),
-  departmentId: integer("department_id"),
-  studentId: text("student_id"), // University-assigned student ID
-  graduationYear: integer("graduation_year"),
-  isUniversityStudent: boolean("is_university_student").default(false),
-  // XP, level and rank are only used for university users
-  xp: integer("xp").default(0),  // No longer notNull for regular users
-  level: integer("level").default(1), // No longer notNull for regular users
-  rank: text("rank").default("Career Explorer"), // No longer notNull for regular users
+  userType: text("user_type").notNull().default("regular"), // Options: "regular", "admin", "staff"
+  xp: integer("xp").default(0),
+  level: integer("level").default(1),
+  rank: text("rank").default("Career Explorer"),
   profileImage: text("profile_image"),
   // Subscription fields
-  subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium", "university"
+  subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium"
   subscriptionStatus: text("subscription_status").notNull().default("inactive"), // Options: "active", "inactive", "cancelled", "past_due"
   subscriptionCycle: text("subscription_cycle").default("monthly"), // Options: "monthly", "quarterly", "annual"
   stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID for payments
@@ -433,241 +373,59 @@ export const insertMentorChatMessageSchema = createInsertSchema(mentorChatMessag
   timestamp: true,
 });
 
-// Study Plan Model (University Edition)
-export const studyPlans = pgTable("study_plans", {
+// Contact Messages model
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  read: boolean("read").notNull().default(false),
+  archived: boolean("archived").notNull().default(false),
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  timestamp: true,
+  read: true,
+  archived: true,
+});
+
+// Daily Recommendations
+export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  academicTerm: text("academic_term"), // Fall 2023, Spring 2024, etc.
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertStudyPlanSchema = createInsertSchema(studyPlans).omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  // Convert startDate string to Date object if it's not already a Date
-  startDate: z.date().optional().nullable().or(
-    z.string().transform((val) => val ? new Date(val) : null)
-  ),
-  // Convert endDate string to Date object if it's not already a Date
-  endDate: z.date().optional().nullable().or(
-    z.string().transform((val) => val ? new Date(val) : null)
-  ),
-});
-
-// Study Plan Course Model
-export const studyPlanCourses = pgTable("study_plan_courses", {
-  id: serial("id").primaryKey(),
-  planId: integer("plan_id").notNull(),
-  courseCode: text("course_code").notNull(),
-  courseName: text("course_name").notNull(),
-  credits: integer("credits").notNull().default(3),
-  schedule: text("schedule"), // e.g., "MWF 9:00-10:30"
-  instructor: text("instructor"),
-  location: text("location"),
-  priority: integer("priority").notNull().default(1), // 1 = highest
-  status: text("status").notNull().default("planned"), // planned, in-progress, completed
-  grade: text("grade"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertStudyPlanCourseSchema = createInsertSchema(studyPlanCourses).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Course Assignment Model
-export const courseAssignments = pgTable("course_assignments", {
-  id: serial("id").primaryKey(),
-  courseId: integer("course_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  dueDate: timestamp("due_date"),
-  status: text("status").notNull().default("pending"), // pending, in-progress, completed
+  text: text("text").notNull(),
+  type: text("type").notNull().default("general"), // general, goal_related, interview_related, etc.
   completed: boolean("completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
-  grade: text("grade"),
-  weight: integer("weight").notNull().default(1), // percentage weight in course grade
+  relatedEntityType: text("related_entity_type"), // 'goal', 'interview_process', etc.
+  relatedEntityId: integer("related_entity_id"),
+  expiresAt: timestamp("expires_at"), // When the recommendation expires (e.g., end of day)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertCourseAssignmentSchema = createInsertSchema(courseAssignments).omit({
-  id: true,
-  createdAt: true,
-  completed: true,
-  completedAt: true,
-}).extend({
-  // Convert dueDate string to Date object if it's not already a Date
-  dueDate: z.date().optional().nullable().or(
-    z.string().transform((val) => val ? new Date(val) : null)
-  ),
-});
-
-// Learning Module for LMS (University Edition)
-export const learningModules = pgTable("learning_modules", {
-  id: serial("id").primaryKey(),
-  universityId: integer("university_id").notNull(),
-  departmentId: integer("department_id"),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  level: text("level").notNull().default("beginner"), // beginner, intermediate, advanced
-  estimatedHours: integer("estimated_hours"),
-  published: boolean("published").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertLearningModuleSchema = createInsertSchema(learningModules).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  published: true,
-});
-
-// Learning Unit Model
-export const learningUnits = pgTable("learning_units", {
-  id: serial("id").primaryKey(),
-  moduleId: integer("module_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  content: jsonb("content").notNull(),
-  orderIndex: integer("order_index").notNull().default(0),
-  estimatedMinutes: integer("estimated_minutes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertLearningUnitSchema = createInsertSchema(learningUnits).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-// Module Enrollment Model
-export const moduleEnrollments = pgTable("module_enrollments", {
-  id: serial("id").primaryKey(),
-  moduleId: integer("module_id").notNull(),
-  userId: integer("user_id").notNull(),
-  progress: integer("progress").notNull().default(0),
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at"),
-  lastAccessedAt: timestamp("last_accessed_at").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertModuleEnrollmentSchema = createInsertSchema(moduleEnrollments).omit({
+export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
   id: true,
   userId: true,
-  progress: true,
   completed: true,
   completedAt: true,
-  lastAccessedAt: true,
   createdAt: true,
+}).extend({
+  // Convert expiresAt string to Date object if it's not already a Date
+  expiresAt: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
 });
 
 // Define relations between models
-export const universitiesRelations = relations(universities, ({ many }) => ({
-  administrators: many(universityAdmins),
-  departments: many(departments),
-  students: many(users),
-  learningModules: many(learningModules),
-}));
-
-export const universityAdminsRelations = relations(universityAdmins, ({ one }) => ({
-  university: one(universities, {
-    fields: [universityAdmins.universityId],
-    references: [universities.id],
-  }),
-}));
-
-export const departmentsRelations = relations(departments, ({ one, many }) => ({
-  university: one(universities, {
-    fields: [departments.universityId],
-    references: [universities.id],
-  }),
-  students: many(users),
-  learningModules: many(learningModules),
-}));
-
-export const usersRelations = relations(users, ({ one, many }) => ({
-  university: one(universities, {
-    fields: [users.universityId],
-    references: [universities.id],
-  }),
-  department: one(departments, {
-    fields: [users.departmentId],
-    references: [departments.id],
-  }),
+export const usersRelations = relations(users, ({ many }) => ({
   workHistory: many(workHistory),
   goals: many(goals),
-  studyPlans: many(studyPlans),
-  moduleEnrollments: many(moduleEnrollments),
   interviewPractices: many(interviewPractice),
   interviewProcesses: many(interviewProcesses),
   mentorChatConversations: many(mentorChatConversations),
-}));
-
-export const studyPlansRelations = relations(studyPlans, ({ one, many }) => ({
-  user: one(users, {
-    fields: [studyPlans.userId],
-    references: [users.id],
-  }),
-  courses: many(studyPlanCourses),
-}));
-
-export const studyPlanCoursesRelations = relations(studyPlanCourses, ({ one, many }) => ({
-  studyPlan: one(studyPlans, {
-    fields: [studyPlanCourses.planId],
-    references: [studyPlans.id],
-  }),
-  assignments: many(courseAssignments),
-}));
-
-export const courseAssignmentsRelations = relations(courseAssignments, ({ one }) => ({
-  course: one(studyPlanCourses, {
-    fields: [courseAssignments.courseId],
-    references: [studyPlanCourses.id],
-  }),
-}));
-
-export const learningModulesRelations = relations(learningModules, ({ one, many }) => ({
-  university: one(universities, {
-    fields: [learningModules.universityId],
-    references: [universities.id],
-  }),
-  department: one(departments, {
-    fields: [learningModules.departmentId],
-    references: [departments.id],
-  }),
-  units: many(learningUnits),
-  enrollments: many(moduleEnrollments),
-}));
-
-export const learningUnitsRelations = relations(learningUnits, ({ one }) => ({
-  module: one(learningModules, {
-    fields: [learningUnits.moduleId],
-    references: [learningModules.id],
-  }),
-}));
-
-export const moduleEnrollmentsRelations = relations(moduleEnrollments, ({ one }) => ({
-  module: one(learningModules, {
-    fields: [moduleEnrollments.moduleId],
-    references: [learningModules.id],
-  }),
-  user: one(users, {
-    fields: [moduleEnrollments.userId],
-    references: [users.id],
-  }),
 }));
 
 // Interview Questions Relations
@@ -736,35 +494,8 @@ export const mentorChatMessagesRelations = relations(mentorChatMessages, ({ one 
 }));
 
 // Types
-export type University = typeof universities.$inferSelect;
-export type InsertUniversity = z.infer<typeof insertUniversitySchema>;
-
-export type UniversityAdmin = typeof universityAdmins.$inferSelect;
-export type InsertUniversityAdmin = z.infer<typeof insertUniversityAdminSchema>;
-
-export type Department = typeof departments.$inferSelect;
-export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
-
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type StudyPlan = typeof studyPlans.$inferSelect;
-export type InsertStudyPlan = z.infer<typeof insertStudyPlanSchema>;
-
-export type StudyPlanCourse = typeof studyPlanCourses.$inferSelect;
-export type InsertStudyPlanCourse = z.infer<typeof insertStudyPlanCourseSchema>;
-
-export type CourseAssignment = typeof courseAssignments.$inferSelect;
-export type InsertCourseAssignment = z.infer<typeof insertCourseAssignmentSchema>;
-
-export type LearningModule = typeof learningModules.$inferSelect;
-export type InsertLearningModule = z.infer<typeof insertLearningModuleSchema>;
-
-export type LearningUnit = typeof learningUnits.$inferSelect;
-export type InsertLearningUnit = z.infer<typeof insertLearningUnitSchema>;
-
-export type ModuleEnrollment = typeof moduleEnrollments.$inferSelect;
-export type InsertModuleEnrollment = z.infer<typeof insertModuleEnrollmentSchema>;
 
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
@@ -808,25 +539,6 @@ export type InsertInterviewStage = z.infer<typeof insertInterviewStageSchema>;
 export type FollowupAction = typeof followupActions.$inferSelect;
 export type InsertFollowupAction = z.infer<typeof insertFollowupActionSchema>;
 
-// Contact Messages model
-export const contactMessages = pgTable("contact_messages", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  subject: text("subject").notNull(),
-  message: text("message").notNull(),
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  read: boolean("read").notNull().default(false),
-  archived: boolean("archived").notNull().default(false),
-});
-
-export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
-  id: true,
-  timestamp: true,
-  read: true,
-  archived: true,
-});
-
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 
@@ -835,33 +547,6 @@ export type InsertMentorChatConversation = z.infer<typeof insertMentorChatConver
 
 export type MentorChatMessage = typeof mentorChatMessages.$inferSelect;
 export type InsertMentorChatMessage = z.infer<typeof insertMentorChatMessageSchema>;
-
-// Daily Recommendations
-export const recommendations = pgTable("recommendations", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  text: text("text").notNull(),
-  type: text("type").notNull().default("general"), // general, goal_related, interview_related, etc.
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at"),
-  relatedEntityType: text("related_entity_type"), // 'goal', 'interview_process', etc.
-  relatedEntityId: integer("related_entity_id"),
-  expiresAt: timestamp("expires_at"), // When the recommendation expires (e.g., end of day)
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertRecommendationSchema = createInsertSchema(recommendations).omit({
-  id: true,
-  userId: true,
-  completed: true,
-  completedAt: true,
-  createdAt: true,
-}).extend({
-  // Convert expiresAt string to Date object if it's not already a Date
-  expiresAt: z.date().optional().nullable().or(
-    z.string().transform((val) => val ? new Date(val) : null)
-  ),
-});
 
 export type Recommendation = typeof recommendations.$inferSelect;
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
