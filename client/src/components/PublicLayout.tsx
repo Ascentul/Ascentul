@@ -5,7 +5,6 @@ import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import LoginDialog from './LoginDialog';
 import ContactDialog from './ContactDialog';
-import { PageTransition } from './PageTransition';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -136,9 +135,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       </header>
 
       <main className="flex-1">
-        <PageTransition>
-          {children}
-        </PageTransition>
+        {children}
       </main>
       
       <LoginDialog 
