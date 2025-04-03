@@ -97,8 +97,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function Certifications() {
-  const userContext = useUser();
-  const user = userContext?.user;
+  const { user } = useUser();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -120,13 +119,16 @@ export default function Certifications() {
   const { data: certifications = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/certifications'],
     queryFn: async () => {
-      const response = await fetch('/api/certifications', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch certifications');
+      try {
+        const response = await apiRequest('GET', '/api/certifications');
+        if (!response.ok) {
+          throw new Error('Failed to fetch certifications');
+        }
+        return await response.json() as Certification[];
+      } catch (error) {
+        console.error("Error fetching certifications:", error);
+        return [] as Certification[];
       }
-      return await response.json() as Certification[];
     }
   });
 

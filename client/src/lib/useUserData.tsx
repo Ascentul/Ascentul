@@ -49,10 +49,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for demo
   
-  // For development testing - creates a test user if DEV_TEST_USER is set
+  // For development testing - creates a test user if in development mode
   useEffect(() => {
     // Check if we're in development mode
     if (import.meta.env.DEV) {
+      console.log("Development mode detected, creating test user");
       // Create a test user for development purposes
       const devTestUser: User = {
         id: 999,
@@ -66,11 +67,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         rank: "Intermediate",
         subscriptionPlan: "premium",
         subscriptionStatus: "active",
+        subscriptionCycle: "annual",
+        stripeCustomerId: "cus_test123",
+        stripeSubscriptionId: "sub_test123",
         emailVerified: true
       };
       
       // Set the user data in React Query cache
       queryClient.setQueryData(['/api/users/me'], devTestUser);
+      setIsAuthenticated(true);
     }
   }, [queryClient]);
 
