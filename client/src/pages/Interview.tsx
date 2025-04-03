@@ -206,7 +206,7 @@ const Interview = () => {
                   All Processes
                 </TabsTrigger>
                 <TabsTrigger value="dashboard" className="flex-1">
-                  <ListChecks className="h-4 w-4 mr-2" />
+                  <Timeline className="h-4 w-4 mr-2" />
                   Timeline
                 </TabsTrigger>
                 <TabsTrigger value="practice" className="flex-1">
