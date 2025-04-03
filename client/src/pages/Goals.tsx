@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw, LayoutList, GanttChart } from 'lucide-react';
+import { Plus, Target, Filter, ArrowUpDown, Trash2, CheckCircle, RefreshCw, LayoutList, GanttChartSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -465,7 +465,7 @@ export default function Goals() {
                 List
               </TabsTrigger>
               <TabsTrigger value="timeline" onClick={() => setViewMode('timeline')}>
-                <GanttChart className="h-4 w-4 mr-1" />
+                <GanttChartSquare className="h-4 w-4 mr-1" />
                 Timeline
               </TabsTrigger>
             </TabsList>
