@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { useUser } from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
+import { PageTransition } from './PageTransition';
 
 interface LayoutProps {
   children: ReactNode;
@@ -23,7 +24,9 @@ export default function Layout({ children }: LayoutProps) {
       <Sidebar />
       <div className="flex-1 overflow-auto">
         <main className="p-4 md:p-6 max-w-7xl mx-auto">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

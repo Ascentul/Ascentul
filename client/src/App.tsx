@@ -20,6 +20,7 @@ import NotFound from "@/pages/not-found";
 import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { PageTransition } from "@/components/PageTransition";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -156,7 +157,11 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="container mx-auto py-6 px-4">{children}</main>
+      <main className="container mx-auto py-6 px-4">
+        <PageTransition>
+          {children}
+        </PageTransition>
+      </main>
     </div>
   );
 }

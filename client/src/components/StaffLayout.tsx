@@ -5,6 +5,7 @@ import { Loader2, Menu, Search, Bell, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'wouter';
+import { PageTransition } from './PageTransition';
 
 // Navigation items for staff portal sidebar
 const navigationItems = [
@@ -170,7 +171,9 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
         
         {/* Main content */}
         <main className="flex-1 overflow-auto p-4 bg-gray-50">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
       

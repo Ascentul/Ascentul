@@ -131,7 +131,7 @@ export default function Dashboard() {
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Handle when a goal is completed - updated to show in Completed Goals section
+  // Handle when a goal is completed - updated with enhanced animations
   const handleGoalCompletion = (id: number) => {
     // Show confetti for completed goals
     setShowConfetti(true);
@@ -139,19 +139,27 @@ export default function Dashboard() {
       setShowConfetti(false);
     }, 2000);
     
-    // Find the completed goal element and apply dissolve effect manually
+    // Find the completed goal element and apply enhanced dissolve effect
     const goalElement = document.getElementById(`goal-${id}`);
     if (goalElement) {
+      // First stage - success indication with subtle green glow
       setTimeout(() => {
-        // Apply dissolve effect manually to only the completed goal
-        goalElement.style.transition = 'all 0.75s ease';
+        goalElement.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        goalElement.style.transform = 'scale(1.03)';
+        goalElement.style.boxShadow = '0 0 20px rgba(34, 197, 94, 0.3)';
+        goalElement.style.border = '1px solid rgba(34, 197, 94, 0.5)';
+      }, 300);
+      
+      // Second stage - fade out with slide up and blur effect
+      setTimeout(() => {
+        goalElement.style.transition = 'all 0.75s cubic-bezier(0.4, 0, 0.2, 1)';
         goalElement.style.opacity = '0';
         goalElement.style.filter = 'blur(4px)';
-        goalElement.style.transform = 'scale(0.95)';
+        goalElement.style.transform = 'scale(0.95) translateY(-10px)';
         goalElement.style.height = '0';
         goalElement.style.marginBottom = '0';
         goalElement.style.overflow = 'hidden';
-      }, 2200);
+      }, 1500);
     }
     
     // Temporarily hide the goal during animation
@@ -175,8 +183,8 @@ export default function Dashboard() {
           queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
           
           toast({
-            title: "Goal Completed",
-            description: "Your goal has been marked as completed.",
+            title: "Goal Completed! 🎉",
+            description: "Your goal has been marked as completed and moved to history.",
           });
           
           // After another short delay, remove it from hidden list
@@ -199,7 +207,7 @@ export default function Dashboard() {
           });
         });
       }
-    }, 3000); // Longer delay to allow for confetti and dissolve animation
+    }, 2300); // Adjusted delay to accommodate the new animation sequence
   };
   
   // Fetch goals
@@ -376,42 +384,64 @@ export default function Dashboard() {
     return <div className="h-full flex items-center justify-center">Loading dashboard data...</div>;
   }
   
-  // Animation variants - instant (no animations for smooth adding/removing)
+  // Animation variants - adding subtle animations
   const fadeIn = {
-    hidden: { opacity: 1 },
-    visible: { opacity: 1, transition: { duration: 0 } }
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4 } }
   };
   
   const subtleUp = {
-    hidden: { opacity: 1, y: 0 },
+    hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 
       y: 0, 
       transition: { 
-        duration: 0
+        duration: 0.3,
+        ease: "easeOut"
       } 
     }
   };
   
   const cardAnimation = {
-    hidden: { opacity: 1, y: 0 },
+    hidden: { opacity: 0, y: 10, scale: 0.98 },
     visible: { 
       opacity: 1, 
       y: 0, 
+      scale: 1,
       transition: { 
-        duration: 0
+        duration: 0.3,
+        ease: "easeOut"
       } 
     }
   };
   
   const staggeredContainer = {
-    hidden: { opacity: 1 },
+    hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0,
-        delayChildren: 0
+        staggerChildren: 0.07,
+        delayChildren: 0.05
       }
+    }
+  };
+  
+  // Animations for goal items
+  const goalItemAnimation = {
+    hidden: { opacity: 0, y: 10, scale: 0.98 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { 
+        duration: 0.3,
+        ease: "easeOut"
+      } 
+    },
+    hover: { 
+      y: -3, 
+      boxShadow: "0 10px 20px rgba(0,0,0,0.05)",
+      transition: { duration: 0.2 }
     }
   };
 
@@ -624,13 +654,16 @@ export default function Dashboard() {
                       {goals
                         .filter((goal: Goal) => goal.status !== 'completed' && !hiddenGoalIds.includes(goal.id))
                         .slice(0, 3)
-                        .map((goal: Goal) => (
+                        .map((goal: Goal, index) => (
                           <motion.div
                             key={goal.id}
                             id={`goal-${goal.id}`}
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 1 }}
-                            className="mb-4"
+                            variants={goalItemAnimation}
+                            initial="hidden"
+                            animate="visible"
+                            whileHover="hover"
+                            transition={{ delay: index * 0.1 }}
+                            className="mb-4 transform-gpu"
                           >
                             <GoalCard
                               id={goal.id}
