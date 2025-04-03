@@ -332,13 +332,8 @@ export default function TodaysRecommendations() {
                     )}
                   </div>
                   
-                  <div className="mt-1 flex items-center space-x-2 badge-container">
-                    <Badge
-                      className={`px-2 py-0 h-5 text-xs text-white ${getTypeColor(recommendation.type)}`}
-                    >
-                      {getTypeLabel(recommendation.type)}
-                    </Badge>
-                    {/* Completion date removed as requested */}
+                  <div className="mt-1 flex items-center space-x-2">
+                    {/* Badge removed as requested */}
                   </div>
                 </div>
               </li>
