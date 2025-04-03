@@ -7,7 +7,7 @@ import Resume from "@/pages/Resume";
 import CoverLetter from "@/pages/CoverLetter";
 import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
-import Certifications from "@/pages/Certifications";
+import Certifications from "@/pages/CertificationsNew";
 import AICoach from "@/pages/AICoach";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
