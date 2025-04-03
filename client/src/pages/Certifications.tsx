@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useUser } from '@/lib/useUserData';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { 
   Award, 
   Search, 
@@ -11,7 +12,9 @@ import {
   BarChart2,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { 
   Card, 
@@ -60,6 +63,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 // Define certification types
 type Certification = {
@@ -73,56 +77,10 @@ type Certification = {
   skills: string[];
   status: 'active' | 'expired' | 'in-progress';
   description?: string;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 };
-
-// Mock data - Would be fetched from API in real app
-const mockCertifications: Certification[] = [
-  {
-    id: 1,
-    name: 'AWS Certified Solutions Architect',
-    provider: 'Amazon Web Services',
-    issueDate: '2023-09-15',
-    expiryDate: '2026-09-15',
-    credentialId: 'AWS-ASA-12345',
-    credentialUrl: 'https://aws.amazon.com/verification',
-    skills: ['AWS', 'Cloud Computing', 'Solution Architecture'],
-    status: 'active',
-    description: 'AWS Certified Solutions Architect - Associate showcases knowledge and skills in AWS technology.'
-  },
-  {
-    id: 2,
-    name: 'Google Professional Cloud Developer',
-    provider: 'Google Cloud',
-    issueDate: '2023-05-20',
-    expiryDate: '2025-05-20',
-    credentialId: 'GCP-DEV-67890',
-    credentialUrl: 'https://cloud.google.com/certification/verification',
-    skills: ['Google Cloud', 'DevOps', 'Cloud Development'],
-    status: 'active',
-    description: 'Professional Cloud Developer certification validates your ability to build and deploy applications on Google Cloud infrastructure.'
-  },
-  {
-    id: 3,
-    name: 'Microsoft Azure Fundamentals',
-    provider: 'Microsoft',
-    issueDate: '2022-11-10',
-    expiryDate: '2024-11-10',
-    credentialId: 'MS-AZ-F-54321',
-    credentialUrl: 'https://learn.microsoft.com/certifications/azure-fundamentals',
-    skills: ['Azure', 'Cloud Fundamentals'],
-    status: 'active',
-    description: 'Microsoft Azure Fundamentals validates foundational knowledge of cloud services and Azure services.'
-  },
-  {
-    id: 4,
-    name: 'Certified Kubernetes Administrator',
-    provider: 'Cloud Native Computing Foundation',
-    issueDate: '2023-01-15', // Fixed date instead of dynamic date
-    status: 'in-progress',
-    skills: ['Kubernetes', 'Container Orchestration', 'DevOps'],
-    description: 'Preparing for the CKA exam to demonstrate proficiency in Kubernetes administration.'
-  }
-];
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Certification name must be at least 2 characters." }),
@@ -141,10 +99,12 @@ type FormValues = z.infer<typeof formSchema>;
 export default function Certifications() {
   const userContext = useUser();
   const user = userContext?.user;
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddCertification, setShowAddCertification] = useState(false);
-  const [certifications, setCertifications] = useState<Certification[]>(mockCertifications);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedCertificationId, setSelectedCertificationId] = useState<number | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -156,33 +116,144 @@ export default function Certifications() {
     },
   });
 
-  // In a real app, this would be a query to fetch certifications from the backend
-  const { isLoading } = useQuery({
+  // Query to fetch certifications from the API
+  const { data: certifications = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/certifications'],
     queryFn: async () => {
-      // Simulating API fetch with mockdata
-      return mockCertifications;
+      const response = await fetch('/api/certifications', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch certifications');
+      }
+      return await response.json() as Certification[];
+    }
+  });
+
+  // Mutation to add a new certification
+  const createMutation = useMutation({
+    mutationFn: async (values: FormValues) => {
+      const payload = {
+        ...values,
+        skills: values.skills.split(',').map(skill => skill.trim()),
+      };
+      
+      const response = await apiRequest('POST', '/api/certifications', payload);
+      if (!response.ok) {
+        throw new Error('Failed to create certification');
+      }
+      return response.json();
     },
-    enabled: false, // Disable actual API call since we're using mock data
+    onSuccess: () => {
+      toast({
+        title: "Certification Created",
+        description: "Your certification has been added successfully",
+        variant: "success",
+      });
+      setShowAddCertification(false);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ['/api/certifications'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Create",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation to update an existing certification
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: number, values: FormValues }) => {
+      const payload = {
+        ...values,
+        skills: values.skills.split(',').map(skill => skill.trim()),
+      };
+      
+      const response = await apiRequest('PUT', `/api/certifications/${id}`, payload);
+      if (!response.ok) {
+        throw new Error('Failed to update certification');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Certification Updated",
+        description: "Your certification has been updated successfully",
+        variant: "success",
+      });
+      setShowAddCertification(false);
+      setIsEditing(false);
+      setSelectedCertificationId(null);
+      form.reset();
+      queryClient.invalidateQueries({ queryKey: ['/api/certifications'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Update",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation to delete a certification
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/certifications/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete certification');
+      }
+      return id;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Certification Deleted",
+        description: "The certification has been removed",
+        variant: "default",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/certifications'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Delete",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const handleSubmit = (values: FormValues) => {
-    const newCertification: Certification = {
-      id: certifications.length + 1,
-      name: values.name,
-      provider: values.provider,
-      issueDate: values.issueDate || '2023-01-01',
-      expiryDate: values.expiryDate,
-      credentialId: values.credentialId,
-      credentialUrl: values.credentialUrl,
-      skills: values.skills.split(',').map(skill => skill.trim()),
-      status: values.status,
-      description: values.description,
-    };
+    if (isEditing && selectedCertificationId) {
+      updateMutation.mutate({ id: selectedCertificationId, values });
+    } else {
+      createMutation.mutate(values);
+    }
+  };
 
-    setCertifications([...certifications, newCertification]);
-    setShowAddCertification(false);
-    form.reset();
+  const handleEditCertification = (certification: Certification) => {
+    setIsEditing(true);
+    setSelectedCertificationId(certification.id);
+    setShowAddCertification(true);
+    
+    form.reset({
+      name: certification.name,
+      provider: certification.provider,
+      issueDate: new Date(certification.issueDate).toISOString().split('T')[0],
+      expiryDate: certification.expiryDate ? new Date(certification.expiryDate).toISOString().split('T')[0] : undefined,
+      credentialId: certification.credentialId,
+      credentialUrl: certification.credentialUrl,
+      skills: certification.skills.join(', '),
+      status: certification.status,
+      description: certification.description,
+    });
+  };
+
+  const handleDeleteCertification = (id: number) => {
+    if (confirm('Are you sure you want to delete this certification?')) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const getFilteredCertifications = () => {

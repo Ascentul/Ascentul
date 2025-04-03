@@ -19,6 +19,7 @@ import {
   insertMentorChatConversationSchema,
   insertMentorChatMessageSchema,
   insertRecommendationSchema,
+  insertCertificationSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
@@ -3142,6 +3143,152 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
+  // Certification routes
+  apiRouter.get("/certifications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certifications = await storage.getCertifications(user.id);
+      res.status(200).json(certifications);
+    } catch (error: any) {
+      console.error("Error fetching certifications:", error);
+      res.status(500).json({ message: "Error fetching certifications", error: error.message });
+    }
+  });
+  
+  apiRouter.get("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certificationId = parseInt(req.params.id);
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      const certification = await storage.getCertification(certificationId);
+      
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Make sure user can only access their own certifications
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied. You can only access your own certifications." });
+      }
+      
+      res.status(200).json(certification);
+    } catch (error: any) {
+      console.error("Error fetching certification:", error);
+      res.status(500).json({ message: "Error fetching certification", error: error.message });
+    }
+  });
+  
+  apiRouter.post("/certifications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Validate the request body using zod
+      const certificationData = insertCertificationSchema.parse(req.body);
+      
+      // Create the certification
+      const certification = await storage.createCertification(user.id, certificationData);
+      
+      res.status(201).json(certification);
+    } catch (error: any) {
+      if (error.errors) {
+        // Handle zod validation errors
+        return res.status(400).json({ 
+          message: "Invalid certification data", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error creating certification:", error);
+      res.status(500).json({ message: "Error creating certification", error: error.message });
+    }
+  });
+  
+  apiRouter.put("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certificationId = parseInt(req.params.id);
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      // Get the certification to verify ownership
+      const certification = await storage.getCertification(certificationId);
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Check if the certification belongs to the current user
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied. You can only update your own certifications." });
+      }
+      
+      // Update the certification
+      const updatedCertification = await storage.updateCertification(certificationId, req.body);
+      if (!updatedCertification) {
+        return res.status(500).json({ message: "Failed to update certification" });
+      }
+      
+      res.status(200).json(updatedCertification);
+    } catch (error: any) {
+      console.error("Error updating certification:", error);
+      res.status(500).json({ message: "Error updating certification", error: error.message });
+    }
+  });
+  
+  apiRouter.delete("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certificationId = parseInt(req.params.id);
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      // Get the certification to verify ownership
+      const certification = await storage.getCertification(certificationId);
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Check if the certification belongs to the current user
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied. You can only delete your own certifications." });
+      }
+      
+      // Delete the certification
+      const success = await storage.deleteCertification(certificationId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete certification" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting certification:", error);
+      res.status(500).json({ message: "Error deleting certification", error: error.message });
+    }
+  });
+  
   app.use(apiRouter);
 
   const httpServer = createServer(app);
