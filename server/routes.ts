@@ -21,7 +21,7 @@ import {
   insertRecommendationSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
 // Helper function to get the current user from the session
@@ -1731,6 +1731,22 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(200).json(questions);
     } catch (error) {
       res.status(500).json({ message: "Error generating interview questions" });
+    }
+  });
+  
+  apiRouter.post("/api/interview/analyze-answer", async (req: Request, res: Response) => {
+    try {
+      const { question, answer, jobTitle, companyName } = req.body;
+      
+      if (!question || !answer) {
+        return res.status(400).json({ message: "Question and answer are required" });
+      }
+      
+      const analysis = await analyzeInterviewAnswer(question, answer, jobTitle, companyName);
+      res.status(200).json(analysis);
+    } catch (error) {
+      console.error("Error analyzing interview answer:", error);
+      res.status(500).json({ message: "Error analyzing interview answer" });
     }
   });
   

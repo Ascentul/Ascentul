@@ -52,6 +52,7 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<{[key: number]: string}>({});
   const [feedback, setFeedback] = useState<{[key: number]: string}>({});
+  const [analysisData, setAnalysisData] = useState<{[key: number]: any}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [questionGenerationStatus, setQuestionGenerationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [gameState, setGameState] = useState<'intro' | 'question' | 'feedback' | 'summary'>('intro');
@@ -181,10 +182,46 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
     setGameState('feedback');
     
     try {
-      // In a real app, we would send the answer to an AI for feedback
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call our API to get AI feedback on the answer
+      const response = await apiRequest('POST', '/api/interview/analyze-answer', {
+        question: questions[currentQuestion].question,
+        answer: userAnswers[currentQuestion] || '',
+        jobTitle: process?.position,
+        companyName: process?.companyName
+      });
       
-      // This would typically come from the API
+      const analysis = await response.json();
+      
+      // Store the complete analysis data
+      setAnalysisData({
+        ...analysisData,
+        [currentQuestion]: analysis
+      });
+      
+      // Update the confidence level based on the analysis
+      const newConfidenceLevel = Math.ceil((analysis.clarity + analysis.relevance + analysis.overall) / 3);
+      
+      setConfidenceLevel({
+        ...confidenceLevel,
+        [currentQuestion]: newConfidenceLevel,
+        // Give a small boost for the next question if performed well
+        [currentQuestion + 1]: Math.min(5, newConfidenceLevel + (analysis.overall > 3 ? 1 : 0))
+      });
+      
+      // Update score based on the overall rating
+      const answerScore = analysis.overall * 20; // Convert 1-5 rating to a score out of 100
+      setScore(prevScore => prevScore + answerScore);
+      
+      // Store the feedback
+      setFeedback({
+        ...feedback,
+        [currentQuestion]: analysis.feedback
+      });
+      
+    } catch (error) {
+      console.error("Error getting feedback:", error);
+      
+      // Fallback in case of API failure
       let feedbackText;
       
       if (userAnswers[currentQuestion] && userAnswers[currentQuestion].length > 50) {
@@ -200,17 +237,16 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
         [currentQuestion]: feedbackText
       });
       
-      // Calculate confidence boost for next question
+      // Calculate default confidence level
       const currentConfidence = confidenceLevel[currentQuestion] || 3;
       setConfidenceLevel({
         ...confidenceLevel,
         [currentQuestion + 1]: Math.min(5, currentConfidence + 1) // Max confidence level is 5
       });
       
-    } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to get feedback. Please try again.',
+        description: 'Failed to get AI feedback. Using simpler analysis instead.',
         variant: 'destructive',
       });
     } finally {
@@ -321,6 +357,7 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
       setCurrentQuestion(0);
       setUserAnswers({});
       setFeedback({});
+      setAnalysisData({});
       setGameState('intro');
       setTimerActive(false);
       setTimeRemaining(120);
@@ -555,10 +592,61 @@ export const GamePracticeSession = ({ process, isOpen, onClose }: GamePracticeSe
                     AI Feedback
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm whitespace-pre-wrap">{feedback[currentQuestion]}</p>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Overall Feedback</h4>
+                    <p className="text-sm whitespace-pre-wrap">{feedback[currentQuestion]}</p>
+                  </div>
                   
-                  <div className="flex space-x-2 mt-4">
+                  {analysisData[currentQuestion] && (
+                    <>
+                      <div className="grid grid-cols-3 gap-2 mt-4">
+                        <div className="bg-muted/50 p-3 rounded-lg text-center">
+                          <p className="text-xs text-muted-foreground">Clarity</p>
+                          <p className="text-lg font-semibold text-primary">{analysisData[currentQuestion].clarity}/5</p>
+                        </div>
+                        <div className="bg-muted/50 p-3 rounded-lg text-center">
+                          <p className="text-xs text-muted-foreground">Relevance</p>
+                          <p className="text-lg font-semibold text-primary">{analysisData[currentQuestion].relevance}/5</p>
+                        </div>
+                        <div className="bg-muted/50 p-3 rounded-lg text-center">
+                          <p className="text-xs text-muted-foreground">Overall</p>
+                          <p className="text-lg font-semibold text-primary">{analysisData[currentQuestion].overall}/5</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold mb-2">Strengths</h4>
+                        <ul className="text-sm space-y-1 list-disc list-inside">
+                          {analysisData[currentQuestion].strengths.map((strength: string, idx: number) => (
+                            <li key={idx} className="text-muted-foreground">{strength}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold mb-2">Areas for Improvement</h4>
+                        <ul className="text-sm space-y-1 list-disc list-inside">
+                          {analysisData[currentQuestion].areasForImprovement.map((area: string, idx: number) => (
+                            <li key={idx} className="text-muted-foreground">{area}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {analysisData[currentQuestion].suggestedResponse && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold mb-2">Suggested Structure</h4>
+                          <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                            <p className="text-sm text-muted-foreground">
+                              {analysisData[currentQuestion].suggestedResponse}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  <div className="flex space-x-2 mt-6">
                     <Button 
                       variant={feedbackQuality[currentQuestion] === 'helpful' ? 'default' : 'outline'} 
                       size="sm" 

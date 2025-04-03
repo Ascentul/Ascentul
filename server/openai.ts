@@ -3,6 +3,112 @@ import OpenAI from "openai";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Interface for interview answer analysis
+export interface InterviewAnswerAnalysis {
+  feedback: string;
+  strengthsScore: number; // 1-5
+  improvementScore: number; // 1-5
+  clarity: number; // 1-5
+  relevance: number; // 1-5
+  overall: number; // 1-5
+  strengths: string[];
+  areasForImprovement: string[];
+  suggestedResponse?: string;
+}
+
+// Analyze an interview answer
+export async function analyzeInterviewAnswer(
+  question: string,
+  answer: string,
+  jobTitle?: string,
+  companyName?: string
+): Promise<InterviewAnswerAnalysis> {
+  if (!answer || answer.trim() === "") {
+    return {
+      feedback: "You didn't provide an answer. Remember, even in practice, it's important to attempt a response to develop your skills.",
+      strengthsScore: 1,
+      improvementScore: 5,
+      clarity: 1,
+      relevance: 1,
+      overall: 1,
+      strengths: ["Attempted the interview practice exercise"],
+      areasForImprovement: [
+        "Provide at least a basic answer to practice articulating your thoughts",
+        "Try to address the core elements of the question",
+        "Structure your thoughts, even if they're not perfect"
+      ]
+    };
+  }
+
+  const systemPrompt = `You are an expert interview coach helping candidates prepare for job interviews.
+Analyze the candidate's answer to the interview question and provide detailed, constructive feedback.
+
+Your analysis should include:
+1. Specific strengths in the answer (what worked well)
+2. Areas for improvement (what could be better)
+3. Comment on clarity, structure, and relevance to the question
+4. Personalized advice based on the specific job/company context
+
+Format your response as JSON with the following structure:
+{
+  "feedback": "Your overall detailed feedback as a paragraph",
+  "strengthsScore": number between 1-5,
+  "improvementScore": number between 1-5,
+  "clarity": number between 1-5,
+  "relevance": number between 1-5, 
+  "overall": number between 1-5,
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "areasForImprovement": ["area 1", "area 2", "area 3"],
+  "suggestedResponse": "A brief outline of an improved answer structure"
+}
+
+Make your feedback specific to this exact answer, not generic advice. Base your analysis on interview best practices and what would impress a hiring manager.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: `Question: ${question}
+Answer: ${answer}
+${jobTitle ? `Job Title: ${jobTitle}` : ''}
+${companyName ? `Company: ${companyName}` : ''}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || "{}");
+
+    // Ensure all required fields are present with defaults if missing
+    return {
+      feedback: result.feedback || "No feedback available.",
+      strengthsScore: result.strengthsScore || 3,
+      improvementScore: result.improvementScore || 3,
+      clarity: result.clarity || 3,
+      relevance: result.relevance || 3,
+      overall: result.overall || 3,
+      strengths: result.strengths || [],
+      areasForImprovement: result.areasForImprovement || [],
+      suggestedResponse: result.suggestedResponse
+    };
+  } catch (error: any) {
+    console.error("Error analyzing interview answer:", error);
+    return {
+      feedback: "We couldn't analyze your answer at this time. Please try again later.",
+      strengthsScore: 3,
+      improvementScore: 3,
+      clarity: 3,
+      relevance: 3,
+      overall: 3,
+      strengths: ["Attempted the question"],
+      areasForImprovement: ["Try again later for detailed feedback"]
+    };
+  }
+}
+
 // AI Coach for career advice
 export async function getCareerAdvice(query: string, userContext: {
   goals?: string[];
