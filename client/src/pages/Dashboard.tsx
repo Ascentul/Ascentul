@@ -726,16 +726,30 @@ export default function Dashboard() {
                         </div>
                         <div className="ml-3 flex-1">
                           <p className="text-sm font-medium">Career Coach</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {message.content}
-                          </p>
+                          <div className="text-sm text-muted-foreground mt-1 space-y-2">
+                            {message.content.split('\n').map((paragraph, i) => (
+                              paragraph.trim() ? (
+                                <p key={i}>{paragraph}</p>
+                              ) : (
+                                <div key={i} className="h-2"></div>
+                              )
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </Card>
                   ) : (
                     <div key={index} className="pl-11 pr-1 mb-3">
                       <div className="bg-muted/50 rounded-lg p-3 text-sm relative">
-                        <p>{message.content}</p>
+                        <div className="space-y-2">
+                          {message.content.split('\n').map((paragraph, i) => (
+                            paragraph.trim() ? (
+                              <p key={i}>{paragraph}</p>
+                            ) : (
+                              <div key={i} className="h-2"></div>
+                            )
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )
