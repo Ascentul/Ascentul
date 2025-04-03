@@ -116,6 +116,22 @@ export default function AICoach() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   
+  // Fetch user data for context
+  const { data: workHistory } = useQuery({ 
+    queryKey: ['/api/work-history'],
+    enabled: !!user
+  });
+  
+  const { data: goals } = useQuery({ 
+    queryKey: ['/api/goals'],
+    enabled: !!user
+  });
+  
+  const { data: interviewProcesses } = useQuery({ 
+    queryKey: ['/api/interview/processes'],
+    enabled: !!user
+  });
+  
   // Set first conversation as active on initial load if none is selected
   useEffect(() => {
     if (mockConversations.length > 0 && !activeConversation) {
@@ -241,19 +257,68 @@ export default function AICoach() {
     }));
   };
   
-  // Random responses for demo purposes
+  // Generate context-aware response based on user data
   const getRandomResponse = (): string => {
-    const responses = [
+    // Extract user context from fetched data
+    const userContext = {
+      hasWorkHistory: Array.isArray(workHistory) && workHistory.length > 0,
+      workHistoryCount: Array.isArray(workHistory) ? workHistory.length : 0,
+      latestJob: Array.isArray(workHistory) && workHistory.length > 0 
+        ? workHistory[0] 
+        : null,
+      hasGoals: Array.isArray(goals) && goals.length > 0,
+      goalsCount: Array.isArray(goals) ? goals.length : 0,
+      hasInterviews: Array.isArray(interviewProcesses) && interviewProcesses.length > 0,
+      interviewCount: Array.isArray(interviewProcesses) ? interviewProcesses.length : 0,
+      userName: user?.name || "there"
+    };
+
+    // Default responses if there's no context
+    const defaultResponses = [
       "That's a great question! Career development is a journey that requires continuous learning and adaptability. I'd recommend focusing on building both technical and soft skills relevant to your field. What specific area are you most interested in developing?",
       "Based on current industry trends, I'd suggest focusing on data analysis skills and problem-solving methodologies. These are increasingly valuable across many sectors. Have you had any experience with data visualization or analytical tools?",
       "Networking is crucial for career advancement. Consider joining professional groups in your field, attending industry conferences, and connecting with peers on LinkedIn. Quality connections often lead to unexpected opportunities. What industry are you currently working in?",
       "For your resume, I'd recommend highlighting quantifiable achievements rather than just listing responsibilities. For example, 'Increased team productivity by 25% through implementation of new workflow processes' is more impactful than 'Responsible for team workflow.' Would you like more specific suggestions?",
-      "Interview preparation should include researching the company thoroughly, preparing stories that demonstrate your skills using the STAR method, and having thoughtful questions ready for the interviewer. What type of role are you interviewing for?",
-      "Work-life balance is essential for sustained career success. Consider setting clear boundaries, prioritizing tasks effectively, and making time for activities that help you recharge. What specific challenges are you facing with your current work-life balance?",
-      "When negotiating a job offer, research industry standards for compensation, be prepared to articulate your value clearly, and consider the entire package beyond just salary. What stage of the negotiation process are you currently in?"
     ];
     
-    return responses[Math.floor(Math.random() * responses.length)];
+    // Generate context-aware responses based on user data
+    const contextResponses = [];
+    
+    // Add work history context responses
+    if (userContext.hasWorkHistory) {
+      const latestJob = userContext.latestJob;
+      contextResponses.push(
+        `Based on your work history at ${latestJob.company} as a ${latestJob.position}, I'd recommend focusing on highlighting your skills in ${latestJob.responsibilities}. These experiences are directly relevant to your career growth. Would you like more specific advice about leveraging this experience?`
+      );
+      
+      if (userContext.workHistoryCount > 1) {
+        contextResponses.push(
+          `I notice you have experience across ${userContext.workHistoryCount} different positions. This diverse background can be a strength when positioning yourself for roles that require adaptability and breadth of experience. How are you currently highlighting this versatility?`
+        );
+      }
+    }
+    
+    // Add goal context responses
+    if (userContext.hasGoals) {
+      contextResponses.push(
+        `Considering your career goals, I'd suggest creating a strategic plan with specific milestones to track your progress. You currently have ${userContext.goalsCount} goals set. Are there any specific obstacles you're facing with these goals?`
+      );
+    } else {
+      contextResponses.push(
+        `I notice you haven't set any career goals yet. Setting SMART goals (Specific, Measurable, Achievable, Relevant, Time-bound) can significantly increase your chances of career advancement. Would you like some help defining your first goal?`
+      );
+    }
+    
+    // Add interview context responses
+    if (userContext.hasInterviews) {
+      contextResponses.push(
+        `I see you're tracking ${userContext.interviewCount} interview processes. For your upcoming interviews, I recommend preparing specific examples that demonstrate your skills and achievements. Would you like help preparing for any particular interview question?`
+      );
+    }
+    
+    // Select from context-aware responses if available, otherwise fall back to default
+    const allResponses = contextResponses.length > 0 ? contextResponses : defaultResponses;
+    return allResponses[Math.floor(Math.random() * allResponses.length)];
   };
   
   return (
@@ -268,6 +333,42 @@ export default function AICoach() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Conversation List & Suggestions */}
         <div className="space-y-5">
+          {/* User Context Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Your Data</CardTitle>
+              <p className="text-sm text-neutral-500">AI Coach uses this data for personalized responses</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="font-medium">Work History</div>
+                  <p className="text-neutral-500">
+                    {Array.isArray(workHistory) && workHistory.length > 0 
+                      ? `${workHistory.length} job(s) tracked` 
+                      : "No work history added yet"}
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Career Goals</div>
+                  <p className="text-neutral-500">
+                    {Array.isArray(goals) && goals.length > 0 
+                      ? `${goals.length} goal(s) set` 
+                      : "No goals added yet"}
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Interview Processes</div>
+                  <p className="text-neutral-500">
+                    {Array.isArray(interviewProcesses) && interviewProcesses.length > 0 
+                      ? `${interviewProcesses.length} process(es) tracked` 
+                      : "No interviews tracked yet"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        
           {/* Conversations */}
           <Card>
             <CardHeader className="pb-3">
