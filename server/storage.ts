@@ -55,10 +55,7 @@ import {
   type InsertMentorChatConversation,
   mentorChatMessages,
   type MentorChatMessage,
-  type InsertMentorChatMessage,
-  certifications,
-  type Certification,
-  type InsertCertification
+  type InsertMentorChatMessage
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -193,13 +190,6 @@ export interface IStorage {
   updateInterviewProcess(id: number, processData: Partial<InterviewProcess>): Promise<InterviewProcess | undefined>;
   deleteInterviewProcess(id: number): Promise<boolean>;
   
-  // Certification operations
-  getCertifications(userId: number): Promise<Certification[]>;
-  getCertification(id: number): Promise<Certification | undefined>;
-  createCertification(userId: number, certification: InsertCertification): Promise<Certification>;
-  updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined>;
-  deleteCertification(id: number): Promise<boolean>;
-  
   // Interview Stage operations
   getInterviewStages(processId: number): Promise<InterviewStage[]>;
   getInterviewStage(id: number): Promise<InterviewStage | undefined>;
@@ -279,13 +269,6 @@ export interface IStorage {
   completeRecommendation(id: number): Promise<Recommendation | undefined>;
   generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
   clearTodaysRecommendations(userId: number): Promise<void>;
-  
-  // Certification operations
-  getCertifications(userId: number): Promise<Certification[]>;
-  getCertification(id: number): Promise<Certification | undefined>;
-  createCertification(userId: number, certification: InsertCertification): Promise<Certification>;
-  updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined>;
-  deleteCertification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -310,7 +293,6 @@ export class MemStorage implements IStorage {
   private mentorChatConversations: Map<number, MentorChatConversation>;
   private mentorChatMessages: Map<number, MentorChatMessage>;
   private recommendations: Map<number, Recommendation>;
-  private certifications: Map<number, Certification>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -331,7 +313,6 @@ export class MemStorage implements IStorage {
   private mentorChatConversationIdCounter: number;
   private mentorChatMessageIdCounter: number;
   private recommendationIdCounter: number;
-  private certificationIdCounter: number;
   
   public sessionStore: session.Store;
 
@@ -358,7 +339,6 @@ export class MemStorage implements IStorage {
     this.mentorChatConversations = new Map();
     this.mentorChatMessages = new Map();
     this.recommendations = new Map();
-    this.certifications = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -379,7 +359,6 @@ export class MemStorage implements IStorage {
     this.mentorChatConversationIdCounter = 1;
     this.mentorChatMessageIdCounter = 1;
     this.recommendationIdCounter = 1;
-    this.certificationIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -2428,97 +2407,6 @@ export class MemStorage implements IStorage {
     for (const rec of todaysRecommendations) {
       this.recommendations.delete(rec.id);
     }
-  }
-  
-  // Certification operations
-  async getCertifications(userId: number): Promise<Certification[]> {
-    return Array.from(this.certifications.values())
-      .filter(cert => cert.userId === userId)
-      .sort((a, b) => {
-        // Sort by issueDate in descending order (newest first)
-        return new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime();
-      });
-  }
-  
-  async getCertification(id: number): Promise<Certification | undefined> {
-    return this.certifications.get(id);
-  }
-  
-  async createCertification(userId: number, certification: InsertCertification): Promise<Certification> {
-    const id = this.certificationIdCounter++;
-    const now = new Date();
-    
-    // Set default status based on issue and expiry dates
-    let status = "active";
-    const today = new Date();
-    
-    // If the expiry date exists and is in the past, mark as expired
-    if (certification.expiryDate && new Date(certification.expiryDate) < today) {
-      status = "expired";
-    }
-    
-    // If the issue date is in the future, mark as in-progress
-    if (new Date(certification.issueDate) > today) {
-      status = "in-progress";
-    }
-    
-    const cert: Certification = {
-      ...certification,
-      id,
-      userId,
-      status,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    this.certifications.set(id, cert);
-    
-    // Award XP for adding a certification
-    await this.addUserXP(userId, 100, "certification_added", `Added certification: ${certification.name}`);
-    
-    return cert;
-  }
-  
-  async updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined> {
-    const cert = this.certifications.get(id);
-    if (!cert) return undefined;
-    
-    const updatedCert = { 
-      ...cert, 
-      ...certificationData,
-      updatedAt: new Date()
-    };
-    
-    // Recalculate status if dates have changed
-    if (
-      (certificationData.issueDate && cert.issueDate !== certificationData.issueDate) ||
-      (certificationData.expiryDate && cert.expiryDate !== certificationData.expiryDate)
-    ) {
-      const today = new Date();
-      
-      // Default to active
-      let status = "active";
-      
-      // If expiry date exists and is in the past, mark as expired
-      if (updatedCert.expiryDate && new Date(updatedCert.expiryDate) < today) {
-        status = "expired";
-      }
-      
-      // If issue date is in the future, mark as in-progress
-      if (new Date(updatedCert.issueDate) > today) {
-        status = "in-progress";
-      }
-      
-      // Update the status
-      updatedCert.status = status;
-    }
-    
-    this.certifications.set(id, updatedCert);
-    return updatedCert;
-  }
-  
-  async deleteCertification(id: number): Promise<boolean> {
-    return this.certifications.delete(id);
   }
 }
 

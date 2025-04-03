@@ -402,39 +402,6 @@ export const insertFollowupActionSchema = createInsertSchema(followupActions).om
   ),
 });
 
-// Certifications Model
-export const certifications = pgTable("certifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  name: text("name").notNull(),
-  provider: text("provider").notNull(),
-  issueDate: timestamp("issue_date").notNull(),
-  expiryDate: timestamp("expiry_date"),
-  credentialId: text("credential_id"),
-  credentialUrl: text("credential_url"),
-  skills: text("skills").array(),
-  status: text("status").notNull().default("active"), // Options: "active", "expired", "in-progress"
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertCertificationSchema = createInsertSchema(certifications).omit({
-  id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
-}).extend({
-  // Convert issueDate string to Date object if it's not already a Date
-  issueDate: z.date().or(
-    z.string().transform((val) => new Date(val))
-  ),
-  // Convert expiryDate string to Date object if it's not already a Date
-  expiryDate: z.date().optional().nullable().or(
-    z.string().transform((val) => val ? new Date(val) : null)
-  ),
-});
-
 // Career Mentor Chat Conversations
 export const mentorChatConversations = pgTable("mentor_chat_conversations", {
   id: serial("id").primaryKey(),
@@ -647,7 +614,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   interviewPractices: many(interviewPractice),
   interviewProcesses: many(interviewProcesses),
   mentorChatConversations: many(mentorChatConversations),
-  certifications: many(certifications),
 }));
 
 export const studyPlansRelations = relations(studyPlans, ({ one, many }) => ({
@@ -766,14 +732,6 @@ export const mentorChatMessagesRelations = relations(mentorChatMessages, ({ one 
   conversation: one(mentorChatConversations, {
     fields: [mentorChatMessages.conversationId],
     references: [mentorChatConversations.id],
-  }),
-}));
-
-// Certifications Relations
-export const certificationsRelations = relations(certifications, ({ one }) => ({
-  user: one(users, {
-    fields: [certifications.userId],
-    references: [users.id],
   }),
 }));
 
@@ -907,6 +865,3 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).om
 
 export type Recommendation = typeof recommendations.$inferSelect;
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
-
-export type Certification = typeof certifications.$inferSelect;
-export type InsertCertification = z.infer<typeof insertCertificationSchema>;

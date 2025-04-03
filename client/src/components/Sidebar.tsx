@@ -10,7 +10,7 @@ import {
   Mail, 
   UserRound, 
   Briefcase, 
-  Award, 
+  Trophy, 
   Bot, 
   Settings, 
   LogOut,
@@ -46,7 +46,7 @@ export default function Sidebar() {
     { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
     { href: '/interviews', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Interview Prep' },
     { href: '/work-history', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Work History' },
-    { href: '/certifications', icon: <Award className="w-5 h-5 mr-3" />, label: 'Certifications' },
+    { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
     { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Coach' },
   ];
 
@@ -117,7 +117,41 @@ export default function Sidebar() {
           </Link>
         ))}
         
-        {/* University section removed as requested */}
+        {/* University Quick Access - only show for university users */}
+        {isUnivUser && (
+          <>
+            <div className="px-6 py-3 mt-4 text-xs font-medium text-neutral-400 uppercase">
+              University Resources
+            </div>
+            
+            <Link 
+              href="/university-dashboard"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university-dashboard" || location === "/university" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <School className="w-5 h-5 mr-3" />
+              University Dashboard
+            </Link>
+            
+            <Link 
+              href="/university/study-plan"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university/study-plan" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <Target className="w-5 h-5 mr-3" />
+              Study Plan
+            </Link>
+            
+            <Link 
+              href="/university/learning"
+              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+                ${location === "/university/learning" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            >
+              <BookOpen className="w-5 h-5 mr-3" />
+              Learning Modules
+            </Link>
+          </>
+        )}
       </nav>
       
       {/* Admin Dashboard - only show for admin users */}

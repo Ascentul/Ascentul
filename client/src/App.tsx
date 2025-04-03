@@ -7,7 +7,7 @@ import Resume from "@/pages/Resume";
 import CoverLetter from "@/pages/CoverLetter";
 import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
-import Certifications from "@/pages/CertificationsNew";
+import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
@@ -408,9 +408,9 @@ function App() {
             <WorkHistory />
           </CareerRoute>
         </Route>
-        <Route path="/certifications">
+        <Route path="/achievements">
           <CareerRoute>
-            <Certifications />
+            <Achievements />
           </CareerRoute>
         </Route>
         <Route path="/ai-coach">
