@@ -22,6 +22,7 @@ import {
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
+import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
 // Helper function to get the current user from the session
@@ -2028,6 +2029,51 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   app.use("/api", apiRouter);
   
   // Interview Process Tracking Routes
+  // Generate a response for the AI coach mini-conversation on the dashboard
+  apiRouter.post("/api/ai-coach/generate-response", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { messages } = req.body;
+      
+      if (!Array.isArray(messages)) {
+        return res.status(400).json({ message: "Messages must be an array" });
+      }
+      
+      // Get current user data for context
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Get user's work history, goals, and interview processes for context
+      const goals = await storage.getGoals(user.id);
+      const workHistory = await storage.getWorkHistory(user.id);
+      const interviewProcesses = await storage.getInterviewProcesses(user.id);
+      
+      // Build context
+      const userContext = {
+        workHistory,
+        goals,
+        interviewProcesses,
+        userName: user.name
+      };
+      
+      // Transform messages to OpenAI format
+      const formattedMessages = messages.map(message => ({
+        role: message.role,
+        content: message.content
+      }));
+      
+      // Generate response
+      const response = await generateCoachingResponse(formattedMessages, userContext);
+      
+      res.json({ content: response.content });
+    } catch (error) {
+      console.error("Error generating AI response:", error);
+      res.status(500).json({ message: "Error generating AI response" });
+    }
+  });
+  
   apiRouter.get("/api/interview/processes", requireAuth, async (req: Request, res: Response) => {
     try {
       // Get current user from session

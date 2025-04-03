@@ -299,7 +299,7 @@ export default function Dashboard() {
   const conversationRef = useRef<HTMLDivElement>(null);
   
   // Function to handle sending a message to the coach
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userQuestion.trim()) return;
     
@@ -312,27 +312,44 @@ export default function Dashboard() {
     setUserQuestion('');
     setIsTyping(true);
     
-    // Simulate AI response - in a real app, this would call an API
-    setTimeout(() => {
-      let response = '';
+    try {
+      // Call the OpenAI API through our backend
+      const response = await apiRequest("POST", "/api/ai-coach/generate-response", {
+        messages: newMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+      });
       
-      // Simple pattern matching for demo purposes - in real app we'd use the backend
-      if (userQuestion.toLowerCase().includes('resume')) {
-        response = "For your resume, focus on highlighting relevant skills, quantifiable achievements, and using industry keywords. Make sure your resume is tailored for each job application.";
-      } else if (userQuestion.toLowerCase().includes('interview')) {
-        response = "To prepare for interviews, research the company, practice common questions, prepare your own questions, and plan your attire. Don't forget to follow up with a thank-you note afterward.";
-      } else {
-        response = "That's a great question! I'd recommend focusing on continuous learning, networking, and setting SMART goals. Would you like more specific guidance on this topic?";
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
       }
       
-      setMiniCoachMessages([...newMessages, { role: 'assistant', content: response }]);
+      const data = await response.json();
+      
+      setMiniCoachMessages([...newMessages, { role: 'assistant', content: data.content }]);
+      
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast({
+        title: "Something went wrong",
+        description: "Could not get a response from AI Coach. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Fallback message in case of error
+      setMiniCoachMessages([...newMessages, { 
+        role: 'assistant', 
+        content: "I'm sorry, I'm having trouble connecting right now. Please try again later." 
+      }]);
+    } finally {
       setIsTyping(false);
       
       // Scroll to bottom of conversation
       if (conversationRef.current) {
         conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
       }
-    }, 1000);
+    }
   };
   
   // Auto-scroll conversation to bottom when new messages appear
