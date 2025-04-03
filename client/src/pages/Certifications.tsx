@@ -139,7 +139,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function Certifications() {
-  const { user } = useUser();
+  const userContext = useUser();
+  const user = userContext?.user;
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddCertification, setShowAddCertification] = useState(false);
