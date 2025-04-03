@@ -124,11 +124,7 @@ const GoalTimeline = ({ goals, className }: GoalTimelineProps) => {
                     </div>
                   )}
                   
-                  {goal.description && (
-                    <div className="text-xs italic mt-1">
-                      {goal.description.length > 60 ? `${goal.description.substring(0, 60)}...` : goal.description}
-                    </div>
-                  )}
+                  
                   
                   
                 </div>
