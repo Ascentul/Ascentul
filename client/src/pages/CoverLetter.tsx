@@ -195,6 +195,73 @@ export default function CoverLetter() {
     
     generateCoverLetterMutation.mutate();
   };
+  
+  // Function to download cover letter as PDF
+  const handleDownloadPDF = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      toast({
+        title: 'Error',
+        description: 'Could not find the cover letter content to download',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Create a filename based on letter name or default
+    const letterName = previewLetter?.name || 'cover-letter';
+    const filename = `${letterName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    
+    // Clone the element to modify it for PDF generation
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    clonedElement.style.padding = '20px';
+    clonedElement.style.border = 'none';
+    
+    // Create the print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Error',
+        description: 'Unable to open print window. Please check your popup settings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Setup the print document
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${filename}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            .cover-letter-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h2 { margin-top: 0; }
+            p { margin: 0 0 8px; line-height: 1.5; }
+            @media print {
+              body { padding: 0; margin: 0; }
+              .cover-letter-container { width: 100%; max-width: none; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="cover-letter-container">
+            ${clonedElement.outerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
 
   return (
     <div className="container mx-auto">
@@ -311,6 +378,71 @@ export default function CoverLetter() {
                         variant="ghost" 
                         size="icon" 
                         className="h-8 w-8 text-primary hover:text-primary/80"
+                        onClick={() => {
+                          // Create a hidden div for the cover letter content
+                          const hiddenDiv = document.createElement('div');
+                          hiddenDiv.id = `temp-letter-${letter.id}`;
+                          hiddenDiv.style.position = 'absolute';
+                          hiddenDiv.style.left = '-9999px';
+                          hiddenDiv.style.top = '-9999px';
+                          
+                          // Add cover letter content to the hidden div
+                          hiddenDiv.innerHTML = `
+                            <div class="bg-white p-6">
+                              <!-- Header with contact info -->
+                              <div class="mb-6">
+                                <h2 class="text-xl font-bold">
+                                  ${letter.content.header.fullName}
+                                </h2>
+                                <div class="text-sm text-neutral-600">
+                                  ${letter.content.header.location ? `<div>${letter.content.header.location}</div>` : ''}
+                                  ${letter.content.header.phone ? `<div>${letter.content.header.phone}</div>` : ''}
+                                  ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
+                                </div>
+                              </div>
+                              
+                              <!-- Date -->
+                              <div class="mb-6">
+                                <p>${letter.content.header.date}</p>
+                              </div>
+                              
+                              <!-- Recipient -->
+                              <div class="mb-6">
+                                ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
+                                ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
+                                ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
+                                ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
+                              </div>
+                              
+                              <!-- Greeting -->
+                              <div class="mb-6">
+                                <p>Dear ${letter.content.recipient.name || "Hiring Manager"},</p>
+                              </div>
+                              
+                              <!-- Body -->
+                              <div class="mb-6 whitespace-pre-line">
+                                ${letter.content.body}
+                              </div>
+                              
+                              <!-- Closing -->
+                              <div>
+                                <p>${letter.content.closing || "Sincerely,"}</p>
+                                <p class="mt-6">${letter.content.header.fullName}</p>
+                              </div>
+                            </div>
+                          `;
+                          
+                          // Append the hidden div to the document
+                          document.body.appendChild(hiddenDiv);
+                          
+                          // Download the cover letter
+                          handleDownloadPDF(`temp-letter-${letter.id}`);
+                          
+                          // Remove the hidden div after a delay
+                          setTimeout(() => {
+                            document.body.removeChild(hiddenDiv);
+                          }, 2000);
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -518,7 +650,77 @@ export default function CoverLetter() {
             </div>
           )}
           <div className="flex justify-end">
-            <Button>
+            <Button
+              onClick={() => {
+                if (previewLetter) {
+                  // Create a hidden div for the cover letter content
+                  const hiddenDiv = document.createElement('div');
+                  hiddenDiv.id = `temp-preview-letter`;
+                  hiddenDiv.style.position = 'absolute';
+                  hiddenDiv.style.left = '-9999px';
+                  hiddenDiv.style.top = '-9999px';
+                  
+                  // Add cover letter content to the hidden div
+                  hiddenDiv.innerHTML = `
+                    <div class="bg-white p-6">
+                      <!-- Header with contact info -->
+                      <div class="mb-6">
+                        <h2 class="text-xl font-bold">
+                          ${previewLetter.content.header.fullName}
+                        </h2>
+                        <div class="text-sm text-neutral-600">
+                          ${previewLetter.content.header.location ? `<div>${previewLetter.content.header.location}</div>` : ''}
+                          ${previewLetter.content.header.phone ? `<div>${previewLetter.content.header.phone}</div>` : ''}
+                          ${previewLetter.content.header.email ? `<div>${previewLetter.content.header.email}</div>` : ''}
+                        </div>
+                      </div>
+                      
+                      <!-- Date -->
+                      <div class="mb-6">
+                        <p>${previewLetter.content.header.date}</p>
+                      </div>
+                      
+                      <!-- Recipient -->
+                      <div class="mb-6">
+                        ${previewLetter.content.recipient.name ? `<p>${previewLetter.content.recipient.name}</p>` : ''}
+                        ${previewLetter.content.recipient.position ? `<p>${previewLetter.content.recipient.position}</p>` : ''}
+                        ${previewLetter.content.recipient.company ? `<p>${previewLetter.content.recipient.company}</p>` : ''}
+                        ${previewLetter.content.recipient.address ? `<p>${previewLetter.content.recipient.address}</p>` : ''}
+                      </div>
+                      
+                      <!-- Greeting -->
+                      <div class="mb-6">
+                        <p>Dear ${previewLetter.content.recipient.name || "Hiring Manager"},</p>
+                      </div>
+                      
+                      <!-- Body -->
+                      <div class="mb-6 whitespace-pre-line">
+                        ${previewLetter.content.body}
+                      </div>
+                      
+                      <!-- Closing -->
+                      <div>
+                        <p>${previewLetter.content.closing || "Sincerely,"}</p>
+                        <p class="mt-6">${previewLetter.content.header.fullName}</p>
+                      </div>
+                    </div>
+                  `;
+                  
+                  // Append the hidden div to the document
+                  document.body.appendChild(hiddenDiv);
+                  
+                  // Download the cover letter
+                  handleDownloadPDF(`temp-preview-letter`);
+                  
+                  // Remove the hidden div after a delay
+                  setTimeout(() => {
+                    document.body.removeChild(hiddenDiv);
+                    // Close the dialog
+                    setPreviewLetter(null);
+                  }, 2000);
+                }
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
