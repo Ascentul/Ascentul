@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -65,18 +66,20 @@ Format your response as JSON with the following structure:
 Make your feedback specific to this exact answer, not generic advice. Base your analysis on interview best practices and what would impress a hiring manager.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Question: ${question}
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: `Question: ${question}
 Answer: ${answer}
 ${jobTitle ? `Job Title: ${jobTitle}` : ''}
 ${companyName ? `Company: ${companyName}` : ''}`
-        }
-      ],
+      }
+    ];
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: messages,
       response_format: { type: "json_object" }
     });
 
@@ -109,34 +112,124 @@ ${companyName ? `Company: ${companyName}` : ''}`
   }
 }
 
-// AI Coach for career advice
-export async function getCareerAdvice(query: string, userContext: {
-  goals?: string[];
-  workHistory?: string[];
-  skills?: string[];
-  resumeDetails?: string;
-  interviewPrep?: string;
-}): Promise<string> {
-  const systemPrompt = `You are an expert career coach helping a user with their career journey. 
-Your goal is to provide actionable, practical advice that helps them achieve their career goals.
-You should be encouraging, supportive, but also realistic and honest.
+// Base system prompt for the career coach
+const CAREER_COACH_SYSTEM_PROMPT = `
+You are an experienced, professional Career Coach with over 15 years of experience helping professionals navigate their career journeys. Your expertise includes career development, interview preparation, resume/CV optimization, skill development, and professional growth strategies.
 
-Here's what you know about the user:
-${userContext.goals ? `Goals: ${userContext.goals.join(', ')}` : ''}
-${userContext.workHistory ? `Work History: ${userContext.workHistory.join(', ')}` : ''}
-${userContext.skills ? `Skills: ${userContext.skills.join(', ')}` : ''}
-${userContext.resumeDetails ? `Resume: ${userContext.resumeDetails}` : ''}
-${userContext.interviewPrep ? `Interview Preparation: ${userContext.interviewPrep}` : ''}
+As a Career Coach, you focus on:
+- Providing actionable, specific career advice tailored to the individual's work history and goals
+- Maintaining a professional, supportive tone while being direct when necessary
+- Asking insightful questions to help the user gain clarity about their career trajectory
+- Offering strategic guidance on professional development and upskilling
+- Suggesting concrete next steps and resources the user can leverage
 
-Respond directly to their question with personalized guidance.`;
+When a user shares details about their career goals, work history, or interviews, acknowledge this information and use it to personalize your responses.
+`;
+
+// AI Coach for career advice with enhanced context
+export async function getCareerAdvice(
+  query: string, 
+  userContext: {
+    goals?: any[];
+    workHistory?: any[];
+    skills?: string[];
+    interviewProcesses?: any[];
+    userName?: string;
+    resumeDetails?: string;
+    interviewPrep?: string;
+  },
+  conversationHistory: ChatCompletionMessageParam[] = []
+): Promise<string> {
+  // Prepare a full context for the AI by combining the base prompt with user-specific information
+  let systemPrompt = CAREER_COACH_SYSTEM_PROMPT;
+
+  // Add user context to the system prompt if available
+  if (userContext) {
+    systemPrompt += "\n\nUser Information:\n";
+
+    if (userContext.userName) {
+      systemPrompt += `Name: ${userContext.userName}\n`;
+    }
+
+    // Add work history information
+    if (userContext.workHistory && userContext.workHistory.length > 0) {
+      systemPrompt += "\nWork History:\n";
+      userContext.workHistory.forEach((job, index) => {
+        const duration = job.currentJob
+          ? `${new Date(job.startDate).toLocaleDateString()} - Present`
+          : `${new Date(job.startDate).toLocaleDateString()} - ${
+              job.endDate
+                ? new Date(job.endDate).toLocaleDateString()
+                : "Not specified"
+            }`;
+
+        systemPrompt += `${index + 1}. ${job.position} at ${
+          job.company
+        } (${duration})\n`;
+        if (job.description) {
+          systemPrompt += `   Description: ${job.description}\n`;
+        }
+        if (job.achievements && job.achievements.length > 0) {
+          systemPrompt += `   Achievements: ${job.achievements.join(", ")}\n`;
+        }
+      });
+    } else if (userContext.workHistory && Array.isArray(userContext.workHistory) && userContext.workHistory.length === 0) {
+      systemPrompt += "\nWork History: No work history available\n";
+    }
+
+    // Add goals information
+    if (userContext.goals && userContext.goals.length > 0) {
+      systemPrompt += "\nCareer Goals:\n";
+      userContext.goals.forEach((goal, index) => {
+        const status = goal.completed ? "Completed" : `In Progress (${goal.progress}%)`;
+        systemPrompt += `${index + 1}. ${goal.title} - ${status}\n`;
+        if (goal.description) {
+          systemPrompt += `   Description: ${goal.description}\n`;
+        }
+      });
+    } else if (userContext.goals && Array.isArray(userContext.goals) && userContext.goals.length === 0) {
+      systemPrompt += "\nCareer Goals: No goals set yet\n";
+    }
+
+    // Add skills information
+    if (userContext.skills && userContext.skills.length > 0) {
+      systemPrompt += `\nSkills: ${userContext.skills.join(", ")}\n`;
+    }
+
+    // Add interview processes information
+    if (userContext.interviewProcesses && userContext.interviewProcesses.length > 0) {
+      systemPrompt += "\nInterview Processes:\n";
+      userContext.interviewProcesses.forEach((process, index) => {
+        systemPrompt += `${index + 1}. ${process.position} at ${process.companyName} - Status: ${process.status}\n`;
+      });
+    } else if (userContext.interviewProcesses && Array.isArray(userContext.interviewProcesses) && userContext.interviewProcesses.length === 0) {
+      systemPrompt += "\nInterview Processes: No active interview processes\n";
+    }
+
+    // Add additional context if provided
+    if (userContext.resumeDetails) {
+      systemPrompt += `\nResume Details: ${userContext.resumeDetails}\n`;
+    }
+    
+    if (userContext.interviewPrep) {
+      systemPrompt += `\nInterview Preparation: ${userContext.interviewPrep}\n`;
+    }
+  }
 
   try {
+    // Prepare the conversation history
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...conversationHistory,
+      { role: "user", content: query }
+    ];
+
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: query }
-      ],
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 800,
     });
 
     return response.choices[0].message.content || "I'm not sure how to advise on that topic. Could you try rephrasing your question?";

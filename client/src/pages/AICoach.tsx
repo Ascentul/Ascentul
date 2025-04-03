@@ -9,14 +9,16 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUser } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import AICoachMessage from '@/components/AICoachMessage';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
-// Types for mock data
+// Types for AI Coach data
 type Message = {
   id: number;
   conversationId: number;
-  isUser: boolean;
-  message: string;
-  timestamp: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
 };
 
 type Conversation = {
@@ -53,48 +55,48 @@ const MOCK_MESSAGES: MessagesMap = {
     {
       id: 1,
       conversationId: 1,
-      isUser: true,
-      message: "I'm feeling stuck in my current role. What strategies can I use to grow my career?",
-      timestamp: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
+      role: "user",
+      content: "I'm feeling stuck in my current role. What strategies can I use to grow my career?",
+      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
     },
     {
       id: 2,
       conversationId: 1,
-      isUser: false,
-      message: "I understand that feeling of stagnation. Here are some strategies you could consider:\n\n1. **Identify your goals**: Define what career growth means to you. Is it more responsibility, leadership, technical expertise, or a change in direction?\n\n2. **Skill development**: Look for gaps between your current skills and where you want to be. Create a learning plan with online courses, certifications, or books.\n\n3. **Seek feedback**: Schedule a meeting with your manager to discuss your performance and growth opportunities.\n\n4. **Expand your network**: Connect with professionals in roles you aspire to, attend industry events, and join relevant communities.\n\n5. **Take on new challenges**: Volunteer for projects outside your comfort zone to demonstrate initiative and build new skills.\n\nWould you like me to elaborate on any of these strategies?",
-      timestamp: new Date(Date.now() - 3600000 * 1.9).toISOString(), // 1.9 hours ago
+      role: "assistant",
+      content: "I understand that feeling of stagnation. Here are some strategies you could consider:\n\n1. **Identify your goals**: Define what career growth means to you. Is it more responsibility, leadership, technical expertise, or a change in direction?\n\n2. **Skill development**: Look for gaps between your current skills and where you want to be. Create a learning plan with online courses, certifications, or books.\n\n3. **Seek feedback**: Schedule a meeting with your manager to discuss your performance and growth opportunities.\n\n4. **Expand your network**: Connect with professionals in roles you aspire to, attend industry events, and join relevant communities.\n\n5. **Take on new challenges**: Volunteer for projects outside your comfort zone to demonstrate initiative and build new skills.\n\nWould you like me to elaborate on any of these strategies?",
+      createdAt: new Date(Date.now() - 3600000 * 1.9).toISOString(), // 1.9 hours ago
     }
   ],
   2: [
     {
       id: 3,
       conversationId: 2,
-      isUser: true,
-      message: "Could you give me some tips on improving my resume for a senior software developer position?",
-      timestamp: new Date(Date.now() - 86400000 * 7).toISOString(), // 7 days ago
+      role: "user",
+      content: "Could you give me some tips on improving my resume for a senior software developer position?",
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), // 7 days ago
     },
     {
       id: 4,
       conversationId: 2,
-      isUser: false,
-      message: "For a senior software developer resume, focus on these key improvements:\n\n1. **Highlight technical leadership**: Showcase instances where you led projects, mentored junior developers, or made architectural decisions.\n\n2. **Quantify achievements**: Use metrics to demonstrate impact (e.g., \"Reduced page load time by 40%\" or \"Led a team of 5 developers\").\n\n3. **Showcase problem-solving**: Include complex challenges you've overcome and how your solutions benefited the company.\n\n4. **Focus on modern skills**: Emphasize experience with current technologies, frameworks, and methodologies that are relevant to your target positions.\n\n5. **Include a technical skills section**: List programming languages, frameworks, tools, and methodologies you've mastered, with years of experience for each.\n\nWould you like a more detailed review if you share your current resume content?",
-      timestamp: new Date(Date.now() - 86400000 * 7 + 1800000).toISOString(), // 7 days ago + 30 min
+      role: "assistant",
+      content: "For a senior software developer resume, focus on these key improvements:\n\n1. **Highlight technical leadership**: Showcase instances where you led projects, mentored junior developers, or made architectural decisions.\n\n2. **Quantify achievements**: Use metrics to demonstrate impact (e.g., \"Reduced page load time by 40%\" or \"Led a team of 5 developers\").\n\n3. **Showcase problem-solving**: Include complex challenges you've overcome and how your solutions benefited the company.\n\n4. **Focus on modern skills**: Emphasize experience with current technologies, frameworks, and methodologies that are relevant to your target positions.\n\n5. **Include a technical skills section**: List programming languages, frameworks, tools, and methodologies you've mastered, with years of experience for each.\n\nWould you like a more detailed review if you share your current resume content?",
+      createdAt: new Date(Date.now() - 86400000 * 7 + 1800000).toISOString(), // 7 days ago + 30 min
     }
   ],
   3: [
     {
       id: 5,
       conversationId: 3,
-      isUser: true,
-      message: "I have an interview for a product manager role next week. What should I prepare?",
-      timestamp: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
+      role: "user",
+      content: "I have an interview for a product manager role next week. What should I prepare?",
+      createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
     },
     {
       id: 6,
       conversationId: 3,
-      isUser: false,
-      message: "Congratulations on your interview! For a product manager role, prepare for these areas:\n\n1. **Product sense**: Be ready to discuss how you'd improve existing products, validate ideas, and prioritize features.\n\n2. **Analytical skills**: Prepare to talk about how you use data to make decisions and measure success.\n\n3. **Leadership & communication**: Highlight how you align stakeholders, resolve conflicts, and communicate effectively with different teams.\n\n4. **Technical knowledge**: While you don't need to code, understand the technical aspects of product development to collaborate with engineers.\n\n5. **Business acumen**: Show you understand market dynamics, competitive analysis, and how your product creates value.\n\nPractice the STAR method (Situation, Task, Action, Result) for behavioral questions about past experiences. Also, research the company's products thoroughly.\n\nWould you like some specific example questions to practice with?",
-      timestamp: new Date(Date.now() - 86400000 * 10 + 1800000).toISOString(), // 10 days ago + 30 min
+      role: "assistant",
+      content: "Congratulations on your interview! For a product manager role, prepare for these areas:\n\n1. **Product sense**: Be ready to discuss how you'd improve existing products, validate ideas, and prioritize features.\n\n2. **Analytical skills**: Prepare to talk about how you use data to make decisions and measure success.\n\n3. **Leadership & communication**: Highlight how you align stakeholders, resolve conflicts, and communicate effectively with different teams.\n\n4. **Technical knowledge**: While you don't need to code, understand the technical aspects of product development to collaborate with engineers.\n\n5. **Business acumen**: Show you understand market dynamics, competitive analysis, and how your product creates value.\n\nPractice the STAR method (Situation, Task, Action, Result) for behavioral questions about past experiences. Also, research the company's products thoroughly.\n\nWould you like some specific example questions to practice with?",
+      createdAt: new Date(Date.now() - 86400000 * 10 + 1800000).toISOString(), // 10 days ago + 30 min
     }
   ]
 };
@@ -135,13 +137,13 @@ export default function AICoach() {
     
     // Create a new user message
     const userMessageId = Date.now();
-    const userMessage: Message = {
+    const userMessage = {
       id: userMessageId,
       conversationId: activeConversation,
-      isUser: true,
-      message: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
+      role: "user" as const,
+      content: newMessage.trim(),
+      createdAt: new Date().toISOString()
+    } as Message;
     
     // Add the user message to the mock messages
     setMockMessages(prevMessages => ({
@@ -157,13 +159,13 @@ export default function AICoach() {
     
     // Simulate AI response after a delay
     setTimeout(() => {
-      const aiMessage: Message = {
+      const aiMessage = {
         id: userMessageId + 1,
         conversationId: activeConversation,
-        isUser: false,
-        message: getRandomResponse(),
-        timestamp: new Date().toISOString()
-      };
+        role: "assistant" as const,
+        content: getRandomResponse(),
+        createdAt: new Date().toISOString()
+      } as Message;
       
       // Add the AI response
       setMockMessages(prevMessages => ({
@@ -233,9 +235,9 @@ export default function AICoach() {
     
     return mockMessages[activeConversation].map((message: Message) => ({
       id: message.id,
-      isUser: message.isUser,
-      message: message.message,
-      timestamp: new Date(message.timestamp),
+      isUser: message.role === "user",
+      message: message.content,
+      timestamp: new Date(message.createdAt),
     }));
   };
   
