@@ -729,7 +729,7 @@ export default function Dashboard() {
                           <div className="text-sm text-muted-foreground mt-1 space-y-2">
                             {message.content.split('\n').map((paragraph, i) => (
                               paragraph.trim() ? (
-                                <p key={i}>{paragraph}</p>
+                                <p key={i}>{paragraph.replace(/\*/g, '')}</p>
                               ) : (
                                 <div key={i} className="h-2"></div>
                               )
@@ -744,7 +744,7 @@ export default function Dashboard() {
                         <div className="space-y-2">
                           {message.content.split('\n').map((paragraph, i) => (
                             paragraph.trim() ? (
-                              <p key={i}>{paragraph}</p>
+                              <p key={i}>{paragraph.replace(/\*/g, '')}</p>
                             ) : (
                               <div key={i} className="h-2"></div>
                             )

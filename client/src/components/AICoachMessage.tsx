@@ -40,9 +40,13 @@ export default function AICoachMessage({
           </p>
           <div className="text-sm space-y-2">
             <div className="prose prose-sm max-w-none">
-              <ReactMarkdown>
-                {message}
-              </ReactMarkdown>
+              {message.split('\n').map((paragraph, i) => (
+                paragraph.trim() ? (
+                  <p key={i}>{paragraph.replace(/\*/g, '')}</p>
+                ) : (
+                  <div key={i} className="h-2"></div>
+                )
+              ))}
             </div>
           </div>
           <p className="text-xs text-neutral-400 mt-1">
