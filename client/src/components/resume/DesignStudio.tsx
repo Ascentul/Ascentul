@@ -329,7 +329,7 @@ export default function DesignStudio() {
     <div className="w-full h-[calc(100vh-12rem)] flex flex-col relative">
       {/* Floating Properties Toolbar - Shows when an element is selected */}
       {activeObject && (
-        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-3 p-3 bg-white shadow-md rounded-md border overflow-x-auto">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-3 p-3 bg-white shadow-md rounded-md border overflow-x-auto">
           {/* Element Actions */}
           <div className="flex items-center gap-1 border-r pr-3">
             <TooltipProvider>
