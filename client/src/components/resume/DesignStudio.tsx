@@ -216,6 +216,20 @@ export default function DesignStudio() {
       window.fabric.Object.prototype.controls.mtr.offsetY = 30; // Move rotation handle below the object
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
       window.fabric.Object.prototype.controls.mtr.withConnection = true;
+      window.fabric.Object.prototype.controls.mtr.fill = '#0C29AB'; // Match brand color
+      window.fabric.Object.prototype.controls.mtr.stroke = '#0C29AB'; // Match brand color
+      
+      // Customize the selection style to use the brand's primary blue color
+      canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
+      canvas.selectionBorderColor = '#0C29AB'; // Dark primary blue for the outline
+      canvas.selectionLineWidth = 2; // Make the selection border more visible
+      
+      // Customize the control points (handles)
+      const cornerColor = '#0C29AB';
+      window.fabric.Object.prototype.cornerColor = cornerColor;
+      window.fabric.Object.prototype.cornerStrokeColor = cornerColor;
+      window.fabric.Object.prototype.cornerSize = 8; // Slightly smaller corner points
+      window.fabric.Object.prototype.transparentCorners = false; // Solid corners look better
       
       // Set up event listeners
       canvas.on("selection:created", handleSelectionChange);
