@@ -264,19 +264,34 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Set different offset for different types of elements
-      const originalSetControlsVisibility = window.fabric.Object.prototype.setControlsVisibility;
-      window.fabric.Object.prototype.setControlsVisibility = function(options) {
-        // Call the original method first
-        const result = originalSetControlsVisibility.call(this, options);
+      // Completely override the way the rotation handle is positioned
+      // In Fabric.js, the rotation control is normally at the top middle ('mtr')
+      // We want to move it to the bottom middle for our design
+      
+      // First, redefine how corners are positioned
+      const originalSetCornerCoords = window.fabric.Object.prototype.setCoords;
+      window.fabric.Object.prototype.setCoords = function(this: any) {
+        // Call the original method first to calculate all coordinates
+        const result = originalSetCornerCoords.call(this);
         
-        // Check object type and set appropriate offset for rotation handle
-        if (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') {
-          // For shapes, position the rotation handle 60px below
-          this.controls.mtr.offsetY = 60;
-        } else {
-          // For text and other elements, use 48px
-          this.controls.mtr.offsetY = 48;
+        // Now move the rotation control from top middle to bottom middle with additional offset
+        if (this.oCoords && this.oCoords.mtr) {
+          // Make a copy of the middle bottom ('mb') control point coordinates
+          const mbCoords = this.oCoords.mb;
+          
+          if (mbCoords) {
+            // Apply our own offset based on object type
+            const offsetY = (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') 
+              ? 60 // More space for shapes
+              : 48; // Less space for text
+            
+            // Set the rotation handle (mtr) position relative to the middle bottom (mb) point
+            this.oCoords.mtr = {
+              x: mbCoords.x,  // Same x coordinate (centered)
+              y: mbCoords.y + offsetY, // Below the object with our custom offset
+              corner: 'mtr'
+            };
+          }
         }
         
         return result;
