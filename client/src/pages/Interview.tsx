@@ -659,7 +659,31 @@ const Interview = () => {
             variants={fadeIn}
             className="lg:col-span-2"
           >
-            {selectedProcess ? (
+            {activeTab === 'practice' ? (
+              <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <BookOpenText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">Interview Practice</h3>
+                  <p className="text-muted-foreground max-w-md mt-2">
+                    Select an interview process from the list or start a general practice session to improve your interview skills.
+                  </p>
+                  <Button 
+                    className="mt-4"
+                    onClick={() => {
+                      setPracticeProcessId(null);
+                      setShowPracticeSession(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start General Practice
+                  </Button>
+                </motion.div>
+              </Card>
+            ) : selectedProcess ? (
               <InterviewProcessDetails process={selectedProcess} />
             ) : (
               <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
