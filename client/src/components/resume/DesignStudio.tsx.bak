@@ -95,7 +95,6 @@ export default function DesignStudio() {
   });
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
-  const [copiedStyle, setCopiedStyle] = useState<any>(null);
   
   // Load fabric.js
   useEffect(() => {
@@ -148,6 +147,9 @@ export default function DesignStudio() {
       document.removeEventListener('toggleDesignSidebar', handleToggleSidebar);
     };
   }, []);
+  
+  // Copy style from selected object (store it for paste)
+  const [copiedStyle, setCopiedStyle] = useState<any>(null);
   
   // Add keyboard shortcuts
   useEffect(() => {
