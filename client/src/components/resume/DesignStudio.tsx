@@ -330,40 +330,6 @@ export default function DesignStudio() {
             </Tooltip>
           </TooltipProvider>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={saveDesign}
-                >
-                  <Save size={16} className="mr-1" />
-                  Save
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Save Design</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={exportToPDF}
-                >
-                  <FileDown size={16} className="mr-1" />
-                  Export
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Export as PDF</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
       </div>
       
       {/* Main Content Area */}
