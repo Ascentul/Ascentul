@@ -26,7 +26,7 @@ import {
   insertUserPersonalAchievementSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
@@ -1940,6 +1940,53 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     } catch (error) {
       console.error("Error analyzing interview answer:", error);
       res.status(500).json({ message: "Error analyzing interview answer" });
+    }
+  });
+  
+  // LinkedIn Optimizer API
+  apiRouter.post("/api/linkedin-optimizer/analyze", async (req: Request, res: Response) => {
+    try {
+      const { url, profileText, targetJobTitle } = req.body;
+      
+      // Validate input
+      if ((!url && !profileText) || !targetJobTitle) {
+        return res.status(400).json({ 
+          message: "Missing required parameters. Please provide either a LinkedIn URL or profile text, and a target job title."
+        });
+      }
+      
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({
+          message: "OpenAI service is not configured. Please contact the administrator."
+        });
+      }
+      
+      // Call the OpenAI function to analyze the LinkedIn profile
+      const analysis = await analyzeLinkedInProfile({
+        url,
+        profileText, 
+        targetJobTitle
+      });
+      
+      // If user is authenticated, could save this analysis to their history
+      const user = await getCurrentUser(req);
+      if (user) {
+        // Optional: Award XP for using the LinkedIn Optimizer
+        await storage.addUserXP(
+          user.id, 
+          50, 
+          "linkedin_optimization", 
+          `Optimized LinkedIn profile for ${targetJobTitle} role`
+        );
+      }
+      
+      res.status(200).json(analysis);
+    } catch (error) {
+      console.error("Error analyzing LinkedIn profile:", error);
+      res.status(500).json({ 
+        message: "An error occurred while analyzing your LinkedIn profile. Please try again later."
+      });
     }
   });
   

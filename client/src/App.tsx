@@ -9,6 +9,7 @@ import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
+import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
 import CareerPathExplorer from "@/pages/CareerPathExplorer";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
@@ -417,6 +418,11 @@ function App() {
         <Route path="/ai-coach">
           <CareerRoute>
             <AICoach />
+          </CareerRoute>
+        </Route>
+        <Route path="/linkedin-optimizer">
+          <CareerRoute>
+            <LinkedInOptimizer />
           </CareerRoute>
         </Route>
         <Route path="/career-path-explorer">

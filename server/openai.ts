@@ -4,6 +4,219 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Interface for LinkedIn profile analysis
+export interface LinkedInProfileAnalysis {
+  overallScore: number;
+  sections: {
+    headline: {
+      score: number;
+      feedback: string;
+      suggestion: string;
+    };
+    summary: {
+      score: number;
+      feedback: string;
+      suggestion: string;
+    };
+    experience: {
+      score: number;
+      feedback: string;
+      suggestions: string[];
+    };
+    skills: {
+      score: number;
+      feedback: string;
+      missingSkills: string[];
+      suggestedSkills: string[];
+    };
+    recommendations: {
+      score: number;
+      feedback: string;
+    };
+    education: {
+      score: number;
+      feedback: string;
+    };
+    profile: {
+      score: number;
+      feedback: string;
+    };
+  };
+  actionPlan: {
+    highPriority: string[];
+    mediumPriority: string[];
+    lowPriority: string[];
+  };
+}
+
+// Analyze a LinkedIn profile content to provide improvement recommendations
+export async function analyzeLinkedInProfile(
+  profileData: { url?: string; profileText?: string; targetJobTitle: string }
+): Promise<LinkedInProfileAnalysis> {
+  try {
+    const { url, profileText, targetJobTitle } = profileData;
+    
+    // Determine which input to use (URL or pasted content)
+    const contentSource = profileText 
+      ? `LinkedIn Profile Content:\n${profileText}` 
+      : `LinkedIn Profile URL: ${url}`;
+    
+    const systemPrompt = `You are an expert LinkedIn profile optimizer and career coach with a specialty in helping professionals optimize their LinkedIn profiles for specific target jobs.
+
+Analyze the given LinkedIn profile for someone who is targeting a position as a ${targetJobTitle}. Provide a thorough analysis and actionable recommendations to improve their profile's effectiveness.
+
+${contentSource}
+
+Evaluate each section of the profile and assign a score from 0-100 based on its effectiveness for the target role. Provide specific feedback and suggestions for improvement.
+
+Your response must be in JSON format with the following structure:
+{
+  "overallScore": number,
+  "sections": {
+    "headline": {
+      "score": number,
+      "feedback": string,
+      "suggestion": string
+    },
+    "summary": {
+      "score": number,
+      "feedback": string,
+      "suggestion": string
+    },
+    "experience": {
+      "score": number,
+      "feedback": string,
+      "suggestions": string[]
+    },
+    "skills": {
+      "score": number,
+      "feedback": string,
+      "missingSkills": string[],
+      "suggestedSkills": string[]
+    },
+    "recommendations": {
+      "score": number,
+      "feedback": string
+    },
+    "education": {
+      "score": number,
+      "feedback": string
+    },
+    "profile": {
+      "score": number,
+      "feedback": string
+    }
+  },
+  "actionPlan": {
+    "highPriority": string[],
+    "mediumPriority": string[],
+    "lowPriority": string[]
+  }
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "system", content: systemPrompt }],
+      temperature: 0.5,
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || "{}");
+    
+    // Apply default values for any missing fields to ensure consistent structure
+    return {
+      overallScore: result.overallScore || 50,
+      sections: {
+        headline: {
+          score: result.sections?.headline?.score || 50,
+          feedback: result.sections?.headline?.feedback || "No feedback available for your headline.",
+          suggestion: result.sections?.headline?.suggestion || "Add a compelling headline that includes your target role and key skills."
+        },
+        summary: {
+          score: result.sections?.summary?.score || 50,
+          feedback: result.sections?.summary?.feedback || "No feedback available for your summary.",
+          suggestion: result.sections?.summary?.suggestion || "Create a summary that highlights your relevant experience and value proposition."
+        },
+        experience: {
+          score: result.sections?.experience?.score || 50,
+          feedback: result.sections?.experience?.feedback || "No feedback available for your experience section.",
+          suggestions: result.sections?.experience?.suggestions || ["Focus on achievements rather than responsibilities", "Quantify your results where possible"]
+        },
+        skills: {
+          score: result.sections?.skills?.score || 50,
+          feedback: result.sections?.skills?.feedback || "No feedback available for your skills section.",
+          missingSkills: result.sections?.skills?.missingSkills || [],
+          suggestedSkills: result.sections?.skills?.suggestedSkills || []
+        },
+        recommendations: {
+          score: result.sections?.recommendations?.score || 50,
+          feedback: result.sections?.recommendations?.feedback || "No feedback available for your recommendations."
+        },
+        education: {
+          score: result.sections?.education?.score || 50,
+          feedback: result.sections?.education?.feedback || "No feedback available for your education section."
+        },
+        profile: {
+          score: result.sections?.profile?.score || 50,
+          feedback: result.sections?.profile?.feedback || "No feedback available for your profile picture."
+        }
+      },
+      actionPlan: {
+        highPriority: result.actionPlan?.highPriority || ["Update your headline to include target job title"],
+        mediumPriority: result.actionPlan?.mediumPriority || ["Add relevant skills to your profile"],
+        lowPriority: result.actionPlan?.lowPriority || ["Request recommendations from colleagues"]
+      }
+    };
+  } catch (error: any) {
+    console.error("Error analyzing LinkedIn profile:", error);
+    
+    // Return a default structure with error information
+    return {
+      overallScore: 0,
+      sections: {
+        headline: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile.",
+          suggestion: "Please try again later or contact support."
+        },
+        summary: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile.",
+          suggestion: "Please try again later or contact support."
+        },
+        experience: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile.",
+          suggestions: ["Please try again later"]
+        },
+        skills: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile.",
+          missingSkills: [],
+          suggestedSkills: []
+        },
+        recommendations: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile."
+        },
+        education: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile."
+        },
+        profile: {
+          score: 0,
+          feedback: "We encountered an error analyzing your profile."
+        }
+      },
+      actionPlan: {
+        highPriority: ["Try submitting your profile again"],
+        mediumPriority: [],
+        lowPriority: []
+      }
+    };
+  }
+}
+
 // Interface for interview answer analysis
 export interface InterviewAnswerAnalysis {
   feedback: string;
