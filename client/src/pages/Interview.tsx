@@ -57,7 +57,7 @@ const HorizontalTimelineSection = ({
   
   // Fetch stages for all processes
   const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
-    queryKey: ['/api/interview/stages'],
+    queryKey: ['/api/interview/stages', processes],
     queryFn: async () => {
       // Create a map of process ID -> stages array
       const stagesMap: Record<number, InterviewStage[]> = {};
@@ -68,6 +68,7 @@ const HorizontalTimelineSection = ({
           try {
             const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
             const stagesData = await response.json();
+            console.log(`Fetched stages for process ${process.id}:`, stagesData);
             stagesMap[process.id] = stagesData;
           } catch (error) {
             console.error(`Error fetching stages for process ${process.id}:`, error);
@@ -79,7 +80,8 @@ const HorizontalTimelineSection = ({
       return stagesMap;
     },
     enabled: processes.length > 0,
-    placeholderData: {}
+    placeholderData: {},
+    refetchOnWindowFocus: true
   });
   
   // Update stage
@@ -96,6 +98,7 @@ const HorizontalTimelineSection = ({
       });
       // Invalidate stages query to refetch updated data
       queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       setIsStageDialogOpen(false);
     },
     onError: (error: Error) => {
