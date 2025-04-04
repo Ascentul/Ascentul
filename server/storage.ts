@@ -130,6 +130,11 @@ export interface IStorage {
     time: string;
   }[]>;
   
+  // Cache operations
+  setCachedData(key: string, data: any, expirationMs?: number): Promise<void>;
+  getCachedData(key: string): Promise<any | null>;
+  deleteCachedData(key: string): Promise<boolean>;
+  
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -293,7 +298,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   // Simple in-memory cache for expensive operations
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, { data: any; expires: number | null }> = new Map();
   private users: Map<number, User>;
   private goals: Map<number, Goal>;
   private workHistory: Map<number, WorkHistory>;
@@ -390,6 +395,32 @@ export class MemStorage implements IStorage {
     
     // Initialize with sample data for testing
     this.initializeData();
+  }
+  
+  // Cache operations
+  async setCachedData(key: string, data: any, expirationMs?: number): Promise<void> {
+    const expires = expirationMs ? Date.now() + expirationMs : null;
+    this.cache.set(key, { data, expires });
+  }
+
+  async getCachedData(key: string): Promise<any | null> {
+    const cachedItem = this.cache.get(key);
+    
+    if (!cachedItem) {
+      return null;
+    }
+    
+    // Check if the cached data has expired
+    if (cachedItem.expires && Date.now() > cachedItem.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return cachedItem.data;
+  }
+
+  async deleteCachedData(key: string): Promise<boolean> {
+    return this.cache.delete(key);
   }
   
   private initializeData() {
@@ -821,6 +852,11 @@ export class MemStorage implements IStorage {
     // Award XP for adding work history
     await this.addUserXP(userId, 75, "work_history_added", "Added work experience");
     
+    // Invalidate the role insights cache for this user
+    const roleInsightsCacheKey = `role_insights_${userId}`;
+    await this.deleteCachedData(roleInsightsCacheKey);
+    console.log(`Invalidated role insights cache for user ${userId} on work history creation`);
+    
     return workHistoryItem;
   }
 
@@ -830,11 +866,31 @@ export class MemStorage implements IStorage {
     
     const updatedItem = { ...item, ...itemData };
     this.workHistory.set(id, updatedItem);
+    
+    // Invalidate the role insights cache for this user
+    const roleInsightsCacheKey = `role_insights_${item.userId}`;
+    await this.deleteCachedData(roleInsightsCacheKey);
+    console.log(`Invalidated role insights cache for user ${item.userId} on work history update`);
+    
     return updatedItem;
   }
 
   async deleteWorkHistoryItem(id: number): Promise<boolean> {
-    return this.workHistory.delete(id);
+    // Get the work history item first to know which user it belongs to
+    const item = this.workHistory.get(id);
+    if (!item) return false;
+    
+    // Delete the work history item
+    const result = this.workHistory.delete(id);
+    
+    // If successfully deleted, invalidate the cache
+    if (result) {
+      const roleInsightsCacheKey = `role_insights_${item.userId}`;
+      await this.deleteCachedData(roleInsightsCacheKey);
+      console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
+    }
+    
+    return result;
   }
   
   // Resume operations

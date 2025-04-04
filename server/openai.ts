@@ -454,6 +454,87 @@ Generate 3 behavioral questions and 3 technical questions.`;
 }
 
 // Get career goals suggestions
+export interface RoleInsightResponse {
+  suggestedRoles: {
+    title: string;
+    description: string;
+    keySkills: string[];
+    salaryRange: string;
+    growthPotential: 'low' | 'medium' | 'high';
+    timeToAchieve: string;
+  }[];
+  transferableSkills: {
+    skill: string;
+    relevance: string;
+    currentProficiency: 'basic' | 'intermediate' | 'advanced';
+  }[];
+  recommendedCertifications: {
+    name: string;
+    provider: string;
+    timeToComplete: string;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    relevance: string;
+  }[];
+  developmentPlan: {
+    step: string;
+    timeframe: string;
+    description: string;
+  }[];
+  insights: string;
+}
+
+export async function generateRoleInsights(
+  currentRole: string,
+  yearsExperience: number,
+  industry: string,
+  workHistory: any[]
+): Promise<RoleInsightResponse> {
+  try {
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: 
+            "You are a career development AI that provides detailed insights and recommendations for career progression. " +
+            "Analyze the user's work history and current role to suggest realistic next steps in their career path. " +
+            "Be specific, practical, and realistic with recommendations. " +
+            "Focus on job roles that build on their existing experience while providing growth opportunities. " +
+            "You will return a structured JSON response with suggested roles, transferable skills analysis, certification recommendations, and a development plan."
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            currentRole,
+            yearsExperience,
+            industry,
+            workHistory
+          })
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    // Parse the JSON response
+    const result = JSON.parse(response.choices[0].message.content);
+    
+    // Ensure the result matches our expected structure
+    return {
+      suggestedRoles: result.suggestedRoles || [],
+      transferableSkills: result.transferableSkills || [],
+      recommendedCertifications: result.recommendedCertifications || [],
+      developmentPlan: result.developmentPlan || [],
+      insights: result.insights || ""
+    };
+  } catch (error) {
+    console.error("Error generating role insights:", error);
+    throw new Error("Failed to generate role insights: " + error.message);
+  }
+}
+
 export async function suggestCareerGoals(
   currentPosition: string,
   desiredPosition: string,

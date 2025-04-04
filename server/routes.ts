@@ -25,7 +25,7 @@ import {
   insertUserPersonalAchievementSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 
@@ -2275,6 +2275,57 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(201).json([userMessage, aiMessage]);
     } catch (error) {
       res.status(500).json({ message: "Error adding message" });
+    }
+  });
+  
+  // New endpoint to generate role details based on work history
+  apiRouter.post("/generate-role-details", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { currentRole, yearsExperience, industry, workHistory } = req.body;
+      
+      if (!currentRole || !yearsExperience || !industry) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Get current user
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if we have cached results for this user
+      const cacheKey = `role_insights_${user.id}`;
+      const cachedInsights = await storage.getCachedData(cacheKey);
+      
+      if (cachedInsights) {
+        console.log(`Returning cached role insights for user ${user.id}`);
+        return res.json(cachedInsights);
+      }
+      
+      // Generate new insights
+      console.log(`Generating role insights for user ${user.id}`);
+      const insights = await generateRoleInsights(
+        currentRole,
+        yearsExperience,
+        industry,
+        workHistory
+      );
+      
+      // Cache the results
+      await storage.setCachedData(cacheKey, insights, 24 * 60 * 60 * 1000); // 24 hours
+      
+      res.json(insights);
+    } catch (error) {
+      console.error("Error generating role details:", error);
+      res.status(500).json({ 
+        message: "Error generating role details", 
+        error: error.message,
+        suggestedRoles: [],
+        transferableSkills: [],
+        recommendedCertifications: [],
+        developmentPlan: [],
+        insights: "Unable to generate insights at this time. Please try again later."
+      });
     }
   });
   

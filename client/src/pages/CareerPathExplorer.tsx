@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,11 +19,16 @@ import {
   GraduationCap,
   DollarSign,
   Calendar,
-  BookOpen
+  BookOpen,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { Toast } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
 import {
   Drawer,
   DrawerClose,
@@ -476,10 +481,44 @@ const roleCertifications: Record<string, Certification[]> = {
   ]
 };
 
+// Define the insights interface
+interface RoleInsight {
+  suggestedRoles: {
+    title: string;
+    description: string;
+    keySkills: string[];
+    salaryRange: string;
+    growthPotential: 'low' | 'medium' | 'high';
+    timeToAchieve: string;
+  }[];
+  transferableSkills: {
+    skill: string;
+    relevance: string;
+    currentProficiency: 'basic' | 'intermediate' | 'advanced';
+  }[];
+  recommendedCertifications: {
+    name: string;
+    provider: string;
+    timeToComplete: string;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    relevance: string;
+  }[];
+  developmentPlan: {
+    step: string;
+    timeframe: string;
+    description: string;
+  }[];
+  insights: string;
+}
+
 export default function CareerPathExplorer() {
+  const { toast } = useToast();
   const [activePath, setActivePath] = useState<CareerPath>(careerPaths[0]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
+  const [roleInsights, setRoleInsights] = useState<RoleInsight | null>(null);
+  const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: 'left' | 'right') => {
@@ -772,7 +811,47 @@ export default function CareerPathExplorer() {
                 <Button className="w-full">
                   Set as Career Goal
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    // Show loading state
+                    setIsGeneratingInsights(true);
+                    
+                    // Fetch work history first
+                    apiRequest('GET', '/api/work-history')
+                      .then(res => res.json())
+                      .then(workHistory => {
+                        // Call the API endpoint to generate role insights based on work history
+                        return apiRequest('POST', '/api/generate-role-details', {
+                          currentRole: selectedNode.title,
+                          yearsExperience: selectedNode.yearsExperience,
+                          industry: activePath.name,
+                          workHistory
+                        });
+                      })
+                      .then(res => res.json())
+                      .then(insights => {
+                        // Handle insights data
+                        setRoleInsights(insights);
+                        setShowInsightsDrawer(true);
+                        setIsGeneratingInsights(false);
+                        toast({
+                          title: "AI Insights Generated",
+                          description: "Career path insights have been generated based on your work history.",
+                        });
+                      })
+                      .catch(err => {
+                        console.error('Error generating role insights:', err);
+                        setIsGeneratingInsights(false);
+                        toast({
+                          title: "Error Generating Insights",
+                          description: "Unable to generate insights. Please try again later.",
+                          variant: "destructive"
+                        });
+                      });
+                  }}
+                >
                   <Lightbulb className="mr-2 h-4 w-4" />
                   Generate AI Suggestions Based on My Work History
                 </Button>
@@ -781,6 +860,159 @@ export default function CareerPathExplorer() {
                 </DrawerClose>
               </DrawerFooter>
             </>
+          )}
+        </DrawerContent>
+      </Drawer>
+      
+      {/* AI Insights Drawer */}
+      <Drawer open={showInsightsDrawer} onOpenChange={setShowInsightsDrawer}>
+        <DrawerContent className="max-h-[90vh]">
+          {isGeneratingInsights ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              <p className="text-lg font-medium">Generating personalized career insights...</p>
+              <p className="text-muted-foreground">This may take a moment as we analyze your work history</p>
+            </div>
+          ) : roleInsights ? (
+            <>
+              <DrawerHeader className="px-6">
+                <DrawerTitle className="text-2xl">AI Career Insights</DrawerTitle>
+                <DrawerDescription>
+                  Personalized career recommendations based on your work history and selected role
+                </DrawerDescription>
+              </DrawerHeader>
+              
+              <div className="px-6 pb-6 space-y-6">
+                <div className="rounded-lg border bg-card p-4">
+                  <h3 className="text-lg font-semibold mb-2">Key Insights</h3>
+                  <p className="text-muted-foreground whitespace-pre-line">{roleInsights.insights}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Suggested Career Paths</h3>
+                  <div className="space-y-4">
+                    {roleInsights.suggestedRoles.map((role, index) => (
+                      <div key={`role-${index}`} className="rounded-lg border bg-card p-4">
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">{role.title}</h4>
+                          <Badge className={
+                            role.growthPotential === 'high' ? 'bg-green-100 text-green-800' :
+                            role.growthPotential === 'medium' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }>
+                            {role.growthPotential} growth
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground text-sm mt-1">{role.description}</p>
+                        <div className="mt-2">
+                          <div className="flex items-center text-sm">
+                            <DollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                            <span className="text-muted-foreground">{role.salaryRange}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1" />
+                            <span className="text-muted-foreground">Est. time: {role.timeToAchieve}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {role.keySkills.slice(0, 3).map((skill, i) => (
+                            <Badge key={`skill-${index}-${i}`} variant="outline" className="bg-slate-50">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {role.keySkills.length > 3 && (
+                            <Badge variant="outline" className="bg-slate-50">
+                              +{role.keySkills.length - 3} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Your Transferable Skills</h3>
+                  <div className="space-y-2">
+                    {roleInsights.transferableSkills.map((skill, index) => (
+                      <div key={`skill-${index}`} className="rounded-lg border bg-card p-3 flex justify-between items-center">
+                        <div>
+                          <span className="font-medium">{skill.skill}</span>
+                          <p className="text-sm text-muted-foreground">{skill.relevance}</p>
+                        </div>
+                        <Badge className={
+                          skill.currentProficiency === 'advanced' ? 'bg-green-100 text-green-800' :
+                          skill.currentProficiency === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                          'bg-amber-100 text-amber-800'
+                        }>
+                          {skill.currentProficiency}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Development Plan</h3>
+                  <div className="rounded-lg border bg-card">
+                    {roleInsights.developmentPlan.map((step, index) => (
+                      <div key={`step-${index}`} className={`p-4 ${index !== roleInsights.developmentPlan.length - 1 ? 'border-b' : ''}`}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <h4 className="font-medium">{step.step}</h4>
+                          <Badge variant="outline" className="ml-auto">{step.timeframe}</Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-1 text-sm ml-8">{step.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Recommended Certifications</h3>
+                  <div className="space-y-3">
+                    {roleInsights.recommendedCertifications.map((cert, index) => (
+                      <div key={`cert-${index}`} className="rounded-lg border bg-card p-4">
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">{cert.name}</h4>
+                          <Badge className={
+                            cert.difficulty === 'advanced' ? 'bg-purple-100 text-purple-800' :
+                            cert.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }>
+                            {cert.difficulty}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
+                        <div className="flex justify-between mt-2 text-sm">
+                          <span className="text-muted-foreground">Est. time: {cert.timeToComplete}</span>
+                          <span className="text-muted-foreground">{cert.relevance}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <DrawerFooter className="px-6 pt-0">
+                <Button className="w-full">
+                  Create Goal Based on These Insights
+                </Button>
+                <DrawerClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+              <p className="text-lg font-medium">No insights available</p>
+              <p className="text-muted-foreground">Try generating insights for this role</p>
+              <DrawerClose asChild>
+                <Button variant="outline">Close</Button>
+              </DrawerClose>
+            </div>
           )}
         </DrawerContent>
       </Drawer>
