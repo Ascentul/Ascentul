@@ -11,6 +11,7 @@ import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
 import CareerPathExplorer from "@/pages/CareerPathExplorer";
+import CanvaEditor from "@/pages/CanvaEditor";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
 import SignIn from "@/pages/sign-in";
@@ -428,6 +429,11 @@ function App() {
         <Route path="/career-path-explorer">
           <CareerRoute>
             <CareerPathExplorer />
+          </CareerRoute>
+        </Route>
+        <Route path="/canva-editor">
+          <CareerRoute>
+            <CanvaEditor />
           </CareerRoute>
         </Route>
         <Route path="/profile">
