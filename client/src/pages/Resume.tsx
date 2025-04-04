@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
@@ -15,7 +15,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import ResumeForm from '@/components/ResumeForm';
+import DesignStudio from '@/components/resume/DesignStudio';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -26,6 +28,7 @@ export default function Resume() {
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [isGeneratedResumeOpen, setIsGeneratedResumeOpen] = useState(false);
+  const [useDesignStudio, setUseDesignStudio] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -374,22 +377,38 @@ export default function Resume() {
           <h1 className="text-2xl font-bold font-poppins">Resume Builder</h1>
           <p className="text-neutral-500">Create and manage your professional resumes</p>
         </div>
-        <Button 
-          className="mt-4 md:mt-0"
-          onClick={() => {
-            setSelectedResume(null);
-            setIsAddResumeOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Resume
-        </Button>
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="design-studio-mode" 
+              checked={useDesignStudio}
+              onCheckedChange={setUseDesignStudio}
+            />
+            <label
+              htmlFor="design-studio-mode"
+              className="text-sm font-medium leading-none flex items-center cursor-pointer"
+            >
+              <Palette className="h-4 w-4 mr-1 text-primary" />
+              Design Studio
+            </label>
+          </div>
+          <Button 
+            onClick={() => {
+              setSelectedResume(null);
+              setIsAddResumeOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Resume
+          </Button>
+        </div>
       </motion.div>
 
-      <Tabs defaultValue="resumes">
+      <Tabs defaultValue={useDesignStudio ? "design-studio" : "resumes"}>
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
+          <TabsTrigger value="design-studio">Design Studio</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumes" className="space-y-6">
@@ -730,6 +749,10 @@ export default function Resume() {
               </CardContent>
             </Card>
           </motion.div>
+        </TabsContent>
+
+        <TabsContent value="design-studio" className="p-0">
+          <DesignStudio />
         </TabsContent>
       </Tabs>
 
