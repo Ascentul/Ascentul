@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useUser, useIsSubscriptionActive, useUpdateUserSubscription } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Loader2, CreditCard, ShieldCheck, User, LogOut, Mail, CheckCircle } from 'lucide-react';
+import { Loader2, CreditCard, ShieldCheck, User, LogOut, Mail, CheckCircle, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -51,6 +51,7 @@ export default function AccountSettings() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const updateUserSubscription = useUpdateUserSubscription();
+  const [selectedColor, setSelectedColor] = useState('#0C29AB'); // Default color from theme.json
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -81,6 +82,36 @@ export default function AccountSettings() {
     onError: (error: Error) => {
       toast({
         title: "Cancellation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update theme mutation
+  const updateThemeMutation = useMutation({
+    mutationFn: async (themeData: { primary: string }) => {
+      const response = await apiRequest('PUT', '/api/user/theme', themeData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update theme');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Theme Updated",
+        description: "Your theme settings have been updated.",
+      });
+      
+      // Reload the page to apply theme changes
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Theme Update Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -150,6 +181,14 @@ export default function AccountSettings() {
     logout();
     navigate('/auth');
   };
+  
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedColor(e.target.value);
+  };
+  
+  const handleThemeSubmit = () => {
+    updateThemeMutation.mutate({ primary: selectedColor });
+  };
 
   if (userLoading || !user) {
     return (
@@ -189,6 +228,10 @@ export default function AccountSettings() {
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="flex items-center">
+            <Palette className="mr-2 h-4 w-4" />
+            Appearance
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center">
             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -365,6 +408,52 @@ export default function AccountSettings() {
                 </Button>
               </Link>
             </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="appearance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Theme Settings</CardTitle>
+              <CardDescription>
+                Customize the appearance of your application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-2">Theme Color</h3>
+                <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div 
+                      className="w-12 h-12 rounded-md border" 
+                      style={{ backgroundColor: selectedColor }}
+                    />
+                    <input
+                      type="color"
+                      value={selectedColor}
+                      onChange={handleColorChange}
+                      className="w-full max-w-xs h-10"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Select a primary color to customize your experience. Changes will apply to the entire application.
+                  </p>
+                </div>
+              </div>
+              
+              <Button onClick={handleThemeSubmit} disabled={updateThemeMutation.isPending}>
+                {updateThemeMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    Save Theme Settings
+                  </>
+                )}
+              </Button>
+            </CardContent>
           </Card>
         </TabsContent>
         
