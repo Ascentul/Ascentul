@@ -61,7 +61,10 @@ import {
   type InsertCertification,
   userPersonalAchievements,
   type UserPersonalAchievement,
-  type InsertUserPersonalAchievement
+  type InsertUserPersonalAchievement,
+  careerPaths,
+  type CareerPath,
+  type InsertCareerPath
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -69,6 +72,12 @@ import { sessionStore } from "./session-store";
 export interface IStorage {
   // Session store
   sessionStore: session.Store;
+  
+  // Career path operations
+  saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
+  getUserCareerPaths(userId: number): Promise<CareerPath[]>;
+  getCareerPath(id: number): Promise<CareerPath | undefined>;
+  deleteCareerPath(id: number): Promise<boolean>;
   
   // System operations
   getSystemMetrics(): Promise<{
@@ -294,6 +303,12 @@ export interface IStorage {
   createUserPersonalAchievement(userId: number, achievement: InsertUserPersonalAchievement): Promise<UserPersonalAchievement>;
   updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined>;
   deleteUserPersonalAchievement(id: number): Promise<boolean>;
+  
+  // Career Path operations
+  saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
+  getUserCareerPaths(userId: number): Promise<CareerPath[]>;
+  getCareerPath(id: number): Promise<CareerPath | undefined>;
+  deleteCareerPath(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -320,6 +335,7 @@ export class MemStorage implements IStorage {
   private recommendations: Map<number, Recommendation>;
   private certifications: Map<number, Certification>;
   private userPersonalAchievements: Map<number, UserPersonalAchievement>;
+  private careerPaths: Map<number, CareerPath>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -342,6 +358,7 @@ export class MemStorage implements IStorage {
   private recommendationIdCounter: number;
   private certificationIdCounter: number;
   private userPersonalAchievementIdCounter: number;
+  private careerPathIdCounter: number;
   
   public sessionStore: session.Store;
 
@@ -370,6 +387,7 @@ export class MemStorage implements IStorage {
     this.recommendations = new Map();
     this.certifications = new Map();
     this.userPersonalAchievements = new Map();
+    this.careerPaths = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -392,6 +410,7 @@ export class MemStorage implements IStorage {
     this.recommendationIdCounter = 1;
     this.certificationIdCounter = 1;
     this.userPersonalAchievementIdCounter = 1;
+    this.careerPathIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -2596,6 +2615,36 @@ export class MemStorage implements IStorage {
     for (const rec of todaysRecommendations) {
       this.recommendations.delete(rec.id);
     }
+  }
+
+  // Career Path operations
+  async saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath> {
+    const id = this.careerPathIdCounter++;
+    const now = new Date();
+    
+    const careerPath: CareerPath = {
+      id,
+      userId,
+      name,
+      pathData,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.careerPaths.set(id, careerPath);
+    return careerPath;
+  }
+  
+  async getUserCareerPaths(userId: number): Promise<CareerPath[]> {
+    return Array.from(this.careerPaths.values()).filter(path => path.userId === userId);
+  }
+  
+  async getCareerPath(id: number): Promise<CareerPath | undefined> {
+    return this.careerPaths.get(id);
+  }
+  
+  async deleteCareerPath(id: number): Promise<boolean> {
+    return this.careerPaths.delete(id);
   }
 }
 

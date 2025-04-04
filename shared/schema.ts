@@ -445,6 +445,23 @@ export const insertContactMessageSchema = createInsertSchema(contactMessages).om
   archived: true,
 });
 
+// Career Path
+export const careerPaths = pgTable("career_paths", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  pathData: jsonb("path_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCareerPathSchema = createInsertSchema(careerPaths).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Daily Recommendations
 export const recommendations = pgTable("recommendations", {
   id: serial("id").primaryKey(),
@@ -627,3 +644,6 @@ export type InsertCertification = z.infer<typeof insertCertificationSchema>;
 
 export type UserPersonalAchievement = typeof userPersonalAchievements.$inferSelect;
 export type InsertUserPersonalAchievement = z.infer<typeof insertUserPersonalAchievementSchema>;
+
+export type CareerPath = typeof careerPaths.$inferSelect;
+export type InsertCareerPath = z.infer<typeof insertCareerPathSchema>;

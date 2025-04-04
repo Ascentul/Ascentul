@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { registerCareerPathRoutes } from "./career-path";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -3470,6 +3471,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
 
   app.use(apiRouter);
+
+  // Register career path routes
+  registerCareerPathRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
