@@ -21,8 +21,6 @@ import {
   Search,
   BookOpenText,
   GanttChartSquare as Timeline,
-  GitBranchPlus,
-  Network,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InterviewProcessStatusBadge } from '@/components/interview/InterviewProcessStatusBadge';
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
-import { PracticeSession } from '@/components/interview/PracticeSession';
 import { GamePracticeSession } from '@/components/interview/GamePracticeSession';
-import { InterviewDashboardTimeline } from '@/components/interview/InterviewDashboardTimeline';
 import { HorizontalTimeline, StageDetailsDialog } from '@/components/interview/HorizontalTimeline';
 import { type InterviewProcess, type InterviewStage } from '@shared/schema';
 import { motion } from 'framer-motion';
@@ -364,68 +360,34 @@ const Interview = () => {
       {/* Timeline View - Full Width */}
       {activeTab === 'dashboard' && (
         <motion.div variants={fadeIn} className="container mx-auto">
-          <Tabs defaultValue="traditional" className="mb-6">
+          <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-lg font-medium">Interview Process Timeline</h2>
                 <p className="text-sm text-muted-foreground">Visualize your interview journey</p>
               </div>
-              <TabsList>
-                <TabsTrigger value="traditional" className="flex items-center gap-1.5">
-                  <Timeline className="h-4 w-4" />
-                  <span>Traditional</span>
-                </TabsTrigger>
-                <TabsTrigger value="horizontal" className="flex items-center gap-1.5">
-                  <Network className="h-4 w-4" />
-                  <span>Horizontal</span>
-                </TabsTrigger>
-              </TabsList>
             </div>
             
-            <TabsContent value="traditional">
-              <Card>
-                <CardContent className="pt-6">
-                  {isLoading ? (
-                    <div className="py-4">
-                      <LoadingState 
-                        message="Loading interview timeline..." 
-                        size="sm" 
-                        variant="card" 
-                        className="w-full rounded-lg"
-                      />
-                    </div>
-                  ) : (
-                    <InterviewDashboardTimeline 
-                      processes={filteredProcesses || []} 
-                      className="py-4"
+            <Card>
+              <CardContent className="pt-6">
+                {isLoading ? (
+                  <div className="py-4">
+                    <LoadingState 
+                      message="Loading interview stages..." 
+                      size="sm" 
+                      variant="card" 
+                      className="w-full rounded-lg"
                     />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="horizontal">
-              <Card>
-                <CardContent className="pt-6">
-                  {isLoading ? (
-                    <div className="py-4">
-                      <LoadingState 
-                        message="Loading interview stages..." 
-                        size="sm" 
-                        variant="card" 
-                        className="w-full rounded-lg"
-                      />
-                    </div>
-                  ) : (
-                    <HorizontalTimelineSection 
-                      processes={filteredProcesses || []} 
-                      onEditProcess={handleViewProcess}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </div>
+                ) : (
+                  <HorizontalTimelineSection 
+                    processes={filteredProcesses || []} 
+                    onEditProcess={handleViewProcess}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </motion.div>
       )}
 
