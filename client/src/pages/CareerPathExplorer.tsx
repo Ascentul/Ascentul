@@ -13,11 +13,28 @@ import {
   Cpu,
   LineChart,
   User,
-  Database 
+  Database,
+  Layers,
+  Lightbulb,
+  GraduationCap,
+  DollarSign,
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Types for career path data
 interface CareerSkill {
@@ -271,9 +288,198 @@ const dataAnalyticsPath: CareerPath = {
 // Array of all career paths
 const careerPaths: CareerPath[] = [softwareEngineeringPath, dataAnalyticsPath];
 
+// Sample certification data for roles
+interface Certification {
+  name: string;
+  provider: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTimeToComplete: string;
+  relevance: 'highly relevant' | 'relevant' | 'somewhat relevant';
+}
+
+const roleCertifications: Record<string, Certification[]> = {
+  'junior-developer': [
+    {
+      name: 'Web Development Fundamentals',
+      provider: 'Codecademy',
+      difficulty: 'beginner',
+      estimatedTimeToComplete: '2-3 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'JavaScript Algorithms and Data Structures',
+      provider: 'freeCodeCamp',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '3 months',
+      relevance: 'relevant'
+    }
+  ],
+  'mid-level-developer': [
+    {
+      name: 'React Developer Certification',
+      provider: 'Meta',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '2-3 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'AWS Certified Developer',
+      provider: 'Amazon Web Services',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '3-6 months',
+      relevance: 'relevant'
+    }
+  ],
+  'senior-developer': [
+    {
+      name: 'Certified Kubernetes Application Developer',
+      provider: 'Cloud Native Computing Foundation',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '3-6 months',
+      relevance: 'relevant'
+    },
+    {
+      name: 'AWS Solutions Architect Professional',
+      provider: 'Amazon Web Services',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'relevant'
+    }
+  ],
+  'lead-developer': [
+    {
+      name: 'Google Cloud Professional Cloud Architect',
+      provider: 'Google Cloud',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'relevant'
+    },
+    {
+      name: 'Certified Scrum Master',
+      provider: 'Scrum Alliance',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '1-2 months',
+      relevance: 'highly relevant'
+    }
+  ],
+  'engineering-manager': [
+    {
+      name: 'Project Management Professional (PMP)',
+      provider: 'Project Management Institute',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'Certified ScrumMaster',
+      provider: 'Scrum Alliance',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '1 month',
+      relevance: 'highly relevant'
+    }
+  ],
+  'cto': [
+    {
+      name: 'TOGAF Enterprise Architecture Certification',
+      provider: 'The Open Group',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '3-6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'Certified Information Security Manager (CISM)',
+      provider: 'ISACA',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'relevant'
+    }
+  ],
+  'data-analyst': [
+    {
+      name: 'Google Data Analytics Professional Certificate',
+      provider: 'Google',
+      difficulty: 'beginner',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'Microsoft Power BI Data Analyst',
+      provider: 'Microsoft',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '2-3 months',
+      relevance: 'highly relevant'
+    }
+  ],
+  'senior-data-analyst': [
+    {
+      name: 'Tableau Desktop Specialist',
+      provider: 'Tableau',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '2-3 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'SAS Certified Data Scientist',
+      provider: 'SAS',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'relevant'
+    }
+  ],
+  'data-scientist': [
+    {
+      name: 'IBM Data Science Professional Certificate',
+      provider: 'IBM',
+      difficulty: 'intermediate',
+      estimatedTimeToComplete: '3-6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'Azure Data Scientist Associate',
+      provider: 'Microsoft',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '3-6 months',
+      relevance: 'relevant'
+    }
+  ],
+  'lead-data-scientist': [
+    {
+      name: 'Certified Machine Learning Engineer',
+      provider: 'MLOps Foundation',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'TensorFlow Developer Certificate',
+      provider: 'Google',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '3 months',
+      relevance: 'relevant'
+    }
+  ],
+  'chief-data-officer': [
+    {
+      name: 'DAMA Certified Data Management Professional',
+      provider: 'DAMA International',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6 months',
+      relevance: 'highly relevant'
+    },
+    {
+      name: 'Certified Chief Data Officer',
+      provider: 'MIT CDOIQ Program',
+      difficulty: 'advanced',
+      estimatedTimeToComplete: '6-12 months',
+      relevance: 'highly relevant'
+    }
+  ]
+};
+
 export default function CareerPathExplorer() {
   const [activePath, setActivePath] = useState<CareerPath>(careerPaths[0]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = (direction: 'left' | 'right') => {
@@ -293,6 +499,17 @@ export default function CareerPathExplorer() {
   const selectedNode = selectedNodeId 
     ? activePath.nodes.find(node => node.id === selectedNodeId) 
     : null;
+    
+  const handleNodeClick = (nodeId: string) => {
+    const isCurrentlySelected = selectedNodeId === nodeId;
+    setSelectedNodeId(nodeId);
+    
+    if (!isCurrentlySelected) {
+      setDrawerOpen(true);
+    } else {
+      setDrawerOpen(!drawerOpen);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -359,7 +576,7 @@ export default function CareerPathExplorer() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                onClick={() => setSelectedNodeId(node.id === selectedNodeId ? null : node.id)}
+                onClick={() => handleNodeClick(node.id)}
               >
                 <Card className={cn(
                   "w-60 shadow-md",
@@ -408,65 +625,165 @@ export default function CareerPathExplorer() {
         </div>
       </div>
 
-      {/* Detailed Node View */}
-      {selectedNode && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Card className="mt-6">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    {selectedNode.icon}
-                    <h2 className="text-2xl font-bold">{selectedNode.title}</h2>
-                  </div>
-                  <div className="text-muted-foreground mt-1">{selectedNode.salaryRange} · {selectedNode.yearsExperience} experience</div>
+      {/* Role Detail Drawer */}
+      <Drawer open={drawerOpen && selectedNode !== null} onOpenChange={setDrawerOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          {selectedNode && (
+            <>
+              <DrawerHeader className="px-6">
+                <div className="flex items-center gap-3 mb-1">
+                  {selectedNode.icon}
+                  <DrawerTitle className="text-2xl">{selectedNode.title}</DrawerTitle>
                 </div>
-                <Badge className={LevelBadgeColors[selectedNode.level]}>
-                  {selectedNode.level.charAt(0).toUpperCase() + selectedNode.level.slice(1)} Level
-                </Badge>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className={LevelBadgeColors[selectedNode.level]}>
+                    {selectedNode.level.charAt(0).toUpperCase() + selectedNode.level.slice(1)} Level
+                  </Badge>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{selectedNode.salaryRange}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{selectedNode.yearsExperience} experience</span>
+                </div>
+                <DrawerDescription>
+                  Explore this role's requirements, growth potential, and recommended certifications
+                </DrawerDescription>
+              </DrawerHeader>
+              
+              <div className="px-6 pb-6">
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="skills">Skills & Requirements</TabsTrigger>
+                    <TabsTrigger value="certifications">Certifications</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview" className="mt-4 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Role Description</h3>
+                      <p className="text-muted-foreground">{selectedNode.description}</p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Growth Outlook</h3>
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md", 
+                          GrowthIndicators[selectedNode.growthPotential].color,
+                          "bg-opacity-10"
+                        )}>
+                          {GrowthIndicators[selectedNode.growthPotential].icon}
+                          <span className="font-medium">{GrowthIndicators[selectedNode.growthPotential].text} Potential</span>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground mt-2">
+                        {selectedNode.growthPotential === 'high' && "This role has excellent growth prospects with many advancement opportunities."}
+                        {selectedNode.growthPotential === 'medium' && "This role offers good growth opportunities with moderate advancement potential."}
+                        {selectedNode.growthPotential === 'low' && "This role has reached a senior level with specialized growth focused on expertise rather than title progression."}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Compensation Details</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4 text-primary" />
+                          <span>Salary range: {selectedNode.salaryRange}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-primary" />
+                          <span>Experience: {selectedNode.yearsExperience}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="skills" className="mt-4 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Key Skills</h3>
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {selectedNode.skills.map(skill => (
+                          <Badge key={skill.name} className={cn("py-1.5 px-3", SkillLevelColors[skill.level])}>
+                            {skill.name} <span className="opacity-80">({skill.level})</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Typical Requirements</h3>
+                      <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+                        <li>Education: {selectedNode.level === 'entry' ? 'Bachelor\'s degree or equivalent experience' : 'Bachelor\'s or Master\'s degree in relevant field'}</li>
+                        <li>Experience: {selectedNode.yearsExperience}</li>
+                        {selectedNode.level === 'executive' && <li>Leadership: 5+ years in senior leadership roles</li>}
+                        {selectedNode.level === 'lead' && <li>Leadership: Experience managing teams or technical projects</li>}
+                        <li>Communication: {selectedNode.level === 'entry' ? 'Basic' : selectedNode.level === 'mid' ? 'Intermediate' : 'Advanced'} communication skills</li>
+                      </ul>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="certifications" className="mt-4 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Recommended Certifications</h3>
+                      {roleCertifications[selectedNode.id] ? (
+                        <div className="space-y-4">
+                          {roleCertifications[selectedNode.id].map(cert => (
+                            <div key={cert.name} className="border rounded-lg p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium">{cert.name}</h4>
+                                  <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
+                                </div>
+                                <Badge className={
+                                  cert.relevance === 'highly relevant' ? 'bg-green-100 text-green-800' :
+                                  cert.relevance === 'relevant' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-amber-100 text-amber-800'
+                                }>
+                                  {cert.relevance}
+                                </Badge>
+                              </div>
+                              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-muted-foreground">
+                                    {cert.difficulty} level
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-muted-foreground">
+                                    {cert.estimatedTimeToComplete}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">
+                          No specific certifications are recommended for this role.
+                        </p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
               
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-medium mb-2">Role Description</h3>
-                  <p className="text-muted-foreground">{selectedNode.description}</p>
-                  
-                  <div className="mt-4">
-                    <div className={cn(
-                      "flex items-center gap-1 text-sm", 
-                      GrowthIndicators[selectedNode.growthPotential].color
-                    )}>
-                      {GrowthIndicators[selectedNode.growthPotential].icon}
-                      <span className="font-medium">{GrowthIndicators[selectedNode.growthPotential].text} Potential</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Key Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNode.skills.map(skill => (
-                      <Badge key={skill.name} className={cn("py-1", SkillLevelColors[skill.level])}>
-                        {skill.name} ({skill.level})
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  {/* CTA */}
-                  <div className="mt-6 space-y-2">
-                    <Button className="w-full">Set as Career Goal</Button>
-                    <Button variant="outline" className="w-full">Explore Similar Roles</Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              <DrawerFooter className="px-6 pt-0">
+                <Button className="w-full">
+                  Set as Career Goal
+                </Button>
+                <Button variant="outline" className="w-full">
+                  <Lightbulb className="mr-2 h-4 w-4" />
+                  Generate AI Suggestions Based on My Work History
+                </Button>
+                <DrawerClose asChild>
+                  <Button variant="ghost">Close</Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
