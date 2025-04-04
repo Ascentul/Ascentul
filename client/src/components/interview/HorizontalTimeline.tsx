@@ -273,12 +273,12 @@ export const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({
         </div>
         
         <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap">
-          <Select value={statusFilter || ''} onValueChange={(value) => setStatusFilter(value || undefined)}>
+          <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? undefined : value)}>
             <SelectTrigger className="w-full lg:w-48">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="Application Submitted">Application Submitted</SelectItem>
               <SelectItem value="Phone Screen">Phone Screen</SelectItem>
               <SelectItem value="Technical Interview">Technical Interview</SelectItem>
@@ -291,12 +291,12 @@ export const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({
             </SelectContent>
           </Select>
           
-          <Select value={stageFilter || ''} onValueChange={(value) => setStageFilter(value || undefined)}>
+          <Select value={stageFilter || 'all_outcomes'} onValueChange={(value) => setStageFilter(value === 'all_outcomes' ? undefined : value)}>
             <SelectTrigger className="w-full lg:w-48">
               <SelectValue placeholder="Filter by stage outcome" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All outcomes</SelectItem>
+              <SelectItem value="all_outcomes">All outcomes</SelectItem>
               <SelectItem value="passed">Passed</SelectItem>
               <SelectItem value="failed">Failed/Rejected</SelectItem>
               <SelectItem value="upcoming">Upcoming</SelectItem>
@@ -522,20 +522,23 @@ export const StageDetailsDialog: React.FC<{
   }, [stage]);
   
   const handleSave = () => {
+    // Create a new object without the scheduledDate to avoid type conflicts
+    const { scheduledDate, ...rest } = editedStage;
+    
     // Convert string date back to Date object before saving
     const formattedStage: Partial<InterviewStage> = {
-      ...editedStage,
+      ...rest,
     };
     
-    // Handle date conversion only if it's a string
-    if (typeof editedStage.scheduledDate === 'string') {
-      if (editedStage.scheduledDate) {
-        formattedStage.scheduledDate = new Date(editedStage.scheduledDate);
+    // Handle date conversion if needed
+    if (typeof scheduledDate === 'string') {
+      if (scheduledDate) {
+        formattedStage.scheduledDate = new Date(scheduledDate);
       } else {
         formattedStage.scheduledDate = null;
       }
     } else {
-      formattedStage.scheduledDate = editedStage.scheduledDate as Date | null | undefined;
+      formattedStage.scheduledDate = scheduledDate as Date | null | undefined;
     }
     
     onSave(formattedStage);
@@ -600,14 +603,14 @@ export const StageDetailsDialog: React.FC<{
           <div className="grid w-full items-center gap-1.5">
             <label htmlFor="stage-outcome" className="text-sm font-medium">Outcome</label>
             <Select 
-              value={editedStage.outcome || ''} 
-              onValueChange={(value) => setEditedStage({ ...editedStage, outcome: value || undefined })}
+              value={editedStage.outcome || 'pending'} 
+              onValueChange={(value) => setEditedStage({ ...editedStage, outcome: value === 'pending' ? undefined : value })}
             >
               <SelectTrigger id="stage-outcome">
                 <SelectValue placeholder="Select an outcome" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Pending</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="passed">Passed</SelectItem>
                 <SelectItem value="not_selected">Not Selected</SelectItem>
               </SelectContent>
