@@ -324,6 +324,7 @@ export default function DesignStudio() {
                   <Button 
                     variant="ghost" 
                     size="sm"
+                    className="design-panel-toggle"
                     onClick={() => setShowSidebar(!showSidebar)}
                   >
                     {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}

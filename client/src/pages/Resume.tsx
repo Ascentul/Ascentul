@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, Save, FileDown } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, Save, FileDown, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
@@ -738,30 +738,49 @@ export default function Resume() {
         </TabsContent>
 
         <TabsContent value="design-studio" className="p-0">
-          <div className="flex items-center justify-end gap-4 p-4 bg-white border-b">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                // Add functionality to save design from the Design Studio
-                if (window.saveDesignFunction) {
-                  window.saveDesignFunction();
-                }
-              }}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save Design
-            </Button>
-            <Button 
-              onClick={() => {
-                // Add functionality to export design from the Design Studio
-                if (window.exportToPDFFunction) {
-                  window.exportToPDFFunction();
-                }
-              }}
-            >
-              <FileDown className="mr-2 h-4 w-4" />
-              Export Design
-            </Button>
+          <div className="flex items-center justify-between p-4 bg-white border-b">
+            <div>
+              {/* Hide Panel button moved here */}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  // Toggle sidebar visibility in Design Studio
+                  const panelToggleButton = document.querySelector('.design-panel-toggle');
+                  if (panelToggleButton && panelToggleButton instanceof HTMLElement) {
+                    panelToggleButton.click();
+                  }
+                }}
+              >
+                <PanelLeftClose className="mr-2 h-4 w-4" />
+                Hide Panel
+              </Button>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Add functionality to save design from the Design Studio
+                  if (window.saveDesignFunction) {
+                    window.saveDesignFunction();
+                  }
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Design
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add functionality to export design from the Design Studio
+                  if (window.exportToPDFFunction) {
+                    window.exportToPDFFunction();
+                  }
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Export Design
+              </Button>
+            </div>
           </div>
           <DesignStudio />
         </TabsContent>
