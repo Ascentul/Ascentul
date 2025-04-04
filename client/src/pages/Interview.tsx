@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -19,6 +20,7 @@ import {
   ListChecks,
   Search,
   BookOpenText,
+  GanttChartSquare as Timeline,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,7 @@ import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProc
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { PracticeSession } from '@/components/interview/PracticeSession';
 import { GamePracticeSession } from '@/components/interview/GamePracticeSession';
+import { InterviewDashboardTimeline } from '@/components/interview/InterviewDashboardTimeline';
 import { type InterviewProcess } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -315,50 +318,30 @@ const Interview = () => {
 
             {activeTab === 'dashboard' && (
               <motion.div variants={fadeIn}>
-                <div className="space-y-3">
-                  <h3 className="font-medium flex items-center">
-                    <Briefcase className="h-4 w-4 mr-2" />
-                    Active Processes ({activeProcesses.length})
-                  </h3>
-                  {isLoading ? (
-                    <div className="py-4">
-                      <LoadingState 
-                        message="Loading active processes..." 
-                        size="sm" 
-                        variant="card" 
-                        className="w-full rounded-lg"
-                      />
-                    </div>
-                  ) : activeProcesses.length > 0 ? (
-                    <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
-                      {activeProcesses.map((process, index) => renderProcessCard(process, index))}
-                    </motion.div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">No active processes</p>
-                  )}
-                </div>
-
-                <div className="space-y-3 mt-6">
-                  <h3 className="font-medium flex items-center">
-                    <Check className="h-4 w-4 mr-2" />
-                    Completed Processes ({completedProcesses.length})
-                  </h3>
-                  {isLoading ? (
-                    <div className="py-4">
-                      <LoadingState 
-                        message="Loading completed processes..." 
-                        size="sm" 
-                        variant="card" 
-                        className="w-full rounded-lg"
-                      />
-                    </div>
-                  ) : completedProcesses.length > 0 ? (
-                    <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-3">
-                      {completedProcesses.map((process, index) => renderProcessCard(process, index))}
-                    </motion.div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">No completed processes</p>
-                  )}
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Interview Process Timeline</CardTitle>
+                      <CardDescription>Visualize your interview journey</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoading ? (
+                        <div className="py-4">
+                          <LoadingState 
+                            message="Loading interview timeline..." 
+                            size="sm" 
+                            variant="card" 
+                            className="w-full rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <InterviewDashboardTimeline 
+                          processes={filteredProcesses || []} 
+                          className="py-4"
+                        />
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
               </motion.div>
             )}
