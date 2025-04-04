@@ -326,198 +326,195 @@ export default function DesignStudio() {
   };
   
   return (
-    <div className="w-full h-[calc(100vh-12rem)] flex flex-col">
-      {/* Top Control Bar */}
-      <div className="flex flex-col border-b">
-        {/* Properties Toolbar - Only shows when an element is selected */}
-        {activeObject && (
-          <div className="flex items-center gap-3 p-2 bg-muted/30 border-t overflow-x-auto">
-            {/* Element Actions */}
-            <div className="flex items-center gap-1 border-r pr-3">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={deleteObject}
-                    >
-                      <Trash size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            {/* Text Formatting - Only for text elements */}
-            {activeObject.type === 'textbox' && (
-              <>
-                <div className="flex items-center gap-1">
-                  <Select 
-                    defaultValue={activeObject.fontFamily || "Arial"} 
-                    onValueChange={(value) => {
-                      activeObject.set('fontFamily', value);
-                      fabricCanvas.renderAll();
-                    }}
+    <div className="w-full h-[calc(100vh-12rem)] flex flex-col relative">
+      {/* Floating Properties Toolbar - Shows when an element is selected */}
+      {activeObject && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-3 p-2 bg-white shadow-md rounded-md border overflow-x-auto">
+          {/* Element Actions */}
+          <div className="flex items-center gap-1 border-r pr-3">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={deleteObject}
                   >
-                    <SelectTrigger className="h-8 w-40">
-                      <SelectValue placeholder="Font Family" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FONT_PRESETS.map((font) => (
-                        <SelectItem key={font} value={font} style={{ fontFamily: font }}>
-                          {font}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Input 
-                    type="number" 
-                    className="w-16 h-8" 
-                    defaultValue={activeObject.fontSize || "16"}
-                    onChange={(e) => {
-                      activeObject.set('fontSize', parseInt(e.target.value));
-                      fabricCanvas.renderAll();
-                    }}
-                  />
-                </div>
-                
-                <div className="flex items-center gap-1 border-l pl-3">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.fontWeight === 'bold' ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <Bold size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Bold</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.fontStyle === 'italic' ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <Italic size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Italic</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.underline ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('underline', !activeObject.underline);
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <Underline size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Underline</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                
-                <div className="flex items-center gap-1 border-l pl-3">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.textAlign === 'left' ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('textAlign', 'left');
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <AlignLeft size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Align Left</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.textAlign === 'center' ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('textAlign', 'center');
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <AlignCenter size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Align Center</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant={activeObject.textAlign === 'right' ? 'secondary' : 'ghost'} 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            activeObject.set('textAlign', 'right');
-                            fabricCanvas.renderAll();
-                          }}
-                        >
-                          <AlignRight size={16} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Align Right</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </>
-            )}
-            
-            {/* Color Selector - Works for both text and shapes */}
-            <div className="flex items-center gap-1 border-l pl-3">
-              <PopoverPicker 
-                color={activeObject.fill} 
-                onChange={(color) => {
-                  activeObject.set('fill', color);
-                  fabricCanvas.renderAll();
-                }}
-              />
-            </div>
+                    <Trash size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
-        )}
-      </div>
+          
+          {/* Text Formatting - Only for text elements */}
+          {activeObject.type === 'textbox' && (
+            <>
+              <div className="flex items-center gap-1">
+                <Select 
+                  defaultValue={activeObject.fontFamily || "Arial"} 
+                  onValueChange={(value) => {
+                    activeObject.set('fontFamily', value);
+                    fabricCanvas.renderAll();
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-40">
+                    <SelectValue placeholder="Font Family" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_PRESETS.map((font) => (
+                      <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Input 
+                  type="number" 
+                  className="w-16 h-8" 
+                  defaultValue={activeObject.fontSize || "16"}
+                  onChange={(e) => {
+                    activeObject.set('fontSize', parseInt(e.target.value));
+                    fabricCanvas.renderAll();
+                  }}
+                />
+              </div>
+              
+              <div className="flex items-center gap-1 border-l pl-3">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.fontWeight === 'bold' ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <Bold size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bold</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.fontStyle === 'italic' ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <Italic size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Italic</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.underline ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('underline', !activeObject.underline);
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <Underline size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Underline</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              
+              <div className="flex items-center gap-1 border-l pl-3">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.textAlign === 'left' ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('textAlign', 'left');
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <AlignLeft size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Left</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.textAlign === 'center' ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('textAlign', 'center');
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <AlignCenter size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Center</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={activeObject.textAlign === 'right' ? 'secondary' : 'ghost'} 
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          activeObject.set('textAlign', 'right');
+                          fabricCanvas.renderAll();
+                        }}
+                      >
+                        <AlignRight size={16} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Align Right</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </>
+          )}
+          
+          {/* Color Selector - Works for both text and shapes */}
+          <div className="flex items-center gap-1 border-l pl-3">
+            <PopoverPicker 
+              color={activeObject.fill} 
+              onChange={(color) => {
+                activeObject.set('fill', color);
+                fabricCanvas.renderAll();
+              }}
+            />
+          </div>
+        </div>
+      )}
       
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
