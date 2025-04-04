@@ -953,70 +953,78 @@ export default function Account() {
                   <h3 className="font-medium mb-2">Primary Color</h3>
                   <div className="flex flex-wrap gap-3">
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0C29AB]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0C29AB] hover:ring-2 hover:ring-offset-2 hover:ring-[#0C29AB]/50"
                       style={{ backgroundColor: "#0C29AB" }}
                       onClick={() => {
                         setCustomColor("#0C29AB");
                         updateTheme({ primary: "#0C29AB" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#7C3AED]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#7C3AED] hover:ring-2 hover:ring-offset-2 hover:ring-[#7C3AED]/50"
                       style={{ backgroundColor: "#7C3AED" }}
                       onClick={() => {
                         setCustomColor("#7C3AED");
                         updateTheme({ primary: "#7C3AED" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#10B981]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#10B981] hover:ring-2 hover:ring-offset-2 hover:ring-[#10B981]/50"
                       style={{ backgroundColor: "#10B981" }}
                       onClick={() => {
                         setCustomColor("#10B981");
                         updateTheme({ primary: "#10B981" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#F97316]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#F97316] hover:ring-2 hover:ring-offset-2 hover:ring-[#F97316]/50"
                       style={{ backgroundColor: "#F97316" }}
                       onClick={() => {
                         setCustomColor("#F97316");
                         updateTheme({ primary: "#F97316" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#EF4444]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#EF4444] hover:ring-2 hover:ring-offset-2 hover:ring-[#EF4444]/50"
                       style={{ backgroundColor: "#EF4444" }}
                       onClick={() => {
                         setCustomColor("#EF4444");
                         updateTheme({ primary: "#EF4444" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#6366F1]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#6366F1] hover:ring-2 hover:ring-offset-2 hover:ring-[#6366F1]/50"
                       style={{ backgroundColor: "#6366F1" }}
                       onClick={() => {
                         setCustomColor("#6366F1");
                         updateTheme({ primary: "#6366F1" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#2563EB]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#2563EB] hover:ring-2 hover:ring-offset-2 hover:ring-[#2563EB]/50"
                       style={{ backgroundColor: "#2563EB" }}
                       onClick={() => {
                         setCustomColor("#2563EB");
                         updateTheme({ primary: "#2563EB" });
+                        applyTheme();
                       }}
                     />
                     <div
-                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0891B2]"
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0891B2] hover:ring-2 hover:ring-offset-2 hover:ring-[#0891B2]/50"
                       style={{ backgroundColor: "#0891B2" }}
                       onClick={() => {
                         setCustomColor("#0891B2");
                         updateTheme({ primary: "#0891B2" });
+                        applyTheme();
                       }}
                     />
-                    <label htmlFor="custom-color" className="w-8 h-8 rounded-full border border-dashed border-input flex items-center justify-center cursor-pointer">
+                    <label htmlFor="custom-color" className="w-8 h-8 rounded-full border border-dashed border-input flex items-center justify-center cursor-pointer hover:bg-muted">
                       <Palette className="h-4 w-4" />
                       <input
                         type="color"
@@ -1024,8 +1032,10 @@ export default function Account() {
                         className="sr-only"
                         value={customColor}
                         onChange={(e) => {
-                          setCustomColor(e.target.value);
-                          updateTheme({ primary: e.target.value });
+                          const color = e.target.value;
+                          setCustomColor(color);
+                          updateTheme({ primary: color });
+                          applyTheme();
                         }}
                       />
                     </label>
@@ -1038,7 +1048,10 @@ export default function Account() {
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'professional' ? 'border-primary' : ''}`}
-                      onClick={() => updateTheme({ variant: 'professional' })}
+                      onClick={() => {
+                        updateTheme({ variant: 'professional' });
+                        applyTheme();
+                      }}
                     >
                       <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-r from-primary/20 to-primary/10">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7h-3a2 2 0 0 1-2-2V2"></path><path d="M7 2v4a2 2 0 0 1-2 2H2"></path><path d="M20 17h-3a2 2 0 0 0-2 2v3"></path><path d="M2 17h3a2 2 0 0 1 2 2v3"></path><rect width="9" height="9" x="7.5" y="7.5" rx="1"></rect></svg>
@@ -1049,7 +1062,10 @@ export default function Account() {
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'tint' ? 'border-primary' : ''}`}
-                      onClick={() => updateTheme({ variant: 'tint' })}
+                      onClick={() => {
+                        updateTheme({ variant: 'tint' });
+                        applyTheme();
+                      }}
                     >
                       <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-br from-primary/30 to-primary/10">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="m19 9-2 2-2-2"></path><path d="m5 9 2 2 2-2"></path><path d="m9 19 2-2 2 2"></path><path d="m9 5 2 2 2-2"></path></svg>
@@ -1060,7 +1076,10 @@ export default function Account() {
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'vibrant' ? 'border-primary' : ''}`}
-                      onClick={() => updateTheme({ variant: 'vibrant' })}
+                      onClick={() => {
+                        updateTheme({ variant: 'vibrant' });
+                        applyTheme();
+                      }}
                     >
                       <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-tr from-primary/90 to-primary/30">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="19" cy="17" r="3"></circle><circle cx="6" cy="12" r="4"></circle></svg>
@@ -1077,7 +1096,10 @@ export default function Account() {
                       <Button 
                         variant="outline" 
                         className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 0 ? 'border-primary' : ''}`}
-                        onClick={() => updateTheme({ radius: 0 })}
+                        onClick={() => {
+                          updateTheme({ radius: 0 });
+                          applyTheme();
+                        }}
                       >
                         <div className="h-12 w-12 border rounded-none flex items-center justify-center mb-2">
                           <span className="text-xs">0px</span>
@@ -1088,7 +1110,10 @@ export default function Account() {
                       <Button 
                         variant="outline" 
                         className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 0.5 ? 'border-primary' : ''}`}
-                        onClick={() => updateTheme({ radius: 0.5 })}
+                        onClick={() => {
+                          updateTheme({ radius: 0.5 });
+                          applyTheme();
+                        }}
                       >
                         <div className="h-12 w-12 border rounded-sm flex items-center justify-center mb-2">
                           <span className="text-xs">0.5rem</span>
@@ -1099,7 +1124,10 @@ export default function Account() {
                       <Button 
                         variant="outline" 
                         className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 1 ? 'border-primary' : ''}`}
-                        onClick={() => updateTheme({ radius: 1 })}
+                        onClick={() => {
+                          updateTheme({ radius: 1 });
+                          applyTheme();
+                        }}
                       >
                         <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2">
                           <span className="text-xs">1rem</span>
@@ -1113,14 +1141,24 @@ export default function Account() {
                       min={0}
                       max={1.5}
                       step={0.1}
-                      onValueChange={(value) => updateTheme({ radius: value[0] })}
+                      onValueChange={(value) => {
+                        updateTheme({ radius: value[0] });
+                        applyTheme();
+                      }}
                     />
                   </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="border-t pt-6">
-              <Button onClick={resetTheme} variant="outline" className="mr-2">
+              <Button 
+                onClick={() => {
+                  resetTheme();
+                  applyTheme();
+                }} 
+                variant="outline" 
+                className="mr-2"
+              >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset to Defaults
               </Button>
