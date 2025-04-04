@@ -740,16 +740,15 @@ export default function Resume() {
         <TabsContent value="design-studio" className="p-0">
           <div className="flex items-center justify-between p-4 bg-white border-b">
             <div>
-              {/* Hide Panel button moved here */}
+              {/* Hide Panel button */}
               <Button 
                 variant="ghost" 
                 size="sm"
+                id="design-panel-toggle-btn"
                 onClick={() => {
-                  // Toggle sidebar visibility in Design Studio
-                  const panelToggleButton = document.querySelector('.design-panel-toggle');
-                  if (panelToggleButton && panelToggleButton instanceof HTMLElement) {
-                    panelToggleButton.click();
-                  }
+                  // Toggle the sidebar state in the Design Studio component
+                  const event = new CustomEvent('toggleDesignSidebar');
+                  document.dispatchEvent(event);
                 }}
               >
                 <PanelLeftClose className="mr-2 h-4 w-4" />

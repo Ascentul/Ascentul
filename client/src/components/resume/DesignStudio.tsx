@@ -125,6 +125,20 @@ export default function DesignStudio() {
       window.exportToPDFFunction = undefined;
     };
   }, [fabricCanvas, currDesignId, designMetadata]);
+
+  // Listen for sidebar toggle event from parent component
+  useEffect(() => {
+    // Listen for the custom sidebar toggle event from Resume.tsx
+    const handleToggleSidebar = () => {
+      setShowSidebar(prevState => !prevState);
+    };
+    
+    document.addEventListener('toggleDesignSidebar', handleToggleSidebar);
+    
+    return () => {
+      document.removeEventListener('toggleDesignSidebar', handleToggleSidebar);
+    };
+  }, []);
   
   // Initialize the canvas
   const initCanvas = () => {
@@ -315,47 +329,6 @@ export default function DesignStudio() {
     <div className="w-full h-[calc(100vh-12rem)] flex flex-col">
       {/* Top Control Bar */}
       <div className="flex flex-col border-b">
-        {/* Main Toolbar */}
-        <div className="flex justify-between items-center p-2">
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="design-panel-toggle"
-                    onClick={() => setShowSidebar(!showSidebar)}
-                  >
-                    {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{showSidebar ? "Hide Panel" : "Show Panel"}</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={saveDesign}
-            >
-              <Save size={16} className="mr-1" />
-              Save
-            </Button>
-            
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={exportToPDF}
-            >
-              <FileDown size={16} className="mr-1" />
-              Export as PDF
-            </Button>
-          </div>
-        </div>
-        
         {/* Properties Toolbar - Only shows when an element is selected */}
         {activeObject && (
           <div className="flex items-center gap-3 p-2 bg-muted/30 border-t overflow-x-auto">
