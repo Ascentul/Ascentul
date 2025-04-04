@@ -408,14 +408,14 @@ export default function DesignStudio() {
       const iconLeft = objBounds.left + objBounds.width / 2;
       const iconTop = objBounds.top - 25; // Position above the object
       
-      // Create a more modern button-like lock indicator
+      // Create a more modern button-like lock indicator, but smaller
       const lockButton = new window.fabric.Rect({
         left: iconLeft,
         top: iconTop,
-        width: 34,
-        height: 34,
-        rx: 8, // Rounded corners
-        ry: 8,
+        width: 17, // Half the size (34/2)
+        height: 17, // Half the size (34/2)
+        rx: 4, // Rounded corners, scaled down
+        ry: 4,
         fill: 'rgba(12, 41, 171, 0.1)', // Light blue background with transparency
         stroke: 'rgba(12, 41, 171, 0.3)', // Subtle blue border
         strokeWidth: 1,
@@ -429,9 +429,9 @@ export default function DesignStudio() {
         targetObject: obj, // Reference to the locked object
         shadow: new window.fabric.Shadow({
           color: 'rgba(0,0,0,0.1)',
-          blur: 4,
+          blur: 2, // Scaled down shadow
           offsetX: 0,
-          offsetY: 2
+          offsetY: 1
         })
       });
       
@@ -441,23 +441,24 @@ export default function DesignStudio() {
         left: iconLeft,
         top: iconTop,
         fill: '#0C29AB',
-        scaleX: 0.7,
-        scaleY: 0.7,
+        scaleX: 0.35, // Half the size (0.7/2)
+        scaleY: 0.35, // Half the size (0.7/2)
         hasControls: false,
         hasBorders: false,
-        selectable: false,
-        evented: false,
+        selectable: true, // Make selectable so it can be clicked
+        evented: true,  // Enable events
         isLockIcon: true,
         originX: 'center',
-        originY: 'center'
+        originY: 'center',
+        targetObject: obj // Reference to the locked object
       });
       
       // Add the lock icon and button to the canvas
       fabricCanvas.add(lockButton);
       fabricCanvas.add(lockIcon);
       
-      // Make the icon clickable to unlock the object
-      lockButton.on('mousedown', () => {
+      // Function to unlock the object
+      const unlockObject = () => {
         // Remove the lock
         obj.set({
           locked: false,
@@ -468,14 +469,18 @@ export default function DesignStudio() {
           lockScalingY: false
         });
         
-        // Remove the lock icon
+        // Remove the lock icons
         fabricCanvas.remove(lockButton);
         fabricCanvas.remove(lockIcon);
         
         // Re-select the object
         fabricCanvas.setActiveObject(obj);
         fabricCanvas.renderAll();
-      });
+      };
+      
+      // Make both the button and the icon clickable to unlock the object
+      lockButton.on('mousedown', unlockObject);
+      lockIcon.on('mousedown', unlockObject);
     };
     
     // Add event listeners
