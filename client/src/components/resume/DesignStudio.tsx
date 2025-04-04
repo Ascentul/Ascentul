@@ -148,6 +148,58 @@ export default function DesignStudio() {
     };
   }, []);
   
+  // Add keyboard shortcuts
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only apply shortcuts when an object is selected
+      if (!activeObject) return;
+      
+      // Copy: Ctrl/Cmd + C
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copyObject();
+      }
+      
+      // Copy Style: Ctrl/Cmd + Shift + C
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        copyStyle();
+      }
+      
+      // Paste Style: Ctrl/Cmd + V (only if style is copied)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v' && copiedStyle) {
+        e.preventDefault();
+        pasteStyle();
+      }
+      
+      // Duplicate: Ctrl/Cmd + D
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault();
+        duplicateObject();
+      }
+      
+      // Delete: Delete key
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteObject();
+      }
+      
+      // Lock/Unlock: Ctrl/Cmd + Shift + L
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
+        e.preventDefault();
+        toggleLock();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [fabricCanvas, activeObject, copiedStyle]);
+  
   // Initialize the canvas
   const initCanvas = () => {
     if (canvasRef.current && window.fabric) {
@@ -956,15 +1008,15 @@ export default function DesignStudio() {
           </div>
         )}
         
-        {/* Canvas Area - Takes full width now, with context menu */}
+        {/* Canvas Area - Takes full width now */}
         <div className="w-full overflow-auto bg-gray-100 p-12 pt-24 flex justify-center">
-          {activeObject ? (
-            <ContextMenu>
-              <ContextMenuTrigger>
-                <div className="bg-white shadow-lg">
-                  <canvas ref={canvasRef} />
-                </div>
-              </ContextMenuTrigger>
+          <ContextMenu>
+            <ContextMenuTrigger disabled={!activeObject}>
+              <div className="bg-white shadow-lg">
+                <canvas ref={canvasRef} />
+              </div>
+            </ContextMenuTrigger>
+            {activeObject && (
               <ContextMenuContent className="w-64">
                 <ContextMenuItem onClick={copyObject}>
                   Copy
@@ -1016,12 +1068,8 @@ export default function DesignStudio() {
                   <ContextMenuShortcut>⇧⌘L</ContextMenuShortcut>
                 </ContextMenuItem>
               </ContextMenuContent>
-            </ContextMenu>
-          ) : (
-            <div className="bg-white shadow-lg">
-              <canvas ref={canvasRef} />
-            </div>
-          )}
+            )}
+          </ContextMenu>
         </div>
       </div>
     </div>
