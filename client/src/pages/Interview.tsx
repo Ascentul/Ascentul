@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -21,19 +21,153 @@ import {
   Search,
   BookOpenText,
   GanttChartSquare as Timeline,
+  GitBranchPlus,
+  Network,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { InterviewProcessStatusBadge } from '@/components/interview/InterviewProcessStatusBadge';
 import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProcessForm';
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { PracticeSession } from '@/components/interview/PracticeSession';
 import { GamePracticeSession } from '@/components/interview/GamePracticeSession';
 import { InterviewDashboardTimeline } from '@/components/interview/InterviewDashboardTimeline';
-import { type InterviewProcess } from '@shared/schema';
+import { HorizontalTimeline, StageDetailsDialog } from '@/components/interview/HorizontalTimeline';
+import { type InterviewProcess, type InterviewStage } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
 import { useLoading } from '@/contexts/loading-context';
+import { apiRequest } from '@/lib/queryClient';
+
+// Component to handle loading stages and displaying the horizontal timeline
+const HorizontalTimelineSection = ({ 
+  processes, 
+  onEditProcess 
+}: { 
+  processes: InterviewProcess[],
+  onEditProcess: (processId: number) => void 
+}) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedStage, setSelectedStage] = useState<InterviewStage | null>(null);
+  const [isStageDialogOpen, setIsStageDialogOpen] = useState(false);
+  const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
+  const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
+  
+  // Fetch stages for all processes
+  const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
+    queryKey: ['/api/interview/stages'],
+    queryFn: async () => {
+      // Create a map of process ID -> stages array
+      const stagesMap: Record<number, InterviewStage[]> = {};
+      
+      // Fetch stages for each process
+      if (processes.length > 0) {
+        for (const process of processes) {
+          try {
+            const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
+            const stagesData = await response.json();
+            stagesMap[process.id] = stagesData;
+          } catch (error) {
+            console.error(`Error fetching stages for process ${process.id}:`, error);
+            stagesMap[process.id] = [];
+          }
+        }
+      }
+      
+      return stagesMap;
+    },
+    enabled: processes.length > 0,
+    placeholderData: {}
+  });
+  
+  // Update stage
+  const updateStageMutation = useMutation({
+    mutationFn: async (updatedStage: Partial<InterviewStage>) => {
+      if (!selectedStageId) throw new Error("No stage selected");
+      const response = await apiRequest('PUT', `/api/interview/stages/${selectedStageId}`, updatedStage);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Stage updated",
+        description: "Interview stage has been updated successfully.",
+      });
+      // Invalidate stages query to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] });
+      setIsStageDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update stage",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Handle stage click to open edit dialog
+  const handleStageClick = (processId: number, stageId: number) => {
+    setSelectedProcessId(processId);
+    setSelectedStageId(stageId);
+    
+    // Find the selected stage
+    const stage = allStages && allStages[processId]?.find(s => s.id === stageId);
+    if (stage) {
+      setSelectedStage(stage);
+      setIsStageDialogOpen(true);
+    }
+  };
+  
+  // Handle saving changes to a stage
+  const handleSaveStage = (updatedStage: Partial<InterviewStage>) => {
+    if (selectedStageId) {
+      updateStageMutation.mutate(updatedStage);
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      {isLoading ? (
+        <LoadingState 
+          message="Loading interview stages..." 
+          size="md" 
+          variant="card" 
+          className="w-full p-6 rounded-lg"
+        />
+      ) : !processes.length ? (
+        <div className="text-center p-8 border rounded-lg bg-muted/30">
+          <h3 className="text-lg font-medium mb-2">No interview processes found</h3>
+          <p className="text-muted-foreground mb-4">Create a new interview process to get started.</p>
+        </div>
+      ) : !allStages || Object.keys(allStages).length === 0 ? (
+        <div className="text-center p-8 border rounded-lg bg-muted/30">
+          <h3 className="text-lg font-medium mb-2">No interview stages found</h3>
+          <p className="text-muted-foreground mb-4">Add interview stages to your processes to track your progress.</p>
+        </div>
+      ) : (
+        <>
+          <HorizontalTimeline 
+            processes={processes}
+            stages={allStages}
+            onStageClick={handleStageClick}
+            onEditProcess={onEditProcess}
+            className="w-full"
+          />
+          {selectedStage && (
+            <StageDetailsDialog 
+              isOpen={isStageDialogOpen}
+              onClose={() => setIsStageDialogOpen(false)}
+              stage={selectedStage}
+              onSave={handleSaveStage}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 const Interview = () => {
   const [activeTab, setActiveTab] = useState('processes');
@@ -125,6 +259,12 @@ const Interview = () => {
     p.status === 'Hired'
   ) || [];
 
+  // Function to view/edit a process, passed to the HorizontalTimelineSection
+  const handleViewProcess = (processId: number) => {
+    setSelectedProcessId(processId);
+    setActiveTab('processes'); // Switch to processes tab to show details
+  };
+  
   const renderProcessCard = (process: InterviewProcess, index: number) => {
     // Determine card background color based on status
     const isRejected = process.status === 'Not Selected';
@@ -221,29 +361,68 @@ const Interview = () => {
       {/* Timeline View - Full Width */}
       {activeTab === 'dashboard' && (
         <motion.div variants={fadeIn} className="container mx-auto">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Interview Process Timeline</CardTitle>
-              <CardDescription>Visualize your interview journey</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="py-4">
-                  <LoadingState 
-                    message="Loading interview timeline..." 
-                    size="sm" 
-                    variant="card" 
-                    className="w-full rounded-lg"
-                  />
-                </div>
-              ) : (
-                <InterviewDashboardTimeline 
-                  processes={filteredProcesses || []} 
-                  className="py-4"
-                />
-              )}
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="traditional" className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-lg font-medium">Interview Process Timeline</h2>
+                <p className="text-sm text-muted-foreground">Visualize your interview journey</p>
+              </div>
+              <TabsList>
+                <TabsTrigger value="traditional" className="flex items-center gap-1.5">
+                  <Timeline className="h-4 w-4" />
+                  <span>Traditional</span>
+                </TabsTrigger>
+                <TabsTrigger value="horizontal" className="flex items-center gap-1.5">
+                  <Network className="h-4 w-4" />
+                  <span>Horizontal</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="traditional">
+              <Card>
+                <CardContent className="pt-6">
+                  {isLoading ? (
+                    <div className="py-4">
+                      <LoadingState 
+                        message="Loading interview timeline..." 
+                        size="sm" 
+                        variant="card" 
+                        className="w-full rounded-lg"
+                      />
+                    </div>
+                  ) : (
+                    <InterviewDashboardTimeline 
+                      processes={filteredProcesses || []} 
+                      className="py-4"
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="horizontal">
+              <Card>
+                <CardContent className="pt-6">
+                  {isLoading ? (
+                    <div className="py-4">
+                      <LoadingState 
+                        message="Loading interview stages..." 
+                        size="sm" 
+                        variant="card" 
+                        className="w-full rounded-lg"
+                      />
+                    </div>
+                  ) : (
+                    <HorizontalTimelineSection 
+                      processes={filteredProcesses || []} 
+                      onEditProcess={handleViewProcess}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       )}
 
