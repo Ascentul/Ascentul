@@ -19,7 +19,17 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Trash2
+  Trash2,
+  Briefcase,
+  GraduationCap,
+  Award,
+  FileText,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Grid,
+  ListChecks
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -315,7 +325,7 @@ export default function DesignStudio() {
           fabricCanvasRef.current.renderAll();
           
           // Make sure all objects are selectable
-          fabricCanvasRef.current.forEachObject((obj) => {
+          fabricCanvasRef.current.forEachObject((obj: any) => {
             obj.selectable = true;
             obj.hasControls = true;
           });
@@ -519,6 +529,806 @@ export default function DesignStudio() {
     setTextAlign(align);
   };
 
+  // Smart Resume Blocks - Creation Functions
+  const addWorkExperienceBlock = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Create the header
+    const header = new window.fabric.IText('WORK EXPERIENCE', {
+      left: 50,
+      top: 50,
+      fontSize: 20,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    
+    // Create job title
+    const jobTitle = new window.fabric.IText('Job Title', {
+      left: 50,
+      top: 80,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    
+    // Create company and date
+    const companyDate = new window.fabric.IText('Company Name | Jan 2022 - Present', {
+      left: 50,
+      top: 105,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    
+    // Create bullet points
+    const bullet1 = new window.fabric.IText('• Accomplishment or responsibility description', {
+      left: 50,
+      top: 130,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const bullet2 = new window.fabric.IText('• Another key achievement with measurable results', {
+      left: 50,
+      top: 155,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const bullet3 = new window.fabric.IText('• Additional responsibility or project', {
+      left: 50,
+      top: 180,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    // Group all elements together
+    const workExperienceBlock = new window.fabric.Group(
+      [header, jobTitle, companyDate, bullet1, bullet2, bullet3],
+      {
+        left: 50,
+        top: 50,
+        selectable: true,
+        hasControls: true,
+        subTargetCheck: true,
+      }
+    );
+    
+    // Allow individual editing of texts within the group
+    workExperienceBlock.subTargetCheck = true;
+    
+    fabricCanvasRef.current.add(workExperienceBlock);
+    fabricCanvasRef.current.setActiveObject(workExperienceBlock);
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Work Experience Block Added",
+      description: "Click on text elements to edit them",
+    });
+  };
+  
+  const addEducationBlock = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Create the header
+    const header = new window.fabric.IText('EDUCATION', {
+      left: 50,
+      top: 50,
+      fontSize: 20,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    
+    // Create degree
+    const degree = new window.fabric.IText('Degree Name', {
+      left: 50,
+      top: 80,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    
+    // Create institution and date
+    const institutionDate = new window.fabric.IText('University Name | Graduation Year', {
+      left: 50,
+      top: 105,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    
+    // Create details
+    const detail1 = new window.fabric.IText('• GPA: 3.8/4.0', {
+      left: 50,
+      top: 130,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const detail2 = new window.fabric.IText('• Relevant Coursework: Course 1, Course 2', {
+      left: 50,
+      top: 155,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    // Group all elements together
+    const educationBlock = new window.fabric.Group(
+      [header, degree, institutionDate, detail1, detail2],
+      {
+        left: 50,
+        top: 50,
+        selectable: true,
+        hasControls: true,
+        subTargetCheck: true,
+      }
+    );
+    
+    fabricCanvasRef.current.add(educationBlock);
+    fabricCanvasRef.current.setActiveObject(educationBlock);
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Education Block Added",
+      description: "Click on text elements to edit them",
+    });
+  };
+  
+  const addSkillsBlock = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Create the header
+    const header = new window.fabric.IText('SKILLS', {
+      left: 50,
+      top: 50,
+      fontSize: 20,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    
+    // Create skill categories
+    const category1 = new window.fabric.IText('Technical Skills:', {
+      left: 50,
+      top: 80,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    
+    const skills1 = new window.fabric.IText('HTML, CSS, JavaScript, React, Node.js, Git', {
+      left: 50,
+      top: 105,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const category2 = new window.fabric.IText('Soft Skills:', {
+      left: 50,
+      top: 130,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    
+    const skills2 = new window.fabric.IText('Communication, Teamwork, Problem Solving, Time Management', {
+      left: 50,
+      top: 155,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    // Group all elements together
+    const skillsBlock = new window.fabric.Group(
+      [header, category1, skills1, category2, skills2],
+      {
+        left: 50,
+        top: 50,
+        selectable: true,
+        hasControls: true,
+        subTargetCheck: true,
+      }
+    );
+    
+    fabricCanvasRef.current.add(skillsBlock);
+    fabricCanvasRef.current.setActiveObject(skillsBlock);
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Skills Block Added",
+      description: "Click on text elements to edit them",
+    });
+  };
+  
+  const addSummaryBlock = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Create the header
+    const header = new window.fabric.IText('PROFESSIONAL SUMMARY', {
+      left: 50,
+      top: 50,
+      fontSize: 20,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    
+    // Create summary text
+    const summaryText = new window.fabric.Textbox(
+      'Experienced professional with X years in [industry/field]. Skilled in [key skills] with a proven track record of [notable achievement]. Seeking to leverage my expertise in [relevant area] to [career goal or target role].',
+      {
+        left: 50,
+        top: 80,
+        width: 500,
+        fontSize: 14,
+        fontFamily: 'Arial',
+        fill: '#333333',
+        lineHeight: 1.5,
+      }
+    );
+    
+    // Group elements together
+    const summaryBlock = new window.fabric.Group(
+      [header, summaryText],
+      {
+        left: 50,
+        top: 50,
+        selectable: true,
+        hasControls: true,
+        subTargetCheck: true,
+      }
+    );
+    
+    fabricCanvasRef.current.add(summaryBlock);
+    fabricCanvasRef.current.setActiveObject(summaryBlock);
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Professional Summary Block Added",
+      description: "Click on text elements to edit them",
+    });
+  };
+  
+  const addContactInfoBlock = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Create name
+    const name = new window.fabric.IText('YOUR NAME', {
+      left: 50,
+      top: 50,
+      fontSize: 28,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+      textAlign: 'center',
+    });
+    
+    // Create contact details
+    const email = new window.fabric.IText('email@example.com', {
+      left: 50,
+      top: 90,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const phone = new window.fabric.IText('(123) 456-7890', {
+      left: 250,
+      top: 90,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    const location = new window.fabric.IText('City, State', {
+      left: 420,
+      top: 90,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    
+    // Group elements together
+    const contactBlock = new window.fabric.Group(
+      [name, email, phone, location],
+      {
+        left: 50,
+        top: 50,
+        selectable: true,
+        hasControls: true,
+        subTargetCheck: true,
+      }
+    );
+    
+    fabricCanvasRef.current.add(contactBlock);
+    fabricCanvasRef.current.setActiveObject(contactBlock);
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Contact Information Block Added",
+      description: "Click on text elements to edit them",
+    });
+  };
+  
+  // Template functions
+  const loadModernTemplate = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Clear canvas first
+    fabricCanvasRef.current.clear();
+    
+    // Add contact section at top
+    addContactInfoBlock();
+    
+    // Reposition the contact block to the top and make it span the width
+    const contactBlock = fabricCanvasRef.current.getObjects()[0];
+    contactBlock.set({
+      left: 30,
+      top: 30,
+      scaleX: 0.9,
+      scaleY: 0.9
+    });
+    
+    // Add a divider line
+    const divider = new window.fabric.Rect({
+      left: 30,
+      top: 130,
+      width: 535,
+      height: 2,
+      fill: '#0C29AB',
+      rx: 1,
+      ry: 1,
+    });
+    fabricCanvasRef.current.add(divider);
+    
+    // Add summary below the divider
+    addSummaryBlock();
+    const summaryBlock = fabricCanvasRef.current.getObjects()[2];
+    summaryBlock.set({
+      left: 30,
+      top: 150,
+      scaleX: 0.9,
+      scaleY: 0.9
+    });
+    
+    // Add experience section
+    addWorkExperienceBlock();
+    const experienceBlock = fabricCanvasRef.current.getObjects()[3];
+    experienceBlock.set({
+      left: 30,
+      top: 250,
+      scaleX: 0.9,
+      scaleY: 0.9
+    });
+    
+    // Add education section
+    addEducationBlock();
+    const educationBlock = fabricCanvasRef.current.getObjects()[4];
+    educationBlock.set({
+      left: 30,
+      top: 450,
+      scaleX: 0.9,
+      scaleY: 0.9
+    });
+    
+    // Add skills section
+    addSkillsBlock();
+    const skillsBlock = fabricCanvasRef.current.getObjects()[5];
+    skillsBlock.set({
+      left: 30,
+      top: 600,
+      scaleX: 0.9,
+      scaleY: 0.9
+    });
+    
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Modern Template Loaded",
+      description: "Customize each section to fit your needs",
+    });
+  };
+  
+  const loadMinimalistTemplate = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Clear canvas first
+    fabricCanvasRef.current.clear();
+    
+    // Add large name at top
+    const name = new window.fabric.IText('YOUR NAME', {
+      left: 297,
+      top: 50,
+      fontSize: 36,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+      originX: 'center',
+      originY: 'top',
+      textAlign: 'center',
+    });
+    fabricCanvasRef.current.add(name);
+    
+    // Add contact details in a single line
+    const contactInfo = new window.fabric.IText('email@example.com | (123) 456-7890 | City, State', {
+      left: 297,
+      top: 100,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+      originX: 'center',
+      originY: 'top',
+      textAlign: 'center',
+    });
+    fabricCanvasRef.current.add(contactInfo);
+    
+    // Add a thin divider line
+    const divider = new window.fabric.Rect({
+      left: 148,
+      top: 130,
+      width: 300,
+      height: 1,
+      fill: '#cccccc',
+    });
+    fabricCanvasRef.current.add(divider);
+    
+    // Add sections with cleaner spacing
+    
+    // Summary section
+    const summaryHeader = new window.fabric.IText('SUMMARY', {
+      left: 50,
+      top: 160,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(summaryHeader);
+    
+    const summaryText = new window.fabric.Textbox(
+      'Concise overview of your skills and experience. Focus on what makes you unique.',
+      {
+        left: 50,
+        top: 185,
+        width: 495,
+        fontSize: 14,
+        fontFamily: 'Arial',
+        fill: '#333333',
+        lineHeight: 1.3,
+      }
+    );
+    fabricCanvasRef.current.add(summaryText);
+    
+    // Experience section
+    const expHeader = new window.fabric.IText('EXPERIENCE', {
+      left: 50,
+      top: 230,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(expHeader);
+    
+    // Job 1
+    const job1Title = new window.fabric.IText('Job Title', {
+      left: 50,
+      top: 255,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(job1Title);
+    
+    const job1Details = new window.fabric.IText('Company | Jan 2022 - Present', {
+      left: 50,
+      top: 275,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    fabricCanvasRef.current.add(job1Details);
+    
+    const job1Bullet1 = new window.fabric.IText('• Key responsibility or achievement with measurable results', {
+      left: 50,
+      top: 295,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(job1Bullet1);
+    
+    const job1Bullet2 = new window.fabric.IText('• Another important contribution or accomplishment', {
+      left: 50,
+      top: 315,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(job1Bullet2);
+    
+    // Education section
+    const eduHeader = new window.fabric.IText('EDUCATION', {
+      left: 50,
+      top: 365,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(eduHeader);
+    
+    const degree = new window.fabric.IText('Degree Name', {
+      left: 50,
+      top: 390,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(degree);
+    
+    const eduDetails = new window.fabric.IText('University Name | Graduation Year', {
+      left: 50,
+      top: 410,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    fabricCanvasRef.current.add(eduDetails);
+    
+    // Skills section
+    const skillsHeader = new window.fabric.IText('SKILLS', {
+      left: 50,
+      top: 450,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(skillsHeader);
+    
+    const skillsList = new window.fabric.IText('Skill 1 • Skill 2 • Skill 3 • Skill 4 • Skill 5 • Skill 6', {
+      left: 50,
+      top: 475,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(skillsList);
+    
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Minimalist Template Loaded",
+      description: "Clean and simple layout ready for customization",
+    });
+  };
+  
+  const loadCreativeTemplate = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Clear canvas first
+    fabricCanvasRef.current.clear();
+    
+    // Create sidebar
+    const sidebar = new window.fabric.Rect({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 842,
+      fill: '#0C29AB',
+    });
+    fabricCanvasRef.current.add(sidebar);
+    
+    // Add name in sidebar
+    const name = new window.fabric.IText('YOUR\nNAME', {
+      left: 100,
+      top: 60,
+      fontSize: 28,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+      originY: 'top',
+    });
+    fabricCanvasRef.current.add(name);
+    
+    // Add contact info in sidebar
+    const contactTitle = new window.fabric.IText('CONTACT', {
+      left: 100,
+      top: 150,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+    });
+    fabricCanvasRef.current.add(contactTitle);
+    
+    const email = new window.fabric.IText('email@example.com', {
+      left: 100,
+      top: 180,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+    });
+    fabricCanvasRef.current.add(email);
+    
+    const phone = new window.fabric.IText('(123) 456-7890', {
+      left: 100,
+      top: 200,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+    });
+    fabricCanvasRef.current.add(phone);
+    
+    // Add skills in sidebar
+    const skillsTitle = new window.fabric.IText('SKILLS', {
+      left: 100,
+      top: 250,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+    });
+    fabricCanvasRef.current.add(skillsTitle);
+    
+    const skills = new window.fabric.Textbox('Skill 1\nSkill 2\nSkill 3\nSkill 4\nSkill 5', {
+      left: 100,
+      top: 280,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#FFFFFF',
+      textAlign: 'center',
+      originX: 'center',
+      lineHeight: 1.5,
+    });
+    fabricCanvasRef.current.add(skills);
+    
+    // Main content area
+    
+    // Add professional title
+    const title = new window.fabric.IText('JOB TITLE / PROFESSION', {
+      left: 220,
+      top: 50,
+      fontSize: 20,
+      fontFamily: 'Arial',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(title);
+    
+    // Add summary
+    const profileTitle = new window.fabric.IText('PROFILE', {
+      left: 220,
+      top: 100,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#0C29AB',
+    });
+    fabricCanvasRef.current.add(profileTitle);
+    
+    const profileText = new window.fabric.Textbox(
+      'Creative and passionate professional with a flair for innovation. Bringing fresh perspectives and solutions to [field/industry].',
+      {
+        left: 220,
+        top: 130,
+        width: 350,
+        fontSize: 14,
+        fontFamily: 'Arial',
+        fill: '#333333',
+        lineHeight: 1.3,
+      }
+    );
+    fabricCanvasRef.current.add(profileText);
+    
+    // Add work experience
+    const expTitle = new window.fabric.IText('EXPERIENCE', {
+      left: 220,
+      top: 200,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#0C29AB',
+    });
+    fabricCanvasRef.current.add(expTitle);
+    
+    // Job 1
+    const jobTitle = new window.fabric.IText('Job Title', {
+      left: 220,
+      top: 230,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(jobTitle);
+    
+    const companyDate = new window.fabric.IText('Company Name | Jan 2022 - Present', {
+      left: 220,
+      top: 250,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    fabricCanvasRef.current.add(companyDate);
+    
+    const jobDesc = new window.fabric.Textbox(
+      '• Achieved significant results in [specific area]\n• Led projects that resulted in [measurable outcome]\n• Collaborated with teams to deliver [accomplishment]',
+      {
+        left: 220,
+        top: 270,
+        width: 350,
+        fontSize: 14,
+        fontFamily: 'Arial',
+        fill: '#333333',
+        lineHeight: 1.3,
+      }
+    );
+    fabricCanvasRef.current.add(jobDesc);
+    
+    // Add education
+    const eduTitle = new window.fabric.IText('EDUCATION', {
+      left: 220,
+      top: 380,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#0C29AB',
+    });
+    fabricCanvasRef.current.add(eduTitle);
+    
+    const degreeName = new window.fabric.IText('Degree Name', {
+      left: 220,
+      top: 410,
+      fontSize: 16,
+      fontFamily: 'Arial',
+      fontWeight: 'bold',
+      fill: '#333333',
+    });
+    fabricCanvasRef.current.add(degreeName);
+    
+    const uniYear = new window.fabric.IText('University Name | Graduation Year', {
+      left: 220,
+      top: 430,
+      fontSize: 14,
+      fontFamily: 'Arial',
+      fill: '#555555',
+    });
+    fabricCanvasRef.current.add(uniYear);
+    
+    fabricCanvasRef.current.renderAll();
+    
+    toast({
+      title: "Creative Template Loaded",
+      description: "Distinctive design with sidebar layout",
+    });
+  };
+
   return (
     <div className="h-screen flex flex-col bg-neutral-100">
       {/* Top Toolbar */}
@@ -566,6 +1376,7 @@ export default function DesignStudio() {
           <Tabs defaultValue="elements">
             <TabsList className="w-full">
               <TabsTrigger value="elements" className="flex-1">Elements</TabsTrigger>
+              <TabsTrigger value="smart-blocks" className="flex-1">Smart Blocks</TabsTrigger>
               <TabsTrigger value="templates" className="flex-1">Templates</TabsTrigger>
             </TabsList>
             <TabsContent value="elements" className="p-2">
@@ -630,33 +1441,234 @@ export default function DesignStudio() {
                 </div>
               </ScrollArea>
             </TabsContent>
+            <TabsContent value="smart-blocks" className="p-2">
+              <ScrollArea className="h-[calc(100vh-10rem)]">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Resume Sections</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={addContactInfoBlock}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Contact Information</p>
+                          <p className="text-xs text-gray-500">Name, email, phone, location</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={addSummaryBlock}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Professional Summary</p>
+                          <p className="text-xs text-gray-500">Career overview and key qualifications</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={addWorkExperienceBlock}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <Briefcase className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Work Experience</p>
+                          <p className="text-xs text-gray-500">Job positions with accomplishments</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={addEducationBlock}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <GraduationCap className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Education</p>
+                          <p className="text-xs text-gray-500">Degrees, certificates, and coursework</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={addSkillsBlock}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <ListChecks className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Skills</p>
+                          <p className="text-xs text-gray-500">Technical and soft skills</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Complete Resume Templates</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div 
+                        className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                        onClick={loadModernTemplate}
+                      >
+                        <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                          <div className="w-full h-full border bg-white rounded shadow-sm p-2">
+                            <div className="w-full h-2 bg-primary/20 mb-2 rounded"></div>
+                            <div className="w-3/4 h-2 bg-neutral-200 mb-4 rounded"></div>
+                            <div className="w-1/4 h-2 bg-neutral-200 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-3 rounded"></div>
+                            <div className="w-1/3 h-2 bg-neutral-200 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white border-t">
+                          <p className="text-sm font-medium">Modern Template</p>
+                          <p className="text-xs text-gray-500">Clean, professional layout</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                        onClick={loadMinimalistTemplate}
+                      >
+                        <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                          <div className="w-full h-full border bg-white rounded shadow-sm p-2">
+                            <div className="w-1/2 h-2 bg-neutral-300 mx-auto mb-3 rounded"></div>
+                            <div className="w-3/4 h-1 bg-neutral-200 mx-auto mb-4 rounded"></div>
+                            <div className="w-1/4 h-2 bg-neutral-300 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-3 rounded"></div>
+                            <div className="w-1/4 h-2 bg-neutral-300 mb-1 rounded"></div>
+                            <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white border-t">
+                          <p className="text-sm font-medium">Minimalist Template</p>
+                          <p className="text-xs text-gray-500">Simple, elegant design</p>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                        onClick={loadCreativeTemplate}
+                      >
+                        <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                          <div className="w-full h-full border bg-white rounded shadow-sm p-2 flex">
+                            <div className="w-1/4 h-full bg-primary/20"></div>
+                            <div className="flex-1 p-1">
+                              <div className="w-3/4 h-2 bg-neutral-200 mb-2 rounded"></div>
+                              <div className="w-1/2 h-1 bg-neutral-100 mb-3 rounded"></div>
+                              <div className="w-1/4 h-2 bg-neutral-200 mb-1 rounded"></div>
+                              <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                              <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white border-t">
+                          <p className="text-sm font-medium">Creative Template</p>
+                          <p className="text-xs text-gray-500">Distinctive sidebar design</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
             <TabsContent value="templates" className="p-2">
               <ScrollArea className="h-[calc(100vh-10rem)]">
                 <div className="grid grid-cols-1 gap-4">
-                  <div className="border rounded cursor-pointer hover:border-primary transition-colors">
-                    <div className="h-40 bg-neutral-100 flex justify-center items-center">
-                      <p className="text-neutral-500">Modern</p>
+                  <div 
+                    className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                    onClick={loadModernTemplate}
+                  >
+                    <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                      <div className="w-full h-full border bg-white rounded shadow-sm p-2">
+                        <div className="w-full h-2 bg-primary/20 mb-2 rounded"></div>
+                        <div className="w-3/4 h-2 bg-neutral-200 mb-4 rounded"></div>
+                        <div className="w-1/4 h-2 bg-neutral-200 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-3 rounded"></div>
+                        <div className="w-1/3 h-2 bg-neutral-200 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                      </div>
                     </div>
                     <div className="p-2 bg-white border-t">
                       <p className="text-sm font-medium">Modern Template</p>
+                      <p className="text-xs text-gray-500">Clean, professional layout</p>
                     </div>
                   </div>
-                  <div className="border rounded cursor-pointer hover:border-primary transition-colors">
-                    <div className="h-40 bg-neutral-100 flex justify-center items-center">
-                      <p className="text-neutral-500">Professional</p>
+                  
+                  <div 
+                    className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                    onClick={loadMinimalistTemplate}
+                  >
+                    <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                      <div className="w-full h-full border bg-white rounded shadow-sm p-2">
+                        <div className="w-1/2 h-2 bg-neutral-300 mx-auto mb-3 rounded"></div>
+                        <div className="w-3/4 h-1 bg-neutral-200 mx-auto mb-4 rounded"></div>
+                        <div className="w-1/4 h-2 bg-neutral-300 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-3 rounded"></div>
+                        <div className="w-1/4 h-2 bg-neutral-300 mb-1 rounded"></div>
+                        <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                      </div>
                     </div>
                     <div className="p-2 bg-white border-t">
-                      <p className="text-sm font-medium">Professional Template</p>
+                      <p className="text-sm font-medium">Minimalist Template</p>
+                      <p className="text-xs text-gray-500">Simple, elegant design</p>
                     </div>
                   </div>
-                  <div className="border rounded cursor-pointer hover:border-primary transition-colors">
-                    <div className="h-40 bg-neutral-100 flex justify-center items-center">
-                      <p className="text-neutral-500">Creative</p>
+                  
+                  <div 
+                    className="border rounded cursor-pointer hover:border-primary transition-colors overflow-hidden"
+                    onClick={loadCreativeTemplate}
+                  >
+                    <div className="h-40 bg-gradient-to-br from-white to-neutral-100 flex justify-center items-center p-2">
+                      <div className="w-full h-full border bg-white rounded shadow-sm p-2 flex">
+                        <div className="w-1/4 h-full bg-primary/20"></div>
+                        <div className="flex-1 p-1">
+                          <div className="w-3/4 h-2 bg-neutral-200 mb-2 rounded"></div>
+                          <div className="w-1/2 h-1 bg-neutral-100 mb-3 rounded"></div>
+                          <div className="w-1/4 h-2 bg-neutral-200 mb-1 rounded"></div>
+                          <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                          <div className="w-full h-1 bg-neutral-100 mb-1 rounded"></div>
+                        </div>
+                      </div>
                     </div>
                     <div className="p-2 bg-white border-t">
                       <p className="text-sm font-medium">Creative Template</p>
+                      <p className="text-xs text-gray-500">Distinctive sidebar design</p>
                     </div>
                   </div>
+                </div>
+                
+                <div className="mt-6 p-3 bg-neutral-50 border rounded">
+                  <h3 className="text-sm font-medium mb-2">Important Note</h3>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Loading a template will clear your current design. Save your work before proceeding.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={saveDesign}
+                  >
+                    <Save className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Save Current Design</span>
+                  </Button>
                 </div>
               </ScrollArea>
             </TabsContent>
