@@ -267,8 +267,8 @@ export default function DesignStudio() {
       // A consistent approach to position the rotation handle below the object
       // Modify the controls directly instead of overriding setCoords
       
-      // Set position for rotation control - consistently 32px below any object
-      window.fabric.Object.prototype.controls.mtr.offsetY = 32; 
+      // Set position for rotation control - consistently 64px below any object
+      window.fabric.Object.prototype.controls.mtr.offsetY = 64; 
       
       // Override the positionHandler to ensure the rotation handle maintains alignment
       // with the shape during rotation and scaling
@@ -290,16 +290,16 @@ export default function DesignStudio() {
         
         // For objects with originX/Y = 'center'
         
-        // Calculate the position 32px directly below the object, accounting for rotation
+        // Calculate the position 64px directly below the object, accounting for rotation
         // We position it directly below the center of the bottom edge
         
         // First, determine the bottom center point offset from center (in local coordinates)
         const localOffsetY = objectHeight / 2;
         
-        // Then the 32px additional offset (still in local coordinates)
-        const additionalOffset = 32;
+        // Then the 64px additional offset (still in local coordinates)
+        const additionalOffset = 64;
         
-        // Now calculate the total offset including the 32px spacing (in global coordinates)
+        // Now calculate the total offset including the 64px spacing (in global coordinates)
         // Apply rotation to maintain alignment with object
         const rotatedOffsetX = 0; // No horizontal offset for centered rotation handle
         const rotatedOffsetY = (localOffsetY + additionalOffset);
