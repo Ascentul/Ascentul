@@ -132,6 +132,11 @@ export default function AICoach() {
     enabled: !!user
   });
   
+  const { data: personalAchievements } = useQuery({
+    queryKey: ['/api/personal-achievements'],
+    enabled: !!user
+  });
+  
   // Set first conversation as active on initial load if none is selected
   useEffect(() => {
     if (mockConversations.length > 0 && !activeConversation) {
@@ -270,6 +275,11 @@ export default function AICoach() {
       goalsCount: Array.isArray(goals) ? goals.length : 0,
       hasInterviews: Array.isArray(interviewProcesses) && interviewProcesses.length > 0,
       interviewCount: Array.isArray(interviewProcesses) ? interviewProcesses.length : 0,
+      hasAchievements: Array.isArray(personalAchievements) && personalAchievements.length > 0,
+      achievementsCount: Array.isArray(personalAchievements) ? personalAchievements.length : 0,
+      recentAchievement: Array.isArray(personalAchievements) && personalAchievements.length > 0
+        ? personalAchievements[0]
+        : null,
       userName: user?.name || "there"
     };
 
@@ -313,6 +323,26 @@ export default function AICoach() {
     if (userContext.hasInterviews) {
       contextResponses.push(
         `I see you're tracking ${userContext.interviewCount} interview processes. For your upcoming interviews, I recommend preparing specific examples that demonstrate your skills and achievements. Would you like help preparing for any particular interview question?`
+      );
+    }
+    
+    // Add achievements context responses
+    if (userContext.hasAchievements) {
+      if (userContext.recentAchievement) {
+        const achievement = userContext.recentAchievement;
+        contextResponses.push(
+          `I notice you've documented achievements like "${achievement.title}". This is excellent material for your resume and interviews. Highlighting specific achievements with measurable outcomes can help you stand out to potential employers. Would you like suggestions on how to effectively showcase this in your next interview?`
+        );
+      }
+      
+      if (userContext.achievementsCount > 2) {
+        contextResponses.push(
+          `You've recorded ${userContext.achievementsCount} personal achievements - that's impressive! These achievements showcase your capabilities and accomplishments. Have you considered categorizing them by skill area to identify your strongest professional attributes?`
+        );
+      }
+    } else {
+      contextResponses.push(
+        `I notice you haven't added any personal achievements yet. Documenting your accomplishments, even smaller ones, can help build your confidence and provide concrete examples for interviews and resume building. Would you like some guidance on identifying achievements from your past experiences?`
       );
     }
     
@@ -363,6 +393,14 @@ export default function AICoach() {
                     {Array.isArray(interviewProcesses) && interviewProcesses.length > 0 
                       ? `${interviewProcesses.length} process(es) tracked` 
                       : "No interviews tracked yet"}
+                  </p>
+                </div>
+                <div>
+                  <div className="font-medium">Personal Achievements</div>
+                  <p className="text-neutral-500">
+                    {Array.isArray(personalAchievements) && personalAchievements.length > 0 
+                      ? `${personalAchievements.length} achievement(s) added` 
+                      : "No achievements added yet"}
                   </p>
                 </div>
               </div>
@@ -452,7 +490,7 @@ export default function AICoach() {
           {/* Coach Suggestions */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Interview Suggestions</CardTitle>
+              <CardTitle className="text-lg">Coach Suggestions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
@@ -511,6 +549,20 @@ export default function AICoach() {
                   }}
                 >
                   Best questions to ask the interviewer
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-left h-auto py-2 text-sm"
+                  onClick={() => {
+                    if (!activeConversation) {
+                      setNewConversationTitle("Achievements in Interviews");
+                      handleCreateConversation();
+                    } else {
+                      setNewMessage("How do I effectively talk about my achievements in an interview?");
+                    }
+                  }}
+                >
+                  How to discuss achievements in interviews
                 </Button>
               </div>
             </CardContent>
