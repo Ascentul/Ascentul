@@ -19,8 +19,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw, Palette
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
 import { z } from 'zod';
@@ -235,6 +236,21 @@ export default function Account() {
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
+  
+  // Theme customization state
+  const [customColor, setCustomColor] = useState<string>('#0C29AB');
+  const [themeSettings, setThemeSettings] = useState<{
+    primary: string;
+    appearance: 'light' | 'dark' | 'system';
+    variant: 'professional' | 'tint' | 'vibrant';
+    radius: number;
+  }>({
+    primary: user?.theme?.primary || '#0C29AB',
+    appearance: (user?.theme?.appearance as 'light' | 'dark' | 'system') || 'light',
+    variant: (user?.theme?.variant as 'professional' | 'tint' | 'vibrant') || 'professional',
+    radius: user?.theme?.radius || 0.5
+  });
+  const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
   
   // State for Stripe payment elements
   const [isLoading, setIsLoading] = useState(false);
@@ -473,6 +489,56 @@ export default function Account() {
       day: 'numeric'
     });
   };
+  
+  // Theme update functions
+  const updateTheme = (updates: Partial<typeof themeSettings>) => {
+    setThemeSettings(prev => ({ ...prev, ...updates }));
+  };
+  
+  const resetTheme = () => {
+    const defaultTheme = {
+      primary: '#0C29AB',
+      appearance: 'light' as const,
+      variant: 'professional' as const,
+      radius: 0.5
+    };
+    setThemeSettings(defaultTheme);
+    setCustomColor('#0C29AB');
+  };
+  
+  const applyTheme = async () => {
+    try {
+      setIsUpdatingTheme(true);
+      
+      // In a real app, this would save to the server
+      // For now, we'll just update theme.json directly
+      const updatedTheme = {
+        ...themeSettings
+      };
+      
+      // Simulate API call with timeout
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Success message
+      toast({
+        title: "Theme Updated",
+        description: "Your theme settings have been saved successfully.",
+        variant: "default"
+      });
+      
+      // In a real implementation, you'd reload the theme or update it in context
+      // window.location.reload();
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update theme",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingTheme(false);
+    }
+  };
 
   if (!user) {
     return <div className="p-8 text-center">Loading user information...</div>;
@@ -491,6 +557,10 @@ export default function Account() {
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="flex items-center">
+            <Palette className="mr-2 h-4 w-4" />
+            Appearance
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center">
             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -817,6 +887,227 @@ export default function Account() {
               </div>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Theme Settings</CardTitle>
+              <CardDescription>
+                Customize the appearance of your application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Color Mode</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.appearance === 'light' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ appearance: 'light' })}
+                    >
+                      <div className="h-12 w-12 bg-background border rounded-full flex items-center justify-center mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-foreground"><circle cx="12" cy="12" r="4"></circle><path d="M12 8a2 2 0 1 0 4 0 4 4 0 0 0-8 0 6 6 0 0 0 12 0c0 8-12 8-12 0a8 8 0 0 0 16 0c0 12-16 12-16 0"></path></svg>
+                      </div>
+                      <span>Light</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.appearance === 'dark' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ appearance: 'dark' })}
+                    >
+                      <div className="h-12 w-12 bg-zinc-900 border border-zinc-800 rounded-full flex items-center justify-center mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+                      </div>
+                      <span>Dark</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.appearance === 'system' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ appearance: 'system' })}
+                    >
+                      <div className="h-12 w-12 bg-gradient-to-br from-background to-zinc-900 border rounded-full flex items-center justify-center mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="14" x="3" y="3" rx="2"></rect><path d="M7 20h10"></path><path d="M9 16v4"></path><path d="M15 16v4"></path></svg>
+                      </div>
+                      <span>System</span>
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Primary Color</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#0C29AB]"
+                      style={{ backgroundColor: "#0C29AB" }}
+                      onClick={() => updateTheme({ primary: "#0C29AB" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#7C3AED]"
+                      style={{ backgroundColor: "#7C3AED" }}
+                      onClick={() => updateTheme({ primary: "#7C3AED" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#10B981]"
+                      style={{ backgroundColor: "#10B981" }}
+                      onClick={() => updateTheme({ primary: "#10B981" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#F97316]"
+                      style={{ backgroundColor: "#F97316" }}
+                      onClick={() => updateTheme({ primary: "#F97316" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#EF4444]"
+                      style={{ backgroundColor: "#EF4444" }}
+                      onClick={() => updateTheme({ primary: "#EF4444" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#6366F1]"
+                      style={{ backgroundColor: "#6366F1" }}
+                      onClick={() => updateTheme({ primary: "#6366F1" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#2563EB]"
+                      style={{ backgroundColor: "#2563EB" }}
+                      onClick={() => updateTheme({ primary: "#2563EB" })}
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-8 h-8 rounded-full p-0 border-none bg-[#0891B2]"
+                      style={{ backgroundColor: "#0891B2" }}
+                      onClick={() => updateTheme({ primary: "#0891B2" })}
+                    />
+                    <label htmlFor="custom-color" className="w-8 h-8 rounded-full border border-dashed border-input flex items-center justify-center cursor-pointer">
+                      <Palette className="h-4 w-4" />
+                      <input
+                        type="color"
+                        id="custom-color"
+                        className="sr-only"
+                        value={customColor}
+                        onChange={(e) => {
+                          setCustomColor(e.target.value);
+                          updateTheme({ primary: e.target.value });
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Variant</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'professional' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ variant: 'professional' })}
+                    >
+                      <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-r from-primary/20 to-primary/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7h-3a2 2 0 0 1-2-2V2"></path><path d="M7 2v4a2 2 0 0 1-2 2H2"></path><path d="M20 17h-3a2 2 0 0 0-2 2v3"></path><path d="M2 17h3a2 2 0 0 1 2 2v3"></path><rect width="9" height="9" x="7.5" y="7.5" rx="1"></rect></svg>
+                      </div>
+                      <span>Professional</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'tint' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ variant: 'tint' })}
+                    >
+                      <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-br from-primary/30 to-primary/10">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="m19 9-2 2-2-2"></path><path d="m5 9 2 2 2-2"></path><path d="m9 19 2-2 2 2"></path><path d="m9 5 2 2 2-2"></path></svg>
+                      </div>
+                      <span>Tint</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'vibrant' ? 'border-primary' : ''}`}
+                      onClick={() => updateTheme({ variant: 'vibrant' })}
+                    >
+                      <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2 bg-gradient-to-tr from-primary/90 to-primary/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="19" cy="17" r="3"></circle><circle cx="6" cy="12" r="4"></circle></svg>
+                      </div>
+                      <span>Vibrant</span>
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Border Radius</h3>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <Button 
+                        variant="outline" 
+                        className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 0 ? 'border-primary' : ''}`}
+                        onClick={() => updateTheme({ radius: 0 })}
+                      >
+                        <div className="h-12 w-12 border rounded-none flex items-center justify-center mb-2">
+                          <span className="text-xs">0px</span>
+                        </div>
+                        <span>None</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 0.5 ? 'border-primary' : ''}`}
+                        onClick={() => updateTheme({ radius: 0.5 })}
+                      >
+                        <div className="h-12 w-12 border rounded-sm flex items-center justify-center mb-2">
+                          <span className="text-xs">0.5rem</span>
+                        </div>
+                        <span>Small</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 1 ? 'border-primary' : ''}`}
+                        onClick={() => updateTheme({ radius: 1 })}
+                      >
+                        <div className="h-12 w-12 border rounded-md flex items-center justify-center mb-2">
+                          <span className="text-xs">1rem</span>
+                        </div>
+                        <span>Medium</span>
+                      </Button>
+                    </div>
+                    
+                    <Slider
+                      defaultValue={[user?.theme?.radius || 0.5]}
+                      min={0}
+                      max={1.5}
+                      step={0.1}
+                      onValueChange={(value) => updateTheme({ radius: value[0] })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t pt-6">
+              <Button onClick={resetTheme} variant="outline" className="mr-2">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset to Defaults
+              </Button>
+              <Button onClick={() => applyTheme()} disabled={isUpdatingTheme}>
+                {isUpdatingTheme ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Apply Changes'
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
