@@ -312,32 +312,32 @@ export default function DesignStudio() {
         };
       };
       
-      // Default rotation handle settings
+      // Default rotation handle settings - make it larger
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
       window.fabric.Object.prototype.controls.mtr.withConnection = false; // No connecting line
       window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
-      window.fabric.Object.prototype.controls.mtr.cornerSize = 12; // Larger than regular control points
+      window.fabric.Object.prototype.controls.mtr.cornerSize = 24; // Doubled size from 12px to 24px
       
       // Customize the selection style to use the brand's primary blue color
       canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
       canvas.selectionBorderColor = '#0C29AB'; // Brand blue for the outline
-      canvas.selectionLineWidth = 3; // Increase thickness of selection border
+      canvas.selectionLineWidth = 6; // Make selection border twice as thick (3px → 6px)
       
       // Apply brand blue as border color when objects are selected
       window.fabric.Object.prototype.borderColor = '#0C29AB';
-      window.fabric.Object.prototype.borderScaleFactor = 2; // Make the border thicker
+      window.fabric.Object.prototype.borderScaleFactor = 4; // Make the border twice as thick (2 → 4)
       
       // Customize the control points (handles) to be white with thin grey outlines
       const cornerFillColor = '#FFFFFF'; // White fill
       const cornerStrokeColor = '#CCCCCC'; // Light grey outline
       
-      // Set corner style to be circles
+      // Set corner style to be circles - now twice as large
       window.fabric.Object.prototype.cornerColor = cornerFillColor;
       window.fabric.Object.prototype.cornerStrokeColor = cornerStrokeColor;
-      window.fabric.Object.prototype.cornerSize = 8; // Slightly smaller corner points
+      window.fabric.Object.prototype.cornerSize = 16; // Doubled size from 8px to 16px
       window.fabric.Object.prototype.transparentCorners = false; // Solid corners look better
       window.fabric.Object.prototype.cornerStyle = 'circle'; // Make corner controls circular
-      window.fabric.Object.prototype.cornerStrokeWidth = 1; // Thin outline
+      window.fabric.Object.prototype.cornerStrokeWidth = 1.5; // Slightly thicker outline
       
       // Create custom control renderers for sides
       const renderSideControl = function(
