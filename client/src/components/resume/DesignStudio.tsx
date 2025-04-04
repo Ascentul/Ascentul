@@ -28,19 +28,21 @@ import {
   Mail,
   Phone,
   MapPin,
+  Copy,
+  Info,
+  Lock,
+  Unlock,
   Grid,
   ListChecks,
   MoveUp,
   MoveDown,
+  Redo2,
+  Undo2,
+  ArrowUpToLine,
+  ArrowDownToLine,
   Eye,
   EyeOff,
-  Lock,
-  Unlock,
-  Undo2,
-  Redo2,
-  Link,
-  ArrowUpToLine,
-  ArrowDownToLine
+  Link
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,6 +53,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Define fabric type for TypeScript
 declare global {
@@ -75,15 +79,16 @@ export default function DesignStudio() {
   
   // New state for advanced features
   const [objects, setObjects] = useState<any[]>([]);
-  const [showGrid, setShowGrid] = useState<boolean>(true);
-  const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
-  const [gridSize, setGridSize] = useState<number>(20);
+  const [showGrid, setShowGrid] = useState<boolean>(false); // Hide grid by default
+  const [snapToGrid, setSnapToGrid] = useState<boolean>(true); // Enable snap to grid by default
+  const [gridSize, setGridSize] = useState<number>(10); // Smaller grid size for finer control
   const [strokeColor, setStrokeColor] = useState<string>("#000000");
   const [strokeWidth, setStrokeWidth] = useState<number>(1);
   const [aspectRatioLocked, setAspectRatioLocked] = useState<boolean>(true);
   const [canvasHistory, setCanvasHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [canvasState, setCanvasState] = useState<any>(null);
+  const [popupPosition, setPopupPosition] = useState<{ x: number, y: number } | null>(null);
   
   const { toast } = useToast();
 
@@ -152,7 +157,6 @@ export default function DesignStudio() {
     if (!snapToGrid || !fabricCanvasRef.current) return;
     
     const target = options.target;
-    const gridSize = 20; // Size of grid
     
     // Snap position
     target.left = Math.round(target.left / gridSize) * gridSize;
@@ -163,6 +167,31 @@ export default function DesignStudio() {
       target.width = Math.round(target.width / gridSize) * gridSize;
       target.height = Math.round(target.height / gridSize) * gridSize;
       target.setCoords(); // Update coordinates
+    }
+    
+    // Add a subtle highlight effect to indicate snapping
+    if (!target.snapHighlight) {
+      target.set({
+        snapHighlight: true,
+        stroke: "#6366f1", // Indigo color for highlight
+        strokeWidth: target.strokeWidth > 0 ? target.strokeWidth + 1 : 1,
+        strokeDashArray: [5, 5] // Dashed line for visual feedback
+      });
+      
+      // Reset highlight after a short delay
+      setTimeout(() => {
+        if (target && fabricCanvasRef.current?.contains(target)) {
+          target.set({
+            snapHighlight: false,
+            strokeDashArray: null,
+            stroke: target._originalStroke || target.stroke,
+            strokeWidth: target._originalStrokeWidth || target.strokeWidth
+          });
+          fabricCanvasRef.current.renderAll();
+        }
+      }, 500);
+      
+      fabricCanvasRef.current.renderAll();
     }
   };
   
@@ -226,6 +255,7 @@ export default function DesignStudio() {
       fabricCanvasRef.current.on('selection:updated', handleObjectSelected);
       fabricCanvasRef.current.on('selection:cleared', () => {
         setSelectedObject(null);
+        setPopupPosition(null);
         resetPropertyControls();
       });
       
@@ -246,8 +276,35 @@ export default function DesignStudio() {
       });
       
       // Setup snapping
-      fabricCanvasRef.current.on('object:moving', snapToGridHandler);
-      fabricCanvasRef.current.on('object:scaling', snapToGridHandler);
+      fabricCanvasRef.current.on('object:moving', (e: any) => {
+        snapToGridHandler(e);
+        
+        // Update popup position when object moves
+        if (e.target === selectedObject && popupPosition) {
+          const zoom = fabricCanvasRef.current.getZoom();
+          const objCenter = e.target.getCenterPoint();
+          
+          setPopupPosition({
+            x: objCenter.x * zoom + fabricCanvasRef.current.viewportTransform[4], 
+            y: (objCenter.y - e.target.height/2 - 30) * zoom + fabricCanvasRef.current.viewportTransform[5]
+          });
+        }
+      });
+      
+      fabricCanvasRef.current.on('object:scaling', (e: any) => {
+        snapToGridHandler(e);
+        
+        // Update popup position when object scales
+        if (e.target === selectedObject && popupPosition) {
+          const zoom = fabricCanvasRef.current.getZoom();
+          const objCenter = e.target.getCenterPoint();
+          
+          setPopupPosition({
+            x: objCenter.x * zoom + fabricCanvasRef.current.viewportTransform[4], 
+            y: (objCenter.y - e.target.height/2 - 30) * zoom + fabricCanvasRef.current.viewportTransform[5]
+          });
+        }
+      });
       
       // Initialize history with empty canvas
       saveToHistory();
@@ -392,6 +449,18 @@ export default function DesignStudio() {
       if (selectedObject.strokeWidth) {
         setStrokeWidth(selectedObject.strokeWidth);
       }
+      
+      // Position the popup menu near the object
+      const zoom = fabricCanvasRef.current.getZoom();
+      const objCenter = selectedObject.getCenterPoint();
+      
+      // Adjust position to place popup above the object
+      setPopupPosition({
+        x: objCenter.x * zoom + fabricCanvasRef.current.viewportTransform[4], 
+        y: (objCenter.y - selectedObject.height/2 - 30) * zoom + fabricCanvasRef.current.viewportTransform[5]
+      });
+    } else {
+      setPopupPosition(null);
     }
   };
 
@@ -753,8 +822,33 @@ export default function DesignStudio() {
     
     fabricCanvasRef.current.remove(selectedObject);
     setSelectedObject(null);
+    setPopupPosition(null);
     resetPropertyControls();
     fabricCanvasRef.current.renderAll();
+  };
+  
+  const duplicateSelectedObject = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    // Clone the object
+    selectedObject.clone((cloned: any) => {
+      // Position it slightly offset from the original
+      cloned.set({
+        left: selectedObject.left + 10,
+        top: selectedObject.top + 10,
+        evented: true,
+      });
+      
+      // If cloning a text element, make sure it stays editable
+      if (cloned.type === 'textbox' || cloned.type === 'i-text') {
+        cloned.editable = true;
+      }
+      
+      fabricCanvasRef.current.add(cloned);
+      fabricCanvasRef.current.setActiveObject(cloned);
+      fabricCanvasRef.current.renderAll();
+      saveToHistory();
+    });
   };
 
   const applyTextStyle = () => {
@@ -1615,6 +1709,78 @@ export default function DesignStudio() {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-100">
+      {/* Floating Action Menu for Selected Objects */}
+      {popupPosition && selectedObject && (
+        <div 
+          className="absolute bg-white shadow-md rounded-md border border-gray-200 flex items-center z-50"
+          style={{ 
+            left: popupPosition.x, 
+            top: popupPosition.y,
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => toggleObjectLock(selectedObject)}
+              >
+                {selectedObject.locked ? (
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Unlock className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{selectedObject.locked ? "Unlock" : "Lock"}</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={duplicateSelectedObject}
+              >
+                <Copy className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Duplicate</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={deleteSelectedObject}
+              >
+                <Trash2 className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Delete</TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8"
+                onClick={() => setPopupPosition(null)}
+              >
+                <Info className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Selection Info</TooltipContent>
+          </Tooltip>
+        </div>
+      )}
+      
       {/* Top Toolbar - Main Controls */}
       <div className="bg-white border-b p-2 flex items-center justify-between">
         <div className="flex space-x-1">
@@ -2131,17 +2297,15 @@ export default function DesignStudio() {
                     <div className="space-y-2 mt-2">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center space-x-2">
-                          <p className="text-xs font-medium">Show Grid</p>
-                        </div>
-                        <Switch
-                          checked={showGrid}
-                          onCheckedChange={setShowGrid}
-                          className="data-[state=checked]:bg-primary"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-2">
                           <p className="text-xs font-medium">Snap to Grid</p>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              When enabled, elements will automatically align to a grid for precise positioning.
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         <Switch
                           checked={snapToGrid}
