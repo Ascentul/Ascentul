@@ -570,10 +570,7 @@ export default function Account() {
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center">
-            <Palette className="mr-2 h-4 w-4" />
-            Appearance
-          </TabsTrigger>
+
           <TabsTrigger value="security" className="flex items-center">
             <ShieldCheck className="mr-2 h-4 w-4" />
             Security
@@ -677,232 +674,7 @@ export default function Account() {
               </Form>
             </DialogContent>
           </Dialog>
-        </TabsContent>
-
-        <TabsContent value="subscription" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Details</CardTitle>
-              {user.subscriptionPlan === 'free' && (
-                <div className="flex justify-end">
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    onClick={() => setIsUpgradingPlan(true)}
-                    className="mt-2"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Upgrade Plan
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Current Plan</h3>
-                  <p className="font-medium">{getPlanName(user.subscriptionPlan)}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Status</h3>
-                  <p className="capitalize">
-                    {user.subscriptionStatus ? 
-                      (user.subscriptionStatus === 'active' ? 
-                        <span className="flex items-center text-green-600 font-medium">
-                          <CheckCircle2 className="h-4 w-4 mr-1" /> Active
-                        </span> : 
-                        user.subscriptionStatus.replace('_', ' ')) : 
-                      <span className="text-gray-500">Free</span>}
-                  </p>
-                </div>
-                
-                {/* Additional subscription details */}
-                {user.subscriptionPlan !== 'free' && (
-                  <>
-                    <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Billing Cycle</h3>
-                      <p className="capitalize">{user.subscriptionCycle || 'Monthly'}</p>
-                    </div>
-                    {user.subscriptionExpiresAt && (
-                      <div>
-                        <h3 className="font-medium text-sm text-muted-foreground">
-                          {user.subscriptionStatus === 'active' ? 'Next Billing Date' : 'Expires On'}
-                        </h3>
-                        <p>{formatDate(user.subscriptionExpiresAt)}</p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              
-              {/* Free plan features description */}
-              {user.subscriptionPlan === 'free' && (
-                <div className="mt-6 p-4 bg-muted/50 rounded-md">
-                  <h3 className="font-medium mb-2">Free Plan Features</h3>
-                  <ul className="space-y-1 text-sm">
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Basic resume builder
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Limited interview practice
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Work history tracking
-                    </li>
-                  </ul>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="mt-4" 
-                    onClick={() => upgradeSubscription()}>
-                    Upgrade to Pro
-                  </Button>
-                </div>
-              )}
-              
-              {/* Premium features description */}
-              {user.subscriptionPlan === 'premium' && (
-                <div className="mt-6 p-4 bg-muted/50 rounded-md">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Your Pro Features</h3>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => setIsManagingSubscription(true)}>
-                        Manage Subscription
-                      </Button>
-                    </div>
-                  </div>
-                  <ul className="space-y-1 text-sm">
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Advanced resume builder
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Unlimited interview practice
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> AI career coach
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Cover letter generator
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-            
-            {/* Add Card Footer with Unsubscribe Button for paid plans */}
-            {user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active' && (
-              <CardFooter className="border-t pt-6 flex flex-col items-stretch">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-medium">Subscription Management</h3>
-                    <p className="text-sm text-muted-foreground">Need to make changes to your billing?</p>
-                  </div>
-                  <Button variant="default" size="sm" onClick={() => setIsManagingPaymentMethods(true)}>
-                    Manage Payment Methods
-                  </Button>
-                </div>
-
-              </CardFooter>
-            )}
-          </Card>
-          
-          {/* Subscription Management Dialog */}
-          <Dialog open={isManagingSubscription} onOpenChange={setIsManagingSubscription}>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Subscription Management</DialogTitle>
-                <DialogDescription>
-                  Manage your subscription settings and payment methods.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4 space-y-6">
-                {/* Subscription Details */}
-                <div className="rounded-md border p-4">
-                  <h3 className="font-medium mb-2 text-lg">Current Subscription</h3>
-                  <div className="grid grid-cols-2 gap-y-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Plan</p>
-                      <p className="font-medium">{getPlanName(user.subscriptionPlan)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Status</p>
-                      <p className="font-medium flex items-center">
-                        {user.subscriptionStatus === 'active' && (
-                          <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
-                        )}
-                        {user.subscriptionStatus ? user.subscriptionStatus.replace('_', ' ') : 'Free'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Billing Cycle</p>
-                      <p className="font-medium">
-                        {user.subscriptionCycle === 'monthly' && 'Monthly'}
-                        {user.subscriptionCycle === 'quarterly' && 'Quarterly'}
-                        {user.subscriptionCycle === 'annual' && 'Annual'}
-                        {!user.subscriptionCycle && 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Next Billing Date</p>
-                      <p className="font-medium">{formatDate(user.subscriptionExpiresAt)}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Plan Actions */}
-                <div className="space-y-3">
-                  <h3 className="font-medium text-lg">Plan Actions</h3>
-                  <div className="flex flex-col gap-3">
-                    {user.subscriptionPlan === 'free' ? (
-                      <Button 
-                        variant="default" 
-                        onClick={() => {
-                          setIsManagingSubscription(false);
-                          setIsUpgradingPlan(true);
-                        }}
-                      >
-                        Upgrade to Pro
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => {
-                          setIsManagingSubscription(false);
-                          setIsCancellingSubscription(true);
-                        }}
-                      >
-                        Cancel Subscription
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Cancel Subscription Confirmation Dialog */}
-          <Dialog open={isCancellingSubscription} onOpenChange={setIsCancellingSubscription}>
-            <DialogContent className="sm:max-w-[400px]">
-              <DialogHeader>
-                <DialogTitle>Cancel Subscription</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setIsCancellingSubscription(false)}>
-                  Keep Subscription
-                </Button>
-                <Button variant="destructive" onClick={cancelSubscription}>
-                  Yes, Cancel
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
+          <Card className="mt-6">
             <CardHeader>
               <CardTitle>Theme Settings</CardTitle>
               <CardDescription>
@@ -1174,6 +946,228 @@ export default function Account() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Details</CardTitle>
+              {user.subscriptionPlan === 'free' && (
+                <div className="flex justify-end">
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={() => setIsUpgradingPlan(true)}
+                    className="mt-2"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Upgrade Plan
+                  </Button>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground">Current Plan</h3>
+                  <p className="font-medium">{getPlanName(user.subscriptionPlan)}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground">Status</h3>
+                  <p className="capitalize">
+                    {user.subscriptionStatus ? 
+                      (user.subscriptionStatus === 'active' ? 
+                        <span className="flex items-center text-green-600 font-medium">
+                          <CheckCircle2 className="h-4 w-4 mr-1" /> Active
+                        </span> : 
+                        user.subscriptionStatus.replace('_', ' ')) : 
+                      <span className="text-gray-500">Free</span>}
+                  </p>
+                </div>
+                
+                {/* Additional subscription details */}
+                {user.subscriptionPlan !== 'free' && (
+                  <>
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Billing Cycle</h3>
+                      <p className="capitalize">{user.subscriptionCycle || 'Monthly'}</p>
+                    </div>
+                    {user.subscriptionExpiresAt && (
+                      <div>
+                        <h3 className="font-medium text-sm text-muted-foreground">
+                          {user.subscriptionStatus === 'active' ? 'Next Billing Date' : 'Expires On'}
+                        </h3>
+                        <p>{formatDate(user.subscriptionExpiresAt)}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              {/* Free plan features description */}
+              {user.subscriptionPlan === 'free' && (
+                <div className="mt-6 p-4 bg-muted/50 rounded-md">
+                  <h3 className="font-medium mb-2">Free Plan Features</h3>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Basic resume builder
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Limited interview practice
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Work history tracking
+                    </li>
+                  </ul>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="mt-4" 
+                    onClick={() => upgradeSubscription()}>
+                    Upgrade to Pro
+                  </Button>
+                </div>
+              )}
+              
+              {/* Premium features description */}
+              {user.subscriptionPlan === 'premium' && (
+                <div className="mt-6 p-4 bg-muted/50 rounded-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium">Your Pro Features</h3>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => setIsManagingSubscription(true)}>
+                        Manage Subscription
+                      </Button>
+                    </div>
+                  </div>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Advanced resume builder
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Unlimited interview practice
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> AI career coach
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" /> Cover letter generator
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+            
+            {/* Add Card Footer with Unsubscribe Button for paid plans */}
+            {user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active' && (
+              <CardFooter className="border-t pt-6 flex flex-col items-stretch">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-medium">Subscription Management</h3>
+                    <p className="text-sm text-muted-foreground">Need to make changes to your billing?</p>
+                  </div>
+                  <Button variant="default" size="sm" onClick={() => setIsManagingPaymentMethods(true)}>
+                    Manage Payment Methods
+                  </Button>
+                </div>
+
+              </CardFooter>
+            )}
+          </Card>
+          
+          {/* Subscription Management Dialog */}
+          <Dialog open={isManagingSubscription} onOpenChange={setIsManagingSubscription}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Subscription Management</DialogTitle>
+                <DialogDescription>
+                  Manage your subscription settings and payment methods.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-6">
+                {/* Subscription Details */}
+                <div className="rounded-md border p-4">
+                  <h3 className="font-medium mb-2 text-lg">Current Subscription</h3>
+                  <div className="grid grid-cols-2 gap-y-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Plan</p>
+                      <p className="font-medium">{getPlanName(user.subscriptionPlan)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Status</p>
+                      <p className="font-medium flex items-center">
+                        {user.subscriptionStatus === 'active' && (
+                          <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
+                        )}
+                        {user.subscriptionStatus ? user.subscriptionStatus.replace('_', ' ') : 'Free'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Billing Cycle</p>
+                      <p className="font-medium">
+                        {user.subscriptionCycle === 'monthly' && 'Monthly'}
+                        {user.subscriptionCycle === 'quarterly' && 'Quarterly'}
+                        {user.subscriptionCycle === 'annual' && 'Annual'}
+                        {!user.subscriptionCycle && 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Next Billing Date</p>
+                      <p className="font-medium">{formatDate(user.subscriptionExpiresAt)}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Plan Actions */}
+                <div className="space-y-3">
+                  <h3 className="font-medium text-lg">Plan Actions</h3>
+                  <div className="flex flex-col gap-3">
+                    {user.subscriptionPlan === 'free' ? (
+                      <Button 
+                        variant="default" 
+                        onClick={() => {
+                          setIsManagingSubscription(false);
+                          setIsUpgradingPlan(true);
+                        }}
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => {
+                          setIsManagingSubscription(false);
+                          setIsCancellingSubscription(true);
+                        }}
+                      >
+                        Cancel Subscription
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Cancel Subscription Confirmation Dialog */}
+          <Dialog open={isCancellingSubscription} onOpenChange={setIsCancellingSubscription}>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Cancel Subscription</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsCancellingSubscription(false)}>
+                  Keep Subscription
+                </Button>
+                <Button variant="destructive" onClick={cancelSubscription}>
+                  Yes, Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
