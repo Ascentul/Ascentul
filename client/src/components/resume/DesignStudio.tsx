@@ -1331,7 +1331,7 @@ export default function DesignStudio() {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-100">
-      {/* Top Toolbar */}
+      {/* Top Toolbar - Main Controls */}
       <div className="bg-white border-b p-2 flex items-center justify-between">
         <div className="flex space-x-1">
           <Button variant="ghost" size="sm" className="flex items-center" onClick={addText}>
@@ -1357,6 +1357,18 @@ export default function DesignStudio() {
             accept="image/*" 
             onChange={handleImageUpload}
           />
+          
+          {selectedObject && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+              onClick={deleteSelectedObject}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              <span className="text-xs sm:text-sm">Delete</span>
+            </Button>
+          )}
         </div>
         <div className="flex space-x-1">
           <Button variant="outline" size="sm" className="flex items-center" onClick={saveDesign}>
@@ -1369,6 +1381,257 @@ export default function DesignStudio() {
           </Button>
         </div>
       </div>
+      
+      {/* Properties Toolbar - Only shows when an object is selected */}
+      {selectedObject && (
+        <div className="bg-white border-b py-1 px-2 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-medium text-neutral-500">Element: </p>
+            <p className="text-xs font-semibold">{selectedObject.type}</p>
+          </div>
+          
+          {/* Text Properties */}
+          {selectedObject && (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') && (
+            <>
+              <Separator orientation="vertical" className="h-6" />
+              <div className="flex items-center gap-1">
+                <select 
+                  className="text-xs p-1 border rounded h-8 bg-white" 
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                >
+                  <option value="Arial">Arial</option>
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Verdana">Verdana</option>
+                </select>
+                
+                <input 
+                  type="number" 
+                  className="text-xs p-1 border rounded w-14 h-8"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                  min="8"
+                  max="72"
+                  placeholder="Size"
+                />
+                
+                <div className="flex items-center h-8 border rounded overflow-hidden">
+                  <input 
+                    type="color" 
+                    value={textColor} 
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="h-full w-8 p-0 border-0"
+                  />
+                </div>
+                
+                <div className="flex border rounded overflow-hidden h-8">
+                  <Button 
+                    size="sm" 
+                    variant={isBold ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none"
+                    onClick={toggleBold}
+                  >
+                    <Bold className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={isItalic ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none border-l border-r"
+                    onClick={toggleItalic}
+                  >
+                    <Italic className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={isUnderline ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none"
+                    onClick={toggleUnderline}
+                  >
+                    <Underline className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                <div className="flex border rounded overflow-hidden h-8">
+                  <Button 
+                    size="sm" 
+                    variant={textAlign === 'left' ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none"
+                    onClick={() => setAlignment('left')}
+                  >
+                    <AlignLeft className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={textAlign === 'center' ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none border-l border-r"
+                    onClick={() => setAlignment('center')}
+                  >
+                    <AlignCenter className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={textAlign === 'right' ? "default" : "ghost"} 
+                    className="h-full px-2 rounded-none"
+                    onClick={() => setAlignment('right')}
+                  >
+                    <AlignRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+          
+          {/* Shape Properties */}
+          {selectedObject && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text' && (
+            <>
+              <Separator orientation="vertical" className="h-6" />
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500">Fill:</span>
+                <div className="flex items-center h-8 border rounded overflow-hidden">
+                  <input 
+                    type="color" 
+                    value={backgroundColor} 
+                    onChange={(e) => setBackgroundColor(e.target.value)}
+                    className="h-full w-8 p-0 border-0"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Properties Toolbar (New addition) */}
+      {selectedObject && (
+        <div className="bg-white border-b p-2 flex items-center gap-4">
+          <div className="flex items-center">
+            <span className="text-xs font-medium text-neutral-500 mr-2">Element:</span>
+            <span className="text-sm">{selectedObject.type}</span>
+          </div>
+          
+          <Separator orientation="vertical" className="h-6" />
+          
+          {/* Text Properties */}
+          {selectedObject && (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') && (
+            <>
+              <div className="flex items-center gap-2">
+                <select 
+                  className="text-sm p-1 border rounded w-28" 
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                >
+                  <option value="Arial">Arial</option>
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Verdana">Verdana</option>
+                </select>
+                
+                <input 
+                  type="number" 
+                  className="w-16 text-sm p-1 border rounded"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value)}
+                  min="8"
+                  max="72"
+                />
+                
+                <div className="flex items-center gap-1">
+                  <input 
+                    type="color" 
+                    value={textColor} 
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="w-6 h-6 p-0 border-0"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex gap-1">
+                <Button 
+                  size="sm" 
+                  variant={isBold ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={toggleBold}
+                >
+                  <Bold className="h-3 w-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={isItalic ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={toggleItalic}
+                >
+                  <Italic className="h-3 w-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={isUnderline ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={toggleUnderline}
+                >
+                  <Underline className="h-3 w-3" />
+                </Button>
+              </div>
+              
+              <div className="flex gap-1">
+                <Button 
+                  size="sm" 
+                  variant={textAlign === 'left' ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setAlignment('left')}
+                >
+                  <AlignLeft className="h-3 w-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={textAlign === 'center' ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setAlignment('center')}
+                >
+                  <AlignCenter className="h-3 w-3" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={textAlign === 'right' ? "default" : "outline"} 
+                  className="h-8 w-8 p-0"
+                  onClick={() => setAlignment('right')}
+                >
+                  <AlignRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </>
+          )}
+          
+          {/* Shape Properties */}
+          {selectedObject && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-neutral-500">Fill:</span>
+              <input 
+                type="color" 
+                value={backgroundColor} 
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                className="w-6 h-6 p-0 border-0"
+              />
+            </div>
+          )}
+          
+          <div className="ml-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center justify-center"
+              onClick={deleteSelectedObject}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              <span className="text-xs">Delete</span>
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
@@ -1675,165 +1938,12 @@ export default function DesignStudio() {
           </Tabs>
         </div>
 
-        {/* Center Canvas Area */}
+        {/* Center Canvas Area - Maximized workspace */}
         <div className="flex-1 overflow-auto bg-neutral-200">
           <div className="min-h-full flex items-start justify-center p-10">
             <div className="w-[595px] h-[842px] bg-white shadow-lg">
               {/* A4 Canvas (595px x 842px) */}
               <canvas ref={canvasRef} width="595" height="842" className="border border-neutral-300"></canvas>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="w-60 border-l bg-white hidden md:block">
-          <div className="p-4">
-            <h3 className="text-sm font-medium mb-4">Properties</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-neutral-500 block mb-1">Element</label>
-                <p className="text-sm">{selectedObject ? selectedObject.type : 'No selection'}</p>
-                {selectedObject && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-2 w-full flex items-center justify-center"
-                    onClick={deleteSelectedObject}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    <span className="text-xs">Delete Element</span>
-                  </Button>
-                )}
-              </div>
-              <Separator />
-              
-              {/* Text Properties */}
-              {selectedObject && (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') && (
-                <>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 block mb-1">Font</label>
-                    <select 
-                      className="w-full text-sm p-1 border rounded" 
-                      value={fontFamily}
-                      onChange={(e) => setFontFamily(e.target.value)}
-                    >
-                      <option value="Arial">Arial</option>
-                      <option value="Helvetica">Helvetica</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Verdana">Verdana</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 block mb-1">Size</label>
-                    <input 
-                      type="number" 
-                      className="w-full text-sm p-1 border rounded"
-                      value={fontSize}
-                      onChange={(e) => setFontSize(e.target.value)}
-                      min="8"
-                      max="72"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 block mb-1">Color</label>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="color" 
-                        value={textColor} 
-                        onChange={(e) => setTextColor(e.target.value)}
-                        className="w-8 h-8 p-0 border-0"
-                      />
-                      <input 
-                        type="text" 
-                        value={textColor} 
-                        onChange={(e) => setTextColor(e.target.value)}
-                        className="text-sm border rounded px-2 py-1 w-full" 
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 block mb-1">Text Style</label>
-                    <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
-                        variant={isBold ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={toggleBold}
-                      >
-                        <Bold className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant={isItalic ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={toggleItalic}
-                      >
-                        <Italic className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant={isUnderline ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={toggleUnderline}
-                      >
-                        <Underline className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 block mb-1">Alignment</label>
-                    <div className="flex gap-1">
-                      <Button 
-                        size="sm" 
-                        variant={textAlign === 'left' ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={() => setAlignment('left')}
-                      >
-                        <AlignLeft className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant={textAlign === 'center' ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={() => setAlignment('center')}
-                      >
-                        <AlignCenter className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant={textAlign === 'right' ? "default" : "outline"} 
-                        className="flex-1"
-                        onClick={() => setAlignment('right')}
-                      >
-                        <AlignRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {/* Shape Properties */}
-              {selectedObject && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text' && (
-                <div>
-                  <label className="text-xs font-medium text-neutral-500 block mb-1">Fill Color</label>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="color" 
-                      value={backgroundColor} 
-                      onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="w-8 h-8 p-0 border-0"
-                    />
-                    <input 
-                      type="text" 
-                      value={backgroundColor} 
-                      onChange={(e) => setBackgroundColor(e.target.value)}
-                      className="text-sm border rounded px-2 py-1 w-full" 
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
