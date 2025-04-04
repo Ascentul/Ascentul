@@ -274,59 +274,18 @@ export default function DesignStudio() {
       {/* Top Control Bar */}
       <div className="flex justify-between items-center p-2 border-b">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => setShowSidebar(!showSidebar)}
-          >
-            {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-          </Button>
-          
-          <Separator orientation="vertical" className="h-6" />
-          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={addText}
+                  onClick={() => setShowSidebar(!showSidebar)}
                 >
-                  <TextCursor size={18} />
+                  {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Add Text</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={addRectangle}
-                >
-                  <Square size={18} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Add Shape</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  disabled={!activeObject}
-                  onClick={deleteObject}
-                >
-                  <Trash size={18} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete</TooltipContent>
+              <TooltipContent>{showSidebar ? "Hide Panel" : "Show Panel"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
