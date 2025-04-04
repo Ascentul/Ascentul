@@ -261,7 +261,7 @@ export const insertXpHistorySchema = createInsertSchema(xpHistory).omit({
   earnedAt: true,
 });
 
-// Professional Certifications
+// Professional Certifications (to be deprecated)
 export const certifications = pgTable("certifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -282,6 +282,36 @@ export const insertCertificationSchema = createInsertSchema(certifications).omit
   userId: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// User Personal Achievements
+export const userPersonalAchievements = pgTable("user_personal_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  achievementDate: timestamp("achievement_date").notNull(),
+  issuingOrganization: text("issuing_organization"),
+  proofUrl: text("proof_url"),
+  skills: text("skills"),
+  category: text("category").notNull().default("professional"), // professional, academic, personal, etc.
+  icon: text("icon").default("award"), // Matches available icons in AchievementBadge.tsx
+  xpValue: integer("xp_value").notNull().default(50),
+  isHighlighted: boolean("is_highlighted").default(false), // Whether to highlight this achievement in the profile
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserPersonalAchievementSchema = createInsertSchema(userPersonalAchievements).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  // Convert achievementDate string to Date object if it's not already a Date
+  achievementDate: z.date().or(
+    z.string().transform((val) => new Date(val))
+  ),
 });
 
 // Interview Process Tracking
@@ -450,6 +480,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   interviewProcesses: many(interviewProcesses),
   mentorChatConversations: many(mentorChatConversations),
   certifications: many(certifications),
+  personalAchievements: many(userPersonalAchievements),
 }));
 
 // Interview Questions Relations
@@ -525,6 +556,14 @@ export const certificationsRelations = relations(certifications, ({ one }) => ({
   }),
 }));
 
+// User Personal Achievements Relations
+export const userPersonalAchievementsRelations = relations(userPersonalAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userPersonalAchievements.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -585,3 +624,6 @@ export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
 
 export type Certification = typeof certifications.$inferSelect;
 export type InsertCertification = z.infer<typeof insertCertificationSchema>;
+
+export type UserPersonalAchievement = typeof userPersonalAchievements.$inferSelect;
+export type InsertUserPersonalAchievement = z.infer<typeof insertUserPersonalAchievementSchema>;

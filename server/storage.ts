@@ -58,7 +58,10 @@ import {
   type InsertMentorChatMessage,
   certifications,
   type Certification,
-  type InsertCertification
+  type InsertCertification,
+  userPersonalAchievements,
+  type UserPersonalAchievement,
+  type InsertUserPersonalAchievement
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -273,12 +276,19 @@ export interface IStorage {
   generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
   clearTodaysRecommendations(userId: number): Promise<void>;
   
-  // Certification operations
+  // Certification operations (to be deprecated)
   getCertifications(userId: number): Promise<Certification[]>;
   getCertification(id: number): Promise<Certification | undefined>;
   createCertification(userId: number, certification: InsertCertification): Promise<Certification>;
   updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined>;
   deleteCertification(id: number): Promise<boolean>;
+  
+  // User Personal Achievements operations
+  getUserPersonalAchievements(userId: number): Promise<UserPersonalAchievement[]>;
+  getUserPersonalAchievement(id: number): Promise<UserPersonalAchievement | undefined>;
+  createUserPersonalAchievement(userId: number, achievement: InsertUserPersonalAchievement): Promise<UserPersonalAchievement>;
+  updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined>;
+  deleteUserPersonalAchievement(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -304,6 +314,7 @@ export class MemStorage implements IStorage {
   private mentorChatMessages: Map<number, MentorChatMessage>;
   private recommendations: Map<number, Recommendation>;
   private certifications: Map<number, Certification>;
+  private userPersonalAchievements: Map<number, UserPersonalAchievement>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -325,6 +336,7 @@ export class MemStorage implements IStorage {
   private mentorChatMessageIdCounter: number;
   private recommendationIdCounter: number;
   private certificationIdCounter: number;
+  private userPersonalAchievementIdCounter: number;
   
   public sessionStore: session.Store;
 
@@ -352,6 +364,7 @@ export class MemStorage implements IStorage {
     this.mentorChatMessages = new Map();
     this.recommendations = new Map();
     this.certifications = new Map();
+    this.userPersonalAchievements = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -373,6 +386,7 @@ export class MemStorage implements IStorage {
     this.mentorChatMessageIdCounter = 1;
     this.recommendationIdCounter = 1;
     this.certificationIdCounter = 1;
+    this.userPersonalAchievementIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -1023,6 +1037,59 @@ export class MemStorage implements IStorage {
 
   async deleteCertification(id: number): Promise<boolean> {
     return this.certifications.delete(id);
+  }
+  
+  // User Personal Achievements operations
+  async getUserPersonalAchievements(userId: number): Promise<UserPersonalAchievement[]> {
+    return Array.from(this.userPersonalAchievements.values())
+      .filter(achievement => achievement.userId === userId)
+      .sort((a, b) => new Date(b.achievementDate).getTime() - new Date(a.achievementDate).getTime());
+  }
+
+  async getUserPersonalAchievement(id: number): Promise<UserPersonalAchievement | undefined> {
+    return this.userPersonalAchievements.get(id);
+  }
+
+  async createUserPersonalAchievement(userId: number, achievement: InsertUserPersonalAchievement): Promise<UserPersonalAchievement> {
+    const id = this.userPersonalAchievementIdCounter++;
+    const now = new Date();
+    const achievementItem: UserPersonalAchievement = {
+      ...achievement,
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      description: achievement.description || null,
+      achievementDate: achievement.achievementDate || now,
+      issuingOrganization: achievement.issuingOrganization || null,
+      proofUrl: achievement.proofUrl || null,
+      skills: achievement.skills || null
+    };
+    this.userPersonalAchievements.set(id, achievementItem);
+    
+    // Award XP for adding a personal achievement
+    await this.addUserXP(userId, 75, "personal_achievement_added", "Added personal achievement");
+    
+    return achievementItem;
+  }
+
+  async updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined> {
+    const achievement = this.userPersonalAchievements.get(id);
+    if (!achievement) return undefined;
+    
+    const now = new Date();
+    const updatedAchievement = { 
+      ...achievement, 
+      ...achievementData,
+      updatedAt: now 
+    };
+    
+    this.userPersonalAchievements.set(id, updatedAchievement);
+    return updatedAchievement;
+  }
+
+  async deleteUserPersonalAchievement(id: number): Promise<boolean> {
+    return this.userPersonalAchievements.delete(id);
   }
 
   async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {

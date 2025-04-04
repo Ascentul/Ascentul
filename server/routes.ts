@@ -20,6 +20,7 @@ import {
   insertMentorChatMessageSchema,
   insertRecommendationSchema,
   insertCertificationSchema,
+  insertUserPersonalAchievementSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
@@ -1326,6 +1327,117 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting certification" });
+    }
+  });
+  
+  // User Personal Achievements Routes
+  apiRouter.get("/personal-achievements", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const achievements = await storage.getUserPersonalAchievements(user.id);
+      res.status(200).json(achievements);
+    } catch (error) {
+      console.error("Error fetching personal achievements:", error);
+      res.status(500).json({ message: "Error fetching personal achievements" });
+    }
+  });
+  
+  apiRouter.post("/personal-achievements", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const achievementData = insertUserPersonalAchievementSchema.parse(req.body);
+      const achievement = await storage.createUserPersonalAchievement(user.id, achievementData);
+      res.status(201).json(achievement);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid achievement data", errors: error.errors });
+      }
+      console.error("Error creating personal achievement:", error);
+      res.status(500).json({ message: "Error creating personal achievement" });
+    }
+  });
+  
+  apiRouter.put("/personal-achievements/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const achievementId = parseInt(id);
+      
+      if (isNaN(achievementId)) {
+        return res.status(400).json({ message: "Invalid achievement ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Verify the achievement exists
+      const achievement = await storage.getUserPersonalAchievement(achievementId);
+      
+      if (!achievement) {
+        return res.status(404).json({ message: "Achievement not found" });
+      }
+      
+      // Ensure the achievement belongs to the current user
+      if (achievement.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this achievement" });
+      }
+      
+      const updatedAchievement = await storage.updateUserPersonalAchievement(achievementId, req.body);
+      res.status(200).json(updatedAchievement);
+    } catch (error) {
+      console.error("Error updating personal achievement:", error);
+      res.status(500).json({ message: "Error updating personal achievement" });
+    }
+  });
+  
+  apiRouter.delete("/personal-achievements/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const achievementId = parseInt(id);
+      
+      if (isNaN(achievementId)) {
+        return res.status(400).json({ message: "Invalid achievement ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Verify the achievement exists
+      const achievement = await storage.getUserPersonalAchievement(achievementId);
+      
+      if (!achievement) {
+        return res.status(404).json({ message: "Achievement not found" });
+      }
+      
+      // Ensure the achievement belongs to the current user
+      if (achievement.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this achievement" });
+      }
+      
+      await storage.deleteUserPersonalAchievement(achievementId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting personal achievement:", error);
+      res.status(500).json({ message: "Error deleting personal achievement" });
     }
   });
   
