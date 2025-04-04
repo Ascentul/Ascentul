@@ -225,11 +225,50 @@ export default function DesignStudio() {
       canvas.selectionLineWidth = 2; // Make the selection border more visible
       
       // Customize the control points (handles)
-      const cornerColor = '#0C29AB';
-      window.fabric.Object.prototype.cornerColor = cornerColor;
-      window.fabric.Object.prototype.cornerStrokeColor = cornerColor;
+      const controlColor = '#0C29AB';
+      
+      // Set corner style to be circles
+      window.fabric.Object.prototype.cornerColor = controlColor;
+      window.fabric.Object.prototype.cornerStrokeColor = controlColor;
       window.fabric.Object.prototype.cornerSize = 8; // Slightly smaller corner points
       window.fabric.Object.prototype.transparentCorners = false; // Solid corners look better
+      window.fabric.Object.prototype.cornerStyle = 'circle'; // Make corner controls circular
+      
+      // Create custom control renderers for sides
+      const renderSideControl = function(ctx, left, top, styleOverride, fabricObject) {
+        const size = this.cornerSize;
+        ctx.save();
+        ctx.fillStyle = this.cornerColor;
+        ctx.strokeStyle = this.cornerStrokeColor;
+        
+        // Draw slim rounded rectangle
+        const width = size * 2.5;
+        const height = size * 0.9;
+        const radius = height / 2; // Fully rounded ends
+        
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.moveTo(left - width/2 + radius, top - height/2);
+        ctx.lineTo(left + width/2 - radius, top - height/2);
+        ctx.arcTo(left + width/2, top - height/2, left + width/2, top - height/2 + radius, radius);
+        ctx.lineTo(left + width/2, top + height/2 - radius);
+        ctx.arcTo(left + width/2, top + height/2, left + width/2 - radius, top + height/2, radius);
+        ctx.lineTo(left - width/2 + radius, top + height/2);
+        ctx.arcTo(left - width/2, top + height/2, left - width/2, top + height/2 - radius, radius);
+        ctx.lineTo(left - width/2, top - height/2 + radius);
+        ctx.arcTo(left - width/2, top - height/2, left - width/2 + radius, top - height/2, radius);
+        ctx.closePath();
+        
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
+      
+      // Apply the custom renderer to side controls (middle left, middle right, etc.)
+      window.fabric.Object.prototype.controls.ml.render = renderSideControl;
+      window.fabric.Object.prototype.controls.mr.render = renderSideControl;
+      window.fabric.Object.prototype.controls.mt.render = renderSideControl;
+      window.fabric.Object.prototype.controls.mb.render = renderSideControl;
       
       // Set up event listeners
       canvas.on("selection:created", handleSelectionChange);
