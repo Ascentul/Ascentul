@@ -228,7 +228,7 @@ export default function DesignStudio() {
         // Draw circular background
         ctx.beginPath();
         ctx.arc(left, top, size, 0, 2 * Math.PI);
-        ctx.fillStyle = '#0C29AB';
+        ctx.fillStyle = '#0C29AB'; // Brand blue
         ctx.fill();
         
         // Draw rotation arrows icon
@@ -299,7 +299,7 @@ export default function DesignStudio() {
       
       // Customize the selection style to use the brand's primary blue color
       canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
-      canvas.selectionBorderColor = '#0C29AB'; // Dark primary blue for the outline
+      canvas.selectionBorderColor = '#0C29AB'; // Brand blue for the outline
       canvas.selectionLineWidth = 2; // Make the selection border more visible
       
       // Customize the control points (handles) to be white with thin grey outlines
@@ -556,8 +556,8 @@ export default function DesignStudio() {
         height: 17, // Half the size (34/2)
         rx: 4, // Rounded corners, scaled down
         ry: 4,
-        fill: 'rgba(12, 41, 171, 0.1)', // Light blue background with transparency
-        stroke: 'rgba(12, 41, 171, 0.3)', // Subtle blue border
+        fill: 'rgba(12, 41, 171, 0.1)', // Light brand blue background with transparency
+        stroke: 'rgba(12, 41, 171, 0.3)', // Subtle brand blue border
         strokeWidth: 1,
         hasControls: false,
         hasBorders: false,
@@ -580,7 +580,7 @@ export default function DesignStudio() {
       const lockIcon = new window.fabric.Path(lockSvgPath, {
         left: iconLeft,
         top: iconTop,
-        fill: '#0C29AB',
+        fill: '#0C29AB', // Brand blue
         scaleX: 0.35, // Half the size (0.7/2)
         scaleY: 0.35, // Half the size (0.7/2)
         hasControls: false,
