@@ -212,12 +212,72 @@ export default function DesignStudio() {
         preserveObjectStacking: true,
       });
 
-      // Change the control position to move rotation handle to the bottom
-      window.fabric.Object.prototype.controls.mtr.offsetY = 30; // Move rotation handle below the object
+      // Create a custom rotation handle renderer
+      const renderRotationHandle = function(
+        this: any, 
+        ctx: CanvasRenderingContext2D, 
+        left: number, 
+        top: number, 
+        styleOverride: any, 
+        fabricObject: any
+      ) {
+        // Draw a distinctive rotation control
+        const size = this.cornerSize;
+        ctx.save();
+        
+        // Draw the connecting line
+        ctx.strokeStyle = '#0C29AB';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(fabricObject.oCoords.mb.x, fabricObject.oCoords.mb.y);
+        ctx.lineTo(left, top);
+        ctx.stroke();
+        
+        // Draw circular background
+        ctx.beginPath();
+        ctx.arc(left, top, size, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0C29AB';
+        ctx.fill();
+        
+        // Draw rotation arrows icon
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        // First arrow (semi-circle with arrowhead)
+        const radius = size * 0.6;
+        ctx.arc(left, top, radius, 0.3 * Math.PI, 1.7 * Math.PI);
+        
+        // Arrowhead
+        const angle = 0.3 * Math.PI;
+        const arrowSize = size * 0.4;
+        ctx.moveTo(
+          left + radius * Math.cos(angle), 
+          top + radius * Math.sin(angle)
+        );
+        ctx.lineTo(
+          left + radius * Math.cos(angle) + arrowSize * Math.cos(angle - Math.PI/4), 
+          top + radius * Math.sin(angle) + arrowSize * Math.sin(angle - Math.PI/4)
+        );
+        ctx.moveTo(
+          left + radius * Math.cos(angle), 
+          top + radius * Math.sin(angle)
+        );
+        ctx.lineTo(
+          left + radius * Math.cos(angle) + arrowSize * Math.cos(angle + Math.PI/4), 
+          top + radius * Math.sin(angle) + arrowSize * Math.sin(angle + Math.PI/4)
+        );
+        
+        ctx.stroke();
+        ctx.restore();
+      };
+      
+      // Change the control position to move rotation handle further below the object
+      window.fabric.Object.prototype.controls.mtr.offsetY = 45; // Increase distance to position handle well below the object
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
-      window.fabric.Object.prototype.controls.mtr.withConnection = true;
-      window.fabric.Object.prototype.controls.mtr.fill = '#0C29AB'; // Match brand color
-      window.fabric.Object.prototype.controls.mtr.stroke = '#0C29AB'; // Match brand color
+      window.fabric.Object.prototype.controls.mtr.withConnection = false; // We'll draw our own connecting line
+      window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
+      window.fabric.Object.prototype.controls.mtr.cornerSize = 12; // Larger than regular control points
       
       // Customize the selection style to use the brand's primary blue color
       canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
@@ -235,7 +295,14 @@ export default function DesignStudio() {
       window.fabric.Object.prototype.cornerStyle = 'circle'; // Make corner controls circular
       
       // Create custom control renderers for sides
-      const renderSideControl = function(ctx, left, top, styleOverride, fabricObject) {
+      const renderSideControl = function(
+        this: any, 
+        ctx: CanvasRenderingContext2D, 
+        left: number, 
+        top: number, 
+        styleOverride: any, 
+        fabricObject: any
+      ) {
         const size = this.cornerSize;
         ctx.save();
         ctx.fillStyle = this.cornerColor;
