@@ -17,6 +17,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { 
   Save, FileDown, Undo, Redo, Type, Square, Image as ImageIcon,
   Plus, Trash, Copy, AlignLeft, AlignCenter, AlignRight,
@@ -213,6 +221,145 @@ export default function DesignStudio() {
     fabricCanvas.remove(activeObject);
     setActiveObject(null);
     fabricCanvas.renderAll();
+  };
+  
+  // Copy the selected object
+  const copyObject = () => {
+    if (!fabricCanvas || !activeObject) return;
+    
+    // Clone the object
+    activeObject.clone((cloned: any) => {
+      fabricCanvas.discardActiveObject();
+      // Customize cloned object position slightly offset from original
+      cloned.set({
+        left: cloned.left + 10,
+        top: cloned.top + 10,
+        evented: true,
+      });
+      
+      fabricCanvas.add(cloned);
+      fabricCanvas.setActiveObject(cloned);
+      fabricCanvas.renderAll();
+      setActiveObject(cloned);
+    });
+  };
+  
+  // Duplicate the selected object (similar to copy but keeps in place)
+  const duplicateObject = () => {
+    if (!fabricCanvas || !activeObject) return;
+    
+    // Clone the object
+    activeObject.clone((cloned: any) => {
+      fabricCanvas.discardActiveObject();
+      // Position exactly like the original
+      cloned.set({
+        left: activeObject.left + 15,
+        top: activeObject.top + 15,
+        evented: true,
+      });
+      
+      fabricCanvas.add(cloned);
+      fabricCanvas.setActiveObject(cloned);
+      fabricCanvas.renderAll();
+      setActiveObject(cloned);
+    });
+  };
+  
+  // Copy style from selected object (store it for paste)
+  const [copiedStyle, setCopiedStyle] = useState<any>(null);
+  
+  const copyStyle = () => {
+    if (!fabricCanvas || !activeObject) return;
+    
+    // Extract style properties based on object type
+    const style: any = {};
+    
+    if (activeObject.type === 'textbox' || activeObject.type === 'i-text') {
+      // Text properties
+      ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'underline', 
+       'textAlign', 'fill', 'backgroundColor', 'stroke', 'strokeWidth'].forEach(prop => {
+        if (activeObject[prop] !== undefined) {
+          style[prop] = activeObject[prop];
+        }
+      });
+    } else {
+      // Shape properties
+      ['fill', 'stroke', 'strokeWidth', 'opacity', 'shadow'].forEach(prop => {
+        if (activeObject[prop] !== undefined) {
+          style[prop] = activeObject[prop];
+        }
+      });
+    }
+    
+    setCopiedStyle(style);
+  };
+  
+  // Paste style to selected object
+  const pasteStyle = () => {
+    if (!fabricCanvas || !activeObject || !copiedStyle) return;
+    
+    // Apply the copied style to the active object
+    Object.keys(copiedStyle).forEach(prop => {
+      activeObject.set(prop, copiedStyle[prop]);
+    });
+    
+    fabricCanvas.renderAll();
+  };
+  
+  // Lock/Unlock object
+  const toggleLock = () => {
+    if (!fabricCanvas || !activeObject) return;
+    
+    // Toggle the selectable and movable properties
+    const isLocked = !activeObject.selectable;
+    activeObject.set({
+      selectable: isLocked, // If currently locked, unlock it
+      evented: isLocked,
+      lockMovementX: !isLocked,
+      lockMovementY: !isLocked,
+      lockRotation: !isLocked,
+      lockScalingX: !isLocked,
+      lockScalingY: !isLocked,
+    });
+    
+    if (!isLocked) {
+      // If we're locking the object, deselect it
+      fabricCanvas.discardActiveObject();
+      setActiveObject(null);
+    }
+    
+    fabricCanvas.renderAll();
+  };
+  
+  // Align object to page
+  const alignToPage = (position: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
+    if (!fabricCanvas || !activeObject) return;
+    
+    const canvas = fabricCanvas;
+    const object = activeObject;
+    
+    switch (position) {
+      case 'left':
+        object.set({ left: 0 });
+        break;
+      case 'center':
+        object.set({ left: (canvas.width - object.getScaledWidth()) / 2 });
+        break;
+      case 'right':
+        object.set({ left: canvas.width - object.getScaledWidth() });
+        break;
+      case 'top':
+        object.set({ top: 0 });
+        break;
+      case 'middle':
+        object.set({ top: (canvas.height - object.getScaledHeight()) / 2 });
+        break;
+      case 'bottom':
+        object.set({ top: canvas.height - object.getScaledHeight() });
+        break;
+    }
+    
+    canvas.renderAll();
   };
   
   // Save the current design
@@ -809,11 +956,72 @@ export default function DesignStudio() {
           </div>
         )}
         
-        {/* Canvas Area - Takes full width now */}
+        {/* Canvas Area - Takes full width now, with context menu */}
         <div className="w-full overflow-auto bg-gray-100 p-12 pt-24 flex justify-center">
-          <div className="bg-white shadow-lg">
-            <canvas ref={canvasRef} />
-          </div>
+          {activeObject ? (
+            <ContextMenu>
+              <ContextMenuTrigger>
+                <div className="bg-white shadow-lg">
+                  <canvas ref={canvasRef} />
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-64">
+                <ContextMenuItem onClick={copyObject}>
+                  Copy
+                  <ContextMenuShortcut>⌘C</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={copyStyle}>
+                  Copy style
+                  <ContextMenuShortcut>⇧⌘C</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={pasteStyle} disabled={!copiedStyle}>
+                  Paste
+                  <ContextMenuShortcut>⌘V</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem onClick={duplicateObject}>
+                  Duplicate
+                  <ContextMenuShortcut>⌘D</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={deleteObject} className="text-red-500">
+                  Delete
+                  <ContextMenuShortcut>DELETE</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem>
+                  Align to page
+                  <ContextMenuShortcut>→</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('left')}>
+                  Left
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('center')}>
+                  Center
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('right')}>
+                  Right
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('top')}>
+                  Top
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('middle')}>
+                  Middle
+                </ContextMenuItem>
+                <ContextMenuItem className="pl-6" onClick={() => alignToPage('bottom')}>
+                  Bottom
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onClick={toggleLock}>
+                  {activeObject.selectable === false ? 'Unlock' : 'Lock'}
+                  <ContextMenuShortcut>⇧⌘L</ContextMenuShortcut>
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          ) : (
+            <div className="bg-white shadow-lg">
+              <canvas ref={canvasRef} />
+            </div>
+          )}
         </div>
       </div>
     </div>
