@@ -264,31 +264,32 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // A simpler approach to position the rotation handle below the object
+      // A consistent approach to position the rotation handle below the object
       // Modify the controls directly instead of overriding setCoords
       
-      // Set position for rotation control
-      window.fabric.Object.prototype.controls.mtr.offsetY = 48; // Default offset for text
+      // Set position for rotation control - consistently 32px below any object
+      window.fabric.Object.prototype.controls.mtr.offsetY = 32; 
       
-      // The original getCoords will still be called, but we'll modify the object
-      // to determine the appropriate offsetY based on object type
-      window.fabric.Object.prototype._setControlsVisibility = 
-        window.fabric.Object.prototype.setControlsVisibility;
+      // Override the positionHandler to ensure the rotation handle maintains distance
+      // even when the object is scaled
+      window.fabric.Object.prototype.controls.mtr.positionHandler = function(
+        dim: any, 
+        finalMatrix: any, 
+        fabricObject: any
+      ) {
+        // Get object center and scale
+        const x = fabricObject.left + fabricObject.width / 2;
+        const y = fabricObject.top + fabricObject.height / 2;
         
-      window.fabric.Object.prototype.setControlsVisibility = function(this: any, options: any) {
-        // First call the original method to set up controls
-        const result = this._setControlsVisibility(options);
+        // Calculate position with consistent 32px distance below object,
+        // taking into account object's scale
+        const objectScale = Math.max(fabricObject.scaleX, fabricObject.scaleY);
+        const offsetFromBottom = fabricObject.height * fabricObject.scaleY / 2 + 32;
         
-        // Now set the appropriate offset based on object type
-        if (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') {
-          // For shapes, set distance to 60px below object
-          this.controls.mtr.offsetY = 60;
-        } else {
-          // For text, set distance to 48px below object
-          this.controls.mtr.offsetY = 48;
-        }
-        
-        return result;
+        return {
+          x: x,
+          y: y + offsetFromBottom
+        };
       };
       
       // Default rotation handle settings
