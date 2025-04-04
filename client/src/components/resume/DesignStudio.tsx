@@ -29,7 +29,18 @@ import {
   Phone,
   MapPin,
   Grid,
-  ListChecks
+  ListChecks,
+  MoveUp,
+  MoveDown,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Undo2,
+  Redo2,
+  Link,
+  ArrowUpToLine,
+  ArrowDownToLine
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +49,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 // Define fabric type for TypeScript
 declare global {
@@ -59,7 +72,143 @@ export default function DesignStudio() {
   const [isBold, setIsBold] = useState<boolean>(false);
   const [isItalic, setIsItalic] = useState<boolean>(false);
   const [isUnderline, setIsUnderline] = useState<boolean>(false);
+  
+  // New state for advanced features
+  const [objects, setObjects] = useState<any[]>([]);
+  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
+  const [gridSize, setGridSize] = useState<number>(20);
+  const [strokeColor, setStrokeColor] = useState<string>("#000000");
+  const [strokeWidth, setStrokeWidth] = useState<number>(1);
+  const [aspectRatioLocked, setAspectRatioLocked] = useState<boolean>(true);
+  const [canvasHistory, setCanvasHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [canvasState, setCanvasState] = useState<any>(null);
+  
   const { toast } = useToast();
+
+  // Function to update the layers panel with current canvas objects
+  const updateObjectsList = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    const objects = fabricCanvasRef.current.getObjects();
+    setObjects([...objects]);
+  };
+
+  // Save current state to history
+  const saveToHistory = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    const json = JSON.stringify(fabricCanvasRef.current.toJSON(['selectable', 'hasControls', 'visible', 'locked']));
+    
+    // If we're in the middle of the history, slice off everything after current index
+    if (historyIndex < canvasHistory.length - 1) {
+      const newHistory = canvasHistory.slice(0, historyIndex + 1);
+      newHistory.push(json);
+      setCanvasHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    } else {
+      // Otherwise just append
+      setCanvasHistory([...canvasHistory, json]);
+      setHistoryIndex(canvasHistory.length);
+    }
+  };
+  
+  // Undo function
+  const undo = () => {
+    if (historyIndex > 0 && canvasHistory.length > 0) {
+      const newIndex = historyIndex - 1;
+      loadFromJson(canvasHistory[newIndex]);
+      setHistoryIndex(newIndex);
+    }
+  };
+  
+  // Redo function
+  const redo = () => {
+    if (historyIndex < canvasHistory.length - 1) {
+      const newIndex = historyIndex + 1;
+      loadFromJson(canvasHistory[newIndex]);
+      setHistoryIndex(newIndex);
+    }
+  };
+  
+  // Load from JSON string
+  const loadFromJson = (json: string) => {
+    if (!fabricCanvasRef.current) return;
+    
+    try {
+      fabricCanvasRef.current.clear();
+      fabricCanvasRef.current.loadFromJSON(json, () => {
+        fabricCanvasRef.current.renderAll();
+        updateObjectsList();
+      });
+    } catch (error) {
+      console.error("Error loading from JSON:", error);
+    }
+  };
+  
+  // Apply grid snapping to object
+  const snapToGridHandler = (options: any) => {
+    if (!snapToGrid || !fabricCanvasRef.current) return;
+    
+    const target = options.target;
+    const gridSize = 20; // Size of grid
+    
+    // Snap position
+    target.left = Math.round(target.left / gridSize) * gridSize;
+    target.top = Math.round(target.top / gridSize) * gridSize;
+    
+    // For shapes with width/height, snap dimensions too
+    if (target.width && target.height) {
+      target.width = Math.round(target.width / gridSize) * gridSize;
+      target.height = Math.round(target.height / gridSize) * gridSize;
+      target.setCoords(); // Update coordinates
+    }
+  };
+  
+  // Draw grid on canvas
+  const drawGrid = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    // Remove existing grid lines
+    const existingLines = fabricCanvasRef.current.getObjects().filter((obj: any) => obj.id === 'gridLine');
+    existingLines.forEach((line: any) => fabricCanvasRef.current.remove(line));
+    
+    if (!showGrid) {
+      fabricCanvasRef.current.renderAll();
+      return;
+    }
+    
+    const canvasWidth = fabricCanvasRef.current.width || 595;
+    const canvasHeight = fabricCanvasRef.current.height || 842;
+    const gridColor = 'rgba(200, 200, 200, 0.4)';
+    
+    // Draw vertical lines
+    for (let i = 0; i <= canvasWidth; i += gridSize) {
+      const line = new window.fabric.Line([i, 0, i, canvasHeight], {
+        stroke: gridColor,
+        selectable: false,
+        evented: false,
+        id: 'gridLine'
+      });
+      fabricCanvasRef.current.add(line);
+      line.sendToBack();
+    }
+    
+    // Draw horizontal lines
+    for (let i = 0; i <= canvasHeight; i += gridSize) {
+      const line = new window.fabric.Line([0, i, canvasWidth, i], {
+        stroke: gridColor,
+        selectable: false,
+        evented: false,
+        id: 'gridLine'
+      });
+      fabricCanvasRef.current.add(line);
+      line.sendToBack();
+    }
+    
+    fabricCanvasRef.current.renderAll();
+  };
 
   useEffect(() => {
     // Initialize Fabric canvas
@@ -79,6 +228,32 @@ export default function DesignStudio() {
         setSelectedObject(null);
         resetPropertyControls();
       });
+      
+      // Setup event handlers for history tracking
+      fabricCanvasRef.current.on('object:added', () => {
+        updateObjectsList();
+        saveToHistory();
+      });
+      
+      fabricCanvasRef.current.on('object:modified', (e: any) => {
+        updateObjectsList();
+        saveToHistory();
+      });
+      
+      fabricCanvasRef.current.on('object:removed', () => {
+        updateObjectsList();
+        saveToHistory();
+      });
+      
+      // Setup snapping
+      fabricCanvasRef.current.on('object:moving', snapToGridHandler);
+      fabricCanvasRef.current.on('object:scaling', snapToGridHandler);
+      
+      // Initialize history with empty canvas
+      saveToHistory();
+      
+      // Draw grid
+      drawGrid();
     }
 
     return () => {
@@ -88,6 +263,106 @@ export default function DesignStudio() {
       }
     };
   }, []);
+  
+  // Redraw grid when show grid or grid size changes
+  useEffect(() => {
+    drawGrid();
+  }, [showGrid, gridSize]);
+
+  // Layer management functions
+  const bringForward = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    fabricCanvasRef.current.bringForward(selectedObject);
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const sendBackward = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    fabricCanvasRef.current.sendBackward(selectedObject);
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const bringToFront = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    fabricCanvasRef.current.bringToFront(selectedObject);
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const sendToBack = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    fabricCanvasRef.current.sendToBack(selectedObject);
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const toggleObjectVisibility = (object: any) => {
+    if (!fabricCanvasRef.current) return;
+    
+    object.visible = !object.visible;
+    
+    if (object.visible) {
+      object.selectable = true;
+      object.hasControls = true;
+    } else {
+      object.selectable = false;
+      object.hasControls = false;
+    }
+    
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const toggleObjectLock = (object: any) => {
+    if (!fabricCanvasRef.current) return;
+    
+    object.locked = !object.locked;
+    object.selectable = !object.locked;
+    object.hasControls = !object.locked;
+    
+    updateObjectsList();
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const selectObject = (object: any) => {
+    if (!fabricCanvasRef.current) return;
+    
+    fabricCanvasRef.current.setActiveObject(object);
+    fabricCanvasRef.current.renderAll();
+  };
+  
+  // Enhanced stroke and shape controls
+  const applyStrokeStyle = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    selectedObject.set({
+      stroke: strokeColor,
+      strokeWidth: strokeWidth
+    });
+    
+    fabricCanvasRef.current.renderAll();
+    saveToHistory();
+  };
+  
+  const toggleAspectRatioLock = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    setAspectRatioLocked(!aspectRatioLocked);
+    
+    selectedObject.set({
+      lockUniScaling: !aspectRatioLocked
+    });
+    
+    fabricCanvasRef.current.renderAll();
+  };
 
   const handleObjectSelected = (e: any) => {
     const selectedObject = e.selected[0];
@@ -107,6 +382,15 @@ export default function DesignStudio() {
       
       if (selectedObject.fill && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text') {
         setBackgroundColor(selectedObject.fill);
+      }
+      
+      // Update stroke properties
+      if (selectedObject.stroke) {
+        setStrokeColor(selectedObject.stroke);
+      }
+      
+      if (selectedObject.strokeWidth) {
+        setStrokeWidth(selectedObject.strokeWidth);
       }
     }
   };
@@ -1382,12 +1666,60 @@ export default function DesignStudio() {
       {selectedObject && (
         <div className="bg-white border-b py-1 px-2 flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={undo}
+              title="Undo"
+              disabled={historyIndex <= 0}
+            >
+              <Undo2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={redo}
+              title="Redo"
+              disabled={historyIndex >= canvasHistory.length - 1}
+            >
+              <Redo2 className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Separator orientation="vertical" className="h-6" />
+          
+          <div className="flex items-center gap-1">
             <p className="text-xs font-medium text-neutral-500">Element: </p>
             <p className="text-xs font-semibold">{selectedObject.type}</p>
           </div>
           
+          <Separator orientation="vertical" className="h-6" />
+          
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={bringForward}
+              title="Bring Forward"
+            >
+              <MoveUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={sendBackward}
+              title="Send Backward"
+            >
+              <MoveDown className="h-4 w-4" />
+            </Button>
+          </div>
+          
           {/* Text Properties */}
-          {selectedObject && (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') && (
+          {selectedObject.type === 'textbox' || selectedObject.type === 'i-text' && (
             <>
               <Separator orientation="vertical" className="h-6" />
               <div className="flex items-center gap-1">
@@ -1495,6 +1827,47 @@ export default function DesignStudio() {
                   />
                 </div>
               </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-neutral-500">Stroke:</span>
+                <div className="flex items-center h-8 border rounded overflow-hidden">
+                  <input 
+                    type="color" 
+                    value={strokeColor} 
+                    onChange={(e) => {
+                      setStrokeColor(e.target.value);
+                      applyStrokeStyle();
+                    }}
+                    className="h-full w-8 p-0 border-0"
+                  />
+                </div>
+                <input 
+                  type="number" 
+                  value={strokeWidth}
+                  min={0}
+                  max={20}
+                  onChange={(e) => {
+                    setStrokeWidth(parseInt(e.target.value));
+                    applyStrokeStyle();
+                  }}
+                  className="h-8 w-12 text-xs border rounded px-1"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 flex items-center"
+                  onClick={toggleAspectRatioLock}
+                  title={aspectRatioLocked ? "Aspect Ratio Locked" : "Aspect Ratio Unlocked"}
+                >
+                  {aspectRatioLocked ? 
+                    <><Lock className="h-3 w-3 mr-1" /> <span className="text-xs">Locked</span></> : 
+                    <><Unlock className="h-3 w-3 mr-1" /> <span className="text-xs">Unlocked</span></>
+                  }
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -1507,6 +1880,7 @@ export default function DesignStudio() {
             <TabsList className="w-full">
               <TabsTrigger value="elements" className="flex-1">Elements</TabsTrigger>
               <TabsTrigger value="smart-blocks" className="flex-1">Smart Blocks</TabsTrigger>
+              <TabsTrigger value="layers" className="flex-1">Layers</TabsTrigger>
               <TabsTrigger value="templates" className="flex-1">Templates</TabsTrigger>
             </TabsList>
             <TabsContent value="elements" className="p-2">
@@ -1730,6 +2104,162 @@ export default function DesignStudio() {
                           <p className="text-xs text-gray-500">Distinctive sidebar design</p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="layers" className="p-2">
+              <ScrollArea className="h-[calc(100vh-10rem)]">
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium">Layers</h3>
+                      <div className="flex space-x-1">
+                        <Button variant="ghost" size="icon" onClick={() => drawGrid()} title="Toggle Grid">
+                          <Grid className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={undo} title="Undo">
+                          <Undo2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={redo} title="Redo">
+                          <Redo2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs font-medium">Show Grid</p>
+                        </div>
+                        <Switch
+                          checked={showGrid}
+                          onCheckedChange={setShowGrid}
+                          className="data-[state=checked]:bg-primary"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs font-medium">Snap to Grid</p>
+                        </div>
+                        <Switch
+                          checked={snapToGrid}
+                          onCheckedChange={setSnapToGrid}
+                          className="data-[state=checked]:bg-primary"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-medium">Grid Size: {gridSize}px</p>
+                        </div>
+                        <Slider
+                          value={[gridSize]}
+                          onValueChange={(values) => setGridSize(values[0])}
+                          min={5}
+                          max={50}
+                          step={5}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Object Layers</h3>
+                    {objects.length === 0 ? (
+                      <div className="bg-neutral-50 p-3 rounded border text-center">
+                        <p className="text-xs text-gray-500">No objects on canvas yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {objects.map((obj, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center border rounded p-2 hover:bg-neutral-50 cursor-pointer ${
+                              selectedObject === obj ? "bg-neutral-100 border-primary" : ""
+                            }`}
+                            onClick={() => selectObject(obj)}
+                          >
+                            <div className="flex-1 flex items-center">
+                              {obj.type === "textbox" || obj.type === "i-text" ? (
+                                <Type className="h-3 w-3 mr-2" />
+                              ) : obj.type === "circle" ? (
+                                <Circle className="h-3 w-3 mr-2" />
+                              ) : obj.type === "rect" ? (
+                                <Square className="h-3 w-3 mr-2" />
+                              ) : obj.type === "triangle" ? (
+                                <Triangle className="h-3 w-3 mr-2" />
+                              ) : obj.type === "image" ? (
+                                <ImageIcon className="h-3 w-3 mr-2" />
+                              ) : obj.type === "group" ? (
+                                <Layers className="h-3 w-3 mr-2" />
+                              ) : (
+                                <div className="h-3 w-3 mr-2" />
+                              )}
+                              <p className="text-xs truncate">{obj.type}</p>
+                            </div>
+                            <div className="flex space-x-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleObjectVisibility(obj);
+                                }}
+                              >
+                                {obj.visible ? (
+                                  <Eye className="h-3 w-3" />
+                                ) : (
+                                  <EyeOff className="h-3 w-3" />
+                                )}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleObjectLock(obj);
+                                }}
+                              >
+                                {obj.locked ? (
+                                  <Lock className="h-3 w-3" />
+                                ) : (
+                                  <Unlock className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Layer Position</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={bringForward} disabled={!selectedObject}>
+                        <MoveUp className="h-4 w-4 mr-1" />
+                        <span className="text-xs">Forward</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={sendBackward} disabled={!selectedObject}>
+                        <MoveDown className="h-4 w-4 mr-1" />
+                        <span className="text-xs">Backward</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={bringToFront} disabled={!selectedObject}>
+                        <ArrowUpToLine className="h-4 w-4 mr-1" />
+                        <span className="text-xs">To Front</span>
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={sendToBack} disabled={!selectedObject}>
+                        <ArrowDownToLine className="h-4 w-4 mr-1" />
+                        <span className="text-xs">To Back</span>
+                      </Button>
                     </div>
                   </div>
                 </div>
