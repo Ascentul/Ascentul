@@ -5,6 +5,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -2992,6 +2994,45 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       });
     } catch (error) {
       res.status(500).json({ message: "Error fetching system status" });
+    }
+  });
+  
+  // Theme management endpoint
+  apiRouter.post("/api/theme", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { primary, appearance, variant, radius } = req.body;
+      
+      if (!primary || !appearance || !variant || radius === undefined) {
+        return res.status(400).json({ message: "Missing theme parameters" });
+      }
+      
+      // Get the current user
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      // Update the theme.json file
+      const themeData = {
+        primary,
+        appearance,
+        variant,
+        radius: Number(radius)
+      };
+      
+      // Write to theme.json file
+      const themePath = path.join(process.cwd(), 'theme.json');
+      fs.writeFileSync(themePath, JSON.stringify(themeData, null, 2));
+      
+      // Save theme preferences to user
+      await storage.updateUser(user.id, {
+        theme: JSON.stringify(themeData)
+      });
+      
+      res.status(200).json({ message: "Theme updated successfully", theme: themeData });
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "Error updating theme" });
     }
   });
 

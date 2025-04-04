@@ -29,6 +29,12 @@ export interface User {
   passwordLastChanged?: Date; // Added for password change tracking
   passwordLength?: number; // Added for password display purposes
   redirectPath?: string; // Added for role-based redirection after login
+  theme?: {
+    primary: string;
+    appearance: 'light' | 'dark' | 'system';
+    variant: 'professional' | 'tint' | 'vibrant';
+    radius: number;
+  };
 }
 
 interface UserContextType {
@@ -41,6 +47,7 @@ interface UserContextType {
   refetchUser: () => Promise<User | null>;
   updateProfile: (data: { name?: string; email?: string; username?: string; profileImage?: string }) => Promise<User>;
   updateUser: (data: Partial<User>) => void;
+  updateTheme: (themeSettings: User['theme']) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -179,6 +186,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
     queryClient.setQueryData(['/api/users/me'], { ...user, ...data });
   };
 
+  // Function to update theme settings
+  const updateTheme = async (themeSettings: User['theme']) => {
+    if (!user || !themeSettings) return;
+    
+    try {
+      // Update theme.json via the fetch API
+      const response = await fetch('/api/theme', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(themeSettings),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update theme');
+      }
+      
+      // Also update the user in the cache with the new theme settings
+      updateUser({ theme: themeSettings });
+      
+      // In a real implementation with a server, we'd also need to save
+      // the theme preference to the user's record in the database
+      
+      // For now, we'll directly update the theme.json file by simulating it
+      // and reload the theme
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error updating theme:', error);
+      throw error;
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -191,6 +234,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         refetchUser,
         updateProfile,
         updateUser,
+        updateTheme,
       }}
     >
       {children}

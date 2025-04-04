@@ -510,14 +510,26 @@ export default function Account() {
     try {
       setIsUpdatingTheme(true);
       
-      // In a real app, this would save to the server
-      // For now, we'll just update theme.json directly
-      const updatedTheme = {
-        ...themeSettings
-      };
+      // Send theme settings to the server
+      const response = await fetch('/api/theme', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(themeSettings)
+      });
       
-      // Simulate API call with timeout
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update theme');
+      }
+      
+      const data = await response.json();
+      
+      // Update user context with the new theme
+      if (user) {
+        user.theme = themeSettings;
+      }
       
       // Success message
       toast({
@@ -526,8 +538,8 @@ export default function Account() {
         variant: "default"
       });
       
-      // In a real implementation, you'd reload the theme or update it in context
-      // window.location.reload();
+      // Reload the page to apply the theme changes
+      window.location.reload();
       
     } catch (error: any) {
       toast({
