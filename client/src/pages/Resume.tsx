@@ -28,7 +28,7 @@ export default function Resume() {
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [isGeneratedResumeOpen, setIsGeneratedResumeOpen] = useState(false);
-  const [useDesignStudio, setUseDesignStudio] = useState(false);
+  // Always make design studio accessible without a toggle
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -378,61 +378,19 @@ export default function Resume() {
           <p className="text-neutral-500">Create and manage your professional resumes</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <div className="flex items-center space-x-2">
-            <Switch 
-              id="design-studio-mode" 
-              checked={useDesignStudio}
-              onCheckedChange={setUseDesignStudio}
-            />
-            <label
-              htmlFor="design-studio-mode"
-              className="text-sm font-medium leading-none flex items-center cursor-pointer"
-            >
-              <Palette className="h-4 w-4 mr-1 text-primary" />
-              Design Studio
-            </label>
-          </div>
-          {useDesignStudio ? (
-            <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  // Add functionality to save design from the Design Studio
-                  if (window.saveDesignFunction) {
-                    window.saveDesignFunction();
-                  }
-                }}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Design
-              </Button>
-              <Button 
-                onClick={() => {
-                  // Add functionality to export design from the Design Studio
-                  if (window.exportToPDFFunction) {
-                    window.exportToPDFFunction();
-                  }
-                }}
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Export Design
-              </Button>
-            </div>
-          ) : (
-            <Button 
-              onClick={() => {
-                setSelectedResume(null);
-                setIsAddResumeOpen(true);
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Resume
-            </Button>
-          )}
+          <Button 
+            onClick={() => {
+              setSelectedResume(null);
+              setIsAddResumeOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Resume
+          </Button>
         </div>
       </motion.div>
 
-      <Tabs defaultValue={useDesignStudio ? "design-studio" : "resumes"}>
+      <Tabs defaultValue="resumes">
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
@@ -780,6 +738,31 @@ export default function Resume() {
         </TabsContent>
 
         <TabsContent value="design-studio" className="p-0">
+          <div className="flex items-center justify-end gap-4 p-4 bg-white border-b">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                // Add functionality to save design from the Design Studio
+                if (window.saveDesignFunction) {
+                  window.saveDesignFunction();
+                }
+              }}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Design
+            </Button>
+            <Button 
+              onClick={() => {
+                // Add functionality to export design from the Design Studio
+                if (window.exportToPDFFunction) {
+                  window.exportToPDFFunction();
+                }
+              }}
+            >
+              <FileDown className="mr-2 h-4 w-4" />
+              Export Design
+            </Button>
+          </div>
           <DesignStudio />
         </TabsContent>
       </Tabs>
