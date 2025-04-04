@@ -517,7 +517,7 @@ export default function DesignStudio() {
       )}
       
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden">
         {/* Side Panel - Fixed position with transform to avoid affecting layout */}
         <div className={`fixed top-[calc(4rem+32px)] left-0 bottom-0 w-64 border-r bg-background overflow-y-auto transition-transform duration-300 shadow-lg z-20 ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -527,285 +527,285 @@ export default function DesignStudio() {
               <TabsTrigger value="designs" className="flex-1">Designs</TabsTrigger>
             </TabsList>
               
-            <TabsContent value="elements" className="p-4 space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-2">Text</h3>
-                <div className="grid grid-cols-1 gap-2">
-                  <Button variant="outline" onClick={addText} className="justify-start">
-                    <Type size={16} className="mr-2" />
-                    Add Text
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-2">Shapes</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={addRectangle} className="justify-start">
-                    <Square size={16} className="mr-2" />
-                    Rectangle
-                  </Button>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium mb-2">Resume Blocks</h3>
-                <div className="grid grid-cols-1 gap-2">
-                  <Button variant="outline" className="justify-start">
-                    <FileText size={16} className="mr-2" />
-                    Header Block
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <FileText size={16} className="mr-2" />
-                    Experience Block
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <FileText size={16} className="mr-2" />
-                    Education Block
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    <FileText size={16} className="mr-2" />
-                    Skills Block
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="properties" className="p-4 space-y-4">
-              {activeObject ? (
-                <div className="space-y-4">
-                  {activeObject.type === 'textbox' && (
-                    <>
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Text</h3>
-                        <div className="flex gap-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <Bold size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Bold</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <Italic size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Italic</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('underline', !activeObject.underline);
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <Underline size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Underline</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Alignment</h3>
-                        <div className="flex gap-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('textAlign', 'left');
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <AlignLeft size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Align Left</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('textAlign', 'center');
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <AlignCenter size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Align Center</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => {
-                                    activeObject.set('textAlign', 'right');
-                                    fabricCanvas.renderAll();
-                                  }}
-                                >
-                                  <AlignRight size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Align Right</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Color</h3>
-                    <div className="grid grid-cols-5 gap-1">
-                      {COLOR_PRESETS.map((color, index) => (
-                        <TooltipProvider key={index}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center"
-                                style={{ backgroundColor: color }}
-                                onClick={() => {
-                                  if (activeObject.type === 'textbox') {
-                                    activeObject.set('fill', color);
-                                  } else {
-                                    activeObject.set('fill', color);
-                                  }
-                                  fabricCanvas.renderAll();
-                                }}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>{color}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
-                    </div>
+              <TabsContent value="elements" className="p-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Text</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button variant="outline" onClick={addText} className="justify-start">
+                      <Type size={16} className="mr-2" />
+                      Add Text
+                    </Button>
                   </div>
-                  
-                  {activeObject.type === 'textbox' && (
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Shapes</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={addRectangle} className="justify-start">
+                      <Square size={16} className="mr-2" />
+                      Rectangle
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Resume Blocks</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button variant="outline" className="justify-start">
+                      <FileText size={16} className="mr-2" />
+                      Header Block
+                    </Button>
+                    <Button variant="outline" className="justify-start">
+                      <FileText size={16} className="mr-2" />
+                      Experience Block
+                    </Button>
+                    <Button variant="outline" className="justify-start">
+                      <FileText size={16} className="mr-2" />
+                      Education Block
+                    </Button>
+                    <Button variant="outline" className="justify-start">
+                      <FileText size={16} className="mr-2" />
+                      Skills Block
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="properties" className="p-4 space-y-4">
+                {activeObject ? (
+                  <div className="space-y-4">
+                    {activeObject.type === 'textbox' && (
+                      <>
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Text</h3>
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <Bold size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Bold</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <Italic size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Italic</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('underline', !activeObject.underline);
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <Underline size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Underline</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Alignment</h3>
+                          <div className="flex gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('textAlign', 'left');
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <AlignLeft size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Align Left</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('textAlign', 'center');
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <AlignCenter size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Align Center</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      activeObject.set('textAlign', 'right');
+                                      fabricCanvas.renderAll();
+                                    }}
+                                  >
+                                    <AlignRight size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Align Right</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    
                     <div>
-                      <h3 className="text-sm font-medium mb-2">Font</h3>
-                      <div className="grid grid-cols-1 gap-1">
-                        {FONT_PRESETS.map((font, index) => (
-                          <button
-                            key={index}
-                            className="px-2 py-1 text-left text-sm hover:bg-accent rounded"
-                            style={{ fontFamily: font }}
-                            onClick={() => {
-                              activeObject.set('fontFamily', font);
-                              fabricCanvas.renderAll();
-                            }}
-                          >
-                            {font}
-                          </button>
+                      <h3 className="text-sm font-medium mb-2">Color</h3>
+                      <div className="grid grid-cols-5 gap-1">
+                        {COLOR_PRESETS.map((color, index) => (
+                          <TooltipProvider key={index}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center"
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => {
+                                    if (activeObject.type === 'textbox') {
+                                      activeObject.set('fill', color);
+                                    } else {
+                                      activeObject.set('fill', color);
+                                    }
+                                    fabricCanvas.renderAll();
+                                  }}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>{color}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
-                  <Layers className="mb-2 h-8 w-8" />
-                  <p>Select an element to edit its properties</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="designs" className="p-4 space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-medium">Saved Designs</h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    if (fabricCanvas) {
-                      fabricCanvas.clear();
-                      fabricCanvas.backgroundColor = "#ffffff";
-                      fabricCanvas.renderAll();
-                      setCurrDesignId(null);
-                      setDesignMetadata({
-                        name: "Untitled Design",
-                        createdAt: new Date().toISOString(),
-                      });
-                    }
-                  }}
-                >
-                  <Plus size={16} />
-                </Button>
-              </div>
-              
-              {savedDesigns.length > 0 ? (
-                <div className="space-y-2">
-                  {savedDesigns.map((design) => (
-                    <Card key={design.id} className={`p-2 cursor-pointer hover:bg-accent ${design.id === currDesignId ? 'border-primary' : ''}`} onClick={() => loadDesign(design.id)}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-12 h-12 border rounded bg-white overflow-hidden">
-                          <img 
-                            src={design.previewImage} 
-                            alt={design.name} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{design.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(design.updatedAt).toLocaleDateString()}
-                          </p>
+                    
+                    {activeObject.type === 'textbox' && (
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Font</h3>
+                        <div className="grid grid-cols-1 gap-1">
+                          {FONT_PRESETS.map((font, index) => (
+                            <button
+                              key={index}
+                              className="px-2 py-1 text-left text-sm hover:bg-accent rounded"
+                              style={{ fontFamily: font }}
+                              onClick={() => {
+                                activeObject.set('fontFamily', font);
+                                fabricCanvas.renderAll();
+                              }}
+                            >
+                              {font}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    </Card>
-                  ))}
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
+                    <Layers className="mb-2 h-8 w-8" />
+                    <p>Select an element to edit its properties</p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="designs" className="p-4 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium">Saved Designs</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      if (fabricCanvas) {
+                        fabricCanvas.clear();
+                        fabricCanvas.backgroundColor = "#ffffff";
+                        fabricCanvas.renderAll();
+                        setCurrDesignId(null);
+                        setDesignMetadata({
+                          name: "Untitled Design",
+                          createdAt: new Date().toISOString(),
+                        });
+                      }
+                    }}
+                  >
+                    <Plus size={16} />
+                  </Button>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
-                  <Save className="mb-2 h-8 w-8" />
-                  <p>No saved designs yet</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+                
+                {savedDesigns.length > 0 ? (
+                  <div className="space-y-2">
+                    {savedDesigns.map((design) => (
+                      <Card key={design.id} className={`p-2 cursor-pointer hover:bg-accent ${design.id === currDesignId ? 'border-primary' : ''}`} onClick={() => loadDesign(design.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-12 border rounded bg-white overflow-hidden">
+                            <img 
+                              src={design.previewImage} 
+                              alt={design.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{design.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(design.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
+                    <Save className="mb-2 h-8 w-8" />
+                    <p>No saved designs yet</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
         
         {/* Canvas Area */}
         <div className="flex-1 overflow-auto bg-gray-100 p-12 pt-24 flex justify-center">
