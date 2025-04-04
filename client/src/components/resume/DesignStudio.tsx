@@ -517,10 +517,10 @@ export default function DesignStudio() {
       )}
       
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Side Panel */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Side Panel - Now positioned absolutely */}
         {showSidebar && (
-          <div className="w-64 border-r bg-background overflow-y-auto">
+          <div className="absolute left-0 top-0 bottom-0 w-64 border-r bg-background overflow-y-auto z-10 shadow-md">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full">
                 <TabsTrigger value="elements" className="flex-1">Elements</TabsTrigger>
@@ -809,8 +809,8 @@ export default function DesignStudio() {
           </div>
         )}
         
-        {/* Canvas Area */}
-        <div className="flex-1 overflow-auto bg-gray-100 p-12 pt-24 flex justify-center">
+        {/* Canvas Area - Takes full width now */}
+        <div className="w-full overflow-auto bg-gray-100 p-12 pt-24 flex justify-center">
           <div className="bg-white shadow-lg">
             <canvas ref={canvasRef} />
           </div>
