@@ -952,53 +952,69 @@ export default function Account() {
                 <div>
                   <h3 className="font-medium mb-2">Primary Color</h3>
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#0C29AB]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0C29AB]"
                       style={{ backgroundColor: "#0C29AB" }}
-                      onClick={() => updateTheme({ primary: "#0C29AB" })}
+                      onClick={() => {
+                        setCustomColor("#0C29AB");
+                        updateTheme({ primary: "#0C29AB" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#7C3AED]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#7C3AED]"
                       style={{ backgroundColor: "#7C3AED" }}
-                      onClick={() => updateTheme({ primary: "#7C3AED" })}
+                      onClick={() => {
+                        setCustomColor("#7C3AED");
+                        updateTheme({ primary: "#7C3AED" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#10B981]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#10B981]"
                       style={{ backgroundColor: "#10B981" }}
-                      onClick={() => updateTheme({ primary: "#10B981" })}
+                      onClick={() => {
+                        setCustomColor("#10B981");
+                        updateTheme({ primary: "#10B981" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#F97316]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#F97316]"
                       style={{ backgroundColor: "#F97316" }}
-                      onClick={() => updateTheme({ primary: "#F97316" })}
+                      onClick={() => {
+                        setCustomColor("#F97316");
+                        updateTheme({ primary: "#F97316" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#EF4444]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#EF4444]"
                       style={{ backgroundColor: "#EF4444" }}
-                      onClick={() => updateTheme({ primary: "#EF4444" })}
+                      onClick={() => {
+                        setCustomColor("#EF4444");
+                        updateTheme({ primary: "#EF4444" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#6366F1]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#6366F1]"
                       style={{ backgroundColor: "#6366F1" }}
-                      onClick={() => updateTheme({ primary: "#6366F1" })}
+                      onClick={() => {
+                        setCustomColor("#6366F1");
+                        updateTheme({ primary: "#6366F1" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#2563EB]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#2563EB]"
                       style={{ backgroundColor: "#2563EB" }}
-                      onClick={() => updateTheme({ primary: "#2563EB" })}
+                      onClick={() => {
+                        setCustomColor("#2563EB");
+                        updateTheme({ primary: "#2563EB" });
+                      }}
                     />
-                    <Button
-                      variant="outline"
-                      className="w-8 h-8 rounded-full p-0 border-none bg-[#0891B2]"
+                    <div
+                      className="w-8 h-8 rounded-full p-0 border border-input cursor-pointer bg-[#0891B2]"
                       style={{ backgroundColor: "#0891B2" }}
-                      onClick={() => updateTheme({ primary: "#0891B2" })}
+                      onClick={() => {
+                        setCustomColor("#0891B2");
+                        updateTheme({ primary: "#0891B2" });
+                      }}
                     />
                     <label htmlFor="custom-color" className="w-8 h-8 rounded-full border border-dashed border-input flex items-center justify-center cursor-pointer">
                       <Palette className="h-4 w-4" />
