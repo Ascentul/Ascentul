@@ -226,6 +226,7 @@ export default function DesignStudio() {
       // Apply brand blue as border color when objects are selected
       window.fabric.Object.prototype.borderColor = '#0C29AB';
       window.fabric.Object.prototype.borderScaleFactor = 4; // Make the border twice as thick (2 → 4)
+      window.fabric.Object.prototype.padding = 0; // Reduce padding to make selection outline tighter on shapes
       
       // Customize the control points (handles) to be white with thin grey outlines
       const cornerFillColor = '#FFFFFF'; // White fill
@@ -321,6 +322,12 @@ export default function DesignStudio() {
           obj.controls.mr.render = renderTextSideControl;
           obj.controls.mt.render = renderTextSideControl;
           obj.controls.mb.render = renderTextSideControl;
+          
+          // Text elements need a small padding for better editing experience
+          obj.padding = 5;
+        } else {
+          // Shape elements should have no padding for tight selection border
+          obj.padding = 0;
         }
       };
       
@@ -377,6 +384,7 @@ export default function DesignStudio() {
       fontSize: 16,
       fill: "#000000",
       width: 200,
+      padding: 5, // Add small padding for text elements
     });
     
     fabricCanvas.add(text);
@@ -396,6 +404,7 @@ export default function DesignStudio() {
       width: 100,
       height: 100,
       opacity: 0.7,
+      padding: 0, // No padding for shape elements
     });
     
     fabricCanvas.add(rect);
