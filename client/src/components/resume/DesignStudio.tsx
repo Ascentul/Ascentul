@@ -30,7 +30,7 @@ import {
   Plus, Trash, Copy, AlignLeft, AlignCenter, AlignRight,
   Bold, Italic, Underline, PanelLeftClose, PanelLeftOpen,
   Palette, Move, ChevronsUpDown, RotateCcw, ChevronRight,
-  Layers, TextCursor, FileText, Download
+  Layers, TextCursor, FileText, Download, Lock, Unlock
 } from "lucide-react";
 
 // Import the necessary types
@@ -360,26 +360,127 @@ export default function DesignStudio() {
   const toggleLock = () => {
     if (!fabricCanvas || !activeObject) return;
     
-    // Toggle the selectable and movable properties
-    const isLocked = !activeObject.selectable;
-    activeObject.set({
-      selectable: isLocked, // If currently locked, unlock it
-      evented: isLocked,
-      lockMovementX: !isLocked,
-      lockMovementY: !isLocked,
-      lockRotation: !isLocked,
-      lockScalingX: !isLocked,
-      lockScalingY: !isLocked,
-    });
+    // Toggle the locked status
+    const isCurrentlyLocked = activeObject.locked || false;
+    const newLockedState = !isCurrentlyLocked;
     
-    if (!isLocked) {
-      // If we're locking the object, deselect it
-      fabricCanvas.discardActiveObject();
-      setActiveObject(null);
-    }
+    // Store the locked state on the object for reference
+    activeObject.set({
+      locked: newLockedState,
+      lockMovementX: newLockedState,
+      lockMovementY: newLockedState,
+      lockRotation: newLockedState,
+      lockScalingX: newLockedState,
+      lockScalingY: newLockedState,
+      // Keep it selectable and evented so we can still click on it
+      selectable: true,
+      evented: true
+    });
     
     fabricCanvas.renderAll();
   };
+  
+  // Add lock icon to selected locked objects
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    
+    // Add a handler for object selection to show lock icon if needed
+    const handleObjectSelected = (e: any) => {
+      const obj = e.selected?.[0];
+      if (obj && obj.locked) {
+        showLockIcon(obj);
+      }
+    };
+    
+    // Function to add a lock icon above a locked object
+    const showLockIcon = (obj: any) => {
+      // Remove any existing lock icons first
+      const existingIcons = fabricCanvas.getObjects().filter((o: any) => o.isLockIcon);
+      existingIcons.forEach((icon: any) => fabricCanvas.remove(icon));
+      
+      // Calculate position for the lock icon (centered above the object)
+      const objBounds = obj.getBoundingRect();
+      const iconLeft = objBounds.left + objBounds.width / 2;
+      const iconTop = objBounds.top - 25; // Position above the object
+      
+      // Create the lock icon as a circle with a lock symbol
+      const lockCircle = new window.fabric.Circle({
+        left: iconLeft,
+        top: iconTop,
+        radius: 15,
+        fill: 'rgba(255, 255, 255, 0.9)',
+        stroke: '#0C29AB',
+        strokeWidth: 2,
+        hasControls: false,
+        hasBorders: false,
+        selectable: true,
+        evented: true,
+        isLockIcon: true, // Custom property to identify this as a lock icon
+        originX: 'center',
+        originY: 'center',
+        targetObject: obj, // Reference to the locked object
+      });
+      
+      // Create a SVG path representing the lock icon
+      const lockSvgPath = "M 0 0 M 8 4 L 6 4 L 6 3 C 6 1.3 7.3 0 9 0 C 10.7 0 12 1.3 12 3 L 12 4 L 10 4 L 10 3 C 10 2.4 9.6 2 9 2 C 8.4 2 8 2.4 8 3 L 8 4 Z M 5 18 L 13 18 C 14.1 18 15 17.1 15 16 L 15 7 C 15 5.9 14.1 5 13 5 L 5 5 C 3.9 5 3 5.9 3 7 L 3 16 C 3 17.1 3.9 18 5 18 Z M 9 11 C 10.1 11 11 11.9 11 13 C 11 14.1 10.1 15 9 15 C 7.9 15 7 14.1 7 13 C 7 11.9 7.9 11 9 11 Z";
+      const lockIcon = new window.fabric.Path(lockSvgPath, {
+        left: iconLeft,
+        top: iconTop,
+        fill: '#0C29AB',
+        scaleX: 0.9,
+        scaleY: 0.9,
+        hasControls: false,
+        hasBorders: false,
+        selectable: false,
+        evented: false,
+        isLockIcon: true,
+        originX: 'center',
+        originY: 'center'
+      });
+      
+      // Add the lock icon and circle to the canvas
+      fabricCanvas.add(lockCircle);
+      fabricCanvas.add(lockIcon);
+      
+      // Make the icon clickable to unlock the object
+      lockCircle.on('mousedown', () => {
+        // Remove the lock
+        obj.set({
+          locked: false,
+          lockMovementX: false,
+          lockMovementY: false,
+          lockRotation: false,
+          lockScalingX: false,
+          lockScalingY: false
+        });
+        
+        // Remove the lock icon
+        fabricCanvas.remove(lockCircle);
+        fabricCanvas.remove(lockIcon);
+        
+        // Re-select the object
+        fabricCanvas.setActiveObject(obj);
+        fabricCanvas.renderAll();
+      });
+    };
+    
+    // Add event listeners
+    fabricCanvas.on('selection:created', handleObjectSelected);
+    fabricCanvas.on('selection:updated', handleObjectSelected);
+    
+    // When selection is cleared, remove all lock icons
+    fabricCanvas.on('selection:cleared', () => {
+      const lockIcons = fabricCanvas.getObjects().filter((o: any) => o.isLockIcon);
+      lockIcons.forEach((icon: any) => fabricCanvas.remove(icon));
+      fabricCanvas.renderAll();
+    });
+    
+    return () => {
+      // Clean up events
+      fabricCanvas.off('selection:created', handleObjectSelected);
+      fabricCanvas.off('selection:updated', handleObjectSelected);
+    };
+  }, [fabricCanvas]);
   
   // Align object to page
   const alignToPage = (position: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => {
@@ -1062,7 +1163,7 @@ export default function DesignStudio() {
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem onClick={toggleLock}>
-                  {activeObject && activeObject.selectable === false ? 'Unlock' : 'Lock'}
+                  {activeObject && activeObject.locked ? 'Unlock' : 'Lock'}
                   <ContextMenuShortcut>⇧⌘L</ContextMenuShortcut>
                 </ContextMenuItem>
               </ContextMenuContent>
