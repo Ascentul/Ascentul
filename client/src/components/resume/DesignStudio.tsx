@@ -212,111 +212,11 @@ export default function DesignStudio() {
         preserveObjectStacking: true,
       });
 
-      // Create a custom rotation handle renderer
-      const renderRotationHandle = function(
-        this: any, 
-        ctx: CanvasRenderingContext2D, 
-        left: number, 
-        top: number, 
-        styleOverride: any, 
-        fabricObject: any
-      ) {
-        // Draw a distinctive rotation control (without connecting line)
-        const size = this.cornerSize;
-        ctx.save();
-        
-        // Draw circular background
-        ctx.beginPath();
-        ctx.arc(left, top, size, 0, 2 * Math.PI);
-        ctx.fillStyle = '#0C29AB'; // Brand blue
-        ctx.fill();
-        
-        // Draw rotation arrows icon
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        
-        // First arrow (semi-circle with arrowhead)
-        const radius = size * 0.6;
-        ctx.arc(left, top, radius, 0.3 * Math.PI, 1.7 * Math.PI);
-        
-        // Arrowhead
-        const angle = 0.3 * Math.PI;
-        const arrowSize = size * 0.4;
-        ctx.moveTo(
-          left + radius * Math.cos(angle), 
-          top + radius * Math.sin(angle)
-        );
-        ctx.lineTo(
-          left + radius * Math.cos(angle) + arrowSize * Math.cos(angle - Math.PI/4), 
-          top + radius * Math.sin(angle) + arrowSize * Math.sin(angle - Math.PI/4)
-        );
-        ctx.moveTo(
-          left + radius * Math.cos(angle), 
-          top + radius * Math.sin(angle)
-        );
-        ctx.lineTo(
-          left + radius * Math.cos(angle) + arrowSize * Math.cos(angle + Math.PI/4), 
-          top + radius * Math.sin(angle) + arrowSize * Math.sin(angle + Math.PI/4)
-        );
-        
-        ctx.stroke();
-        ctx.restore();
-      };
+      // Removed custom rotation handle renderer
       
-      // A consistent approach to position the rotation handle below the object
-      // Modify the controls directly instead of overriding setCoords
-      
-      // Set position for rotation control - consistently 64px below any object
-      window.fabric.Object.prototype.controls.mtr.offsetY = 64; 
-      
-      // Override the positionHandler to ensure the rotation handle maintains consistent alignment
-      // for both text and shape elements with 64px spacing below the object
-      window.fabric.Object.prototype.controls.mtr.positionHandler = function(
-        dim: any, 
-        finalMatrix: any, 
-        fabricObject: any
-      ) {
-        // Get object's angle in radians
-        const angleRadians = fabricObject.angle * Math.PI / 180;
-        
-        // Calculate center point of the object
-        const centerX = fabricObject.left;
-        const centerY = fabricObject.top;
-        
-        // Get bounding rect to ensure consistency between text and shape elements
-        const boundingRect = fabricObject.getBoundingRect();
-        const objectHeight = boundingRect.height;
-        
-        // Fixed offset of 64px from the bottom edge of the bounding box
-        const fixedOffset = 64;
-        
-        // Calculate the position directly below the center of the object's bottom edge
-        // This ensures consistent behavior across all element types
-        
-        // Vertical offset from center to bottom edge plus the 64px gap
-        const totalOffsetY = objectHeight / 2 + fixedOffset;
-        
-        // Apply rotation to maintain alignment with object
-        const rotatedOffsetX = 0; // No horizontal offset for centered rotation handle
-        const rotatedOffsetY = totalOffsetY;
-        
-        // Apply rotation to the offset
-        const rotatedX = rotatedOffsetX * Math.cos(angleRadians) - rotatedOffsetY * Math.sin(angleRadians);
-        const rotatedY = rotatedOffsetX * Math.sin(angleRadians) + rotatedOffsetY * Math.cos(angleRadians);
-        
-        // Apply the rotated offset to the object's center position
-        return {
-          x: centerX + rotatedX,
-          y: centerY + rotatedY
-        };
-      };
-      
-      // Default rotation handle settings - make it larger
-      window.fabric.Object.prototype.controls.mtr.offsetX = 0;
-      window.fabric.Object.prototype.controls.mtr.withConnection = false; // No connecting line
-      window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
-      window.fabric.Object.prototype.controls.mtr.cornerSize = 24; // Doubled size from 12px to 24px
+      // Remove rotation handle entirely
+      window.fabric.Object.prototype.controls.mtr.visible = false;
+      window.fabric.Object.prototype.controls.mtr.render = null;
       
       // Customize the selection style to use the brand's primary blue color
       canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
@@ -376,11 +276,78 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Apply the custom renderer to side controls (middle left, middle right, etc.)
+      // Create wider rounded rectangle controls specifically for text elements
+      const renderTextSideControl = function(
+        this: any, 
+        ctx: CanvasRenderingContext2D, 
+        left: number, 
+        top: number, 
+        styleOverride: any, 
+        fabricObject: any
+      ) {
+        const size = this.cornerSize;
+        ctx.save();
+        ctx.fillStyle = this.cornerColor;
+        ctx.strokeStyle = this.cornerStrokeColor;
+        
+        // Draw wider rounded rectangle for better text stretching
+        const width = size * 4; // Wider than standard control
+        const height = size * 1.2; // Slightly taller
+        const radius = height / 2; // Fully rounded ends
+        
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.moveTo(left - width/2 + radius, top - height/2);
+        ctx.lineTo(left + width/2 - radius, top - height/2);
+        ctx.arcTo(left + width/2, top - height/2, left + width/2, top - height/2 + radius, radius);
+        ctx.lineTo(left + width/2, top + height/2 - radius);
+        ctx.arcTo(left + width/2, top + height/2, left + width/2 - radius, top + height/2, radius);
+        ctx.lineTo(left - width/2 + radius, top + height/2);
+        ctx.arcTo(left - width/2, top + height/2, left - width/2, top + height/2 - radius, radius);
+        ctx.lineTo(left - width/2, top - height/2 + radius);
+        ctx.arcTo(left - width/2, top - height/2, left - width/2 + radius, top - height/2, radius);
+        ctx.closePath();
+        
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
+      
+      // Create a function to setup custom controls for text elements
+      const setupTextControls = (obj: any) => {
+        if (obj.type === 'textbox' || obj.type === 'i-text') {
+          // Apply special wider rounded rectangle control to sides for text elements
+          obj.controls.ml.render = renderTextSideControl;
+          obj.controls.mr.render = renderTextSideControl;
+          obj.controls.mt.render = renderTextSideControl;
+          obj.controls.mb.render = renderTextSideControl;
+        }
+      };
+      
+      // Apply the custom renderer to side controls for all objects as default
       window.fabric.Object.prototype.controls.ml.render = renderSideControl;
       window.fabric.Object.prototype.controls.mr.render = renderSideControl;
       window.fabric.Object.prototype.controls.mt.render = renderSideControl;
       window.fabric.Object.prototype.controls.mb.render = renderSideControl;
+      
+      // Add a handler to apply specific controls for text elements when added or selected
+      canvas.on('object:added', (e: any) => {
+        if (e.target) {
+          setupTextControls(e.target);
+        }
+      });
+      
+      canvas.on('selection:created', (e: any) => {
+        if (e.selected && e.selected[0]) {
+          setupTextControls(e.selected[0]);
+        }
+      });
+      
+      canvas.on('selection:updated', (e: any) => {
+        if (e.selected && e.selected[0]) {
+          setupTextControls(e.selected[0]);
+        }
+      });
       
       // Set up event listeners
       canvas.on("selection:created", handleSelectionChange);
