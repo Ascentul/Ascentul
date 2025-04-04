@@ -264,34 +264,28 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Completely override the way the rotation handle is positioned
-      // In Fabric.js, the rotation control is normally at the top middle ('mtr')
-      // We want to move it to the bottom middle for our design
+      // A simpler approach to position the rotation handle below the object
+      // Modify the controls directly instead of overriding setCoords
       
-      // First, redefine how corners are positioned
-      const originalSetCornerCoords = window.fabric.Object.prototype.setCoords;
-      window.fabric.Object.prototype.setCoords = function(this: any) {
-        // Call the original method first to calculate all coordinates
-        const result = originalSetCornerCoords.call(this);
+      // Set position for rotation control
+      window.fabric.Object.prototype.controls.mtr.offsetY = 48; // Default offset for text
+      
+      // The original getCoords will still be called, but we'll modify the object
+      // to determine the appropriate offsetY based on object type
+      window.fabric.Object.prototype._setControlsVisibility = 
+        window.fabric.Object.prototype.setControlsVisibility;
         
-        // Now move the rotation control from top middle to bottom middle with additional offset
-        if (this.oCoords && this.oCoords.mtr) {
-          // Make a copy of the middle bottom ('mb') control point coordinates
-          const mbCoords = this.oCoords.mb;
-          
-          if (mbCoords) {
-            // Apply our own offset based on object type
-            const offsetY = (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') 
-              ? 60 // More space for shapes
-              : 48; // Less space for text
-            
-            // Set the rotation handle (mtr) position relative to the middle bottom (mb) point
-            this.oCoords.mtr = {
-              x: mbCoords.x,  // Same x coordinate (centered)
-              y: mbCoords.y + offsetY, // Below the object with our custom offset
-              corner: 'mtr'
-            };
-          }
+      window.fabric.Object.prototype.setControlsVisibility = function(this: any, options: any) {
+        // First call the original method to set up controls
+        const result = this._setControlsVisibility(options);
+        
+        // Now set the appropriate offset based on object type
+        if (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') {
+          // For shapes, set distance to 60px below object
+          this.controls.mtr.offsetY = 60;
+        } else {
+          // For text, set distance to 48px below object
+          this.controls.mtr.offsetY = 48;
         }
         
         return result;
