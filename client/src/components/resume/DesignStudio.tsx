@@ -45,7 +45,7 @@ export default function DesignStudio() {
   });
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
-
+  
   // Load fabric.js
   useEffect(() => {
     // Check if fabric is already loaded
@@ -70,20 +70,20 @@ export default function DesignStudio() {
       }
     };
   }, []);
-
+  
   // Expose save and export functions to global context
   useEffect(() => {
     if (fabricCanvas) {
       window.saveDesignFunction = saveDesign;
       window.exportToPDFFunction = exportToPDF;
     }
-
+    
     return () => {
       window.saveDesignFunction = undefined;
       window.exportToPDFFunction = undefined;
     };
   }, [fabricCanvas, currDesignId, designMetadata]);
-
+  
   // Initialize the canvas
   const initCanvas = () => {
     if (canvasRef.current && window.fabric) {
@@ -101,21 +101,21 @@ export default function DesignStudio() {
       canvas.on("selection:cleared", () => setActiveObject(null));
 
       setFabricCanvas(canvas);
-
+      
       // Load saved designs from localStorage
       loadSavedDesigns();
     }
   };
-
+  
   // Handle selection changes
   const handleSelectionChange = (e: any) => {
     setActiveObject(e.selected[0]);
   };
-
+  
   // Add a text object to the canvas
   const addText = () => {
     if (!fabricCanvas) return;
-
+    
     const text = new window.fabric.Textbox("Click to edit text", {
       left: 100,
       top: 100,
@@ -124,17 +124,17 @@ export default function DesignStudio() {
       fill: "#000000",
       width: 200,
     });
-
+    
     fabricCanvas.add(text);
     fabricCanvas.setActiveObject(text);
     setActiveObject(text);
     fabricCanvas.renderAll();
   };
-
+  
   // Add a rectangle to the canvas
   const addRectangle = () => {
     if (!fabricCanvas) return;
-
+    
     const rect = new window.fabric.Rect({
       left: 100,
       top: 100,
@@ -143,35 +143,35 @@ export default function DesignStudio() {
       height: 100,
       opacity: 0.7,
     });
-
+    
     fabricCanvas.add(rect);
     fabricCanvas.setActiveObject(rect);
     setActiveObject(rect);
     fabricCanvas.renderAll();
   };
-
+  
   // Delete the selected object
   const deleteObject = () => {
     if (!fabricCanvas || !activeObject) return;
-
+    
     fabricCanvas.remove(activeObject);
     setActiveObject(null);
     fabricCanvas.renderAll();
   };
-
+  
   // Save the current design
   const saveDesign = () => {
     if (!fabricCanvas) return;
-
+    
     // Generate a unique ID if this is a new design
     const designId = currDesignId || `design_${Date.now()}`;
-
+    
     // Generate a preview image
     const previewDataUrl = fabricCanvas.toDataURL({
       format: "png",
       quality: 0.8,
     });
-
+    
     // Save the canvas data
     const designData = {
       id: designId,
@@ -181,15 +181,15 @@ export default function DesignStudio() {
       canvasJson: JSON.stringify(fabricCanvas.toJSON()),
       previewImage: previewDataUrl,
     };
-
+    
     // Save to localStorage
     try {
       const existingDesignsStr = localStorage.getItem("resumeDesigns");
       let existingDesigns = existingDesignsStr ? JSON.parse(existingDesignsStr) : [];
-
+      
       // Check if this design already exists
       const existingIndex = existingDesigns.findIndex((d: any) => d.id === designId);
-
+      
       if (existingIndex >= 0) {
         // Update existing design
         existingDesigns[existingIndex] = designData;
@@ -197,25 +197,25 @@ export default function DesignStudio() {
         // Add new design
         existingDesigns.push(designData);
       }
-
+      
       localStorage.setItem("resumeDesigns", JSON.stringify(existingDesigns));
-
+      
       // Update state
       setCurrDesignId(designId);
       setSavedDesigns(existingDesigns);
-
+      
       console.log("Design saved successfully!");
-
+      
       // Show toast notification (you'll need to implement this)
       // toast({ title: "Design saved" });
-
+      
     } catch (error) {
       console.error("Error saving design:", error);
       // Show error toast
       // toast({ title: "Error saving design", variant: "destructive" });
     }
   };
-
+  
   // Load saved designs from localStorage
   const loadSavedDesigns = () => {
     try {
@@ -228,12 +228,12 @@ export default function DesignStudio() {
       console.error("Error loading saved designs:", error);
     }
   };
-
+  
   // Load a saved design
   const loadDesign = (designId: string) => {
     try {
       const design = savedDesigns.find(d => d.id === designId);
-
+      
       if (design && fabricCanvas) {
         fabricCanvas.loadFromJSON(JSON.parse(design.canvasJson), () => {
           fabricCanvas.renderAll();
@@ -248,17 +248,17 @@ export default function DesignStudio() {
       console.error("Error loading design:", error);
     }
   };
-
+  
   // Export the design to PDF
   const exportToPDF = () => {
     if (!fabricCanvas) return;
-
+    
     // Create a data URL of the canvas
     const dataUrl = fabricCanvas.toDataURL({
       format: "png",
       quality: 1.0,
     });
-
+    
     // Create a link to download the image (as PNG for simplicity)
     // In a real app, you'd want to convert this to PDF on the server
     const link = document.createElement("a");
@@ -268,14 +268,22 @@ export default function DesignStudio() {
     link.click();
     document.body.removeChild(link);
   };
-
+  
   return (
     <div className="w-full h-[calc(100vh-12rem)] flex flex-col">
       {/* Top Control Bar */}
       <div className="flex justify-between items-center p-2 border-b">
         <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setShowSidebar(!showSidebar)}
+          >
+            {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+          </Button>
+          
           <Separator orientation="vertical" className="h-6" />
-
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -290,7 +298,7 @@ export default function DesignStudio() {
               <TooltipContent>Add Text</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -305,7 +313,7 @@ export default function DesignStudio() {
               <TooltipContent>Add Shape</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -322,7 +330,7 @@ export default function DesignStudio() {
             </Tooltip>
           </TooltipProvider>
         </div>
-
+        
         <div className="flex items-center gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -339,7 +347,7 @@ export default function DesignStudio() {
               <TooltipContent>Save Design</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -357,7 +365,7 @@ export default function DesignStudio() {
           </TooltipProvider>
         </div>
       </div>
-
+      
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Side Panel */}
@@ -369,7 +377,7 @@ export default function DesignStudio() {
                 <TabsTrigger value="properties" className="flex-1">Properties</TabsTrigger>
                 <TabsTrigger value="designs" className="flex-1">Designs</TabsTrigger>
               </TabsList>
-
+              
               <TabsContent value="elements" className="p-4 space-y-4">
                 <div>
                   <h3 className="text-sm font-medium mb-2">Text</h3>
@@ -380,7 +388,7 @@ export default function DesignStudio() {
                     </Button>
                   </div>
                 </div>
-
+                
                 <div>
                   <h3 className="text-sm font-medium mb-2">Shapes</h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -390,7 +398,7 @@ export default function DesignStudio() {
                     </Button>
                   </div>
                 </div>
-
+                
                 <div>
                   <h3 className="text-sm font-medium mb-2">Resume Blocks</h3>
                   <div className="grid grid-cols-1 gap-2">
@@ -413,7 +421,7 @@ export default function DesignStudio() {
                   </div>
                 </div>
               </TabsContent>
-
+              
               <TabsContent value="properties" className="p-4 space-y-4">
                 {activeObject ? (
                   <div className="space-y-4">
@@ -439,7 +447,7 @@ export default function DesignStudio() {
                                 <TooltipContent>Bold</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-
+                            
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -457,7 +465,7 @@ export default function DesignStudio() {
                                 <TooltipContent>Italic</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-
+                            
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -477,7 +485,7 @@ export default function DesignStudio() {
                             </TooltipProvider>
                           </div>
                         </div>
-
+                        
                         <div>
                           <h3 className="text-sm font-medium mb-2">Alignment</h3>
                           <div className="flex gap-1">
@@ -498,7 +506,7 @@ export default function DesignStudio() {
                                 <TooltipContent>Align Left</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-
+                            
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -516,7 +524,7 @@ export default function DesignStudio() {
                                 <TooltipContent>Align Center</TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
-
+                            
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -538,7 +546,7 @@ export default function DesignStudio() {
                         </div>
                       </>
                     )}
-
+                    
                     <div>
                       <h3 className="text-sm font-medium mb-2">Color</h3>
                       <div className="grid grid-cols-5 gap-1">
@@ -565,7 +573,7 @@ export default function DesignStudio() {
                         ))}
                       </div>
                     </div>
-
+                    
                     {activeObject.type === 'textbox' && (
                       <div>
                         <h3 className="text-sm font-medium mb-2">Font</h3>
@@ -594,7 +602,7 @@ export default function DesignStudio() {
                   </div>
                 )}
               </TabsContent>
-
+              
               <TabsContent value="designs" className="p-4 space-y-4">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-sm font-medium">Saved Designs</h3>
@@ -617,7 +625,7 @@ export default function DesignStudio() {
                     <Plus size={16} />
                   </Button>
                 </div>
-
+                
                 {savedDesigns.length > 0 ? (
                   <div className="space-y-2">
                     {savedDesigns.map((design) => (
@@ -650,7 +658,7 @@ export default function DesignStudio() {
             </Tabs>
           </div>
         )}
-
+        
         {/* Canvas Area */}
         <div className="flex-1 overflow-auto bg-gray-100 p-4 flex justify-center">
           <div className="bg-white shadow-lg">
