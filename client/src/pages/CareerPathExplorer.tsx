@@ -513,6 +513,40 @@ interface RoleInsight {
   insights: string;
 }
 
+// Function to map icon string to JSX component
+const getIconComponent = (iconName: string): JSX.Element => {
+  // Default to Briefcase if not matched
+  const iconSize = "h-6 w-6 text-primary";
+  
+  switch (iconName?.toLowerCase()) {
+    case 'braces':
+      return <Braces className={iconSize} />;
+    case 'cpu':
+      return <Cpu className={iconSize} />;
+    case 'database':
+      return <Database className={iconSize} />;
+    case 'briefcase':
+      return <BriefcaseBusiness className={iconSize} />;
+    case 'user':
+      return <User className={iconSize} />;
+    case 'award':
+      return <Award className={iconSize} />;
+    case 'linechart':
+      return <LineChart className={iconSize} />;
+    case 'layers':
+      return <Layers className={iconSize} />;
+    case 'graduation':
+      return <GraduationCap className={iconSize} />;
+    case 'lightbulb':
+      return <Lightbulb className={iconSize} />;
+    case 'book':
+      return <BookOpen className={iconSize} />;
+    default:
+      // If the icon name is not recognized or null/undefined, use a default icon
+      return <BriefcaseBusiness className={iconSize} />;
+  }
+};
+
 export default function CareerPathExplorer() {
   const { toast } = useToast();
   const [activePath, setActivePath] = useState<CareerPath>(careerPaths[0]);
@@ -604,22 +638,52 @@ export default function CareerPathExplorer() {
                   })
                     .then(res => res.json())
                     .then(data => {
-                      // Create a new path from the generated data
-                      setGeneratedPath(data);
-                      setActivePath(data);
-                      setIsSearching(false);
+                      console.log('API Response:', data);
                       
-                      toast({
-                        title: "Career Path Generated",
-                        description: `Career path for "${jobTitle}" has been generated successfully.`,
-                      });
+                      // Check if the data has a 'paths' array (from the OpenAI response)
+                      if (data.paths && data.paths.length > 0) {
+                        // The first path in the paths array is the main career path
+                        const mainPath = data.paths[0];
+                        
+                        // Make sure it has the required format
+                        if (mainPath && mainPath.nodes && mainPath.nodes.length > 0) {
+                          // Process the nodes to add proper icon components
+                          const processedPath = {
+                            ...mainPath,
+                            nodes: mainPath.nodes.map(node => {
+                              // Map the icon string to an actual React component
+                              const iconComponent = getIconComponent(node.icon);
+                              
+                              return {
+                                ...node,
+                                icon: iconComponent
+                              };
+                            })
+                          };
+                          
+                          // Set this as the generated path
+                          setGeneratedPath(processedPath);
+                          setActivePath(processedPath);
+                          
+                          toast({
+                            title: "Career Path Generated",
+                            description: `Career path for "${jobTitle}" has been generated successfully.`,
+                          });
+                        } else {
+                          throw new Error('Invalid path structure returned');
+                        }
+                      } else {
+                        throw new Error('No valid career paths found in response');
+                      }
+                      
+                      setIsSearching(false);
                     })
                     .catch(err => {
                       console.error('Error generating career path:', err);
                       setIsSearching(false);
                       toast({
                         title: "Error",
-                        description: "Failed to generate career path. Please try again.",
+                        description: `Failed to generate career path: ${err.message || 'Unknown error'}`,
                         variant: "destructive"
                       });
                     });
