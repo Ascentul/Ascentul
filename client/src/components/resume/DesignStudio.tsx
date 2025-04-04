@@ -272,8 +272,8 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Change the control position to move rotation handle further below the object
-      window.fabric.Object.prototype.controls.mtr.offsetY = 45; // Increase distance to position handle well below the object
+      // Change the control position to move rotation handle to exactly 24px below the object
+      window.fabric.Object.prototype.controls.mtr.offsetY = 24; // Position 24px below the object
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
       window.fabric.Object.prototype.controls.mtr.withConnection = false; // We'll draw our own connecting line
       window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
@@ -284,15 +284,17 @@ export default function DesignStudio() {
       canvas.selectionBorderColor = '#0C29AB'; // Dark primary blue for the outline
       canvas.selectionLineWidth = 2; // Make the selection border more visible
       
-      // Customize the control points (handles)
-      const controlColor = '#0C29AB';
+      // Customize the control points (handles) to be white with thin grey outlines
+      const cornerFillColor = '#FFFFFF'; // White fill
+      const cornerStrokeColor = '#CCCCCC'; // Light grey outline
       
       // Set corner style to be circles
-      window.fabric.Object.prototype.cornerColor = controlColor;
-      window.fabric.Object.prototype.cornerStrokeColor = controlColor;
+      window.fabric.Object.prototype.cornerColor = cornerFillColor;
+      window.fabric.Object.prototype.cornerStrokeColor = cornerStrokeColor;
       window.fabric.Object.prototype.cornerSize = 8; // Slightly smaller corner points
       window.fabric.Object.prototype.transparentCorners = false; // Solid corners look better
       window.fabric.Object.prototype.cornerStyle = 'circle'; // Make corner controls circular
+      window.fabric.Object.prototype.cornerStrokeWidth = 1; // Thin outline
       
       // Create custom control renderers for sides
       const renderSideControl = function(
