@@ -270,17 +270,13 @@ export default function DesignStudio() {
       // Set position for rotation control - consistently 64px below any object
       window.fabric.Object.prototype.controls.mtr.offsetY = 64; 
       
-      // Override the positionHandler to ensure the rotation handle maintains alignment
-      // with the shape during rotation and scaling
+      // Override the positionHandler to ensure the rotation handle maintains consistent alignment
+      // for both text and shape elements with 64px spacing below the object
       window.fabric.Object.prototype.controls.mtr.positionHandler = function(
         dim: any, 
         finalMatrix: any, 
         fabricObject: any
       ) {
-        // Get object dimensions
-        const objectWidth = fabricObject.width * fabricObject.scaleX;
-        const objectHeight = fabricObject.height * fabricObject.scaleY;
-        
         // Get object's angle in radians
         const angleRadians = fabricObject.angle * Math.PI / 180;
         
@@ -288,21 +284,22 @@ export default function DesignStudio() {
         const centerX = fabricObject.left;
         const centerY = fabricObject.top;
         
-        // For objects with originX/Y = 'center'
+        // Get bounding rect to ensure consistency between text and shape elements
+        const boundingRect = fabricObject.getBoundingRect();
+        const objectHeight = boundingRect.height;
         
-        // Calculate the position 64px directly below the object, accounting for rotation
-        // We position it directly below the center of the bottom edge
+        // Fixed offset of 64px from the bottom edge of the bounding box
+        const fixedOffset = 64;
         
-        // First, determine the bottom center point offset from center (in local coordinates)
-        const localOffsetY = objectHeight / 2;
+        // Calculate the position directly below the center of the object's bottom edge
+        // This ensures consistent behavior across all element types
         
-        // Then the 64px additional offset (still in local coordinates)
-        const additionalOffset = 64;
+        // Vertical offset from center to bottom edge plus the 64px gap
+        const totalOffsetY = objectHeight / 2 + fixedOffset;
         
-        // Now calculate the total offset including the 64px spacing (in global coordinates)
         // Apply rotation to maintain alignment with object
         const rotatedOffsetX = 0; // No horizontal offset for centered rotation handle
-        const rotatedOffsetY = (localOffsetY + additionalOffset);
+        const rotatedOffsetY = totalOffsetY;
         
         // Apply rotation to the offset
         const rotatedX = rotatedOffsetX * Math.cos(angleRadians) - rotatedOffsetY * Math.sin(angleRadians);
