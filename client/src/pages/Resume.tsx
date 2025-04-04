@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import ResumeForm from '@/components/ResumeForm';
-// import DesignStudio from '@/components/resume/DesignStudio'; // Removed import
+import DesignStudio from '@/components/resume/DesignStudio';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -28,7 +28,7 @@ export default function Resume() {
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [isGeneratedResumeOpen, setIsGeneratedResumeOpen] = useState(false);
-  // const [useDesignStudio, setUseDesignStudio] = useState(false); // Removed state
+  const [useDesignStudio, setUseDesignStudio] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -289,7 +289,7 @@ export default function Resume() {
       }
     }
   };
-
+  
   // Function to download resume as PDF
   const handleDownloadPDF = (elementId: string) => {
     const element = document.getElementById(elementId);
@@ -301,16 +301,16 @@ export default function Resume() {
       });
       return;
     }
-
+    
     // Create a filename based on resume name or default
     const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
     const filename = `${resumeName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-
+    
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
     clonedElement.style.padding = '20px';
     clonedElement.style.border = 'none';
-
+    
     // Create the print window
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -321,7 +321,7 @@ export default function Resume() {
       });
       return;
     }
-
+    
     // Setup the print document
     printWindow.document.write(`
       <html>
@@ -358,7 +358,7 @@ export default function Resume() {
         </body>
       </html>
     `);
-
+    
     printWindow.document.close();
   };
 
@@ -378,23 +378,65 @@ export default function Resume() {
           <p className="text-neutral-500">Create and manage your professional resumes</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <Button 
-            onClick={() => {
-              setSelectedResume(null);
-              setIsAddResumeOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Resume
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Switch 
+              id="design-studio-mode" 
+              checked={useDesignStudio}
+              onCheckedChange={setUseDesignStudio}
+            />
+            <label
+              htmlFor="design-studio-mode"
+              className="text-sm font-medium leading-none flex items-center cursor-pointer"
+            >
+              <Palette className="h-4 w-4 mr-1 text-primary" />
+              Design Studio
+            </label>
+          </div>
+          {useDesignStudio ? (
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Add functionality to save design from the Design Studio
+                  if (window.saveDesignFunction) {
+                    window.saveDesignFunction();
+                  }
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Design
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add functionality to export design from the Design Studio
+                  if (window.exportToPDFFunction) {
+                    window.exportToPDFFunction();
+                  }
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Export Design
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => {
+                setSelectedResume(null);
+                setIsAddResumeOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Resume
+            </Button>
+          )}
         </div>
       </motion.div>
 
-      <Tabs defaultValue="resumes"> {/* Removed design-studio option */}
+      <Tabs defaultValue={useDesignStudio ? "design-studio" : "resumes"}>
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
-          {/* Removed Design Studio tab */}
+          <TabsTrigger value="design-studio">Design Studio</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumes" className="space-y-6">
@@ -503,7 +545,7 @@ export default function Resume() {
                             hiddenDiv.style.position = 'absolute';
                             hiddenDiv.style.left = '-9999px';
                             hiddenDiv.style.top = '-9999px';
-
+                            
                             // Add resume content to the hidden div
                             hiddenDiv.innerHTML = `
                               <div class="bg-white p-6">
@@ -517,13 +559,13 @@ export default function Resume() {
                                     ${resume.content.personalInfo.location ? `<span>| ${resume.content.personalInfo.location}</span>` : ''}
                                   </div>
                                 </div>
-
+                                
                                 ${resume.content.summary ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                                   <p class="text-sm">${resume.content.summary}</p>
                                 </div>` : ''}
-
+                                
                                 ${resume.content.skills && resume.content.skills.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -533,7 +575,7 @@ export default function Resume() {
                                     ).join('')}
                                   </div>
                                 </div>` : ''}
-
+                                
                                 ${resume.content.experience && resume.content.experience.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -552,7 +594,7 @@ export default function Resume() {
                                     `).join('')}
                                   </div>
                                 </div>` : ''}
-
+                                
                                 ${resume.content.education && resume.content.education.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -571,7 +613,7 @@ export default function Resume() {
                                     `).join('')}
                                   </div>
                                 </div>` : ''}
-
+                                
                                 ${resume.content.projects && resume.content.projects.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
@@ -598,13 +640,13 @@ export default function Resume() {
                                 </div>` : ''}
                               </div>
                             `;
-
+                            
                             // Append the hidden div to the document
                             document.body.appendChild(hiddenDiv);
-
+                            
                             // Download the resume
                             handleDownloadPDF(`temp-resume-${resume.id}`);
-
+                            
                             // Remove the hidden div after a delay
                             setTimeout(() => {
                               document.body.removeChild(hiddenDiv);
@@ -737,8 +779,9 @@ export default function Resume() {
           </motion.div>
         </TabsContent>
 
-        {/* Removed Design Studio TabsContent */}
-
+        <TabsContent value="design-studio" className="p-0">
+          <DesignStudio />
+        </TabsContent>
       </Tabs>
 
       {/* Add/Edit Resume Dialog */}
@@ -770,7 +813,7 @@ export default function Resume() {
                   hiddenDiv.style.position = 'absolute';
                   hiddenDiv.style.left = '-9999px';
                   hiddenDiv.style.top = '-9999px';
-
+                  
                   // Add resume content to the hidden div
                   hiddenDiv.innerHTML = `
                     <div class="bg-white p-6">
@@ -788,13 +831,13 @@ export default function Resume() {
                           ${previewResume.content.personalInfo.portfolio ? `<a href="${previewResume.content.personalInfo.portfolio}" target="_blank" rel="noopener noreferrer">Portfolio</a>` : ''}
                         </div>
                       </div>
-
+                      
                       ${previewResume.content.summary ? `
                       <div class="mb-6">
                         <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                         <p class="text-sm">${previewResume.content.summary}</p>
                       </div>` : ''}
-
+                      
                       ${previewResume.content.skills && previewResume.content.skills.length > 0 ? `
                       <div class="mb-6">
                         <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -804,13 +847,13 @@ export default function Resume() {
                           ).join('')}
                         </div>
                       </div>` : ''}
-
+                      
                       ${previewResume.content.experience && previewResume.content.experience.length > 0 ? `
                       <div class="mb-6">
                         <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
                         <div class="space-y-4">
                           ${previewResume.content.experience.map((exp: any) => `
-                            <div                            <div>
+                            <div>
                               <div class="flex justify-between">
                                 <h4 class="font-medium">${exp.position}</h4>
                                 <div class="text-sm text-neutral-600">
@@ -823,7 +866,7 @@ export default function Resume() {
                           `).join('')}
                         </div>
                       </div>` : ''}
-
+                      
                       ${previewResume.content.education && previewResume.content.education.length > 0 ? `
                       <div class="mb-6">
                         <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -842,7 +885,7 @@ export default function Resume() {
                           `).join('')}
                         </div>
                       </div>` : ''}
-
+                      
                       ${previewResume.content.projects && previewResume.content.projects.length > 0 ? `
                       <div class="mb-6">
                         <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
@@ -860,13 +903,13 @@ export default function Resume() {
                       </div>` : ''}
                     </div>
                   `;
-
+                  
                   // Append the hidden div to the document
                   document.body.appendChild(hiddenDiv);
-
+                  
                   // Download the resume
                   handleDownloadPDF(`temp-preview-resume`);
-
+                  
                   // Remove the hidden div after a delay
                   setTimeout(() => {
                     document.body.removeChild(hiddenDiv);
@@ -996,7 +1039,7 @@ export default function Resume() {
                     hiddenDiv.style.position = 'absolute';
                     hiddenDiv.style.left = '-9999px';
                     hiddenDiv.style.top = '-9999px';
-
+                    
                     // Add resume content to the hidden div
                     hiddenDiv.innerHTML = `
                       <div class="bg-white p-6">
@@ -1010,13 +1053,13 @@ export default function Resume() {
                             ${generatedResume.personalInfo?.location ? `<span>| ${generatedResume.personalInfo.location}</span>` : ''}
                           </div>
                         </div>
-
+                        
                         ${generatedResume.summary ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                           <p class="text-sm">${generatedResume.summary}</p>
                         </div>` : ''}
-
+                        
                         ${generatedResume.skills && generatedResume.skills.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -1026,7 +1069,7 @@ export default function Resume() {
                             ).join('')}
                           </div>
                         </div>` : ''}
-
+                        
                         ${generatedResume.experience && generatedResume.experience.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -1052,7 +1095,7 @@ export default function Resume() {
                             `).join('')}
                           </div>
                         </div>` : ''}
-
+                        
                         ${generatedResume.education && generatedResume.education.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -1073,13 +1116,13 @@ export default function Resume() {
                         </div>` : ''}
                       </div>
                     `;
-
+                    
                     // Append the hidden div to the document
                     document.body.appendChild(hiddenDiv);
-
+                    
                     // Download the resume
                     handleDownloadPDF(`temp-generated-resume`);
-
+                    
                     // Remove the hidden div after a delay
                     setTimeout(() => {
                       document.body.removeChild(hiddenDiv);
