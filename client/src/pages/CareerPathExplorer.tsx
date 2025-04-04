@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -520,6 +522,11 @@ export default function CareerPathExplorer() {
   const [roleInsights, setRoleInsights] = useState<RoleInsight | null>(null);
   const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Job title search
+  const [jobTitle, setJobTitle] = useState<string>('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [generatedPath, setGeneratedPath] = useState<any>(null);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -560,9 +567,82 @@ export default function CareerPathExplorer() {
           </p>
         </div>
       </div>
+      
+      {/* Job Title Search */}
+      <div className="mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end">
+              <div className="flex-1">
+                <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
+                <Input
+                  id="job-title-search"
+                  placeholder="Enter a job title (e.g., Software Engineer, Data Scientist)"
+                  value={jobTitle}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobTitle(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Quickly generate a career path based on a specific job title
+                </p>
+              </div>
+              <Button 
+                onClick={() => {
+                  if (!jobTitle.trim()) {
+                    toast({
+                      title: "Job title required",
+                      description: "Please enter a job title to generate a career path.",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  setIsSearching(true);
+                  
+                  apiRequest('POST', '/api/career-path/generate-from-job', {
+                    jobTitle: jobTitle.trim()
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      // Create a new path from the generated data
+                      setGeneratedPath(data);
+                      setActivePath(data);
+                      setIsSearching(false);
+                      
+                      toast({
+                        title: "Career Path Generated",
+                        description: `Career path for "${jobTitle}" has been generated successfully.`,
+                      });
+                    })
+                    .catch(err => {
+                      console.error('Error generating career path:', err);
+                      setIsSearching(false);
+                      toast({
+                        title: "Error",
+                        description: "Failed to generate career path. Please try again.",
+                        variant: "destructive"
+                      });
+                    });
+                }}
+                disabled={isSearching || !jobTitle.trim()}
+                className="min-w-[120px]"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>Generate</>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Path Selector */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         {careerPaths.map(path => (
           <Button
             key={path.id}
@@ -575,6 +655,21 @@ export default function CareerPathExplorer() {
             {path.name}
           </Button>
         ))}
+        
+        {/* Show generated path if exists */}
+        {generatedPath && (
+          <Button
+            variant={activePath.id === generatedPath.id ? "default" : "outline"}
+            onClick={() => {
+              setActivePath(generatedPath);
+              setSelectedNodeId(null);
+            }}
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:text-white"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            {generatedPath.name || `${jobTitle} Path`}
+          </Button>
+        )}
       </div>
 
       {/* Career Path Visualization */}
