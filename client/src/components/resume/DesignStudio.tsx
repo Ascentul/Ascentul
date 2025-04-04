@@ -272,8 +272,8 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Change the control position to move rotation handle to exactly 24px below the object
-      window.fabric.Object.prototype.controls.mtr.offsetY = 24; // Position 24px below the object
+      // Change the control position to move rotation handle well below the object
+      window.fabric.Object.prototype.controls.mtr.offsetY = 48; // Position 48px below the object (24px + 24px more)
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
       window.fabric.Object.prototype.controls.mtr.withConnection = false; // We'll draw our own connecting line
       window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
