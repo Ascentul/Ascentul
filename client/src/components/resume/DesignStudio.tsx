@@ -261,19 +261,43 @@ export default function DesignStudio() {
     if (!fabricCanvasRef.current) return;
     
     try {
-      const json = JSON.stringify(fabricCanvasRef.current.toJSON());
+      // Get the JSON representation of the canvas
+      const json = JSON.stringify(fabricCanvasRef.current.toJSON(['selectable', 'hasControls']));
+      
+      // Get the current date for naming
+      const date = new Date();
+      const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+      
+      // Store in localStorage
       localStorage.setItem('resumeDesign', json);
       
+      // Store name of design and date
+      const savedDesigns = JSON.parse(localStorage.getItem('savedDesignsList') || '[]');
+      const designInfo = {
+        id: Date.now().toString(),
+        name: `Resume Design - ${formattedDate}`,
+        date: date.toISOString(),
+        previewData: fabricCanvasRef.current.toDataURL({
+          format: 'png',
+          quality: 0.1,
+          multiplier: 0.1
+        })
+      };
+      
+      savedDesigns.push(designInfo);
+      localStorage.setItem('savedDesignsList', JSON.stringify(savedDesigns));
+      
       toast({
-        title: "Design Saved",
-        description: "Your design has been saved to browser storage",
+        title: "Design Saved Successfully",
+        description: `Your design "${designInfo.name}" has been saved to browser storage`,
       });
     } catch (error) {
       toast({
         title: "Error Saving Design",
-        description: "There was a problem saving your design",
+        description: "There was a problem saving your design. Please try again.",
         variant: "destructive",
       });
+      console.error("Save design error:", error);
     }
   };
 
@@ -283,76 +307,151 @@ export default function DesignStudio() {
     try {
       const savedDesign = localStorage.getItem('resumeDesign');
       if (savedDesign) {
+        // Clear the current canvas before loading
+        fabricCanvasRef.current.clear();
+        
+        // Load the saved design
         fabricCanvasRef.current.loadFromJSON(savedDesign, () => {
           fabricCanvasRef.current.renderAll();
+          
+          // Make sure all objects are selectable
+          fabricCanvasRef.current.forEachObject((obj) => {
+            obj.selectable = true;
+            obj.hasControls = true;
+          });
+          
           toast({
-            title: "Design Loaded",
-            description: "Your saved design has been loaded",
+            title: "Design Loaded Successfully",
+            description: "Your saved design has been loaded to the canvas",
           });
         });
       } else {
         toast({
-          title: "No Saved Design",
-          description: "No previously saved design was found",
+          title: "No Saved Design Found",
+          description: "No previously saved design was found in browser storage",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error Loading Design",
-        description: "There was a problem loading your design",
+        description: "There was a problem loading your design. The file might be corrupted.",
         variant: "destructive",
       });
+      console.error("Load design error:", error);
     }
   };
 
   const exportToPDF = () => {
     if (!fabricCanvasRef.current) return;
     
-    const dataURL = fabricCanvasRef.current.toDataURL({
-      format: 'png',
-      quality: 1
-    });
-    
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+    try {
+      const dataURL = fabricCanvasRef.current.toDataURL({
+        format: 'png',
+        quality: 1,
+        multiplier: 2 // Higher resolution for better quality PDF
+      });
+      
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: "Export Failed",
+          description: "Unable to open print window. Check if pop-ups are allowed.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // A4 page specifics
+      const a4Width = 595;
+      const a4Height = 842;
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Resume PDF Export</title>
+            <style>
+              body { 
+                margin: 0; 
+                padding: 0;
+                background-color: #f5f5f5;
+              }
+              .container {
+                display: flex;
+                justify-content: center;
+                padding: 20px;
+              }
+              .page {
+                width: ${a4Width}px;
+                height: ${a4Height}px;
+                background-color: white;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+                overflow: hidden;
+              }
+              img { 
+                width: 100%; 
+                height: 100%;
+                object-fit: contain;
+              }
+              @media print {
+                body { 
+                  margin: 0; 
+                  padding: 0;
+                  background-color: white;
+                }
+                .container {
+                  padding: 0;
+                }
+                .page {
+                  width: 100%;
+                  height: 100%;
+                  box-shadow: none;
+                  page-break-after: always;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="page">
+                <img src="${dataURL}" alt="Resume" />
+              </div>
+            </div>
+            <script>
+              window.onload = function() {
+                setTimeout(() => {
+                  window.print();
+                  // Show success message after printing
+                  window.onfocus = function() { 
+                    window.opener.postMessage('pdf-exported', '*');
+                    window.close(); 
+                  }
+                }, 500);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      
+      // Listen for the success message from the print window
+      window.addEventListener('message', (event) => {
+        if (event.data === 'pdf-exported') {
+          toast({
+            title: "Export Successful",
+            description: "Your resume has been exported to PDF",
+          });
+        }
+      }, { once: true });
+    } catch (error) {
       toast({
         title: "Export Failed",
-        description: "Unable to open print window. Check if pop-ups are allowed.",
+        description: "There was a problem exporting your design to PDF",
         variant: "destructive",
       });
-      return;
     }
-    
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Resume PDF Export</title>
-          <style>
-            body { margin: 0; }
-            img { max-width: 100%; height: auto; }
-            @media print {
-              body { margin: 0; }
-              img { width: 100%; height: auto; }
-            }
-          </style>
-        </head>
-        <body>
-          <img src="${dataURL}" />
-          <script>
-            window.onload = function() {
-              setTimeout(() => {
-                window.print();
-                window.onfocus = function() { window.close(); }
-              }, 200);
-            }
-          </script>
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
   };
 
   const deleteSelectedObject = () => {
