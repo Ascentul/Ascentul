@@ -4,6 +4,19 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   Save, FileDown, Undo, Redo, Type, Square, Image as ImageIcon,
   Plus, Trash, Copy, AlignLeft, AlignCenter, AlignRight,
@@ -31,6 +44,35 @@ const FONT_PRESETS = [
   "Arial", "Times New Roman", "Calibri", "Helvetica", "Georgia",
   "Verdana", "Tahoma", "Trebuchet MS", "Garamond", "Courier New"
 ];
+
+// Color picker component
+function PopoverPicker({ color, onChange }: { color: string, onChange: (color: string) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-10 h-8 p-1">
+          <div 
+            className="w-full h-full rounded" 
+            style={{ backgroundColor: color || "#000000" }}
+          />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64">
+        <div className="grid grid-cols-5 gap-2">
+          {COLOR_PRESETS.map((presetColor) => (
+            <Button
+              key={presetColor}
+              variant="outline"
+              className="w-8 h-8 p-0"
+              style={{ backgroundColor: presetColor }}
+              onClick={() => onChange(presetColor)}
+            />
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function DesignStudio() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -272,23 +314,235 @@ export default function DesignStudio() {
   return (
     <div className="w-full h-[calc(100vh-12rem)] flex flex-col">
       {/* Top Control Bar */}
-      <div className="flex justify-between items-center p-2 border-b">
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{showSidebar ? "Hide Panel" : "Show Panel"}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      <div className="flex flex-col border-b">
+        {/* Main Toolbar */}
+        <div className="flex justify-between items-center p-2">
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowSidebar(!showSidebar)}
+                  >
+                    {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{showSidebar ? "Hide Panel" : "Show Panel"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={saveDesign}
+            >
+              <Save size={16} className="mr-1" />
+              Save
+            </Button>
+            
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={exportToPDF}
+            >
+              <FileDown size={16} className="mr-1" />
+              Export as PDF
+            </Button>
+          </div>
         </div>
+        
+        {/* Properties Toolbar - Only shows when an element is selected */}
+        {activeObject && (
+          <div className="flex items-center gap-3 p-2 bg-muted/30 border-t overflow-x-auto">
+            {/* Element Actions */}
+            <div className="flex items-center gap-1 border-r pr-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={deleteObject}
+                    >
+                      <Trash size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            {/* Text Formatting - Only for text elements */}
+            {activeObject.type === 'textbox' && (
+              <>
+                <div className="flex items-center gap-1">
+                  <Select 
+                    defaultValue={activeObject.fontFamily || "Arial"} 
+                    onValueChange={(value) => {
+                      activeObject.set('fontFamily', value);
+                      fabricCanvas.renderAll();
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-40">
+                      <SelectValue placeholder="Font Family" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FONT_PRESETS.map((font) => (
+                        <SelectItem key={font} value={font} style={{ fontFamily: font }}>
+                          {font}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Input 
+                    type="number" 
+                    className="w-16 h-8" 
+                    defaultValue={activeObject.fontSize || "16"}
+                    onChange={(e) => {
+                      activeObject.set('fontSize', parseInt(e.target.value));
+                      fabricCanvas.renderAll();
+                    }}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-1 border-l pl-3">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.fontWeight === 'bold' ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('fontWeight', activeObject.fontWeight === 'bold' ? 'normal' : 'bold');
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <Bold size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Bold</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.fontStyle === 'italic' ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('fontStyle', activeObject.fontStyle === 'italic' ? 'normal' : 'italic');
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <Italic size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Italic</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.underline ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('underline', !activeObject.underline);
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <Underline size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Underline</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                
+                <div className="flex items-center gap-1 border-l pl-3">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.textAlign === 'left' ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('textAlign', 'left');
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <AlignLeft size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Align Left</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.textAlign === 'center' ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('textAlign', 'center');
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <AlignCenter size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Align Center</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={activeObject.textAlign === 'right' ? 'secondary' : 'ghost'} 
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            activeObject.set('textAlign', 'right');
+                            fabricCanvas.renderAll();
+                          }}
+                        >
+                          <AlignRight size={16} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Align Right</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </>
+            )}
+            
+            {/* Color Selector - Works for both text and shapes */}
+            <div className="flex items-center gap-1 border-l pl-3">
+              <PopoverPicker 
+                color={activeObject.fill} 
+                onChange={(color) => {
+                  activeObject.set('fill', color);
+                  fabricCanvas.renderAll();
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Main Content Area */}
