@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, Save, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
@@ -392,15 +392,43 @@ export default function Resume() {
               Design Studio
             </label>
           </div>
-          <Button 
-            onClick={() => {
-              setSelectedResume(null);
-              setIsAddResumeOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Resume
-          </Button>
+          {useDesignStudio ? (
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Add functionality to save design from the Design Studio
+                  if (window.saveDesignFunction) {
+                    window.saveDesignFunction();
+                  }
+                }}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save Design
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add functionality to export design from the Design Studio
+                  if (window.exportToPDFFunction) {
+                    window.exportToPDFFunction();
+                  }
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Export Design
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => {
+                setSelectedResume(null);
+                setIsAddResumeOpen(true);
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Resume
+            </Button>
+          )}
         </div>
       </motion.div>
 
@@ -542,7 +570,7 @@ export default function Resume() {
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
                                   <div class="flex flex-wrap gap-2">
-                                    ${resume.content.skills.map((skill) => 
+                                    ${resume.content.skills.map((skill: string) => 
                                       `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
                                     ).join('')}
                                   </div>
@@ -552,7 +580,7 @@ export default function Resume() {
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
                                   <div class="space-y-4">
-                                    ${resume.content.experience.map((exp) => `
+                                    ${resume.content.experience.map((exp: any) => `
                                       <div>
                                         <div class="flex justify-between">
                                           <h4 class="font-medium">${exp.position}</h4>
@@ -571,7 +599,7 @@ export default function Resume() {
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
                                   <div class="space-y-4">
-                                    ${resume.content.education.map((edu) => `
+                                    ${resume.content.education.map((edu: any) => `
                                       <div>
                                         <div class="flex justify-between">
                                           <h4 class="font-medium">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h4>
@@ -590,7 +618,7 @@ export default function Resume() {
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
                                   <div class="space-y-4">
-                                    ${resume.content.projects.map((project) => `
+                                    ${resume.content.projects.map((project: any) => `
                                       <div>
                                         <h4 class="font-medium">
                                           ${project.name}
