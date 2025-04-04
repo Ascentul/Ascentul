@@ -1342,10 +1342,6 @@ export default function DesignStudio() {
             <Square className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Add Shape</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center" onClick={triggerImageUpload}>
-            <ImageIcon className="h-4 w-4 mr-1" />
-            <span className="text-xs sm:text-sm">Upload Image</span>
-          </Button>
           <Button variant="ghost" size="sm" className="flex items-center">
             <Layout className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Templates</span>
@@ -1560,6 +1556,24 @@ export default function DesignStudio() {
                         onClick={addTriangle}
                       >
                         <div className="w-0 h-0 border-l-[10px] border-l-transparent border-b-[16px] border-b-neutral-300 border-r-[10px] border-r-transparent"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Images</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div 
+                        className="bg-neutral-50 border rounded p-3 cursor-pointer hover:bg-neutral-100 transition-colors flex items-center"
+                        onClick={triggerImageUpload}
+                      >
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3">
+                          <ImageIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Upload Image</p>
+                          <p className="text-xs text-gray-500">Add photos or graphics</p>
+                        </div>
                       </div>
                     </div>
                   </div>
