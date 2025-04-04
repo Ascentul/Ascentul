@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Plus,
   Type, 
@@ -9,28 +9,431 @@ import {
   Save, 
   FileDown, 
   Layers, 
-  History
+  History,
+  Circle,
+  Triangle,
+  ArrowDown,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
+// Define fabric type for TypeScript
+declare global {
+  interface Window {
+    fabric: any;
+  }
+}
 
 export default function DesignStudio() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fabricCanvasRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedObject, setSelectedObject] = useState<any>(null);
+  const [fontSize, setFontSize] = useState<string>("24");
+  const [fontFamily, setFontFamily] = useState<string>("Arial");
+  const [textColor, setTextColor] = useState<string>("#000000");
+  const [backgroundColor, setBackgroundColor] = useState<string>("#ffffff");
+  const [textAlign, setTextAlign] = useState<string>("left");
+  const [isBold, setIsBold] = useState<boolean>(false);
+  const [isItalic, setIsItalic] = useState<boolean>(false);
+  const [isUnderline, setIsUnderline] = useState<boolean>(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Initialize Fabric canvas
+    if (canvasRef.current && window.fabric && !fabricCanvasRef.current) {
+      fabricCanvasRef.current = new window.fabric.Canvas(canvasRef.current, {
+        width: 595,
+        height: 842,
+        backgroundColor: '#ffffff',
+        selection: true,
+        preserveObjectStacking: true,
+      });
+
+      // Setup object selection event
+      fabricCanvasRef.current.on('selection:created', handleObjectSelected);
+      fabricCanvasRef.current.on('selection:updated', handleObjectSelected);
+      fabricCanvasRef.current.on('selection:cleared', () => {
+        setSelectedObject(null);
+        resetPropertyControls();
+      });
+    }
+
+    return () => {
+      // Cleanup on component unmount
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+      }
+    };
+  }, []);
+
+  const handleObjectSelected = (e: any) => {
+    const selectedObject = e.selected[0];
+    setSelectedObject(selectedObject);
+    
+    // Update property controls based on selected object
+    if (selectedObject) {
+      if (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') {
+        setFontSize(selectedObject.fontSize.toString());
+        setFontFamily(selectedObject.fontFamily);
+        setTextColor(selectedObject.fill);
+        setTextAlign(selectedObject.textAlign);
+        setIsBold(selectedObject.fontWeight === 'bold');
+        setIsItalic(selectedObject.fontStyle === 'italic');
+        setIsUnderline(selectedObject.underline);
+      }
+      
+      if (selectedObject.fill && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text') {
+        setBackgroundColor(selectedObject.fill);
+      }
+    }
+  };
+
+  const resetPropertyControls = () => {
+    setFontSize("24");
+    setFontFamily("Arial");
+    setTextColor("#000000");
+    setBackgroundColor("#ffffff");
+    setTextAlign("left");
+    setIsBold(false);
+    setIsItalic(false);
+    setIsUnderline(false);
+  };
+
+  const addText = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const text = new window.fabric.IText('Edit text', {
+      left: 100,
+      top: 100,
+      fontSize: 24,
+      fontFamily: 'Arial',
+      fill: '#000000',
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      underline: false,
+    });
+    
+    fabricCanvasRef.current.add(text);
+    fabricCanvasRef.current.setActiveObject(text);
+    text.enterEditing();
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const addHeading = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const heading = new window.fabric.IText('Heading', {
+      left: 100,
+      top: 50,
+      fontSize: 32,
+      fontFamily: 'Arial',
+      fill: '#000000',
+      fontWeight: 'bold',
+    });
+    
+    fabricCanvasRef.current.add(heading);
+    fabricCanvasRef.current.setActiveObject(heading);
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const addParagraph = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const paragraph = new window.fabric.Textbox(
+      'This is a paragraph of text. Click to edit and resize this text box. You can add multiple lines of text in this box.',
+      {
+        left: 100,
+        top: 150,
+        width: 300,
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fill: '#000000',
+        lineHeight: 1.5,
+        textAlign: 'left'
+      }
+    );
+    
+    fabricCanvasRef.current.add(paragraph);
+    fabricCanvasRef.current.setActiveObject(paragraph);
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const addRectangle = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const rect = new window.fabric.Rect({
+      left: 100,
+      top: 100,
+      width: 100,
+      height: 100,
+      fill: '#cccccc',
+      stroke: '#000000',
+      strokeWidth: 1,
+    });
+    
+    fabricCanvasRef.current.add(rect);
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const addCircle = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const circle = new window.fabric.Circle({
+      left: 150,
+      top: 150,
+      radius: 50,
+      fill: '#cccccc',
+      stroke: '#000000',
+      strokeWidth: 1,
+    });
+    
+    fabricCanvasRef.current.add(circle);
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const addTriangle = () => {
+    if (!fabricCanvasRef.current) return;
+
+    const triangle = new window.fabric.Triangle({
+      left: 200,
+      top: 200,
+      width: 100,
+      height: 100,
+      fill: '#cccccc',
+      stroke: '#000000',
+      strokeWidth: 1,
+    });
+    
+    fabricCanvasRef.current.add(triangle);
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (!event.target || !event.target.result) return;
+      
+      const imgObj = new Image();
+      imgObj.src = event.target.result as string;
+      
+      imgObj.onload = () => {
+        if (!fabricCanvasRef.current) return;
+        
+        const fabricImage = new window.fabric.Image(imgObj);
+        
+        // Scale down if the image is too large
+        if (fabricImage.width > 300 || fabricImage.height > 300) {
+          const scale = Math.min(300 / fabricImage.width, 300 / fabricImage.height);
+          fabricImage.scale(scale);
+        }
+        
+        fabricCanvasRef.current.add(fabricImage);
+        fabricCanvasRef.current.renderAll();
+      };
+    };
+    
+    reader.readAsDataURL(e.target.files[0]);
+    
+    // Reset the file input so the same image can be uploaded again
+    e.target.value = '';
+  };
+
+  const triggerImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const saveDesign = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    try {
+      const json = JSON.stringify(fabricCanvasRef.current.toJSON());
+      localStorage.setItem('resumeDesign', json);
+      
+      toast({
+        title: "Design Saved",
+        description: "Your design has been saved to browser storage",
+      });
+    } catch (error) {
+      toast({
+        title: "Error Saving Design",
+        description: "There was a problem saving your design",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadDesign = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    try {
+      const savedDesign = localStorage.getItem('resumeDesign');
+      if (savedDesign) {
+        fabricCanvasRef.current.loadFromJSON(savedDesign, () => {
+          fabricCanvasRef.current.renderAll();
+          toast({
+            title: "Design Loaded",
+            description: "Your saved design has been loaded",
+          });
+        });
+      } else {
+        toast({
+          title: "No Saved Design",
+          description: "No previously saved design was found",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Design",
+        description: "There was a problem loading your design",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const exportToPDF = () => {
+    if (!fabricCanvasRef.current) return;
+    
+    const dataURL = fabricCanvasRef.current.toDataURL({
+      format: 'png',
+      quality: 1
+    });
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Export Failed",
+        description: "Unable to open print window. Check if pop-ups are allowed.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Resume PDF Export</title>
+          <style>
+            body { margin: 0; }
+            img { max-width: 100%; height: auto; }
+            @media print {
+              body { margin: 0; }
+              img { width: 100%; height: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${dataURL}" />
+          <script>
+            window.onload = function() {
+              setTimeout(() => {
+                window.print();
+                window.onfocus = function() { window.close(); }
+              }, 200);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
+
+  const deleteSelectedObject = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    fabricCanvasRef.current.remove(selectedObject);
+    setSelectedObject(null);
+    resetPropertyControls();
+    fabricCanvasRef.current.renderAll();
+  };
+
+  const applyTextStyle = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    if (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') {
+      selectedObject.set({
+        fontSize: parseInt(fontSize),
+        fontFamily: fontFamily,
+        fill: textColor,
+        textAlign: textAlign,
+        fontWeight: isBold ? 'bold' : 'normal',
+        fontStyle: isItalic ? 'italic' : 'normal',
+        underline: isUnderline
+      });
+      
+      fabricCanvasRef.current.renderAll();
+    }
+  };
+
+  const applyShapeStyle = () => {
+    if (!fabricCanvasRef.current || !selectedObject) return;
+    
+    if (selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text') {
+      selectedObject.set({
+        fill: backgroundColor
+      });
+      
+      fabricCanvasRef.current.renderAll();
+    }
+  };
+
+  // Apply text styling when the controls change
+  useEffect(() => {
+    applyTextStyle();
+  }, [fontSize, fontFamily, textColor, textAlign, isBold, isItalic, isUnderline]);
+
+  // Apply shape styling when the controls change
+  useEffect(() => {
+    applyShapeStyle();
+  }, [backgroundColor]);
+
+  const toggleBold = () => {
+    setIsBold(!isBold);
+  };
+
+  const toggleItalic = () => {
+    setIsItalic(!isItalic);
+  };
+
+  const toggleUnderline = () => {
+    setIsUnderline(!isUnderline);
+  };
+
+  const setAlignment = (align: string) => {
+    setTextAlign(align);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-neutral-100">
       {/* Top Toolbar */}
       <div className="bg-white border-b p-2 flex items-center justify-between">
         <div className="flex space-x-1">
-          <Button variant="ghost" size="sm" className="flex items-center">
+          <Button variant="ghost" size="sm" className="flex items-center" onClick={addText}>
             <Type className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Add Text</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center">
+          <Button variant="ghost" size="sm" className="flex items-center" onClick={addRectangle}>
             <Square className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Add Shape</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center">
+          <Button variant="ghost" size="sm" className="flex items-center" onClick={triggerImageUpload}>
             <ImageIcon className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Upload Image</span>
           </Button>
@@ -38,17 +441,20 @@ export default function DesignStudio() {
             <Layout className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Templates</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center">
-            <Wand2 className="h-4 w-4 mr-1" />
-            <span className="text-xs sm:text-sm">AI Assist</span>
-          </Button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            accept="image/*" 
+            onChange={handleImageUpload}
+          />
         </div>
         <div className="flex space-x-1">
-          <Button variant="outline" size="sm" className="flex items-center">
+          <Button variant="outline" size="sm" className="flex items-center" onClick={saveDesign}>
             <Save className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Save</span>
           </Button>
-          <Button variant="default" size="sm" className="flex items-center">
+          <Button variant="default" size="sm" className="flex items-center" onClick={exportToPDF}>
             <FileDown className="h-4 w-4 mr-1" />
             <span className="text-xs sm:text-sm">Export</span>
           </Button>
@@ -69,17 +475,23 @@ export default function DesignStudio() {
                   <div>
                     <h3 className="text-sm font-medium mb-2">Text Elements</h3>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors">
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addHeading}
+                      >
                         <p className="text-sm">Heading</p>
                       </div>
-                      <div className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors">
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addParagraph}
+                      >
                         <p className="text-sm">Paragraph</p>
                       </div>
-                      <div className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Bullet List</p>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Number List</p>
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 text-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addText}
+                      >
+                        <p className="text-sm">Single Line</p>
                       </div>
                     </div>
                   </div>
@@ -87,41 +499,32 @@ export default function DesignStudio() {
                   <div>
                     <h3 className="text-sm font-medium mb-2">Shapes</h3>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addCircle}
+                      >
                         <div className="w-6 h-6 rounded-full border border-neutral-300"></div>
                       </div>
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addRectangle}
+                      >
                         <div className="w-6 h-6 border border-neutral-300"></div>
                       </div>
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <div className="w-6 h-6 border border-neutral-300 rotate-45"></div>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <div className="w-6 h-6 border border-neutral-300 rounded-lg"></div>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
+                      <div 
+                        className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors"
+                        onClick={addTriangle}
+                      >
                         <div className="w-0 h-0 border-l-[10px] border-l-transparent border-b-[16px] border-b-neutral-300 border-r-[10px] border-r-transparent"></div>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 flex justify-center items-center cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <div className="w-6 h-3 border border-neutral-300 rounded-full"></div>
                       </div>
                     </div>
                   </div>
                   <Separator />
                   <div>
-                    <h3 className="text-sm font-medium mb-2">Sections</h3>
+                    <h3 className="text-sm font-medium mb-2">Templates</h3>
                     <div className="space-y-2">
-                      <div className="bg-neutral-50 border rounded p-2 cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Header Section</p>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Work Experience</p>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Education</p>
-                      </div>
-                      <div className="bg-neutral-50 border rounded p-2 cursor-pointer hover:bg-neutral-100 transition-colors">
-                        <p className="text-sm">Skills</p>
+                      <div className="bg-neutral-50 border rounded p-2 cursor-pointer hover:bg-neutral-100 transition-colors" onClick={loadDesign}>
+                        <p className="text-sm">Load Saved Design</p>
                       </div>
                     </div>
                   </div>
@@ -166,62 +569,7 @@ export default function DesignStudio() {
           <div className="min-h-full flex items-start justify-center p-10">
             <div className="w-[595px] h-[842px] bg-white shadow-lg">
               {/* A4 Canvas (595px x 842px) */}
-              <div className="w-full h-full p-8">
-                {/* Resume content will go here */}
-                <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold">Your Name</h1>
-                  <p className="text-sm text-neutral-500">Professional Title</p>
-                  <div className="flex justify-center gap-2 mt-2 text-xs text-neutral-500">
-                    <span>email@example.com</span>
-                    <span>•</span>
-                    <span>+1 234 567 890</span>
-                    <span>•</span>
-                    <span>Location</span>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h2 className="text-sm font-bold uppercase text-primary border-b pb-1 mb-2">Summary</h2>
-                  <p className="text-sm">Experienced professional with a track record of success in [industry]. Skilled in [key skills] with a focus on delivering results.</p>
-                </div>
-                
-                <div className="mb-4">
-                  <h2 className="text-sm font-bold uppercase text-primary border-b pb-1 mb-2">Experience</h2>
-                  <div className="mb-2">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-semibold">Job Title</h3>
-                      <span className="text-xs text-neutral-500">Jan 2020 - Present</span>
-                    </div>
-                    <p className="text-xs font-medium text-neutral-600">Company Name, Location</p>
-                    <ul className="text-xs list-disc list-inside mt-1">
-                      <li>Accomplishment or responsibility description goes here</li>
-                      <li>Another key accomplishment with measurable results</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h2 className="text-sm font-bold uppercase text-primary border-b pb-1 mb-2">Education</h2>
-                  <div>
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-semibold">Degree Name</h3>
-                      <span className="text-xs text-neutral-500">Graduation Year</span>
-                    </div>
-                    <p className="text-xs">Institution Name, Location</p>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h2 className="text-sm font-bold uppercase text-primary border-b pb-1 mb-2">Skills</h2>
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-xs bg-neutral-100 px-2 py-1 rounded">Skill 1</span>
-                    <span className="text-xs bg-neutral-100 px-2 py-1 rounded">Skill 2</span>
-                    <span className="text-xs bg-neutral-100 px-2 py-1 rounded">Skill 3</span>
-                    <span className="text-xs bg-neutral-100 px-2 py-1 rounded">Skill 4</span>
-                    <span className="text-xs bg-neutral-100 px-2 py-1 rounded">Skill 5</span>
-                  </div>
-                </div>
-              </div>
+              <canvas ref={canvasRef} width="595" height="842" className="border border-neutral-300"></canvas>
             </div>
           </div>
         </div>
@@ -233,39 +581,148 @@ export default function DesignStudio() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-medium text-neutral-500 block mb-1">Element</label>
-                <p className="text-sm">No selection</p>
+                <p className="text-sm">{selectedObject ? selectedObject.type : 'No selection'}</p>
+                {selectedObject && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 w-full flex items-center justify-center"
+                    onClick={deleteSelectedObject}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Delete Element</span>
+                  </Button>
+                )}
               </div>
               <Separator />
-              <div>
-                <label className="text-xs font-medium text-neutral-500 block mb-1">Font</label>
-                <select className="w-full text-sm p-1 border rounded" disabled>
-                  <option>Inter</option>
-                  <option>Arial</option>
-                  <option>Helvetica</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-neutral-500 block mb-1">Size</label>
-                <select className="w-full text-sm p-1 border rounded" disabled>
-                  <option>12px</option>
-                  <option>14px</option>
-                  <option>16px</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-neutral-500 block mb-1">Color</label>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-neutral-300 rounded-full border"></div>
-                  <input type="text" value="#333333" disabled className="text-sm border rounded px-2 py-1 w-full" />
+              
+              {/* Text Properties */}
+              {selectedObject && (selectedObject.type === 'textbox' || selectedObject.type === 'i-text') && (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500 block mb-1">Font</label>
+                    <select 
+                      className="w-full text-sm p-1 border rounded" 
+                      value={fontFamily}
+                      onChange={(e) => setFontFamily(e.target.value)}
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500 block mb-1">Size</label>
+                    <input 
+                      type="number" 
+                      className="w-full text-sm p-1 border rounded"
+                      value={fontSize}
+                      onChange={(e) => setFontSize(e.target.value)}
+                      min="8"
+                      max="72"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500 block mb-1">Color</label>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="color" 
+                        value={textColor} 
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="w-8 h-8 p-0 border-0"
+                      />
+                      <input 
+                        type="text" 
+                        value={textColor} 
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="text-sm border rounded px-2 py-1 w-full" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500 block mb-1">Text Style</label>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant={isBold ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={toggleBold}
+                      >
+                        <Bold className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={isItalic ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={toggleItalic}
+                      >
+                        <Italic className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={isUnderline ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={toggleUnderline}
+                      >
+                        <Underline className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500 block mb-1">Alignment</label>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant={textAlign === 'left' ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={() => setAlignment('left')}
+                      >
+                        <AlignLeft className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={textAlign === 'center' ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={() => setAlignment('center')}
+                      >
+                        <AlignCenter className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={textAlign === 'right' ? "default" : "outline"} 
+                        className="flex-1"
+                        onClick={() => setAlignment('right')}
+                      >
+                        <AlignRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {/* Shape Properties */}
+              {selectedObject && selectedObject.type !== 'textbox' && selectedObject.type !== 'i-text' && (
+                <div>
+                  <label className="text-xs font-medium text-neutral-500 block mb-1">Fill Color</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="color" 
+                      value={backgroundColor} 
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="w-8 h-8 p-0 border-0"
+                    />
+                    <input 
+                      type="text" 
+                      value={backgroundColor} 
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="text-sm border rounded px-2 py-1 w-full" 
+                    />
+                  </div>
                 </div>
-              </div>
-              <Separator />
-              <div>
-                <label className="text-xs font-medium text-neutral-500 block mb-1">Layer Order</label>
-                <div className="bg-neutral-50 border rounded p-2">
-                  <p className="text-xs text-neutral-400 text-center">No layers selected</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -274,15 +731,15 @@ export default function DesignStudio() {
       {/* Bottom Bar */}
       <div className="bg-white border-t p-2 flex items-center justify-between">
         <div>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={loadDesign}>
             <Layers className="h-4 w-4 mr-1" />
-            <span className="text-sm">Layer View</span>
+            <span className="text-sm">Load Design</span>
           </Button>
         </div>
         <div>
-          <Button variant="ghost" size="sm">
-            <History className="h-4 w-4 mr-1" />
-            <span className="text-sm">Version History</span>
+          <Button variant="ghost" size="sm" onClick={saveDesign}>
+            <Save className="h-4 w-4 mr-1" />
+            <span className="text-sm">Save Design</span>
           </Button>
         </div>
       </div>
