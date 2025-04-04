@@ -321,7 +321,11 @@ export default function DesignStudio() {
       // Customize the selection style to use the brand's primary blue color
       canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Very light blue for the background
       canvas.selectionBorderColor = '#0C29AB'; // Brand blue for the outline
-      canvas.selectionLineWidth = 2; // Make the selection border more visible
+      canvas.selectionLineWidth = 3; // Increase thickness of selection border
+      
+      // Apply brand blue as border color when objects are selected
+      window.fabric.Object.prototype.borderColor = '#0C29AB';
+      window.fabric.Object.prototype.borderScaleFactor = 2; // Make the border thicker
       
       // Customize the control points (handles) to be white with thin grey outlines
       const cornerFillColor = '#FFFFFF'; // White fill
