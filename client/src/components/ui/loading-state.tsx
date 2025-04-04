@@ -1,66 +1,89 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
-import { CareerMascot } from './career-mascot';
-
-type LoadingSize = 'sm' | 'md' | 'lg' | 'full';
-type LoadingVariant = 'default' | 'overlay' | 'inline' | 'card';
-
-// Default sizing constants
-const sizeClasses = {
-  sm: 'p-3 max-w-md',
-  md: 'p-4 max-w-xl',
-  lg: 'p-6 max-w-2xl',
-  full: 'p-6 w-full h-full'
-};
-
-// Variant styling
-const variantClasses = {
-  default: 'bg-background/80 rounded-lg shadow-md',
-  overlay: 'bg-background/90 backdrop-blur-sm shadow-lg rounded-xl',
-  inline: 'bg-transparent',
-  card: 'bg-card rounded-lg border shadow-sm'
-};
+import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LoadingStateProps {
   message?: string;
-  size?: LoadingSize;
-  variant?: LoadingVariant;
+  size?: 'sm' | 'md' | 'lg';
+  variant?: 'card' | 'inline';
+  mascotAction?: 'thinking' | 'searching' | 'processing';
   className?: string;
-  mascotAction?: 'loading' | 'thinking' | 'success' | 'achievement';
 }
 
-export function LoadingState({
+export const LoadingState: React.FC<LoadingStateProps> = ({
   message = 'Loading...',
   size = 'md',
-  variant = 'default',
-  className = '',
-  mascotAction = 'loading'
-}: LoadingStateProps) {
-  const containerClasses = `${sizeClasses[size]} ${variantClasses[variant]} ${className}`;
-  
-  const getMascotSize = (): 'sm' | 'md' | 'lg' => {
-    switch (size) {
-      case 'sm': return 'sm';
-      case 'md': return 'md';
-      case 'lg': 
-      case 'full': return 'lg';
-      default: return 'md';
-    }
+  variant = 'inline',
+  mascotAction = 'thinking',
+  className,
+}) => {
+  // Size configuration
+  const sizeConfig = {
+    sm: {
+      spinner: 'h-4 w-4',
+      text: 'text-sm',
+      padding: 'p-3',
+    },
+    md: {
+      spinner: 'h-6 w-6',
+      text: 'text-base',
+      padding: 'p-4',
+    },
+    lg: {
+      spinner: 'h-8 w-8',
+      text: 'text-lg',
+      padding: 'p-6',
+    },
   };
 
-  return (
-    <div className={`flex flex-col items-center justify-center ${containerClasses}`}>
-      <div className="flex flex-col items-center justify-center">
-        <CareerMascot 
-          action={mascotAction}
-          size={getMascotSize()}
-          className="mb-3" 
-        />
-        
-        <div className="text-center">
-          <p className="text-sm md:text-base font-medium text-foreground">{message}</p>
+  const { spinner, text, padding } = sizeConfig[size];
+
+  // Inline variant - simpler version
+  if (variant === 'inline') {
+    return (
+      <div className={cn(
+        'flex flex-col items-center justify-center gap-3',
+        className
+      )}>
+        <div className="relative">
+          <Loader2 className={cn('animate-spin text-primary', spinner)} />
         </div>
+        {message && <p className={cn('text-muted-foreground text-center', text)}>{message}</p>}
       </div>
-    </div>
+    );
+  }
+
+  // Card variant - more pronounced with animation
+  return (
+    <Card className={cn('overflow-hidden', className)}>
+      <CardContent className={cn('flex items-center justify-center gap-4', padding)}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="loader"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative"
+          >
+            <Loader2 className={cn('animate-spin text-primary', spinner)} />
+          </motion.div>
+        </AnimatePresence>
+        {message && (
+          <motion.p
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+            className={cn('text-muted-foreground', text)}
+          >
+            {message}
+          </motion.p>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default LoadingState;
