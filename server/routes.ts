@@ -19,6 +19,7 @@ import {
   insertMentorChatConversationSchema,
   insertMentorChatMessageSchema,
   insertRecommendationSchema,
+  insertCertificationSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer } from "./openai";
@@ -1187,6 +1188,144 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Error deleting work history item" });
+    }
+  });
+  
+  // Certification Routes
+  apiRouter.get("/certifications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certifications = await storage.getCertifications(user.id);
+      res.status(200).json(certifications);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching certifications" });
+    }
+  });
+  
+  apiRouter.post("/certifications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const certificationData = insertCertificationSchema.parse(req.body);
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certification = await storage.createCertification(user.id, certificationData);
+      res.status(201).json(certification);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid certification data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating certification" });
+    }
+  });
+  
+  apiRouter.put("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const certificationId = parseInt(id);
+      
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certification = await storage.getCertification(certificationId);
+      
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Ensure the certification belongs to the current user
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this certification" });
+      }
+      
+      const updatedCertification = await storage.updateCertification(certificationId, req.body);
+      res.status(200).json(updatedCertification);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating certification" });
+    }
+  });
+  
+  // Add PATCH endpoint for partial updates to certifications
+  apiRouter.patch("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const certificationId = parseInt(id);
+      
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certification = await storage.getCertification(certificationId);
+      
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Ensure the certification belongs to the current user
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this certification" });
+      }
+      
+      const updatedCertification = await storage.updateCertification(certificationId, req.body);
+      res.status(200).json(updatedCertification);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating certification" });
+    }
+  });
+  
+  apiRouter.delete("/certifications/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const certificationId = parseInt(id);
+      
+      if (isNaN(certificationId)) {
+        return res.status(400).json({ message: "Invalid certification ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const certification = await storage.getCertification(certificationId);
+      
+      if (!certification) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+      
+      // Ensure the certification belongs to the current user
+      if (certification.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this certification" });
+      }
+      
+      await storage.deleteCertification(certificationId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting certification" });
     }
   });
   

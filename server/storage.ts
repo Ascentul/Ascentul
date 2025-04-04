@@ -55,7 +55,10 @@ import {
   type InsertMentorChatConversation,
   mentorChatMessages,
   type MentorChatMessage,
-  type InsertMentorChatMessage
+  type InsertMentorChatMessage,
+  certifications,
+  type Certification,
+  type InsertCertification
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -269,6 +272,13 @@ export interface IStorage {
   completeRecommendation(id: number): Promise<Recommendation | undefined>;
   generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
   clearTodaysRecommendations(userId: number): Promise<void>;
+  
+  // Certification operations
+  getCertifications(userId: number): Promise<Certification[]>;
+  getCertification(id: number): Promise<Certification | undefined>;
+  createCertification(userId: number, certification: InsertCertification): Promise<Certification>;
+  updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined>;
+  deleteCertification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -293,6 +303,7 @@ export class MemStorage implements IStorage {
   private mentorChatConversations: Map<number, MentorChatConversation>;
   private mentorChatMessages: Map<number, MentorChatMessage>;
   private recommendations: Map<number, Recommendation>;
+  private certifications: Map<number, Certification>;
   
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -313,6 +324,7 @@ export class MemStorage implements IStorage {
   private mentorChatConversationIdCounter: number;
   private mentorChatMessageIdCounter: number;
   private recommendationIdCounter: number;
+  private certificationIdCounter: number;
   
   public sessionStore: session.Store;
 
@@ -339,6 +351,7 @@ export class MemStorage implements IStorage {
     this.mentorChatConversations = new Map();
     this.mentorChatMessages = new Map();
     this.recommendations = new Map();
+    this.certifications = new Map();
     
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -359,6 +372,7 @@ export class MemStorage implements IStorage {
     this.mentorChatConversationIdCounter = 1;
     this.mentorChatMessageIdCounter = 1;
     this.recommendationIdCounter = 1;
+    this.certificationIdCounter = 1;
     
     // Initialize with sample data for testing
     this.initializeData();
@@ -957,6 +971,58 @@ export class MemStorage implements IStorage {
   // Achievement operations
   async getAchievements(): Promise<Achievement[]> {
     return Array.from(this.achievements.values());
+  }
+  
+  // Certification operations
+  async getCertifications(userId: number): Promise<Certification[]> {
+    return Array.from(this.certifications.values())
+      .filter(cert => cert.userId === userId)
+      .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+  }
+
+  async getCertification(id: number): Promise<Certification | undefined> {
+    return this.certifications.get(id);
+  }
+
+  async createCertification(userId: number, certification: InsertCertification): Promise<Certification> {
+    const id = this.certificationIdCounter++;
+    const now = new Date();
+    const certificationItem: Certification = {
+      ...certification,
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      description: certification.description || null,
+      skills: certification.skills || null,
+      expirationDate: certification.expirationDate || null,
+      credentialId: certification.credentialId || null,
+      credentialUrl: certification.credentialUrl || null
+    };
+    this.certifications.set(id, certificationItem);
+    
+    // Award XP for adding a certification
+    await this.addUserXP(userId, 100, "certification_added", "Added professional certification");
+    
+    return certificationItem;
+  }
+
+  async updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined> {
+    const certification = this.certifications.get(id);
+    if (!certification) return undefined;
+    
+    const now = new Date();
+    const updatedCertification = { 
+      ...certification, 
+      ...certificationData,
+      updatedAt: now
+    };
+    this.certifications.set(id, updatedCertification);
+    return updatedCertification;
+  }
+
+  async deleteCertification(id: number): Promise<boolean> {
+    return this.certifications.delete(id);
   }
 
   async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {

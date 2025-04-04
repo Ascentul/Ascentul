@@ -261,6 +261,29 @@ export const insertXpHistorySchema = createInsertSchema(xpHistory).omit({
   earnedAt: true,
 });
 
+// Professional Certifications
+export const certifications = pgTable("certifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  issuingOrganization: text("issuing_organization").notNull(),
+  issueDate: text("issue_date").notNull(),
+  expirationDate: text("expiration_date"),
+  credentialId: text("credential_id"),
+  credentialUrl: text("credential_url"),
+  description: text("description"),
+  skills: text("skills"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCertificationSchema = createInsertSchema(certifications).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Interview Process Tracking
 export const interviewProcesses = pgTable("interview_processes", {
   id: serial("id").primaryKey(),
@@ -426,6 +449,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   interviewPractices: many(interviewPractice),
   interviewProcesses: many(interviewProcesses),
   mentorChatConversations: many(mentorChatConversations),
+  certifications: many(certifications),
 }));
 
 // Interview Questions Relations
@@ -493,6 +517,14 @@ export const mentorChatMessagesRelations = relations(mentorChatMessages, ({ one 
   }),
 }));
 
+// Certification Relations
+export const certificationsRelations = relations(certifications, ({ one }) => ({
+  user: one(users, {
+    fields: [certifications.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -550,3 +582,6 @@ export type InsertMentorChatMessage = z.infer<typeof insertMentorChatMessageSche
 
 export type Recommendation = typeof recommendations.$inferSelect;
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
+
+export type Certification = typeof certifications.$inferSelect;
+export type InsertCertification = z.infer<typeof insertCertificationSchema>;
