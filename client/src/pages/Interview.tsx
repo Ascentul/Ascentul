@@ -57,7 +57,7 @@ const HorizontalTimelineSection = ({
   
   // Fetch stages for all processes
   const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
-    queryKey: ['/api/interview/stages', processes],
+    queryKey: ['/api/interview/stages'],
     queryFn: async () => {
       // Create a map of process ID -> stages array
       const stagesMap: Record<number, InterviewStage[]> = {};
@@ -79,7 +79,7 @@ const HorizontalTimelineSection = ({
       
       return stagesMap;
     },
-    enabled: processes.length > 0,
+    enabled: processes !== undefined && processes.length > 0,
     placeholderData: {},
     refetchOnWindowFocus: true
   });

@@ -225,9 +225,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
     onSuccess: (data) => {
       console.log('Stage added successfully:', data);
-      // Invalidate both the process list and the specific stages query
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] }); // For HorizontalTimeline
       // Also invalidate user statistics to update the upcoming interviews count
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
@@ -371,9 +372,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
     onSuccess: (data) => {
       console.log('Interview stage updated successfully:', data);
-      // Invalidate both the process list and the specific stages query
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] }); // For HorizontalTimeline
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
@@ -425,9 +427,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
     onSuccess: (stageId) => {
       console.log('Interview stage deleted successfully:', stageId);
-      // Invalidate both the process list and the specific stages query
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] }); // For HorizontalTimeline
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
@@ -483,9 +486,10 @@ export const InterviewProcessDetails = ({ process }: InterviewProcessDetailsProp
     },
     onSuccess: (data) => {
       console.log('Interview stage completed successfully:', data);
-      // Invalidate both the process list and the specific stages query
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${process.id}/stages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] }); // For HorizontalTimeline
       // Also invalidate user statistics to update any related data
       queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
       toast({
