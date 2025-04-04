@@ -221,17 +221,9 @@ export default function DesignStudio() {
         styleOverride: any, 
         fabricObject: any
       ) {
-        // Draw a distinctive rotation control
+        // Draw a distinctive rotation control (without connecting line)
         const size = this.cornerSize;
         ctx.save();
-        
-        // Draw the connecting line
-        ctx.strokeStyle = '#0C29AB';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(fabricObject.oCoords.mb.x, fabricObject.oCoords.mb.y);
-        ctx.lineTo(left, top);
-        ctx.stroke();
         
         // Draw circular background
         ctx.beginPath();
@@ -272,10 +264,27 @@ export default function DesignStudio() {
         ctx.restore();
       };
       
-      // Change the control position to move rotation handle well below the object
-      window.fabric.Object.prototype.controls.mtr.offsetY = 48; // Position 48px below the object (24px + 24px more)
+      // Set different offset for different types of elements
+      const originalSetControlsVisibility = window.fabric.Object.prototype.setControlsVisibility;
+      window.fabric.Object.prototype.setControlsVisibility = function(options) {
+        // Call the original method first
+        const result = originalSetControlsVisibility.call(this, options);
+        
+        // Check object type and set appropriate offset for rotation handle
+        if (this.type === 'rect' || this.type === 'circle' || this.type === 'polygon' || this.type === 'path') {
+          // For shapes, position the rotation handle 60px below
+          this.controls.mtr.offsetY = 60;
+        } else {
+          // For text and other elements, use 48px
+          this.controls.mtr.offsetY = 48;
+        }
+        
+        return result;
+      };
+      
+      // Default rotation handle settings
       window.fabric.Object.prototype.controls.mtr.offsetX = 0;
-      window.fabric.Object.prototype.controls.mtr.withConnection = false; // We'll draw our own connecting line
+      window.fabric.Object.prototype.controls.mtr.withConnection = false; // No connecting line
       window.fabric.Object.prototype.controls.mtr.render = renderRotationHandle; // Use custom renderer
       window.fabric.Object.prototype.controls.mtr.cornerSize = 12; // Larger than regular control points
       
