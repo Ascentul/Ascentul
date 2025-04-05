@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { Express } from 'express';
-import { getCareerAdvice } from '../openai';
+import { generateCoachingResponse } from '../utils/openai';
 import { storage } from '../storage';
+import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 
 // This interface should be defined in schemas file but we are adding it here for simplicity
 interface Conversation {
@@ -14,9 +15,9 @@ interface Conversation {
 interface Message {
   id: number;
   conversationId: number;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: string;
+  isUser: boolean;
+  message: string;
+  timestamp: Date;
 }
 
 interface UserContext {
@@ -125,9 +126,8 @@ export function registerAICoachRoutes(app: Express) {
       // Create a new user message
       const userMessage = await storage.addAiCoachMessage({
         conversationId,
-        role: 'user',
-        content,
-        createdAt: new Date()
+        isUser: true,
+        message: content
       });
 
       // Fetch user context data to provide to OpenAI
@@ -135,20 +135,20 @@ export function registerAICoachRoutes(app: Express) {
 
       // Get the conversation history
       const messages = await storage.getAiCoachMessages(conversationId);
-      const conversationHistory = messages.map(m => ({
-        role: m.role,
-        content: m.content
+      const conversationHistory: ChatCompletionMessageParam[] = messages.map(m => ({
+        role: m.isUser ? 'user' : 'assistant',
+        content: m.message
       }));
 
       // Generate AI response using OpenAI
-      const aiResponse = await getCareerAdvice(content, userContext, conversationHistory);
+      const response = await generateCoachingResponse(conversationHistory, userContext);
+      const aiResponse = response.content || "I'm sorry, I couldn't generate a response at this time.";
 
       // Create a new assistant message
       const assistantMessage = await storage.addAiCoachMessage({
         conversationId,
-        role: 'assistant',
-        content: aiResponse,
-        createdAt: new Date()
+        isUser: false,
+        message: aiResponse
       });
 
       // Return both messages
@@ -175,10 +175,19 @@ export function registerAICoachRoutes(app: Express) {
       // Fetch user context data
       const userContext = await getUserContext(req.session.userId);
 
-      // Generate AI response
-      const response = await getCareerAdvice(query, userContext, conversationHistory);
+      // Convert query to ChatCompletionMessageParam
+      const userMessage: ChatCompletionMessageParam = { role: 'user', content: query };
       
-      res.json({ response });
+      // If conversationHistory is not in the right format, create a new array
+      const formattedHistory: ChatCompletionMessageParam[] = 
+        Array.isArray(conversationHistory) && conversationHistory.length > 0 
+          ? conversationHistory 
+          : [userMessage];
+      
+      // Generate AI response
+      const aiResponse = await generateCoachingResponse(formattedHistory, userContext);
+      
+      res.json({ response: aiResponse.content });
     } catch (error) {
       console.error('Error generating AI response:', error);
       res.status(500).json({ error: 'Failed to generate AI response' });
