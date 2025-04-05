@@ -8,6 +8,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { registerCareerPathRoutes } from "./career-path";
+import { registerAICoachRoutes } from "./routes/ai-coach";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -3521,6 +3522,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   // Register career path routes
   registerCareerPathRoutes(app);
+  
+  // Register AI coach routes
+  registerAICoachRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

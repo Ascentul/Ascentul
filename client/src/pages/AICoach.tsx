@@ -27,79 +27,7 @@ type Conversation = {
   createdAt: string;
 };
 
-type MessagesMap = {
-  [key: number]: Message[];
-};
-
-// Mock data for visual demonstration
-const MOCK_CONVERSATIONS: Conversation[] = [
-  {
-    id: 1,
-    title: "Career Growth Strategies",
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), // 3 days ago
-  },
-  {
-    id: 2,
-    title: "Resume Feedback",
-    createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), // 7 days ago
-  },
-  {
-    id: 3,
-    title: "Interview Preparation",
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
-  }
-];
-
-const MOCK_MESSAGES: MessagesMap = {
-  1: [
-    {
-      id: 1,
-      conversationId: 1,
-      role: "user",
-      content: "I'm feeling stuck in my current role. What strategies can I use to grow my career?",
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(), // 2 hours ago
-    },
-    {
-      id: 2,
-      conversationId: 1,
-      role: "assistant",
-      content: "I understand that feeling of stagnation. Here are some strategies you could consider:\n\n1. **Identify your goals**: Define what career growth means to you. Is it more responsibility, leadership, technical expertise, or a change in direction?\n\n2. **Skill development**: Look for gaps between your current skills and where you want to be. Create a learning plan with online courses, certifications, or books.\n\n3. **Seek feedback**: Schedule a meeting with your manager to discuss your performance and growth opportunities.\n\n4. **Expand your network**: Connect with professionals in roles you aspire to, attend industry events, and join relevant communities.\n\n5. **Take on new challenges**: Volunteer for projects outside your comfort zone to demonstrate initiative and build new skills.\n\nWould you like me to elaborate on any of these strategies?",
-      createdAt: new Date(Date.now() - 3600000 * 1.9).toISOString(), // 1.9 hours ago
-    }
-  ],
-  2: [
-    {
-      id: 3,
-      conversationId: 2,
-      role: "user",
-      content: "Could you give me some tips on improving my resume for a senior software developer position?",
-      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), // 7 days ago
-    },
-    {
-      id: 4,
-      conversationId: 2,
-      role: "assistant",
-      content: "For a senior software developer resume, focus on these key improvements:\n\n1. **Highlight technical leadership**: Showcase instances where you led projects, mentored junior developers, or made architectural decisions.\n\n2. **Quantify achievements**: Use metrics to demonstrate impact (e.g., \"Reduced page load time by 40%\" or \"Led a team of 5 developers\").\n\n3. **Showcase problem-solving**: Include complex challenges you've overcome and how your solutions benefited the company.\n\n4. **Focus on modern skills**: Emphasize experience with current technologies, frameworks, and methodologies that are relevant to your target positions.\n\n5. **Include a technical skills section**: List programming languages, frameworks, tools, and methodologies you've mastered, with years of experience for each.\n\nWould you like a more detailed review if you share your current resume content?",
-      createdAt: new Date(Date.now() - 86400000 * 7 + 1800000).toISOString(), // 7 days ago + 30 min
-    }
-  ],
-  3: [
-    {
-      id: 5,
-      conversationId: 3,
-      role: "user",
-      content: "I have an interview for a product manager role next week. What should I prepare?",
-      createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), // 10 days ago
-    },
-    {
-      id: 6,
-      conversationId: 3,
-      role: "assistant",
-      content: "Congratulations on your interview! For a product manager role, prepare for these areas:\n\n1. **Product sense**: Be ready to discuss how you'd improve existing products, validate ideas, and prioritize features.\n\n2. **Analytical skills**: Prepare to talk about how you use data to make decisions and measure success.\n\n3. **Leadership & communication**: Highlight how you align stakeholders, resolve conflicts, and communicate effectively with different teams.\n\n4. **Technical knowledge**: While you don't need to code, understand the technical aspects of product development to collaborate with engineers.\n\n5. **Business acumen**: Show you understand market dynamics, competitive analysis, and how your product creates value.\n\nPractice the STAR method (Situation, Task, Action, Result) for behavioral questions about past experiences. Also, research the company's products thoroughly.\n\nWould you like some specific example questions to practice with?",
-      createdAt: new Date(Date.now() - 86400000 * 10 + 1800000).toISOString(), // 10 days ago + 30 min
-    }
-  ]
-};
+// No message map needed with real API
 
 export default function AICoach() {
   const { user } = useUser();
@@ -110,11 +38,69 @@ export default function AICoach() {
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [newConversationTitle, setNewConversationTitle] = useState('');
   
-  // Mock state for visual demonstration
-  const [mockConversations, setMockConversations] = useState<Conversation[]>(MOCK_CONVERSATIONS);
-  const [mockMessages, setMockMessages] = useState<MessagesMap>(MOCK_MESSAGES);
+  // State for conversations and messages
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  
+  // Fetch conversations from API
+  const { data: conversations = [] } = useQuery<Conversation[]>({
+    queryKey: ['/api/ai-coach/conversations'],
+    enabled: !!user,
+  });
+  
+  // Create conversation mutation
+  const createConversationMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await apiRequest("POST", "/api/ai-coach/conversations", { title });
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate the conversations query to refetch the list
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] });
+      setIsCreatingConversation(false);
+      setNewConversationTitle('');
+      toast({
+        title: 'Conversation Created',
+        description: 'Your new conversation has been started'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create conversation',
+        variant: 'destructive'
+      });
+    }
+  });
+  
+  // Messages for the active conversation
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
+    queryKey: ['/api/ai-coach/conversations', activeConversation, 'messages'],
+    enabled: !!activeConversation,
+  });
+  
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ conversationId, content }: { conversationId: number, content: string }) => {
+      const res = await apiRequest("POST", `/api/ai-coach/conversations/${conversationId}/messages`, { content });
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate messages query to refetch with the new message and AI response
+      if (activeConversation) {
+        queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations', activeConversation, 'messages'] });
+      }
+      setIsSending(false);
+    },
+    onError: (error: any) => {
+      setIsSending(false);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send message',
+        variant: 'destructive'
+      });
+    }
+  });
   
   // Fetch user data for context
   const { data: workHistory } = useQuery({ 
@@ -139,66 +125,32 @@ export default function AICoach() {
   
   // Set first conversation as active on initial load if none is selected
   useEffect(() => {
-    if (mockConversations.length > 0 && !activeConversation) {
-      setActiveConversation(mockConversations[0].id);
+    if (conversations.length > 0 && !activeConversation) {
+      setActiveConversation(conversations[0].id);
     }
-  }, [mockConversations, activeConversation]);
+  }, [conversations, activeConversation]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [activeConversation, mockMessages]);
+  }, [activeConversation, messages]);
   
   const handleSendMessage = () => {
     if (!newMessage.trim() || !activeConversation) return;
     
     setIsSending(true);
     
-    // Create a new user message
-    const userMessageId = Date.now();
-    const userMessage = {
-      id: userMessageId,
-      conversationId: activeConversation,
-      role: "user" as const,
-      content: newMessage.trim(),
-      createdAt: new Date().toISOString()
-    } as Message;
-    
-    // Add the user message to the mock messages
-    setMockMessages(prevMessages => ({
-      ...prevMessages,
-      [activeConversation]: [
-        ...(prevMessages[activeConversation] || []),
-        userMessage
-      ]
-    }));
-    
     // Clear the input
+    const messageContent = newMessage.trim();
     setNewMessage('');
     
-    // Simulate AI response after a delay
-    setTimeout(() => {
-      const aiMessage = {
-        id: userMessageId + 1,
-        conversationId: activeConversation,
-        role: "assistant" as const,
-        content: getRandomResponse(),
-        createdAt: new Date().toISOString()
-      } as Message;
-      
-      // Add the AI response
-      setMockMessages(prevMessages => ({
-        ...prevMessages,
-        [activeConversation]: [
-          ...(prevMessages[activeConversation] || []),
-          aiMessage
-        ]
-      }));
-      
-      setIsSending(false);
-    }, 1500);
+    // Use the send message mutation
+    sendMessageMutation.mutate({
+      conversationId: activeConversation,
+      content: messageContent
+    });
   };
   
   const handleCreateConversation = () => {
@@ -213,34 +165,8 @@ export default function AICoach() {
     
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const newId = mockConversations.length > 0 
-        ? Math.max(...mockConversations.map(c => c.id)) + 1 
-        : 1;
-      
-      const newConversation: Conversation = {
-        id: newId,
-        title: newConversationTitle.trim(),
-        createdAt: new Date().toISOString()
-      };
-      
-      setMockConversations(prev => [newConversation, ...prev]);
-      setMockMessages(prev => ({
-        ...prev,
-        [newId]: []
-      }));
-      
-      setIsCreatingConversation(false);
-      setNewConversationTitle('');
-      setActiveConversation(newId);
-      setIsLoading(false);
-      
-      toast({
-        title: 'Conversation Created',
-        description: 'Your new conversation has been started',
-      });
-    }, 800);
+    // Use the create conversation mutation
+    createConversationMutation.mutate(newConversationTitle.trim());
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -251,104 +177,15 @@ export default function AICoach() {
   };
   
   // Format messages for display
-  const getMessages = (): {id: number; isUser: boolean; message: string; timestamp: Date}[] => {
-    if (!activeConversation || !mockMessages[activeConversation]) return [];
+  const getFormattedMessages = (): {id: number; isUser: boolean; message: string; timestamp: Date}[] => {
+    if (!activeConversation || !messages || messages.length === 0) return [];
     
-    return mockMessages[activeConversation].map((message: Message) => ({
+    return messages.map((message: Message) => ({
       id: message.id,
       isUser: message.role === "user",
       message: message.content,
       timestamp: new Date(message.createdAt),
     }));
-  };
-  
-  // Generate context-aware response based on user data
-  const getRandomResponse = (): string => {
-    // Extract user context from fetched data
-    const userContext = {
-      hasWorkHistory: Array.isArray(workHistory) && workHistory.length > 0,
-      workHistoryCount: Array.isArray(workHistory) ? workHistory.length : 0,
-      latestJob: Array.isArray(workHistory) && workHistory.length > 0 
-        ? workHistory[0] 
-        : null,
-      hasGoals: Array.isArray(goals) && goals.length > 0,
-      goalsCount: Array.isArray(goals) ? goals.length : 0,
-      hasInterviews: Array.isArray(interviewProcesses) && interviewProcesses.length > 0,
-      interviewCount: Array.isArray(interviewProcesses) ? interviewProcesses.length : 0,
-      hasAchievements: Array.isArray(personalAchievements) && personalAchievements.length > 0,
-      achievementsCount: Array.isArray(personalAchievements) ? personalAchievements.length : 0,
-      recentAchievement: Array.isArray(personalAchievements) && personalAchievements.length > 0
-        ? personalAchievements[0]
-        : null,
-      userName: user?.name || "there"
-    };
-
-    // Default responses if there's no context
-    const defaultResponses = [
-      "That's a great question! Career development is a journey that requires continuous learning and adaptability. I'd recommend focusing on building both technical and soft skills relevant to your field. What specific area are you most interested in developing?",
-      "Based on current industry trends, I'd suggest focusing on data analysis skills and problem-solving methodologies. These are increasingly valuable across many sectors. Have you had any experience with data visualization or analytical tools?",
-      "Networking is crucial for career advancement. Consider joining professional groups in your field, attending industry conferences, and connecting with peers on LinkedIn. Quality connections often lead to unexpected opportunities. What industry are you currently working in?",
-      "For your resume, I'd recommend highlighting quantifiable achievements rather than just listing responsibilities. For example, 'Increased team productivity by 25% through implementation of new workflow processes' is more impactful than 'Responsible for team workflow.' Would you like more specific suggestions?",
-    ];
-    
-    // Generate context-aware responses based on user data
-    const contextResponses = [];
-    
-    // Add work history context responses
-    if (userContext.hasWorkHistory) {
-      const latestJob = userContext.latestJob;
-      contextResponses.push(
-        `Based on your work history at ${latestJob.company} as a ${latestJob.position}, I'd recommend focusing on highlighting your skills in ${latestJob.responsibilities}. These experiences are directly relevant to your career growth. Would you like more specific advice about leveraging this experience?`
-      );
-      
-      if (userContext.workHistoryCount > 1) {
-        contextResponses.push(
-          `I notice you have experience across ${userContext.workHistoryCount} different positions. This diverse background can be a strength when positioning yourself for roles that require adaptability and breadth of experience. How are you currently highlighting this versatility?`
-        );
-      }
-    }
-    
-    // Add goal context responses
-    if (userContext.hasGoals) {
-      contextResponses.push(
-        `Considering your career goals, I'd suggest creating a strategic plan with specific milestones to track your progress. You currently have ${userContext.goalsCount} goals set. Are there any specific obstacles you're facing with these goals?`
-      );
-    } else {
-      contextResponses.push(
-        `I notice you haven't set any career goals yet. Setting SMART goals (Specific, Measurable, Achievable, Relevant, Time-bound) can significantly increase your chances of career advancement. Would you like some help defining your first goal?`
-      );
-    }
-    
-    // Add interview context responses
-    if (userContext.hasInterviews) {
-      contextResponses.push(
-        `I see you're tracking ${userContext.interviewCount} interview processes. For your upcoming interviews, I recommend preparing specific examples that demonstrate your skills and achievements. Would you like help preparing for any particular interview question?`
-      );
-    }
-    
-    // Add achievements context responses
-    if (userContext.hasAchievements) {
-      if (userContext.recentAchievement) {
-        const achievement = userContext.recentAchievement;
-        contextResponses.push(
-          `I notice you've documented achievements like "${achievement.title}". This is excellent material for your resume and interviews. Highlighting specific achievements with measurable outcomes can help you stand out to potential employers. Would you like suggestions on how to effectively showcase this in your next interview?`
-        );
-      }
-      
-      if (userContext.achievementsCount > 2) {
-        contextResponses.push(
-          `You've recorded ${userContext.achievementsCount} personal achievements - that's impressive! These achievements showcase your capabilities and accomplishments. Have you considered categorizing them by skill area to identify your strongest professional attributes?`
-        );
-      }
-    } else {
-      contextResponses.push(
-        `I notice you haven't added any personal achievements yet. Documenting your accomplishments, even smaller ones, can help build your confidence and provide concrete examples for interviews and resume building. Would you like some guidance on identifying achievements from your past experiences?`
-      );
-    }
-    
-    // Select from context-aware responses if available, otherwise fall back to default
-    const allResponses = contextResponses.length > 0 ? contextResponses : defaultResponses;
-    return allResponses[Math.floor(Math.random() * allResponses.length)];
   };
   
   return (
@@ -452,10 +289,10 @@ export default function AICoach() {
                 <div className="flex justify-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
                 </div>
-              ) : mockConversations.length > 0 ? (
+              ) : conversations.length > 0 ? (
                 <ScrollArea className="h-[300px]">
                   <div className="space-y-1 pr-3">
-                    {mockConversations.map((conversation) => (
+                    {conversations.map((conversation) => (
                       <Button
                         key={conversation.id}
                         variant={activeConversation === conversation.id ? "secondary" : "ghost"}
@@ -493,8 +330,8 @@ export default function AICoach() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">
-              {activeConversation && mockConversations
-                ? mockConversations.find((c) => c.id === activeConversation)?.title || "Conversation"
+              {activeConversation && conversations
+                ? conversations.find((c) => c.id === activeConversation)?.title || "Conversation"
                 : "Career Coach"}
             </CardTitle>
           </CardHeader>
@@ -522,15 +359,25 @@ export default function AICoach() {
               ) : (
                 <ScrollArea className="h-full p-4">
                   <div className="space-y-4">
-                    {getMessages().map((message) => (
-                      <AICoachMessage
-                        key={message.id}
-                        isUser={message.isUser}
-                        message={message.message}
-                        timestamp={message.timestamp}
-                        userName={user?.name}
-                      />
-                    ))}
+                    {messagesLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <p>No messages yet. Start the conversation!</p>
+                      </div>
+                    ) : (
+                      getFormattedMessages().map((message) => (
+                        <AICoachMessage
+                          key={message.id}
+                          isUser={message.isUser}
+                          message={message.message}
+                          timestamp={message.timestamp}
+                          userName={user?.name}
+                        />
+                      ))
+                    )}
                     <div ref={messagesEndRef} />
                     
                     {isSending && (
