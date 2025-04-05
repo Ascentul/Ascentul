@@ -2385,11 +2385,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Generate a response for the AI coach mini-conversation on the dashboard
   apiRouter.post("/api/ai-coach/generate-response", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { messages } = req.body;
-      
-      if (!Array.isArray(messages)) {
-        return res.status(400).json({ message: "Messages must be an array" });
-      }
+      const { query, conversationHistory = [] } = req.body;
       
       // Get current user data for context
       const user = await getCurrentUser(req);
@@ -2402,25 +2398,26 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const goals = await storage.getGoals(user.id);
       const workHistory = await storage.getWorkHistory(user.id);
       const interviewProcesses = await storage.getInterviewProcesses(user.id);
+      const achievements = await storage.getUserPersonalAchievements(user.id);
       
       // Build context
       const userContext = {
         workHistory,
         goals,
         interviewProcesses,
+        achievements,
         userName: user.name
       };
       
-      // Transform messages to OpenAI format
-      const formattedMessages = messages.map(message => ({
-        role: message.role,
-        content: message.content
-      }));
+      // If conversationHistory is provided, use it. Otherwise, create a simple conversation with just the query.
+      const formattedMessages = Array.isArray(conversationHistory) && conversationHistory.length > 0
+        ? conversationHistory
+        : [{ role: 'user', content: query }];
       
       // Generate response
       const response = await generateCoachingResponse(formattedMessages, userContext);
       
-      res.json({ content: response.content });
+      res.json({ response: response.content });
     } catch (error) {
       console.error("Error generating AI response:", error);
       res.status(500).json({ message: "Error generating AI response" });
