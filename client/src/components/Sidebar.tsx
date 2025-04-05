@@ -19,8 +19,7 @@ import {
   School,
   ShieldCheck,
   GitBranch,
-  Linkedin,
-  Palette
+  Linkedin
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -48,7 +47,6 @@ export default function Sidebar() {
     { href: '/interviews', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Interview Tracker' },
     { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
     { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
-    { href: '/canva-editor', icon: <Palette className="w-5 h-5 mr-3" />, label: 'Design Studio' },
     { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Coach' },
     { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
     { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
