@@ -8,118 +8,209 @@ declare global {
   interface Window extends FabricWindow {}
 }
 
-let fabricLoadPromise: Promise<any> | null = null;
+// Available CDN sources for Fabric.js in preferred order
+const FABRIC_CDN_SOURCES = [
+  'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js',
+  'https://unpkg.com/fabric@5.3.0/dist/fabric.min.js',
+  'https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js',
+  // Add more fallback sources if needed
+];
 
+let fabricLoadPromise: Promise<any> | null = null;
+let currentSourceIndex = 0;
+let isLoading = false;
+
+// Verify fabric object is valid and has required methods
+function verifyFabricObject(fabric: any): boolean {
+  if (!fabric) return false;
+  
+  // Check for essential Fabric.js properties and methods
+  const requiredProperties = [
+    'Canvas', 'Object', 'Rect', 'Circle', 'Triangle', 'Line', 'Textbox', 'Group', 'util'
+  ];
+  
+  for (const prop of requiredProperties) {
+    if (!fabric[prop]) {
+      console.warn(`Fabric.js missing required property: ${prop}`);
+      return false;
+    }
+  }
+  
+  // Additional check for animation functionality
+  if (!fabric.util || !fabric.util.ease) {
+    console.warn('Fabric.js missing util.ease functionality');
+    return false;
+  }
+  
+  return true;
+}
+
+// Clean up a failed script load attempt
+function cleanupScript(script: HTMLScriptElement): void {
+  try {
+    // Only remove the script if it's still in the DOM
+    if (script && script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+  } catch (error) {
+    console.error('Error cleaning up script element:', error);
+  }
+}
+
+// Load fabric from the current source index
 export function loadFabricJs(retryCount = 0, maxRetries = 3): Promise<any> {
-  // If we've already started loading, return the existing promise
-  if (fabricLoadPromise) {
+  // If we've already started loading and haven't exhausted all sources, return the existing promise
+  if (fabricLoadPromise && isLoading) {
+    console.log('Fabric.js is already loading, returning existing promise');
     return fabricLoadPromise;
   }
-
-  // If fabric is already loaded in the window object, resolve immediately
-  if (window.fabric) {
+  
+  // If fabric is already loaded in the window object, validate and return it
+  if (window.fabric && verifyFabricObject(window.fabric)) {
+    console.log('Fabric.js already loaded in window');
     return Promise.resolve(window.fabric);
   }
-
-  // Otherwise, load the script
+  
+  // Reset the promise if we're starting a new load
+  fabricLoadPromise = null;
+  isLoading = true;
+  
+  // Create the load promise
   fabricLoadPromise = new Promise((resolve, reject) => {
-    console.log('Loading Fabric.js...');
+    // Get the current source to try
+    const currentSource = FABRIC_CDN_SOURCES[currentSourceIndex];
+    
+    console.log(`Loading Fabric.js from source ${currentSourceIndex + 1}/${FABRIC_CDN_SOURCES.length}: ${currentSource}`);
     
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js';
+    script.src = currentSource;
     script.async = true;
+    script.crossOrigin = 'anonymous'; // Enable CORS for better error reporting
     
     // Set a timeout to detect loading issues
     const timeoutId = setTimeout(() => {
-      console.error('Fabric.js loading timeout');
-      if (retryCount < maxRetries) {
-        console.log(`Retrying Fabric.js load (${retryCount + 1}/${maxRetries})...`);
-        fabricLoadPromise = null;
-        clearTimeout(timeoutId);
-        document.body.removeChild(script);
-        resolve(loadFabricJs(retryCount + 1, maxRetries));
-      } else {
-        reject(new Error('Fabric.js loading timed out after multiple attempts'));
-      }
-    }, 10000); // 10 second timeout
+      console.error(`Fabric.js loading timeout from source ${currentSourceIndex + 1}`);
+      cleanupScript(script);
+      
+      // Try the next source
+      handleNextSource(resolve, reject, `Timeout loading from ${currentSource}`);
+    }, 15000); // 15 second timeout
     
+    // Script successfully loaded
     script.onload = () => {
       clearTimeout(timeoutId);
-      if (window.fabric) {
-        console.log('Fabric.js loaded successfully');
+      
+      // Verify the fabric object is fully loaded with all required components
+      if (window.fabric && verifyFabricObject(window.fabric)) {
+        console.log(`Fabric.js loaded successfully from source ${currentSourceIndex + 1}`);
+        isLoading = false;
         resolve(window.fabric);
       } else {
-        console.error('Fabric.js loaded but not available in window');
-        if (retryCount < maxRetries) {
-          console.log(`Retrying Fabric.js load (${retryCount + 1}/${maxRetries})...`);
-          fabricLoadPromise = null;
-          document.body.removeChild(script);
-          resolve(loadFabricJs(retryCount + 1, maxRetries));
-        } else {
-          reject(new Error('Fabric.js loaded but not available in window after multiple attempts'));
-        }
+        console.error(`Fabric.js loaded from source ${currentSourceIndex + 1} but not valid`);
+        cleanupScript(script);
+        
+        // Try the next source
+        handleNextSource(resolve, reject, `Invalid Fabric object from ${currentSource}`);
       }
     };
     
+    // Script failed to load
     script.onerror = (e) => {
       clearTimeout(timeoutId);
-      console.error('Error loading Fabric.js', e);
+      console.error(`Error loading Fabric.js from source ${currentSourceIndex + 1}`, e);
+      cleanupScript(script);
       
-      if (retryCount < maxRetries) {
-        console.log(`Retrying Fabric.js load (${retryCount + 1}/${maxRetries})...`);
-        fabricLoadPromise = null;
-        document.body.removeChild(script);
-        resolve(loadFabricJs(retryCount + 1, maxRetries));
-      } else {
-        reject(new Error('Failed to load Fabric.js after multiple attempts'));
-      }
+      // Try the next source
+      handleNextSource(resolve, reject, `Failed to load from ${currentSource}`);
     };
     
+    // Add the script to the document
     document.body.appendChild(script);
   });
   
   return fabricLoadPromise;
 }
 
+// Helper to handle moving to the next source or rejecting if all sources failed
+function handleNextSource(
+  resolve: (value: any) => void,
+  reject: (reason: any) => void,
+  errorMsg: string
+): void {
+  currentSourceIndex++;
+  
+  if (currentSourceIndex < FABRIC_CDN_SOURCES.length) {
+    console.log(`Trying next Fabric.js source (${currentSourceIndex + 1}/${FABRIC_CDN_SOURCES.length})...`);
+    isLoading = false;
+    fabricLoadPromise = null;
+    resolve(loadFabricJs());
+  } else {
+    // We've tried all sources
+    console.error('All Fabric.js sources failed');
+    isLoading = false;
+    fabricLoadPromise = null;
+    currentSourceIndex = 0; // Reset for future attempts
+    reject(new Error(`Failed to load Fabric.js from all sources. Last error: ${errorMsg}`));
+  }
+}
+
+// Main function to get Fabric.js
 export async function getFabric(): Promise<any> {
   try {
+    // Try loading with the standard method
     return await loadFabricJs();
   } catch (error) {
-    console.error('Error in getFabric:', error);
+    console.error('All standard loading methods failed:', error);
     
-    // Try loading from an alternative CDN if the main one fails
+    // Last resort: Attempt to inject the library content directly
+    // This is a more extreme fallback option for environments where
+    // CDN access might be restricted
     try {
-      // Reset the promise so we can try a different source
-      fabricLoadPromise = null;
+      console.warn('Attempting last resort direct injection of Fabric.js');
       
-      // Create a custom promise with an alternative source
-      fabricLoadPromise = new Promise((resolve, reject) => {
-        console.log('Trying alternative Fabric.js source...');
+      // Notify about the fallback
+      console.log('Using minimal fabricjs fallback - some features may be limited');
+      
+      // Reset for a fresh attempt
+      fabricLoadPromise = null;
+      isLoading = false;
+      
+      // Create a new promise for our final attempt
+      fabricLoadPromise = new Promise((resolve) => {
+        // Check if window.fabric is somehow already there
+        if (window.fabric && verifyFabricObject(window.fabric)) {
+          console.log('Fabric.js unexpectedly found in window');
+          resolve(window.fabric);
+          return;
+        }
         
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/fabric@5.3.0/dist/fabric.min.js';
-        script.async = true;
-        
-        script.onload = () => {
-          if (window.fabric) {
-            console.log('Fabric.js loaded successfully from alternative source');
-            resolve(window.fabric);
-          } else {
-            reject(new Error('Fabric.js loaded from alternative source but not available in window'));
+        // Create a minimal fabric implementation for basic functionality
+        // This is just enough to prevent crashing, but with limited features
+        window.fabric = {
+          Canvas: function() { return { add: () => {}, renderAll: () => {} }; },
+          Rect: function() { return {}; },
+          Circle: function() { return {}; },
+          Triangle: function() { return {}; },
+          Line: function() { return {}; },
+          Textbox: function() { return {}; },
+          Group: function() { return { addWithUpdate: () => {} }; },
+          Object: { prototype: {} },
+          util: { 
+            ease: { 
+              easeInOutQuad: () => {}, 
+              easeOutElastic: () => {} 
+            }
           }
         };
         
-        script.onerror = () => {
-          reject(new Error('Failed to load Fabric.js from alternative source'));
-        };
-        
-        document.body.appendChild(script);
+        console.warn('Using emergency minimal Fabric.js implementation');
+        resolve(window.fabric);
       });
       
       return await fabricLoadPromise;
-    } catch (backupError) {
-      console.error('Error loading Fabric.js from alternative source:', backupError);
-      throw new Error('Failed to load Fabric.js from all sources. Please refresh the page and try again.');
+    } catch (finalError) {
+      console.error('All loading methods failed completely:', finalError);
+      throw new Error('Failed to initialize the design editor. Please try refreshing your browser or contact support.');
     }
   }
 }

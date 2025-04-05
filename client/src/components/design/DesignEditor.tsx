@@ -80,24 +80,59 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   
   // Initialize Fabric.js canvas
   useEffect(() => {
+    // Flag to track if the effect is still mounted
+    let isMounted = true;
+    
     const initCanvas = async () => {
+      if (!canvasRef.current) {
+        console.warn("Canvas reference is not available");
+        return;
+      }
+      
       try {
-        if (!canvasRef.current) return;
+        console.log("Starting canvas initialization...");
         
         // Load Fabric.js using our loader
-        const fabric = await getFabric();
-        
-        // Create canvas instance
-        const canvas = new fabric.Canvas(canvasRef.current, {
-          width: CANVAS_WIDTH,
-          height: CANVAS_HEIGHT,
-          backgroundColor: '#FFFFFF',
-          preserveObjectStacking: true,
-          selection: true, // Allow multiple selection with mouse
+        const fabric = await getFabric().catch(err => {
+          console.error("Error loading Fabric.js:", err);
+          throw new Error("Failed to load Fabric.js library. Please refresh the page.");
         });
         
+        if (!isMounted) return;
+        
+        console.log("Fabric.js loaded successfully, creating canvas...");
+        
+        // Create canvas instance with error handling
+        let canvas;
+        try {
+          canvas = new fabric.Canvas(canvasRef.current, {
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            backgroundColor: '#FFFFFF',
+            preserveObjectStacking: true,
+            selection: true, // Allow multiple selection with mouse
+          });
+        } catch (canvasError) {
+          console.error("Error creating canvas:", canvasError);
+          throw new Error("Failed to create canvas element");
+        }
+        
+        if (!canvas) {
+          throw new Error("Canvas initialization failed");
+        }
+        
+        console.log("Canvas created, setting up configurations...");
+        
         // Set up canvas configurations
-        setupCanvas(canvas);
+        await setupCanvas(canvas);
+        
+        if (!isMounted) {
+          // Safely dispose if component unmounted during async operations
+          canvas.dispose();
+          return;
+        }
+        
+        console.log("Canvas setup complete");
         
         // Save canvas instance
         setFabricCanvas(canvas);
@@ -105,59 +140,99 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
         
         // Load initial design if provided
         if (initialDesign) {
-          loadDesign(canvas, initialDesign);
+          await loadDesign(canvas, initialDesign);
         }
-      } catch (error) {
+        
+        console.log("Canvas initialization complete");
+      } catch (error: any) {
         console.error("Failed to initialize canvas:", error);
-        toast({
-          title: "Error",
-          description: "Failed to initialize the design editor. Please try again.",
-          variant: "destructive"
-        });
+        if (isMounted) {
+          setIsCanvasReady(false);
+          toast({
+            title: "Error",
+            description: error?.message || "Failed to initialize the design editor. Please refresh the page.",
+            variant: "destructive"
+          });
+        }
       }
     };
     
+    // Start initialization
     initCanvas();
     
     // Clean up canvas on unmount
     return () => {
+      isMounted = false;
       if (fabricCanvas) {
-        fabricCanvas.dispose();
+        try {
+          fabricCanvas.dispose();
+        } catch (error) {
+          console.error("Error disposing canvas:", error);
+        }
       }
     };
   }, [initialDesign]);
   
   // Setup canvas with configurations and event handlers
   const setupCanvas = async (canvas: any) => {
-    // Set canvas appearance
-    canvas.selection = true;
-    canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Light brand blue
-    canvas.selectionBorderColor = BRAND_COLOR;
-    canvas.selectionLineWidth = 1;
-    
-    // Get fabric instance
-    const fabric = await getFabric();
-    
-    // Configure default object settings
-    fabric.Object.prototype.transparentCorners = false;
-    fabric.Object.prototype.cornerColor = '#FFFFFF';
-    fabric.Object.prototype.cornerStrokeColor = '#CCCCCC';
-    fabric.Object.prototype.borderColor = BRAND_COLOR;
-    fabric.Object.prototype.cornerSize = 10;
-    fabric.Object.prototype.padding = 0; // Default zero padding for shape elements
-    
-    // Add canvas event listeners
-    canvas.on('object:moving', handleObjectMoving);
-    canvas.on('object:scaling', handleObjectScaling);
-    canvas.on('object:rotating', handleObjectRotating);
-    canvas.on('mouse:up', clearGuides);
-    canvas.on('selection:created', handleSelectionChange);
-    canvas.on('selection:updated', handleSelectionChange);
-    canvas.on('selection:cleared', () => setActiveObject(null));
-    
-    // Draw grid initially if enabled
-    if (gridEnabled) {
-      drawGrid(canvas);
+    try {
+      if (!canvas) {
+        console.error("setupCanvas: canvas is null");
+        throw new Error("Invalid canvas object");
+      }
+      
+      // Set canvas appearance
+      canvas.selection = true;
+      canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Light brand blue
+      canvas.selectionBorderColor = BRAND_COLOR;
+      canvas.selectionLineWidth = 1;
+      
+      // Get fabric instance
+      const fabric = await getFabric().catch(err => {
+        console.error("Error loading Fabric in setupCanvas:", err);
+        throw new Error("Failed to load Fabric.js library");
+      });
+      
+      // Configure default object settings
+      if (fabric.Object && fabric.Object.prototype) {
+        fabric.Object.prototype.transparentCorners = false;
+        fabric.Object.prototype.cornerColor = '#FFFFFF';
+        fabric.Object.prototype.cornerStrokeColor = '#CCCCCC';
+        fabric.Object.prototype.borderColor = BRAND_COLOR;
+        fabric.Object.prototype.cornerSize = 10;
+        fabric.Object.prototype.padding = 0; // Default zero padding for shape elements
+      } else {
+        console.warn("Fabric.Object.prototype not available, skipping default settings");
+      }
+      
+      // Add canvas event listeners safely
+      try {
+        canvas.on('object:moving', handleObjectMoving);
+        canvas.on('object:scaling', handleObjectScaling);
+        canvas.on('object:rotating', handleObjectRotating);
+        canvas.on('mouse:up', clearGuides);
+        canvas.on('selection:created', handleSelectionChange);
+        canvas.on('selection:updated', handleSelectionChange);
+        canvas.on('selection:cleared', () => setActiveObject(null));
+      } catch (eventError) {
+        console.error("Error attaching canvas event listeners:", eventError);
+        throw new Error("Failed to set up canvas event handlers");
+      }
+      
+      // Draw grid initially if enabled
+      if (gridEnabled) {
+        try {
+          await drawGrid(canvas);
+        } catch (gridError) {
+          console.warn("Failed to draw initial grid:", gridError);
+          // Continue without grid rather than failing completely
+        }
+      }
+      
+      console.log("Canvas setup completed successfully");
+    } catch (error: any) {
+      console.error("Error in setupCanvas:", error);
+      throw new Error(error?.message || "Error in canvas setup"); // Re-throw with better error handling
     }
   };
   
@@ -441,27 +516,48 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   
   // Clear all guide lines
   const clearGuides = async () => {
-    if (!fabricCanvas) return;
+    // Ensure canvas exists before proceeding
+    if (!fabricCanvas) {
+      console.log("Cannot clear guides - canvas not initialized");
+      return;
+    }
     
-    // Get fabric instance
-    const fabric = await getFabric();
-    
-    // Remove guide lines from canvas
-    const existingGuides = fabricCanvas.getObjects().filter((o: any) => o.isGuideLine);
-    existingGuides.forEach((guide: any) => {
-      // Fade out animation
-      guide.animate('opacity', 0, {
-        duration: 200,
-        onChange: fabricCanvas.renderAll.bind(fabricCanvas),
-        onComplete: () => {
-          fabricCanvas.remove(guide);
-          fabricCanvas.renderAll();
-        },
-        easing: fabric.util.ease.easeInOutQuad
+    try {
+      // Get fabric instance
+      const fabric = await getFabric();
+      
+      // Safely get objects and filter them
+      const canvasObjects = fabricCanvas.getObjects ? fabricCanvas.getObjects() : [];
+      const existingGuides = canvasObjects.filter((o: any) => o && o.isGuideLine);
+      
+      existingGuides.forEach((guide: any) => {
+        try {
+          // Fade out animation
+          guide.animate('opacity', 0, {
+            duration: 200,
+            onChange: fabricCanvas.renderAll.bind(fabricCanvas),
+            onComplete: () => {
+              if (fabricCanvas) {
+                fabricCanvas.remove(guide);
+                fabricCanvas.renderAll();
+              }
+            },
+            easing: fabric.util.ease.easeInOutQuad
+          });
+        } catch (error) {
+          console.error("Error animating guide removal:", error);
+          // Fallback - try to remove directly
+          if (fabricCanvas) {
+            fabricCanvas.remove(guide);
+            fabricCanvas.renderAll();
+          }
+        }
       });
-    });
-    
-    setGuides([]);
+      
+      setGuides([]);
+    } catch (error) {
+      console.error("Error in clearGuides:", error);
+    }
   };
   
   // Handle object scaling with snapping
