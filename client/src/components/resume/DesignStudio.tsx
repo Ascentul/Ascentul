@@ -1270,27 +1270,7 @@ export default function DesignStudio() {
                   </div>
                 </div>
                 
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Resume Blocks</h3>
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button variant="outline" onClick={addHeaderBlock} className="justify-start">
-                      <FileText size={16} className="mr-2" />
-                      Header Block
-                    </Button>
-                    <Button variant="outline" onClick={addExperienceBlock} className="justify-start">
-                      <FileText size={16} className="mr-2" />
-                      Experience Block
-                    </Button>
-                    <Button variant="outline" onClick={addEducationBlock} className="justify-start">
-                      <FileText size={16} className="mr-2" />
-                      Education Block
-                    </Button>
-                    <Button variant="outline" onClick={addSkillsBlock} className="justify-start">
-                      <FileText size={16} className="mr-2" />
-                      Skills Block
-                    </Button>
-                  </div>
-                </div>
+
               </TabsContent>
               
               <TabsContent value="designs" className="p-4 space-y-4">
