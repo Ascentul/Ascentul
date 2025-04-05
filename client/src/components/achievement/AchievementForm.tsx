@@ -231,12 +231,16 @@ export function AchievementForm({
               control={form.control}
               name="achievementDate"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="w-full">
                   <FormLabel>Date Achieved</FormLabel>
-                  <DatePicker
-                    date={field.value instanceof Date ? field.value : new Date(field.value)}
-                    setDate={field.onChange}
-                  />
+                  <FormControl>
+                    <div className="w-full">
+                      <DatePicker
+                        date={field.value instanceof Date ? field.value : new Date(field.value)}
+                        setDate={field.onChange}
+                      />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

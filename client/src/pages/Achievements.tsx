@@ -232,7 +232,7 @@ export default function Achievements() {
                         <Plus className="mr-2 h-4 w-4" /> Add Your First Achievement
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
+                    <DialogContent className="sm:max-w-[650px] md:max-w-[700px]">
                       <DialogHeader>
                         <DialogTitle>Add Personal Achievement</DialogTitle>
                         <DialogDescription>
@@ -249,7 +249,7 @@ export default function Achievements() {
           
           {/* Edit Achievement Dialog */}
           <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[650px] md:max-w-[700px]">
               <DialogHeader>
                 <DialogTitle>Edit Personal Achievement</DialogTitle>
                 <DialogDescription>
