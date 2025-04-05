@@ -102,6 +102,48 @@ export default function AICoach() {
     }
   });
   
+  // Auto-create conversation and send first message
+  const createAndStartConversation = useMutation({
+    mutationFn: async (firstMessage: string) => {
+      // Generate a title based on the first message
+      let title = firstMessage;
+      if (title.length > 30) {
+        title = title.substring(0, 30) + "...";
+      }
+      
+      // 1. Create conversation
+      const createRes = await apiRequest("POST", "/api/ai-coach/conversations", { title });
+      const newConversation = await createRes.json();
+      
+      // 2. Send the message to the new conversation
+      const sendRes = await apiRequest("POST", `/api/ai-coach/conversations/${newConversation.id}/messages`, { 
+        content: firstMessage 
+      });
+      
+      return { conversation: newConversation, messages: await sendRes.json() };
+    },
+    onSuccess: (data) => {
+      // Set the new conversation as active
+      setActiveConversation(data.conversation.id);
+      
+      // Invalidate both conversations and messages queries
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-coach/conversations'] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/ai-coach/conversations', data.conversation.id, 'messages'] 
+      });
+      
+      setIsSending(false);
+    },
+    onError: (error: any) => {
+      setIsSending(false);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to start conversation',
+        variant: 'destructive'
+      });
+    }
+  });
+  
   // Fetch user data for context
   const { data: workHistory } = useQuery({ 
     queryKey: ['/api/work-history'],
@@ -138,7 +180,7 @@ export default function AICoach() {
   }, [activeConversation, messages]);
   
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !activeConversation) return;
+    if (!newMessage.trim()) return;
     
     setIsSending(true);
     
@@ -146,11 +188,16 @@ export default function AICoach() {
     const messageContent = newMessage.trim();
     setNewMessage('');
     
-    // Use the send message mutation
-    sendMessageMutation.mutate({
-      conversationId: activeConversation,
-      content: messageContent
-    });
+    // If there's no active conversation, create one and send message in one operation
+    if (!activeConversation) {
+      createAndStartConversation.mutate(messageContent);
+    } else {
+      // Otherwise use the regular send message mutation
+      sendMessageMutation.mutate({
+        conversationId: activeConversation,
+        content: messageContent
+      });
+    }
   };
   
   const handleCreateConversation = () => {
@@ -343,13 +390,13 @@ export default function AICoach() {
                     <Bot className="mx-auto h-12 w-12 text-primary/50 mb-4" />
                     <h3 className="text-lg font-medium mb-2">AI Career Coach</h3>
                     <p className="text-sm text-neutral-500 mb-4">
-                      I'm here to help with your career questions, resume feedback, interview preparation, and more.
+                      I'm here to help with your career questions, resume feedback, interview preparation, and more. Just type your question below to start a conversation!
                     </p>
-                    <Button
-                      onClick={() => setIsCreatingConversation(true)}
-                    >
-                      Start New Conversation
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <Button variant="outline" onClick={() => setIsCreatingConversation(true)}>
+                        Create Named Conversation
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : isLoading ? (
@@ -394,16 +441,16 @@ export default function AICoach() {
           <CardFooter className="p-4">
             <div className="flex w-full gap-2">
               <Input
-                placeholder={activeConversation ? "Type your message here..." : "Start a conversation to chat with the AI Coach"}
+                placeholder={activeConversation ? "Type your message here..." : "Type a question to start a new conversation"}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={!activeConversation || isSending}
+                disabled={isSending}
               />
               <Button 
                 size="icon"
                 onClick={handleSendMessage}
-                disabled={!activeConversation || !newMessage.trim() || isSending}
+                disabled={!newMessage.trim() || isSending}
               >
                 <Send className="h-4 w-4" />
               </Button>
