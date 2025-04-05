@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, Save, FileDown, PanelLeftClose } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import ResumeForm from '@/components/ResumeForm';
-import DesignStudio from '@/components/resume/DesignStudio';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -394,7 +393,6 @@ export default function Resume() {
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
-          <TabsTrigger value="design-studio">Design Studio</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumes" className="space-y-6">
@@ -737,52 +735,7 @@ export default function Resume() {
           </motion.div>
         </TabsContent>
 
-        <TabsContent value="design-studio" className="p-0">
-          <div className="flex items-center justify-between p-4 bg-white border-b">
-            <div>
-              {/* Hide Panel button */}
-              <Button 
-                variant="ghost" 
-                size="sm"
-                id="design-panel-toggle-btn"
-                onClick={() => {
-                  // Toggle the sidebar state in the Design Studio component
-                  const event = new CustomEvent('toggleDesignSidebar');
-                  document.dispatchEvent(event);
-                }}
-              >
-                <PanelLeftClose className="mr-2 h-4 w-4" />
-                Hide Panel
-              </Button>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  // Add functionality to save design from the Design Studio
-                  if (window.saveDesignFunction) {
-                    window.saveDesignFunction();
-                  }
-                }}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save Design
-              </Button>
-              <Button 
-                onClick={() => {
-                  // Add functionality to export design from the Design Studio
-                  if (window.exportToPDFFunction) {
-                    window.exportToPDFFunction();
-                  }
-                }}
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Export Design
-              </Button>
-            </div>
-          </div>
-          <DesignStudio />
-        </TabsContent>
+
       </Tabs>
 
       {/* Add/Edit Resume Dialog */}
