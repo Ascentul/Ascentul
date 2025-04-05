@@ -707,7 +707,7 @@ export default function CareerPathExplorer() {
 
       {/* Path Selector */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {careerPaths.map(path => (
+        {careerPaths.filter(path => path.id !== 'software-engineering').map(path => (
           <Button
             key={path.id}
             variant={activePath.id === path.id ? "default" : "outline"}
