@@ -210,7 +210,7 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
@@ -229,14 +229,14 @@ export default function CreateGoalModal({ isOpen, onClose }: CreateGoalModalProp
                 control={form.control}
                 name="dueDate"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>Due Date (Optional)</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
                             variant={"outline"}
-                            className="pl-3 text-left font-normal"
+                            className="w-full h-10 pl-3 text-left font-normal"
                           >
                             {field.value ? (
                               format(field.value, "PPP")
