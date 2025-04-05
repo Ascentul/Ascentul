@@ -523,7 +523,7 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Target className="h-5 w-5 text-primary" />}
-            iconBgColor="bg-primary/10"
+            iconBgColor="bg-primary/20"
             iconColor="text-primary"
             label="Active Goals"
             value={stats.activeGoals}
@@ -537,7 +537,7 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Calendar className="h-5 w-5 text-[#8bc34a]" />}
-            iconBgColor="bg-[#8bc34a]/10"
+            iconBgColor="bg-[#8bc34a]/25"
             iconColor="text-[#8bc34a]"
             label="Upcoming Interviews"
             value={stats.upcomingInterviews}
@@ -551,7 +551,7 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Briefcase className="h-5 w-5 text-secondary" />}
-            iconBgColor="bg-secondary/10"
+            iconBgColor="bg-secondary/25"
             iconColor="text-secondary"
             label="Interview Processes"
             value={activeInterviewProcesses}
@@ -565,7 +565,7 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Clock className="h-5 w-5 text-[#ff9800]" />}
-            iconBgColor="bg-[#ff9800]/10"
+            iconBgColor="bg-[#ff9800]/25"
             iconColor="text-[#ff9800]"
             label="Pending Tasks"
             value={stats.pendingTasks}
@@ -721,7 +721,7 @@ export default function Dashboard() {
                   message.role === 'assistant' ? (
                     <Card key={index} className="border border-neutral-200 shadow-none p-3 mb-3">
                       <div className="flex items-start">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
                           <Bot className="h-4 w-4" />
                         </div>
                         <div className="ml-3 flex-1">
@@ -759,7 +759,7 @@ export default function Dashboard() {
                 {isTyping && (
                   <Card className="border border-neutral-200 shadow-none p-3 mb-3">
                     <div className="flex items-start">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary flex-shrink-0">
                         <Bot className="h-4 w-4" />
                       </div>
                       <div className="ml-3">
