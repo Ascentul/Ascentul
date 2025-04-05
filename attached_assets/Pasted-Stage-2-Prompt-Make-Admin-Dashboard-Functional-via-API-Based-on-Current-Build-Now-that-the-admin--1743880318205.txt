@@ -1,0 +1,37 @@
+Stage 2 Prompt: Make Admin Dashboard Functional via API (Based on Current Build)
+Now that the admin dashboard UI is in place, the next step is to connect it to real-time backend data via API routes — while keeping everything portable for migration to a production environment like Supabase, Firebase, or a custom backend.
+✅ Current UI Overview (Complete)
+Dashboard sidebar and navigation (Dashboard, Users, Analytics, Settings, Support)
+Placeholder widgets: Total Users, New Users, Premium Users, Active Users
+Support and System Status cards
+🔁 Next Step: Wire Up Dynamic Data via API Routes
+1. Create API Endpoints for Dashboard Data
+/api/users/total → Returns total registered users
+/api/users/new → Returns number of new users today
+/api/users/premium → Returns users with active subscriptions
+/api/users/active → Returns users active in the past 7 days
+/api/system/status → Returns current platform status, version, and uptime
+/api/support/unread → Returns unread support messages
+For now, these can pull from Replit DB or mock objects, but structure the endpoints so they can easily plug into Supabase or Firebase later.
+2. Use fetch() or axios() to Populate Dashboard
+In each dashboard widget (e.g., Total Users), add a function to fetch from the appropriate API and display the result. Include loading and error states.
+Example:
+js
+CopyEdit
+const fetchTotalUsers = async () => {
+  const res = await fetch('/api/users/total');
+  const data = await res.json();
+  setTotalUsers(data.total);
+};
+
+3. Protect Routes with Role-Based Access
+Check that the current user is authenticated and has the role admin.
+Add logic in API routes to deny access if user.role !== 'admin'.
+4. Configure with .env or Secrets
+Store base API URL and any secrets (e.g., SUPABASE_KEY, API_BASE_URL) using Replit Secrets or .env.
+Use process.env variables in API calls and backend setup to keep everything environment-agnostic.
+5. Prepare for Future Migration
+Structure API and frontend so that replacing Replit DB with Supabase or Firebase just requires switching data sources inside the API route logic.
+Do not tightly couple frontend components to any one database. Treat the API as the single source of truth.
+✅ Bonus: “Refresh Data” Button
+Make the Refresh Data button re-trigger all dashboard fetch calls so admins can manually update the metrics.

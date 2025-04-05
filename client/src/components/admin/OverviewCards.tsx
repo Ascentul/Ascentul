@@ -186,6 +186,37 @@ export function OverviewCards() {
               </div>
             </div>
             
+            <div className="pt-2 border-t">
+              <h3 className="font-medium mb-2">Database Status</h3>
+              {dashboardData.databaseHealth ? (
+                <div className="flex justify-between items-center">
+                  <div className={`inline-flex items-center rounded-full px-3 py-1 text-sm
+                    ${dashboardData.databaseHealth.status === 'healthy' 
+                      ? 'bg-green-100 text-green-800' 
+                      : dashboardData.databaseHealth.status === 'error'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                    <div className={`w-2 h-2 rounded-full mr-2 
+                      ${dashboardData.databaseHealth.status === 'healthy' 
+                        ? 'bg-green-500' 
+                        : dashboardData.databaseHealth.status === 'error'
+                          ? 'bg-yellow-500'
+                          : 'bg-red-500'
+                      }`} />
+                    {dashboardData.databaseHealth.connection === 'active' 
+                      ? 'Connected' 
+                      : 'Disconnected'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {dashboardData.databaseHealth.message}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Checking database status...</div>
+              )}
+            </div>
+            
             <div>
               <h3 className="font-medium mb-2">Version</h3>
               <div className="inline-flex items-center bg-secondary text-secondary-foreground px-3 py-1 rounded-md text-sm">

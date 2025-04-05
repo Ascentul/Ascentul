@@ -17,6 +17,15 @@ interface AdminContextType {
       status: 'healthy' | 'degraded' | 'down';
       uptime: number;
       version: string;
+      services: Record<string, {
+        status: 'healthy' | 'degraded' | 'down';
+        details?: string;
+      }>;
+    } | null;
+    databaseHealth: {
+      status: 'healthy' | 'down' | 'error';
+      connection: 'active' | 'failed' | 'unknown';
+      message: string;
     } | null;
     unreadMessages: number;
   };
@@ -30,6 +39,7 @@ const AdminContext = createContext<AdminContextType>({
   dashboardData: {
     userStats: null,
     systemStatus: null,
+    databaseHealth: null,
     unreadMessages: 0,
   },
   refreshDashboard: async () => {},
@@ -45,6 +55,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [dashboardData, setDashboardData] = useState({
     userStats: null,
     systemStatus: null,
+    databaseHealth: null,
     unreadMessages: 0,
   });
   
@@ -60,6 +71,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       // Fetch system status
       const systemStatus = await adminApiClient.getSystemStatus();
       
+      // Fetch database health
+      const databaseHealth = await adminApiClient.checkDatabaseHealth();
+      
       // Fetch support messages (unread)
       const supportMessages = await adminApiClient.getSupportMessages(1, 1, 'unread');
       
@@ -67,6 +81,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setDashboardData({
         userStats,
         systemStatus,
+        databaseHealth,
         unreadMessages: supportMessages.total,
       });
     } catch (err) {

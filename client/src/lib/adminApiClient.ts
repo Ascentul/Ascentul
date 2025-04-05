@@ -144,6 +144,17 @@ class AdminAPIClient {
   }
   
   /**
+   * Check database health
+   */
+  async checkDatabaseHealth() {
+    return this.request<{
+      status: 'healthy' | 'down' | 'error';
+      connection: 'active' | 'failed' | 'unknown';
+      message: string;
+    }>(adminEndpoints.databaseHealth, 'GET');
+  }
+  
+  /**
    * Get system configuration
    */
   async getSystemConfig() {

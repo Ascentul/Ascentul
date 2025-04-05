@@ -42,6 +42,7 @@ export const adminEndpoints = {
   // System management
   systemStatus: `${config.apiBaseUrl}/api/admin/system/status`,
   systemConfig: `${config.apiBaseUrl}/api/admin/system/config`,
+  databaseHealth: `${config.apiBaseUrl}/api/health/database`,
   
   // Analytics
   analytics: {
