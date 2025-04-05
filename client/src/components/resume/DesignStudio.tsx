@@ -998,7 +998,7 @@ export default function DesignStudio() {
                 
                 <div>
                   <h3 className="text-sm font-medium mb-2">Shapes</h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     <Button variant="outline" onClick={addRectangle} className="justify-start">
                       <Square size={16} className="mr-2" />
                       Rectangle
