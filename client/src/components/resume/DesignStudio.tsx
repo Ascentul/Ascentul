@@ -55,6 +55,26 @@ const FONT_PRESETS = [
 
 // Color picker component
 function PopoverPicker({ color, onChange }: { color: string, onChange: (color: string) => void }) {
+  const [selectedColor, setSelectedColor] = useState(color || "#000000");
+  const [inputColor, setInputColor] = useState(color || "#000000");
+  
+  const handleColorChange = (newColor: string) => {
+    setSelectedColor(newColor);
+    setInputColor(newColor);
+    onChange(newColor);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputColor(value);
+    
+    // Validate if it's a proper hex color
+    if (/^#([0-9A-F]{3}){1,2}$/i.test(value)) {
+      setSelectedColor(value);
+      onChange(value);
+    }
+  };
+  
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -65,17 +85,94 @@ function PopoverPicker({ color, onChange }: { color: string, onChange: (color: s
           />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64">
-        <div className="grid grid-cols-5 gap-2">
-          {COLOR_PRESETS.map((presetColor) => (
-            <Button
-              key={presetColor}
-              variant="outline"
-              className="w-8 h-8 p-0"
-              style={{ backgroundColor: presetColor }}
-              onClick={() => onChange(presetColor)}
-            />
-          ))}
+      <PopoverContent className="w-80">
+        <div className="space-y-4">
+          {/* Color presets - extended to 4 rows */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">Presets</h4>
+            <div className="grid grid-cols-8 gap-2">
+              {COLOR_PRESETS.map((presetColor) => (
+                <Button
+                  key={presetColor}
+                  variant="outline"
+                  className="w-8 h-8 p-0 border-2"
+                  style={{ 
+                    backgroundColor: presetColor,
+                    borderColor: selectedColor === presetColor ? "#0C29AB" : "transparent"
+                  }}
+                  onClick={() => handleColorChange(presetColor)}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* Custom color input */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">Custom Color</h4>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded border" style={{ backgroundColor: selectedColor }} />
+              <div className="flex-1">
+                <input
+                  type="color"
+                  value={selectedColor}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  className="w-full h-8"
+                />
+              </div>
+              <div className="relative">
+                <Input
+                  value={inputColor}
+                  onChange={handleInputChange}
+                  className="w-24 pl-1 font-mono"
+                  maxLength={7}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Popular color palettes */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">Design Palettes</h4>
+            
+            {/* Modern palette */}
+            <div className="flex mb-2">
+              {["#2d3748", "#4a5568", "#718096", "#a0aec0", "#e2e8f0"].map(color => (
+                <Button
+                  key={color}
+                  variant="outline"
+                  className="flex-1 h-8 p-0 rounded-none first:rounded-l last:rounded-r border"
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                />
+              ))}
+            </div>
+            
+            {/* Professional palette */}
+            <div className="flex mb-2">
+              {["#1a365d", "#2b6cb0", "#4299e1", "#90cdf4", "#ebf8ff"].map(color => (
+                <Button
+                  key={color}
+                  variant="outline"
+                  className="flex-1 h-8 p-0 rounded-none first:rounded-l last:rounded-r border"
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                />
+              ))}
+            </div>
+            
+            {/* Vibrant palette */}
+            <div className="flex">
+              {["#702459", "#b83280", "#ed64a6", "#fbb6ce", "#fed7e2"].map(color => (
+                <Button
+                  key={color}
+                  variant="outline"
+                  className="flex-1 h-8 p-0 rounded-none first:rounded-l last:rounded-r border"
+                  style={{ backgroundColor: color }}
+                  onClick={() => handleColorChange(color)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
