@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/context-menu";
 import { 
   Save, FileDown, Undo, Redo, Type, Square, Image as ImageIcon,
-  Plus, Trash, Copy, AlignLeft, AlignCenter, AlignRight,
+  Plus, Trash, Copy, AlignLeft, AlignCenter, AlignRight, Minus,
   Bold, Italic, Underline, PanelLeftClose, PanelLeftOpen,
   Palette, Move, ChevronsUpDown, RotateCcw, ChevronRight,
   Layers, TextCursor, FileText, Download, Lock, Unlock
@@ -507,6 +507,22 @@ export default function DesignStudio() {
     fabricCanvas.add(rect);
     fabricCanvas.setActiveObject(rect);
     setActiveObject(rect);
+    fabricCanvas.renderAll();
+  };
+  
+  // Add a line to the canvas
+  const addLine = () => {
+    if (!fabricCanvas) return;
+    
+    const line = new window.fabric.Line([50, 100, 200, 100], {
+      stroke: '#4361EE',
+      strokeWidth: 3,
+      padding: 0,
+    });
+    
+    fabricCanvas.add(line);
+    fabricCanvas.setActiveObject(line);
+    setActiveObject(line);
     fabricCanvas.renderAll();
   };
   
@@ -1363,6 +1379,10 @@ export default function DesignStudio() {
                     <Button variant="outline" onClick={addRectangle} className="justify-start">
                       <Square size={16} className="mr-2" />
                       Rectangle
+                    </Button>
+                    <Button variant="outline" onClick={addLine} className="justify-start">
+                      <Minus size={16} className="mr-2" />
+                      Line
                     </Button>
                   </div>
                 </div>
