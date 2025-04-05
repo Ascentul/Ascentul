@@ -21,6 +21,7 @@ interface UserContext {
   userName?: string;
   resumeDetails?: string;
   interviewPrep?: string;
+  achievements?: any[]; // Added achievements to the interface
 }
 
 // Get all AI coach conversations for the current user
@@ -122,6 +123,7 @@ aiCoachRouter.post("/conversations/:id/messages", async (req, res) => {
     const workHistory = await storage.getWorkHistory(req.session.userId);
     const goals = await storage.getGoals(req.session.userId);
     const interviewProcesses = await storage.getInterviewProcesses(req.session.userId);
+    const achievements = await storage.getUserPersonalAchievements(req.session.userId);
     
     // Extract skills from work history descriptions or achievements if available
     const skills = workHistory
@@ -141,13 +143,41 @@ aiCoachRouter.post("/conversations/:id/messages", async (req, res) => {
       })
       .filter((skill, index, self) => skill && self.indexOf(skill) === index);
     
+    // Also extract skills from personal achievements if available
+    if (achievements && achievements.length > 0) {
+      const achievementSkills: string[] = [];
+      
+      // Safely extract skills from achievements, handling null values
+      achievements.forEach((achievement) => {
+        // Only process achievements with non-null skills
+        if (achievement.skills && typeof achievement.skills === 'string') {
+          // Split by comma and add each trimmed skill
+          achievement.skills.split(',')
+            .map(skill => skill.trim())
+            .forEach(skill => {
+              if (skill) {
+                achievementSkills.push(skill);
+              }
+            });
+        }
+      });
+      
+      // Add unique skills to the skills array
+      achievementSkills.forEach((skill: string) => {
+        if (skill && !skills.includes(skill)) {
+          skills.push(skill);
+        }
+      });
+    }
+    
     // Prepare context for AI
     const userContext: UserContext = {
       userName: user.name,
       workHistory,
       goals,
       skills,
-      interviewProcesses
+      interviewProcesses,
+      achievements // Include the achievements in the context
     };
     
     // Get previous messages for context (limit to last 10 for performance)

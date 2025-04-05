@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Search, Award, Plus } from 'lucide-react';
@@ -67,7 +67,7 @@ export default function Achievements() {
 
   // Handle category filter
   const filteredAchievements = React.useMemo(() => {
-    if (!personalAchievements) return [];
+    if (!personalAchievements || !Array.isArray(personalAchievements)) return [];
 
     return personalAchievements.filter((achievement: UserPersonalAchievement) => {
       // Apply category filter
@@ -95,6 +95,10 @@ export default function Achievements() {
     deleteMutation.mutate(id);
   };
 
+  // Refs for dialog close buttons
+  const addDialogCloseRef = useRef<HTMLButtonElement>(null);
+  const emptyStateDialogCloseRef = useRef<HTMLButtonElement>(null);
+  
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -129,7 +133,12 @@ export default function Achievements() {
                   Add details about your achievement to showcase your professional growth.
                 </DialogDescription>
               </DialogHeader>
-              <AchievementForm closeDialog={() => document.querySelector('button[data-state="open"]')?.click()} />
+              <AchievementForm 
+                closeDialog={() => {
+                  const closeButton = document.querySelector('[data-state="open"]') as HTMLButtonElement;
+                  if (closeButton) closeButton.click();
+                }} 
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -173,7 +182,7 @@ export default function Achievements() {
                       </div>
                     </div>
                     
-                    {personalAchievements && personalAchievements.length > 0 && (
+                    {personalAchievements && Array.isArray(personalAchievements) && personalAchievements.length > 0 && (
                       <div className="pt-4">
                         <div className="flex justify-between items-center mb-2">
                           <h3 className="text-sm font-medium">Total Achievements</h3>
@@ -239,7 +248,12 @@ export default function Achievements() {
                           Add details about your achievement to showcase your professional growth.
                         </DialogDescription>
                       </DialogHeader>
-                      <AchievementForm closeDialog={() => document.querySelector('button[data-state="open"]')?.click()} />
+                      <AchievementForm 
+                        closeDialog={() => {
+                          const closeButton = document.querySelector('[data-state="open"]') as HTMLButtonElement;
+                          if (closeButton) closeButton.click();
+                        }}
+                      />
                     </DialogContent>
                   </Dialog>
                 </div>

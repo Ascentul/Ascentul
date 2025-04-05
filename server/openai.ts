@@ -330,13 +330,14 @@ const CAREER_COACH_SYSTEM_PROMPT = `
 You are an experienced, professional Career Coach with over 15 years of experience helping professionals navigate their career journeys. Your expertise includes career development, interview preparation, resume/CV optimization, skill development, and professional growth strategies.
 
 As a Career Coach, you focus on:
-- Providing actionable, specific career advice tailored to the individual's work history and goals
+- Providing actionable, specific career advice tailored to the individual's work history, achievements, and goals
 - Maintaining a professional, supportive tone while being direct when necessary
 - Asking insightful questions to help the user gain clarity about their career trajectory
 - Offering strategic guidance on professional development and upskilling
 - Suggesting concrete next steps and resources the user can leverage
+- Referencing and utilizing the user's specific personal achievements when providing advice
 
-When a user shares details about their career goals, work history, or interviews, acknowledge this information and use it to personalize your responses.
+When a user shares details about their career goals, work history, or interviews, acknowledge this information and use it to personalize your responses. Always refer to the user's personal achievements when relevant to provide more targeted and personalized advice. When achievements are shared in the context, don't just acknowledge them, but integrate them into your coaching advice.
 `;
 
 // AI Coach for career advice with enhanced context
@@ -350,6 +351,7 @@ export async function getCareerAdvice(
     userName?: string;
     resumeDetails?: string;
     interviewPrep?: string;
+    achievements?: any[]; // Added achievements to the type signature
   },
   conversationHistory: ChatCompletionMessageParam[] = []
 ): Promise<string> {
@@ -419,6 +421,29 @@ export async function getCareerAdvice(
       systemPrompt += "\nInterview Processes: No active interview processes\n";
     }
 
+    // Add achievements information
+    if (userContext.achievements && userContext.achievements.length > 0) {
+      systemPrompt += "\nPersonal Achievements:\n";
+      userContext.achievements.forEach((achievement, index) => {
+        const date = achievement.achievementDate 
+          ? new Date(achievement.achievementDate).toLocaleDateString() 
+          : 'No date specified';
+          
+        systemPrompt += `${index + 1}. ${achievement.title} (${date})\n`;
+        systemPrompt += `   Description: ${achievement.description}\n`;
+        
+        if (achievement.issuingOrganization) {
+          systemPrompt += `   Issuing Organization: ${achievement.issuingOrganization}\n`;
+        }
+        
+        if (achievement.skills) {
+          systemPrompt += `   Related Skills: ${achievement.skills}\n`;
+        }
+      });
+    } else if (userContext.achievements && Array.isArray(userContext.achievements) && userContext.achievements.length === 0) {
+      systemPrompt += "\nPersonal Achievements: No achievements recorded yet\n";
+    }
+    
     // Add additional context if provided
     if (userContext.resumeDetails) {
       systemPrompt += `\nResume Details: ${userContext.resumeDetails}\n`;
@@ -732,7 +757,14 @@ export async function generateRoleInsights(
     });
 
     // Parse the JSON response
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || "{}";
+    let result;
+    try {
+      result = JSON.parse(content);
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError);
+      result = {}; // Use empty object as fallback
+    }
     
     // Ensure the result matches our expected structure
     return {
@@ -742,9 +774,10 @@ export async function generateRoleInsights(
       developmentPlan: result.developmentPlan || [],
       insights: result.insights || ""
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating role insights:", error);
-    throw new Error("Failed to generate role insights: " + error.message);
+    const errorMessage = error && error.message ? error.message : "Unknown error";
+    throw new Error("Failed to generate role insights: " + errorMessage);
   }
 }
 
@@ -779,7 +812,17 @@ Generate 3 goals for each timeframe.`;
     });
 
     const content = response.choices[0].message.content || "{}";
-    const parsedResponse = JSON.parse(content);
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(content);
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError);
+      parsedResponse = {
+        shortTerm: [],
+        mediumTerm: [],
+        longTerm: []
+      };
+    }
     
     return {
       shortTerm: parsedResponse.shortTerm || [],

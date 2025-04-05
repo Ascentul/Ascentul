@@ -207,7 +207,7 @@ export function AchievementForm({
                   <FormLabel>Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    defaultValue={field.value ?? undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -254,7 +254,11 @@ export function AchievementForm({
               <FormItem>
                 <FormLabel>Issuing Organization (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Microsoft, Google, or University name" {...field} />
+                  <Input 
+                    placeholder="e.g., Microsoft, Google, or University name" 
+                    {...field} 
+                    value={field.value ?? ''} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -272,7 +276,7 @@ export function AchievementForm({
                     field.onChange(value);
                     setIconPreview(value);
                   }}
-                  defaultValue={field.value}
+                  defaultValue={field.value ?? undefined}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -304,7 +308,11 @@ export function AchievementForm({
               <FormItem>
                 <FormLabel>Proof URL (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://example.com/certificate" {...field} />
+                  <Input 
+                    placeholder="https://example.com/certificate" 
+                    {...field} 
+                    value={field.value ?? ''} 
+                  />
                 </FormControl>
                 <FormDescription>Link to certificate or proof of achievement</FormDescription>
                 <FormMessage />
@@ -319,7 +327,11 @@ export function AchievementForm({
               <FormItem>
                 <FormLabel>Related Skills (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., Leadership, Python, Project Management" {...field} />
+                  <Input 
+                    placeholder="e.g., Leadership, Python, Project Management" 
+                    {...field} 
+                    value={field.value ?? ''} 
+                  />
                 </FormControl>
                 <FormDescription>Comma-separated list of related skills</FormDescription>
                 <FormMessage />
