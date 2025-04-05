@@ -103,7 +103,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
       const newScrollLeft = direction === 'left' 
         ? scrollContainerRef.current.scrollLeft - scrollAmount 
         : scrollContainerRef.current.scrollLeft + scrollAmount;
-      
+
       scrollContainerRef.current.scrollTo({
         left: newScrollLeft,
         behavior: 'smooth'
@@ -121,14 +121,14 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
           ...node,
           icon: node.icon || 'briefcase', // Default icon if none provided
         }));
-        
+
         return {
           ...path,
           nodes: formattedNodes,
         };
       });
     }
-    
+
     // Otherwise, construct a path from the recommendation data
     const defaultPath: CareerPath = {
       id: 'recommended-path',
@@ -172,20 +172,6 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
 
   return (
     <div className="space-y-6">
-      {careerPaths.length > 1 && (
-        <div className="flex gap-2 mb-6">
-          {careerPaths.map(path => (
-            <Badge
-              key={path.id}
-              variant="outline"
-              className="px-3 py-1 text-sm bg-slate-100"
-            >
-              {path.name}
-            </Badge>
-          ))}
-        </div>
-      )}
-
       {/* Career Path Visualization */}
       <div className="relative">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
@@ -198,7 +184,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
             <ChevronLeft className="h-6 w-6" />
           </Button>
         </div>
-        
+
         <div 
           ref={scrollContainerRef}
           className="pb-6 overflow-x-auto scrollbar-hide relative flex items-start gap-4"
@@ -209,7 +195,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
         >
           {/* Background Line */}
           <div className="absolute top-20 left-0 right-10 h-1 bg-gray-200" />
-          
+
           {/* Career Nodes */}
           {activePath.nodes.map((node, index) => (
             <div 
@@ -253,7 +239,7 @@ export const CareerPathExplorer = ({ pathData }: CareerPathExplorerProps) => {
             </div>
           ))}
         </div>
-        
+
         <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
           <Button 
             variant="ghost" 
