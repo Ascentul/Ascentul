@@ -413,6 +413,270 @@ export default function DesignStudio() {
     fabricCanvas.renderAll();
   };
   
+  // Add header block to canvas
+  const addHeaderBlock = () => {
+    if (!fabricCanvas) return;
+    
+    // Background rectangle
+    const headerBg = new window.fabric.Rect({
+      left: 50,
+      top: 50,
+      width: 500,
+      height: 120,
+      fill: '#f3f4f6',
+      rx: 5,
+      ry: 5,
+    });
+    
+    // Name text
+    const nameText = new window.fabric.Textbox('Your Name', {
+      left: 70,
+      top: 70,
+      fontSize: 24,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Contact info text
+    const contactText = new window.fabric.Textbox('email@example.com | (123) 456-7890 | linkedin.com/in/yourprofile', {
+      left: 70,
+      top: 110,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Add all elements to canvas
+    fabricCanvas.add(headerBg, nameText, contactText);
+    
+    // Group all elements
+    const headerGroup = new window.fabric.Group([headerBg, nameText, contactText], {
+      left: 50,
+      top: 50,
+    });
+    
+    // Remove individual elements and add the group
+    fabricCanvas.remove(headerBg, nameText, contactText);
+    fabricCanvas.add(headerGroup);
+    
+    fabricCanvas.setActiveObject(headerGroup);
+    setActiveObject(headerGroup);
+    fabricCanvas.renderAll();
+  };
+  
+  // Add experience block to canvas
+  const addExperienceBlock = () => {
+    if (!fabricCanvas) return;
+    
+    // Background rectangle
+    const expBg = new window.fabric.Rect({
+      left: 50,
+      top: 200,
+      width: 500,
+      height: 150,
+      fill: '#ffffff',
+      rx: 5,
+      ry: 5,
+      stroke: '#e5e7eb',
+      strokeWidth: 1,
+    });
+    
+    // Section title
+    const titleText = new window.fabric.Textbox('EXPERIENCE', {
+      left: 70,
+      top: 210,
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Job title and company
+    const jobText = new window.fabric.Textbox('Job Title, Company Name', {
+      left: 70,
+      top: 240,
+      fontSize: 13,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 300,
+    });
+    
+    // Date range
+    const dateText = new window.fabric.Textbox('Jan 2020 - Present', {
+      left: 390,
+      top: 240,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      textAlign: 'right',
+      width: 140,
+    });
+    
+    // Job description
+    const descText = new window.fabric.Textbox('• Accomplished [X] as measured by [Y] by doing [Z]\n• Improved [X] by [Y]% through [Z]\n• Led team of [X] people to accomplish [Y] resulting in [Z]', {
+      left: 70,
+      top: 270,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      width: 460,
+      lineHeight: 1.3,
+    });
+    
+    // Add all elements to canvas
+    fabricCanvas.add(expBg, titleText, jobText, dateText, descText);
+    
+    // Group all elements
+    const expGroup = new window.fabric.Group([expBg, titleText, jobText, dateText, descText], {
+      left: 50,
+      top: 200,
+    });
+    
+    // Remove individual elements and add the group
+    fabricCanvas.remove(expBg, titleText, jobText, dateText, descText);
+    fabricCanvas.add(expGroup);
+    
+    fabricCanvas.setActiveObject(expGroup);
+    setActiveObject(expGroup);
+    fabricCanvas.renderAll();
+  };
+  
+  // Add education block to canvas
+  const addEducationBlock = () => {
+    if (!fabricCanvas) return;
+    
+    // Background rectangle
+    const eduBg = new window.fabric.Rect({
+      left: 50,
+      top: 380,
+      width: 500,
+      height: 100,
+      fill: '#ffffff',
+      rx: 5,
+      ry: 5,
+      stroke: '#e5e7eb',
+      strokeWidth: 1,
+    });
+    
+    // Section title
+    const titleText = new window.fabric.Textbox('EDUCATION', {
+      left: 70,
+      top: 390,
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Degree and university
+    const degreeText = new window.fabric.Textbox('University Name', {
+      left: 70,
+      top: 420,
+      fontSize: 13,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 300,
+    });
+    
+    // Graduation date
+    const gradDateText = new window.fabric.Textbox('May 2019', {
+      left: 390,
+      top: 420,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      textAlign: 'right',
+      width: 140,
+    });
+    
+    // Degree details
+    const detailsText = new window.fabric.Textbox('Bachelor of Science in Computer Science, GPA: 3.8/4.0', {
+      left: 70,
+      top: 445,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Add all elements to canvas
+    fabricCanvas.add(eduBg, titleText, degreeText, gradDateText, detailsText);
+    
+    // Group all elements
+    const eduGroup = new window.fabric.Group([eduBg, titleText, degreeText, gradDateText, detailsText], {
+      left: 50,
+      top: 380,
+    });
+    
+    // Remove individual elements and add the group
+    fabricCanvas.remove(eduBg, titleText, degreeText, gradDateText, detailsText);
+    fabricCanvas.add(eduGroup);
+    
+    fabricCanvas.setActiveObject(eduGroup);
+    setActiveObject(eduGroup);
+    fabricCanvas.renderAll();
+  };
+  
+  // Add skills block to canvas
+  const addSkillsBlock = () => {
+    if (!fabricCanvas) return;
+    
+    // Background rectangle
+    const skillsBg = new window.fabric.Rect({
+      left: 50,
+      top: 510,
+      width: 500,
+      height: 100,
+      fill: '#ffffff',
+      rx: 5,
+      ry: 5,
+      stroke: '#e5e7eb',
+      strokeWidth: 1,
+    });
+    
+    // Section title
+    const titleText = new window.fabric.Textbox('SKILLS', {
+      left: 70,
+      top: 520,
+      fontSize: 14,
+      fontWeight: 'bold',
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Technical Skills
+    const techSkillsText = new window.fabric.Textbox('Technical: JavaScript, React, TypeScript, Node.js, MongoDB, GraphQL, REST APIs', {
+      left: 70,
+      top: 550,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Soft Skills
+    const softSkillsText = new window.fabric.Textbox('Soft Skills: Leadership, Project Management, Teamwork, Communication, Problem Solving', {
+      left: 70,
+      top: 575,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      width: 460,
+    });
+    
+    // Add all elements to canvas
+    fabricCanvas.add(skillsBg, titleText, techSkillsText, softSkillsText);
+    
+    // Group all elements
+    const skillsGroup = new window.fabric.Group([skillsBg, titleText, techSkillsText, softSkillsText], {
+      left: 50,
+      top: 510,
+    });
+    
+    // Remove individual elements and add the group
+    fabricCanvas.remove(skillsBg, titleText, techSkillsText, softSkillsText);
+    fabricCanvas.add(skillsGroup);
+    
+    fabricCanvas.setActiveObject(skillsGroup);
+    setActiveObject(skillsGroup);
+    fabricCanvas.renderAll();
+  };
+  
   // Delete the selected object
   const deleteObject = () => {
     if (!fabricCanvas || !activeObject) return;
@@ -1009,19 +1273,19 @@ export default function DesignStudio() {
                 <div>
                   <h3 className="text-sm font-medium mb-2">Resume Blocks</h3>
                   <div className="grid grid-cols-1 gap-2">
-                    <Button variant="outline" className="justify-start">
+                    <Button variant="outline" onClick={addHeaderBlock} className="justify-start">
                       <FileText size={16} className="mr-2" />
                       Header Block
                     </Button>
-                    <Button variant="outline" className="justify-start">
+                    <Button variant="outline" onClick={addExperienceBlock} className="justify-start">
                       <FileText size={16} className="mr-2" />
                       Experience Block
                     </Button>
-                    <Button variant="outline" className="justify-start">
+                    <Button variant="outline" onClick={addEducationBlock} className="justify-start">
                       <FileText size={16} className="mr-2" />
                       Education Block
                     </Button>
-                    <Button variant="outline" className="justify-start">
+                    <Button variant="outline" onClick={addSkillsBlock} className="justify-start">
                       <FileText size={16} className="mr-2" />
                       Skills Block
                     </Button>
