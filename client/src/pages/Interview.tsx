@@ -391,12 +391,12 @@ const Interview = () => {
         </motion.div>
       )}
 
-      {/* All Processes & Practice Views - Two Columns */}
+      {/* All Processes & Practice Views - Full Width */}
       {activeTab !== 'dashboard' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
+        <div className="space-y-6">
+          <div className="space-y-4">
             {/* Search Input - Only for Processes and Practice */}
-            <motion.div variants={subtleUp} className="w-full">
+            <motion.div variants={subtleUp} className="w-full max-w-md">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -657,7 +657,7 @@ const Interview = () => {
 
           <motion.div 
             variants={fadeIn}
-            className="lg:col-span-2"
+            className="w-full"
           >
             {activeTab === 'practice' ? null : selectedProcess ? (
               <InterviewProcessDetails process={selectedProcess} />
