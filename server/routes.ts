@@ -290,14 +290,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Auth Routes
   apiRouter.post("/auth/login", async (req: Request, res: Response) => {
     try {
-      const { email, password, loginType } = req.body;
+      // Support both username and email authentication
+      const { email, username, password, loginType } = req.body;
       
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+      // Check which auth method is being used
+      if ((!email && !username) || !password) {
+        return res.status(400).json({ message: "Username/Email and password are required" });
       }
       
-      // Find user by email
-      let user = await storage.getUserByEmail(email);
+      // Find user either by email or username
+      let user;
+      if (username) {
+        // Admin login typically uses username
+        user = await storage.getUserByUsername(username);
+      } else {
+        // Regular login uses email
+        user = await storage.getUserByEmail(email);
+      }
       
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });

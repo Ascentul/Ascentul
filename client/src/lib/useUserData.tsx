@@ -77,7 +77,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       password: string; 
       loginType?: 'staff' | 'admin' 
     }) => {
-      const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
+      // If we're doing an admin login, use the username field for server compatibility
+      const payload = loginType === 'admin' 
+        ? { username: email, password, loginType } // For admin login, the "email" is actually username
+        : { email, password, loginType };         // For regular login, use email normally
+        
+      const res = await apiRequest('POST', '/api/auth/login', payload);
       const data = await res.json();
       // Return both user and redirectPath from the server response
       return {
