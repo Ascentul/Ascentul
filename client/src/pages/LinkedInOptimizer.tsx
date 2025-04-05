@@ -174,9 +174,7 @@ function SectionCard({
 
 function LinkedInOptimizer() {
   const { toast } = useToast();
-  const [inputMethod, setInputMethod] = useState<"url" | "text">("url");
   const [profileUrl, setProfileUrl] = useState("");
-  const [profileText, setProfileText] = useState("");
   const [targetJobTitle, setTargetJobTitle] = useState("");
   const [customJob, setCustomJob] = useState("");
   const [results, setResults] = useState<OptimizationResult | null>(null);
@@ -221,7 +219,7 @@ function LinkedInOptimizer() {
       return;
     }
     
-    if (inputMethod === "url" && !profileUrl) {
+    if (!profileUrl) {
       toast({
         title: "Missing Information",
         description: "Please enter your LinkedIn profile URL.",
@@ -230,24 +228,10 @@ function LinkedInOptimizer() {
       return;
     }
     
-    if (inputMethod === "text" && !profileText) {
-      toast({
-        title: "Missing Information",
-        description: "Please paste your LinkedIn profile content.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     const data: LinkedInProfileData = {
       targetJobTitle: finalJobTitle,
+      url: profileUrl
     };
-    
-    if (inputMethod === "url") {
-      data.url = profileUrl;
-    } else {
-      data.profileText = profileText;
-    }
     
     mutate(data);
   };
@@ -280,55 +264,16 @@ function LinkedInOptimizer() {
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Input Method
-                  </label>
-                  <div className="flex space-x-4">
-                    <Button
-                      type="button"
-                      variant={inputMethod === "url" ? "default" : "outline"}
-                      onClick={() => setInputMethod("url")}
-                      className="flex-1"
-                    >
-                      Profile URL
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={inputMethod === "text" ? "default" : "outline"}
-                      onClick={() => setInputMethod("text")}
-                      className="flex-1"
-                    >
-                      Paste Content
-                    </Button>
-                  </div>
-                </div>
-                
-                {inputMethod === "url" ? (
-                  <div>
-                    <label htmlFor="profile-url" className="block text-sm font-medium mb-1">
-                      LinkedIn Profile URL
-                    </label>
-                    <Input
-                      id="profile-url"
-                      placeholder="https://www.linkedin.com/in/yourprofile"
-                      value={profileUrl}
-                      onChange={(e) => setProfileUrl(e.target.value)}
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="profile-text" className="block text-sm font-medium mb-1">
-                      LinkedIn Profile Content
-                    </label>
-                    <Textarea
-                      id="profile-text"
-                      placeholder="Copy and paste the content from your LinkedIn profile..."
-                      value={profileText}
-                      onChange={(e) => setProfileText(e.target.value)}
-                      className="min-h-[200px]"
-                    />
-                  </div>
-                )}
+                <label htmlFor="profile-url" className="block text-sm font-medium mb-1">
+                  LinkedIn Profile URL
+                </label>
+                <Input
+                  id="profile-url"
+                  placeholder="https://www.linkedin.com/in/yourprofile"
+                  value={profileUrl}
+                  onChange={(e) => setProfileUrl(e.target.value)}
+                />
+              </div>
                 
                 <div>
                   <label htmlFor="target-job" className="block text-sm font-medium mb-1">
