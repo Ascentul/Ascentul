@@ -144,6 +144,7 @@ export default function Goals() {
           toast({
             title: "Goal Saved as Completed",
             description: "Your goal has been moved to the completed section.",
+            variant: "success",
           });
         })
         .catch((error) => {
