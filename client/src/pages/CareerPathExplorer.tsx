@@ -724,92 +724,107 @@ export default function CareerPathExplorer() {
         )}
       </div>
 
-      {/* Career Path Visualization */}
-      <div className="relative">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => handleScroll('left')}
-            className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-        </div>
-        
-        <div 
-          ref={scrollContainerRef}
-          className="pb-6 overflow-x-auto scrollbar-hide relative flex items-start gap-4"
-          style={{ 
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {/* Background Line */}
-          <div className="absolute top-20 left-0 right-10 h-1 bg-gray-200" />
-          
-          {/* Career Nodes */}
-          {activePath.nodes.map((node, index) => (
-            <div 
-              key={node.id}
-              className="flex flex-col items-center min-w-[250px] first:pl-4"
-            >
-              <motion.div 
-                className={cn(
-                  "cursor-pointer transition-all relative mt-4",
-                  selectedNodeId === node.id ? "scale-105" : "hover:scale-105"
-                )}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                onClick={() => handleNodeClick(node.id)}
+      {/* Career Path Visualization - Only shown after search */}
+      {generatedPath && (
+        <div className="relative mt-8">
+          <h2 className="text-2xl font-bold mb-6">Career Path Progression</h2>
+          <div className="relative">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleScroll('left')}
+                className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
               >
-                <Card className={cn(
-                  "w-60 shadow-md",
-                  selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
-                )}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="mt-1">
-                        {node.icon}
-                      </div>
-                      <Badge className={LevelBadgeColors[node.level]}>
-                        {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
-                      </Badge>
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">{node.title}</h3>
-                    <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
-                    <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
-                    <div className={cn(
-                      "flex items-center gap-1 text-xs mt-2", 
-                      GrowthIndicators[node.growthPotential].color
-                    )}>
-                      {GrowthIndicators[node.growthPotential].icon}
-                      {GrowthIndicators[node.growthPotential].text}
-                    </div>
-                  </CardContent>
-                </Card>
-                {index < activePath.nodes.length - 1 && (
-                  <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    <ArrowRight className="h-5 w-5" />
-                  </div>
-                )}
-              </motion.div>
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
             </div>
-          ))}
+            
+            <div 
+              ref={scrollContainerRef}
+              className="pb-6 overflow-x-auto scrollbar-hide relative flex items-start gap-4"
+              style={{ 
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+            >
+              {/* Background Line */}
+              <div className="absolute top-20 left-0 right-10 h-1 bg-gray-200" />
+              
+              {/* Career Nodes */}
+              {activePath.nodes.map((node, index) => (
+                <div 
+                  key={node.id}
+                  className="flex flex-col items-center min-w-[250px] first:pl-4"
+                >
+                  <motion.div 
+                    className={cn(
+                      "cursor-pointer transition-all relative mt-4",
+                      selectedNodeId === node.id ? "scale-105" : "hover:scale-105"
+                    )}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    onClick={() => handleNodeClick(node.id)}
+                  >
+                    <Card className={cn(
+                      "w-60 shadow-md",
+                      selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
+                    )}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="mt-1">
+                            {node.icon}
+                          </div>
+                          <Badge className={LevelBadgeColors[node.level]}>
+                            {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
+                          </Badge>
+                        </div>
+                        <h3 className="font-bold text-lg mb-1">{node.title}</h3>
+                        <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
+                        <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs mt-2", 
+                          GrowthIndicators[node.growthPotential].color
+                        )}>
+                          {GrowthIndicators[node.growthPotential].icon}
+                          {GrowthIndicators[node.growthPotential].text}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    {index < activePath.nodes.length - 1 && (
+                      <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <ArrowRight className="h-5 w-5" />
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleScroll('right')}
+                className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </Button>
+            </div>
+          </div>
         </div>
-        
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => handleScroll('right')}
-            className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
+      )}
+      
+      {!generatedPath && (
+        <div className="flex flex-col items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
+          <SearchX className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Career Path Generated Yet</h3>
+          <p className="text-muted-foreground text-center max-w-md mb-4">
+            Enter a job title above and click "Generate" to visualize a potential career progression path.
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Role Detail Drawer */}
       <Drawer open={drawerOpen && selectedNode !== null} onOpenChange={setDrawerOpen}>
