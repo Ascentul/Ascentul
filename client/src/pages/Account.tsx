@@ -83,7 +83,7 @@ function PasswordChangeForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="newPassword"
@@ -100,7 +100,7 @@ function PasswordChangeForm({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="confirmPassword"
@@ -114,7 +114,7 @@ function PasswordChangeForm({
             </FormItem>
           )}
         />
-        
+
         <DialogFooter className="mt-6">
           <Button type="submit" disabled={isPending}>
             {isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Changing Password...</> : "Change Password"}
@@ -137,25 +137,25 @@ function PaymentMethodForm({
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
       return;
     }
-    
+
     setIsSubmitting(true);
     setError(null);
-    
+
     try {
       // Use the card Element to tokenize payment details
       const { error: submitError } = await elements.submit();
-      
+
       if (submitError) {
         throw new Error(submitError.message);
       }
-      
+
       // Confirm the SetupIntent
       const { error: confirmError } = await stripe.confirmSetup({
         elements,
@@ -164,11 +164,11 @@ function PaymentMethodForm({
         },
         redirect: 'if_required',
       });
-      
+
       if (confirmError) {
         throw new Error(confirmError.message);
       }
-      
+
       // If we got here, then setup was successful
       onSuccess();
     } catch (err: any) {
@@ -178,7 +178,7 @@ function PaymentMethodForm({
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -186,18 +186,18 @@ function PaymentMethodForm({
           <label className="text-sm font-medium">Card Details</label>
           <PaymentElement />
         </div>
-        
+
         <div className="space-y-2">
           <label className="text-sm font-medium">Billing Address</label>
           <AddressElement options={{ mode: 'billing' }} />
         </div>
-        
+
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {error}
           </div>
         )}
-        
+
         <div className="flex justify-end space-x-2 pt-2">
           <Button 
             type="button" 
@@ -226,7 +226,7 @@ function PaymentMethodForm({
 export default function Account() {
   const { user, logout, updateProfile } = useUser();
   const { toast } = useToast();
-  
+
   // State for dialogs
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
@@ -236,7 +236,7 @@ export default function Account() {
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
-  
+
   // Theme customization state
   const [customColor, setCustomColor] = useState<string>('#0C29AB');
   const [themeSettings, setThemeSettings] = useState<{
@@ -251,7 +251,7 @@ export default function Account() {
     radius: user?.theme?.radius || 0.5
   });
   const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
-  
+
   // State for Stripe payment elements
   const [isLoading, setIsLoading] = useState(false);
   const [setupIntentClientSecret, setSetupIntentClientSecret] = useState<string | null>(null);
@@ -261,18 +261,18 @@ export default function Account() {
     exp_month: number;
     exp_year: number;
   } | null>(null);
-  
+
   // Email and password change mutations using hooks from useUserData
   const changeEmailMutation = useChangeEmail();
   const changePasswordMutation = useChangePassword();
-  
+
   // Fetch current payment method when component mounts
   useEffect(() => {
     if (user && user.subscriptionPlan !== 'free') {
       fetchPaymentMethodInfo();
     }
   }, [user]);
-  
+
   // Function to fetch the user's current payment method info
   const fetchPaymentMethodInfo = async () => {
     try {
@@ -280,11 +280,11 @@ export default function Account() {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch payment methods');
       }
-      
+
       const data = await response.json();
       if (data?.default_payment_method) {
         setPaymentMethodInfo({
@@ -298,11 +298,11 @@ export default function Account() {
       console.error('Error fetching payment methods:', error);
     }
   };
-  
+
   // Helper function to get pretty plan name
   const getPlanName = (plan: string | undefined): string => {
     if (!plan) return 'Free Plan';
-    
+
     switch (plan) {
       case 'free':
         return 'Free Plan';
@@ -325,10 +325,10 @@ export default function Account() {
       // Close dialog if open
       setIsManagingSubscription(false);
       setIsUpgradingPlan(false);
-      
+
       // Use selected billing cycle or default to monthly
       const selectedCycle = cycle || billingCycle;
-      
+
       // Create subscription with the selected interval
       const response = await fetch('/api/payments/create-subscription', {
         method: 'POST',
@@ -340,13 +340,13 @@ export default function Account() {
           email: user?.email
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create subscription');
       }
-      
+
       const { clientSecret } = await response.json();
-      
+
       // Redirect to checkout page with client secret
       window.location.href = `/checkout?client_secret=${clientSecret}`;
     } catch (error: any) {
@@ -358,7 +358,7 @@ export default function Account() {
       });
     }
   };
-  
+
   const cancelSubscription = async () => {
     try {
       const response = await fetch('/api/payments/cancel-subscription', {
@@ -368,18 +368,18 @@ export default function Account() {
           userId: user?.id 
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to cancel subscription');
       }
-      
+
       setIsCancellingSubscription(false);
       toast({
         title: "Subscription Cancelled",
         description: "Your subscription has been cancelled successfully.",
         variant: "default"
       });
-      
+
       // Reload the page to reflect changes
       window.location.reload();
     } catch (error: any) {
@@ -391,12 +391,12 @@ export default function Account() {
       });
     }
   };
-  
+
   // Function to initialize the Stripe setup intent for managing payment methods
   const initializePaymentMethodsUpdate = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get a setup intent from the server
       const response = await fetch('/api/payments/create-setup-intent', {
         method: 'POST',
@@ -405,14 +405,14 @@ export default function Account() {
           userId: user?.id 
         })
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to initialize payment method update');
       }
-      
+
       const { clientSecret } = await response.json();
       setSetupIntentClientSecret(clientSecret);
-      
+
     } catch (error: any) {
       console.error('Error initializing payment method update:', error);
       toast({
@@ -424,7 +424,7 @@ export default function Account() {
       setIsLoading(false);
     }
   };
-  
+
   const profileForm = useForm({
     defaultValues: {
       name: user?.name || '',
@@ -451,7 +451,7 @@ export default function Account() {
       });
     }
   };
-  
+
   const handleEditProfile = () => {
     // Reset form with current user values
     profileForm.reset({
@@ -461,7 +461,7 @@ export default function Account() {
     });
     setIsEditingProfile(true);
   };
-  
+
   const handleProfileSubmit = async (data: any) => {
     try {
       await updateProfile(data);
@@ -489,12 +489,12 @@ export default function Account() {
       day: 'numeric'
     });
   };
-  
+
   // Theme update functions
   const updateTheme = (updates: Partial<typeof themeSettings>) => {
     setThemeSettings(prev => ({ ...prev, ...updates }));
   };
-  
+
   const resetTheme = () => {
     const defaultTheme = {
       primary: '#0C29AB',
@@ -505,11 +505,11 @@ export default function Account() {
     setThemeSettings(defaultTheme);
     setCustomColor('#0C29AB');
   };
-  
+
   const applyTheme = async () => {
     try {
       setIsUpdatingTheme(true);
-      
+
       // Send theme settings to the server
       const response = await fetch('/api/theme', {
         method: 'POST',
@@ -518,29 +518,29 @@ export default function Account() {
         },
         body: JSON.stringify(themeSettings)
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update theme');
       }
-      
+
       const data = await response.json();
-      
+
       // Update user context with the new theme
       if (user) {
         user.theme = themeSettings;
       }
-      
+
       // Success message
       toast({
         title: "Theme Updated",
         description: "Your theme settings have been saved successfully.",
         variant: "default"
       });
-      
+
       // Reload the page to apply the theme changes
       window.location.reload();
-      
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -606,10 +606,6 @@ export default function Account() {
               <div>
                 <h3 className="font-medium text-sm text-muted-foreground">User Type</h3>
                 <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">XP Level</h3>
-                <p>{user.level || 1} ({user.xp || 0} XP)</p>
               </div>
             </CardContent>
           </Card>
@@ -696,7 +692,7 @@ export default function Account() {
                       </div>
                       <span>Light</span>
                     </Button>
-                    
+
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.appearance === 'dark' ? 'border-primary' : ''}`}
@@ -707,7 +703,7 @@ export default function Account() {
                       </div>
                       <span>Dark</span>
                     </Button>
-                    
+
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.appearance === 'system' ? 'border-primary' : ''}`}
@@ -720,7 +716,7 @@ export default function Account() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium mb-2">Primary Color</h3>
                   <div className="flex flex-wrap gap-3">
@@ -813,7 +809,7 @@ export default function Account() {
                     </label>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium mb-2">Variant</h3>
                   <div className="grid grid-cols-3 gap-2">
@@ -830,7 +826,7 @@ export default function Account() {
                       </div>
                       <span>Professional</span>
                     </Button>
-                    
+
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'tint' ? 'border-primary' : ''}`}
@@ -844,7 +840,7 @@ export default function Account() {
                       </div>
                       <span>Tint</span>
                     </Button>
-                    
+
                     <Button 
                       variant="outline" 
                       className={`flex flex-col items-center justify-center h-24 ${user?.theme?.variant === 'vibrant' ? 'border-primary' : ''}`}
@@ -860,7 +856,7 @@ export default function Account() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium mb-2">Border Radius</h3>
                   <div className="space-y-4">
@@ -878,7 +874,7 @@ export default function Account() {
                         </div>
                         <span>None</span>
                       </Button>
-                      
+
                       <Button 
                         variant="outline" 
                         className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 0.5 ? 'border-primary' : ''}`}
@@ -892,7 +888,7 @@ export default function Account() {
                         </div>
                         <span>Small</span>
                       </Button>
-                      
+
                       <Button 
                         variant="outline" 
                         className={`flex flex-col items-center justify-center h-24 ${user?.theme?.radius === 1 ? 'border-primary' : ''}`}
@@ -907,7 +903,7 @@ export default function Account() {
                         <span>Medium</span>
                       </Button>
                     </div>
-                    
+
                     <Slider
                       defaultValue={[user?.theme?.radius || 0.5]}
                       min={0}
@@ -984,7 +980,7 @@ export default function Account() {
                       <span className="text-gray-500">Free</span>}
                   </p>
                 </div>
-                
+
                 {/* Additional subscription details */}
                 {user.subscriptionPlan !== 'free' && (
                   <>
@@ -1003,7 +999,7 @@ export default function Account() {
                   </>
                 )}
               </div>
-              
+
               {/* Free plan features description */}
               {user.subscriptionPlan === 'free' && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-md">
@@ -1028,7 +1024,7 @@ export default function Account() {
                   </Button>
                 </div>
               )}
-              
+
               {/* Premium features description */}
               {user.subscriptionPlan === 'premium' && (
                 <div className="mt-6 p-4 bg-muted/50 rounded-md">
@@ -1057,7 +1053,7 @@ export default function Account() {
                 </div>
               )}
             </CardContent>
-            
+
             {/* Add Card Footer with Unsubscribe Button for paid plans */}
             {user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active' && (
               <CardFooter className="border-t pt-6 flex flex-col items-stretch">
@@ -1074,7 +1070,7 @@ export default function Account() {
               </CardFooter>
             )}
           </Card>
-          
+
           {/* Subscription Management Dialog */}
           <Dialog open={isManagingSubscription} onOpenChange={setIsManagingSubscription}>
             <DialogContent className="sm:max-w-[500px]">
@@ -1117,7 +1113,7 @@ export default function Account() {
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Plan Actions */}
                 <div className="space-y-3">
                   <h3 className="font-medium text-lg">Plan Actions</h3>
@@ -1148,7 +1144,7 @@ export default function Account() {
               </div>
             </DialogContent>
           </Dialog>
-          
+
           {/* Cancel Subscription Confirmation Dialog */}
           <Dialog open={isCancellingSubscription} onOpenChange={setIsCancellingSubscription}>
             <DialogContent className="sm:max-w-[400px]">
@@ -1194,7 +1190,7 @@ export default function Account() {
                     </span>
                   )}
                 </div>
-                
+
                 {user.pendingEmail && (
                   <div className="mt-2">
                     <p className="text-sm text-muted-foreground">
@@ -1210,14 +1206,14 @@ export default function Account() {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex flex-wrap space-x-2">
                 {!user.pendingEmail && (
                   <Button variant="outline" onClick={() => setIsChangingEmail(true)}>
                     Change Email
                   </Button>
                 )}
-                
+
                 {!user.emailVerified && !user.pendingEmail && (
                   <Button variant="default">
                     Resend Verification
@@ -1226,7 +1222,7 @@ export default function Account() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Password</CardTitle>
@@ -1253,7 +1249,7 @@ export default function Account() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Sign Out</CardTitle>
@@ -1269,7 +1265,7 @@ export default function Account() {
           </Card>
         </TabsContent>
       </Tabs>
-    
+
     {/* Password Change Dialog */}
     <Dialog open={isChangingPassword} onOpenChange={setIsChangingPassword}>
       <DialogContent className="sm:max-w-[450px]">
@@ -1279,7 +1275,7 @@ export default function Account() {
             Enter your current password and choose a new secure password.
           </DialogDescription>
         </DialogHeader>
-        
+
         <PasswordChangeForm 
           isPending={changePasswordMutation.isPending}
           onSubmit={(data) => {
@@ -1310,7 +1306,7 @@ export default function Account() {
         />
       </DialogContent>
     </Dialog>
-    
+
     {/* Email Change Dialog */}
     <Dialog open={isChangingEmail} onOpenChange={setIsChangingEmail}>
       <DialogContent className="sm:max-w-[450px]">
@@ -1321,7 +1317,7 @@ export default function Account() {
             You will need to verify your new email before the change takes effect.
           </DialogDescription>
         </DialogHeader>
-        
+
         {changeEmailMutation.isPending ? (
           <div className="py-8 flex items-center justify-center flex-col">
             <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
@@ -1400,7 +1396,7 @@ export default function Account() {
               </li>
             </ul>
           </div>
-          
+
           {/* Billing cycle tabs */}
           <div className="mb-6">
             <Tabs defaultValue="monthly" className="w-full" onValueChange={(value) => setBillingCycle(value as 'monthly' | 'quarterly' | 'annual')}>
@@ -1456,7 +1452,7 @@ export default function Account() {
         </div>
       </DialogContent>
     </Dialog>
-    
+
     {/* Payment Methods Management Dialog */}
     <Dialog open={isManagingPaymentMethods} onOpenChange={setIsManagingPaymentMethods}>
       <DialogContent className="sm:max-w-[500px]">
@@ -1466,7 +1462,7 @@ export default function Account() {
             Manage your payment methods for subscription billing.
           </DialogDescription>
         </DialogHeader>
-        
+
         {!setupIntentClientSecret ? (
           <div className="py-6 space-y-4">
             {/* Current Payment Method */}
@@ -1491,7 +1487,7 @@ export default function Account() {
                 <p className="text-sm text-muted-foreground">Add a payment method to manage your subscription</p>
               </div>
             )}
-            
+
             <div className="flex justify-end">
               <Button 
                 onClick={initializePaymentMethodsUpdate}
