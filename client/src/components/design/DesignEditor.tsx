@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { getFabric } from "@/lib/fabric-loader";
 import { 
   Square, 
   Circle, 
@@ -20,7 +22,8 @@ import {
   AlignJustify,
   Bold,
   Italic,
-  Underline
+  Underline,
+  Loader2
 } from "lucide-react";
 import { 
   Tooltip,
@@ -73,12 +76,19 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   const [guides, setGuides] = useState<any[]>([]);
   const [isCanvasReady, setIsCanvasReady] = useState(false);
   
+  const { toast } = useToast();
+  
   // Initialize Fabric.js canvas
   useEffect(() => {
     const initCanvas = async () => {
-      if (canvasRef.current && typeof window !== "undefined" && window.fabric) {
+      try {
+        if (!canvasRef.current) return;
+        
+        // Load Fabric.js using our loader
+        const fabric = await getFabric();
+        
         // Create canvas instance
-        const canvas = new window.fabric.Canvas(canvasRef.current, {
+        const canvas = new fabric.Canvas(canvasRef.current, {
           width: CANVAS_WIDTH,
           height: CANVAS_HEIGHT,
           backgroundColor: '#FFFFFF',
@@ -97,6 +107,13 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
         if (initialDesign) {
           loadDesign(canvas, initialDesign);
         }
+      } catch (error) {
+        console.error("Failed to initialize canvas:", error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize the design editor. Please try again.",
+          variant: "destructive"
+        });
       }
     };
     
@@ -111,20 +128,23 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   }, [initialDesign]);
   
   // Setup canvas with configurations and event handlers
-  const setupCanvas = (canvas: any) => {
+  const setupCanvas = async (canvas: any) => {
     // Set canvas appearance
     canvas.selection = true;
     canvas.selectionColor = 'rgba(12, 41, 171, 0.1)'; // Light brand blue
     canvas.selectionBorderColor = BRAND_COLOR;
     canvas.selectionLineWidth = 1;
     
+    // Get fabric instance
+    const fabric = await getFabric();
+    
     // Configure default object settings
-    window.fabric.Object.prototype.transparentCorners = false;
-    window.fabric.Object.prototype.cornerColor = '#FFFFFF';
-    window.fabric.Object.prototype.cornerStrokeColor = '#CCCCCC';
-    window.fabric.Object.prototype.borderColor = BRAND_COLOR;
-    window.fabric.Object.prototype.cornerSize = 10;
-    window.fabric.Object.prototype.padding = 0; // Default zero padding for shape elements
+    fabric.Object.prototype.transparentCorners = false;
+    fabric.Object.prototype.cornerColor = '#FFFFFF';
+    fabric.Object.prototype.cornerStrokeColor = '#CCCCCC';
+    fabric.Object.prototype.borderColor = BRAND_COLOR;
+    fabric.Object.prototype.cornerSize = 10;
+    fabric.Object.prototype.padding = 0; // Default zero padding for shape elements
     
     // Add canvas event listeners
     canvas.on('object:moving', handleObjectMoving);
@@ -142,18 +162,21 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   };
   
   // Draw grid lines on the canvas
-  const drawGrid = (canvas: any) => {
+  const drawGrid = async (canvas: any) => {
     // Remove any existing grid
     const existingGrid = canvas.getObjects().filter((o: any) => o.isGrid);
     existingGrid.forEach((grid: any) => canvas.remove(grid));
     
+    // Get fabric instance
+    const fabric = await getFabric();
+    
     // Create new grid
     const gridColor = 'rgba(200, 200, 200, 0.4)';
-    const gridGroup = new window.fabric.Group([], { selectable: false, evented: false, isGrid: true });
+    const gridGroup = new fabric.Group([], { selectable: false, evented: false, isGrid: true });
     
     // Add vertical grid lines
     for (let i = 0; i <= CANVAS_WIDTH; i += GRID_SIZE) {
-      const line = new window.fabric.Line([i, 0, i, CANVAS_HEIGHT], {
+      const line = new fabric.Line([i, 0, i, CANVAS_HEIGHT], {
         stroke: gridColor,
         selectable: false,
         evented: false,
@@ -164,7 +187,7 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
     
     // Add horizontal grid lines
     for (let i = 0; i <= CANVAS_HEIGHT; i += GRID_SIZE) {
-      const line = new window.fabric.Line([0, i, CANVAS_WIDTH, i], {
+      const line = new fabric.Line([0, i, CANVAS_WIDTH, i], {
         stroke: gridColor,
         selectable: false,
         evented: false,
@@ -354,14 +377,17 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
     
     // If snapped, update object position with animation effect
     if (snapped) {
-      // Animate the snapping for a smooth feeling
-      obj.animate({
-        left: newLeft,
-        top: newTop
-      }, {
-        duration: 100,
-        onChange: canvas.renderAll.bind(canvas),
-        easing: window.fabric.util.ease.easeOutElastic
+      // Get fabric instance for animation
+      getFabric().then(fabric => {
+        // Animate the snapping for a smooth feeling
+        obj.animate({
+          left: newLeft,
+          top: newTop
+        }, {
+          duration: 100,
+          onChange: canvas.renderAll.bind(canvas),
+          easing: fabric.util.ease.easeOutElastic
+        });
       });
       
       // Add guides to canvas
@@ -389,8 +415,11 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   };
   
   // Create a guide line with animation effect
-  const createGuideLine = (x1: number, y1: number, x2: number, y2: number, type: string) => {
-    const guideLine = new window.fabric.Line([x1, y1, x2, y2], {
+  const createGuideLine = async (x1: number, y1: number, x2: number, y2: number, type: string) => {
+    // Get fabric instance
+    const fabric = await getFabric();
+    
+    const guideLine = new fabric.Line([x1, y1, x2, y2], {
       stroke: GUIDE_COLOR,
       strokeWidth: 1,
       strokeDashArray: [5, 5],
@@ -404,15 +433,18 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
     guideLine.animate('opacity', 1, {
       duration: 200,
       onChange: fabricCanvas.renderAll.bind(fabricCanvas),
-      easing: window.fabric.util.ease.easeInOutQuad
+      easing: fabric.util.ease.easeInOutQuad
     });
     
     return guideLine;
   };
   
   // Clear all guide lines
-  const clearGuides = () => {
+  const clearGuides = async () => {
     if (!fabricCanvas) return;
+    
+    // Get fabric instance
+    const fabric = await getFabric();
     
     // Remove guide lines from canvas
     const existingGuides = fabricCanvas.getObjects().filter((o: any) => o.isGuideLine);
@@ -425,7 +457,7 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
           fabricCanvas.remove(guide);
           fabricCanvas.renderAll();
         },
-        easing: window.fabric.util.ease.easeInOutQuad
+        easing: fabric.util.ease.easeInOutQuad
       });
     });
     
@@ -462,82 +494,130 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   };
   
   // Add a rectangle to the canvas
-  const addRectangle = () => {
+  const addRectangle = async () => {
     if (!fabricCanvas) return;
     
-    const rect = new window.fabric.Rect({
-      left: 100,
-      top: 100,
-      fill: '#4361EE',
-      width: 100,
-      height: 100,
-      opacity: 0.7,
-      padding: 0,
-    });
-    
-    fabricCanvas.add(rect);
-    fabricCanvas.setActiveObject(rect);
-    setActiveObject(rect);
-    fabricCanvas.renderAll();
+    try {
+      // Get fabric instance
+      const fabric = await getFabric();
+      
+      const rect = new fabric.Rect({
+        left: 100,
+        top: 100,
+        fill: '#4361EE',
+        width: 100,
+        height: 100,
+        opacity: 0.7,
+        padding: 0,
+      });
+      
+      fabricCanvas.add(rect);
+      fabricCanvas.setActiveObject(rect);
+      setActiveObject(rect);
+      fabricCanvas.renderAll();
+    } catch (error) {
+      console.error("Error adding rectangle:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add rectangle to canvas",
+        variant: "destructive"
+      });
+    }
   };
   
   // Add a circle to the canvas
-  const addCircle = () => {
+  const addCircle = async () => {
     if (!fabricCanvas) return;
     
-    const circle = new window.fabric.Circle({
-      left: 100,
-      top: 100,
-      fill: '#F72585',
-      radius: 50,
-      opacity: 0.7,
-      padding: 0,
-    });
-    
-    fabricCanvas.add(circle);
-    fabricCanvas.setActiveObject(circle);
-    setActiveObject(circle);
-    fabricCanvas.renderAll();
+    try {
+      // Get fabric instance
+      const fabric = await getFabric();
+      
+      const circle = new fabric.Circle({
+        left: 100,
+        top: 100,
+        fill: '#F72585',
+        radius: 50,
+        opacity: 0.7,
+        padding: 0,
+      });
+      
+      fabricCanvas.add(circle);
+      fabricCanvas.setActiveObject(circle);
+      setActiveObject(circle);
+      fabricCanvas.renderAll();
+    } catch (error) {
+      console.error("Error adding circle:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add circle to canvas",
+        variant: "destructive"
+      });
+    }
   };
   
   // Add a triangle to the canvas
-  const addTriangle = () => {
+  const addTriangle = async () => {
     if (!fabricCanvas) return;
     
-    const triangle = new window.fabric.Triangle({
-      left: 100,
-      top: 100,
-      fill: '#7209B7',
-      width: 100,
-      height: 100,
-      opacity: 0.7,
-      padding: 0,
-    });
-    
-    fabricCanvas.add(triangle);
-    fabricCanvas.setActiveObject(triangle);
-    setActiveObject(triangle);
-    fabricCanvas.renderAll();
+    try {
+      // Get fabric instance
+      const fabric = await getFabric();
+      
+      const triangle = new fabric.Triangle({
+        left: 100,
+        top: 100,
+        fill: '#7209B7',
+        width: 100,
+        height: 100,
+        opacity: 0.7,
+        padding: 0,
+      });
+      
+      fabricCanvas.add(triangle);
+      fabricCanvas.setActiveObject(triangle);
+      setActiveObject(triangle);
+      fabricCanvas.renderAll();
+    } catch (error) {
+      console.error("Error adding triangle:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add triangle to canvas",
+        variant: "destructive"
+      });
+    }
   };
   
   // Add a text object to the canvas
-  const addText = () => {
+  const addText = async () => {
     if (!fabricCanvas) return;
     
-    const text = new window.fabric.Textbox("Click to edit text", {
-      left: 100,
-      top: 100,
-      fontFamily: "Inter",
-      fontSize: 24,
-      fill: "#000000",
-      width: 300,
-      padding: 5,
-    });
-    
-    fabricCanvas.add(text);
-    fabricCanvas.setActiveObject(text);
-    setActiveObject(text);
-    fabricCanvas.renderAll();
+    try {
+      // Get fabric instance
+      const fabric = await getFabric();
+      
+      const text = new fabric.Textbox("Click to edit text", {
+        left: 100,
+        top: 100,
+        fontFamily: "Inter",
+        fontSize: 24,
+        fill: "#000000",
+        width: 300,
+        padding: 5,
+      });
+      
+      fabricCanvas.add(text);
+      fabricCanvas.setActiveObject(text);
+      setActiveObject(text);
+      fabricCanvas.renderAll();
+    } catch (error) {
+      console.error("Error adding text:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add text to canvas",
+        variant: "destructive"
+      });
+    }
   };
   
   // Delete the selected object
@@ -550,25 +630,34 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   };
   
   // Clone the selected object
-  const cloneObject = () => {
+  const cloneObject = async () => {
     if (!fabricCanvas || !activeObject) return;
     
-    activeObject.clone((cloned: any) => {
-      fabricCanvas.discardActiveObject();
-      
-      // Position the clone slightly offset from the original
-      cloned.set({
-        left: activeObject.left + 20,
-        top: activeObject.top + 20,
-        evented: true,
+    try {
+      activeObject.clone((cloned: any) => {
+        fabricCanvas.discardActiveObject();
+        
+        // Position the clone slightly offset from the original
+        cloned.set({
+          left: activeObject.left + 20,
+          top: activeObject.top + 20,
+          evented: true,
+        });
+        
+        // Add to canvas & select
+        fabricCanvas.add(cloned);
+        fabricCanvas.setActiveObject(cloned);
+        fabricCanvas.renderAll();
+        setActiveObject(cloned);
       });
-      
-      // Add to canvas & select
-      fabricCanvas.add(cloned);
-      fabricCanvas.setActiveObject(cloned);
-      fabricCanvas.renderAll();
-      setActiveObject(cloned);
-    });
+    } catch (error) {
+      console.error("Error cloning object:", error);
+      toast({
+        title: "Error",
+        description: "Failed to duplicate object",
+        variant: "destructive"
+      });
+    }
   };
   
   // Center the selected object horizontally
@@ -596,13 +685,18 @@ export default function DesignEditor({ initialDesign, onSave }: DesignEditorProp
   };
   
   // Load a design from JSON string
-  const loadDesign = (canvas: any, jsonData: string) => {
+  const loadDesign = async (canvas: any, jsonData: string) => {
     try {
       canvas.loadFromJSON(jsonData, () => {
         canvas.renderAll();
       });
     } catch (error) {
       console.error("Error loading design:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load design",
+        variant: "destructive"
+      });
     }
   };
   
