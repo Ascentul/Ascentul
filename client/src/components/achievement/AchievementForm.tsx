@@ -289,26 +289,7 @@ export function AchievementForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="xpValue"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>XP Value</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    min={10} 
-                    max={500}
-                    {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value) || 50)}
-                  />
-                </FormControl>
-                <FormDescription>XP earned for this achievement (10-500)</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          
 
           <FormField
             control={form.control}
