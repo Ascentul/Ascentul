@@ -4,6 +4,13 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 // Initialize the OpenAI client with the API key from environment variables
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Schedule for daily recommendations - midnight (00:00:00)
+export const RECOMMENDATIONS_REFRESH_TIME = {
+  hour: 0,
+  minute: 0,
+  second: 0
+};
+
 // Base system prompt for the career coach
 const CAREER_COACH_SYSTEM_PROMPT = `
 You are a professional career coach with deep expertise in career development, growth strategies, job search, networking, and workplace success. Your role is to guide the user toward achieving their career goals through structured, thoughtful, and highly actionable advice.
@@ -114,4 +121,131 @@ export async function generateCoachingResponse(
     console.error("Error generating OpenAI response:", error);
     throw new Error("Failed to generate AI response. Please try again later.");
   }
+}
+
+// Generate AI-driven recommendations based on user data
+export async function generateDailyAIRecommendations(
+  userContext: {
+    userId: number;
+    workHistory?: any[];
+    goals?: any[];
+    interviewProcesses?: any[];
+    userName?: string;
+  }
+): Promise<string[]> {
+  if (!userContext.userId) {
+    throw new Error("User ID is required to generate recommendations");
+  }
+
+  // Prepare AI system prompt for generating recommendations
+  let systemPrompt = `
+You are a career development AI assistant tasked with generating personalized daily recommendations for a user.
+Your recommendations should be specific, actionable, and directly relevant to the user's current career situation.
+
+Create 5-7 personalized career-focused recommendations for the user's daily tasks. These should be focused on:
+1. Career growth and skill development
+2. Job search optimization
+3. Interview preparation
+4. Networking and personal branding
+5. Specific actions related to their current goals or interviews
+
+Format each recommendation as a simple action statement that starts with a verb (e.g., "Update your LinkedIn profile with your recent project")
+Make recommendations concrete, specific, and immediately actionable.
+Each recommendation should be 10-15 words maximum.
+DO NOT include any explanations, introductions, or additional text.
+Output MUST be an array of strings in valid JSON format.
+`;
+
+  // Add user context to the system prompt if available
+  if (userContext.userName) {
+    systemPrompt += `\nUser Name: ${userContext.userName}`;
+  }
+
+  // Add work history information
+  if (userContext.workHistory && userContext.workHistory.length > 0) {
+    systemPrompt += "\n\nWork History:";
+    userContext.workHistory.forEach((job, index) => {
+      systemPrompt += `\n${index + 1}. ${job.position} at ${job.company}`;
+      if (job.description) {
+        systemPrompt += ` - ${job.description}`;
+      }
+    });
+  } else {
+    systemPrompt += "\n\nWork History: None provided";
+  }
+
+  // Add goals information
+  if (userContext.goals && userContext.goals.length > 0) {
+    systemPrompt += "\n\nActive Career Goals:";
+    userContext.goals.forEach((goal, index) => {
+      const status = goal.completed ? "Completed" : `In Progress (${goal.progress}%)`;
+      systemPrompt += `\n${index + 1}. ${goal.title} - ${status}`;
+      if (goal.description) {
+        systemPrompt += ` - ${goal.description}`;
+      }
+    });
+  } else {
+    systemPrompt += "\n\nActive Career Goals: None";
+  }
+
+  // Add interview processes information
+  if (userContext.interviewProcesses && userContext.interviewProcesses.length > 0) {
+    systemPrompt += "\n\nOngoing Interview Processes:";
+    userContext.interviewProcesses.forEach((process, index) => {
+      systemPrompt += `\n${index + 1}. ${process.position} at ${process.companyName} - Status: ${process.status}`;
+    });
+  } else {
+    systemPrompt += "\n\nOngoing Interview Processes: None";
+  }
+
+  try {
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Generate today's personalized career recommendations based on my profile" }
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      console.error("Empty response from OpenAI");
+      return getDefaultRecommendations();
+    }
+
+    try {
+      const parsedResponse = JSON.parse(content);
+      if (Array.isArray(parsedResponse.recommendations)) {
+        return parsedResponse.recommendations;
+      } else if (Array.isArray(parsedResponse)) {
+        return parsedResponse;
+      } else {
+        console.error("Unexpected response format from OpenAI:", parsedResponse);
+        return getDefaultRecommendations();
+      }
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError, "Original response:", content);
+      return getDefaultRecommendations();
+    }
+  } catch (error) {
+    console.error("Error generating AI recommendations:", error);
+    return getDefaultRecommendations();
+  }
+}
+
+// Fallback recommendations if AI generation fails
+function getDefaultRecommendations(): string[] {
+  return [
+    "Update your resume with recent accomplishments",
+    "Research industry trends in your field",
+    "Connect with a professional in your target role",
+    "Practice answering behavioral interview questions",
+    "Set a specific, measurable career goal for this month",
+    "Update your LinkedIn profile with recent projects",
+    "Add your latest skills to your professional profiles"
+  ];
 }

@@ -73,6 +73,9 @@ export interface IStorage {
   // Session store
   sessionStore: session.Store;
   
+  // User management for scheduled tasks
+  getAllActiveUsers(): Promise<User[]>;
+  
   // Career path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
@@ -652,6 +655,14 @@ export class MemStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
+  }
+  
+  async getAllActiveUsers(): Promise<User[]> {
+    // Return all users, filtering out any that might be marked as inactive
+    return Array.from(this.users.values()).filter(user => 
+      !user.subscriptionStatus || 
+      (user.subscriptionStatus !== 'cancelled' && user.subscriptionStatus !== 'inactive')
+    );
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -2428,31 +2439,7 @@ export class MemStorage implements IStorage {
   }
 
   async generateDailyRecommendations(userId: number): Promise<Recommendation[]> {
-    // Get user's active goals
-    const goals = await this.getGoals(userId);
-    const activeGoals = goals.filter(goal => !goal.completed);
-    
-    // Get user's interview processes
-    const interviewProcesses = await this.getInterviewProcesses(userId);
-    const activeProcesses = interviewProcesses.filter(process => process.status === "in_progress");
-    
-    // Get upcoming stages
-    const upcomingStages: InterviewStage[] = [];
-    for (const process of activeProcesses) {
-      const stages = await this.getInterviewStages(process.id);
-      const upcoming = stages.filter(stage => stage.completedDate === null && stage.scheduledDate !== null);
-      upcomingStages.push(...upcoming);
-    }
-    
-    // Get pending followup actions
-    const pendingActions: FollowupAction[] = [];
-    for (const process of activeProcesses) {
-      const actions = await this.getFollowupActions(process.id);
-      const pending = actions.filter(action => !action.completed);
-      pendingActions.push(...pending);
-    }
-    
-    // The date for today's recommendations
+    // Get the date for today's recommendations
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -2469,131 +2456,260 @@ export class MemStorage implements IStorage {
       return todaysRecommendations;
     }
     
-    // Generate new recommendations based on user's data
-    const newRecommendations: InsertRecommendation[] = [];
-    
-    // 1. Goal-based recommendations
-    if (activeGoals.length > 0) {
-      // For each goal, create a recommendation
-      activeGoals.forEach(goal => {
-        if (goal.status === "not_started") {
-          newRecommendations.push({
-            userId,
-            text: `Start working on your goal: "${goal.title}"`,
-            type: "goal",
-            relatedEntityId: goal.id,
-            relatedEntityType: "goal"
-          });
-        } else if (goal.progress < 50) {
-          newRecommendations.push({
-            userId,
-            text: `Continue progress on your goal: "${goal.title}"`,
-            type: "goal",
-            relatedEntityId: goal.id,
-            relatedEntityType: "goal"
-          });
-        }
-      });
-    } else {
-      // If no active goals, recommend creating one
-      newRecommendations.push({
-        userId,
-        text: "Create a new career goal to track your progress",
-        type: "system",
-        relatedEntityType: "system"
-      });
+    // First, gather all user context data for AI recommendations
+    // Get user data
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error(`User not found with ID ${userId}`);
     }
     
-    // 2. Interview process recommendations
-    if (activeProcesses.length > 0) {
-      // For each process, create recommendations
-      activeProcesses.forEach(process => {
-        newRecommendations.push({
-          userId,
-          text: `Update status for your interview with ${process.companyName}`,
-          type: "interview",
-          relatedEntityId: process.id,
-          relatedEntityType: "interview_process"
-        });
-      });
+    // Get user's active goals
+    const goals = await this.getGoals(userId);
+    const activeGoals = goals.filter(goal => !goal.completed);
+    
+    // Get user's interview processes
+    const interviewProcesses = await this.getInterviewProcesses(userId);
+    const activeProcesses = interviewProcesses.filter(process => process.status === "in_progress");
+    
+    // Get user's work history
+    const workHistory = await this.getWorkHistory(userId);
+    
+    // Get upcoming stages
+    const upcomingStages: InterviewStage[] = [];
+    for (const process of activeProcesses) {
+      const stages = await this.getInterviewStages(process.id);
+      const upcoming = stages.filter(stage => stage.completedDate === null && stage.scheduledDate !== null);
+      upcomingStages.push(...upcoming);
     }
     
-    // 3. Upcoming interview recommendations
-    if (upcomingStages.length > 0) {
-      upcomingStages.forEach(stage => {
-        if (stage.scheduledDate) {
-          const stageDate = new Date(stage.scheduledDate);
-          const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (daysDiff <= 7) { // If within a week
-            const process = activeProcesses.find(p => p.id === stage.processId);
-            if (process) {
-              newRecommendations.push({
-                userId,
-                text: `Prepare for your upcoming ${stage.type} with ${process.companyName} (${daysDiff} days away)`,
-                type: "interview",
-                relatedEntityId: stage.id,
-                relatedEntityType: "interview_stage"
-              });
-            }
-          }
-        }
-      });
+    // Get pending followup actions
+    const pendingActions: FollowupAction[] = [];
+    for (const process of activeProcesses) {
+      const actions = await this.getFollowupActions(process.id);
+      const pending = actions.filter(action => !action.completed);
+      pendingActions.push(...pending);
     }
-    
-    // 4. Pending followup recommendations
-    if (pendingActions.length > 0) {
-      pendingActions.forEach(action => {
-        if (action.dueDate) {
-          const dueDate = new Date(action.dueDate);
-          const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (daysDiff <= 3) { // If due within 3 days
-            newRecommendations.push({
-              userId,
-              text: `Complete action: "${action.description}" (due ${daysDiff <= 0 ? 'today' : `in ${daysDiff} days`})`,
-              type: "followup",
-              relatedEntityId: action.id,
-              relatedEntityType: "followup_action"
-            });
-          }
-        }
-      });
-    }
-    
-    // 5. System recommendations
-    // If less than 5 recommendations, add generic career development recommendations
-    if (newRecommendations.length < 5) {
-      const genericRecommendations = [
-        "Update your work history with recent experiences",
-        "Update your resume with your latest skills and achievements",
-        "Practice a new interview question today",
-        "Connect with the AI Career Coach for personalized advice",
-        "Review and update the skills section of your profile",
-        "Add a recent achievement to showcase your progress"
-      ];
+
+    try {
+      // Import the OpenAI recommendation generator
+      const { generateDailyAIRecommendations } = await import('./utils/openai');
       
-      // Add random generic recommendations until we have at least 5
-      while (newRecommendations.length < 5 && genericRecommendations.length > 0) {
-        const randomIndex = Math.floor(Math.random() * genericRecommendations.length);
-        const recommendation = genericRecommendations.splice(randomIndex, 1)[0];
-        
+      // Generate AI-powered recommendations
+      const aiRecommendations = await generateDailyAIRecommendations({
+        userId,
+        userName: user.name,
+        goals: activeGoals,
+        interviewProcesses: activeProcesses,
+        workHistory
+      });
+      
+      // Create recommendation objects from AI suggestions
+      const newRecommendations: InsertRecommendation[] = [];
+
+      // Add AI recommendations
+      aiRecommendations.forEach(recommendation => {
         newRecommendations.push({
           userId,
           text: recommendation,
+          type: "system", // Mark AI recommendations as system-generated
+          relatedEntityType: "system"
+        });
+      });
+      
+      // Add critical goal-based recommendations
+      if (activeGoals.length > 0) {
+        activeGoals.forEach(goal => {
+          if (goal.status === "not_started") {
+            newRecommendations.push({
+              userId,
+              text: `Start working on your goal: "${goal.title}"`,
+              type: "goal",
+              relatedEntityId: goal.id,
+              relatedEntityType: "goal"
+            });
+          }
+        });
+      }
+      
+      // Add critical upcoming interview recommendations
+      if (upcomingStages.length > 0) {
+        upcomingStages.forEach(stage => {
+          if (stage.scheduledDate) {
+            const stageDate = new Date(stage.scheduledDate);
+            const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff <= 3) { // If very soon (3 days)
+              const process = activeProcesses.find(p => p.id === stage.processId);
+              if (process) {
+                newRecommendations.push({
+                  userId,
+                  text: `Prepare for your upcoming ${stage.type} with ${process.companyName} (${daysDiff} days away)`,
+                  type: "interview",
+                  relatedEntityId: stage.id,
+                  relatedEntityType: "interview_stage"
+                });
+              }
+            }
+          }
+        });
+      }
+      
+      // Add critical pending followup recommendations
+      if (pendingActions.length > 0) {
+        pendingActions.forEach(action => {
+          if (action.dueDate) {
+            const dueDate = new Date(action.dueDate);
+            const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff <= 1) { // If due today or tomorrow
+              newRecommendations.push({
+                userId,
+                text: `Complete action: "${action.description}" (due ${daysDiff <= 0 ? 'today' : 'tomorrow'})`,
+                type: "followup",
+                relatedEntityId: action.id,
+                relatedEntityType: "followup_action"
+              });
+            }
+          }
+        });
+      }
+      
+      // Create all the recommendations in the database
+      const createdRecommendations: Recommendation[] = [];
+      for (const rec of newRecommendations) {
+        createdRecommendations.push(await this.createRecommendation(userId, rec));
+      }
+      
+      return createdRecommendations;
+    } catch (error) {
+      console.error("Error generating AI recommendations:", error);
+      
+      // Fallback to previous recommendation generation logic if AI fails
+      const newRecommendations: InsertRecommendation[] = [];
+      
+      // 1. Goal-based recommendations
+      if (activeGoals.length > 0) {
+        // For each goal, create a recommendation
+        activeGoals.forEach(goal => {
+          if (goal.status === "not_started") {
+            newRecommendations.push({
+              userId,
+              text: `Start working on your goal: "${goal.title}"`,
+              type: "goal",
+              relatedEntityId: goal.id,
+              relatedEntityType: "goal"
+            });
+          } else if (goal.progress < 50) {
+            newRecommendations.push({
+              userId,
+              text: `Continue progress on your goal: "${goal.title}"`,
+              type: "goal",
+              relatedEntityId: goal.id,
+              relatedEntityType: "goal"
+            });
+          }
+        });
+      } else {
+        // If no active goals, recommend creating one
+        newRecommendations.push({
+          userId,
+          text: "Create a new career goal to track your progress",
           type: "system",
           relatedEntityType: "system"
         });
       }
+      
+      // 2. Interview process recommendations
+      if (activeProcesses.length > 0) {
+        // For each process, create recommendations
+        activeProcesses.forEach(process => {
+          newRecommendations.push({
+            userId,
+            text: `Update status for your interview with ${process.companyName}`,
+            type: "interview",
+            relatedEntityId: process.id,
+            relatedEntityType: "interview_process"
+          });
+        });
+      }
+      
+      // 3. Upcoming interview recommendations
+      if (upcomingStages.length > 0) {
+        upcomingStages.forEach(stage => {
+          if (stage.scheduledDate) {
+            const stageDate = new Date(stage.scheduledDate);
+            const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff <= 7) { // If within a week
+              const process = activeProcesses.find(p => p.id === stage.processId);
+              if (process) {
+                newRecommendations.push({
+                  userId,
+                  text: `Prepare for your upcoming ${stage.type} with ${process.companyName} (${daysDiff} days away)`,
+                  type: "interview",
+                  relatedEntityId: stage.id,
+                  relatedEntityType: "interview_stage"
+                });
+              }
+            }
+          }
+        });
+      }
+      
+      // 4. Pending followup recommendations
+      if (pendingActions.length > 0) {
+        pendingActions.forEach(action => {
+          if (action.dueDate) {
+            const dueDate = new Date(action.dueDate);
+            const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff <= 3) { // If due within 3 days
+              newRecommendations.push({
+                userId,
+                text: `Complete action: "${action.description}" (due ${daysDiff <= 0 ? 'today' : `in ${daysDiff} days`})`,
+                type: "followup",
+                relatedEntityId: action.id,
+                relatedEntityType: "followup_action"
+              });
+            }
+          }
+        });
+      }
+      
+      // 5. System recommendations
+      // If less than 5 recommendations, add generic career development recommendations
+      if (newRecommendations.length < 5) {
+        const genericRecommendations = [
+          "Update your work history with recent experiences",
+          "Update your resume with your latest skills and achievements",
+          "Practice a new interview question today",
+          "Connect with the AI Career Coach for personalized advice",
+          "Review and update the skills section of your profile",
+          "Add a recent achievement to showcase your progress"
+        ];
+        
+        // Add random generic recommendations until we have at least 5
+        while (newRecommendations.length < 5 && genericRecommendations.length > 0) {
+          const randomIndex = Math.floor(Math.random() * genericRecommendations.length);
+          const recommendation = genericRecommendations.splice(randomIndex, 1)[0];
+          
+          newRecommendations.push({
+            userId,
+            text: recommendation,
+            type: "system",
+            relatedEntityType: "system"
+          });
+        }
+      }
+      
+      // Create all the recommendations in the database
+      const createdRecommendations: Recommendation[] = [];
+      for (const rec of newRecommendations) {
+        createdRecommendations.push(await this.createRecommendation(userId, rec));
+      }
+      
+      return createdRecommendations;
     }
-    
-    // Create all the recommendations in the database
-    const createdRecommendations: Recommendation[] = [];
-    for (const rec of newRecommendations) {
-      createdRecommendations.push(await this.createRecommendation(userId, rec));
-    }
-    
-    return createdRecommendations;
   }
 
   async clearTodaysRecommendations(userId: number): Promise<void> {

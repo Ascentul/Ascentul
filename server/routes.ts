@@ -3479,6 +3479,65 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Set up automated refresh of recommendations at midnight
+  const setupRecommendationsScheduler = async () => {
+    // Import the scheduled refresh time configuration
+    const { RECOMMENDATIONS_REFRESH_TIME } = await import('./utils/openai');
+    
+    console.log(`Setting up daily recommendations refresh at ${RECOMMENDATIONS_REFRESH_TIME.hour}:${RECOMMENDATIONS_REFRESH_TIME.minute}:${RECOMMENDATIONS_REFRESH_TIME.second}`);
+    
+    // Function to schedule the next refresh
+    const scheduleNextRefresh = () => {
+      const now = new Date();
+      const nextRefresh = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + (now.getHours() >= RECOMMENDATIONS_REFRESH_TIME.hour ? 1 : 0),
+        RECOMMENDATIONS_REFRESH_TIME.hour,
+        RECOMMENDATIONS_REFRESH_TIME.minute,
+        RECOMMENDATIONS_REFRESH_TIME.second
+      );
+      
+      // Calculate milliseconds until next refresh
+      const msUntilRefresh = nextRefresh.getTime() - now.getTime();
+      
+      console.log(`Next recommendations refresh scheduled for ${nextRefresh.toLocaleString()}`);
+      
+      // Schedule the refresh
+      setTimeout(async () => {
+        try {
+          console.log(`Running scheduled recommendations refresh at ${new Date().toLocaleString()}`);
+          
+          // Get all active users
+          const users = await storage.getAllActiveUsers();
+          
+          for (const user of users) {
+            try {
+              // Clear and regenerate recommendations for each user
+              await storage.clearTodaysRecommendations(user.id);
+              await storage.generateDailyRecommendations(user.id);
+              console.log(`Successfully refreshed recommendations for user ${user.id}`);
+            } catch (userError) {
+              console.error(`Error refreshing recommendations for user ${user.id}:`, userError);
+              // Continue with other users even if one fails
+            }
+          }
+        } catch (error) {
+          console.error("Error during scheduled recommendations refresh:", error);
+        } finally {
+          // Schedule the next refresh regardless of any errors
+          scheduleNextRefresh();
+        }
+      }, msUntilRefresh);
+    };
+    
+    // Start the scheduling cycle
+    scheduleNextRefresh();
+  };
+  
+  // Run the scheduler setup
+  await setupRecommendationsScheduler();
+  
   apiRouter.post("/recommendations/:id/complete", requireAuth, async (req: Request, res: Response) => {
     try {
       const user = await getCurrentUser(req);
