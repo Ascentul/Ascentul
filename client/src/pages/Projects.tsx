@@ -27,7 +27,7 @@ export default function Projects() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const { data: projects = [], isLoading } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
+    queryKey: ['projects'],
     queryFn: async () => {
       const response = await fetch('/api/projects');
       if (!response.ok) throw new Error('Failed to fetch projects');
