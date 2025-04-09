@@ -31,6 +31,9 @@ export default function Projects() {
     queryFn: async () => {
       const response = await fetch('/api/projects');
       if (!response.ok) throw new Error('Failed to fetch projects');
+      const data = await response.json();
+      return data;
+      if (!response.ok) throw new Error('Failed to fetch projects');
       return response.json();
     },
   });
@@ -205,10 +208,12 @@ export default function Projects() {
                 );
                 
                 if (!response.ok) throw new Error('Failed to save project');
+                const result = await response.json();
                 
                 await queryClient.invalidateQueries({ queryKey: ['projects'] });
                 await refetch();
                 setIsDialogOpen(false);
+                return result;
                 toast({
                   title: `Project ${editingProject ? 'Updated' : 'Added'}`,
                   description: `Your project has been ${editingProject ? 'updated' : 'added'} successfully`,
