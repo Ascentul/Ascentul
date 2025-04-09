@@ -52,4 +52,4 @@ args = "npm run dev"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd server && npm run dev"
+args = "cd server && NODE_ENV=development npm run dev"
