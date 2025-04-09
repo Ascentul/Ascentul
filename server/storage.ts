@@ -76,13 +76,6 @@ export interface IStorage {
   // User management for scheduled tasks
   getAllActiveUsers(): Promise<User[]>;
   
-  // Admin Dashboard Metrics
-  getTotalUsersCount(): Promise<number>;
-  getActiveUsersCount(since: Date): Promise<number>;
-  getPremiumUsersCount(): Promise<number>;
-  getNewUsersCount(since: Date): Promise<number>;
-  getUnreadContactMessagesCount(): Promise<number>;
-  
   // Career path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
@@ -162,7 +155,6 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   getUserByPendingEmailToken(token: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getAllUsers(): Promise<User[]>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   updateUserStripeInfo(userId: number, stripeInfo: {
     stripeCustomerId?: string;
@@ -661,10 +653,6 @@ export class MemStorage implements IStorage {
   }
 
   // User operations
-  async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
-  }
-  
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -675,54 +663,6 @@ export class MemStorage implements IStorage {
       !user.subscriptionStatus || 
       (user.subscriptionStatus !== 'cancelled' && user.subscriptionStatus !== 'inactive')
     );
-  }
-  
-  // Admin Dashboard Metrics
-  async getTotalUsersCount(): Promise<number> {
-    return this.users.size;
-  }
-  
-  async getActiveUsersCount(since: Date): Promise<number> {
-    // Count users who have been active since the given date
-    // For this mock implementation, we'll assume a user is active
-    // if they have any XP history entries after the given date
-    const xpHistorySince = Array.from(this.xpHistory.values()).filter(
-      entry => entry.earnedAt >= since
-    );
-    
-    // Count unique user IDs
-    const activeUserIds = new Set(xpHistorySince.map(entry => entry.userId));
-    return activeUserIds.size;
-  }
-  
-  async getPremiumUsersCount(): Promise<number> {
-    return Array.from(this.users.values()).filter(
-      user => user.subscriptionPlan === 'premium'
-    ).length;
-  }
-  
-  async getNewUsersCount(since: Date): Promise<number> {
-    return Array.from(this.users.values()).filter(
-      user => user.createdAt >= since
-    ).length;
-  }
-  
-  async getUnreadContactMessagesCount(): Promise<number> {
-    return Array.from(this.contactMessages.values()).filter(
-      message => !message.read && !message.archived
-    ).length;
-  }
-  
-  // XP history methods for admin
-  async getXpHistory(userId: number): Promise<XpHistory[]> {
-    return Array.from(this.xpHistory.values())
-      .filter(entry => entry.userId === userId)
-      .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
-  }
-  
-  async getAllXpHistory(): Promise<XpHistory[]> {
-    return Array.from(this.xpHistory.values())
-      .sort((a, b) => new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime());
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -817,10 +757,6 @@ export class MemStorage implements IStorage {
   // Goal operations
   async getGoals(userId: number): Promise<Goal[]> {
     return Array.from(this.goals.values()).filter(goal => goal.userId === userId);
-  }
-  
-  async getAllGoals(): Promise<Goal[]> {
-    return Array.from(this.goals.values());
   }
 
   async getGoal(id: number): Promise<Goal | undefined> {
@@ -927,10 +863,6 @@ export class MemStorage implements IStorage {
       .filter(item => item.userId === userId)
       .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }
-  
-  async getAllWorkHistory(): Promise<WorkHistory[]> {
-    return Array.from(this.workHistory.values());
-  }
 
   async getWorkHistoryItem(id: number): Promise<WorkHistory | undefined> {
     return this.workHistory.get(id);
@@ -997,10 +929,6 @@ export class MemStorage implements IStorage {
       .filter(resume => resume.userId === userId)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
-  
-  async getAllResumes(): Promise<Resume[]> {
-    return Array.from(this.resumes.values());
-  }
 
   async getResume(id: number): Promise<Resume | undefined> {
     return this.resumes.get(id);
@@ -1053,10 +981,6 @@ export class MemStorage implements IStorage {
     return Array.from(this.coverLetters.values())
       .filter(letter => letter.userId === userId)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }
-  
-  async getAllCoverLetters(): Promise<CoverLetter[]> {
-    return Array.from(this.coverLetters.values());
   }
 
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
@@ -1972,10 +1896,6 @@ export class MemStorage implements IStorage {
       .filter(process => process.userId === userId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
-  
-  async getAllInterviewProcesses(): Promise<InterviewProcess[]> {
-    return Array.from(this.interviewProcesses.values());
-  }
 
   async getInterviewProcess(id: number): Promise<InterviewProcess | undefined> {
     return this.interviewProcesses.get(id);
@@ -2841,12 +2761,6 @@ export class MemStorage implements IStorage {
   
   async deleteCareerPath(id: number): Promise<boolean> {
     return this.careerPaths.delete(id);
-  }
-  
-  async checkDatabaseConnection(): Promise<boolean> {
-    // In a real implementation with a real database, this would ping the database
-    // Since we're using in-memory storage, it's always "connected"
-    return true;
   }
 }
 

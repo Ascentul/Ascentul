@@ -340,26 +340,6 @@ function App() {
             <AdminDashboard />
           </AdminRoute>
         </Route>
-        <Route path="/admin/users">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/analytics">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/settings">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/support">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
         <Route path="/admin">
           <AdminRoute>
             <AdminDashboard />

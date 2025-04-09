@@ -32,9 +32,7 @@ export default function AdminLoginPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // For admin login, we need to use username instead of email
-      // So we'll pass the username value as both username and password params
-      // The server will handle this special case for admin login
+      // Use the login function from useUser hook with a special 'admin' indicator
       const user = await login(loginUsername, loginPassword, 'admin');
       
       // Check if the logged-in user is an admin - this is a fallback
@@ -94,7 +92,7 @@ export default function AdminLoginPage() {
             <CardHeader>
               <CardTitle>Admin Sign In</CardTitle>
               <CardDescription>
-                Enter your admin credentials (use username: "admin", password: "admin123")
+                Enter your admin credentials
               </CardDescription>
             </CardHeader>
             <CardContent>

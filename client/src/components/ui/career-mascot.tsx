@@ -17,7 +17,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
     md: 96,
     lg: 128
   };
-
+  
   const pixelSize = sizeMap[size];
 
   // Get the appropriate compass mascot image based on the action
@@ -28,16 +28,16 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
             {/* Outer circle */}
             <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
-
+            
             {/* Cardinal points */}
             <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
-
+            
             {/* Center pin */}
             <circle cx="50" cy="50" r="3" fill="#0C29AB" />
-
+            
             {/* Spinning needle */}
             <motion.path
               d="M50 30 L50 70"
@@ -53,7 +53,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               }}
               style={{ transformOrigin: "50px 50px" }}
             />
-
+            
             {/* Needle head */}
             <motion.path
               d="M40 40 L50 25 L60 40 Z"
@@ -73,16 +73,16 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
             {/* Outer circle */}
             <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
-
+            
             {/* Cardinal points */}
             <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
-
+            
             {/* Center pin */}
             <circle cx="50" cy="50" r="3" fill="#0C29AB" />
-
+            
             {/* Oscillating needle */}
             <motion.path
               d="M50 30 L50 70"
@@ -97,11 +97,8 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
                 ease: "easeInOut" 
               }}
               style={{ transformOrigin: "50px 50px" }}
-              onAnimationComplete={() => {
-                // Add timeout handling if needed
-              }}
             />
-
+            
             {/* Needle head */}
             <motion.path
               d="M40 40 L50 25 L60 40 Z"
@@ -113,11 +110,8 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
                 ease: "easeInOut" 
               }}
               style={{ transformOrigin: "50px 50px" }}
-              onAnimationComplete={() => {
-                // Add timeout handling if needed
-              }}
             />
-
+            
             {/* Thinking bubble */}
             <motion.path
               d="M75 25 Q 85 20 80 15"
@@ -144,16 +138,16 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
             {/* Outer circle */}
             <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
-
+            
             {/* Cardinal points */}
             <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
-
+            
             {/* Center pin */}
             <circle cx="50" cy="50" r="3" fill="#0C29AB" />
-
+            
             {/* Needle pointing north */}
             <motion.path
               d="M50 30 L50 70"
@@ -170,7 +164,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               }}
               style={{ transformOrigin: "50px 50px" }}
             />
-
+            
             {/* Needle head */}
             <motion.path
               d="M40 40 L50 25 L60 40 Z"
@@ -184,7 +178,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               }}
               style={{ transformOrigin: "50px 50px" }}
             />
-
+            
             {/* Success sparkle */}
             <motion.path
               d="M65 30 L 75 20 L 70 30 L 80 25"
@@ -205,16 +199,16 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
           <svg width={pixelSize} height={pixelSize} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
             {/* Outer circle */}
             <circle cx="50" cy="50" r="45" stroke="#0C29AB" strokeWidth="6" fill="none" />
-
+            
             {/* Cardinal points */}
             <path d="M50 5 L50 15" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M50 85 L50 95" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M5 50 L15 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
             <path d="M85 50 L95 50" stroke="#0C29AB" strokeWidth="6" strokeLinecap="round" />
-
+            
             {/* Center pin */}
             <circle cx="50" cy="50" r="3" fill="#0C29AB" />
-
+            
             {/* Fixed needle pointing north */}
             <path
               d="M50 30 L50 70"
@@ -223,13 +217,13 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               strokeLinecap="round"
               fill="none"
             />
-
+            
             {/* Needle head */}
             <path
               d="M40 40 L50 25 L60 40 Z"
               fill="#0C29AB"
             />
-
+            
             {/* Achievement medal */}
             <motion.g
               initial={{ scale: 0 }}
@@ -244,7 +238,7 @@ export function CareerMascot({ action, className = '', size = 'md' }: CareerMasc
               <circle cx="75" cy="25" r="12" fill="#FFD700" stroke="#0C29AB" strokeWidth="2" />
               <path d="M70 25 L 80 25 M 75 20 L 75 30" stroke="#0C29AB" strokeWidth="2" strokeLinecap="round" />
             </motion.g>
-
+            
             {/* Sparkles around compass */}
             <motion.path
               d="M20 20 L 25 25 M 80 80 L 75 75 M 20 80 L 25 75"

@@ -30,28 +30,28 @@ export default function AICoach() {
     }
   ]);
   const [isSending, setIsSending] = useState(false);
-
+  
   // Fetch user data for context
   const { data: workHistory = [] } = useQuery<any[]>({ 
     queryKey: ['/api/work-history'],
     enabled: !!user
   });
-
+  
   const { data: goals = [] } = useQuery<any[]>({ 
     queryKey: ['/api/goals'],
     enabled: !!user
   });
-
+  
   const { data: interviewProcesses = [] } = useQuery<any[]>({ 
     queryKey: ['/api/interview/processes'],
     enabled: !!user
   });
-
+  
   const { data: personalAchievements = [] } = useQuery<any[]>({
     queryKey: ['/api/personal-achievements'],
     enabled: !!user
   });
-
+  
   // Generate AI response mutation
   const generateResponseMutation = useMutation({
     mutationFn: async (query: string) => {
@@ -60,36 +60,23 @@ export default function AICoach() {
         role: message.role,
         content: message.content
       }));
-
+      
       // Add the new user message
       formattedMessages.push({
         role: 'user',
         content: query
       });
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
-
-      try {
-        const res = await apiRequest("POST", "/api/ai-coach/generate-response", {
-          query,
-          conversationHistory: formattedMessages
-        }, {signal: controller.signal});
-
-        clearTimeout(timeoutId);
-
-        if (!res.ok) {
-          throw new Error('Failed to generate AI response');
-        }
-
-        return await res.json();
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-          throw new Error('AI Coach request timed out');
-        }
-        throw error;
+      
+      const res = await apiRequest("POST", "/api/ai-coach/generate-response", {
+        query,
+        conversationHistory: formattedMessages
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to generate AI response');
       }
+      
+      return await res.json();
     },
     onSuccess: (data) => {
       // Add the AI response to the messages
@@ -101,7 +88,7 @@ export default function AICoach() {
           timestamp: new Date() 
         }
       ]);
-
+      
       setIsSending(false);
     },
     onError: (error: any) => {
@@ -111,7 +98,7 @@ export default function AICoach() {
         description: error.message || 'Failed to generate AI response',
         variant: 'destructive'
       });
-
+      
       // Add a fallback error message
       setMessages(prev => [
         ...prev,
@@ -123,41 +110,41 @@ export default function AICoach() {
       ]);
     }
   });
-
+  
   // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
-
+  
   const handleSendMessage = () => {
     if (!newMessage.trim() || isSending) return;
-
+    
     // Add the user's message to the chat
     const userMessage = {
       role: 'user' as const,
       content: newMessage.trim(),
       timestamp: new Date()
     };
-
+    
     setMessages(prev => [...prev, userMessage]);
     setIsSending(true);
-
+    
     // Clear the input
     setNewMessage('');
-
+    
     // Generate AI response
     generateResponseMutation.mutate(userMessage.content);
   };
-
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
-
+  
   const handleReset = () => {
     // Reset the conversation
     setMessages([{ 
@@ -165,13 +152,13 @@ export default function AICoach() {
       content: 'Hello! I\'m your AI Career Coach. I can help you with career advice, resume feedback, interview preparation, and more. How can I assist you today?',
       timestamp: new Date()
     }]);
-
+    
     toast({
       title: 'Conversation Reset',
       description: 'Your conversation has been reset'
     });
   };
-
+  
   return (
     <div className="container mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
@@ -189,7 +176,7 @@ export default function AICoach() {
           Reset Conversation
         </Button>
       </div>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* User Context Card */}
         <div className="space-y-5">
@@ -235,7 +222,7 @@ export default function AICoach() {
               </div>
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Topics I Can Help With</CardTitle>
@@ -270,7 +257,7 @@ export default function AICoach() {
             </CardContent>
           </Card>
         </div>
-
+        
         {/* Chat Area */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
@@ -290,7 +277,7 @@ export default function AICoach() {
                     />
                   ))}
                   <div ref={messagesEndRef} />
-
+                  
                   {isSending && (
                     <div className="flex items-center gap-2 p-3 text-neutral-500 italic">
                       <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-primary"></div>
