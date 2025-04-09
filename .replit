@@ -53,7 +53,3 @@ mode = "parallel"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd server && NODE_ENV=development npm run dev"
