@@ -292,12 +292,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       const { email, password, loginType } = req.body;
       
+      console.log('Login attempt:', { email, loginType });
+      
       if (!email || !password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
       
-      // Find user by email
-      let user = await storage.getUserByEmail(email);
+      // Find user by email or username
+      let user = await storage.getUserByEmail(email) || await storage.getUserByUsername(email);
+      
+      console.log('User found:', user ? { id: user.id, userType: user.userType } : 'null');
       
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
