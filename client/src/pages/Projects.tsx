@@ -195,7 +195,7 @@ export default function Projects() {
             <DialogTitle>{editingProject ? 'Edit Project' : 'Add Project'}</DialogTitle>
           </DialogHeader>
           <ProjectForm 
-            project={editingProject} 
+            initialData={editingProject || undefined}
             onSubmit={async (data) => {
               try {
                 const response = await fetch(
@@ -207,13 +207,16 @@ export default function Projects() {
                   }
                 );
                 
-                if (!response.ok) throw new Error('Failed to save project');
-                const result = await response.json();
+                if (!response.ok) {
+                  const error = await response.json();
+                  throw new Error(error.error || 'Failed to save project');
+                }
                 
+                const result = await response.json();
                 await queryClient.invalidateQueries({ queryKey: ['projects'] });
                 await refetch();
                 setIsDialogOpen(false);
-                return result;
+                
                 toast({
                   title: `Project ${editingProject ? 'Updated' : 'Added'}`,
                   description: `Your project has been ${editingProject ? 'updated' : 'added'} successfully`,
