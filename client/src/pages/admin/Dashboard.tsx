@@ -19,29 +19,29 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -72,6 +72,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Switch,
 } from 'lucide-react';
 // Import the components directly
 // This avoid the need for separate imports
@@ -89,7 +90,7 @@ type AddStaffUserFormValues = z.infer<typeof addStaffUserSchema>;
 function AddStaffUserDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  
+
   const form = useForm<AddStaffUserFormValues>({
     resolver: zodResolver(addStaffUserSchema),
     defaultValues: {
@@ -99,7 +100,7 @@ function AddStaffUserDialog() {
       password: "",
     },
   });
-  
+
   const createStaffUserMutation = useMutation({
     mutationFn: async (values: AddStaffUserFormValues) => {
       const res = await apiRequest('POST', '/admin/create-staff', values);
@@ -125,11 +126,11 @@ function AddStaffUserDialog() {
       });
     },
   });
-  
+
   function onSubmit(values: AddStaffUserFormValues) {
     createStaffUserMutation.mutate(values);
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -203,15 +204,15 @@ function AddStaffUserDialog() {
               )}
             />
             <DialogFooter className="mt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={createStaffUserMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
                 disabled={createStaffUserMutation.isPending}
               >
@@ -312,52 +313,52 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="space-y-1">
-          <SidebarItem 
+          <SidebarItem
             icon={<BarChart className="h-5 w-5" />}
-            label="Overview" 
-            active={activeTab === 'overview'} 
+            label="Overview"
+            active={activeTab === 'overview'}
             onClick={() => setActiveTab('overview')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<Users className="h-5 w-5" />}
-            label="User Management" 
-            active={activeTab === 'users'} 
+            label="User Management"
+            active={activeTab === 'users'}
             onClick={() => setActiveTab('users')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<Building className="h-5 w-5" />}
-            label="Universities" 
-            active={activeTab === 'universities'} 
+            label="Universities"
+            active={activeTab === 'universities'}
             onClick={() => setActiveTab('universities')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<Activity className="h-5 w-5" />}
-            label="Analytics" 
-            active={activeTab === 'analytics'} 
+            label="Analytics"
+            active={activeTab === 'analytics'}
             onClick={() => setActiveTab('analytics')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<BookOpen className="h-5 w-5" />}
-            label="Content" 
-            active={activeTab === 'content'} 
+            label="Content"
+            active={activeTab === 'content'}
             onClick={() => setActiveTab('content')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<CreditCard className="h-5 w-5" />}
-            label="Billing" 
-            active={activeTab === 'billing'} 
+            label="Billing"
+            active={activeTab === 'billing'}
             onClick={() => setActiveTab('billing')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<Settings className="h-5 w-5" />}
-            label="Settings" 
-            active={activeTab === 'settings'} 
+            label="Settings"
+            active={activeTab === 'settings'}
             onClick={() => setActiveTab('settings')}
           />
-          <SidebarItem 
+          <SidebarItem
             icon={<HelpCircle className="h-5 w-5" />}
-            label="Help" 
-            active={activeTab === 'help'} 
+            label="Help"
+            active={activeTab === 'help'}
             onClick={() => setActiveTab('help')}
           />
         </nav>
@@ -376,7 +377,7 @@ export default function AdminDashboard() {
         {/* Mobile header */}
         <header className="flex md:hidden items-center border-b p-4">
           <h1 className="text-lg font-bold">Admin Dashboard</h1>
-          
+
           {/* Mobile dropdown menu would go here */}
         </header>
 
@@ -519,9 +520,9 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-medium">287 students</p>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-medium mr-3">
@@ -534,9 +535,9 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-medium">245 students</p>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-medium mr-3">
@@ -549,9 +550,9 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-medium">214 students</p>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-medium mr-3">
@@ -564,7 +565,7 @@ export default function AdminDashboard() {
                           </div>
                           <p className="font-medium">198 students</p>
                         </div>
-                        
+
                         <div className="text-center mt-2">
                           <Button variant="link" size="sm">View all universities</Button>
                         </div>
@@ -595,9 +596,9 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground mt-1">2 minutes ago</p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex">
                           <div className="mr-4">
                             <div className="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
@@ -610,9 +611,9 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground mt-1">15 minutes ago</p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div className="flex">
                           <div className="mr-4">
                             <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center">
@@ -625,7 +626,7 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
                           </div>
                         </div>
-                        
+
                         <div className="text-center">
                           <Button variant="link" size="sm">View all activity</Button>
                         </div>
@@ -649,7 +650,7 @@ export default function AdminDashboard() {
                           </div>
                           <Progress value={87} className="h-2" />
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Interview Prep</span>
@@ -657,7 +658,7 @@ export default function AdminDashboard() {
                           </div>
                           <Progress value={76} className="h-2" />
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">AI Coach</span>
@@ -665,7 +666,7 @@ export default function AdminDashboard() {
                           </div>
                           <Progress value={63} className="h-2" />
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Cover Letters</span>
@@ -673,7 +674,7 @@ export default function AdminDashboard() {
                           </div>
                           <Progress value={59} className="h-2" />
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Work History</span>
@@ -726,7 +727,7 @@ export default function AdminDashboard() {
               <div>
                 <h2 className="text-2xl font-bold mb-4">User Management</h2>
                 <p className="text-muted-foreground mb-4">View and manage all users on the platform.</p>
-                
+
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -738,7 +739,7 @@ export default function AdminDashboard() {
                           className="w-full bg-background pl-8"
                         />
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <Button variant="outline">
                           <FileDown className="mr-2 h-4 w-4" />
@@ -747,7 +748,7 @@ export default function AdminDashboard() {
                         <AddStaffUserDialog />
                       </div>
                     </div>
-                    
+
                     <div className="rounded-md border">
                       <Table>
                         <TableHeader>
@@ -784,7 +785,7 @@ export default function AdminDashboard() {
                         </TableBody>
                       </Table>
                     </div>
-                    
+
                     <div className="flex items-center justify-end space-x-2 py-4">
                       <Button variant="outline" size="sm">
                         Previous
@@ -1084,7 +1085,7 @@ export default function AdminDashboard() {
                             Most popular feature with 87% of users utilizing it regularly
                           </p>
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Interview Prep</span>
@@ -1095,7 +1096,7 @@ export default function AdminDashboard() {
                             Second most popular feature with strong weekly engagement
                           </p>
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">AI Coach</span>
@@ -1106,7 +1107,7 @@ export default function AdminDashboard() {
                             Gaining popularity quickly with high retention rate
                           </p>
                         </div>
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium">Work History</span>
@@ -1282,9 +1283,9 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground">Area chart would go here</p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <h4 className="text-sm font-medium">New Sign-ups</h4>
@@ -1297,9 +1298,9 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground">Bar chart would go here</p>
                           </div>
                         </div>
-                        
+
                         <Separator />
-                        
+
                         <div>
                           <div className="flex justify-between mb-1">
                             <h4 className="text-sm font-medium">Premium Conversions</h4>
@@ -1348,7 +1349,7 @@ export default function AdminDashboard() {
                     <TabsTrigger value="guides">Guides & Tutorials</TabsTrigger>
                     <TabsTrigger value="faqs">FAQs</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="learning">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {/* Learning resource cards */}
@@ -1367,7 +1368,7 @@ export default function AdminDashboard() {
                           <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
                               <CardTitle className="text-lg">
-                                {["Resume Writing Tips", "Interview Preparation", "Networking Strategies", 
+                                {["Resume Writing Tips", "Interview Preparation", "Networking Strategies",
                                   "Career Transition Guide", "Salary Negotiation", "LinkedIn Optimization"][i]}
                               </CardTitle>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -1375,7 +1376,7 @@ export default function AdminDashboard() {
                               </Button>
                             </div>
                             <CardDescription>
-                              {["For beginners", "Advanced techniques", "Interactive guide", 
+                              {["For beginners", "Advanced techniques", "Interactive guide",
                                 "Step-by-step tutorial", "Expert strategies", "Quick tips"][i]}
                             </CardDescription>
                           </CardHeader>
@@ -1417,7 +1418,7 @@ export default function AdminDashboard() {
                       <Button variant="outline">Load More</Button>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="templates">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {/* Template cards */}
@@ -1426,7 +1427,7 @@ export default function AdminDashboard() {
                           <CardHeader className="pb-2">
                             <div className="flex justify-between">
                               <CardTitle>
-                                {["Modern Resume", "Cover Letter", "Thank You Note", 
+                                {["Modern Resume", "Cover Letter", "Thank You Note",
                                   "Reference List", "Professional Bio", "Job Application"][i]}
                               </CardTitle>
                               <Badge>{["Popular", "New", "Featured", "Standard", "Basic", "Premium"][i]}</Badge>
@@ -1460,7 +1461,7 @@ export default function AdminDashboard() {
                       ))}
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="guides">
                     <div className="rounded-md border">
                       <Table>
@@ -1477,12 +1478,12 @@ export default function AdminDashboard() {
                           {Array.from({ length: 8 }).map((_, i) => (
                             <TableRow key={i}>
                               <TableCell className="font-medium">
-                                {["How to Ace Your Interview", "Resume Best Practices", "LinkedIn Profile Optimization", 
-                                  "Networking for Introverts", "Career Change Roadmap", "Remote Work Success", 
+                                {["How to Ace Your Interview", "Resume Best Practices", "LinkedIn Profile Optimization",
+                                  "Networking for Introverts", "Career Change Roadmap", "Remote Work Success",
                                   "Salary Negotiation Tactics", "Building a Personal Brand"][i]}
                               </TableCell>
                               <TableCell>
-                                {["Interview", "Resume", "Social Media", "Networking", "Career Planning", 
+                                {["Interview", "Resume", "Social Media", "Networking", "Career Planning",
                                   "Remote Work", "Negotiation", "Branding"][i]}
                               </TableCell>
                               <TableCell>Admin</TableCell>
@@ -1509,7 +1510,7 @@ export default function AdminDashboard() {
                         </TableBody>
                       </Table>
                     </div>
-                    
+
                     <div className="mt-4 flex justify-end">
                       <div className="flex space-x-2">
                         <Button variant="outline" size="sm">Previous</Button>
@@ -1517,7 +1518,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="faqs">
                     <Card>
                       <CardHeader>
@@ -1532,10 +1533,10 @@ export default function AdminDashboard() {
                             <div key={i} className="border rounded-lg p-4">
                               <div className="flex justify-between items-start mb-2">
                                 <div className="font-medium">
-                                  {["How do I create a new resume?", 
-                                    "Can I export my data?", 
-                                    "How do I prepare for an interview?", 
-                                    "Is my data secure?", 
+                                  {["How do I create a new resume?",
+                                    "Can I export my data?",
+                                    "How do I prepare for an interview?",
+                                    "Is my data secure?",
                                     "How do I cancel my subscription?"][i]}
                                 </div>
                                 <div className="flex space-x-2">
@@ -1548,10 +1549,10 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {["Go to the Resume Builder section and click 'Create New Resume'. Follow the step-by-step guide to build your professional resume.", 
-                                  "Yes, you can export your data in PDF, DOCX, or JSON formats from your profile settings.", 
-                                  "Our Interview Prep section offers practice questions, mock interviews, and personalized feedback to help you prepare.", 
-                                  "Yes, we use industry-standard encryption and security practices to protect all user data.", 
+                                {["Go to the Resume Builder section and click 'Create New Resume'. Follow the step-by-step guide to build your professional resume.",
+                                  "Yes, you can export your data in PDF, DOCX, or JSON formats from your profile settings.",
+                                  "Our Interview Prep section offers practice questions, mock interviews, and personalized feedback to help you prepare.",
+                                  "Yes, we use industry-standard encryption and security practices to protect all user data.",
                                   "Go to Account Settings > Subscription and click 'Cancel Subscription'. You'll still have access until the end of your billing period."][i]}
                               </div>
                               <div className="flex justify-between items-center mt-2">
@@ -1601,9 +1602,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Monthly Price</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={proPricing.monthly} 
+                            <Input
+                              type="number"
+                              value={proPricing.monthly}
                               onChange={(e) => updatePricing('monthly', e.target.value)}
                             />
                             <span>USD</span>
@@ -1612,9 +1613,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Quarterly Price</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={proPricing.quarterly} 
+                            <Input
+                              type="number"
+                              value={proPricing.quarterly}
                               onChange={(e) => updatePricing('quarterly', e.target.value)}
                             />
                             <span>USD</span>
@@ -1623,9 +1624,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Annual Price</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={proPricing.annual} 
+                            <Input
+                              type="number"
+                              value={proPricing.annual}
                               onChange={(e) => updatePricing('annual', e.target.value)}
                             />
                             <span>USD</span>
@@ -1651,9 +1652,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Base License Price (per user/year)</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={universityPricing.basePrice} 
+                            <Input
+                              type="number"
+                              value={universityPricing.basePrice}
                               onChange={(e) => updateUniversityPricing('basePrice', e.target.value)}
                             />
                             <span>USD</span>
@@ -1662,9 +1663,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Bulk Discount Threshold</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={universityPricing.bulkThreshold} 
+                            <Input
+                              type="number"
+                              value={universityPricing.bulkThreshold}
                               onChange={(e) => updateUniversityPricing('bulkThreshold', e.target.value)}
                             />
                             <span>users</span>
@@ -1673,9 +1674,9 @@ export default function AdminDashboard() {
                         <div>
                           <Label>Bulk Discount Rate</Label>
                           <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              value={universityPricing.bulkDiscount} 
+                            <Input
+                              type="number"
+                              value={universityPricing.bulkDiscount}
                               onChange={(e) => updateUniversityPricing('bulkDiscount', e.target.value)}
                             />
                             <span>%</span>
@@ -1740,8 +1741,170 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="settings" className="mt-0">
-              <h2 className="text-2xl font-bold mb-4">Settings</h2>
-              <p className="text-muted-foreground">This section is under development.</p>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">System Settings</h2>
+                  <Button variant="outline">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refresh Settings
+                  </Button>
+                </div>
+
+                <div className="grid gap-6">
+                  {/* General Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>General Settings</CardTitle>
+                      <CardDescription>Configure basic system settings</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Site Name</Label>
+                        <Input defaultValue="CareerTracker.io" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Support Email</Label>
+                        <Input type="email" defaultValue="support@careertracker.io" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Default Time Zone</Label>
+                        <Select defaultValue="UTC">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select timezone" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UTC">UTC</SelectItem>
+                            <SelectItem value="EST">Eastern Time</SelectItem>
+                            <SelectItem value="PST">Pacific Time</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button>Save General Settings</Button>
+                    </CardFooter>
+                  </Card>
+
+                  {/* Email Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Email Settings</CardTitle>
+                      <CardDescription>Configure email notifications and templates</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Welcome Email</Label>
+                          <p className="text-sm text-muted-foreground">Sent to new users upon registration</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Weekly Digest</Label>
+                          <p className="text-sm text-muted-foreground">Weekly summary of user activity</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>System Alerts</Label>
+                          <p className="text-sm text-muted-foreground">Important system notifications</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button>Update Email Settings</Button>
+                    </CardFooter>
+                  </Card>
+
+                  {/* Security Settings */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Security Settings</CardTitle>
+                      <CardDescription>Configure security and access controls</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Session Timeout (minutes)</Label>
+                        <Input type="number" defaultValue="60" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Maximum Login Attempts</Label>
+                        <Input type="number" defaultValue="5" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>Two-Factor Authentication</Label>
+                          <p className="text-sm text-muted-foreground">Require 2FA for admin accounts</p>
+                        </div>
+                        <Switch defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label>IP Whitelisting</Label>
+                          <p className="text-sm text-muted-foreground">Restrict admin access by IP</p>
+                        </div>
+                        <Switch />
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button>Save Security Settings</Button>
+                    </CardFooter>
+                  </Card>
+
+                  {/* Backup & Maintenance */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Backup & Maintenance</CardTitle>
+                      <CardDescription>System maintenance and backup settings</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Automatic Backup Frequency</Label>
+                        <Select defaultValue="daily">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hourly">Hourly</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Backup Retention (days)</Label>
+                        <Input type="number" defaultValue="30" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Maintenance Window</Label>
+                        <Select defaultValue="midnight">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="midnight">12:00 AM - 2:00 AM</SelectItem>
+                            <SelectItem value="morning">4:00 AM - 6:00 AM</SelectItem>
+                            <SelectItem value="evening">10:00 PM - 12:00 AM</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button variant="outline">
+                        Run Backup Now
+                      </Button>
+                      <Button>
+                        Save Maintenance Settings
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="help" className="mt-0">
@@ -1756,23 +1919,23 @@ export default function AdminDashboard() {
 }
 
 // Sidebar item component
-function SidebarItem({ 
-  icon, 
-  label, 
-  active, 
-  onClick 
-}: { 
-  icon: React.ReactNode; 
-  label: string; 
-  active: boolean; 
+function SidebarItem({
+  icon,
+  label,
+  active,
+  onClick
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-        active 
-          ? 'bg-primary text-primary-foreground' 
+        active
+          ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
       }`}
     >
