@@ -1,0 +1,19 @@
+The Project Portfolio page allows users to create, manage, and reflect on professional, academic, or personal projects. Each project should include structured input fields: Project Title, Role or Position, Date Range, and an optional Client or Company field. Users can add a Project URL, Demo, or GitHub link, and a Project Description with support for rich text or Markdown formatting. Additional inputs include Skills Used, Tools or Technologies, Tags or Categories, and Project Type (e.g., Personal, Academic, Client, Open Source).
+
+Users must also be able to upload project media, including images (mockups, screenshots, etc.), videos (via YouTube or Vimeo embed), and PDFs or slide decks (like case studies). These should display cleanly in a media gallery within each project view.
+
+Each project should feature a Smart Highlights Block with the following optional, structured fields:
+
+“What I accomplished”
+“What I learned”
+“Impact / Outcome” (encouraging quantifiable results if possible)
+A toggle labeled “Link to Resume” to mark the project for resume syncing
+There should be a Project Tracker View on this same page, structured like a lightweight database or kanban layout. Each project should include editable metadata such as:
+
+Status: Draft, In Progress, Completed, or Archived
+Goal: Resume, Portfolio, or Case Study
+Visibility: Private, Public, or Restricted (Public can be locked or greyed out for now)
+Project Notes: Internal notes or reflections only visible to the user
+An AI Summary Generator may be included as an optional upgrade feature. When enabled, it should generate a professional, short-form summary of the project using the description and highlight blocks. This is designed for use in resumes, LinkedIn, or job applications.
+
+Lastly, ensure projects marked with “Link to Resume” sync with the existing Resume Builder. These projects should be selectable within the Resume Builder’s “Experience” or “Projects” sections, with the option to edit the pulled-in content (especially Smart Highlights) before publishing the resume.
