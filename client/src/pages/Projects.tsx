@@ -26,7 +26,7 @@ export default function Projects() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
-  const { data: projects = [], isLoading } = useQuery<Project[]>({
+  const { data: projects = [], isLoading, refetch } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: async () => {
       const response = await fetch('/api/projects');
@@ -92,10 +92,10 @@ export default function Projects() {
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
-      ) : projects.length > 0 ? (
+      ) : projects && projects.length > 0 ? (
         <div className="space-y-6">
           {projects.map((project) => (
-            <Card key={project.id} className="p-6 relative group">
+            <Card key={project.id} className="p-6 relative group hover:shadow-lg transition-shadow">
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="flex space-x-1">
                   <Button
@@ -206,7 +206,8 @@ export default function Projects() {
                 
                 if (!response.ok) throw new Error('Failed to save project');
                 
-                queryClient.invalidateQueries({ queryKey: ['projects'] });
+                await queryClient.invalidateQueries({ queryKey: ['projects'] });
+                await refetch();
                 setIsDialogOpen(false);
                 toast({
                   title: `Project ${editingProject ? 'Updated' : 'Added'}`,
