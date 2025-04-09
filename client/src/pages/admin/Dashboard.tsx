@@ -73,7 +73,6 @@ import {
   Download,
   Eye,
   Trash2,
-  Switch,
 } from 'lucide-react';
 // Import the components directly
 // This avoid the need for separate imports
