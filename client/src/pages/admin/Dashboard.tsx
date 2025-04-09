@@ -750,8 +750,137 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="universities" className="mt-0">
-              <h2 className="text-2xl font-bold mb-4">Universities</h2>
-              <p className="text-muted-foreground">This section is under development.</p>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold">Universities</h2>
+                    <p className="text-muted-foreground">Manage university accounts and access</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline">
+                      <FileDown className="mr-2 h-4 w-4" />
+                      Export Data
+                    </Button>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add University
+                    </Button>
+                  </div>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <CardTitle>Active Universities</CardTitle>
+                        <CardDescription>Overview of all participating institutions</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Search universities..."
+                          className="w-[250px]"
+                        />
+                        <Select defaultValue="all">
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Universities</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>University</TableHead>
+                          <TableHead>Students</TableHead>
+                          <TableHead>License Usage</TableHead>
+                          <TableHead>Modules</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium">
+                                M
+                              </div>
+                              <div>
+                                <p className="font-medium">MIT</p>
+                                <p className="text-sm text-muted-foreground">Massachusetts, USA</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>287</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={78} className="h-2 w-20" />
+                              <span className="text-sm">78%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>42</TableCell>
+                          <TableCell>
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              Active
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">View</Button>
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center text-red-700 font-medium">
+                                S
+                              </div>
+                              <div>
+                                <p className="font-medium">Stanford University</p>
+                                <p className="text-sm text-muted-foreground">California, USA</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>245</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress value={65} className="h-2 w-20" />
+                              <span className="text-sm">65%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>38</TableCell>
+                          <TableCell>
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              Active
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">View</Button>
+                            <Button variant="ghost" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing 2 of 15 universities
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" disabled>Previous</Button>
+                      <Button variant="outline" size="sm">Next</Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="analytics" className="mt-0">
