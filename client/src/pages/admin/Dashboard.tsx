@@ -1532,8 +1532,162 @@ export default function AdminDashboard() {
             </TabsContent>
 
             <TabsContent value="billing" className="mt-0">
-              <h2 className="text-2xl font-bold mb-4">Billing</h2>
-              <p className="text-muted-foreground">This section is under development.</p>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Billing Management</h2>
+                  <Button onClick={() => setShowPriceModal(true)}>
+                    Update Pricing
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Plan Management */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Pro Plan Pricing</CardTitle>
+                      <CardDescription>Manage subscription plan pricing</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Monthly Price</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={proPricing.monthly} 
+                              onChange={(e) => updatePricing('monthly', e.target.value)}
+                            />
+                            <span>USD</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Quarterly Price</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={proPricing.quarterly} 
+                              onChange={(e) => updatePricing('quarterly', e.target.value)}
+                            />
+                            <span>USD</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Annual Price</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={proPricing.annual} 
+                              onChange={(e) => updatePricing('annual', e.target.value)}
+                            />
+                            <span>USD</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={savePricingChanges} className="w-full">
+                        Save Changes
+                      </Button>
+                    </CardFooter>
+                  </Card>
+
+                  {/* University Licensing */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>University Licensing</CardTitle>
+                      <CardDescription>Manage university subscriptions</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Label>Base License Price (per user/year)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={universityPricing.basePrice} 
+                              onChange={(e) => updateUniversityPricing('basePrice', e.target.value)}
+                            />
+                            <span>USD</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Bulk Discount Threshold</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={universityPricing.bulkThreshold} 
+                              onChange={(e) => updateUniversityPricing('bulkThreshold', e.target.value)}
+                            />
+                            <span>users</span>
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Bulk Discount Rate</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              value={universityPricing.bulkDiscount} 
+                              onChange={(e) => updateUniversityPricing('bulkDiscount', e.target.value)}
+                            />
+                            <span>%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter>
+                      <Button onClick={saveUniversityPricing} className="w-full">
+                        Save Changes
+                      </Button>
+                    </CardFooter>
+                  </Card>
+
+                  {/* Active Subscriptions */}
+                  <Card className="md:col-span-2">
+                    <CardHeader>
+                      <CardTitle>Active Subscriptions</CardTitle>
+                      <CardDescription>Monitor current subscriptions and revenue</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Active Users</TableHead>
+                            <TableHead>Monthly Revenue</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>Pro Plan (Monthly)</TableCell>
+                            <TableCell>{stats.proMonthlyUsers}</TableCell>
+                            <TableCell>${stats.proMonthlyRevenue}</TableCell>
+                            <TableCell>
+                              <Badge>Active</Badge>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Pro Plan (Annual)</TableCell>
+                            <TableCell>{stats.proAnnualUsers}</TableCell>
+                            <TableCell>${stats.proAnnualRevenue}</TableCell>
+                            <TableCell>
+                              <Badge>Active</Badge>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>University Licenses</TableCell>
+                            <TableCell>{stats.universityUsers}</TableCell>
+                            <TableCell>${stats.universityRevenue}</TableCell>
+                            <TableCell>
+                              <Badge>Active</Badge>
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="settings" className="mt-0">
