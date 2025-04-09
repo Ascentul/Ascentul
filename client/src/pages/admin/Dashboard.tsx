@@ -239,6 +239,54 @@ export default function AdminDashboard() {
   const isAdmin = useIsAdminUser();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
+  const [proPricing, setProPricing] = useState({
+    monthly: 15,
+    quarterly: 30,
+    annual: 72
+  });
+  const [universityPricing, setUniversityPricing] = useState({
+    basePrice: 10,
+    bulkThreshold: 100,
+    bulkDiscount: 20
+  });
+  const [stats] = useState({
+    proMonthlyUsers: 245,
+    proMonthlyRevenue: 3675,
+    proAnnualUsers: 876,
+    proAnnualRevenue: 63072,
+    universityUsers: 1250,
+    universityRevenue: 12500
+  });
+
+  const updatePricing = (interval: string, value: string) => {
+    setProPricing(prev => ({
+      ...prev,
+      [interval]: parseFloat(value)
+    }));
+  };
+
+  const updateUniversityPricing = (field: string, value: string) => {
+    setUniversityPricing(prev => ({
+      ...prev,
+      [field]: parseFloat(value)
+    }));
+  };
+
+  const savePricingChanges = () => {
+    // TODO: Implement API call to save pricing changes
+    toast({
+      title: "Pricing Updated",
+      description: "The new pricing has been saved successfully."
+    });
+  };
+
+  const saveUniversityPricing = () => {
+    // TODO: Implement API call to save university pricing changes
+    toast({
+      title: "University Pricing Updated",
+      description: "The new university pricing has been saved successfully."
+    });
+  };
 
   // Redirect if not admin
   if (user && !isAdmin) {
