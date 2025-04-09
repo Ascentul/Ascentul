@@ -445,7 +445,39 @@ export const insertContactMessageSchema = createInsertSchema(contactMessages).om
   archived: true,
 });
 
-// Career Path
+// Projects model
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  role: text("role").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  clientOrCompany: text("client_or_company").notNull(),
+  projectUrl: text("project_url"),
+  description: text("description").notNull(),
+  skillsUsed: text("skills_used").array(),
+  tags: text("tags").array(),
+  projectType: text("project_type").notNull().default("personal"), // personal, client, academic
+  isPublic: boolean("is_public").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectSchema = createInsertSchema(projects).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.date().or(z.string().transform(val => new Date(val))),
+  endDate: z.date().nullable().or(z.string().transform(val => val ? new Date(val) : null)),
+});
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+
+// Career Path model
 export const careerPaths = pgTable("career_paths", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -498,6 +530,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   mentorChatConversations: many(mentorChatConversations),
   certifications: many(certifications),
   personalAchievements: many(userPersonalAchievements),
+  projects: many(projects), // Added projects relation
 }));
 
 // Interview Questions Relations
