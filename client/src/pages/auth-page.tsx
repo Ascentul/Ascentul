@@ -13,6 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useUser } from '@/lib/useUserData';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 // Form schemas
 const loginSchema = z.object({
@@ -36,7 +44,7 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>('login');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  
+
   // Parse URL parameters
   const urlParams = new URLSearchParams(location.split('?')[1]);
   const planParam = urlParams.get('plan') || 'free'; // Default to free
@@ -77,14 +85,14 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       const response = await apiRequest('POST', '/api/auth/login', data);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Invalid credentials');
       }
-      
+
       const userData = await response.json();
-      
+
       toast({
         title: 'Login successful',
         description: `Welcome back, ${userData.name}!`,
@@ -111,14 +119,14 @@ export default function AuthPage() {
     setIsLoading(true);
     try {
       const response = await apiRequest('POST', '/api/auth/register', data);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Registration failed');
       }
-      
+
       const userData = await response.json();
-      
+
       toast({
         title: 'Registration successful',
         description: `Welcome to CareerTracker, ${userData.name}!`,
