@@ -193,27 +193,36 @@ export default function TodaysRecommendations() {
   const handleRefresh = async () => {
     setRefreshing(true);
     
-    // First, get a new set of recommendations by calling the API directly
     try {
-      // This will trigger the server to generate new recommendations
+      // Clear existing recommendations first
+      await queryClient.cancelQueries({ queryKey: ['/api/recommendations/daily'] });
+      
+      // Get new recommendations with refresh flag
       const res = await apiRequest('GET', '/api/recommendations/daily?refresh=true');
-      if (res.ok) {
-        // Then, refetch to update the UI
-        await refetch(); 
-        toast({
-          title: "Recommendations refreshed",
-          description: "New recommendations have been generated for you.",
-        });
+      if (!res.ok) {
+        throw new Error('Failed to refresh recommendations');
       }
+      
+      // Update cache with new data
+      const newRecommendations = await res.json();
+      queryClient.setQueryData(['/api/recommendations/daily'], newRecommendations);
+      
+      // Refetch to ensure UI is in sync
+      await refetch();
+      
+      toast({
+        title: "Recommendations refreshed",
+        description: "New recommendations have been generated for you.",
+      });
     } catch (error) {
       toast({
         title: "Failed to refresh recommendations",
         description: "Please try again later.",
         variant: "destructive"
       });
+    } finally {
+      setRefreshing(false);
     }
-    
-    setRefreshing(false);
   };
   
   // If there was an error fetching recommendations
