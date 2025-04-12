@@ -194,8 +194,9 @@ export default function TodaysRecommendations() {
     setRefreshing(true);
     
     try {
-      // Clear existing recommendations first
-      await queryClient.cancelQueries({ queryKey: ['/api/recommendations/daily'] });
+      // Invalidate and remove existing cache
+      await queryClient.invalidateQueries({ queryKey: ['/api/recommendations/daily'] });
+      await queryClient.removeQueries({ queryKey: ['/api/recommendations/daily'] });
       
       // Get new recommendations with refresh flag
       const res = await apiRequest('GET', '/api/recommendations/daily?refresh=true');
@@ -203,12 +204,11 @@ export default function TodaysRecommendations() {
         throw new Error('Failed to refresh recommendations');
       }
       
-      // Update cache with new data
+      // Get fresh data
       const newRecommendations = await res.json();
-      queryClient.setQueryData(['/api/recommendations/daily'], newRecommendations);
       
-      // Refetch to ensure UI is in sync
-      await refetch();
+      // Force update cache and trigger rerender
+      queryClient.setQueryData(['/api/recommendations/daily'], newRecommendations);
       
       toast({
         title: "Recommendations refreshed",
