@@ -65,15 +65,51 @@ export default function Sidebar() {
       {/* User Profile Summary */}
       <div className="flex flex-col items-center py-6 border-b">
         <div className="relative">
-          <Avatar className="w-16 h-16 border-2 border-primary">
-            {user.profileImage ? (
-              <AvatarImage src={user.profileImage} alt={user.name} />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                {user.name.charAt(0)}
-              </AvatarFallback>
-            )}
-          </Avatar>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Avatar className="w-16 h-16 border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity">
+                {user.profileImage ? (
+                  <AvatarImage src={user.profileImage} alt={user.name} />
+                ) : (
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Update Profile Photo</DialogTitle>
+                <DialogDescription>
+                  Upload a new profile photo. Supported formats: JPG, PNG.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const response = await fetch('/api/users/profile-image', {
+                  method: 'POST',
+                  body: formData,
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  // Force a refresh of user data
+                  window.location.reload();
+                }
+              }}>
+                <Input 
+                  type="file" 
+                  name="profileImage" 
+                  accept="image/jpeg,image/png"
+                  className="mb-4"
+                  required
+                />
+                <DialogFooter>
+                  <Button type="submit">Upload Photo</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
           {/* Only show level badge for university users */}
           {isUnivUser && user.level !== undefined && (
             <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
