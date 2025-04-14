@@ -12,11 +12,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from '@/components/ui/dialog';
+  } from '@/components/ui/dialog';
 import {
   Card,
   CardContent,
