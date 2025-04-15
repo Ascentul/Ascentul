@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Check, AlertCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import * as Dialog from "@radix-ui/react-dialog";
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
