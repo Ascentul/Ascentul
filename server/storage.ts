@@ -72,16 +72,16 @@ import { sessionStore } from "./session-store";
 export interface IStorage {
   // Session store
   sessionStore: session.Store;
-  
+
   // User management for scheduled tasks
   getAllActiveUsers(): Promise<User[]>;
-  
+
   // Career path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
   getCareerPath(id: number): Promise<CareerPath | undefined>;
   deleteCareerPath(id: number): Promise<boolean>;
-  
+
   // System operations
   getSystemMetrics(): Promise<{
     status: string;
@@ -89,7 +89,7 @@ export interface IStorage {
     lastIncident: string;
     lastChecked: string;
   }>;
-  
+
   getComponentStatus(): Promise<{
     id: string;
     name: string;
@@ -141,12 +141,12 @@ export interface IStorage {
     severity: string;
     time: string;
   }[]>;
-  
+
   // Cache operations
   setCachedData(key: string, data: any, expirationMs?: number): Promise<void>;
   getCachedData(key: string): Promise<any | null>;
   deleteCachedData(key: string): Promise<boolean>;
-  
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -170,56 +170,56 @@ export interface IStorage {
   }): Promise<User | undefined>;
   updateUserPassword(userId: number, newPassword: string): Promise<User | undefined>;
   addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number>;
-  
+
   // Goal operations
   getGoals(userId: number): Promise<Goal[]>;
   getGoal(id: number): Promise<Goal | undefined>;
   createGoal(userId: number, goal: InsertGoal): Promise<Goal>;
   updateGoal(id: number, goalData: Partial<Goal>): Promise<Goal | undefined>;
   deleteGoal(id: number): Promise<boolean>;
-  
+
   // Work history operations
   getWorkHistory(userId: number): Promise<WorkHistory[]>;
   getWorkHistoryItem(id: number): Promise<WorkHistory | undefined>;
   createWorkHistoryItem(userId: number, item: InsertWorkHistory): Promise<WorkHistory>;
   updateWorkHistoryItem(id: number, itemData: Partial<WorkHistory>): Promise<WorkHistory | undefined>;
   deleteWorkHistoryItem(id: number): Promise<boolean>;
-  
+
   // Resume operations
   getResumes(userId: number): Promise<Resume[]>;
   getResume(id: number): Promise<Resume | undefined>;
   createResume(userId: number, resume: InsertResume): Promise<Resume>;
   updateResume(id: number, resumeData: Partial<Resume>): Promise<Resume | undefined>;
   deleteResume(id: number): Promise<boolean>;
-  
+
   // Cover letter operations
   getCoverLetters(userId: number): Promise<CoverLetter[]>;
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
   createCoverLetter(userId: number, coverLetter: InsertCoverLetter): Promise<CoverLetter>;
   updateCoverLetter(id: number, coverLetterData: Partial<CoverLetter>): Promise<CoverLetter | undefined>;
   deleteCoverLetter(id: number): Promise<boolean>;
-  
+
   // Interview operations
   getInterviewQuestions(category?: string): Promise<InterviewQuestion[]>;
   getInterviewQuestion(id: number): Promise<InterviewQuestion | undefined>;
   createInterviewQuestion(question: InsertInterviewQuestion): Promise<InterviewQuestion>;
   saveInterviewPractice(userId: number, practice: InsertInterviewPractice): Promise<InterviewPractice>;
   getUserInterviewPractice(userId: number): Promise<InterviewPractice[]>;
-  
+
   // Interview Process Tracking operations
   getInterviewProcesses(userId: number): Promise<InterviewProcess[]>;
   getInterviewProcess(id: number): Promise<InterviewProcess | undefined>;
   createInterviewProcess(userId: number, process: InsertInterviewProcess): Promise<InterviewProcess>;
   updateInterviewProcess(id: number, processData: Partial<InterviewProcess>): Promise<InterviewProcess | undefined>;
   deleteInterviewProcess(id: number): Promise<boolean>;
-  
+
   // Interview Stage operations
   getInterviewStages(processId: number): Promise<InterviewStage[]>;
   getInterviewStage(id: number): Promise<InterviewStage | undefined>;
   createInterviewStage(processId: number, stage: InsertInterviewStage): Promise<InterviewStage>;
   updateInterviewStage(id: number, stageData: Partial<InterviewStage>): Promise<InterviewStage | undefined>;
   deleteInterviewStage(id: number): Promise<boolean>;
-  
+
   // Followup Action operations
   getFollowupActions(processId: number, stageId?: number): Promise<FollowupAction[]>;
   getFollowupAction(id: number): Promise<FollowupAction | undefined>;
@@ -228,36 +228,42 @@ export interface IStorage {
   deleteFollowupAction(id: number): Promise<boolean>;
   completeFollowupAction(id: number): Promise<FollowupAction | undefined>;
   uncompleteFollowupAction(id: number): Promise<FollowupAction | undefined>;
-  
+
   // Achievement operations
   getAchievements(): Promise<Achievement[]>;
   getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]>;
   checkAndAwardAchievements(userId: number): Promise<Achievement[]>;
-  
+
   // AI Coach operations
   getAiCoachConversations(userId: number): Promise<AiCoachConversation[]>;
   getAiCoachConversation(id: number): Promise<AiCoachConversation | undefined>;
   createAiCoachConversation(userId: number, conversation: InsertAiCoachConversation): Promise<AiCoachConversation>;
   getAiCoachMessages(conversationId: number): Promise<AiCoachMessage[]>;
   addAiCoachMessage(message: InsertAiCoachMessage): Promise<AiCoachMessage>;
-  
+
   // XP History operations
   getXpHistory(userId: number): Promise<XpHistory[]>;
-  
+
   // Contact message operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
   getContactMessages(): Promise<ContactMessage[]>;
   getContactMessage(id: number): Promise<ContactMessage | undefined>;
   markContactMessageAsRead(id: number): Promise<ContactMessage | undefined>;
   markContactMessageAsArchived(id: number): Promise<ContactMessage | undefined>;
-  
+
+  // Support ticket operations
+  getSupportTickets(filters?: any): Promise<any[]>;
+  getSupportTicket(id: number): Promise<any | undefined>;
+  updateSupportTicket(id: number, data: any): Promise<any>;
+  createSupportTicket(data: any): Promise<any>;
+
   // Career Mentor Chat operations
   getMentorChatConversations(userId: number): Promise<MentorChatConversation[]>;
   getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined>;
   createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation>;
   getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]>;
   addMentorChatMessage(message: InsertMentorChatMessage): Promise<MentorChatMessage>;
-  
+
   // Stats operations
   getUserStatistics(userId: number): Promise<{
     activeGoals: number;
@@ -267,7 +273,7 @@ export interface IStorage {
     upcomingInterviews: number;
     monthlyXp: { month: string; xp: number }[];
   }>;
-  
+
   // Subscription and verification operations
   getUserByStripeSubscriptionId(subscriptionId: string): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
@@ -283,7 +289,7 @@ export interface IStorage {
     verificationToken?: string | null;
     verificationExpires?: Date | null;
   }): Promise<User | undefined>;
-  
+
   // Recommendation operations
   getRecommendations(userId: number): Promise<Recommendation[]>;
   getRecommendation(id: number): Promise<Recommendation | undefined>;
@@ -292,21 +298,21 @@ export interface IStorage {
   completeRecommendation(id: number): Promise<Recommendation | undefined>;
   generateDailyRecommendations(userId: number): Promise<Recommendation[]>;
   clearTodaysRecommendations(userId: number): Promise<void>;
-  
+
   // Certification operations (to be deprecated)
   getCertifications(userId: number): Promise<Certification[]>;
   getCertification(id: number): Promise<Certification | undefined>;
   createCertification(userId: number, certification: InsertCertification): Promise<Certification>;
   updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined>;
   deleteCertification(id: number): Promise<boolean>;
-  
+
   // User Personal Achievements operations
   getUserPersonalAchievements(userId: number): Promise<UserPersonalAchievement[]>;
   getUserPersonalAchievement(id: number): Promise<UserPersonalAchievement | undefined>;
   createUserPersonalAchievement(userId: number, achievement: InsertUserPersonalAchievement): Promise<UserPersonalAchievement>;
   updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined>;
   deleteUserPersonalAchievement(id: number): Promise<boolean>;
-  
+
   // Career Path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
@@ -339,7 +345,8 @@ export class MemStorage implements IStorage {
   private certifications: Map<number, Certification>;
   private userPersonalAchievements: Map<number, UserPersonalAchievement>;
   private careerPaths: Map<number, CareerPath>;
-  
+  private supportTickets: Map<number, any> = new Map();// Added supportTickets map
+
   private userIdCounter: number;
   private goalIdCounter: number;
   private workHistoryIdCounter: number;
@@ -362,13 +369,14 @@ export class MemStorage implements IStorage {
   private certificationIdCounter: number;
   private userPersonalAchievementIdCounter: number;
   private careerPathIdCounter: number;
-  
+  private supportTicketIdCounter: number = 1; // Counter for support tickets
+
   public sessionStore: session.Store;
 
   constructor() {
     // Use the external session store
     this.sessionStore = sessionStore;
-    
+
     this.users = new Map();
     this.goals = new Map();
     this.workHistory = new Map();
@@ -391,7 +399,7 @@ export class MemStorage implements IStorage {
     this.certifications = new Map();
     this.userPersonalAchievements = new Map();
     this.careerPaths = new Map();
-    
+
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
     this.workHistoryIdCounter = 1;
@@ -414,11 +422,11 @@ export class MemStorage implements IStorage {
     this.certificationIdCounter = 1;
     this.userPersonalAchievementIdCounter = 1;
     this.careerPathIdCounter = 1;
-    
+
     // Initialize with sample data for testing
     this.initializeData();
   }
-  
+
   // Cache operations
   async setCachedData(key: string, data: any, expirationMs?: number): Promise<void> {
     const expires = expirationMs ? Date.now() + expirationMs : null;
@@ -427,31 +435,31 @@ export class MemStorage implements IStorage {
 
   async getCachedData(key: string): Promise<any | null> {
     const cachedItem = this.cache.get(key);
-    
+
     if (!cachedItem) {
       return null;
     }
-    
+
     // Check if the cached data has expired
     if (cachedItem.expires && Date.now() > cachedItem.expires) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return cachedItem.data;
   }
 
   async deleteCachedData(key: string): Promise<boolean> {
     return this.cache.delete(key);
   }
-  
+
   private initializeData() {
     // Sample interview process data for testing
     const now = new Date();
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    
+
     // Initialize sample achievements
     const sampleAchievements: InsertAchievement[] = [
       {
@@ -487,14 +495,14 @@ export class MemStorage implements IStorage {
         requiredValue: 10
       }
     ];
-    
+
     sampleAchievements.forEach(achievement => {
       this.achievements.set(this.achievementIdCounter, {
         ...achievement,
         id: this.achievementIdCounter++
       });
     });
-    
+
     // Create a sample interview process
     const sampleProcess: InterviewProcess = {
       id: this.interviewProcessIdCounter++,
@@ -511,7 +519,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.interviewProcesses.set(sampleProcess.id, sampleProcess);
-    
+
     // Create sample interview stages
     const phoneScreening: InterviewStage = {
       id: this.interviewStageIdCounter++,
@@ -529,7 +537,7 @@ export class MemStorage implements IStorage {
       updatedAt: twoDaysAgo
     };
     this.interviewStages.set(phoneScreening.id, phoneScreening);
-    
+
     const technicalAssessment: InterviewStage = {
       id: this.interviewStageIdCounter++,
       processId: sampleProcess.id,
@@ -546,7 +554,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.interviewStages.set(technicalAssessment.id, technicalAssessment);
-    
+
     const technicalInterview: InterviewStage = {
       id: this.interviewStageIdCounter++,
       processId: sampleProcess.id,
@@ -563,7 +571,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.interviewStages.set(technicalInterview.id, technicalInterview);
-    
+
     // Create sample followup actions
     const thankYouEmail: FollowupAction = {
       id: this.followupActionIdCounter++,
@@ -579,7 +587,7 @@ export class MemStorage implements IStorage {
       updatedAt: twoDaysAgo
     };
     this.followupActions.set(thankYouEmail.id, thankYouEmail);
-    
+
     const prepareQuestions: FollowupAction = {
       id: this.followupActionIdCounter++,
       processId: sampleProcess.id,
@@ -594,7 +602,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.followupActions.set(prepareQuestions.id, prepareQuestions);
-    
+
     const reviewTechnology: FollowupAction = {
       id: this.followupActionIdCounter++,
       processId: sampleProcess.id,
@@ -609,7 +617,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.followupActions.set(reviewTechnology.id, reviewTechnology);
-    
+
     // Initialize sample interview questions
     const sampleQuestions: InsertInterviewQuestion[] = [
       {
@@ -643,7 +651,7 @@ export class MemStorage implements IStorage {
         difficultyLevel: 1
       }
     ];
-    
+
     sampleQuestions.forEach(question => {
       this.interviewQuestions.set(this.interviewQuestionIdCounter, {
         ...question,
@@ -656,7 +664,7 @@ export class MemStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
-  
+
   async getAllActiveUsers(): Promise<User[]> {
     // Return all users, filtering out any that might be marked as inactive
     return Array.from(this.users.values()).filter(user => 
@@ -670,7 +678,7 @@ export class MemStorage implements IStorage {
       (user) => user.username === username,
     );
   }
-  
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.email === email,
@@ -695,7 +703,7 @@ export class MemStorage implements IStorage {
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
-    
+
     const updatedUser = { ...user, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -704,15 +712,15 @@ export class MemStorage implements IStorage {
   async addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number | null> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
-    
+
     // Only process XP for university users
     const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
-    
+
     // Skip XP handling for regular users
     if (!isUniversityUser) {
       return null;
     }
-    
+
     // Add XP history record
     const xpHistoryId = this.xpHistoryIdCounter++;
     const xpRecord: XpHistory = {
@@ -724,36 +732,36 @@ export class MemStorage implements IStorage {
       earnedAt: new Date()
     };
     this.xpHistory.set(xpHistoryId, xpRecord);
-    
+
     // Update user XP
     const currentXp = user.xp || 0; // Use 0 as default if xp is undefined
     const newXp = currentXp + amount;
-    
+
     // Check for level up (simple level calculation - can be refined)
     let newLevel = user.level || 1; // Use 1 as default if level is undefined
     let newRank = user.rank || "Career Explorer"; // Use default if rank is undefined
-    
+
     // Level up logic: 1000 XP per level
     const calculatedLevel = Math.floor(newXp / 1000) + 1;
-    
+
     if (calculatedLevel > newLevel) {
       newLevel = calculatedLevel;
-      
+
       // Update rank based on level
       if (newLevel >= 15) newRank = "Career Master";
       else if (newLevel >= 10) newRank = "Career Navigator";
       else if (newLevel >= 5) newRank = "Career Adventurer";
       else newRank = "Career Explorer";
     }
-    
+
     await this.updateUser(userId, { xp: newXp, level: newLevel, rank: newRank });
-    
+
     // Check and award achievements
     await this.checkAndAwardAchievements(userId);
-    
+
     return newXp;
   }
-  
+
   // Goal operations
   async getGoals(userId: number): Promise<Goal[]> {
     return Array.from(this.goals.values()).filter(goal => goal.userId === userId);
@@ -766,10 +774,10 @@ export class MemStorage implements IStorage {
   async createGoal(userId: number, goalData: InsertGoal): Promise<Goal> {
     const id = this.goalIdCounter++;
     const now = new Date();
-    
+
     // Ensure status is set to 'in_progress' by default for proper counting in statistics
     const status = goalData.status || 'in_progress';
-    
+
     const goal: Goal = {
       ...goalData,
       status,
@@ -781,49 +789,49 @@ export class MemStorage implements IStorage {
       createdAt: now
     };
     this.goals.set(id, goal);
-    
+
     // Award XP for creating a goal
     await this.addUserXP(userId, 50, "goals_created", "Created a new career goal");
-    
+
     // Force statistics cache refresh when creating a new goal
     const userStatsCacheKey = `user-stats-${userId}`;
     this.cache.delete(userStatsCacheKey);
     console.log(`Deleted stats cache for user ${userId} on goal creation`);
-    
+
     return goal;
   }
 
   async updateGoal(id: number, goalData: Partial<Goal>): Promise<Goal | undefined> {
     const goal = this.goals.get(id);
     if (!goal) return undefined;
-    
+
     // Check if the goal is being completed
     const completingGoal = !goal.completed && goalData.completed === true;
-    
+
     const updatedGoal = { ...goal, ...goalData };
-    
+
     // If completing the goal, set completedAt
     if (completingGoal) {
       updatedGoal.completedAt = new Date();
       updatedGoal.progress = 100;
-      
+
       // Make sure to set the status to 'completed' as well
       updatedGoal.status = 'completed';
       updatedGoal.completed = true;
-      
+
       // Award XP for completing a goal
       await this.addUserXP(goal.userId, goal.xpReward, "goals_completed", `Completed goal: ${goal.title}`);
-      
+
       // Force statistics cache refresh when completing a goal
       const userStatsCacheKey = `user-stats-${goal.userId}`;
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${goal.userId} on goal completion`);
     }
-    
+
     // Also check if the status is being set to 'completed' directly
     if (goalData.status === 'completed' && !updatedGoal.completed) {
       updatedGoal.completed = true;
-      
+
       // Force statistics cache refresh when marking a goal as completed
       const userStatsCacheKey = `user-stats-${goal.userId}`;
       this.cache.delete(userStatsCacheKey);
@@ -831,7 +839,7 @@ export class MemStorage implements IStorage {
       updatedGoal.completedAt = updatedGoal.completedAt || new Date();
       updatedGoal.progress = 100;
     }
-    
+
     this.goals.set(id, updatedGoal);
     return updatedGoal;
   }
@@ -840,23 +848,23 @@ export class MemStorage implements IStorage {
     // Get the goal first to know which user it belongs to
     const goal = this.goals.get(id);
     if (!goal) return false;
-    
+
     // Store the userId for cache invalidation
     const userId = goal.userId;
-    
+
     // Delete the goal
     const result = this.goals.delete(id);
-    
+
     // If successfully deleted, invalidate the cache
     if (result) {
       const userStatsCacheKey = `user-stats-${userId}`;
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${userId} on goal deletion`);
     }
-    
+
     return result;
   }
-  
+
   // Work history operations
   async getWorkHistory(userId: number): Promise<WorkHistory[]> {
     return Array.from(this.workHistory.values())
@@ -878,30 +886,30 @@ export class MemStorage implements IStorage {
       createdAt: now
     };
     this.workHistory.set(id, workHistoryItem);
-    
+
     // Award XP for adding work history
     await this.addUserXP(userId, 75, "work_history_added", "Added work experience");
-    
+
     // Invalidate the role insights cache for this user
     const roleInsightsCacheKey = `role_insights_${userId}`;
     await this.deleteCachedData(roleInsightsCacheKey);
     console.log(`Invalidated role insights cache for user ${userId} on work history creation`);
-    
+
     return workHistoryItem;
   }
 
   async updateWorkHistoryItem(id: number, itemData: Partial<WorkHistory>): Promise<WorkHistory | undefined> {
     const item = this.workHistory.get(id);
     if (!item) return undefined;
-    
+
     const updatedItem = { ...item, ...itemData };
     this.workHistory.set(id, updatedItem);
-    
+
     // Invalidate the role insights cache for this user
     const roleInsightsCacheKey = `role_insights_${item.userId}`;
     await this.deleteCachedData(roleInsightsCacheKey);
     console.log(`Invalidated role insights cache for user ${item.userId} on work history update`);
-    
+
     return updatedItem;
   }
 
@@ -909,20 +917,20 @@ export class MemStorage implements IStorage {
     // Get the work history item first to know which user it belongs to
     const item = this.workHistory.get(id);
     if (!item) return false;
-    
+
     // Delete the work history item
     const result = this.workHistory.delete(id);
-    
+
     // If successfully deleted, invalidate the cache
     if (result) {
       const roleInsightsCacheKey = `role_insights_${item.userId}`;
       await this.deleteCachedData(roleInsightsCacheKey);
       console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
     }
-    
+
     return result;
   }
-  
+
   // Resume operations
   async getResumes(userId: number): Promise<Resume[]> {
     return Array.from(this.resumes.values())
@@ -945,7 +953,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.resumes.set(id, resume);
-    
+
     // Check if this is the first resume for the user
     const userResumes = await this.getResumes(userId);
     if (userResumes.length === 1) {
@@ -955,14 +963,14 @@ export class MemStorage implements IStorage {
       // Award XP for creating additional resume
       await this.addUserXP(userId, 50, "resume_created", "Created a new resume");
     }
-    
+
     return resume;
   }
 
   async updateResume(id: number, resumeData: Partial<Resume>): Promise<Resume | undefined> {
     const resume = this.resumes.get(id);
     if (!resume) return undefined;
-    
+
     const updatedResume = { 
       ...resume, 
       ...resumeData,
@@ -975,7 +983,7 @@ export class MemStorage implements IStorage {
   async deleteResume(id: number): Promise<boolean> {
     return this.resumes.delete(id);
   }
-  
+
   // Cover letter operations
   async getCoverLetters(userId: number): Promise<CoverLetter[]> {
     return Array.from(this.coverLetters.values())
@@ -998,17 +1006,17 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.coverLetters.set(id, coverLetter);
-    
+
     // Award XP for creating a cover letter
     await this.addUserXP(userId, 75, "cover_letter_created", "Created a new cover letter");
-    
+
     return coverLetter;
   }
 
   async updateCoverLetter(id: number, letterData: Partial<CoverLetter>): Promise<CoverLetter | undefined> {
     const letter = this.coverLetters.get(id);
     if (!letter) return undefined;
-    
+
     const updatedLetter = { 
       ...letter, 
       ...letterData,
@@ -1021,7 +1029,7 @@ export class MemStorage implements IStorage {
   async deleteCoverLetter(id: number): Promise<boolean> {
     return this.coverLetters.delete(id);
   }
-  
+
   // Interview operations
   async getInterviewQuestions(category?: string): Promise<InterviewQuestion[]> {
     const questions = Array.from(this.interviewQuestions.values());
@@ -1055,10 +1063,10 @@ export class MemStorage implements IStorage {
       practiceDate: now
     };
     this.interviewPractice.set(id, interviewPractice);
-    
+
     // Award XP for practicing interview questions
     await this.addUserXP(userId, 25, "interview_practice", "Practiced an interview question");
-    
+
     return interviewPractice;
   }
 
@@ -1067,12 +1075,12 @@ export class MemStorage implements IStorage {
       .filter(practice => practice.userId === userId)
       .sort((a, b) => new Date(b.practiceDate).getTime() - new Date(a.practiceDate).getTime());
   }
-  
+
   // Achievement operations
   async getAchievements(): Promise<Achievement[]> {
     return Array.from(this.achievements.values());
   }
-  
+
   // Certification operations
   async getCertifications(userId: number): Promise<Certification[]> {
     return Array.from(this.certifications.values())
@@ -1100,17 +1108,17 @@ export class MemStorage implements IStorage {
       credentialUrl: certification.credentialUrl || null
     };
     this.certifications.set(id, certificationItem);
-    
+
     // Award XP for adding a certification
     await this.addUserXP(userId, 100, "certification_added", "Added professional certification");
-    
+
     return certificationItem;
   }
 
   async updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined> {
     const certification = this.certifications.get(id);
     if (!certification) return undefined;
-    
+
     const now = new Date();
     const updatedCertification = { 
       ...certification, 
@@ -1124,7 +1132,7 @@ export class MemStorage implements IStorage {
   async deleteCertification(id: number): Promise<boolean> {
     return this.certifications.delete(id);
   }
-  
+
   // User Personal Achievements operations
   async getUserPersonalAchievements(userId: number): Promise<UserPersonalAchievement[]> {
     return Array.from(this.userPersonalAchievements.values())
@@ -1152,24 +1160,24 @@ export class MemStorage implements IStorage {
       skills: achievement.skills || null
     };
     this.userPersonalAchievements.set(id, achievementItem);
-    
+
     // Award XP for adding a personal achievement
     await this.addUserXP(userId, 75, "personal_achievement_added", "Added personal achievement");
-    
+
     return achievementItem;
   }
 
   async updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined> {
     const achievement = this.userPersonalAchievements.get(id);
     if (!achievement) return undefined;
-    
+
     const now = new Date();
     const updatedAchievement = { 
       ...achievement, 
       ...achievementData,
       updatedAt: now 
     };
-    
+
     this.userPersonalAchievements.set(id, updatedAchievement);
     return updatedAchievement;
   }
@@ -1181,7 +1189,7 @@ export class MemStorage implements IStorage {
   async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {
     const userAchievementRecords = Array.from(this.userAchievements.values())
       .filter(ua => ua.userId === userId);
-    
+
     return userAchievementRecords.map(record => {
       const achievement = this.achievements.get(record.achievementId);
       return {
@@ -1196,14 +1204,14 @@ export class MemStorage implements IStorage {
     const userAchievements = await this.getUserAchievements(userId);
     const earnedAchievementIds = userAchievements.map(a => a.id);
     const newlyEarnedAchievements: Achievement[] = [];
-    
+
     // Check each achievement that hasn't been earned yet
     for (const achievement of allAchievements) {
       if (earnedAchievementIds.includes(achievement.id)) continue;
-      
+
       // Check if user meets the requirements
       let meetsRequirements = false;
-      
+
       switch (achievement.requiredAction) {
         case "resumes_created":
           const resumes = await this.getResumes(userId);
@@ -1219,7 +1227,7 @@ export class MemStorage implements IStorage {
           break;
         // Add more achievement checks as needed
       }
-      
+
       if (meetsRequirements) {
         // Award the achievement
         const userAchievementId = this.userAchievementIdCounter++;
@@ -1231,17 +1239,17 @@ export class MemStorage implements IStorage {
           earnedAt: now
         };
         this.userAchievements.set(userAchievementId, userAchievement);
-        
+
         // Award XP for earning an achievement
         await this.addUserXP(userId, achievement.xpReward, "achievement_earned", `Earned achievement: ${achievement.name}`);
-        
+
         newlyEarnedAchievements.push(achievement);
       }
     }
-    
+
     return newlyEarnedAchievements;
   }
-  
+
   // AI Coach operations
   async getAiCoachConversations(userId: number): Promise<AiCoachConversation[]> {
     return Array.from(this.aiCoachConversations.values())
@@ -1281,7 +1289,7 @@ export class MemStorage implements IStorage {
       timestamp: now
     };
     this.aiCoachMessages.set(id, aiCoachMessage);
-    
+
     // If it's a user message, add a small XP reward
     if (message.isUser) {
       const conversation = await this.getAiCoachConversation(message.conversationId);
@@ -1289,10 +1297,10 @@ export class MemStorage implements IStorage {
         await this.addUserXP(conversation.userId, 10, "ai_coach_interaction", "Interacted with AI Coach");
       }
     }
-    
+
     return aiCoachMessage;
   }
-  
+
   // XP History operations
   async getXpHistory(userId: number): Promise<XpHistory[]> {
     return Array.from(this.xpHistory.values())
@@ -1327,7 +1335,7 @@ export class MemStorage implements IStorage {
   async markContactMessageAsRead(id: number): Promise<ContactMessage | undefined> {
     const message = this.contactMessages.get(id);
     if (!message) return undefined;
-    
+
     const updatedMessage = { ...message, read: true };
     this.contactMessages.set(id, updatedMessage);
     return updatedMessage;
@@ -1336,12 +1344,12 @@ export class MemStorage implements IStorage {
   async markContactMessageAsArchived(id: number): Promise<ContactMessage | undefined> {
     const message = this.contactMessages.get(id);
     if (!message) return undefined;
-    
+
     const updatedMessage = { ...message, archived: true };
     this.contactMessages.set(id, updatedMessage);
     return updatedMessage;
   }
-  
+
   // Stats operations
   async getUserStatistics(userId: number): Promise<{
     activeGoals: number;
@@ -1353,21 +1361,21 @@ export class MemStorage implements IStorage {
   }> {
     // Use cache for expensive statistics calculations
     const cacheKey = `user-stats-${userId}`;
-    
+
     // Check if cached stats are available
     const cachedStats = this.cache.get(cacheKey);
     if (cachedStats) {
       console.log(`Using cached statistics for user ${userId}`);
       return cachedStats;
     }
-    
+
     console.log(`Calculating new statistics for user ${userId}`);
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
-    
+
     // Determine if this is a university user
     const isUniversityUser = user.userType === "university_student" || user.userType === "university_admin";
-    
+
     const goals = await this.getGoals(userId);
     // Count goals that are in_progress and not completed, or have another active status
     console.log("All goals for user:", JSON.stringify(goals.map(g => ({ id: g.id, title: g.title, status: g.status, completed: g.completed }))));
@@ -1378,18 +1386,18 @@ export class MemStorage implements IStorage {
       console.log(`Goal ${g.id} "${g.title}" - status: ${g.status}, completed: ${g.completed}, isActive: ${isActive}`);
       return isActive;
     }).length;
-    
+
     const achievements = await this.getUserAchievements(userId);
     const achievementsCount = achievements.length;
-    
+
     const resumes = await this.getResumes(userId);
     const resumesCount = resumes.length;
-    
+
     // Count pending tasks (active goals with due date in the next week)
     const now = new Date();
     const oneWeekFromNow = new Date();
     oneWeekFromNow.setDate(now.getDate() + 7);
-    
+
     // Start with goals that have pending due dates
     let pendingTasks = goals.filter(g => {
       if (g.completed) return false;
@@ -1397,24 +1405,24 @@ export class MemStorage implements IStorage {
       const dueDate = new Date(g.dueDate);
       return dueDate <= oneWeekFromNow;
     }).length;
-    
+
     // Count upcoming interviews (stages with status "scheduled" and not completed)
     // First get all interview processes for this user
     const processes = await this.getInterviewProcesses(userId);
-    
+
     // Track all interview stages that are scheduled
     let upcomingInterviews = 0;
-    
+
     // For each process, get its stages and check for scheduled ones
     for (const process of processes) {
       const stages = await this.getInterviewStages(process.id);
-      
+
       // Count stages that are scheduled but not completed
       const scheduledStages = stages.filter(stage => {
         // Check if stage has a scheduled date in the future and is not completed
         const now = new Date();
         const stageDate = stage.scheduledDate ? new Date(stage.scheduledDate) : null;
-        
+
         // Scheduled date must exist, be in the future, and the stage must not be completed
         return stageDate && 
                stageDate >= now &&
@@ -1422,20 +1430,20 @@ export class MemStorage implements IStorage {
                stage.outcome !== "passed" &&
                stage.outcome !== "failed";
       });
-      
+
       upcomingInterviews += scheduledStages.length;
-      
+
       // Get and count pending followup actions for this process
       const followups = await this.getFollowupActions(process.id);
       const pendingFollowups = followups.filter(followup => !followup.completed);
-      
+
       // Add pending followups to the pending tasks count
       pendingTasks += pendingFollowups.length;
     }
-    
+
     // Default empty XP data for regular users
     let monthlyXpArray: { month: string; xp: number }[] = [];
-    
+
     // Get the month names for the past 6 months
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
@@ -1444,18 +1452,18 @@ export class MemStorage implements IStorage {
       const monthName = d.toLocaleString('default', { month: 'short' });
       months.push(monthName);
     }
-    
+
     // Only process XP history for university users
     if (isUniversityUser) {
       // Calculate monthly XP for the past 6 months
       const xpHistory = await this.getXpHistory(userId);
       const monthlyXp: { [key: string]: number } = {};
-      
+
       // Initialize monthlyXp object with zeros
       months.forEach(month => {
         monthlyXp[month] = 0;
       });
-      
+
       // Calculate XP for each month
       xpHistory.forEach(record => {
         const recordMonth = new Date(record.earnedAt).toLocaleString('default', { month: 'short' });
@@ -1463,7 +1471,7 @@ export class MemStorage implements IStorage {
           monthlyXp[recordMonth] = (monthlyXp[recordMonth] || 0) + record.amount;
         }
       });
-      
+
       // Convert to array format
       monthlyXpArray = months.map(month => ({
         month,
@@ -1476,7 +1484,7 @@ export class MemStorage implements IStorage {
         xp: 0
       }));
     }
-    
+
     const stats = {
       activeGoals,
       achievementsCount,
@@ -1485,16 +1493,16 @@ export class MemStorage implements IStorage {
       upcomingInterviews,
       monthlyXp: monthlyXpArray
     };
-    
+
     // Cache the statistics for 30 seconds to ensure more frequent updates
     this.cache.set(cacheKey, stats);
     setTimeout(() => {
       this.cache.delete(cacheKey);
     }, 30000); // 30 seconds instead of 5 minutes
-    
+
     return stats;
   }
-  
+
   // System monitoring methods
   async getSystemMetrics(): Promise<{
     status: string;
@@ -1510,7 +1518,7 @@ export class MemStorage implements IStorage {
       lastChecked: new Date().toLocaleTimeString()
     };
   }
-  
+
   async getComponentStatus(): Promise<{
     id: string;
     name: string;
@@ -1561,7 +1569,7 @@ export class MemStorage implements IStorage {
     const timestamp = now.toLocaleTimeString();
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000).toLocaleTimeString();
     const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000).toLocaleTimeString();
-    
+
     return [
       {
         id: "auth-service",
@@ -1866,7 +1874,7 @@ export class MemStorage implements IStorage {
       }
     ];
   }
-  
+
   async getRecentAlerts(): Promise<{
     title: string;
     description: string;
@@ -1889,7 +1897,7 @@ export class MemStorage implements IStorage {
       }
     ];
   }
-  
+
   // Interview Process Tracking operations
   async getInterviewProcesses(userId: number): Promise<InterviewProcess[]> {
     return Array.from(this.interviewProcesses.values())
@@ -1913,17 +1921,17 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.interviewProcesses.set(id, interviewProcess);
-    
+
     // Award XP for creating a new interview process
     await this.addUserXP(userId, 50, "interview_process_created", "Started tracking a new interview process");
-    
+
     return interviewProcess;
   }
 
   async updateInterviewProcess(id: number, processData: Partial<InterviewProcess>): Promise<InterviewProcess | undefined> {
     const process = this.interviewProcesses.get(id);
     if (!process) return undefined;
-    
+
     const now = new Date();
     const updatedProcess = { 
       ...process, 
@@ -1931,12 +1939,12 @@ export class MemStorage implements IStorage {
       updatedAt: now 
     };
     this.interviewProcesses.set(id, updatedProcess);
-    
+
     // Award XP for updating job status if status changed
     if (processData.status && processData.status !== process.status) {
       await this.addUserXP(process.userId, 25, "interview_status_updated", `Updated job status to ${processData.status}`);
     }
-    
+
     return updatedProcess;
   }
 
@@ -1944,17 +1952,17 @@ export class MemStorage implements IStorage {
     // Also delete all related stages and followup actions
     const process = this.interviewProcesses.get(id);
     if (!process) return false;
-    
+
     const stages = await this.getInterviewStages(id);
     for (const stage of stages) {
       await this.deleteInterviewStage(stage.id);
     }
-    
+
     const followupActions = await this.getFollowupActions(id);
     for (const action of followupActions) {
       await this.deleteFollowupAction(action.id);
     }
-    
+
     return this.interviewProcesses.delete(id);
   }
 
@@ -1980,7 +1988,7 @@ export class MemStorage implements IStorage {
     if (!process) {
       throw new Error(`Interview process with ID ${processId} not found`);
     }
-    
+
     const id = this.interviewStageIdCounter++;
     const now = new Date();
     const interviewStage: InterviewStage = {
@@ -1990,41 +1998,41 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     };
-    
+
     console.log(`Creating interview stage: ${JSON.stringify(interviewStage)}`);
-    
+
     this.interviewStages.set(id, interviewStage);
-    
+
     // Award XP to the user
     await this.addUserXP(process.userId, 40, "interview_stage_added", `Added interview stage: ${stageData.type}`);
-    
+
     // If this stage has a scheduled date in the future, it should affect upcoming interviews
     if (stageData.scheduledDate) {
       const stageDate = new Date(stageData.scheduledDate);
       const now = new Date();
       if (stageDate >= now) {
         console.log(`Stage has future date, should increment upcoming interviews: ${stageDate}`);
-        
+
         // Directly update the statistics cache to have correct upcoming interviews count
         const userStatsCacheKey = `user-stats-${process.userId}`;
         this.cache.delete(userStatsCacheKey);
       }
     }
-    
+
     return interviewStage;
   }
 
   async updateInterviewStage(id: number, stageData: Partial<InterviewStage>): Promise<InterviewStage | undefined> {
     const stage = this.interviewStages.get(id);
     if (!stage) return undefined;
-    
+
     const currentDate = new Date();
     const updatedStage = { 
       ...stage, 
       ...stageData,
       updatedAt: currentDate 
     };
-    
+
     // If marking as completed and wasn't completed before
     if (stageData.completedDate && !stage.completedDate) {
       // Get the process to award XP to the user
@@ -2033,9 +2041,9 @@ export class MemStorage implements IStorage {
         await this.addUserXP(process.userId, 75, "interview_stage_completed", `Completed interview stage: ${stage.type}`);
       }
     }
-    
+
     this.interviewStages.set(id, updatedStage);
-    
+
     // Invalidate user statistics cache since this affects upcoming interviews counts
     if (stageData.scheduledDate || stageData.completedDate || stageData.outcome) {
       // Get the process to invalidate the cache for the correct user
@@ -2046,7 +2054,7 @@ export class MemStorage implements IStorage {
         this.cache.delete(userStatsCacheKey);
       }
     }
-    
+
     return updatedStage;
   }
 
@@ -2054,29 +2062,29 @@ export class MemStorage implements IStorage {
     // Also delete related followup actions
     const stage = this.interviewStages.get(id);
     if (!stage) return false;
-    
+
     // Get the process to find user id
     const process = await this.getInterviewProcess(stage.processId);
-    
+
     const followupActions = Array.from(this.followupActions.values())
       .filter(action => action.stageId === id);
-    
+
     for (const action of followupActions) {
       await this.deleteFollowupAction(action.id);
     }
-    
+
     // Invalidate the user statistics cache if the stage was scheduled or this was an upcoming interview
     if (process && stage.scheduledDate) {
       const currentTime = new Date();
       const stageDate = new Date(stage.scheduledDate);
-      
+
       if (stageDate >= currentTime && !stage.completedDate) {
         // This was an upcoming interview - invalidate stats
         const userStatsCacheKey = `user-stats-${process.userId}`;
         this.cache.delete(userStatsCacheKey);
       }
     }
-    
+
     return this.interviewStages.delete(id);
   }
 
@@ -2084,11 +2092,11 @@ export class MemStorage implements IStorage {
   async getFollowupActions(processId: number, stageId?: number): Promise<FollowupAction[]> {
     let actions = Array.from(this.followupActions.values())
       .filter(action => action.processId === processId);
-    
+
     if (stageId !== undefined) {
       actions = actions.filter(action => action.stageId === stageId);
     }
-    
+
     return actions.sort((a, b) => {
       // Sort by due date if available, otherwise by creation date
       const aDate = a.dueDate || a.createdAt;
@@ -2096,17 +2104,17 @@ export class MemStorage implements IStorage {
       return new Date(aDate).getTime() - new Date(bDate).getTime();
     });
   }
-  
+
   async getFollowupActionsByUser(userId: number): Promise<FollowupAction[]> {
     // First, get all processes belonging to this user
     const userProcesses = Array.from(this.interviewProcesses.values())
       .filter(process => process.userId === userId)
       .map(process => process.id);
-    
+
     // Then, get all followup actions for these processes
     const actions = Array.from(this.followupActions.values())
       .filter(action => userProcesses.includes(action.processId));
-    
+
     return actions.sort((a, b) => {
       // Sort by due date if available, otherwise by creation date
       const aDate = a.dueDate || a.createdAt;
@@ -2132,7 +2140,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.followupActions.set(id, followupAction);
-    
+
     // Get the process to award XP to the user and invalidate cache
     const process = await this.getInterviewProcess(processId);
     if (process) {
@@ -2140,17 +2148,17 @@ export class MemStorage implements IStorage {
       const userStatsCacheKey = `user-stats-${process.userId}`;
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${process.userId} on followup action creation`);
-      
+
       await this.addUserXP(process.userId, 25, "followup_action_created", `Added followup action: ${actionData.type}`);
     }
-    
+
     return followupAction;
   }
 
   async updateFollowupAction(id: number, actionData: Partial<FollowupAction>): Promise<FollowupAction | undefined> {
     const action = this.followupActions.get(id);
     if (!action) return undefined;
-    
+
     const now = new Date();
     const updatedAction = { 
       ...action, 
@@ -2164,12 +2172,12 @@ export class MemStorage implements IStorage {
   async completeFollowupAction(id: number): Promise<FollowupAction | undefined> {
     const action = this.followupActions.get(id);
     if (!action) return undefined;
-    
+
     if (action.completed) {
       // Already completed
       return action;
     }
-    
+
     const now = new Date();
     const updatedAction = {
       ...action,
@@ -2178,7 +2186,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.followupActions.set(id, updatedAction);
-    
+
     // Get the process to award XP to the user
     const process = await this.getInterviewProcess(action.processId);
     if (process) {
@@ -2186,22 +2194,22 @@ export class MemStorage implements IStorage {
       const userStatsCacheKey = `user-stats-${process.userId}`;
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${process.userId} on followup action completion`);
-      
+
       await this.addUserXP(process.userId, 50, "followup_action_completed", `Completed followup action: ${action.type}`);
     }
-    
+
     return updatedAction;
   }
 
   async uncompleteFollowupAction(id: number): Promise<FollowupAction | undefined> {
     const action = this.followupActions.get(id);
     if (!action) return undefined;
-    
+
     if (!action.completed) {
       // Already uncompleted
       return action;
     }
-    
+
     const now = new Date();
     const updatedAction = {
       ...action,
@@ -2210,7 +2218,7 @@ export class MemStorage implements IStorage {
       updatedAt: now
     };
     this.followupActions.set(id, updatedAction);
-    
+
     // Get the process to invalidate the user statistics cache
     const process = await this.getInterviewProcess(action.processId);
     if (process) {
@@ -2219,7 +2227,7 @@ export class MemStorage implements IStorage {
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${process.userId} on followup action uncompleted`);
     }
-    
+
     return updatedAction;
   }
 
@@ -2227,20 +2235,20 @@ export class MemStorage implements IStorage {
     // Get the action first to get the process and user info
     const action = this.followupActions.get(id);
     if (!action) return false;
-    
+
     // Get the process to invalidate the user statistics cache
     const process = await this.getInterviewProcess(action.processId);
-    
+
     // Delete the action
     const result = this.followupActions.delete(id);
-    
+
     // Clear stats cache if we found the process and user
     if (result && process) {
       const userStatsCacheKey = `user-stats-${process.userId}`;
       this.cache.delete(userStatsCacheKey);
       console.log(`Deleted stats cache for user ${process.userId} on followup action deletion`);
     }
-    
+
     return result;
   }
 
@@ -2256,7 +2264,7 @@ export class MemStorage implements IStorage {
       (user) => user.verificationToken === token
     );
   }
-  
+
   async getUserByPendingEmailToken(token: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.pendingEmailToken === token
@@ -2294,7 +2302,7 @@ export class MemStorage implements IStorage {
       verificationToken: verificationInfo.verificationToken === null ? undefined : verificationInfo.verificationToken || user.verificationToken,
       verificationExpires: verificationInfo.verificationExpires === null ? undefined : verificationInfo.verificationExpires || user.verificationExpires,
     };
-    
+
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
@@ -2308,26 +2316,26 @@ export class MemStorage implements IStorage {
       password: newPassword,
       passwordLastChanged: new Date()
     };
-    
+
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
-  
+
   // Career Mentor Chat operations
   async getMentorChatConversations(userId: number): Promise<MentorChatConversation[]> {
     return Array.from(this.mentorChatConversations.values())
       .filter(conversation => conversation.userId === userId)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
-  
+
   async getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined> {
     return this.mentorChatConversations.get(id);
   }
-  
+
   async createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation> {
     const id = this.mentorChatConversationIdCounter++;
     const now = new Date();
-    
+
     const newConversation: MentorChatConversation = {
       ...conversation,
       id,
@@ -2335,48 +2343,48 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     };
-    
+
     this.mentorChatConversations.set(id, newConversation);
-    
+
     // Award XP for starting a new conversation with the mentor
     await this.addUserXP(userId, 25, "mentor_chat_started", "Started a conversation with the Career Mentor");
-    
+
     return newConversation;
   }
-  
+
   async getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]> {
     return Array.from(this.mentorChatMessages.values())
       .filter(message => message.conversationId === conversationId)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
-  
+
   async addMentorChatMessage(message: InsertMentorChatMessage): Promise<MentorChatMessage> {
     const id = this.mentorChatMessageIdCounter++;
     const now = new Date();
-    
+
     const newMessage: MentorChatMessage = {
       ...message,
       id,
       createdAt: now
     };
-    
+
     this.mentorChatMessages.set(id, newMessage);
-    
+
     // Update the conversation's updatedAt timestamp
     const conversation = await this.getMentorChatConversation(message.conversationId);
     if (conversation) {
       conversation.updatedAt = now;
       this.mentorChatConversations.set(conversation.id, conversation);
-      
+
       // Award XP for user messages only (not system or assistant)
       if (message.role === 'user') {
         await this.addUserXP(conversation.userId, 5, "mentor_chat_message", "Engaged with the Career Mentor");
       }
     }
-    
+
     return newMessage;
   }
-  
+
   // Recommendation operations
   async getRecommendations(userId: number): Promise<Recommendation[]> {
     return Array.from(this.recommendations.values())
@@ -2413,7 +2421,7 @@ export class MemStorage implements IStorage {
   async updateRecommendation(id: number, recommendationData: Partial<Recommendation>): Promise<Recommendation | undefined> {
     const recommendation = this.recommendations.get(id);
     if (!recommendation) return undefined;
-    
+
     const updatedRecommendation = { ...recommendation, ...recommendationData };
     this.recommendations.set(id, updatedRecommendation);
     return updatedRecommendation;
@@ -2422,19 +2430,19 @@ export class MemStorage implements IStorage {
   async completeRecommendation(id: number): Promise<Recommendation | undefined> {
     const recommendation = this.recommendations.get(id);
     if (!recommendation) return undefined;
-    
+
     const now = new Date();
     const completedRecommendation = {
       ...recommendation,
       completed: true,
       completedAt: now
     };
-    
+
     this.recommendations.set(id, completedRecommendation);
-    
+
     // Award XP for completing a recommendation
     await this.addUserXP(recommendation.userId, 15, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
-    
+
     return completedRecommendation;
   }
 
@@ -2442,7 +2450,7 @@ export class MemStorage implements IStorage {
     // Get the date for today's recommendations
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Check if we already generated recommendations today
     const existingRecommendations = await this.getRecommendations(userId);
     const todaysRecommendations = existingRecommendations.filter(rec => {
@@ -2450,30 +2458,30 @@ export class MemStorage implements IStorage {
       recDate.setHours(0, 0, 0, 0);
       return recDate.getTime() === today.getTime();
     });
-    
+
     // If we already have recommendations for today, return them
     if (todaysRecommendations.length > 0) {
       return todaysRecommendations;
     }
-    
+
     // First, gather all user context data for AI recommendations
     // Get user data
     const user = await this.getUser(userId);
     if (!user) {
       throw new Error(`User not found with ID ${userId}`);
     }
-    
+
     // Get user's active goals
     const goals = await this.getGoals(userId);
     const activeGoals = goals.filter(goal => !goal.completed);
-    
+
     // Get user's interview processes
     const interviewProcesses = await this.getInterviewProcesses(userId);
     const activeProcesses = interviewProcesses.filter(process => process.status === "in_progress");
-    
+
     // Get user's work history
     const workHistory = await this.getWorkHistory(userId);
-    
+
     // Get upcoming stages
     const upcomingStages: InterviewStage[] = [];
     for (const process of activeProcesses) {
@@ -2481,7 +2489,7 @@ export class MemStorage implements IStorage {
       const upcoming = stages.filter(stage => stage.completedDate === null && stage.scheduledDate !== null);
       upcomingStages.push(...upcoming);
     }
-    
+
     // Get pending followup actions
     const pendingActions: FollowupAction[] = [];
     for (const process of activeProcesses) {
@@ -2493,7 +2501,7 @@ export class MemStorage implements IStorage {
     try {
       // Import the OpenAI recommendation generator
       const { generateDailyAIRecommendations } = await import('./utils/openai');
-      
+
       // Generate AI-powered recommendations
       const aiRecommendations = await generateDailyAIRecommendations({
         userId,
@@ -2502,7 +2510,7 @@ export class MemStorage implements IStorage {
         interviewProcesses: activeProcesses,
         workHistory
       });
-      
+
       // Create recommendation objects from AI suggestions
       const newRecommendations: InsertRecommendation[] = [];
 
@@ -2515,7 +2523,7 @@ export class MemStorage implements IStorage {
           relatedEntityType: "system"
         });
       });
-      
+
       // Add critical goal-based recommendations
       if (activeGoals.length > 0) {
         activeGoals.forEach(goal => {
@@ -2530,14 +2538,14 @@ export class MemStorage implements IStorage {
           }
         });
       }
-      
+
       // Add critical upcoming interview recommendations
       if (upcomingStages.length > 0) {
         upcomingStages.forEach(stage => {
           if (stage.scheduledDate) {
             const stageDate = new Date(stage.scheduledDate);
             const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
+
             if (daysDiff <= 3) { // If very soon (3 days)
               const process = activeProcesses.find(p => p.id === stage.processId);
               if (process) {
@@ -2553,14 +2561,14 @@ export class MemStorage implements IStorage {
           }
         });
       }
-      
+
       // Add critical pending followup recommendations
       if (pendingActions.length > 0) {
         pendingActions.forEach(action => {
           if (action.dueDate) {
             const dueDate = new Date(action.dueDate);
             const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
+
             if (daysDiff <= 1) { // If due today or tomorrow
               newRecommendations.push({
                 userId,
@@ -2573,20 +2581,20 @@ export class MemStorage implements IStorage {
           }
         });
       }
-      
+
       // Create all the recommendations in the database
       const createdRecommendations: Recommendation[] = [];
       for (const rec of newRecommendations) {
         createdRecommendations.push(await this.createRecommendation(userId, rec));
       }
-      
+
       return createdRecommendations;
     } catch (error) {
       console.error("Error generating AI recommendations:", error);
-      
+
       // Fallback to previous recommendation generation logic if AI fails
       const newRecommendations: InsertRecommendation[] = [];
-      
+
       // 1. Goal-based recommendations
       if (activeGoals.length > 0) {
         // For each goal, create a recommendation
@@ -2618,7 +2626,7 @@ export class MemStorage implements IStorage {
           relatedEntityType: "system"
         });
       }
-      
+
       // 2. Interview process recommendations
       if (activeProcesses.length > 0) {
         // For each process, create recommendations
@@ -2632,14 +2640,14 @@ export class MemStorage implements IStorage {
           });
         });
       }
-      
+
       // 3. Upcoming interview recommendations
       if (upcomingStages.length > 0) {
         upcomingStages.forEach(stage => {
           if (stage.scheduledDate) {
             const stageDate = new Date(stage.scheduledDate);
             const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
+
             if (daysDiff <= 7) { // If within a week
               const process = activeProcesses.find(p => p.id === stage.processId);
               if (process) {
@@ -2655,14 +2663,14 @@ export class MemStorage implements IStorage {
           }
         });
       }
-      
+
       // 4. Pending followup recommendations
       if (pendingActions.length > 0) {
         pendingActions.forEach(action => {
           if (action.dueDate) {
             const dueDate = new Date(action.dueDate);
             const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-            
+
             if (daysDiff <= 3) { // If due within 3 days
               newRecommendations.push({
                 userId,
@@ -2675,7 +2683,7 @@ export class MemStorage implements IStorage {
           }
         });
       }
-      
+
       // 5. System recommendations
       // If less than 5 recommendations, add generic career development recommendations
       if (newRecommendations.length < 5) {
@@ -2687,12 +2695,12 @@ export class MemStorage implements IStorage {
           "Review and update the skills section of your profile",
           "Add a recent achievement to showcase your progress"
         ];
-        
+
         // Add random generic recommendations until we have at least 5
         while (newRecommendations.length < 5 && genericRecommendations.length > 0) {
           const randomIndex = Math.floor(Math.random() * genericRecommendations.length);
           const recommendation = genericRecommendations.splice(randomIndex, 1)[0];
-          
+
           newRecommendations.push({
             userId,
             text: recommendation,
@@ -2701,13 +2709,13 @@ export class MemStorage implements IStorage {
           });
         }
       }
-      
+
       // Create all the recommendations in the database
       const createdRecommendations: Recommendation[] = [];
       for (const rec of newRecommendations) {
         createdRecommendations.push(await this.createRecommendation(userId, rec));
       }
-      
+
       return createdRecommendations;
     }
   }
@@ -2716,17 +2724,17 @@ export class MemStorage implements IStorage {
     // Get today's date (start of the day)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     // Get all recommendations for the user
     const existingRecommendations = await this.getRecommendations(userId);
-    
+
     // Filter to get only today's recommendations
     const todaysRecommendations = existingRecommendations.filter(rec => {
       const recDate = new Date(rec.createdAt);
       recDate.setHours(0, 0, 0, 0);
       return recDate.getTime() === today.getTime();
     });
-    
+
     // Remove today's recommendations from the map
     for (const rec of todaysRecommendations) {
       this.recommendations.delete(rec.id);
@@ -2737,7 +2745,7 @@ export class MemStorage implements IStorage {
   async saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath> {
     const id = this.careerPathIdCounter++;
     const now = new Date();
-    
+
     const careerPath: CareerPath = {
       id,
       userId,
@@ -2746,21 +2754,45 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     };
-    
+
     this.careerPaths.set(id, careerPath);
     return careerPath;
   }
-  
+
   async getUserCareerPaths(userId: number): Promise<CareerPath[]> {
     return Array.from(this.careerPaths.values()).filter(path => path.userId === userId);
   }
-  
+
   async getCareerPath(id: number): Promise<CareerPath | undefined> {
     return this.careerPaths.get(id);
   }
-  
+
   async deleteCareerPath(id: number): Promise<boolean> {
     return this.careerPaths.delete(id);
+  }
+
+  // Support ticket functions
+  async getSupportTickets(filters?: any): Promise<any[]> {
+    // Implement your support ticket retrieval logic here
+    return [];
+  }
+
+  async getSupportTicket(id: number): Promise<any | undefined> {
+    // Implement your support ticket retrieval logic here
+    return undefined;
+  }
+
+  async updateSupportTicket(id: number, data: any): Promise<any> {
+    // Implement your support ticket update logic here
+    return {};
+  }
+
+  async createSupportTicket(data: any): Promise<any> {
+    const id = this.supportTicketIdCounter++;
+    const now = new Date();
+    const supportTicket = { ...data, id, createdAt: now };
+    this.supportTickets.set(id, supportTicket);
+    return supportTicket;
   }
 }
 
