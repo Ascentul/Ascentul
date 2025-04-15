@@ -3006,7 +3006,68 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
-  // Contact form endpoints
+  // Support ticket endpoints
+  apiRouter.post("/api/support", async (req: Request, res: Response) => {
+    try {
+      const { user_email, issue_type, description, attachment_url } = req.body;
+
+      if (!user_email || !issue_type || !description) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const ticketData = insertSupportTicketSchema.parse({
+        userEmail: user_email,
+        source: "marketing-site",
+        issueType: issue_type,
+        description,
+        attachmentUrl: attachment_url
+      });
+
+      const ticket = await storage.createSupportTicket(ticketData);
+      res.status(201).json(ticket);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid ticket data", errors: error.errors });
+      }
+      console.error("Error creating support ticket:", error);
+      res.status(500).json({ message: "Error creating support ticket" });
+    }
+  });
+
+  apiRouter.post("/api/in-app/support", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { issue_type, description, attachment_url } = req.body;
+      
+      // Get current user email from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      if (!issue_type || !description) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const ticketData = insertSupportTicketSchema.parse({
+        userEmail: user.email,
+        source: "in-app",
+        issueType: issue_type,
+        description,
+        attachmentUrl: attachment_url
+      });
+
+      const ticket = await storage.createSupportTicket(ticketData);
+      res.status(201).json(ticket);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid ticket data", errors: error.errors });
+      }
+      console.error("Error creating support ticket:", error);
+      res.status(500).json({ message: "Error creating support ticket" });
+    }
+  });
+
+  // Contact form endpoints 
   apiRouter.post("/contact", async (req: Request, res: Response) => {
     try {
       const validatedData = insertContactMessageSchema.parse(req.body);
