@@ -347,6 +347,11 @@ function App() {
             <SupportPage />
           </AdminRoute>
         </Route>
+        <Route path="/admin/support/:id">
+          <AdminRoute>
+            <SupportPage />
+          </AdminRoute>
+        </Route>
         <Route path="/admin">
           <AdminRoute>
             <AdminDashboard />

@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Eye } from 'lucide-react';
+import { useParams } from 'wouter';
 
 const ISSUE_TYPES = ["Bug", "Billing", "Feedback", "Feature Request", "Other"];
 const STATUS_TYPES = ["Open", "In Progress", "Resolved"];
@@ -35,6 +36,7 @@ export default function SupportPage() {
   const [issueType, setIssueType] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const params = useParams();
 
   const { data: tickets, isLoading } = useQuery({
     queryKey: ['supportTickets', source, issueType, status, search],
@@ -102,7 +104,7 @@ export default function SupportPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 {STATUS_TYPES.map(type => (
-                  <SelectItem key={type} value={type.toLowerCase()}>{type}</SelectItem>
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
