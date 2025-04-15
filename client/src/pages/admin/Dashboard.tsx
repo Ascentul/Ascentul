@@ -262,7 +262,7 @@ function SupportSection() {
   return (
     <div className="space-y-8">
       <SupportAnalytics />
-      
+
       <div className="space-y-4">
         <Card>
           <CardHeader>
