@@ -27,6 +27,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
+import SupportPage from "@/pages/admin/SupportPage";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -72,7 +73,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user } = useUser();
   const isAdmin = user?.userType === 'university_admin';
-  
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
@@ -123,7 +124,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
               </Link>
             </nav>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <Link 
               href="/career-dashboard"
@@ -144,7 +145,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
               </svg>
               <span>Career App</span>
             </Link>
-            
+
             {user && (
               <div className="flex items-center space-x-1">
                 <span className="text-sm text-foreground/60">{user.name}</span>
@@ -174,17 +175,17 @@ function App() {
 
   // Always show public pages at public routes, regardless of authentication
   const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test"].includes(location);
-  
+
   // Payment portal routes
   const isPaymentPortalRoute = location.startsWith("/payment-portal");
   const isCheckoutRoute = location.startsWith("/checkout");
   const isSubscriptionSuccessRoute = location === "/subscription-success";
-  
+
   // Onboarding and plan selection routes
   const isOnboardingRoute = location === "/onboarding";
   const isPlanSelectionRoute = location === "/plan-selection";
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
-  
+
   // Root path should show home page, not redirect
   if (location === "/" || location === "") {
     // Just navigate to /home for consistency
@@ -195,7 +196,7 @@ function App() {
   // Skip layout for auth routes
   const isAdminLoginRoute = location === "/admin-login";
   const isStaffLoginRoute = location === "/staff-login";
-  
+
   if (isSignInRoute) {
     return (
       <Switch>
@@ -203,7 +204,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   if (isSignUpRoute) {
     return (
       <Switch>
@@ -211,7 +212,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   if (isAdminLoginRoute) {
     return (
       <Switch>
@@ -219,7 +220,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   if (isStaffLoginRoute) {
     return (
       <Switch>
@@ -227,9 +228,9 @@ function App() {
       </Switch>
     );
   }
-  
+
   const isStaffSignupRoute = location === "/staff-signup";
-  
+
   if (isStaffSignupRoute) {
     return (
       <Switch>
@@ -270,7 +271,7 @@ function App() {
       </PublicLayout>
     );
   }
-  
+
   // Onboarding Flow Route
   if (isOnboardingRoute) {
     return (
@@ -283,7 +284,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   // Plan Selection Route
   if (isPlanSelectionRoute) {
     return (
@@ -296,7 +297,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   // Billing Cycle Route
   if (isBillingCycleRoute) {
     return (
@@ -331,7 +332,7 @@ function App() {
   }
 
   const isAdminRoute = (location.startsWith("/admin") && location !== "/admin-login") || location === "/admin-dashboard";
-  
+
   // Admin Dashboard has its own layout
   if (isAdminRoute) {
     return (
@@ -339,6 +340,11 @@ function App() {
         <Route path="/admin-dashboard">
           <AdminRoute>
             <AdminDashboard />
+          </AdminRoute>
+        </Route>
+        <Route path="/admin/support">
+          <AdminRoute>
+            <SupportPage />
           </AdminRoute>
         </Route>
         <Route path="/admin">
@@ -349,9 +355,9 @@ function App() {
       </Switch>
     );
   }
-  
+
   const isStaffRoute = (location.startsWith("/staff") && location !== "/staff-login") || location === "/staff-dashboard";
-  
+
   // Staff Dashboard has its own layout
   if (isStaffRoute) {
     return (
@@ -369,7 +375,7 @@ function App() {
       </Switch>
     );
   }
-  
+
   // Choose layout based on route
   const LayoutComponent = isUniversityRoute ? UniversityLayout : Layout;
 
@@ -452,7 +458,7 @@ function App() {
             <Account />
           </CareerRoute>
         </Route>
-        
+
         {/* University Edition Routes - Protected for university users */}
         <Route path="/university-dashboard">
           <UniversityRoute>
@@ -479,7 +485,7 @@ function App() {
             <LearningModules />
           </UniversityRoute>
         </Route>
-        
+
         {/* 404 Route */}
         <Route component={NotFound} />
       </Switch>

@@ -3067,7 +3067,73 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
 
-  // Contact form endpoints 
+  // Admin Support Ticket Routes
+apiRouter.get("/admin/support-tickets", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { source, issueType, status, search } = req.query;
+    
+    // Build query filters
+    const filters: any = {};
+    if (source && source !== 'all') filters.source = source;
+    if (issueType && issueType !== 'all') filters.issueType = issueType;
+    if (status && status !== 'all') filters.status = status;
+    
+    let tickets = await storage.getSupportTickets(filters);
+    
+    // Apply search filter if present
+    if (search) {
+      const searchStr = search.toString().toLowerCase();
+      tickets = tickets.filter((ticket: any) => (
+        (ticket.userEmail && ticket.userEmail.toLowerCase().includes(searchStr)) ||
+        ticket.description.toLowerCase().includes(searchStr)
+      ));
+    }
+    
+    res.status(200).json(tickets);
+  } catch (error) {
+    console.error("Error fetching support tickets:", error);
+    res.status(500).json({ message: "Error fetching support tickets" });
+  }
+});
+
+apiRouter.get("/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ticket = await storage.getSupportTicket(parseInt(id));
+    
+    if (!ticket) {
+      return res.status(404).json({ message: "Support ticket not found" });
+    }
+    
+    res.status(200).json(ticket);
+  } catch (error) {
+    console.error("Error fetching support ticket:", error);
+    res.status(500).json({ message: "Error fetching support ticket" });
+  }
+});
+
+apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status, internalNotes } = req.body;
+    
+    const ticket = await storage.updateSupportTicket(parseInt(id), {
+      status,
+      internalNotes
+    });
+    
+    if (!ticket) {
+      return res.status(404).json({ message: "Support ticket not found" });
+    }
+    
+    res.status(200).json(ticket);
+  } catch (error) {
+    console.error("Error updating support ticket:", error);
+    res.status(500).json({ message: "Error updating support ticket" });
+  }
+});
+
+// Contact form endpoints 
   apiRouter.post("/contact", async (req: Request, res: Response) => {
     try {
       const validatedData = insertContactMessageSchema.parse(req.body);
