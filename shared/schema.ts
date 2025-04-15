@@ -614,9 +614,34 @@ export const userPersonalAchievementsRelations = relations(userPersonalAchieveme
   }),
 }));
 
+// Support Tickets model
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userEmail: text("user_email"),
+  source: text("source").notNull(),
+  issueType: text("issue_type").notNull(),
+  description: text("description").notNull(),
+  attachmentUrl: text("attachment_url"),
+  status: text("status").notNull().default("Open"),
+  internalNotes: text("internal_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  source: z.enum(["in-app", "marketing-site"]),
+  issueType: z.enum(["Bug", "Billing", "Feedback", "Feature Request", "Other"]),
+  status: z.enum(["Open", "In Progress", "Resolved"]).optional(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
