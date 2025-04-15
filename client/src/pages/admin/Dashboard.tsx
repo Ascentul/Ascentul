@@ -1628,7 +1628,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div>
-                          <Label>Quarterly Price</Label                          <div className="flex items-center gap-2">
+                          <Label>Quarterly Price</Label>
+                          <div className="flex items-center gap-2">
                             <Input
                               type="number"
                               value={proPricing.quarterly}
