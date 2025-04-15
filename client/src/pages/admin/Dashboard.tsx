@@ -379,6 +379,9 @@ function SupportSection() {
 }
 
 
+import AdminOverview from './AdminOverview';
+import SupportPage from './SupportPage';
+
 export default function AdminDashboard() {
   const { user } = useUser();
   const isAdmin = useIsAdminUser();
@@ -391,7 +394,7 @@ export default function AdminDashboard() {
       case 'overview':
         return <AdminOverview />;
       case 'support':
-        return <SupportSection />;
+        return <SupportPage />;
       default:
         return <AdminOverview />;
     }
