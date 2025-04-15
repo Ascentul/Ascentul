@@ -235,6 +235,17 @@ function AddStaffUserDialog() {
   );
 }
 
+// Placeholder for SupportAnalytics component
+function SupportAnalytics() {
+  return (
+    <div>
+      <h1>Support Analytics</h1>
+      <p>This section will display support ticket statistics and trends.</p>
+    </div>
+  );
+}
+
+
 export default function AdminDashboard() {
   const { user } = useUser();
   const isAdmin = useIsAdminUser();
@@ -337,6 +348,12 @@ export default function AdminDashboard() {
             active={activeTab === 'analytics'}
             onClick={() => setActiveTab('analytics')}
           />
+          <SidebarItem
+            icon={<HelpCircle className="h-5 w-5" />}
+            label="Support"
+            active={activeTab === 'support'}
+            onClick={() => setActiveTab('support')}
+          /> {/* Added Support Sidebar Item */}
           <SidebarItem
             icon={<BookOpen className="h-5 w-5" />}
             label="Content"
@@ -869,8 +886,7 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>287</TableCell>
-                          <TableCell>
+                          <TableCell>287</TableCell<TableCell>
                             <div className="flex items-center gap-2">
                               <Progress value={78} className="h-2 w-20" />
                               <span className="text-sm">78%</span>
@@ -1611,8 +1627,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div>
-                          <Label>Quarterly Price</Label>
-                          <div className="flex items-center gap-2">
+                          <Label>Quarterly Price</Label                          <div className="flex items-center gap-2">
                             <Input
                               type="number"
                               value={proPricing.quarterly}
