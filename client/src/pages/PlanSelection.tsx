@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
