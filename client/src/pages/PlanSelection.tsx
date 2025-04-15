@@ -53,7 +53,7 @@ export default function PlanSelection() {
   const { user, isLoading } = useUser();
   const updateSubscriptionMutation = useUpdateUserSubscription();
   const { toast } = useToast();
-  
+
   // Check if user is authenticated
   useEffect(() => {
     if (!isLoading && !user) {
@@ -61,13 +61,13 @@ export default function PlanSelection() {
       setLocation('/sign-in');
     }
   }, [user, isLoading, setLocation]);
-  
+
   // Handle user loading and subscription status
   useEffect(() => {
     if (isLoading || !user) {
       return; // Wait for user data to load
     }
-    
+
     // If already subscribed, redirect to dashboard
     if (user.subscriptionPlan && user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active') {
       setLocation('/dashboard');
@@ -76,7 +76,7 @@ export default function PlanSelection() {
 
   const handlePlanSelect = (plan: string) => {
     setSelectedPlan(plan);
-    
+
     // Different actions based on selected plan
     if (plan === 'free') {
       // For free plan, handle directly
@@ -89,30 +89,30 @@ export default function PlanSelection() {
 
   const calculatePrice = (plan: string, cycle: string): number => {
     if (plan === 'free') return 0;
-    
+
     // Pro plan pricing
     if (cycle === 'monthly') return 15; 
     if (cycle === 'quarterly') return 30; // $10/month, billed quarterly
     if (cycle === 'yearly') return 72; // $6/month, billed yearly
-    
+
     return 0;
   };
 
   const calculateSavings = (plan: string, cycle: string): number => {
     if (plan === 'free' || cycle === 'monthly') return 0;
-    
+
     const monthlyPrice = 15; // Monthly price for pro plan
-    
+
     if (cycle === 'quarterly') {
       const quarterlyTotal = monthlyPrice * 3; // 3 months
       return quarterlyTotal - 30; // Savings compared to 3 months paid monthly
     }
-    
+
     if (cycle === 'yearly') {
       const yearlyTotal = monthlyPrice * 12; // 12 months
       return yearlyTotal - 72; // Savings compared to 12 months paid monthly
     }
-    
+
     return 0;
   };
 
@@ -125,12 +125,12 @@ export default function PlanSelection() {
           subscriptionStatus: 'active',
           subscriptionCycle: undefined
         });
-        
+
         toast({
           title: 'Free plan activated',
           description: 'You now have access to all free features of CareerTracker.io',
         });
-        
+
         // Redirect to dashboard with a slight delay to ensure data is updated
         setTimeout(() => {
           window.location.href = '/dashboard';
@@ -162,7 +162,7 @@ export default function PlanSelection() {
             Select the plan that best fits your career development needs
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10">
           {/* Free Plan */}
           <div className="relative">
@@ -203,7 +203,7 @@ export default function PlanSelection() {
               </div>
             </div>
           </div>
-          
+
           {/* Pro Plan */}
           <div className="relative">
             <div className="relative">
@@ -231,7 +231,7 @@ export default function PlanSelection() {
                     >
                       Get started
                     </Button>
-                    
+
                     <p className="text-xs text-muted-foreground text-center mt-4">
                       Choose your billing cycle on the next step
                     </p>
@@ -252,7 +252,7 @@ export default function PlanSelection() {
             </div>
           </div>
         </div>
-        
+
         <div className="flex flex-col items-center">
           <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start max-w-2xl">
             <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
