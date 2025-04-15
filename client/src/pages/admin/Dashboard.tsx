@@ -237,9 +237,6 @@ function AddStaffUserDialog() {
 
 // Placeholder for SupportAnalytics component
 import { SupportAnalytics } from "@/components/admin/SupportAnalytics";
-import {
-  TabsContent
-} from "@/components/ui/tabs";
 
 function SupportSection() {
   const [source, setSource] = useState<string>("all");
