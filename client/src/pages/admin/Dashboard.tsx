@@ -886,7 +886,8 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>287</TableCell<TableCell>
+                          <TableCell>287</TableCell>
+                          <TableCell>
                             <div className="flex items-center gap-2">
                               <Progress value={78} className="h-2 w-20" />
                               <span className="text-sm">78%</span>
