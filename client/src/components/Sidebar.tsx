@@ -60,7 +60,7 @@ type SidebarItem = {
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user, logout, updateUser, updateProfile, refetch } = useUser();
+  const { user, logout, updateUser, updateProfile } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -253,10 +253,21 @@ export default function Sidebar() {
                 // Force a cache invalidation by fetching the user data again
                 // We don't have direct access to refetchUser here
                 
-                // Short delay to ensure everything is updated before reload
-                setTimeout(() => {
-                  window.location.reload();
-                }, 750);
+                // No page reload - instead fetch the latest user data and update the local state
+                try {
+                  const userResponse = await fetch('/api/users/me');
+                  if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    // Force browser to re-download the image by appending timestamp
+                    if (userData.profileImage) {
+                      userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
+                    }
+                    // Update with the fresh user data
+                    updateUser(userData);
+                  }
+                } catch (error) {
+                  console.error("Error refreshing user data:", error);
+                }
               } catch (error) {
                 console.error("Error updating profile with image:", error);
                 alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
