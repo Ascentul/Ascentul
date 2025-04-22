@@ -75,13 +75,20 @@ export default function ProfileImageUploader({
         const containerHeight = containerRect.height;
         
         // Limit the position so the image can't be dragged completely out of view
-        const imageSize = containerWidth * zoom;
-        const minX = containerWidth - imageSize;
-        const minY = containerHeight - imageSize;
+        const imageWidth = containerWidth * zoom;
+        const imageHeight = containerHeight * zoom;
+        
+        // Calculate boundaries to keep image within view
+        const minX = containerWidth - imageWidth;
+        const minY = containerHeight - imageHeight;
+        
+        // Apply boundaries
+        const boundedX = Math.min(Math.max(newX, minX), 0);
+        const boundedY = Math.min(Math.max(newY, minY), 0);
         
         setPosition({
-          x: Math.min(Math.max(newX, minX), 0),
-          y: Math.min(Math.max(newY, minY), 0),
+          x: boundedX,
+          y: boundedY,
         });
       }
     }
@@ -92,25 +99,37 @@ export default function ProfileImageUploader({
   };
   
   const handleZoomChange = (value: number[]) => {
-    setZoom(value[0]);
+    const newZoom = value[0];
+    const oldZoom = zoom;
     
     // Adjust position after zoom to keep the image centered
     if (imageContainerRef.current) {
       const container = imageContainerRef.current;
       const rect = container.getBoundingClientRect();
+      
+      // Get the center point of the container
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
-      const newZoom = value[0];
-      const oldZoom = zoom;
-      const zoomRatio = newZoom / oldZoom;
+      // Calculate the scaling factor between old and new zoom
+      const scale = newZoom / oldZoom;
       
-      // Calculate new position to keep the center point the same
-      const newX = centerX - (centerX - position.x) * zoomRatio;
-      const newY = centerY - (centerY - position.y) * zoomRatio;
+      // Calculate new position to keep center point the same
+      const newX = centerX - (centerX - position.x) * scale;
+      const newY = centerY - (centerY - position.y) * scale;
       
-      setPosition({ x: newX, y: newY });
+      // Apply bounds to prevent excessive panning
+      const imageSize = rect.width * newZoom;
+      const minX = rect.width - imageSize;
+      const minY = rect.height - imageSize;
+      
+      const boundedX = Math.min(Math.max(newX, minX), 0);
+      const boundedY = Math.min(Math.max(newY, minY), 0);
+      
+      setPosition({ x: boundedX, y: boundedY });
     }
+    
+    setZoom(newZoom);
   };
   
   const getImageStyle = () => {
@@ -120,6 +139,7 @@ export default function ProfileImageUploader({
       transform: `translate(${position.x}px, ${position.y}px)`,
       cursor: isDragging ? 'grabbing' : 'grab',
       objectFit: 'cover' as const,
+      objectPosition: 'center',
     };
   };
   
@@ -237,7 +257,7 @@ export default function ProfileImageUploader({
           ) : (
             <>
               <div 
-                className="w-full h-64 overflow-hidden rounded-lg relative border"
+                className="w-64 h-64 overflow-hidden rounded-full relative border mx-auto"
                 ref={imageContainerRef}
                 onMouseDown={handleDragStart}
                 onMouseMove={handleDragMove}
