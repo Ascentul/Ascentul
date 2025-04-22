@@ -38,7 +38,8 @@ import {
   ChevronsLeft,
   Menu,
   LayoutPanelLeft,
-  PanelLeftClose
+  PanelLeftClose,
+  User
 } from 'lucide-react';
 
 // Sidebar section types
@@ -106,11 +107,11 @@ export default function Sidebar() {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/interview') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
+    if (location.startsWith('/interview') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer') || location.startsWith('/apply')) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/ai-coach') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
       setActiveSection('career-growth');
-    } else if (location.startsWith('/projects') || location.startsWith('/work-history') || location.startsWith('/education-history') || location.startsWith('/achievements')) {
+    } else if (location.startsWith('/projects') || location.startsWith('/career-profile')) {
       setActiveSection('portfolio');
     } else if (location.startsWith('/exit-plan') || location.startsWith('/momentum-coach') || location.startsWith('/weekly-recap')) {
       setActiveSection('planning');
@@ -165,10 +166,8 @@ export default function Sidebar() {
       title: 'Portfolio & Assets',
       icon: <FolderGit2 className="w-5 h-5" />,
       items: [
+        { href: '/career-profile', icon: <User className="w-5 h-5 mr-3" />, label: 'Career Profile' },
         { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
-        { href: '/work-history', icon: <Building className="w-5 h-5 mr-3" />, label: 'Work History' },
-        { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
-        { href: '/education-history', icon: <GraduationCap className="w-5 h-5 mr-3" />, label: 'Education Tracker' },
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
         { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
