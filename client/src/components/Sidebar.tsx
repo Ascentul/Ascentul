@@ -240,81 +240,85 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       {/* User Profile Summary */}
       <div className="flex flex-col items-center py-6 border-b">
         <div className="relative">
-          <ProfileImageUploader
-            onImageUploaded={async (imageUrl) => {
-              console.log("Image uploaded, URL:", imageUrl);
-              
-              // We won't use the ProfileImageUploader component's built-in update
-              // Instead, we'll handle everything here in the callback for better control
-              
-              try {
-                // First make a direct call to update the user profile with this URL
-                const profileUpdateResponse = await fetch('/api/users/profile', {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ 
-                    profileImage: imageUrl
-                  }),
-                });
+          <div className="inline-block">
+            <ProfileImageUploader
+              onImageUploaded={async (imageUrl) => {
+                console.log("Image uploaded, URL:", imageUrl);
                 
-                if (!profileUpdateResponse.ok) {
-                  throw new Error('Failed to update profile with new image');
-                }
+                // We won't use the ProfileImageUploader component's built-in update
+                // Instead, we'll handle everything here in the callback for better control
                 
-                const updatedUserData = await profileUpdateResponse.json();
-                console.log("Profile successfully updated:", updatedUserData);
-                
-                // Update local state
-                updateUser({
-                  ...user,
-                  profileImage: imageUrl
-                });
-                
-                // Force a cache invalidation by fetching the user data again
-                // We don't have direct access to refetchUser here
-                
-                // No page reload - instead fetch the latest user data and update the local state
                 try {
-                  const userResponse = await fetch('/api/users/me');
-                  if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    // Force browser to re-download the image by appending timestamp
-                    if (userData.profileImage) {
-                      userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
+                  // First make a direct call to update the user profile with this URL
+                  const profileUpdateResponse = await fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                      profileImage: imageUrl
+                    }),
+                  });
+                  
+                  if (!profileUpdateResponse.ok) {
+                    throw new Error('Failed to update profile with new image');
+                  }
+                  
+                  const updatedUserData = await profileUpdateResponse.json();
+                  console.log("Profile successfully updated:", updatedUserData);
+                  
+                  // Update local state
+                  updateUser({
+                    ...user,
+                    profileImage: imageUrl
+                  });
+                  
+                  // Force a cache invalidation by fetching the user data again
+                  // We don't have direct access to refetchUser here
+                  
+                  // No page reload - instead fetch the latest user data and update the local state
+                  try {
+                    const userResponse = await fetch('/api/users/me');
+                    if (userResponse.ok) {
+                      const userData = await userResponse.json();
+                      // Force browser to re-download the image by appending timestamp
+                      if (userData.profileImage) {
+                        userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
+                      }
+                      // Update with the fresh user data
+                      updateUser(userData);
                     }
-                    // Update with the fresh user data
-                    updateUser(userData);
+                  } catch (error) {
+                    console.error("Error refreshing user data:", error);
                   }
                 } catch (error) {
-                  console.error("Error refreshing user data:", error);
+                  console.error("Error updating profile with image:", error);
+                  alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
                 }
-              } catch (error) {
-                console.error("Error updating profile with image:", error);
-                alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
-              }
-            }}
-            currentImage={user.profileImage}
-          >
-            <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
-              {user.profileImage ? (
-                <AvatarImage 
-                  src={`${user.profileImage}?v=${new Date().getTime()}`} 
-                  alt={user.name} 
-                  onError={(e) => {
-                    console.log("Error loading image, falling back to text");
-                    // Hide the broken image icon
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                  {user.name.charAt(0)}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </ProfileImageUploader>
+              }}
+              currentImage={user.profileImage}
+            >
+              <div>
+                <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
+                  {user.profileImage ? (
+                    <AvatarImage 
+                      src={`${user.profileImage}?v=${new Date().getTime()}`} 
+                      alt={user.name} 
+                      onError={(e) => {
+                        console.log("Error loading image, falling back to text");
+                        // Hide the broken image icon
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                      {user.name.charAt(0)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+            </ProfileImageUploader>
+          </div>
           {/* Only show level badge for university users */}
           {isUnivUser && user.level !== undefined && expanded && (
             <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">

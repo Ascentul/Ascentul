@@ -42,74 +42,78 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
             <Settings className="h-5 w-5" />
           </Button>
           
-          <ProfileImageUploader
-            onImageUploaded={async (imageUrl) => {
-              console.log("Mobile header image uploaded, URL:", imageUrl);
-              
-              try {
-                // First make a direct call to update the user profile with this URL
-                const profileUpdateResponse = await fetch('/api/users/profile', {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ 
-                    profileImage: imageUrl.split('?')[0] // Send without timestamp to server
-                  }),
-                });
+          <div className="inline-block">
+            <ProfileImageUploader
+              onImageUploaded={async (imageUrl) => {
+                console.log("Mobile header image uploaded, URL:", imageUrl);
                 
-                if (!profileUpdateResponse.ok) {
-                  throw new Error('Failed to update profile with new image');
-                }
-                
-                const updatedUserData = await profileUpdateResponse.json();
-                console.log("Profile successfully updated from mobile header:", updatedUserData);
-                
-                // Update local state
-                updateUser({
-                  ...user,
-                  profileImage: imageUrl // Keep timestamp for UI
-                });
-                
-                // Force a cache invalidation by fetching the user data again
                 try {
-                  const userResponse = await fetch('/api/users/me');
-                  if (userResponse.ok) {
-                    const userData = await userResponse.json();
-                    // Force browser to re-download the image by appending timestamp
-                    if (userData.profileImage) {
-                      userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
+                  // First make a direct call to update the user profile with this URL
+                  const profileUpdateResponse = await fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                      profileImage: imageUrl.split('?')[0] // Send without timestamp to server
+                    }),
+                  });
+                  
+                  if (!profileUpdateResponse.ok) {
+                    throw new Error('Failed to update profile with new image');
+                  }
+                  
+                  const updatedUserData = await profileUpdateResponse.json();
+                  console.log("Profile successfully updated from mobile header:", updatedUserData);
+                  
+                  // Update local state
+                  updateUser({
+                    ...user,
+                    profileImage: imageUrl // Keep timestamp for UI
+                  });
+                  
+                  // Force a cache invalidation by fetching the user data again
+                  try {
+                    const userResponse = await fetch('/api/users/me');
+                    if (userResponse.ok) {
+                      const userData = await userResponse.json();
+                      // Force browser to re-download the image by appending timestamp
+                      if (userData.profileImage) {
+                        userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
+                      }
+                      // Update with the fresh user data
+                      updateUser(userData);
                     }
-                    // Update with the fresh user data
-                    updateUser(userData);
+                  } catch (error) {
+                    console.error("Error refreshing user data:", error);
                   }
                 } catch (error) {
-                  console.error("Error refreshing user data:", error);
+                  console.error("Error updating profile with image:", error);
+                  alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
                 }
-              } catch (error) {
-                console.error("Error updating profile with image:", error);
-                alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
-              }
-            }}
-            currentImage={user.profileImage}
-          >
-            <Avatar className="ml-3 h-8 w-8 cursor-pointer hover:opacity-90 transition-opacity">
-              {user.profileImage ? (
-                <AvatarImage 
-                  src={`${user.profileImage}?v=${new Date().getTime()}`} 
-                  alt={user.name} 
-                  onError={(e) => {
-                    console.log("Error loading image in mobile header, falling back to text");
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {user.name.charAt(0)}
-                </AvatarFallback>
-              )}
-            </Avatar>
-          </ProfileImageUploader>
+              }}
+              currentImage={user.profileImage}
+            >
+              <div>
+                <Avatar className="ml-3 h-8 w-8 cursor-pointer hover:opacity-90 transition-opacity">
+                  {user.profileImage ? (
+                    <AvatarImage 
+                      src={`${user.profileImage}?v=${new Date().getTime()}`} 
+                      alt={user.name} 
+                      onError={(e) => {
+                        console.log("Error loading image in mobile header, falling back to text");
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {user.name.charAt(0)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+            </ProfileImageUploader>
+          </div>
         </div>
       </div>
     </header>
