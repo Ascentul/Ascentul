@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GoalCard from '@/components/GoalCard';
 import GoalForm from '@/components/GoalForm';
 import GoalTimeline from '@/components/goals/GoalTimeline';
+import GoalTemplates, { goalTemplates } from '@/components/goals/GoalTemplates';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -38,6 +39,8 @@ export default function Goals() {
   const [dissolvingGoalIds, setDissolvingGoalIds] = useState<number[]>([]);
   // Add state for view mode (list or timeline)
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
+  // Add state for selected template
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -349,6 +352,18 @@ export default function Goals() {
         </Card>
       </motion.div>
       
+      {/* Goal Templates Section */}
+      <motion.div variants={subtleUp} className="mb-6">
+        <GoalTemplates 
+          onSelectTemplate={(templateId) => {
+            // Find the template data based on templateId
+            setSelectedTemplate(templateId);
+            // Open the goal creation modal
+            setIsAddGoalOpen(true);
+          }} 
+        />
+      </motion.div>
+      
       {/* Active Goals Section */}
       <motion.div className="mb-10" variants={subtleUp}>
         <div className="flex justify-between items-center mb-4">
@@ -556,14 +571,31 @@ export default function Goals() {
       </motion.div>
       
       {/* Add/Edit Goal Dialog */}
-      <Dialog open={isAddGoalOpen} onOpenChange={setIsAddGoalOpen}>
+      <Dialog open={isAddGoalOpen} onOpenChange={(isOpen) => {
+          setIsAddGoalOpen(isOpen);
+          // Reset template selection when dialog is closed
+          if (!isOpen) {
+            setSelectedTemplate(null);
+          }
+        }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{selectedGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
+            <DialogTitle>
+              {selectedGoal ? 'Edit Goal' : (selectedTemplate ? 'Create Goal from Template' : 'Create New Goal')}
+            </DialogTitle>
+            {selectedTemplate && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Using {goalTemplates.find(t => t.id === selectedTemplate)?.title} template
+              </p>
+            )}
           </DialogHeader>
           <GoalForm 
             goal={selectedGoal} 
-            onSuccess={() => setIsAddGoalOpen(false)}
+            templateId={selectedTemplate}
+            onSuccess={() => {
+              setIsAddGoalOpen(false);
+              setSelectedTemplate(null);
+            }}
           />
         </DialogContent>
       </Dialog>

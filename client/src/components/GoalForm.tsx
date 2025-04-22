@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
+import { goalTemplates } from '@/components/goals/GoalTemplates';
 
 // Import the schema for consistency
 import { goalChecklistItemSchema } from '@shared/schema';
@@ -56,22 +57,37 @@ interface GoalFormProps {
     dueDate?: string;
     checklist?: Array<{ id: string; text: string; completed: boolean; }>;
   };
+  templateId?: string | null;
   onSuccess?: () => void;
 }
 
-export default function GoalForm({ goal, onSuccess }: GoalFormProps) {
+export default function GoalForm({ goal, templateId, onSuccess }: GoalFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Find the template data if a templateId is provided
+  const selectedTemplate = templateId 
+    ? goalTemplates.find(t => t.id === templateId)?.prefill 
+    : null;
+
+  // Generate checklist items from template milestones if available
+  const templateChecklist = selectedTemplate?.milestones 
+    ? selectedTemplate.milestones.map(text => ({
+        id: Math.random().toString(36).substring(2, 11),
+        text,
+        completed: false
+      }))
+    : [];
+
   const form = useForm<GoalFormValues>({
     resolver: zodResolver(goalSchema),
     defaultValues: {
-      title: goal?.title || '',
-      description: goal?.description || '',
+      title: goal?.title || selectedTemplate?.title || '',
+      description: goal?.description || selectedTemplate?.description || '',
       status: goal?.status || 'not_started',
       dueDate: goal?.dueDate ? new Date(goal.dueDate) : undefined,
-      checklist: goal?.checklist || [],
+      checklist: goal?.checklist || templateChecklist || [],
     },
   });
 
