@@ -85,14 +85,16 @@ export default function ContactForm({
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
       if (isEdit && initialData?.id) {
-        return apiRequest<NetworkingContact>(`/api/contacts/${initialData.id}`, {
+        return apiRequest<NetworkingContact>({
+          url: `/api/contacts/${initialData.id}`,
           method: 'PUT',
-          body: JSON.stringify(values),
+          data: values
         });
       } else {
-        return apiRequest<NetworkingContact>('/api/contacts', {
+        return apiRequest<NetworkingContact>({
+          url: '/api/contacts',
           method: 'POST',
-          body: JSON.stringify(values),
+          data: values
         });
       }
     },
@@ -203,7 +205,7 @@ export default function ContactForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="linkedinUrl"
+            name="linkedInUrl"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>LinkedIn URL</FormLabel>
@@ -215,19 +217,7 @@ export default function ContactForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="websiteUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Website URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://johndoe.com" {...field} value={field.value || ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Website URL field is not in the current schema */}
         </div>
 
         <FormField
@@ -262,7 +252,7 @@ export default function ContactForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="lastContactDate"
+            name="lastContactedDate"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Last Contact Date</FormLabel>
@@ -285,30 +275,7 @@ export default function ContactForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="nextFollowUpDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Next Follow-Up Date</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      {...field}
-                      value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                      onChange={(e) => {
-                        const date = e.target.value ? new Date(e.target.value) : null;
-                        field.onChange(date);
-                      }}
-                    />
-                    <CalendarRange className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Next Follow-Up Date field is not in the current schema */}
         </div>
 
         <FormField
