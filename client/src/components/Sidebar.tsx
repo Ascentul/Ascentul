@@ -48,7 +48,7 @@ export default function Sidebar() {
   const careerNavigationItems = [
     { href: '/career-dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
     { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goals' },
-    { href: '/interviews', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Interview Tracker' },
+    { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
     { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
     { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
     { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Coach' },
