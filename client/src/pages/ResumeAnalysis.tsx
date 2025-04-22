@@ -54,12 +54,13 @@ const ResumeAnalysis: React.FC = () => {
 
   // Mutation for analyzing resume
   const analyzeResumeMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof resumeAnalysisSchema>) => {
-      const response = await apiRequest('/api/resumes/analyze', {
+    mutationFn: async (data: z.infer<typeof resumeAnalysisSchema>): Promise<ResumeAnalysisResult> => {
+      const response = await apiRequest<ResumeAnalysisResult>({
+        url: '/api/resumes/analyze',
         method: 'POST',
         data
       });
-      return response as ResumeAnalysisResult;
+      return response;
     },
     onSuccess: (data: ResumeAnalysisResult) => {
       setAnalysis(data);
@@ -105,10 +106,11 @@ const ResumeAnalysis: React.FC = () => {
           const fileDataUrl = event.target.result as string;
 
           // Upload the file to the server
-          const uploadResponse = await apiRequest('/api/resumes/upload', {
+          const uploadResponse = await apiRequest<{ success: boolean; url?: string }>({
+            url: '/api/resumes/upload',
             method: 'POST',
             data: { fileDataUrl }
-          }) as { success: boolean; url?: string };
+          });
 
           if (uploadResponse.success) {
             // For now, we'll simulate text extraction
