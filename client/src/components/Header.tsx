@@ -55,12 +55,14 @@ export default function Header({ onMenuToggle }: HeaderProps) {
             <Avatar className="ml-3 h-8 w-8 md:hidden">
               {user.profileImage ? (
                 <AvatarImage 
-                  src={`${user.profileImage}?v=${new Date().getTime()}`} 
+                  src={user.profileImage} 
                   alt={user.name} 
                   onError={(e) => {
                     console.log("Error loading image in header, falling back to text");
                     e.currentTarget.style.display = 'none';
                   }}
+                  className="force-refresh-image"
+                  key={`header-avatar-${user.profileImage}`}
                 />
               ) : (
                 <AvatarFallback className="bg-primary/10 text-primary">

@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force refresh image to prevent browser caching */
+.force-refresh-image {
+  /* This will force the browser to always request the image fresh */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
 /* Goal timeline animations and styles */
 .goal-card.dissolving {
   animation: dissolve 2.5s forwards;

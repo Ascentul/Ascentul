@@ -246,6 +246,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error('User not authenticated');
     
     try {
+      console.log("Starting profile image save process...");
+      
       // Step 1: Upload image to server
       const uploadResponse = await fetch('/api/users/profile-image', {
         method: 'POST',
@@ -277,20 +279,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       const updatedUserData = await profileUpdateResponse.json();
       
-      // Step 3: Update the local user state with a cache-busting timestamp
-      const imageWithTimestamp = `${uploadData.profileImage}?t=${new Date().getTime()}`;
-      const updatedUserWithTimestamp = {
+      // Step 3: Update the local user state with the clean image URL
+      // We'll let the avatar components handle cache busting with the key prop
+      const updatedUser = {
         ...updatedUserData,
-        profileImage: imageWithTimestamp
+        profileImage: uploadData.profileImage // Using the plain URL without a timestamp
       };
       
       // Update query cache
-      queryClient.setQueryData(['/api/users/me'], updatedUserWithTimestamp);
+      queryClient.setQueryData(['/api/users/me'], updatedUser);
       
-      // Step 4: Refresh user data to ensure all components are updated
-      await refetchUser();
+      // Step 4: Manually trigger refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
       
-      return updatedUserWithTimestamp;
+      // Log success
+      console.log("Image uploaded and profile updated successfully:", updatedUser);
+      
+      return updatedUser;
     } catch (error) {
       console.error('Error in uploadProfileImage:', error);
       throw error;
