@@ -181,16 +181,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
       ]
     },
-    {
-      id: 'planning',
-      title: 'Planning & Transitions',
-      icon: <Calendar className="w-5 h-5" />,
-      items: [
-        { href: '/exit-plan', icon: <Clock className="w-5 h-5 mr-3" />, label: 'Exit Plan', pro: true },
-        { href: '/momentum-coach', icon: <Target className="w-5 h-5 mr-3" />, label: 'Momentum Coach' },
-        { href: '/weekly-recap', icon: <ClipboardList className="w-5 h-5 mr-3" />, label: 'Weekly Recap / Journal' },
-      ]
-    }
+
   ];
 
   // Dashboard link - always visible
