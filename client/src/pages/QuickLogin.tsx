@@ -1,7 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
-import Dashboard from '@/pages/Dashboard';
+import Layout from '@/components/Layout';
+// Import components that would normally be in Dashboard but without API dependencies
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { 
+  TrendingUp, 
+  Briefcase, 
+  FileText, 
+  Users, 
+  Calendar, 
+  Award,
+  BookOpen,
+  Layers
+} from "lucide-react";
 
 /**
  * This is a special component that handles login and immediately renders the dashboard
@@ -104,10 +117,166 @@ export default function QuickLogin() {
     );
   }
   
-  // If authenticated, render the dashboard directly in this component
-  // This bypasses all routing protection
+  // Static dashboard directly in this component
+  // This completely bypasses both routing protection and API dependencies
   if (isAuthenticated) {
-    return <Dashboard />;
+    // Do NOT reference the Dashboard component here as it has API dependencies
+    return (
+      <Layout>
+        <div className="container mx-auto p-4">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-2">Welcome back, Test User!</h1>
+            <p className="text-muted-foreground">
+              Here's an overview of your career progress
+            </p>
+          </div>
+          
+          {/* Mock stats cards - static data, no API calls */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Goals In Progress
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">4</div>
+                <p className="text-xs text-muted-foreground">
+                  +2 completed this month
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Applications
+                </CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">3</div>
+                <p className="text-xs text-muted-foreground">
+                  1 interview scheduled
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Network Contacts
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">12</div>
+                <p className="text-xs text-muted-foreground">
+                  2 need follow-up
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Skills Gained
+                </CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">16</div>
+                <p className="text-xs text-muted-foreground">
+                  Level 3 badge earned
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
+          
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            <Card className="relative overflow-hidden">
+              <CardHeader className="pb-0">
+                <CardTitle className="flex items-center">
+                  <FileText className="mr-2 h-5 w-5" />
+                  Update Resume
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Polish your resume for better results
+                </p>
+                <Button size="sm">
+                  Open Resume Builder
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="relative overflow-hidden">
+              <CardHeader className="pb-0">
+                <CardTitle className="flex items-center">
+                  <Briefcase className="mr-2 h-5 w-5" />
+                  Track Applications
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Stay on top of your job applications
+                </p>
+                <Button size="sm">
+                  View Applications
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="relative overflow-hidden">
+              <CardHeader className="pb-0">
+                <CardTitle className="flex items-center">
+                  <Calendar className="mr-2 h-5 w-5" />
+                  Interview Prep
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Practice for upcoming interviews
+                </p>
+                <Button size="sm">
+                  Start Practice
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="relative overflow-hidden">
+              <CardHeader className="pb-0">
+                <CardTitle className="flex items-center">
+                  <Layers className="mr-2 h-5 w-5" />
+                  Career Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Update your professional profile
+                </p>
+                <Button size="sm">
+                  Edit Profile
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="bg-muted/50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Development Note</h3>
+            <p className="text-sm text-muted-foreground">
+              This is a static dashboard view that doesn't make any API calls. It's designed to demonstrate 
+              the UI without requiring backend authentication. For full functionality, 
+              the authentication and session management needs to be fixed.
+            </p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
   
   // If login failed, show error
