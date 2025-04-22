@@ -2594,6 +2594,229 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Resume API routes
+  apiRouter.get("/resumes", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const resumes = await storage.getResumes(user.id);
+      res.status(200).json(resumes);
+    } catch (error) {
+      console.error("Error fetching resumes:", error);
+      res.status(500).json({ message: "Error fetching resumes" });
+    }
+  });
+
+  apiRouter.get("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const resumeId = parseInt(req.params.id);
+      const resume = await storage.getResume(resumeId);
+      
+      if (!resume) {
+        return res.status(404).json({ message: "Resume not found" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Security check - ensure user can only access their own resumes
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "Unauthorized access to resume" });
+      }
+      
+      res.json(resume);
+    } catch (error) {
+      console.error("Error fetching resume:", error);
+      res.status(500).json({ message: "Error fetching resume" });
+    }
+  });
+
+  apiRouter.post("/resumes", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const resumeData = req.body;
+      const resume = await storage.createResume(user.id, resumeData);
+      res.status(201).json(resume);
+    } catch (error) {
+      console.error("Error creating resume:", error);
+      res.status(500).json({ message: "Error creating resume" });
+    }
+  });
+
+  apiRouter.put("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const resumeId = parseInt(req.params.id);
+      const resume = await storage.getResume(resumeId);
+      
+      if (!resume) {
+        return res.status(404).json({ message: "Resume not found" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Security check - ensure user can only update their own resumes
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "Unauthorized access to resume" });
+      }
+      
+      const updatedResume = await storage.updateResume(resumeId, req.body);
+      res.json(updatedResume);
+    } catch (error) {
+      console.error("Error updating resume:", error);
+      res.status(500).json({ message: "Error updating resume" });
+    }
+  });
+
+  apiRouter.delete("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const resumeId = parseInt(req.params.id);
+      const resume = await storage.getResume(resumeId);
+      
+      if (!resume) {
+        return res.status(404).json({ message: "Resume not found" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Security check - ensure user can only delete their own resumes
+      if (resume.userId !== user.id) {
+        return res.status(403).json({ message: "Unauthorized access to resume" });
+      }
+      
+      await storage.deleteResume(resumeId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting resume:", error);
+      res.status(500).json({ message: "Error deleting resume" });
+    }
+  });
+
+  // Resume file upload endpoint
+  apiRouter.post("/resumes/upload", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if we received file data in JSON format
+      if (req.body && req.body.fileDataUrl) {
+        console.log("Received resume file data");
+        
+        // Extract the base64 data from the data URL
+        const matches = req.body.fileDataUrl.match(/^data:application\/([A-Za-z-+\/]+);base64,(.+)$/);
+        
+        if (!matches || matches.length !== 3) {
+          console.error("Invalid file data URL format");
+          return res.status(400).json({ message: "Invalid file data" });
+        }
+        
+        const fileType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Create a unique filename
+        const timestamp = Date.now();
+        const filename = `resume_${user.id}_${timestamp}.${fileType}`;
+        const dir = path.join(process.cwd(), 'uploads', 'resumes');
+        const fullPath = path.join(dir, filename);
+        const filepath = `/uploads/resumes/${filename}`;
+        
+        // Create the uploads/resumes directory if it doesn't exist
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Write the file
+        fs.writeFileSync(fullPath, buffer);
+        console.log("Resume file saved successfully");
+        
+        // Return the file path to the client
+        res.json({ 
+          success: true, 
+          filePath: filepath,
+          message: "Resume uploaded successfully" 
+        });
+      } else {
+        return res.status(400).json({ message: "No file data provided" });
+      }
+    } catch (error) {
+      console.error("Error uploading resume:", error);
+      res.status(500).json({ message: "Error uploading resume" });
+    }
+  });
+
+  // Resume text extraction endpoint (parse text from file)
+  apiRouter.post("/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // For now, we'll just use the text provided by the client
+      // In a production app, we would use a PDF parser to extract text from the uploaded file
+      const { text } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "No resume text provided" });
+      }
+      
+      res.json({ 
+        success: true, 
+        text: text,
+        message: "Text extracted successfully" 
+      });
+    } catch (error) {
+      console.error("Error extracting text from resume:", error);
+      res.status(500).json({ message: "Error extracting text from resume" });
+    }
+  });
+
+  // Resume analysis endpoint
+  apiRouter.post("/resumes/analyze", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { resumeText, jobDescription } = req.body;
+      
+      if (!resumeText || !jobDescription) {
+        return res.status(400).json({ 
+          message: "Both resume text and job description are required" 
+        });
+      }
+      
+      const analysis = await openai.analyzeResumeForJob(resumeText, jobDescription);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing resume:", error);
+      res.status(500).json({ 
+        message: "Error analyzing resume",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   // Career Mentor Routes
   apiRouter.get("/mentor-chat/conversations", requireAuth, async (req: Request, res: Response) => {
     try {

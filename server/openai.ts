@@ -7,7 +7,7 @@ let useMockOpenAI = false;
 let openai: any;
 
 if (!apiKey) {
-  console.warn('OPENAI_API_KEY is not set. Using mock OpenAI mode for career path features.');
+  console.warn('OPENAI_API_KEY is not set in utils/openai.ts. Using mock OpenAI mode.');
   useMockOpenAI = true;
   
   // Create a mock OpenAI instance
