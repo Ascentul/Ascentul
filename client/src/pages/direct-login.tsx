@@ -72,8 +72,13 @@ export default function DirectLogin() {
         return;
       }
       
-      // Store authentication in localStorage for backup
+      // Store authentication and user data in localStorage for backup
+      const userData = await response.json();
+      console.log('Login successful, user data:', userData);
+      
       localStorage.setItem('auth-user', JSON.stringify({
+        id: userData.id || (userData.user && userData.user.id),
+        username: userData.username || (userData.user && userData.user.username),
         authenticated: true,
         timestamp: new Date().toISOString()
       }));
