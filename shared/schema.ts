@@ -123,6 +123,38 @@ export const insertWorkHistorySchema = createInsertSchema(workHistory).omit({
   ),
 });
 
+// Education History model
+export const educationHistory = pgTable("education_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  institution: text("institution").notNull(),
+  degree: text("degree").notNull(),
+  fieldOfStudy: text("field_of_study").notNull(),
+  location: text("location"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  current: boolean("current").notNull().default(false),
+  gpa: text("gpa"),
+  description: text("description"),
+  achievements: text("achievements").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertEducationHistorySchema = createInsertSchema(educationHistory).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+}).extend({
+  // Convert startDate string to Date object if it's not already a Date
+  startDate: z.date().or(
+    z.string().transform((val) => new Date(val))
+  ),
+  // Convert endDate string to Date object if it's not already a Date
+  endDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
+});
+
 // Resume model
 export const resumes = pgTable("resumes", {
   id: serial("id").primaryKey(),
