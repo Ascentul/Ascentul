@@ -922,6 +922,55 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       res.status(500).json({ message: "Error updating user profile" });
     }
   });
+  
+  // Profile image upload endpoint
+  apiRouter.post("/users/profile-image", async (req: Request, res: Response) => {
+    try {
+      // Get user ID from session
+      let userId;
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+      
+      // Get the user by ID or fall back to default
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If not found, use the sample user for backward compatibility
+      if (!user) {
+        user = await storage.getUserByUsername("alex");
+      }
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create a unique filename
+      const timestamp = Date.now();
+      const filename = `profile_${user.id}_${timestamp}.jpg`;
+      const filepath = `/uploads/images/${filename}`;
+      
+      // Update the user profile with the image URL
+      const updatedUser = await storage.updateUser(user.id, { 
+        profileImage: filepath 
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update profile image" });
+      }
+      
+      // Return success response
+      res.status(200).json({ 
+        message: "Profile image updated successfully",
+        profileImage: filepath 
+      });
+    } catch (error) {
+      console.error("Error updating profile image:", error);
+      res.status(500).json({ message: "Error updating profile image" });
+    }
+  });
 
   apiRouter.put("/users/subscription", async (req: Request, res: Response) => {
     try {
