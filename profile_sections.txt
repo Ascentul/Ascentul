@@ -1,0 +1,40 @@
+          {/* Profile Completion Tracker */}
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <CardTitle>Profile Completion</CardTitle>
+              <CardDescription>Complete your career profile to maximize your opportunities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {Math.round(completionPercentage)}% Complete
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {profileSections.filter(section => section.completed).length}/{profileSections.length} Sections
+                </span>
+              </div>
+              <Progress value={completionPercentage} className="h-2 mb-4" />
+            </CardContent>
+          </Card>
+          
+          {/* Work History Section */}
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <Building className="h-5 w-5 mr-2 text-primary" />
+                  <CardTitle>Work History</CardTitle>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => handleEditSection('work-history')}>
+                  <Edit className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              </div>
+              <CardDescription>Your professional experience</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No work history added yet</p>
+                <p className="text-sm mt-2">Add your professional experience to showcase your career progression</p>
+              </div>
+            </CardContent>
+          </Card>
