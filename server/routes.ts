@@ -360,9 +360,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log('Login attempt:', { email, loginType });
       
       if (!email || !password) {
-        return res.status(400)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Email and password are required" });
+        return sendUnauthenticatedResponse(res.status(400), "Email and password are required");
       }
       
       // Find user by email or username
@@ -371,9 +369,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log('User found:', user ? { id: user.id, userType: user.userType } : 'null');
       
       if (!user) {
-        return res.status(401)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Invalid credentials" });
+        return sendUnauthenticatedResponse(res, "Invalid credentials");
       }
       
       // Verify password using crypto
@@ -383,31 +379,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           const [storedHash, salt] = user.password.split('.');
           const inputHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
           if (storedHash !== inputHash) {
-            return res.status(401)
-              .set('X-Auth-Status', 'unauthenticated')
-              .json({ message: "Invalid credentials" });
+            return sendUnauthenticatedResponse(res, "Invalid credentials");
           }
         } else {
           // For backward compatibility with non-hashed passwords
           if (user.password !== password) {
-            return res.status(401)
-              .set('X-Auth-Status', 'unauthenticated')
-              .json({ message: "Invalid credentials" });
+            return sendUnauthenticatedResponse(res, "Invalid credentials");
           }
         }
       } catch (error) {
         console.error("Password verification error:", error);
-        return res.status(401)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Invalid credentials" });
+        return sendUnauthenticatedResponse(res, "Invalid credentials");
       }
       
       // Check user type based on the login type
       if (loginType) {
         if (loginType === "university" && user.userType === "regular") {
-          return res.status(403)
-            .set('X-Auth-Status', 'unauthenticated')
-            .json({ message: "Access denied. This account is not associated with a university." });
+          return sendUnauthenticatedResponse(res.status(403), "Access denied. This account is not associated with a university.");
         }
         
         // MODIFICATION: Allow university users to log in through the regular portal
@@ -418,15 +406,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         // }
         
         if (loginType === "admin" && user.userType !== "admin") {
-          return res.status(403)
-            .set('X-Auth-Status', 'unauthenticated')
-            .json({ message: "Access denied. You do not have administrator privileges." });
+          return sendUnauthenticatedResponse(res.status(403), "Access denied. You do not have administrator privileges.");
         }
         
         if (loginType === "staff" && user.userType !== "staff" && user.userType !== "admin") {
-          return res.status(403)
-            .set('X-Auth-Status', 'unauthenticated')
-            .json({ message: "Access denied. You do not have staff privileges." });
+          return sendUnauthenticatedResponse(res.status(403), "Access denied. You do not have staff privileges.");
         }
       }
       
@@ -491,10 +475,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           res.setHeader('X-Auth-Logout', 'true');
           
           // Send response with proper unauthenticated headers
-          return res
-            .status(200)
-            .set('X-Auth-Status', 'unauthenticated')
-            .json({ message: "Logged out successfully" });
+          sendUnauthenticatedResponse(res.status(200), "Logged out successfully");
         });
       } else {
         // If there's no session, just clear the cookies
