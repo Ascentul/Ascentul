@@ -1,4 +1,6 @@
-// Standardized job schema that all job sources will adapt to
+/**
+ * Standard job data structure used across all job sources
+ */
 export interface Job {
   id: string;                // Unique ID (source-specific)
   source: string;            // Job board source (e.g., "ZipRecruiter", "Indeed")
@@ -21,7 +23,9 @@ export interface Job {
   isApplied?: boolean;       // Whether the user has applied to this job
 }
 
-// Search parameters interface - common for all job sources
+/**
+ * Standardized job search parameters
+ */
 export interface JobSearchParams {
   query: string;             // Job title or keywords
   location?: string;         // Location to search in
@@ -35,7 +39,9 @@ export interface JobSearchParams {
   sortBy?: 'relevance' | 'date'; // Sort method
 }
 
-// Search results interface
+/**
+ * Standardized job search results
+ */
 export interface JobSearchResults {
   jobs: Job[];               // List of jobs matching the search
   totalJobs: number;         // Total number of jobs available
@@ -44,7 +50,9 @@ export interface JobSearchResults {
   source: string;            // Source of these results
 }
 
-// Interface for a job source provider
+/**
+ * Interface for job source providers
+ */
 export interface JobSourceProvider {
   name: string;              // Name of the job source
   icon: string;              // Icon or logo URL

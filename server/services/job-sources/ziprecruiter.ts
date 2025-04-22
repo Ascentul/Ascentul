@@ -1,4 +1,4 @@
-import axios from 'axios';
+import https from 'https';
 import { Job, JobSearchParams, JobSearchResults, JobSourceProvider } from '../../../shared/jobs';
 
 // ZipRecruiter API response types
@@ -98,23 +98,50 @@ export const zipRecruiterProvider: JobSourceProvider = {
         sort: params.sortBy === 'date' ? 'date' : 'relevance',
       };
       
-      // Make the API request
-      const response = await axios.get<ZipRecruiterSearchResponse>(apiUrl, { params: queryParams });
+      // Build query string
+      const queryString = Object.entries(queryParams)
+        .filter(([_, value]) => value !== undefined && value !== '')
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .join('&');
+      
+      const url = `${apiUrl}?${queryString}`;
+      
+      // Make API request using https
+      const response = await new Promise<ZipRecruiterSearchResponse>((resolve, reject) => {
+        https.get(url, (res) => {
+          let data = '';
+          
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          res.on('end', () => {
+            try {
+              const parsedData = JSON.parse(data);
+              resolve(parsedData);
+            } catch (e: any) {
+              reject(new Error(`Failed to parse ZipRecruiter response: ${e?.message || 'Unknown error'}`));
+            }
+          });
+        }).on('error', (err) => {
+          reject(new Error(`ZipRecruiter API request failed: ${err.message}`));
+        });
+      });
       
       // Check if the request was successful
-      if (!response.data.success) {
+      if (!response.success) {
         throw new Error('ZipRecruiter API request failed');
       }
       
       // Transform the results
-      const jobs = response.data.jobs.map(transformZipRecruiterJob);
+      const jobs = response.jobs.map(transformZipRecruiterJob);
       
       // Return the standardized results
       return {
         jobs,
-        totalJobs: response.data.total_jobs,
-        pageCount: response.data.num_pages,
-        currentPage: response.data.page,
+        totalJobs: response.total_jobs,
+        pageCount: response.num_pages,
+        currentPage: response.page,
         source: 'ZipRecruiter'
       };
     } catch (error) {
