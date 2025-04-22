@@ -82,6 +82,28 @@ export default function Sidebar() {
     }
   }, [activeSection, expanded]);
   
+  // Handle click outside for collapsed sidebar popup menus
+  useEffect(() => {
+    if (!expanded && activeSection) {
+      const handleClickOutside = (event: MouseEvent) => {
+        // Check if the click is outside the sidebar and the active popup
+        const sidebar = sidebarRef.current;
+        const popup = document.querySelector(`.popup-menu-${activeSection}`);
+        
+        if (sidebar && popup && 
+            !sidebar.contains(event.target as Node) && 
+            !popup.contains(event.target as Node)) {
+          setActiveSection(null);
+        }
+      };
+      
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [expanded, activeSection]);
+  
   // Auto-detect the current section based on location
   useEffect(() => {
     if (location.startsWith('/interview') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
@@ -173,6 +195,7 @@ export default function Sidebar() {
 
   return (
     <div 
+      ref={sidebarRef}
       className={`hidden md:flex flex-col transition-all duration-300 ease-in-out bg-white shadow-md z-30 ${expanded ? 'w-64' : 'w-16'}`} 
       data-expanded={expanded ? 'true' : 'false'}
     >
@@ -368,7 +391,7 @@ export default function Sidebar() {
                   
                   {/* Popup menu for collapsed mode */}
                   {!expanded && activeSection === section.id && (
-                    <div className="fixed left-16 top-auto mt-0 bg-white rounded-md shadow-md z-50 min-w-64 border overflow-hidden"
+                    <div className={`popup-menu-${section.id} fixed left-16 top-auto mt-0 bg-white rounded-md shadow-md z-50 min-w-64 border overflow-hidden`}
                          style={{ top: `${menuPositions[section.id] || 0}px` }}
                     >
                       <div className="py-1">
