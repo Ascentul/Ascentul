@@ -9,6 +9,8 @@ import path from "path";
 declare module "express-session" {
   interface SessionData {
     userId?: number;
+    authenticated?: boolean;
+    lastAccess?: string;
   }
 }
 
@@ -32,13 +34,14 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(session({
   secret: process.env.SESSION_SECRET || "career-dev-platform-secret-key-" + Math.random().toString(36).substring(2, 15),
   resave: false,
-  saveUninitialized: true, // Changed to true to ensure session is saved
+  saveUninitialized: true, // Ensure session is saved even if not modified
   store: sessionStore,
   cookie: { 
-    secure: process.env.NODE_ENV === "production", // Only secure in production
+    secure: false, // Allow non-HTTPS in development
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
-    sameSite: 'lax' // Prevent CSRF while allowing normal navigation
+    sameSite: 'lax', // Prevent CSRF while allowing normal navigation
+    path: '/' // Ensure cookie is accessible for all paths
   }
 }));
 
