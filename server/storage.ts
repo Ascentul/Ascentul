@@ -3124,6 +3124,245 @@ export class MemStorage implements IStorage {
     this.supportTickets.set(id, supportTicket);
     return supportTicket;
   }
+
+  // Job Listings operations
+  async getJobListings(filters?: { 
+    query?: string; 
+    location?: string; 
+    remote?: boolean; 
+    jobType?: string; 
+    page?: number; 
+    pageSize?: number; 
+  }): Promise<{ listings: JobListing[]; total: number }> {
+    let listings = Array.from(this.jobListings.values());
+    
+    // Apply filters if provided
+    if (filters) {
+      if (filters.query) {
+        const lowercaseQuery = filters.query.toLowerCase();
+        listings = listings.filter(listing => 
+          listing.title.toLowerCase().includes(lowercaseQuery) || 
+          listing.company.toLowerCase().includes(lowercaseQuery) ||
+          listing.description.toLowerCase().includes(lowercaseQuery)
+        );
+      }
+      
+      if (filters.location) {
+        const lowercaseLocation = filters.location.toLowerCase();
+        listings = listings.filter(listing => 
+          listing.location.toLowerCase().includes(lowercaseLocation)
+        );
+      }
+      
+      if (filters.remote !== undefined) {
+        listings = listings.filter(listing => listing.remote === filters.remote);
+      }
+      
+      if (filters.jobType) {
+        listings = listings.filter(listing => listing.jobType === filters.jobType);
+      }
+      
+      // Pagination
+      const page = filters.page || 1;
+      const pageSize = filters.pageSize || 10;
+      const startIndex = (page - 1) * pageSize;
+      const total = listings.length;
+      listings = listings.slice(startIndex, startIndex + pageSize);
+      
+      return { listings, total };
+    }
+    
+    return { listings, total: listings.length };
+  }
+
+  async getJobListing(id: number): Promise<JobListing | undefined> {
+    return this.jobListings.get(id);
+  }
+
+  async createJobListing(listing: InsertJobListing): Promise<JobListing> {
+    const id = this.jobListingIdCounter++;
+    const now = new Date();
+    
+    const newListing: JobListing = {
+      ...listing,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.jobListings.set(id, newListing);
+    return newListing;
+  }
+
+  async updateJobListing(id: number, listingData: Partial<JobListing>): Promise<JobListing | undefined> {
+    const listing = this.jobListings.get(id);
+    if (!listing) return undefined;
+    
+    const updatedListing: JobListing = {
+      ...listing,
+      ...listingData,
+      updatedAt: new Date()
+    };
+    
+    this.jobListings.set(id, updatedListing);
+    return updatedListing;
+  }
+
+  async deleteJobListing(id: number): Promise<boolean> {
+    return this.jobListings.delete(id);
+  }
+  
+  // Job Applications operations
+  async getJobApplications(userId: number): Promise<JobApplication[]> {
+    return Array.from(this.jobApplications.values())
+      .filter(application => application.userId === userId);
+  }
+
+  async getJobApplication(id: number): Promise<JobApplication | undefined> {
+    return this.jobApplications.get(id);
+  }
+
+  async createJobApplication(userId: number, application: InsertJobApplication): Promise<JobApplication> {
+    const id = this.jobApplicationIdCounter++;
+    const now = new Date();
+    
+    const newApplication: JobApplication = {
+      ...application,
+      id,
+      userId,
+      status: application.status || "draft",
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.jobApplications.set(id, newApplication);
+    return newApplication;
+  }
+
+  async updateJobApplication(id: number, applicationData: Partial<JobApplication>): Promise<JobApplication | undefined> {
+    const application = this.jobApplications.get(id);
+    if (!application) return undefined;
+    
+    const updatedApplication: JobApplication = {
+      ...application,
+      ...applicationData,
+      updatedAt: new Date()
+    };
+    
+    this.jobApplications.set(id, updatedApplication);
+    return updatedApplication;
+  }
+
+  async submitJobApplication(id: number): Promise<JobApplication | undefined> {
+    const application = this.jobApplications.get(id);
+    if (!application) return undefined;
+    
+    // Check if all required steps are completed
+    const steps = await this.getApplicationWizardSteps(id);
+    const allStepsCompleted = steps.every(step => step.isCompleted);
+    
+    if (!allStepsCompleted) {
+      throw new Error("All application steps must be completed before submitting");
+    }
+    
+    const submittedApplication: JobApplication = {
+      ...application,
+      status: "applied",
+      submittedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.jobApplications.set(id, submittedApplication);
+    
+    // Award XP for applying to a job
+    if (application.userId) {
+      await this.addUserXP(application.userId, 50, "job_application", `Applied to ${application.jobTitle} at ${application.company}`);
+    }
+    
+    return submittedApplication;
+  }
+
+  async deleteJobApplication(id: number): Promise<boolean> {
+    // Also delete any associated wizard steps
+    const steps = await this.getApplicationWizardSteps(id);
+    steps.forEach(step => {
+      this.applicationWizardSteps.delete(step.id);
+    });
+    
+    return this.jobApplications.delete(id);
+  }
+  
+  // Application Wizard Steps operations
+  async getApplicationWizardSteps(applicationId: number): Promise<ApplicationWizardStep[]> {
+    return Array.from(this.applicationWizardSteps.values())
+      .filter(step => step.applicationId === applicationId)
+      .sort((a, b) => a.order - b.order); // Sort by step order
+  }
+
+  async getApplicationWizardStep(id: number): Promise<ApplicationWizardStep | undefined> {
+    return this.applicationWizardSteps.get(id);
+  }
+
+  async createApplicationWizardStep(applicationId: number, step: InsertApplicationWizardStep): Promise<ApplicationWizardStep> {
+    const id = this.applicationWizardStepIdCounter++;
+    const now = new Date();
+    
+    const newStep: ApplicationWizardStep = {
+      ...step,
+      id,
+      applicationId,
+      isCompleted: false,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.applicationWizardSteps.set(id, newStep);
+    return newStep;
+  }
+
+  async updateApplicationWizardStep(id: number, stepData: Partial<ApplicationWizardStep>): Promise<ApplicationWizardStep | undefined> {
+    const step = this.applicationWizardSteps.get(id);
+    if (!step) return undefined;
+    
+    const updatedStep: ApplicationWizardStep = {
+      ...step,
+      ...stepData,
+      updatedAt: new Date()
+    };
+    
+    this.applicationWizardSteps.set(id, updatedStep);
+    return updatedStep;
+  }
+
+  async completeApplicationWizardStep(id: number): Promise<ApplicationWizardStep | undefined> {
+    const step = this.applicationWizardSteps.get(id);
+    if (!step) return undefined;
+    
+    const completedStep: ApplicationWizardStep = {
+      ...step,
+      isCompleted: true,
+      completedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.applicationWizardSteps.set(id, completedStep);
+    
+    // Get the application
+    const application = await this.getJobApplication(step.applicationId);
+    if (application) {
+      // Check if all steps are completed
+      const steps = await this.getApplicationWizardSteps(application.id);
+      const completedSteps = steps.filter(s => s.isCompleted).length;
+      const totalSteps = steps.length;
+      
+      // Update application progress
+      await this.updateJobApplication(application.id, {
+        progress: Math.floor((completedSteps / totalSteps) * 100)
+      });
+    }
+    
+    return completedStep;
+  }
 }
 
 export const storage = new MemStorage();
