@@ -23,7 +23,7 @@ export default function SignIn() {
       console.log('Starting login process for:', email);
       
       // Make direct API request
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
