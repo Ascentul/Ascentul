@@ -693,6 +693,57 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Username validation and update endpoints
+  // Get current authenticated user
+  apiRouter.get("/users/me", async (req: Request, res: Response) => {
+    try {
+      console.log("GET /api/users/me called with session ID:", req.sessionID);
+      
+      // Dump full session data for debugging
+      console.log("Session data:", {
+        id: req.sessionID,
+        userId: req.session?.userId,
+        authenticated: req.session?.authenticated,
+        cookie: req.session?.cookie
+      });
+      
+      if (!req.session || !req.session.userId) {
+        console.log("No userId in session or session doesn't exist");
+        return sendUnauthenticatedResponse(res);
+      }
+      
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        console.log("User not found in database:", req.session.userId);
+        return sendUnauthenticatedResponse(res, "User not found");
+      }
+      
+      // Remove sensitive fields
+      const { password, ...safeUser } = user;
+      
+      // Add a redirect path based on user type
+      let redirectPath = '/career-dashboard';
+      if (user.userType === 'admin') {
+        redirectPath = '/admin-dashboard';
+      } else if (user.userType === 'staff') {
+        redirectPath = '/staff-dashboard';
+      }
+      
+      // Add redirectPath to the user object
+      const userWithRedirect = {
+        ...safeUser,
+        redirectPath
+      };
+      
+      // Mark the response as authenticated
+      markResponseAuthenticated(res);
+      
+      return res.status(200).json(userWithRedirect);
+    } catch (error) {
+      console.error("Error in /api/users/me:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   apiRouter.get("/users/check-username", async (req: Request, res: Response) => {
     try {
       const { username } = req.query;
@@ -768,35 +819,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // User Routes
-  apiRouter.get("/users/me", async (req: Request, res: Response) => {
-    try {
-      // Use our centralized getCurrentUser function to get the authenticated user
-      const user = await getCurrentUser(req);
-      
-      // If no user is found, return 401 Unauthorized
-      if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
-      }
-      
-      // Remove sensitive information from the user object before sending it to the client
-      const { password: userPassword, ...safeUser } = user;
-      
-      // Add password length for visual representation, but never send actual password
-      const passwordLength = userPassword ? userPassword.length : 0;
-      
-      // Set a special header to indicate authentication is confirmed
-      markResponseAuthenticated(res);
-      
-      // Return the user data
-      res.status(200).json({
-        ...safeUser,
-        passwordLength
-      });
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      res.status(500).json({ message: "Error fetching user data" });
-    }
-  });
   
   // Update user profile
   apiRouter.put("/users/profile", async (req: Request, res: Response) => {

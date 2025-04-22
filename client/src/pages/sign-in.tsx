@@ -52,19 +52,29 @@ export default function SignInPage() {
       // Log the response to help debugging
       console.log('Login response:', data);
       
+      // Store authentication state in localStorage
+      localStorage.setItem('auth-user', JSON.stringify({
+        id: data.id || (data.user && data.user.id),
+        authenticated: true,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Get the redirect path from the response
+      const redirectPath = data.redirectPath || 
+                         (data.user && data.user.redirectPath) || 
+                         '/career-dashboard';
+      
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully. Redirecting to dashboard...",
       });
       
-      // Force update the user query data to reflect logged in state
-      login(loginEmail, loginPassword).catch(e => console.error('Secondary login error:', e));
+      console.log('Authentication successful, redirecting to:', redirectPath);
       
-      // Force redirection immediately to the dashboard
-      // Hard-code the dashboard path to ensure it works
-      console.log('Manual redirect initiated to /career-dashboard');
+      // Give the browser 500ms to complete the login process, then redirect
       setTimeout(() => {
-        window.location.href = '/career-dashboard';
+        // Use direct window.location for most reliable redirect
+        window.location.href = redirectPath;
       }, 500);
       
     } catch (error) {

@@ -37,8 +37,9 @@ app.use(session({
   saveUninitialized: true, // Ensure session is saved even if not modified
   rolling: true, // Reset the cookie expiration on each response
   store: sessionStore,
+  name: 'connect.sid', // Set explicit name for the session cookie
   cookie: { 
-    secure: false, // Allow non-HTTPS in development
+    secure: process.env.NODE_ENV === 'production', // Only secure in production
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     httpOnly: true,
     sameSite: 'lax', // Prevent CSRF while allowing normal navigation
