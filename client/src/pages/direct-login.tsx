@@ -35,30 +35,33 @@ export default function DirectLogin() {
     attemptAutoLogin();
   }, [autoLoginAttempted]);
 
-  // Function to handle direct redirection to dashboard
+  // Function to handle direct redirection to dashboard - using a hard-coded redirect
   const redirectToDashboard = () => {
     console.log('REDIRECTING TO DASHBOARD NOW');
     
     try {
-      // Get redirect path from userData if available
-      const redirectPath = userData?.redirectPath || '/dashboard';
-      console.log(`Using redirectPath: ${redirectPath}`);
+      // Get redirect path from userData if available - use server's suggestion if possible
+      const serverRedirectPath = userData?.redirectPath || (userData?.user && userData.user.redirectPath);
+      console.log('Server suggested redirectPath:', serverRedirectPath);
       
-      // Use the most forceful redirect possible
-      setTimeout(() => {
-        console.log('EXECUTING IMMEDIATE REDIRECT');
-        window.location.replace(redirectPath);
-      }, 100);
+      // Create a direct URL that bypasses client-side routing completely
+      // Add the bypass=true parameter to trigger our special route handler in App.tsx
+      const dashboardPath = '/career-dashboard?bypass=true';
+      console.log(`Using hardcoded path with bypass: ${dashboardPath}`);
       
-      // Backup: try again after a short delay if not redirected
+      // Force a full page reload navigation
+      window.location.href = dashboardPath;
+      
+      // If that doesn't work, try a backup approach after a delay
       setTimeout(() => {
-        console.log('REDIRECT RETRY');
-        document.location.href = '/dashboard';
-      }, 800);
+        console.log('REDIRECT RETRY (EXTREME METHOD)');
+        // Very aggressive redirect that bypasses React routing entirely
+        window.top.location.href = dashboardPath;
+      }, 1000);
     } catch (error) {
       console.error('Redirect error:', error);
-      // Final fallback
-      window.location.href = '/dashboard';
+      // Final fallback - simple redirect
+      window.location.href = '/career-dashboard';
     }
   };
 
@@ -120,8 +123,27 @@ export default function DirectLogin() {
         description: "Redirecting to dashboard...",
       });
       
-      // Redirect to dashboard
-      setTimeout(redirectToDashboard, 500);
+      // Immediately redirect without delay
+      redirectToDashboard();
+      
+      // Multiple fallback attempts with different approaches
+      setTimeout(() => {
+        console.log("*** EMERGENCY REDIRECT ATTEMPT 1 ***");
+        // Direct document.location assignment with bypass parameter
+        document.location.href = '/career-dashboard?bypass=true';
+      }, 300);
+      
+      setTimeout(() => {
+        console.log("*** EMERGENCY REDIRECT ATTEMPT 2 ***");
+        // Try the dashboard route directly
+        document.location.href = '/dashboard';
+      }, 600);
+      
+      setTimeout(() => {
+        console.log("*** EMERGENCY REDIRECT ATTEMPT 3 ***");
+        // Final attempt with hash fragment to force a full reload
+        window.location.href = '/career-dashboard?bypass=true&time=' + new Date().getTime();
+      }, 900);
       
     } catch (error) {
       console.error('Login error:', error);

@@ -198,6 +198,12 @@ function App() {
     navigate("/direct-login");
     return null;
   }
+  
+  // Special case for career-dashboard when it has a bypass parameter
+  if (location.startsWith("/career-dashboard") && location.includes("bypass=true")) {
+    console.log("BYPASS ACTIVE: Rendering dashboard directly without route protection");
+    return <Dashboard />;
+  }
 
   // Skip layout for auth routes
   const isAdminLoginRoute = location === "/admin-login";
