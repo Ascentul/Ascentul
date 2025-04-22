@@ -65,7 +65,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [location] = useLocation();
-  const { user, logout, updateUser, updateProfile } = useUser();
+  const { user, logout, updateUser, updateProfile, uploadProfileImage } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
   const sidebarRef = useRef<HTMLDivElement>(null);
