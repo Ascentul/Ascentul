@@ -904,11 +904,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   apiRouter.put("/users/subscription", async (req: Request, res: Response) => {
     try {
-      // Get user from session
+      // Get user from session using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       // Extract subscription data from request
@@ -958,6 +958,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Remove sensitive data before sending response
       const { password: userPassword, ...safeUser } = updatedUser;
       
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(safeUser);
     } catch (error) {
       console.error("Error updating user subscription:", error);
@@ -967,14 +970,18 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/statistics", async (req: Request, res: Response) => {
     try {
-      // Get the current authenticated user
+      // Get the current authenticated user using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const stats = await storage.getUserStatistics(user.id);
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(stats);
     } catch (error) {
       res.status(500).json({ message: "Error fetching statistics" });
@@ -983,15 +990,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/xp-history", async (req: Request, res: Response) => {
     try {
-      // Get the current authenticated user
+      // Get the current authenticated user using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       // Return XP history for all users
       const xpHistory = await storage.getXpHistory(user.id);
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(xpHistory);
     } catch (error) {
       res.status(500).json({ message: "Error fetching XP history" });
@@ -1001,14 +1012,18 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Goal Routes
   apiRouter.get("/goals", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Get current user from session
+      // Get current user from session using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const goals = await storage.getGoals(user.id);
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(goals);
     } catch (error) {
       res.status(500).json({ message: "Error fetching goals" });
@@ -1019,17 +1034,20 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       const goalData = insertGoalSchema.parse(req.body);
       
-      // Get current user from session
+      // Get current user from session using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const goal = await storage.createGoal(user.id, goalData);
       
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
       
       res.status(201).json(goal);
     } catch (error) {
@@ -1049,10 +1067,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid goal ID" });
       }
       
-      // Get current user from session
+      // Get current user from session using the centralized getCurrentUser function
       const user = await getCurrentUser(req);
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const goal = await storage.getGoal(goalId);
