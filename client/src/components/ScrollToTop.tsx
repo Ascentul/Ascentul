@@ -10,7 +10,12 @@ export function ScrollToTop() {
 
   useEffect(() => {
     // Scroll to top when the location changes
-    window.scrollTo(0, 0);
+    // Using setTimeout to avoid state updates during render
+    const timeoutId = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
   }, [location]);
 
   return null;

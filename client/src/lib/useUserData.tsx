@@ -168,22 +168,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       console.log('Authentication successful, user data:', data.user);
       
-      // Use the redirect path provided by the server, or fall back to role-based redirect
-      if (data.redirectPath) {
-        window.location.href = data.redirectPath;
-      } else {
-        // Fall back to role-based redirection
-        const user = data.user;
-        if (user.userType === 'admin') {
-          window.location.href = '/admin';
-        } else if (user.userType === 'staff') {
-          window.location.href = '/staff';
-        } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-          window.location.href = '/university';
-        } else { // regular user
-          window.location.href = '/dashboard';
+      // Use setTimeout to perform navigation after the current render cycle completes
+      // This avoids the React warning about state updates during rendering
+      setTimeout(() => {
+        // Use the redirect path provided by the server, or fall back to role-based redirect
+        if (data.redirectPath) {
+          window.location.href = data.redirectPath;
+        } else {
+          // Fall back to role-based redirection
+          const user = data.user;
+          if (user.userType === 'admin') {
+            window.location.href = '/admin';
+          } else if (user.userType === 'staff') {
+            window.location.href = '/staff';
+          } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
+            window.location.href = '/university';
+          } else { // regular user
+            window.location.href = '/dashboard';
+          }
         }
-      }
+      }, 0);
     },
     onError: (error) => {
       console.error('Login mutation error:', error);
@@ -238,8 +242,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
         
-        // Redirect to sign-in page
-        window.location.href = '/sign-in';
+        // Use setTimeout to avoid React state update during render issues
+        setTimeout(() => {
+          // Redirect to sign-in page
+          window.location.href = '/sign-in';
+        }, 0);
       })
       .catch(error => {
         console.error('Logout error:', error);
@@ -247,7 +254,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth-logout', 'true');
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
-        window.location.href = '/sign-in';
+        
+        // Use setTimeout to avoid React state update during render issues
+        setTimeout(() => {
+          // Redirect to sign-in page
+          window.location.href = '/sign-in';
+        }, 0);
       });
   };
 
