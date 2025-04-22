@@ -61,6 +61,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return !loggedOut; // Consider authenticated unless explicitly logged out
   });
 
+  // Handle authentication errors from other components
+  useEffect(() => {
+    const handleAuthError = (event: Event) => {
+      const authEvent = event as CustomEvent;
+      console.log('Auth error event received:', authEvent.detail);
+      // Update authentication state accordingly
+      setIsAuthenticated(false);
+      queryClient.setQueryData(['/api/users/me'], null);
+    };
+
+    window.addEventListener('auth-error', handleAuthError);
+    
+    return () => {
+      window.removeEventListener('auth-error', handleAuthError);
+    };
+  }, [queryClient]);
+
   const {
     data: user,
     error,

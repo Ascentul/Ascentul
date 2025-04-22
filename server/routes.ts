@@ -819,6 +819,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Add password length for visual representation, but never send actual password
       const passwordLength = userPassword ? userPassword.length : 0;
       
+      // Set a special header to indicate authentication is confirmed
+      res.setHeader('X-Auth-Status', 'authenticated');
+      
       res.status(200).json({
         ...safeUser,
         passwordLength
@@ -918,6 +921,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: userPassword, ...safeUser } = updatedUser;
       
+      // Set authentication header
+      res.setHeader('X-Auth-Status', 'authenticated');
+      
       // Add a message about email verification if needed
       if (updateData.pendingEmail) {
         return res.status(200).json({
@@ -1007,6 +1013,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         }
         
         console.log("User profile updated with new image URL:", filepath);
+        
+        // Set authentication header
+        res.setHeader('X-Auth-Status', 'authenticated');
         
         // Return success response
         return res.status(200).json({ 

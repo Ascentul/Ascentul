@@ -101,9 +101,22 @@ export async function apiRequest<T>(
       // Only add the logout flag if this isn't already a login/logout request
       if (!url.includes('/auth/')) {
         localStorage.setItem('auth-logout', 'true');
+        // Broadcast an auth event so all components can react
+        window.dispatchEvent(new CustomEvent('auth-error', { 
+          detail: { method, url, status: res.status }
+        }));
       }
       
       throw new Error("Authentication required");
+    }
+    
+    // Check for special auth header to confirm authentication is working
+    if (res.headers.get('X-Auth-Status') === 'authenticated') {
+      // If we get a confirmed authenticated response, clear any logout flag
+      if (localStorage.getItem('auth-logout') === 'true') {
+        console.log('Clearing logout flag due to authenticated response');
+        localStorage.removeItem('auth-logout');
+      }
     }
 
     await throwIfResNotOk(res);
@@ -150,11 +163,24 @@ export const getQueryFn: <T>(options: {
       if (res.status === 401) {
         console.log('Authentication required for', queryKey[0]);
         // User is not authenticated, clear any cached user data
-        const queryClient = new QueryClient();
         queryClient.setQueryData(['/api/users/me'], null);
+        
+        // Broadcast an auth event for React components to handle
+        window.dispatchEvent(new CustomEvent('auth-error', { 
+          detail: { method: 'GET', url: queryKey[0], status: res.status }
+        }));
         
         // Don't set logout flag here, as we still want to attempt auth with cookies
         throw new Error("Authentication required");
+      }
+      
+      // Check for special auth header to confirm authentication is working
+      if (res.headers.get('X-Auth-Status') === 'authenticated') {
+        // If we get a confirmed authenticated response, clear any logout flag
+        if (localStorage.getItem('auth-logout') === 'true') {
+          console.log('Clearing logout flag due to authenticated response');
+          localStorage.removeItem('auth-logout');
+        }
       }
   
       await throwIfResNotOk(res);
