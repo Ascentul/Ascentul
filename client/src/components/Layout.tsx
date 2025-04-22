@@ -3,7 +3,6 @@ import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import { useUser } from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
-import ImageDebugTest from '@/components/ImageDebugTest';
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,7 +43,6 @@ export default function Layout({ children }: LayoutProps) {
           <main className="p-4 md:p-6 max-w-7xl mx-auto">
             {children}
           </main>
-          <ImageDebugTest />
         </div>
       </div>
     </div>
