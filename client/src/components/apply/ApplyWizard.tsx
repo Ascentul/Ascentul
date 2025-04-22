@@ -1,357 +1,389 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { insertJobApplicationSchema, type JobListing, type Resume } from '@shared/schema';
-import { CheckCircle2, ArrowRight, FileText, Briefcase, Send } from 'lucide-react';
-import { LoadingButton } from '@/components/ui/loading-button';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { Loader2 } from 'lucide-react';
 
-// Extend the insert schema with validation rules
-const formSchema = insertJobApplicationSchema.extend({
-  companyName: z.string().min(1, 'Company name is required'),
-  jobTitle: z.string().min(1, 'Job title is required'),
+// Define the form schema for job application
+const applicationSchema = z.object({
+  jobTitle: z.string().min(1, "Job title is required"),
+  companyName: z.string().min(1, "Company name is required"),
   jobLocation: z.string().optional(),
-  jobDescription: z.string().optional(),
-  applicationNotes: z.string().optional(),
+  applicationDate: z.string().optional(),
   resumeId: z.number().optional(),
   coverLetterId: z.number().optional(),
-  status: z.string().default('Not Started'),
+  jobLink: z.string().url("Please enter a valid URL").optional(),
+  jobDescription: z.string().optional(),
+  status: z.string().default("Not Started"),
+  notes: z.string().optional(),
+  aiAssisted: z.boolean().default(false),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type ApplicationFormValues = z.infer<typeof applicationSchema>;
 
+// The ApplyWizard props
 interface ApplyWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  initialJobListing?: JobListing | null;
 }
 
-export const ApplyWizard = ({ 
-  isOpen, 
-  onClose,
-  initialJobListing = null,
-}: ApplyWizardProps) => {
+export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
+  const [step, setStep] = useState<number>(1);
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
-  
-  // Fetch user's resumes for selection
-  const { data: resumes } = useQuery<Resume[]>({
-    queryKey: ['/api/resumes'],
-    placeholderData: [],
-  });
 
-  // Form setup with default values
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  // React Hook Form setup
+  const form = useForm<ApplicationFormValues>({
+    resolver: zodResolver(applicationSchema),
     defaultValues: {
-      companyName: initialJobListing?.companyName || '',
-      jobTitle: initialJobListing?.title || '',
-      jobLocation: initialJobListing?.location || '',
-      jobDescription: initialJobListing?.description || '',
-      jobLink: initialJobListing?.url || '',
-      applicationNotes: '',
-      status: 'Not Started',
-    },
+      jobTitle: "",
+      companyName: "",
+      jobLocation: "",
+      jobLink: "",
+      jobDescription: "",
+      applicationDate: new Date().toISOString().split('T')[0],
+      status: "Not Started",
+      notes: "",
+      aiAssisted: true,
+    }
   });
 
-  // Create job application mutation
-  const createApplicationMutation = useMutation({
-    mutationFn: async (data: FormValues) => {
-      const response = await apiRequest('POST', '/api/job-applications', data);
-      return response.json();
+  // Fetch resumes for the resume selection step
+  const { data: resumes, isLoading: isLoadingResumes } = useQuery({
+    queryKey: ['/api/resumes'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/resumes');
+        if (!response.ok) return [];
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching resumes:', error);
+        return [];
+      }
+    },
+    enabled: isOpen && step === 2
+  });
+
+  // Create application mutation
+  const createApplication = useMutation({
+    mutationFn: async (values: ApplicationFormValues) => {
+      const response = await apiRequest('/api/job-applications', {
+        method: 'POST',
+        body: JSON.stringify(values),
+      });
+      return response;
     },
     onSuccess: () => {
       toast({
         title: "Application created",
-        description: "Your job application has been saved successfully.",
+        description: "Your job application has been added to the tracker.",
+        variant: "default",
       });
-      // Reset form and close dialog
-      form.reset();
-      setStep(1);
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       onClose();
+      setStep(1);
+      form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: "Failed to create application",
-        description: error.message,
+        title: "Error",
+        description: "There was a problem creating your application. Please try again.",
         variant: "destructive",
       });
+      console.error('Error creating application:', error);
     }
   });
 
-  const handleSubmit = (values: FormValues) => {
-    createApplicationMutation.mutate(values);
+  // Handle form submission
+  const onSubmit = (values: ApplicationFormValues) => {
+    createApplication.mutate(values);
   };
 
-  const nextStep = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    }
+  // Reset form and steps when closing the dialog
+  const handleClose = () => {
+    setStep(1);
+    form.reset();
+    onClose();
   };
 
-  const prevStep = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
+  // Handle job selection
+  const handleJobSelect = (job: any) => {
+    setSelectedJob(job);
+    form.setValue('jobTitle', job.title);
+    form.setValue('companyName', job.company);
+    form.setValue('jobLocation', job.location || '');
+    form.setValue('jobLink', job.jobUrl);
+    form.setValue('jobDescription', job.description);
+    setStep(2);
   };
 
-  const renderStepIndicator = () => {
-    return (
-      <div className="flex items-center justify-center mb-6">
-        {[...Array(totalSteps)].map((_, index) => (
-          <div key={index} className="flex items-center">
-            <div 
-              className={`rounded-full h-8 w-8 flex items-center justify-center border-2 
-                ${step > index + 1 ? 'bg-primary border-primary text-primary-foreground' : 
-                 step === index + 1 ? 'border-primary text-primary' : 'border-muted text-muted-foreground'}`}
-            >
-              {step > index + 1 ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
-            </div>
-            {index < totalSteps - 1 && (
-              <div 
-                className={`h-[2px] w-10 mx-1 
-                  ${step > index + 1 ? 'bg-primary' : 'bg-muted'}`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Application Agent</DialogTitle>
+          <DialogDescription>
+            {step === 1 && "Start by adding job details or import from a job board."}
+            {step === 2 && "Select or upload a resume for this application."}
+            {step === 3 && "Review and submit your application details."}
+          </DialogDescription>
+        </DialogHeader>
 
-  const renderStepContent = () => {
-    switch (step) {
-      case 1:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle>Job Details</DialogTitle>
-              <DialogDescription>
-                Enter the details of the job you're applying for
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="companyName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Company name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        {step === 1 && (
+          <Tabs defaultValue="manual" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manual">Enter Manually</TabsTrigger>
+              <TabsTrigger value="import">Import Job</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="manual">
+              <Form {...form}>
+                <form className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="jobTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job Title*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Software Engineer" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Acme Inc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="jobLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Remote, New York, NY" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="applicationDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="jobLink"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job URL</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://example.com/job-posting" 
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="jobDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Paste the job description here..." 
+                            className="min-h-[120px]"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="button" 
+                    className="w-full" 
+                    onClick={() => {
+                      const result = form.trigger(['jobTitle', 'companyName']);
+                      if (result) setStep(2);
+                    }}
+                  >
+                    Continue to Resume Selection
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="import">
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-md">
+                  <h3 className="font-medium mb-2">Import from URL</h3>
+                  <div className="flex space-x-2">
+                    <Input placeholder="Paste job URL" />
+                    <Button type="button">Import</Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-medium mb-2">Recent job searches</h3>
+                  <p className="text-muted-foreground text-sm">No recent searches found.</p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
 
-              <FormField
-                control={form.control}
-                name="jobTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Job title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jobLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Job location (optional)" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jobLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Link</FormLabel>
-                    <FormControl>
-                      <Input placeholder="URL of the job posting (optional)" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="button" onClick={nextStep}>
-                Next
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </DialogFooter>
-          </>
-        );
-      
-      case 2:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle>Application Materials</DialogTitle>
-              <DialogDescription>
-                Select the resume and cover letter to use
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="resumeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Resume</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      defaultValue={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a resume" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {resumes && resumes.length > 0 ? (
-                          resumes.map((resume) => (
-                            <SelectItem key={resume.id} value={resume.id.toString()}>
-                              {resume.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="none" disabled>
-                            No resumes available
-                          </SelectItem>
+        {step === 2 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {isLoadingResumes ? (
+                <div className="col-span-full flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : resumes && resumes.length > 0 ? (
+                resumes.map((resume: any) => (
+                  <Card 
+                    key={resume.id} 
+                    className={`cursor-pointer hover:border-primary transition-colors ${form.getValues('resumeId') === resume.id ? 'border-primary bg-primary/5' : ''}`}
+                    onClick={() => form.setValue('resumeId', resume.id)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-medium">{resume.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        {form.getValues('resumeId') === resume.id && (
+                          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-white text-xs">
+                            ✓
+                          </div>
                         )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jobDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Paste the job description here for AI analysis" 
-                        className="min-h-[150px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full p-8 text-center bg-muted rounded-md">
+                  <p>No resumes found. Create one in the Resume Builder.</p>
+                  <Button 
+                    variant="link" 
+                    onClick={() => window.location.href = '/resume'}
+                  >
+                    Go to Resume Builder
+                  </Button>
+                </div>
+              )}
             </div>
-            <DialogFooter className="flex justify-between">
-              <Button type="button" variant="outline" onClick={prevStep}>
-                Back
+            
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button 
+                onClick={() => setStep(3)}
+              >
+                Continue to Review
               </Button>
-              <Button type="button" onClick={nextStep}>
-                Next
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </DialogFooter>
-          </>
-        );
-      
-      case 3:
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle>Application Status</DialogTitle>
-              <DialogDescription>
-                Set your current application status and notes
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Application Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Not Started">Not Started</SelectItem>
-                        <SelectItem value="Applied">Applied</SelectItem>
-                        <SelectItem value="Interviewing">Interviewing</SelectItem>
-                        <SelectItem value="Offer">Offer</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-medium mb-2">Job Details</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex">
+                      <span className="font-medium w-24">Title:</span>
+                      <span>{form.getValues('jobTitle')}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium w-24">Company:</span>
+                      <span>{form.getValues('companyName')}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium w-24">Location:</span>
+                      <span>{form.getValues('jobLocation') || 'Not specified'}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Application Details</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex">
+                      <span className="font-medium w-24">Status:</span>
+                      <span>Not Started</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium w-24">Date:</span>
+                      <span>{form.getValues('applicationDate')}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="font-medium w-24">Resume:</span>
+                      <span>{form.getValues('resumeId') ? `Selected (ID: ${form.getValues('resumeId')})` : 'None selected'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <FormField
                 control={form.control}
-                name="applicationNotes"
+                name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>Additional Notes</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Add any notes about this application" 
+                        placeholder="Add any notes about this application..." 
                         className="min-h-[100px]"
                         {...field}
                       />
@@ -360,40 +392,52 @@ export const ApplyWizard = ({
                   </FormItem>
                 )}
               />
-            </div>
-            <DialogFooter className="flex justify-between">
-              <Button type="button" variant="outline" onClick={prevStep}>
-                Back
-              </Button>
-              <LoadingButton 
-                type="submit" 
-                loading={createApplicationMutation.isPending}
-                onClick={form.handleSubmit(handleSubmit)}
-              >
-                Save Application
-                <Send className="ml-2 h-4 w-4" />
-              </LoadingButton>
-            </DialogFooter>
-          </>
-        );
-      
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {renderStepIndicator()}
-            {renderStepContent()}
-          </form>
-        </Form>
+              
+              <FormField
+                control={form.control}
+                name="aiAssisted"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <input 
+                        type="checkbox" 
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                    </FormControl>
+                    <div>
+                      <FormLabel className="cursor-pointer">Use AI to optimize this application</FormLabel>
+                      <FormDescription>
+                        Let our AI suggest improvements for your resume and cover letter
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="flex justify-between">
+                <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                  Back
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createApplication.isPending}
+                >
+                  {createApplication.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Add Application'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );
-};
-
-export default ApplyWizard;
+}

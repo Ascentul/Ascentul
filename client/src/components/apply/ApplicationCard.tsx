@@ -1,79 +1,90 @@
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ApplicationStatusBadge } from './ApplicationStatusBadge';
-import { CalendarDays, Building, MapPin, Link as LinkIcon } from 'lucide-react';
-import { type JobApplication } from '@shared/schema';
-import { motion } from 'framer-motion';
+import { ExternalLink, Calendar, MapPin } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ApplicationStatusBadge } from './ApplicationStatusBadge';
+import { formatDistanceToNow } from 'date-fns';
 
 interface ApplicationCardProps {
-  application: JobApplication;
-  onClick?: () => void;
+  application: any;
   isSelected?: boolean;
+  onClick?: () => void;
   className?: string;
 }
 
-export const ApplicationCard = ({ 
+export function ApplicationCard({ 
   application, 
+  isSelected = false, 
   onClick,
-  isSelected = false,
   className
-}: ApplicationCardProps) => {
-  // Determine background based on status
-  const getStatusBackground = () => {
-    switch (application.status) {
-      case 'Offer':
-        return 'bg-green-50';
-      case 'Rejected':
-        return 'bg-red-50';
-      default:
-        return '';
-    }
-  };
+}: ApplicationCardProps) {
+  // For the demo, we'll mock the job relationship here
+  // In a real implementation, this would be fetched from the API with the job relationship
+  const jobTitle = application.jobTitle || "Software Engineer";
+  const companyName = application.companyName || "Acme Inc.";
+  const jobLocation = application.jobLocation || "Remote";
+  
+  const viewMode = application.jobId ? 'compact' : 'full';
+  
+  // Calculate time ago for application date
+  const timeAgo = application.applicationDate 
+    ? formatDistanceToNow(new Date(application.applicationDate), { addSuffix: true })
+    : formatDistanceToNow(new Date(application.createdAt), { addSuffix: true });
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      transition={{ duration: 0.2 }}
+    <Card 
+      className={cn(
+        "transition-colors cursor-pointer hover:border-primary/50",
+        isSelected && "border-primary/80 shadow-sm bg-primary/5",
+        className
+      )}
+      onClick={onClick}
     >
-      <Card 
-        className={cn(
-          "cursor-pointer transition-colors hover:bg-accent/50",
-          isSelected ? "border-primary" : "",
-          getStatusBackground(),
-          className
-        )}
-        onClick={onClick}
-      >
-        <CardHeader className="p-4 pb-2">
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-base">
-              <div className="flex items-center gap-1">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                {application.companyName}
-              </div>
-            </CardTitle>
-            <ApplicationStatusBadge status={application.status} />
+      <CardContent className={cn("p-3 sm:p-4", className)}>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-medium text-base text-foreground">{jobTitle}</h3>
+              <p className="text-muted-foreground text-sm">{companyName}</p>
+            </div>
+            <ApplicationStatusBadge status={application.status} size="sm" />
           </div>
-          <CardDescription>{application.jobTitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-2">
-          {application.jobLocation && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3 mr-1" />
-              {application.jobLocation}
+          
+          <div className="flex flex-col gap-1.5">
+            {jobLocation && (
+              <div className="flex items-center text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1.5" />
+                <span>{jobLocation}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3 mr-1.5" />
+              <span>{timeAgo}</span>
+            </div>
+            
+            {application.jobLink && (
+              <div className="flex items-center text-xs">
+                <ExternalLink className="h-3 w-3 mr-1.5 text-blue-500" />
+                <a href={application.jobLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View Original Job Posting
+                </a>
+              </div>
+            )}
+          </div>
+
+          {application.notes && viewMode === 'full' && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              <p className="line-clamp-2">{application.notes}</p>
             </div>
           )}
-          <div className="flex items-center text-sm text-muted-foreground">
-            <CalendarDays className="h-3 w-3 mr-1" />
-            {application.applicationDate 
-              ? new Date(application.applicationDate).toLocaleDateString() 
-              : new Date(application.createdAt).toLocaleDateString()}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
-};
-
-export default ApplicationCard;
+}

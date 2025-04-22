@@ -1,67 +1,70 @@
-import React from 'react';
+import { PenSquare, Clock, CalendarClock, ThumbsUp, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { 
-  CalendarClock, 
-  CheckCircle2, 
-  ClipboardCheck, 
-  UserCheck, 
-  XCircle,
-  CircleDashed
-} from 'lucide-react';
 
+// Status types
+export type ApplicationStatus = 
+  | 'Not Started' 
+  | 'Applied' 
+  | 'Interviewing' 
+  | 'Offer' 
+  | 'Rejected';
+
+// Props for the status badge
 interface ApplicationStatusBadgeProps {
-  status: string;
+  status: ApplicationStatus | string;
+  size?: 'sm' | 'default';
   className?: string;
-  showIcon?: boolean;
 }
 
-export const ApplicationStatusBadge: React.FC<ApplicationStatusBadgeProps> = ({
-  status,
-  className,
-  showIcon = true
-}) => {
-  // Determine appropriate styling based on status
-  let customClass = '';
-  let Icon = CircleDashed;
+// Configuration for styling and icons based on status
+const statusConfig: Record<string, { color: string; icon: React.ReactNode; label?: string }> = {
+  'Not Started': {
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+  'Applied': {
+    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    icon: <Clock className="h-3 w-3 mr-1" />,
+  },
+  'Interviewing': {
+    color: 'bg-amber-100 text-amber-800 border-amber-200',
+    icon: <CalendarClock className="h-3 w-3 mr-1" />,
+  },
+  'Offer': {
+    color: 'bg-green-100 text-green-800 border-green-200',
+    icon: <ThumbsUp className="h-3 w-3 mr-1" />,
+  },
+  'Rejected': {
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: <X className="h-3 w-3 mr-1" />,
+  },
+  'default': {
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+};
 
-  switch (status) {
-    case 'Not Started':
-      customClass = 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200';
-      Icon = CalendarClock;
-      break;
-    case 'Applied':
-      customClass = 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200';
-      Icon = ClipboardCheck;
-      break;
-    case 'Interviewing':
-      customClass = 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200';
-      Icon = UserCheck;
-      break;
-    case 'Offer':
-      customClass = 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 font-semibold';
-      Icon = CheckCircle2;
-      break;
-    case 'Rejected':
-      customClass = 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200';
-      Icon = XCircle;
-      break;
-    default:
-      // Default styling
-      customClass = 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200';
-      Icon = CircleDashed;
-      break;
-  }
+export function ApplicationStatusBadge({ 
+  status, 
+  size = 'default',
+  className
+}: ApplicationStatusBadgeProps) {
+  // Get configuration for the status or use default if not found
+  const config = statusConfig[status] || statusConfig.default;
 
   return (
     <Badge 
       variant="outline" 
-      className={cn("whitespace-nowrap text-xs font-medium", customClass, className)}
+      className={cn(
+        config.color,
+        size === 'sm' ? 'text-xs py-0 px-1.5' : '',
+        "flex items-center",
+        className
+      )}
     >
-      {showIcon && <Icon className="mr-1 h-3 w-3" />}
-      {status}
+      {config.icon}
+      <span>{config.label || status}</span>
     </Badge>
   );
-};
-
-export default ApplicationStatusBadge;
+}
