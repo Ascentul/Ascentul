@@ -793,5 +793,80 @@ export type InsertUserPersonalAchievement = z.infer<typeof insertUserPersonalAch
 export type CareerPath = typeof careerPaths.$inferSelect;
 export type InsertCareerPath = z.infer<typeof insertCareerPathSchema>;
 
+// Job Listings model
+export const jobListings = pgTable("job_listings", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  company: text("company").notNull(),
+  location: text("location").notNull(),
+  description: text("description").notNull(),
+  jobUrl: text("job_url").notNull(),
+  tags: text("tags").array(),
+  salary: text("salary"),
+  remote: boolean("remote").default(false),
+  jobType: text("job_type").notNull().default("full-time"), // full-time, part-time, contract, etc.
+  source: text("source").notNull().default("manual"), // manual, api, etc.
+  sourceId: text("source_id"), // ID from external API if applicable
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertJobListingSchema = createInsertSchema(jobListings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Job Applications model
+export const jobApplications = pgTable("job_applications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  jobId: integer("job_id").notNull(), // Reference to jobListings
+  resumeId: integer("resume_id"),
+  coverLetterId: integer("cover_letter_id"),
+  status: text("status").notNull().default("draft"), // draft, submitted, in_progress, completed
+  responses: jsonb("responses").$type<Record<string, string>>(), // Form field responses
+  notes: text("notes"),
+  aiAssisted: boolean("ai_assisted").default(true),
+  submittedAt: timestamp("submitted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  submittedAt: true,
+});
+
+// Application Wizard Steps
+export const applicationWizardSteps = pgTable("application_wizard_steps", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull(),
+  stepName: text("step_name").notNull(), // personal_info, experience, questions, review, etc.
+  stepOrder: integer("step_order").notNull(),
+  completed: boolean("completed").default(false),
+  data: jsonb("data"), // Step-specific data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertApplicationWizardStepSchema = createInsertSchema(applicationWizardSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type JobListing = typeof jobListings.$inferSelect;
+export type InsertJobListing = z.infer<typeof insertJobListingSchema>;
+
+export type JobApplication = typeof jobApplications.$inferSelect;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+
+export type ApplicationWizardStep = typeof applicationWizardSteps.$inferSelect;
+export type InsertApplicationWizardStep = z.infer<typeof insertApplicationWizardStepSchema>;
+
 export type EducationHistory = typeof educationHistory.$inferSelect;
 export type InsertEducationHistory = z.infer<typeof insertEducationHistorySchema>;

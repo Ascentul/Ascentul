@@ -1,0 +1,208 @@
+Create a feature called Apply that lets users apply to jobs directly inside Ascentul. The experience should feel like an elegant, AI-assisted wizard — the user simply approves, revises, or lets the AI complete the application step-by-step. It should all happen inline, below the job listing they clicked on, without leaving the app.
+
+🧩 SECTION 1: Core Workflow
+🔍 Job Listing Flow
+Users browse jobs in a standard job search interface (already implemented or pulling from job APIs like Adzuna, Remotive, or JSearch)
+
+
+Each job card includes:
+
+
+Job Title, Company, Location
+
+
+Tags (Remote, Contract, etc.)
+
+
+[🔵 Apply] button
+
+
+When the user clicks Apply, an application drawer appears inline below that job card.
+
+
+
+🧙 SECTION 2: Apply Panel (Application Agent UI)
+Layout:
+Left or top pane: Embedded job application page via iframe or webview
+
+
+Right or side panel (or floating): AI Wizard Assistant UI
+
+
+
+AI Wizard Flow:
+For each form field detected on the application page:
+AI Agent reads the field label
+
+
+Auto-fills using user data (name, email, resume, cover letter, etc.)
+
+
+Displays prompt:
+
+
+text
+CopyEdit
+We filled in the "Why do you want this role?" field with:
+
+"I’m passionate about using data to drive creative product decisions and would love to contribute to CloudMasonry’s mission."
+
+✅ Yes, continue    ✍️ Edit manually    ♻️ Re-do with AI
+
+On Yes → Agent clicks “Next” or scrolls to the next field
+
+
+On Edit manually → Enable that field for user input only
+
+
+On Re-do with AI → Call OpenAI again with modified logic
+
+
+
+🧠 SECTION 3: AI Intelligence
+User Data Mapping
+Pull the following data from the user’s account:
+
+
+Full name, email, phone
+
+
+Resume(s)
+
+
+Cover letter(s)
+
+
+LinkedIn / portfolio
+
+
+Career goal(s)
+
+
+Work history, achievements, education
+
+
+AI Prompts (Use GPT-4 or function-calling)
+Generate answers for open text questions:
+
+
+“Why do you want this job?”
+
+
+“Describe a time you handled X”
+
+
+Match the best resume/cover letter based on job title and keywords
+
+
+Resume/Cover Letter Selection
+Prompt user:
+
+
+text
+CopyEdit
+Choose which resume to use:  
+[Resume v1 - Tech Focus]  
+[Resume v2 - Marketing Focus]
+
+Choose a cover letter:
+[Cover Letter A - Short]  
+[Cover Letter B - Personalized]
+
+
+✅ SECTION 4: Final Review + Submission
+At the end of the form:
+Display Final Summary of all fields and uploaded documents
+
+
+Prompt:
+
+
+text
+CopyEdit
+Review complete. Ready to apply?
+
+✅ Submit Application  
+🔁 Revise Something  
+
+On Submit:
+
+
+Track submission in Application Tracker
+
+
+Save resume + cover letter used
+
+
+Trigger optional reminder to follow up in 5 days
+
+
+
+🔔 SECTION 5: Notification System
+If application is abandoned mid-way → store partial progress
+
+
+Option to send:
+
+
+In-app nudge: “Want to finish applying to CloudMasonry?”
+
+
+Email reminder (if opted-in)
+
+
+
+🧱 SECTION 6: Tech Stack Suggestions
+Component
+Stack
+Application panel
+React component (collapsible drawer)
+Assistant UI
+Tailwind modal/flyout with step controller
+DOM Interactions
+JS form field detection & manipulation inside iframe
+AI
+OpenAI API (GPT-4) for prompt + autofill
+User Data
+Supabase or Firebase
+Job Listings
+JSearch, Remotive, or Adzuna API
+Reminder System
+OneSignal (push), EmailJS, or Supabase cron job
+
+
+🚀 Bonus Features (Optional, Future-Proof)
+Allow users to “1-click apply with saved profile” if all fields are autofill-ready
+
+
+Add AI-explained fit: “This job matches 87% of your resume’s keywords”
+
+
+Collect feedback on each application: “Was this application easy to complete?”
+
+
+
+✅ Summary: What to Build
+Apply button on job cards
+
+
+Inline drawer with iframe + AI assistant
+
+
+Agent that:
+
+
+Reads field → matches user data
+
+
+Fills field → gets approval
+
+
+Handles errors → retry or manual
+
+
+Final summary screen + submission tracker
+
+
+Reminder system for incomplete applications
+
