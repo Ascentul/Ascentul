@@ -9,6 +9,8 @@ import fs from "fs";
 import path from "path";
 import { registerCareerPathRoutes } from "./career-path";
 import { registerAICoachRoutes } from "./routes/ai-coach";
+import { registerSkillsRoutes } from "./skills";
+import { registerLanguagesRoutes } from "./languages";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -4192,6 +4194,12 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   
   // Register AI coach routes
   registerAICoachRoutes(app);
+  
+  // Register skills routes
+  registerSkillsRoutes(app, storage);
+  
+  // Register languages routes
+  registerLanguagesRoutes(app, storage);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {
