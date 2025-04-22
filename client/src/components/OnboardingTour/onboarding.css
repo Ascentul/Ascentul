@@ -1,0 +1,239 @@
+/* Onboarding styles for Ascentul dashboard */
+
+/* Dashboard Card styles */
+.onboarding-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  border-left: 4px solid #4F46E5; /* Primary accent color */
+}
+
+.onboarding-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.onboarding-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.onboarding-card-text {
+  font-size: 16px;
+  color: #1E293B;
+  margin: 0;
+}
+
+.onboarding-card-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.onboarding-btn-primary {
+  background-color: #4F46E5;
+  color: white;
+  font-weight: 500;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.onboarding-btn-primary:hover {
+  background-color: #4338CA;
+}
+
+.onboarding-btn-secondary {
+  background-color: #F1F5F9;
+  color: #64748B;
+  font-weight: 500;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.onboarding-btn-secondary:hover {
+  background-color: #E2E8F0;
+  color: #334155;
+}
+
+/* Tour overlay styles */
+.tour-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.5);
+  z-index: 999;
+  display: none;
+}
+
+.tour-overlay.active {
+  display: block;
+}
+
+/* Tour tooltip styles */
+.tour-tooltip {
+  position: absolute;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  max-width: 320px;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  transform: translateY(10px);
+}
+
+.tour-tooltip.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tour-tooltip-header {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.tour-tooltip-content {
+  margin-bottom: 16px;
+  color: #64748B;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tour-tooltip-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.tour-navigation {
+  display: flex;
+  gap: 8px;
+}
+
+.tour-step-indicator {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.tour-step-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #CBD5E1;
+}
+
+.tour-step-dot.active {
+  background-color: #4F46E5;
+}
+
+.tour-try-btn {
+  background-color: #4F46E5;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tour-try-btn:hover {
+  background-color: #4338CA;
+}
+
+.tour-exit-btn {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.tour-exit-btn:hover {
+  color: #64748B;
+}
+
+.tour-btn {
+  background: none;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tour-btn:hover {
+  background-color: #F8FAFC;
+  color: #334155;
+}
+
+.tour-btn-next {
+  background-color: #4F46E5;
+  color: white;
+  border: none;
+}
+
+.tour-btn-next:hover {
+  background-color: #4338CA;
+}
+
+/* Target highlight styles */
+.tour-target-highlight {
+  position: relative;
+  z-index: 1000;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.3), 0 0 0 1000px rgba(15, 23, 42, 0.5);
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .onboarding-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .onboarding-card-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .tour-tooltip {
+    max-width: 280px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tour-tooltip {
+    max-width: calc(100% - 32px);
+    left: 16px !important;
+    right: 16px !important;
+  }
+}
