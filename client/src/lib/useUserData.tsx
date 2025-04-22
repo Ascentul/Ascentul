@@ -279,14 +279,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       const updatedUserData = await profileUpdateResponse.json();
       
-      // Step 3: Update the local user state with the clean image URL
-      // We'll let the avatar components handle cache busting with the key prop
+      // Step 3: Update the local user state with the image URL plus cache-busting timestamp
+      const timestamp = Date.now();
+      const profileImageWithTimestamp = `${uploadData.profileImage}?t=${timestamp}`;
+      
       const updatedUser = {
         ...updatedUserData,
-        profileImage: uploadData.profileImage // Using the plain URL without a timestamp
+        profileImage: profileImageWithTimestamp // Add timestamp to prevent browser caching
       };
       
-      // Update query cache
+      // Update query cache with the timestamped URL
       queryClient.setQueryData(['/api/users/me'], updatedUser);
       
       // Step 4: Manually trigger refetch to ensure consistency
