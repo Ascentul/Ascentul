@@ -439,6 +439,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/career-dashboard";
       }
       
+      // Set a special header to indicate authentication is confirmed
+      res.setHeader('X-Auth-Status', 'authenticated');
+      
       res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
@@ -689,6 +692,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/onboarding"; 
       }
       
+      // Set a special header to indicate authentication is confirmed
+      res.setHeader('X-Auth-Status', 'authenticated');
+      
       res.status(201).json({ user: safeUser, redirectPath });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -791,17 +797,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         userId = req.session.userId;
       }
       
-      // DEVELOPMENT ONLY: For goal templates feature testing
-      // If we don't have a user ID and we're in development, use the default "alex"
+      // Get the user by ID
       let user;
       if (userId) {
         user = await storage.getUser(userId);
-      } else if (process.env.NODE_ENV !== 'production') {
-        // This fallback only happens in development
-        console.log("DEVELOPMENT MODE: Using default user for /users/me");
-        user = await storage.getUserByUsername("alex");
       }
       
+      // No fallbacks - if no user is found, return 401
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -846,11 +848,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         user = await storage.getUser(userId);
       }
       
-      // In development mode only, fall back to default user
-      if (!user && process.env.NODE_ENV !== 'production') {
-        console.log("DEVELOPMENT MODE: Using default user for /users/profile");
-        user = await storage.getUserByUsername("alex");
-      }
+      // No fallbacks - if no user is found, return 401
       
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
@@ -956,11 +954,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         user = await storage.getUser(userId);
       }
       
-      // In development mode only, fall back to default user
-      if (!user && process.env.NODE_ENV !== 'production') {
-        console.log("DEVELOPMENT MODE: Using default user for profile image upload");
-        user = await storage.getUserByUsername("alex");
-      }
+      // No fallbacks - if no user is found, return 401
       
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
