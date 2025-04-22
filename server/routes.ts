@@ -13,6 +13,7 @@ import {
   insertUserSchema, 
   insertGoalSchema, 
   insertWorkHistorySchema, 
+  insertEducationHistorySchema,
   insertResumeSchema, 
   insertCoverLetterSchema, 
   insertInterviewPracticeSchema,
