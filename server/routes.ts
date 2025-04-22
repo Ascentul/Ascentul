@@ -1089,6 +1089,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
       
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(updatedGoal);
     } catch (error) {
       res.status(500).json({ message: "Error updating goal" });
@@ -1159,10 +1162,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const plans = await storage.getAllSkillStackerPlans(user.id);
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
+      
       res.status(200).json(plans);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skill stacker plans" });
@@ -1174,7 +1181,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const goalId = parseInt(req.params.goalId);
@@ -1200,7 +1207,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       const planId = parseInt(req.params.id);
@@ -1214,6 +1221,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       if (!plan || plan.userId !== user.id) {
         return res.status(403).json({ message: "Access denied or plan not found" });
       }
+      
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
       
       res.status(200).json(plan);
     } catch (error) {
