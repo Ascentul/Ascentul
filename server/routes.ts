@@ -486,10 +486,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         res.setHeader('X-Auth-Logout', 'true');
         
         // Send response with proper unauthenticated headers
-        return res
-          .status(200)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Logged out successfully" });
+        sendUnauthenticatedResponse(res.status(200), "Logged out successfully");
       }
     } catch (error) {
       res.status(500).json({ message: "Error during logout" });
@@ -804,9 +801,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Check if the browser has a special logout flag set (from localStorage)
       const isLoggedOut = req.headers['x-auth-logout'] === 'true';
       if (isLoggedOut) {
-        return res.status(401)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Not authenticated" });
+        return sendUnauthenticatedResponse(res.status(401), "Not authenticated");
       }
       
       // Get the user ID from the session
@@ -825,9 +820,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // No fallbacks - if no user is found, return 401
       if (!user) {
-        return res.status(401)
-          .set('X-Auth-Status', 'unauthenticated')
-          .json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res.status(401), "Authentication required");
       }
       
       // Set a flag in the session to indicate it was used successfully
