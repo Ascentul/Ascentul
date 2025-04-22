@@ -737,3 +737,6 @@ export type InsertUserPersonalAchievement = z.infer<typeof insertUserPersonalAch
 
 export type CareerPath = typeof careerPaths.$inferSelect;
 export type InsertCareerPath = z.infer<typeof insertCareerPathSchema>;
+
+export type EducationHistory = typeof educationHistory.$inferSelect;
+export type InsertEducationHistory = z.infer<typeof insertEducationHistorySchema>;

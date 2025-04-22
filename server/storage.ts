@@ -8,6 +8,9 @@ import {
   workHistory,
   type WorkHistory,
   type InsertWorkHistory,
+  educationHistory,
+  type EducationHistory,
+  type InsertEducationHistory,
   resumes,
   type Resume,
   type InsertResume,
@@ -184,6 +187,13 @@ export interface IStorage {
   createWorkHistoryItem(userId: number, item: InsertWorkHistory): Promise<WorkHistory>;
   updateWorkHistoryItem(id: number, itemData: Partial<WorkHistory>): Promise<WorkHistory | undefined>;
   deleteWorkHistoryItem(id: number): Promise<boolean>;
+  
+  // Education history operations
+  getEducationHistory(userId: number): Promise<EducationHistory[]>;
+  getEducationHistoryItem(id: number): Promise<EducationHistory | undefined>;
+  createEducationHistoryItem(userId: number, item: InsertEducationHistory): Promise<EducationHistory>;
+  updateEducationHistoryItem(id: number, itemData: Partial<EducationHistory>): Promise<EducationHistory | undefined>;
+  deleteEducationHistoryItem(id: number): Promise<boolean>;
 
   // Resume operations
   getResumes(userId: number): Promise<Resume[]>;
@@ -326,6 +336,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private goals: Map<number, Goal>;
   private workHistory: Map<number, WorkHistory>;
+  private educationHistory: Map<number, EducationHistory>;
   private resumes: Map<number, Resume>;
   private coverLetters: Map<number, CoverLetter>;
   private interviewQuestions: Map<number, InterviewQuestion>;
@@ -350,6 +361,7 @@ export class MemStorage implements IStorage {
   private userIdCounter: number;
   private goalIdCounter: number;
   private workHistoryIdCounter: number;
+  private educationHistoryIdCounter: number;
   private resumeIdCounter: number;
   private coverLetterIdCounter: number;
   private interviewQuestionIdCounter: number;
@@ -380,6 +392,7 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.goals = new Map();
     this.workHistory = new Map();
+    this.educationHistory = new Map();
     this.resumes = new Map();
     this.coverLetters = new Map();
     this.interviewQuestions = new Map();
@@ -403,6 +416,7 @@ export class MemStorage implements IStorage {
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
     this.workHistoryIdCounter = 1;
+    this.educationHistoryIdCounter = 1;
     this.resumeIdCounter = 1;
     this.coverLetterIdCounter = 1;
     this.interviewQuestionIdCounter = 1;
@@ -459,6 +473,39 @@ export class MemStorage implements IStorage {
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Initialize sample education history for alex (user id 1)
+    const sampleEducation: InsertEducationHistory[] = [
+      {
+        institution: "University of Technology",
+        degree: "Bachelor of Science",
+        fieldOfStudy: "Computer Science",
+        startDate: new Date(2015, 8, 1), // September 1, 2015
+        endDate: new Date(2019, 5, 15), // June 15, 2019
+        location: "San Francisco, CA",
+        description: "Focused on software engineering and data structures. Participated in hackathons and coding competitions.",
+        achievements: ["Dean's List 2016-2019", "Best Senior Project Award", "Programming Club President"]
+      },
+      {
+        institution: "Tech Institute",
+        degree: "Certificate",
+        fieldOfStudy: "Machine Learning",
+        startDate: new Date(2020, 0, 15), // January 15, 2020
+        endDate: new Date(2020, 6, 30), // July 30, 2020
+        description: "Intensive machine learning program covering neural networks, deep learning, and practical applications.",
+        achievements: ["Completed with Distinction", "Published research paper on ML applications"]
+      }
+    ];
+
+    // Add sample education history for alex
+    sampleEducation.forEach(education => {
+      this.educationHistory.set(this.educationHistoryIdCounter, {
+        ...education,
+        id: this.educationHistoryIdCounter++,
+        userId: 1, // For alex
+        createdAt: twoDaysAgo
+      });
+    });
 
     // Initialize sample achievements
     const sampleAchievements: InsertAchievement[] = [
@@ -926,6 +973,72 @@ export class MemStorage implements IStorage {
       const roleInsightsCacheKey = `role_insights_${item.userId}`;
       await this.deleteCachedData(roleInsightsCacheKey);
       console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
+    }
+
+    return result;
+  }
+  
+  // Education history operations
+  async getEducationHistory(userId: number): Promise<EducationHistory[]> {
+    return Array.from(this.educationHistory.values())
+      .filter(item => item.userId === userId)
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  }
+
+  async getEducationHistoryItem(id: number): Promise<EducationHistory | undefined> {
+    return this.educationHistory.get(id);
+  }
+
+  async createEducationHistoryItem(userId: number, item: InsertEducationHistory): Promise<EducationHistory> {
+    const id = this.educationHistoryIdCounter++;
+    const now = new Date();
+    const educationHistoryItem: EducationHistory = {
+      ...item,
+      id,
+      userId,
+      createdAt: now
+    };
+    this.educationHistory.set(id, educationHistoryItem);
+
+    // Award XP for adding education history
+    await this.addUserXP(userId, 75, "education_history_added", "Added education");
+
+    // Invalidate the role insights cache for this user
+    const roleInsightsCacheKey = `role_insights_${userId}`;
+    await this.deleteCachedData(roleInsightsCacheKey);
+    console.log(`Invalidated role insights cache for user ${userId} on education history creation`);
+
+    return educationHistoryItem;
+  }
+
+  async updateEducationHistoryItem(id: number, itemData: Partial<EducationHistory>): Promise<EducationHistory | undefined> {
+    const item = this.educationHistory.get(id);
+    if (!item) return undefined;
+
+    const updatedItem = { ...item, ...itemData };
+    this.educationHistory.set(id, updatedItem);
+
+    // Invalidate the role insights cache for this user
+    const roleInsightsCacheKey = `role_insights_${item.userId}`;
+    await this.deleteCachedData(roleInsightsCacheKey);
+    console.log(`Invalidated role insights cache for user ${item.userId} on education history update`);
+
+    return updatedItem;
+  }
+
+  async deleteEducationHistoryItem(id: number): Promise<boolean> {
+    // Get the education history item first to know which user it belongs to
+    const item = this.educationHistory.get(id);
+    if (!item) return false;
+
+    // Delete the education history item
+    const result = this.educationHistory.delete(id);
+
+    // If successfully deleted, invalidate the cache
+    if (result) {
+      const roleInsightsCacheKey = `role_insights_${item.userId}`;
+      await this.deleteCachedData(roleInsightsCacheKey);
+      console.log(`Invalidated role insights cache for user ${item.userId} on education history deletion`);
     }
 
     return result;
