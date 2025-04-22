@@ -80,7 +80,13 @@ import {
   skillStackerPlans,
   type SkillStackerPlan,
   type InsertSkillStackerPlan,
-  type SkillStackerTask
+  type SkillStackerTask,
+  skills,
+  type Skill,
+  type InsertSkill,
+  languages,
+  type Language,
+  type InsertLanguage
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -3370,6 +3376,103 @@ export class MemStorage implements IStorage {
     }
     
     return completedStep;
+  }
+
+  // Skills operations
+  private skills = new Map<number, Skill>();
+  private nextSkillId = 1;
+
+  async getUserSkills(userId: number): Promise<Skill[]> {
+    return Array.from(this.skills.values()).filter(skill => skill.userId === userId);
+  }
+
+  async getSkill(id: number): Promise<Skill | undefined> {
+    return this.skills.get(id);
+  }
+
+  async createSkill(data: any): Promise<Skill> {
+    const userId = data.userId;
+    const id = this.nextSkillId++;
+    
+    const newSkill: Skill = {
+      id,
+      userId,
+      name: data.name,
+      proficiencyLevel: data.proficiencyLevel || 1,
+      category: data.category || 'technical',
+      yearOfExperience: data.yearOfExperience || null,
+      tags: data.tags || [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.skills.set(id, newSkill);
+    return newSkill;
+  }
+
+  async updateSkill(id: number, data: any): Promise<Skill | undefined> {
+    const skill = this.skills.get(id);
+    if (!skill) return undefined;
+    
+    const updatedSkill: Skill = {
+      ...skill,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.skills.set(id, updatedSkill);
+    return updatedSkill;
+  }
+
+  async deleteSkill(id: number): Promise<boolean> {
+    return this.skills.delete(id);
+  }
+
+  // Languages operations
+  private languages = new Map<number, Language>();
+  private nextLanguageId = 1;
+
+  async getUserLanguages(userId: number): Promise<Language[]> {
+    return Array.from(this.languages.values()).filter(lang => lang.userId === userId);
+  }
+
+  async getLanguage(id: number): Promise<Language | undefined> {
+    return this.languages.get(id);
+  }
+
+  async createLanguage(data: any): Promise<Language> {
+    const userId = data.userId;
+    const id = this.nextLanguageId++;
+    
+    const newLanguage: Language = {
+      id,
+      userId,
+      name: data.name,
+      proficiencyLevel: data.proficiencyLevel || 'beginner',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.languages.set(id, newLanguage);
+    return newLanguage;
+  }
+
+  async updateLanguage(id: number, data: any): Promise<Language | undefined> {
+    const language = this.languages.get(id);
+    if (!language) return undefined;
+    
+    const updatedLanguage: Language = {
+      ...language,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.languages.set(id, updatedLanguage);
+    return updatedLanguage;
+  }
+
+  async deleteLanguage(id: number): Promise<boolean> {
+    return this.languages.delete(id);
   }
 }
 
