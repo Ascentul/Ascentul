@@ -1,180 +1,181 @@
-import express, { Express } from 'express';
-import { z } from 'zod';
-import { storage } from './storage';
-import { requireAuth } from './auth';
-import { insertNetworkingContactSchema } from '../shared/schema';
+import { Router, Request, Response } from "express";
+import { IStorage } from "./storage";
+import { insertNetworkingContactSchema } from "@shared/schema";
+import { requireAuth } from "./auth";
+import { z } from "zod";
 
-export function registerContactsRoutes(app: Express, storage: any) {
-  const router = express.Router();
+export const registerContactsRoutes = (app: Router, storage: IStorage) => {
+  console.log("Registered contacts routes at /api/contacts");
 
   // Get all contacts for the current user
-router.get('/', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const query = req.query.query as string | undefined;
-    const relationshipType = req.query.relationshipType as string | undefined;
-    
-    const contacts = await storage.getNetworkingContacts(userId, {
-      query,
-      relationshipType
-    });
-    
-    res.json(contacts);
-  } catch (error) {
-    console.error('Error fetching contacts:', error);
-    res.status(500).json({ error: 'Failed to fetch contacts' });
-  }
-});
-
-// Get contacts needing follow-up
-router.get('/followup', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const contacts = await storage.getContactsNeedingFollowUp(userId);
-    res.json(contacts);
-  } catch (error) {
-    console.error('Error fetching follow-up contacts:', error);
-    res.status(500).json({ error: 'Failed to fetch follow-up contacts' });
-  }
-});
-
-// Get a single contact by ID
-router.get('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const contactId = parseInt(req.params.id);
-    if (isNaN(contactId)) {
-      return res.status(400).json({ error: 'Invalid contact ID' });
-    }
-    
-    const contact = await storage.getNetworkingContact(contactId);
-    
-    if (!contact) {
-      return res.status(404).json({ error: 'Contact not found' });
-    }
-    
-    // Ensure user can only access their own contacts
-    if (contact.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    res.json(contact);
-  } catch (error) {
-    console.error('Error fetching contact:', error);
-    res.status(500).json({ error: 'Failed to fetch contact' });
-  }
-});
-
-// Create a new contact
-router.post('/', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    // Validate request body
-    const validationResult = insertNetworkingContactSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: 'Invalid contact data', 
-        details: validationResult.error.format() 
+  app.get("/api/contacts", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get query parameters for filtering
+      const query = req.query.query as string | undefined;
+      const relationshipType = req.query.relationshipType as string | undefined;
+      
+      const contacts = await storage.getNetworkingContacts(userId, {
+        query,
+        relationshipType
       });
+      
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+      res.status(500).json({ message: "Failed to fetch contacts" });
     }
-    
-    const contactData = validationResult.data;
-    const newContact = await storage.createNetworkingContact(userId, contactData);
-    
-    res.status(201).json(newContact);
-  } catch (error) {
-    console.error('Error creating contact:', error);
-    res.status(500).json({ error: 'Failed to create contact' });
-  }
-});
+  });
 
-// Update an existing contact
-router.patch('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+  // Get contacts that need follow-up
+  app.get("/api/contacts/need-followup", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const contacts = await storage.getContactsNeedingFollowUp(userId);
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching contacts needing follow-up:", error);
+      res.status(500).json({ message: "Failed to fetch contacts needing follow-up" });
     }
-    
-    const contactId = parseInt(req.params.id);
-    if (isNaN(contactId)) {
-      return res.status(400).json({ error: 'Invalid contact ID' });
-    }
-    
-    // Check if contact exists and belongs to user
-    const existingContact = await storage.getNetworkingContact(contactId);
-    if (!existingContact) {
-      return res.status(404).json({ error: 'Contact not found' });
-    }
-    
-    if (existingContact.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Update the contact
-    const updatedContact = await storage.updateNetworkingContact(contactId, req.body);
-    res.json(updatedContact);
-  } catch (error) {
-    console.error('Error updating contact:', error);
-    res.status(500).json({ error: 'Failed to update contact' });
-  }
-});
+  });
 
-// Delete a contact
-router.delete('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+  // Get a specific contact by ID
+  app.get("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      const contact = await storage.getNetworkingContact(contactId);
+      
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      // Make sure the user owns this contact
+      if (contact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(contact);
+    } catch (error) {
+      console.error("Error fetching contact:", error);
+      res.status(500).json({ message: "Failed to fetch contact" });
     }
-    
-    const contactId = parseInt(req.params.id);
-    if (isNaN(contactId)) {
-      return res.status(400).json({ error: 'Invalid contact ID' });
-    }
-    
-    // Check if contact exists and belongs to user
-    const existingContact = await storage.getNetworkingContact(contactId);
-    if (!existingContact) {
-      return res.status(404).json({ error: 'Contact not found' });
-    }
-    
-    if (existingContact.userId !== userId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    
-    // Delete the contact
-    const success = await storage.deleteNetworkingContact(contactId);
-    
-    if (success) {
-      res.status(204).send();
-    } else {
-      res.status(500).json({ error: 'Failed to delete contact' });
-    }
-  } catch (error) {
-    console.error('Error deleting contact:', error);
-    res.status(500).json({ error: 'Failed to delete contact' });
-  }
-});
+  });
 
-  // Register the router
-  app.use('/api/contacts', router);
-  console.log('Registered contacts routes at /api/contacts');
-}
+  // Create a new contact
+  app.post("/api/contacts", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Validate the request body
+      const contactData = insertNetworkingContactSchema.parse(req.body);
+      
+      // Create the contact
+      const contact = await storage.createNetworkingContact(userId, contactData);
+      
+      res.status(201).json(contact);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid contact data", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error creating contact:", error);
+      res.status(500).json({ message: "Failed to create contact" });
+    }
+  });
+
+  // Update an existing contact
+  app.put("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Update the contact
+      const updatedContact = await storage.updateNetworkingContact(contactId, req.body);
+      
+      res.json(updatedContact);
+    } catch (error) {
+      console.error("Error updating contact:", error);
+      res.status(500).json({ message: "Failed to update contact" });
+    }
+  });
+
+  // Delete a contact
+  app.delete("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Delete the contact
+      await storage.deleteNetworkingContact(contactId);
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ message: "Failed to delete contact" });
+    }
+  });
+};

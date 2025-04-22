@@ -1303,6 +1303,96 @@ export class MemStorage implements IStorage {
     return Array.from(this.achievements.values());
   }
 
+  // Networking Contacts (Ascentul CRM) operations
+  async getNetworkingContacts(userId: number, filters?: { query?: string, relationshipType?: string }): Promise<NetworkingContact[]> {
+    let contacts = Array.from(this.networkingContacts.values())
+      .filter(contact => contact.userId === userId);
+    
+    if (filters?.query) {
+      const query = filters.query.toLowerCase();
+      contacts = contacts.filter(contact => 
+        contact.fullName.toLowerCase().includes(query) ||
+        contact.company.toLowerCase().includes(query) ||
+        contact.jobTitle.toLowerCase().includes(query) ||
+        (contact.notes && contact.notes.toLowerCase().includes(query))
+      );
+    }
+    
+    if (filters?.relationshipType) {
+      contacts = contacts.filter(contact => 
+        contact.relationshipType === filters.relationshipType
+      );
+    }
+    
+    return contacts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  
+  async getNetworkingContact(id: number): Promise<NetworkingContact | undefined> {
+    return this.networkingContacts.get(id);
+  }
+  
+  async createNetworkingContact(userId: number, contact: InsertNetworkingContact): Promise<NetworkingContact> {
+    const now = new Date();
+    const newContact: NetworkingContact = {
+      id: this.networkingContactIdCounter++,
+      userId,
+      fullName: contact.fullName,
+      jobTitle: contact.jobTitle,
+      company: contact.company,
+      email: contact.email || null,
+      phone: contact.phone || null,
+      relationshipType: contact.relationshipType,
+      linkedInUrl: contact.linkedInUrl || null,
+      notes: contact.notes || null,
+      lastContactedDate: contact.lastContactedDate || null,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.networkingContacts.set(newContact.id, newContact);
+    return newContact;
+  }
+  
+  async updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>): Promise<NetworkingContact | undefined> {
+    const contact = this.networkingContacts.get(id);
+    if (!contact) {
+      return undefined;
+    }
+    
+    const updatedContact = {
+      ...contact,
+      ...contactData,
+      updatedAt: new Date()
+    };
+    
+    this.networkingContacts.set(id, updatedContact);
+    return updatedContact;
+  }
+  
+  async deleteNetworkingContact(id: number): Promise<boolean> {
+    return this.networkingContacts.delete(id);
+  }
+  
+  async getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]> {
+    const now = new Date();
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    return Array.from(this.networkingContacts.values())
+      .filter(contact => 
+        contact.userId === userId && 
+        (
+          !contact.lastContactedDate || 
+          contact.lastContactedDate < oneMonthAgo
+        )
+      )
+      .sort((a, b) => {
+        if (!a.lastContactedDate && !b.lastContactedDate) return 0;
+        if (!a.lastContactedDate) return -1;
+        if (!b.lastContactedDate) return 1;
+        return a.lastContactedDate.getTime() - b.lastContactedDate.getTime();
+      });
+  }
+  
   // Certification operations
   async getCertifications(userId: number): Promise<Certification[]> {
     return Array.from(this.certifications.values())
