@@ -7,6 +7,9 @@ import Stripe from "stripe";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { db } from "./db";
+import { eq, or } from "drizzle-orm";
+import * as schema from "@shared/schema";
 import { registerCareerPathRoutes } from "./career-path";
 import { registerAICoachRoutes } from "./routes/ai-coach";
 import { registerSkillsRoutes } from "./skills";
@@ -268,7 +271,26 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Find user by email or username
       let user = await storage.getUserByEmail(email) || await storage.getUserByUsername(email);
       
-      console.log('User found:', user ? { id: user.id, userType: user.userType } : 'null');
+      console.log('User found:', user ? { id: user.id, email: user.email, username: user.username } : 'null');
+      
+      // If user is not found, try direct database query
+      if (!user) {
+        try {
+          // Try direct database query to verify if user exists but mapping is wrong
+          const directResult = await db.query.users.findFirst({
+            where: or(eq(schema.users.email, email), eq(schema.users.username, email))
+          });
+          console.log('Direct DB query result:', directResult);
+          
+          // If found via direct query, use this result 
+          if (directResult) {
+            console.log('Found user via direct query, using this result');
+            user = directResult;
+          }
+        } catch (error) {
+          console.error('Error in direct DB query:', error);
+        }
+      }
       
       if (!user) {
         return sendUnauthenticatedResponse(res, "Invalid credentials");
