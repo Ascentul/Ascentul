@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { User } from '@shared/schema';
+import { storage } from './storage';
 
 /**
  * Utility function to send a consistent unauthenticated response
@@ -16,6 +18,43 @@ export function sendUnauthenticatedResponse(res: Response, message = "Authentica
 export function markResponseAuthenticated(res: Response) {
   res.set('X-Auth-Status', 'authenticated');
   return res;
+}
+
+/**
+ * Get the current user from the session
+ * Centralizes the logic for retrieving the current user
+ */
+export async function getCurrentUser(req: Request): Promise<User | null> {
+  try {
+    // Check if the browser has a special logout flag set (from localStorage)
+    if (req.headers['x-auth-logout'] === 'true') {
+      return null;
+    }
+    
+    // Check if user is logged in via session
+    if (req.session && req.session.userId) {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        // Set a flag in the session to indicate it was used successfully
+        req.session.authenticated = true;
+        req.session.lastAccess = new Date().toISOString();
+        // Don't wait for save to complete before continuing
+        req.session.save(err => {
+          if (err) {
+            console.error('Error saving session:', err);
+          }
+        });
+        
+        return user;
+      }
+    }
+    
+    // Return null if no valid user found
+    return null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
 }
 
 // Middleware to check if user is authenticated
@@ -45,4 +84,158 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   // Mark response as authenticated
   markResponseAuthenticated(res);
   next();
+}
+
+// Middleware to check if user is an admin
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  // First verify that the user is authenticated
+  if (!req.session || !req.session.userId) {
+    return sendUnauthenticatedResponse(res);
+  }
+  
+  try {
+    const user = await storage.getUser(req.session.userId);
+    
+    if (!user) {
+      return sendUnauthenticatedResponse(res);
+    }
+    
+    // Ensure the user is of admin type
+    if (user.userType !== 'admin') {
+      return res.status(403).json({
+        message: "Admin access required for this operation"
+      });
+    }
+    
+    // Mark response as authenticated
+    markResponseAuthenticated(res);
+    next();
+  } catch (error) {
+    console.error("Error checking admin rights:", error);
+    return res.status(500).json({ 
+      message: "Internal server error verifying admin permissions" 
+    });
+  }
+}
+
+// Middleware to check if user is staff or admin
+export async function requireStaff(req: Request, res: Response, next: NextFunction) {
+  // First verify that the user is authenticated
+  if (!req.session || !req.session.userId) {
+    return sendUnauthenticatedResponse(res);
+  }
+  
+  try {
+    const user = await storage.getUser(req.session.userId);
+    
+    if (!user) {
+      return sendUnauthenticatedResponse(res);
+    }
+    
+    // Ensure the user is of admin or staff type
+    if (user.userType !== 'admin' && user.userType !== 'staff') {
+      return res.status(403).json({
+        message: "Staff access required for this operation"
+      });
+    }
+    
+    // Mark response as authenticated
+    markResponseAuthenticated(res);
+    next();
+  } catch (error) {
+    console.error("Error checking staff rights:", error);
+    return res.status(500).json({ 
+      message: "Internal server error verifying staff permissions" 
+    });
+  }
+}
+
+// Middleware to validate that a user has access to a specific resource
+export async function validateUserAccess(req: Request, res: Response, next: NextFunction) {
+  // First verify that the user is authenticated
+  if (!req.session || !req.session.userId) {
+    return sendUnauthenticatedResponse(res);
+  }
+  
+  try {
+    const userId = req.session.userId;
+    const resourceId = parseInt(req.params.id);
+    
+    if (isNaN(resourceId)) {
+      return res.status(400).json({
+        message: "Invalid resource ID"
+      });
+    }
+    
+    // Check if the user is an admin or staff, they have access to all resources
+    const user = await storage.getUser(userId);
+    if (user && (user.userType === 'admin' || user.userType === 'staff')) {
+      // Mark response as authenticated
+      markResponseAuthenticated(res);
+      return next();
+    }
+    
+    // Regular users need to be verified for resource ownership
+    // The exact check depends on the resource type - for simplicity, check if a resource
+    // belongs to the authenticated user based on the path
+    
+    // Extract resource type from the path
+    const path = req.path;
+    let validAccess = false;
+    
+    if (path.includes('/applications/')) {
+      // Check job application ownership
+      const application = await storage.getJobApplication(resourceId);
+      validAccess = application && application.userId === userId;
+    } else if (path.includes('/application-steps/')) {
+      // Check application step ownership by checking the parent application
+      const step = await storage.getApplicationWizardStep(resourceId);
+      if (step) {
+        const application = await storage.getJobApplication(step.applicationId);
+        validAccess = application && application.userId === userId;
+      }
+    } else if (path.includes('/goals/')) {
+      // Check goal ownership
+      const goal = await storage.getGoal(resourceId);
+      validAccess = goal && goal.userId === userId;
+    } else if (path.includes('/skill-stacker/')) {
+      // Check skill stacker ownership
+      const plan = await storage.getSkillStackerPlan(resourceId);
+      validAccess = plan && plan.userId === userId;
+    } else if (path.includes('/interview/processes/')) {
+      // Check interview process ownership
+      const process = await storage.getInterviewProcess(resourceId);
+      validAccess = process && process.userId === userId;
+    } else if (path.includes('/interview/stages/')) {
+      // Check stage ownership by checking the parent process
+      const stage = await storage.getInterviewStage(resourceId);
+      if (stage) {
+        const process = await storage.getInterviewProcess(stage.processId);
+        validAccess = process && process.userId === userId;
+      }
+    } else if (path.includes('/interview/followup-actions/')) {
+      // Check followup action ownership by checking the parent process
+      const action = await storage.getFollowupAction(resourceId);
+      if (action) {
+        const process = await storage.getInterviewProcess(action.processId);
+        validAccess = process && process.userId === userId;
+      }
+    }
+    
+    // If validation failed, return 403 Forbidden
+    if (!validAccess) {
+      return res.status(403).json({
+        message: "You do not have permission to access this resource"
+      });
+    }
+    
+    // Mark response as authenticated
+    markResponseAuthenticated(res);
+    next();
+  } catch (error) {
+    console.error("Error validating user access:", error);
+    return res.status(500).json({ 
+      message: "Internal server error validating access permissions" 
+    });
+  }
 }

@@ -40,112 +40,14 @@ import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generat
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
-import { requireAuth, sendUnauthenticatedResponse, markResponseAuthenticated } from "./auth";
+import { requireAuth, requireAdmin, requireStaff, validateUserAccess, getCurrentUser, sendUnauthenticatedResponse, markResponseAuthenticated } from "./auth";
 
-// Helper function to get the current user from the session
-async function getCurrentUser(req: Request): Promise<User | null> {
-  try {
-    // Check if user is logged in via session
-    if (req.session && req.session.userId) {
-      const user = await storage.getUser(req.session.userId);
-      if (user) {
-        return user;
-      }
-    }
-    
-    // Return null if no valid user found
-    return null;
-  } catch (error) {
-    console.error("Error getting current user:", error);
-    return null;
-  }
-}
-
-// Note: requireAuth is now imported from ./auth.ts
-// This provides consistent auth handling and header management
-
-// Middleware to check if user is an admin
-async function requireAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return sendUnauthenticatedResponse(res);
-  }
-
-  const user = await storage.getUser(req.session.userId);
-  if (!user || user.userType !== 'admin') {
-    console.log(`Access denied: User ${req.session.userId} tried to access admin route`);
-    return res.status(403).json({ message: "Access denied. Admin privileges required." });
-  }
-  
-  // Mark response as authenticated
-  markResponseAuthenticated(res);
-  next();
-}
-
-// Middleware to check if user is a staff member
-async function requireStaff(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return sendUnauthenticatedResponse(res);
-  }
-
-  const user = await storage.getUser(req.session.userId);
-  if (!user || (user.userType !== 'staff' && user.userType !== 'admin')) {
-    console.log(`Access denied: User ${req.session.userId} tried to access staff route`);
-    return res.status(403).json({ message: "Access denied. Staff privileges required." });
-  }
-  
-  // Mark response as authenticated
-  markResponseAuthenticated(res);
-  next();
-}
-
-// User type middleware removed as university-specific features are no longer used
-
-// Middleware for data validation to ensure users can only access their own data
-async function validateUserAccess(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return sendUnauthenticatedResponse(res);
-  }
-
-  // Get the requested resource ID (usually from URL params)
-  const resourceId = req.params.id ? parseInt(req.params.id) : null;
-  const resourceUserId = req.params.userId ? parseInt(req.params.userId) : null;
-  
-  if (!resourceId && !resourceUserId) {
-    // If no specific resource is targeted, allow the request to proceed
-    // Mark response as authenticated
-    markResponseAuthenticated(res);
-    return next();
-  }
-  
-  const user = await storage.getUser(req.session.userId);
-  if (!user) {
-    return sendUnauthenticatedResponse(res, "User not found");
-  }
-  
-  // Admins can access any data
-  if (user.userType === 'admin') {
-    // Mark response as authenticated for admin
-    markResponseAuthenticated(res);
-    return next();
-  }
-  
-  // Check if the targeted resource belongs to the user
-  // This will need to be customized based on the specific resource type
-  // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
-  // Then check if resource.userId === user.id
-  
-  // For all other cases, only allow access to own data
-  if (resourceUserId && resourceUserId !== user.id) {
-    console.log(`Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`);
-    return res.status(403).json({ message: "Access denied. You can only access your own data." });
-  }
-  
-  // Mark response as authenticated
-  markResponseAuthenticated(res);
-  
-  // Default case - proceed to the route handler
-  next();
-}
+// All authentication middleware functions have been centralized in auth.ts
+// - getCurrentUser gets user from session with consistent session management 
+// - requireAuth ensures user is authenticated
+// - requireAdmin verifies admin access rights
+// - requireStaff checks for staff or admin permissions
+// - validateUserAccess ensures users can only access their own data
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
