@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -32,7 +32,11 @@ import {
   Clock,
   Building,
   Calendar,
-  FileEdit
+  FileEdit,
+  PanelLeft,
+  PanelRight,
+  ChevronsLeft,
+  Menu
 } from 'lucide-react';
 
 // Sidebar section types
@@ -57,6 +61,9 @@ export default function Sidebar() {
   const isAdmin = useIsAdminUser();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<boolean>(
+    localStorage.getItem('sidebarExpanded') !== 'false'
+  );
   
   // Auto-detect the current section based on location
   useEffect(() => {
@@ -72,6 +79,13 @@ export default function Sidebar() {
       setActiveSection(null);
     }
   }, [location]);
+  
+  // Toggle sidebar expanded state
+  const toggleSidebar = () => {
+    const newState = !expanded;
+    setExpanded(newState);
+    localStorage.setItem('sidebarExpanded', newState.toString());
+  };
 
   if (!user) return null;
 
@@ -141,9 +155,25 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="hidden md:flex flex-col w-64 bg-white shadow-md z-30">
-      <div className="flex items-center justify-center h-16 border-b">
-        <h1 className="text-xl font-bold text-primary font-poppins">CareerTracker.io</h1>
+    <div 
+      className={`hidden md:flex flex-col transition-all duration-300 ease-in-out bg-white shadow-md z-30 ${expanded ? 'w-64' : 'w-16'}`} 
+      data-expanded={expanded ? 'true' : 'false'}
+    >
+      <div className="flex items-center justify-between h-16 border-b px-3">
+        {expanded ? (
+          <h1 className="text-xl font-bold text-primary font-poppins ml-2">CareerTracker.io</h1>
+        ) : (
+          <span className="w-full text-center text-primary text-xl font-bold">C</span>
+        )}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={toggleSidebar} 
+          className="ml-auto"
+          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {expanded ? <ChevronsLeft size={18} /> : <Menu size={18} />}
+        </Button>
       </div>
       
       {/* User Profile Summary */}
@@ -151,7 +181,7 @@ export default function Sidebar() {
         <div className="relative">
           <Dialog>
             <DialogTrigger asChild>
-              <Avatar className="w-16 h-16 border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity">
+              <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
                 {user.profileImage ? (
                   <AvatarImage src={user.profileImage} alt={user.name} />
                 ) : (
@@ -195,36 +225,41 @@ export default function Sidebar() {
             </DialogContent>
           </Dialog>
           {/* Only show level badge for university users */}
-          {isUnivUser && user.level !== undefined && (
+          {isUnivUser && user.level !== undefined && expanded && (
             <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
               {user.level}
             </div>
           )}
         </div>
-        <h2 className="mt-3 font-medium text-lg">{user.name}</h2>
         
-        {/* Only show rank for university users */}
-        {isUnivUser && user.rank && (
-          <div className="mt-1 text-sm text-neutral-400">{user.rank}</div>
-        )}
-        
-        {/* XP Progress - only show for university users */}
-        {isUnivUser && user.xp !== undefined && user.level !== undefined && (
-          <div className="mt-3 w-full px-6">
-            <div className="flex justify-between text-xs mb-1">
-              <span>Level {user.level}</span>
-              <span>{user.xp} XP</span>
-            </div>
-            <Progress value={progressPercentage} className="h-2" />
-          </div>
-        )}
-        
-        {/* University user badge - only show for university users */}
-        {isUnivUser && (
-          <div className="mt-3 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium flex items-center">
-            <GraduationCap className="w-3 h-3 mr-1" />
-            University User
-          </div>
+        {expanded && (
+          <>
+            <h2 className="mt-3 font-medium text-lg">{user.name}</h2>
+            
+            {/* Only show rank for university users */}
+            {isUnivUser && user.rank && (
+              <div className="mt-1 text-sm text-neutral-400">{user.rank}</div>
+            )}
+            
+            {/* XP Progress - only show for university users */}
+            {isUnivUser && user.xp !== undefined && user.level !== undefined && (
+              <div className="mt-3 w-full px-6">
+                <div className="flex justify-between text-xs mb-1">
+                  <span>Level {user.level}</span>
+                  <span>{user.xp} XP</span>
+                </div>
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+            )}
+            
+            {/* University user badge - only show for university users */}
+            {isUnivUser && (
+              <div className="mt-3 px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium flex items-center">
+                <GraduationCap className="w-3 h-3 mr-1" />
+                University User
+              </div>
+            )}
+          </>
         )}
       </div>
       
@@ -233,17 +268,22 @@ export default function Sidebar() {
         {/* Dashboard link is always visible */}
         <Link
           href={dashboardLink.href}
-          className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+          className={`flex items-center ${expanded ? 'px-6' : 'px-3 justify-center'} py-3 text-sm transition-colors hover:bg-primary/5
             ${location === dashboardLink.href ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+          title={!expanded ? dashboardLink.label : undefined}
         >
-          {dashboardLink.icon}
-          {dashboardLink.label}
+          <div className={expanded ? 'mr-3' : ''}>
+            {dashboardLink.icon}
+          </div>
+          {expanded && dashboardLink.label}
         </Link>
 
-        <div className="mt-3 px-3">
-          <div className="text-xs font-medium text-neutral-400 uppercase mb-2 px-3">
-            Features
-          </div>
+        <div className={`mt-3 ${expanded ? 'px-3' : 'px-0'}`}>
+          {expanded && (
+            <div className="text-xs font-medium text-neutral-400 uppercase mb-2 px-3">
+              Features
+            </div>
+          )}
           
           {/* Four main sections with flyout animation */}
           <div className="space-y-1">
@@ -251,27 +291,30 @@ export default function Sidebar() {
               <div key={section.id} className="relative">
                 {/* Section header */}
                 <button
-                  className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors
+                  className={`w-full flex items-center ${expanded ? 'justify-between' : 'justify-center'} rounded-md ${expanded ? 'px-3' : 'px-2'} py-2 text-sm transition-colors
                     ${activeSection === section.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
                   onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
                   onMouseEnter={() => setHoverSection(section.id)}
                   onMouseLeave={() => setHoverSection(null)}
+                  title={!expanded ? section.title : undefined}
                 >
                   <div className="flex items-center">
-                    <span className="mr-3">{section.icon}</span>
-                    <span>{section.title}</span>
+                    <span className={expanded ? 'mr-3' : ''}>{section.icon}</span>
+                    {expanded && <span>{section.title}</span>}
                   </div>
-                  <motion.div
-                    animate={{ rotate: activeSection === section.id ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.div>
+                  {expanded && (
+                    <motion.div
+                      animate={{ rotate: activeSection === section.id ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </motion.div>
+                  )}
                 </button>
                 
-                {/* Flyout content */}
+                {/* Flyout content - only show in expanded mode or as popup in collapsed mode */}
                 <AnimatePresence>
-                  {activeSection === section.id && (
+                  {activeSection === section.id && expanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -301,6 +344,32 @@ export default function Sidebar() {
                       </div>
                     </motion.div>
                   )}
+                  
+                  {/* Popup menu for collapsed mode */}
+                  {!expanded && activeSection === section.id && (
+                    <div className="absolute left-full top-0 ml-2 bg-white rounded-md shadow-md z-50 min-w-48 border overflow-hidden">
+                      <div className="py-1">
+                        {section.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center justify-between px-4 py-2 text-sm hover:bg-primary/5
+                              ${location === item.href ? 'bg-primary/10 text-primary' : ''}`}
+                          >
+                            <div className="flex items-center">
+                              {item.icon}
+                              <span>{item.label}</span>
+                            </div>
+                            {item.pro && (
+                              <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-medium ml-2">
+                                PRO
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </AnimatePresence>
               </div>
             ))}
@@ -309,36 +378,41 @@ export default function Sidebar() {
         
         {/* University Quick Access - only show for university users */}
         {isUnivUser && (
-          <div className="mt-4 px-6">
-            <div className="text-xs font-medium text-neutral-400 uppercase mb-2">
-              University Resources
-            </div>
+          <div className={`mt-4 ${expanded ? 'px-6' : 'px-2'}`}>
+            {expanded && (
+              <div className="text-xs font-medium text-neutral-400 uppercase mb-2">
+                University Resources
+              </div>
+            )}
             
             <Link 
               href="/university-dashboard"
-              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+              className={`flex items-center ${expanded ? 'px-3' : 'px-2 justify-center'} py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
                 ${location === "/university-dashboard" || location === "/university" ? 'text-primary bg-primary/10' : ''}`}
+              title={!expanded ? 'University Dashboard' : undefined}
             >
-              <School className="w-5 h-5 mr-3" />
-              University Dashboard
+              <School className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+              {expanded && 'University Dashboard'}
             </Link>
             
             <Link 
               href="/university/study-plan"
-              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+              className={`flex items-center ${expanded ? 'px-3' : 'px-2 justify-center'} py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
                 ${location === "/university/study-plan" ? 'text-primary bg-primary/10' : ''}`}
+              title={!expanded ? 'Study Plan' : undefined}
             >
-              <Target className="w-5 h-5 mr-3" />
-              Study Plan
+              <Target className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+              {expanded && 'Study Plan'}
             </Link>
             
             <Link 
               href="/university/learning"
-              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+              className={`flex items-center ${expanded ? 'px-3' : 'px-2 justify-center'} py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
                 ${location === "/university/learning" ? 'text-primary bg-primary/10' : ''}`}
+              title={!expanded ? 'Learning Modules' : undefined}
             >
-              <BookOpen className="w-5 h-5 mr-3" />
-              Learning Modules
+              <BookOpen className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+              {expanded && 'Learning Modules'}
             </Link>
           </div>
         )}
@@ -350,32 +424,40 @@ export default function Sidebar() {
       {/* Admin Dashboard - only show for admin users */}
       {isAdmin && (
         <div className="border-t py-2">
-          <div className="px-6 py-2 text-xs font-medium text-neutral-400 uppercase">
-            Administration
-          </div>
+          {expanded && (
+            <div className="px-6 py-2 text-xs font-medium text-neutral-400 uppercase">
+              Administration
+            </div>
+          )}
           <Link 
             href="/admin-dashboard"
-            className={`flex items-center px-6 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md mx-3
+            className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm transition-colors hover:bg-primary/5 rounded-md ${expanded ? 'mx-3' : 'mx-1'}
               ${location.startsWith("/admin") || location === "/admin-dashboard" ? 'text-primary bg-primary/10' : ''}`}
+            title={!expanded ? 'Admin Dashboard' : undefined}
           >
-            <ShieldCheck className="w-5 h-5 mr-3" />
-            Admin Dashboard
+            <ShieldCheck className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+            {expanded && 'Admin Dashboard'}
           </Link>
         </div>
       )}
       
       {/* Settings */}
       <div className="border-t py-4">
-        <a href="/account" className="flex items-center px-6 py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md mx-3">
-          <Settings className="w-5 h-5 mr-3" />
-          Account Settings
+        <a 
+          href="/account" 
+          className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'}`}
+          title={!expanded ? 'Account Settings' : undefined}
+        >
+          <Settings className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+          {expanded && 'Account Settings'}
         </a>
         <button 
-          className="flex items-center px-6 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left rounded-md mx-3"
+          className={`flex items-center ${expanded ? 'px-6 text-left' : 'px-2 justify-center'} py-2 text-sm text-red-500 hover:bg-red-50 transition-colors w-full rounded-md ${expanded ? 'mx-3' : 'mx-1'}`}
           onClick={() => logout()}
+          title={!expanded ? 'Logout' : undefined}
         >
-          <LogOut className="w-5 h-5 mr-3" />
-          Logout
+          <LogOut className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+          {expanded && 'Logout'}
         </button>
       </div>
     </div>
