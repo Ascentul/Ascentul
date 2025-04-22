@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/pagination';
 import { Search, MapPin, Briefcase, Building, ExternalLink, Star, Clock } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { EmbeddedApplyFrame } from './EmbeddedApplyFrame';
 
 // Define the job interface
 export interface Job {
@@ -60,6 +61,10 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
   const [source, setSource] = useState('');
   const [page, setPage] = useState(1);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  
+  // Apply modal state
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [applyJob, setApplyJob] = useState<Job | null>(null);
 
   // State for search execution
   const [searchParams, setSearchParams] = useState<any>(null);
@@ -225,16 +230,30 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
                   ))}
                 </div>
                 
-                <a 
-                  href={job.applyUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary flex items-center gap-1 hover:underline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  View Original
-                </a>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setApplyJob(job);
+                      setApplyModalOpen(true);
+                    }}
+                  >
+                    Apply Now
+                  </Button>
+                  
+                  <a 
+                    href={job.applyUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary flex items-center gap-1 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View Original
+                  </a>
+                </div>
               </div>
             </div>
           </div>
