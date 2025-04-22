@@ -98,12 +98,20 @@ export async function apiRequest<T>(
     if (res.status === 401) {
       console.error(`Authentication error for ${method} ${url}`);
       
+      // Check if we received an explicit unauthenticated header
+      const authStatus = res.headers.get('X-Auth-Status');
+      
       // Only add the logout flag if this isn't already a login/logout request
       if (!url.includes('/auth/')) {
-        localStorage.setItem('auth-logout', 'true');
+        // If we received an explicit unauthenticated header, set logout flag
+        if (authStatus === 'unauthenticated') {
+          console.log('Explicit unauthenticated status received');
+          localStorage.setItem('auth-logout', 'true');
+        }
+        
         // Broadcast an auth event so all components can react
         window.dispatchEvent(new CustomEvent('auth-error', { 
-          detail: { method, url, status: res.status }
+          detail: { method, url, status: res.status, authStatus }
         }));
       }
       
@@ -165,12 +173,18 @@ export const getQueryFn: <T>(options: {
         // User is not authenticated, clear any cached user data
         queryClient.setQueryData(['/api/users/me'], null);
         
+        // Check if we received an explicit unauthenticated header
+        const authStatus = res.headers.get('X-Auth-Status');
+        if (authStatus === 'unauthenticated') {
+          console.log('Explicit unauthenticated status received');
+          localStorage.setItem('auth-logout', 'true');
+        }
+        
         // Broadcast an auth event for React components to handle
         window.dispatchEvent(new CustomEvent('auth-error', { 
-          detail: { method: 'GET', url: queryKey[0], status: res.status }
+          detail: { method: 'GET', url: queryKey[0], status: res.status, authStatus }
         }));
         
-        // Don't set logout flag here, as we still want to attempt auth with cookies
         throw new Error("Authentication required");
       }
       

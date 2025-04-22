@@ -87,11 +87,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       credentials: "include" // Include cookies for session authentication
     })
     .then(async (res) => {
-      if (res.ok) {
+      // Check for auth header
+      const authStatus = res.headers.get('X-Auth-Status');
+      
+      if (res.ok && authStatus === 'authenticated') {
         // User is authenticated
         const userData = await res.json();
         queryClient.setQueryData(['/api/users/me'], userData);
         setIsAuthenticated(true);
+      } else if (authStatus === 'unauthenticated') {
+        // User is explicitly unauthenticated - set the logout flag
+        localStorage.setItem('auth-logout', 'true');
+        setIsAuthenticated(false);
+        queryClient.setQueryData(['/api/users/me'], null);
       }
     })
     .catch(err => {
@@ -214,8 +222,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Make an API call to logout
     apiRequest('POST', '/api/auth/logout')
       .then((response) => {
-        // Check for the special header we added for logout
+        // Check both special headers we've added
         const logoutHeader = response.headers.get('X-Auth-Logout');
+        const authStatus = response.headers.get('X-Auth-Status');
+        
+        console.log('Logout response headers:', {
+          logoutHeader,
+          authStatus
+        });
         
         // Set the auth-logout flag in localStorage for future requests
         localStorage.setItem('auth-logout', 'true');
