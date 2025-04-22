@@ -7,6 +7,7 @@ import Resume from "@/pages/Resume";
 import CoverLetter from "@/pages/CoverLetter";
 import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
+import EducationHistory from "@/pages/EducationHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
 import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
@@ -421,6 +422,11 @@ function App() {
         <Route path="/work-history">
           <CareerRoute>
             <WorkHistory />
+          </CareerRoute>
+        </Route>
+        <Route path="/education-history">
+          <CareerRoute>
+            <EducationHistory />
           </CareerRoute>
         </Route>
         <Route path="/achievements">

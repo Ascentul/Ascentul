@@ -1201,6 +1201,110 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Education History Routes
+  apiRouter.get("/education-history", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const educationHistory = await storage.getEducationHistory(user.id);
+      res.status(200).json(educationHistory);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching education history" });
+    }
+  });
+  
+  apiRouter.post("/education-history", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const educationHistoryData = insertEducationHistorySchema.parse(req.body);
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const educationHistoryItem = await storage.createEducationHistoryItem(user.id, educationHistoryData);
+      res.status(201).json(educationHistoryItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid education history data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Error creating education history item" });
+    }
+  });
+  
+  apiRouter.put("/education-history/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const itemId = parseInt(id);
+      
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid education history ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const item = await storage.getEducationHistoryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Education history item not found" });
+      }
+      
+      // Ensure the education history item belongs to the current user
+      if (item.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this education history item" });
+      }
+      
+      const updatedItem = await storage.updateEducationHistoryItem(itemId, req.body);
+      res.status(200).json(updatedItem);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating education history item" });
+    }
+  });
+  
+  apiRouter.delete("/education-history/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const itemId = parseInt(id);
+      
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid education history ID" });
+      }
+      
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const item = await storage.getEducationHistoryItem(itemId);
+      
+      if (!item) {
+        return res.status(404).json({ message: "Education history item not found" });
+      }
+      
+      // Ensure the education history item belongs to the current user
+      if (item.userId !== user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this education history item" });
+      }
+      
+      await storage.deleteEducationHistoryItem(itemId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting education history item" });
+    }
+  });
+  
   // Certification Routes
   apiRouter.get("/certifications", requireAuth, async (req: Request, res: Response) => {
     try {
