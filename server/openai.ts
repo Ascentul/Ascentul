@@ -569,6 +569,78 @@ Provide your response in JSON format with these fields:
   }
 }
 
+// Analyze a resume document against a job description
+export async function analyzeResumeForJob(resumeText: string, jobDescription: string): Promise<{
+  overallScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  missingKeywords: string[];
+  improvementSuggestions: string[];
+  technicalSkillAssessment: string[];
+  softSkillAssessment: string[];
+  formattingFeedback: string[];
+  keywordMatchScore: number;
+  relevanceScore: number;
+}> {
+  try {
+    const prompt = `You are an expert resume reviewer and career coach with deep experience in hiring. Conduct a comprehensive analysis of this resume against the provided job description.
+
+Resume Text:
+${resumeText}
+
+Job Description:
+${jobDescription}
+
+Provide a detailed expert analysis of how well this resume matches the job description, focusing on both content and presentation.
+Format your response as a JSON object with these fields:
+
+1. overallScore: A number from 0-100 representing the overall match of the resume to the job description
+2. strengths: An array of 3-5 specific strengths of the resume for this job
+3. weaknesses: An array of 3-5 specific weaknesses of the resume for this job
+4. missingKeywords: An array of important keywords/skills from the job description that are missing from the resume
+5. improvementSuggestions: An array of 5-7 actionable suggestions to improve the resume for this specific job
+6. technicalSkillAssessment: An array of 2-3 observations about how well the technical skills match the job requirements
+7. softSkillAssessment: An array of 2-3 observations about how well the soft skills/attributes match the job requirements
+8. formattingFeedback: An array of 2-3 suggestions about resume formatting, structure, and presentation
+9. keywordMatchScore: A number from 0-100 representing how well the resume's keywords match the job description
+10. relevanceScore: A number from 0-100 representing how relevant the experience is to the job
+
+Be specific, actionable, and constructive. Focus on substance over style, and emphasize ways the candidate can better position their actual experience and skills to match this specific job.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const parsedResponse = JSON.parse(content);
+    
+    // Ensure all required fields are present
+    return {
+      overallScore: parsedResponse.overallScore || 0,
+      strengths: parsedResponse.strengths || [],
+      weaknesses: parsedResponse.weaknesses || [],
+      missingKeywords: parsedResponse.missingKeywords || [],
+      improvementSuggestions: parsedResponse.improvementSuggestions || [],
+      technicalSkillAssessment: parsedResponse.technicalSkillAssessment || [],
+      softSkillAssessment: parsedResponse.softSkillAssessment || [],
+      formattingFeedback: parsedResponse.formattingFeedback || [],
+      keywordMatchScore: parsedResponse.keywordMatchScore || 0,
+      relevanceScore: parsedResponse.relevanceScore || 0
+    };
+  } catch (error: any) {
+    console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      throw new Error("There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.");
+    }
+    
+    throw new Error("An error occurred while analyzing the resume. Please try again later.");
+  }
+}
+
 // Generate a complete resume tailored to a specific job description
 export async function generateFullResume(
   workHistory: string, 
