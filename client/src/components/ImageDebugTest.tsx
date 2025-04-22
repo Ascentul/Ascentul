@@ -3,16 +3,8 @@ import { useEffect, useState } from 'react';
 
 export default function ImageDebugTest() {
   const { user } = useUser();
-  const [timestamp, setTimestamp] = useState(Date.now());
-  
-  useEffect(() => {
-    // Refresh the timestamp every second to force re-render
-    const interval = setInterval(() => {
-      setTimestamp(Date.now());
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  // We no longer need to continuously refresh the timestamp
+  // as we've fixed the image source in all components
   
   if (!user || !user.profileImage) return null;
   
@@ -23,14 +15,13 @@ export default function ImageDebugTest() {
       
       <div className="border rounded-lg overflow-hidden">
         <img 
-          src={`${user.profileImage}?debug=true&t=${timestamp}`}
+          src={user.profileImage}
           alt="Debug view" 
-          className="w-full h-auto"
+          className="w-full h-auto object-cover"
         />
       </div>
       
       <div className="mt-2 text-xs">
-        <p>Timestamp: {timestamp}</p>
         <p>Loaded at: {new Date().toLocaleTimeString()}</p>
       </div>
     </div>

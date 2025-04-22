@@ -64,13 +64,13 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
                 <Avatar className="ml-3 h-8 w-8 cursor-pointer hover:opacity-90 transition-opacity">
                   {user.profileImage ? (
                     <AvatarImage 
-                      src={`${user.profileImage}?t=${Date.now()}`} 
+                      src={user.profileImage || ''} 
                       alt={user.name} 
                       onError={(e) => {
                         console.log("Error loading image in mobile header, falling back to text");
                         e.currentTarget.style.display = 'none';
                       }}
-                      className="force-refresh-image object-cover"
+                      className="object-cover"
                       style={{ objectPosition: 'center' }}
                     />
                   ) : (
