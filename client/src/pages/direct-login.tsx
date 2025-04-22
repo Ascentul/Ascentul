@@ -11,6 +11,7 @@ export default function DirectLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [userData, setUserData] = useState<any>(null); // Store the user data here for redirects
   const { toast } = useToast();
   
   // Attempt auto-login on component mount
@@ -37,14 +38,28 @@ export default function DirectLogin() {
   // Function to handle direct redirection to dashboard
   const redirectToDashboard = () => {
     console.log('REDIRECTING TO DASHBOARD NOW');
-    // Use the most forceful redirect possible
-    window.location.href = '/career-dashboard';
     
-    // Backup: try again after a short delay if not redirected
-    setTimeout(() => {
-      console.log('REDIRECT RETRY');
-      document.location.href = '/career-dashboard';
-    }, 800);
+    try {
+      // Get redirect path from userData if available
+      const redirectPath = userData?.redirectPath || '/dashboard';
+      console.log(`Using redirectPath: ${redirectPath}`);
+      
+      // Use the most forceful redirect possible
+      setTimeout(() => {
+        console.log('EXECUTING IMMEDIATE REDIRECT');
+        window.location.replace(redirectPath);
+      }, 100);
+      
+      // Backup: try again after a short delay if not redirected
+      setTimeout(() => {
+        console.log('REDIRECT RETRY');
+        document.location.href = '/dashboard';
+      }, 800);
+    } catch (error) {
+      console.error('Redirect error:', error);
+      // Final fallback
+      window.location.href = '/dashboard';
+    }
   };
 
   // Function to handle AJAX login
@@ -67,22 +82,24 @@ export default function DirectLogin() {
         credentials: 'include' // Important for cookies
       });
       
-      let userData;
+      let parsedData;
       
       try {
         // Always parse the JSON response first
-        userData = await response.json();
-        console.log('Parsed response data:', userData);
+        parsedData = await response.json();
+        console.log('Parsed response data:', parsedData);
         
         if (!response.ok) {
           // If status is not OK, handle as error
-          const message = userData?.message || `Error: ${response.statusText}`;
+          const message = parsedData?.message || `Error: ${response.statusText}`;
           setErrorMessage(message);
           setIsLoading(false);
           return;
         }
         
-        console.log('Login successful, user data:', userData);
+        // Store the user data in component state for redirection
+        setUserData(parsedData);
+        console.log('Login successful, user data:', parsedData);
       } catch (e) {
         console.error('Error parsing response:', e);
         setErrorMessage(`Error parsing response: ${response.statusText}`);
@@ -90,9 +107,10 @@ export default function DirectLogin() {
         return;
       }
       
+      // Store user data in localStorage with proper nesting handling
       localStorage.setItem('auth-user', JSON.stringify({
-        id: userData.id || (userData.user && userData.user.id),
-        username: userData.username || (userData.user && userData.user.username),
+        id: parsedData.id || (parsedData.user && parsedData.user.id),
+        username: parsedData.username || (parsedData.user && parsedData.user.username),
         authenticated: true,
         timestamp: new Date().toISOString()
       }));
