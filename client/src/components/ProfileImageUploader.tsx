@@ -223,7 +223,7 @@ export default function ProfileImageUploader({
       // which is easier to handle in a simple backend
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       
-      // Send the request
+      // Send the request to upload the image
       const response = await fetch('/api/users/profile-image', {
         method: 'POST',
         headers: {
@@ -248,6 +248,9 @@ export default function ProfileImageUploader({
       if (data && data.profileImage) {
         console.log('New profile image URL:', data.profileImage);
         
+        // Add cache-busting timestamp parameter
+        const imageUrlWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
+        
         // Now also make a second API call to update the user profile with this URL
         try {
           const profileUpdateResponse = await fetch('/api/users/profile', {
@@ -256,31 +259,47 @@ export default function ProfileImageUploader({
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({ 
-              profileImage: data.profileImage
+              profileImage: data.profileImage // Send without timestamp to server
             }),
           });
           
           if (!profileUpdateResponse.ok) {
             console.warn('Could not update user profile record, but image was saved');
           } else {
-            console.log('Profile updated successfully with new image URL');
+            const updatedUserData = await profileUpdateResponse.json();
+            console.log('Profile updated successfully with new image URL:', updatedUserData);
           }
+          
+          // Call the callback with the timestamped URL
+          onImageUploaded(imageUrlWithTimestamp);
         } catch (profileUpdateError) {
           console.error('Error updating user profile with image URL:', profileUpdateError);
+          // Call the callback anyway so the UI can update
+          onImageUploaded(imageUrlWithTimestamp);
         }
-        
-        // Return the image URL regardless of the profile update status
-        onImageUploaded(data.profileImage);
       } else {
         // Otherwise, use a timestamp-based URL to force a refresh of the current image
         const timestamp = new Date().getTime();
-        const refreshedCurrentImage = currentImage ? `${currentImage}?t=${timestamp}` : '';
+        const refreshedCurrentImage = currentImage ? `${currentImage.split('?')[0]}?t=${timestamp}` : '';
         console.log('Using refreshed current image:', refreshedCurrentImage);
         onImageUploaded(refreshedCurrentImage);
       }
       
       // Close the dialog
       setIsOpen(false);
+      
+      // Fetch the latest user data to ensure all components have the updated image
+      try {
+        const userResponse = await fetch('/api/users/me');
+        if (userResponse.ok) {
+          // We don't need to do anything with this response - it will update the query cache
+          await userResponse.json();
+          console.log('User data refreshed from server');
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing user data:', refreshError);
+      }
+      
     } catch (error) {
       console.error('Error saving image:', error);
       alert('Failed to save profile image. Please try again.');

@@ -178,12 +178,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
   });
   
   const updateProfile = async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
+    // Add a timestamp to force cache refresh if this is a profile image update
+    if (data.profileImage) {
+      data.profileImage = `${data.profileImage}?t=${new Date().getTime()}`;
+      console.log('Setting profile image with timestamp:', data.profileImage);
+    }
     return updateProfileMutation.mutateAsync(data);
   };
   
   const updateUser = (data: Partial<User>) => {
     if (!user) return;
-    queryClient.setQueryData(['/api/users/me'], { ...user, ...data });
+    
+    // Add timestamp to profile image if it's being updated
+    const updatedData = { ...data };
+    if (updatedData.profileImage) {
+      // If the URL already has a timestamp parameter, replace it
+      if (updatedData.profileImage.includes('?')) {
+        updatedData.profileImage = updatedData.profileImage.split('?')[0] + `?t=${new Date().getTime()}`;
+      } else {
+        updatedData.profileImage = `${updatedData.profileImage}?t=${new Date().getTime()}`;
+      }
+      console.log('updateUser setting image with timestamp:', updatedData.profileImage);
+    }
+    
+    queryClient.setQueryData(['/api/users/me'], { ...user, ...updatedData });
   };
 
   // Function to update theme settings
