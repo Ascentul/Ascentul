@@ -591,6 +591,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Store user ID in session to log them in
       req.session.userId = newUser.id;
+      req.session.authenticated = true;
+      req.session.lastAccess = new Date().toISOString();
+      
+      // Save the session explicitly to ensure it's stored
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session after registration:", err);
+        }
+      });
       
       // Set a cookie with the user ID
       res.cookie('userId', newUser.id, {
