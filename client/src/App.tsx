@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
 import Resume from "@/pages/Resume";
-import ResumeAnalysis from "@/pages/ResumeAnalysis";
+
 import CoverLetter from "@/pages/CoverLetter";
 import Interview from "@/pages/Interview";
 import WorkHistory from "@/pages/WorkHistory";
@@ -414,11 +414,7 @@ function App() {
             <Resume />
           </CareerRoute>
         </Route>
-        <Route path="/resume-analysis">
-          <CareerRoute>
-            <ResumeAnalysis />
-          </CareerRoute>
-        </Route>
+
         <Route path="/cover-letter">
           <CareerRoute>
             <CoverLetter />
