@@ -5,6 +5,12 @@ import session from "express-session";
 import { sessionStore } from "./session-store";
 import path from "path";
 
+// Log all environment variables for debugging (masking sensitive values)
+console.log('Environment Variables Status:');
+console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
+console.log('- PGDATABASE:', process.env.PGDATABASE ? 'present' : 'missing');
+console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'present' : 'missing');
+
 // Declare session values on the Express Request type
 declare module "express-session" {
   interface SessionData {

@@ -2,12 +2,30 @@ import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 // Check for OpenAI API key and use mock mode if missing
-const apiKey = process.env.OPENAI_API_KEY;
+let apiKey = process.env.OPENAI_API_KEY;
 let useMockOpenAI = false;
 let openai: any;
 
+// Try to read API key using alternative methods if the environment variable isn't working
 if (!apiKey) {
-  console.warn('OPENAI_API_KEY is not set in utils/openai.ts. Using mock OpenAI mode.');
+  try {
+    // Try alternative approach to access environment variables
+    const fs = require('fs');
+    const envFile = fs.readFileSync('.env', 'utf8');
+    const openaiKeyMatch = envFile.match(/OPENAI_API_KEY=(.+)/);
+    if (openaiKeyMatch && openaiKeyMatch[1]) {
+      apiKey = openaiKeyMatch[1].trim();
+      console.log('Successfully loaded OPENAI_API_KEY from .env file');
+    }
+  } catch (error) {
+    console.log('No .env file found or unable to parse OPENAI_API_KEY');
+  }
+}
+
+console.log('OPENAI_API_KEY status:', apiKey ? 'present' : 'missing');
+
+if (!apiKey) {
+  console.warn('OPENAI_API_KEY is not set. Using mock OpenAI mode.');
   useMockOpenAI = true;
   
   // Create a mock OpenAI instance

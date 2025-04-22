@@ -30,6 +30,7 @@ import {
   Search,
   ChevronRight,
   LineChart,
+  BarChart,
   ClipboardList,
   Clock,
   Building,
