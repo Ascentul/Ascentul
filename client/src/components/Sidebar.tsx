@@ -248,8 +248,13 @@ export default function Sidebar() {
             <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
               {user.profileImage ? (
                 <AvatarImage 
-                  src={`${user.profileImage}?t=${Date.now()}`} 
+                  src={`${user.profileImage}?v=${new Date().getTime()}`} 
                   alt={user.name} 
+                  onError={(e) => {
+                    console.log("Error loading image, falling back to text");
+                    // Hide the broken image icon
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
                 <AvatarFallback className="bg-primary/10 text-primary text-xl">

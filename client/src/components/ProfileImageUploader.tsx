@@ -246,6 +246,29 @@ export default function ProfileImageUploader({
       // If the response contains a profile image URL, use it
       if (data && data.profileImage) {
         console.log('New profile image URL:', data.profileImage);
+        
+        // Now also make a second API call to update the user profile with this URL
+        try {
+          const profileUpdateResponse = await fetch('/api/users/profile', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              profileImage: data.profileImage
+            }),
+          });
+          
+          if (!profileUpdateResponse.ok) {
+            console.warn('Could not update user profile record, but image was saved');
+          } else {
+            console.log('Profile updated successfully with new image URL');
+          }
+        } catch (profileUpdateError) {
+          console.error('Error updating user profile with image URL:', profileUpdateError);
+        }
+        
+        // Return the image URL regardless of the profile update status
         onImageUploaded(data.profileImage);
       } else {
         // Otherwise, use a timestamp-based URL to force a refresh of the current image
