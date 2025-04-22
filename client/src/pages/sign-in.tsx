@@ -18,15 +18,17 @@ export default function SignInPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   
-  // Redirect if user is already logged in
-  if (user) {
-    if (user.userType === 'regular') {
-      setLocation('/');
-    } else {
-      setLocation('/university');
+  // Use useEffect for redirection instead of doing it during render
+  // This prevents the "Cannot update during rendering" React warning
+  useEffect(() => {
+    if (user) {
+      if (user.userType === 'regular') {
+        setLocation('/');
+      } else {
+        setLocation('/university');
+      }
     }
-    return null;
-  }
+  }, [user, setLocation]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
