@@ -242,58 +242,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         <div className="relative">
           <div className="inline-block">
             <ProfileImageUploader
-              onImageUploaded={async (imageUrl) => {
-                console.log("Image uploaded, URL:", imageUrl);
-                
-                // We won't use the ProfileImageUploader component's built-in update
-                // Instead, we'll handle everything here in the callback for better control
+              onImageUploaded={async (imageDataUrl) => {
+                console.log("Sidebar image upload started...");
                 
                 try {
-                  // First make a direct call to update the user profile with this URL
-                  const profileUpdateResponse = await fetch('/api/users/profile', {
-                    method: 'PUT',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                      profileImage: imageUrl
-                    }),
-                  });
-                  
-                  if (!profileUpdateResponse.ok) {
-                    throw new Error('Failed to update profile with new image');
-                  }
-                  
-                  const updatedUserData = await profileUpdateResponse.json();
-                  console.log("Profile successfully updated:", updatedUserData);
-                  
-                  // Update local state
-                  updateUser({
-                    ...user,
-                    profileImage: imageUrl
-                  });
-                  
-                  // Force a cache invalidation by fetching the user data again
-                  // We don't have direct access to refetchUser here
-                  
-                  // No page reload - instead fetch the latest user data and update the local state
-                  try {
-                    const userResponse = await fetch('/api/users/me');
-                    if (userResponse.ok) {
-                      const userData = await userResponse.json();
-                      // Force browser to re-download the image by appending timestamp
-                      if (userData.profileImage) {
-                        userData.profileImage = `${userData.profileImage}?t=${new Date().getTime()}`;
-                      }
-                      // Update with the fresh user data
-                      updateUser(userData);
-                    }
-                  } catch (error) {
-                    console.error("Error refreshing user data:", error);
-                  }
+                  // Use the centralized uploadProfileImage function from useUserData context
+                  const updatedUser = await uploadProfileImage(imageDataUrl);
+                  console.log("Profile successfully updated from sidebar:", updatedUser);
+                  return updatedUser;
                 } catch (error) {
                   console.error("Error updating profile with image:", error);
-                  alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
+                  alert("Failed to update your profile image. Please try again or contact support.");
+                  throw error;
                 }
               }}
               currentImage={user.profileImage}

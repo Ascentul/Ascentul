@@ -201,104 +201,18 @@ export default function ProfileImageUploader({
         0, 0, canvas.width, canvas.height
       );
       
-      console.log('Image cropped, converting to blob...');
+      console.log('Image cropped, converting to data URL...');
       
-      // Convert canvas to blob
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
-      });
-      
-      if (!blob) throw new Error('Failed to create image blob');
-      
-      console.log('Blob created, size:', blob.size, 'bytes');
-      
-      // Create FormData and send to server
-      const formData = new FormData();
-      formData.append('profileImage', blob, 'profile.jpg');
-      
-      console.log('FormData created, sending to server...');
-      
-      // We're not actually using FormData in this implementation,
-      // but instead sending the image as a base64 data URL
-      // which is easier to handle in a simple backend
+      // Convert canvas to data URL
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       
-      // Send the request to upload the image
-      const response = await fetch('/api/users/profile-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          imageDataUrl: dataUrl
-        }),
-      });
-      
-      console.log('Server response received:', response.status);
-      
-      if (!response.ok) {
-        console.error('Server response not ok:', response.status, response.statusText);
-        throw new Error('Failed to upload image');
-      }
-      
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      // If the response contains a profile image URL, use it
-      if (data && data.profileImage) {
-        console.log('New profile image URL:', data.profileImage);
-        
-        // Add cache-busting timestamp parameter
-        const imageUrlWithTimestamp = `${data.profileImage}?t=${new Date().getTime()}`;
-        
-        // Now also make a second API call to update the user profile with this URL
-        try {
-          const profileUpdateResponse = await fetch('/api/users/profile', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              profileImage: data.profileImage // Send without timestamp to server
-            }),
-          });
-          
-          if (!profileUpdateResponse.ok) {
-            console.warn('Could not update user profile record, but image was saved');
-          } else {
-            const updatedUserData = await profileUpdateResponse.json();
-            console.log('Profile updated successfully with new image URL:', updatedUserData);
-          }
-          
-          // Call the callback with the timestamped URL
-          onImageUploaded(imageUrlWithTimestamp);
-        } catch (profileUpdateError) {
-          console.error('Error updating user profile with image URL:', profileUpdateError);
-          // Call the callback anyway so the UI can update
-          onImageUploaded(imageUrlWithTimestamp);
-        }
-      } else {
-        // Otherwise, use a timestamp-based URL to force a refresh of the current image
-        const timestamp = new Date().getTime();
-        const refreshedCurrentImage = currentImage ? `${currentImage.split('?')[0]}?t=${timestamp}` : '';
-        console.log('Using refreshed current image:', refreshedCurrentImage);
-        onImageUploaded(refreshedCurrentImage);
-      }
+      // Use the callback to upload the image and update the user profile
+      // This will be handled by the useUserData context's uploadProfileImage function
+      const updatedUser = await onImageUploaded(dataUrl);
+      console.log('Image uploaded and profile updated successfully:', updatedUser);
       
       // Close the dialog
       setIsOpen(false);
-      
-      // Fetch the latest user data to ensure all components have the updated image
-      try {
-        const userResponse = await fetch('/api/users/me');
-        if (userResponse.ok) {
-          // We don't need to do anything with this response - it will update the query cache
-          await userResponse.json();
-          console.log('User data refreshed from server');
-        }
-      } catch (refreshError) {
-        console.error('Error refreshing user data:', refreshError);
-      }
       
     } catch (error) {
       console.error('Error saving image:', error);

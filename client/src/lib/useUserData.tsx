@@ -48,6 +48,7 @@ interface UserContextType {
   updateProfile: (data: { name?: string; email?: string; username?: string; profileImage?: string }) => Promise<User>;
   updateUser: (data: Partial<User>) => void;
   updateTheme: (themeSettings: User['theme']) => Promise<void>;
+  uploadProfileImage: (imageDataUrl: string) => Promise<User>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -240,6 +241,62 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Function to upload profile image and update the user profile
+  const uploadProfileImage = async (imageDataUrl: string): Promise<User> => {
+    if (!user) throw new Error('User not authenticated');
+    
+    try {
+      // Step 1: Upload image to server
+      const uploadResponse = await fetch('/api/users/profile-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageDataUrl }),
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload profile image');
+      }
+      
+      const uploadData = await uploadResponse.json();
+      if (!uploadData.profileImage) {
+        throw new Error('Profile image URL not returned from server');
+      }
+      
+      // Step 2: Update user profile with the new image URL
+      const profileUpdateResponse = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          profileImage: uploadData.profileImage // Send without timestamp
+        }),
+      });
+      
+      if (!profileUpdateResponse.ok) {
+        throw new Error('Failed to update profile with new image');
+      }
+      
+      const updatedUserData = await profileUpdateResponse.json();
+      
+      // Step 3: Update the local user state with a cache-busting timestamp
+      const imageWithTimestamp = `${uploadData.profileImage}?t=${new Date().getTime()}`;
+      const updatedUserWithTimestamp = {
+        ...updatedUserData,
+        profileImage: imageWithTimestamp
+      };
+      
+      // Update query cache
+      queryClient.setQueryData(['/api/users/me'], updatedUserWithTimestamp);
+      
+      // Step 4: Refresh user data to ensure all components are updated
+      await refetchUser();
+      
+      return updatedUserWithTimestamp;
+    } catch (error) {
+      console.error('Error in uploadProfileImage:', error);
+      throw error;
+    }
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -253,6 +310,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateProfile,
         updateUser,
         updateTheme,
+        uploadProfileImage,
       }}
     >
       {children}
