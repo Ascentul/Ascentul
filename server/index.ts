@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { sessionStore } from "./session-store";
+import path from "path";
 
 // Declare session values on the Express Request type
 declare module "express-session" {
@@ -23,6 +24,9 @@ declare global {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Configure session middleware
 app.use(session({
