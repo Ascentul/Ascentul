@@ -700,75 +700,43 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // User Routes
   apiRouter.get("/users/me", async (req: Request, res: Response) => {
     try {
-      // Check if the browser has a special logout flag set (from localStorage)
-      const isLoggedOut = req.headers['x-auth-logout'] === 'true';
-      if (isLoggedOut) {
-        return sendUnauthenticatedResponse(res.status(401), "Not authenticated");
-      }
+      // Use our centralized getCurrentUser function to get the authenticated user
+      const user = await getCurrentUser(req);
       
-      // Get the user ID from the session
-      let userId;
-      
-      // Try to get user ID from the session
-      if (req.session && req.session.userId) {
-        userId = req.session.userId;
-      }
-      
-      // Get the user by ID
-      let user;
-      if (userId) {
-        user = await storage.getUser(userId);
-      }
-      
-      // No fallbacks - if no user is found, return 401
+      // If no user is found, return 401 Unauthorized
       if (!user) {
-        return sendUnauthenticatedResponse(res.status(401), "Authentication required");
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
-      // Set a flag in the session to indicate it was used successfully
-      if (req.session) {
-        req.session.authenticated = true;
-        req.session.lastAccess = new Date().toISOString();
-        // Explicitly save the session
-        req.session.save();
-      }
-      
+      // Remove sensitive information from the user object before sending it to the client
       const { password: userPassword, ...safeUser } = user;
       
       // Add password length for visual representation, but never send actual password
       const passwordLength = userPassword ? userPassword.length : 0;
       
       // Set a special header to indicate authentication is confirmed
-      res.setHeader('X-Auth-Status', 'authenticated');
+      markResponseAuthenticated(res);
       
+      // Return the user data
       res.status(200).json({
         ...safeUser,
         passwordLength
       });
     } catch (error) {
-      res.status(500).json({ message: "Error fetching user" });
+      console.error("Error fetching user data:", error);
+      res.status(500).json({ message: "Error fetching user data" });
     }
   });
   
   // Update user profile
   apiRouter.put("/users/profile", async (req: Request, res: Response) => {
     try {
-      // Get user ID from session
-      let userId;
-      if (req.session && req.session.userId) {
-        userId = req.session.userId;
-      }
+      // Use the centralized getCurrentUser function
+      const user = await getCurrentUser(req);
       
-      // Get the user by ID
-      let user;
-      if (userId) {
-        user = await storage.getUser(userId);
-      }
-      
-      // No fallbacks - if no user is found, return 401
-      
+      // If no user is found, return 401 Unauthorized
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       // Update only allowed fields
@@ -836,8 +804,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: userPassword, ...safeUser } = updatedUser;
       
-      // Set authentication header
-      res.setHeader('X-Auth-Status', 'authenticated');
+      // Set authentication header using the centralized utility
+      markResponseAuthenticated(res);
       
       // Add a message about email verification if needed
       if (updateData.pendingEmail) {
@@ -859,22 +827,12 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       console.log("Profile image upload endpoint called");
       
-      // Get user ID from session
-      let userId;
-      if (req.session && req.session.userId) {
-        userId = req.session.userId;
-      }
+      // Use the centralized getCurrentUser function
+      const user = await getCurrentUser(req);
       
-      // Get the user by ID
-      let user;
-      if (userId) {
-        user = await storage.getUser(userId);
-      }
-      
-      // No fallbacks - if no user is found, return 401
-      
+      // If no user is found, return 401 Unauthorized
       if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
+        return sendUnauthenticatedResponse(res, "Authentication required");
       }
       
       console.log("User found:", user.id);
@@ -925,8 +883,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         
         console.log("User profile updated with new image URL:", filepath);
         
-        // Set authentication header
-        res.setHeader('X-Auth-Status', 'authenticated');
+        // Set authentication header using the centralized utility
+        markResponseAuthenticated(res);
         
         // Return success response
         return res.status(200).json({ 
