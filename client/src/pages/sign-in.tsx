@@ -28,56 +28,14 @@ export default function SignInPage() {
     setIsLoginLoading(true);
     
     try {
-      // First clear any logout flag from localStorage
-      localStorage.removeItem('auth-logout');
+      // Use our updated login function for a more reliable login process
+      await login(loginEmail, loginPassword);
       
-      // Make direct fetch request to login endpoint
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: loginEmail, 
-          password: loginPassword 
-        }),
-        credentials: 'include' // Include cookies
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-      
-      const data = await response.json();
-      
-      // Log the response to help debugging
-      console.log('Login response:', data);
-      
-      // Store authentication state in localStorage
-      localStorage.setItem('auth-user', JSON.stringify({
-        id: data.id || (data.user && data.user.id),
-        authenticated: true,
-        timestamp: new Date().toISOString()
-      }));
-      
-      // Get the redirect path from the response
-      const redirectPath = data.redirectPath || 
-                         (data.user && data.user.redirectPath) || 
-                         '/career-dashboard';
-      
-      toast({
-        title: "Login successful!",
-        description: "You have been logged in successfully. Redirecting to dashboard...",
-      });
-      
-      console.log('Authentication successful, redirecting to:', redirectPath);
-      
-      // Give the browser 500ms to complete the login process, then redirect
-      setTimeout(() => {
-        // Use direct window.location for most reliable redirect
-        window.location.href = redirectPath;
-      }, 500);
+      // The login function already handles redirect, toast, etc.
+      // We don't need to do anything else here
       
     } catch (error) {
+      // If there's an error, display it and reset the loading state
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Please check your credentials and try again.",

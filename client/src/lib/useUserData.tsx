@@ -232,8 +232,60 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');
     
-    const result = await loginMutation.mutateAsync({ email, password, loginType });
-    return result.user;
+    try {
+      console.log('Starting login process for:', email);
+      
+      // Make direct fetch request instead of using mutation to avoid React state update issues
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, loginType }),
+        credentials: 'include' // Include cookies
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+      
+      // Parse the response
+      const data = await response.json();
+      console.log('Login API success, received data:', data);
+      
+      // Extract user data from response (handle both formats)
+      let userData: User;
+      if (data.user && data.user.id) {
+        userData = data.user; 
+      } else if (data.id) {
+        userData = data;
+      } else {
+        console.error('Invalid login response format:', data);
+        throw new Error('Invalid server response format');
+      }
+      
+      // Update the authentication state
+      queryClient.setQueryData(['/api/users/me'], userData);
+      setIsAuthenticated(true);
+      
+      // Store login state in localStorage
+      localStorage.setItem('auth-user', JSON.stringify({
+        id: userData.id,
+        authenticated: true,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Determine redirect path
+      const redirectPath = data.redirectPath || userData.redirectPath || getRedirectPathByRole(userData.userType);
+      console.log('Authentication successful, redirecting to:', redirectPath);
+      
+      // Perform the redirect
+      window.location.href = redirectPath;
+      
+      return userData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const logout = () => {
