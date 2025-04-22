@@ -18,17 +18,10 @@ export default function SignInPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   
-  // Use useEffect for redirection instead of doing it during render
-  // This prevents the "Cannot update during rendering" React warning
-  useEffect(() => {
-    if (user) {
-      if (user.userType === 'regular') {
-        setLocation('/');
-      } else {
-        setLocation('/university');
-      }
-    }
-  }, [user, setLocation]);
+  // We'll handle redirection directly in the login function's success handler
+  // This avoids React warnings about updating during render
+  // The useUser hook already has redirection logic that uses document.location
+  // for immediate navigation
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
