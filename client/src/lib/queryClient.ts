@@ -26,11 +26,47 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Request options interface
+export interface ApiRequestOptions {
+  url: string;
+  method?: string;
+  data?: unknown;
+}
+
+// Function overloads for apiRequest
+export async function apiRequest<T>(
+  options: ApiRequestOptions
+): Promise<T>;
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<Response> {
+): Promise<Response>;
+
+// Implementation of apiRequest
+export async function apiRequest<T>(
+  methodOrOptions: string | ApiRequestOptions,
+  urlOrNothing?: string,
+  dataOrNothing?: unknown
+): Promise<T | Response> {
+  let method: string;
+  let url: string;
+  let data: unknown | undefined;
+  
+  // Determine if we're using the object pattern or the separate arguments pattern
+  if (typeof methodOrOptions === 'object') {
+    // Object pattern
+    method = methodOrOptions.method || 'GET';
+    url = methodOrOptions.url;
+    data = methodOrOptions.data;
+  } else {
+    // Separate arguments pattern
+    method = methodOrOptions;
+    url = urlOrNothing!;
+    data = dataOrNothing;
+  }
+
   // Prepare headers
   const headers: Record<string, string> = {};
   
@@ -58,6 +94,13 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
+  
+  // If we're using the object pattern, assume they want JSON back
+  if (typeof methodOrOptions === 'object') {
+    return await res.json() as T;
+  }
+  
+  // Otherwise return the response object
   return res;
 }
 

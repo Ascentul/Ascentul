@@ -121,7 +121,7 @@ export default function SkillStacker() {
 
   // Mutation for generating a new skill stacker plan
   const generateMutation = useMutation({
-    mutationFn: (data: any) => apiRequest({
+    mutationFn: (data: any) => apiRequest<SkillStackerPlan>({
       url: '/api/skill-stacker/generate',
       method: 'POST',
       data,
@@ -149,14 +149,14 @@ export default function SkillStacker() {
   // Mutation for completing a task
   const completeTaskMutation = useMutation({
     mutationFn: ({ planId, taskId, status, rating }: { planId: number; taskId: string; status: 'complete' | 'incomplete'; rating?: number }) => 
-      apiRequest({
+      apiRequest<SkillStackerPlan>({
         url: `/api/skill-stacker/${planId}/task/${taskId}`,
         method: 'PUT',
         data: { status, rating },
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/skill-stacker'] });
-      setSelectedPlan(data as SkillStackerPlan);
+      setSelectedPlan(data);
       toast({
         title: 'Task updated',
         description: 'Your progress has been saved.',
@@ -175,13 +175,13 @@ export default function SkillStacker() {
   // Mutation for completing a plan
   const completePlanMutation = useMutation({
     mutationFn: (planId: number) => 
-      apiRequest({
+      apiRequest<SkillStackerPlan>({
         url: `/api/skill-stacker/${planId}/complete`,
         method: 'PUT',
       }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/skill-stacker'] });
-      setSelectedPlan(data as SkillStackerPlan);
+      setSelectedPlan(data);
       toast({
         title: 'Congratulations!',
         description: 'You completed this week\'s skill development plan.',
