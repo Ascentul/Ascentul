@@ -166,58 +166,71 @@ export default function ProfileImageUploader({
       setIsLoading(true);
       console.log('Starting profile image save process...');
       
-      // Create a canvas to crop the image
-      const canvas = document.createElement('canvas');
-      const img = new Image();
-      img.src = image;
-      
-      // Wait for image to load
-      await new Promise<void>((resolve) => {
-        img.onload = () => resolve();
-      });
-      
+      // Instead of recalculating the crop, we'll capture exactly what's showing in the container
       const container = imageContainerRef.current;
       if (!container) return;
       
-      const containerRect = container.getBoundingClientRect();
+      // Create a canvas that exactly matches the preview
+      const canvas = document.createElement('canvas');
       
-      // Set canvas size to a larger resolution (300x300) to maintain quality
-      const outputSize = 300;
+      // Set high resolution for better quality (600x600)
+      const outputSize = 600;
       canvas.width = outputSize;
       canvas.height = outputSize;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      // Calculate the source rectangle (the part of the image we want to draw)
-      const containerSize = containerRect.width; // container is square so width = height
-      const originalImageWidth = img.width;
-      const originalImageHeight = img.height;
+      // Create a new image element with the current source
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = image;
       
-      // Calculate the scale of the image as displayed in the container
-      const displayedImageWidth = originalImageWidth * zoom;
-      const displayedImageHeight = originalImageHeight * zoom;
+      // Wait for the image to load
+      await new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+      });
       
-      // Calculate the portion of the original image that's visible
-      const visiblePortionWidth = containerSize / displayedImageWidth * originalImageWidth;
-      const visiblePortionHeight = containerSize / displayedImageHeight * originalImageHeight;
+      // Get the container dimensions and image styling
+      const containerRect = container.getBoundingClientRect();
+      const containerSize = containerRect.width; // This is our cropping window
       
-      // Calculate the source coordinates (where to start cropping from the original image)
-      const sourceX = (-position.x / displayedImageWidth) * originalImageWidth;
-      const sourceY = (-position.y / displayedImageHeight) * originalImageHeight;
+      // Calculate how the image is displayed in the container
+      const scale = zoom;
+      const imgWidth = img.width * scale;
+      const imgHeight = img.height * scale;
       
-      // Fix if image is smaller than container
-      const effectiveSourceWidth = Math.min(visiblePortionWidth, originalImageWidth);
-      const effectiveSourceHeight = Math.min(visiblePortionHeight, originalImageHeight);
+      // Account for centering if image is smaller than container
+      const offsetX = position.x;
+      const offsetY = position.y;
       
-      // Draw image with the proper cropping
+      // The exact rendering logic that the browser uses in the preview
+      ctx.fillStyle = '#FFFFFF'; // White background
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Scale and position context exactly as the image appears in the preview
+      const previewToOutputRatio = outputSize / containerSize;
+      
+      // Save state before transformations
+      ctx.save();
+      
+      // Apply same transformations that are applied to the preview image
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.scale(previewToOutputRatio, previewToOutputRatio);
+      ctx.translate(-containerSize / 2, -containerSize / 2);
+      ctx.translate(offsetX, offsetY);
+      
+      // Draw the image with the exact same position and scale as shown in the preview
       ctx.drawImage(
         img,
-        sourceX, sourceY, effectiveSourceWidth, effectiveSourceHeight,
-        0, 0, canvas.width, canvas.height
+        0, 0, img.width, img.height, 
+        0, 0, imgWidth, imgHeight
       );
       
-      console.log('Image cropped, converting to data URL...');
+      // Restore context
+      ctx.restore();
+      
+      console.log('Image cropped exactly as preview, converting to data URL...');
       
       // Convert canvas to data URL with high quality
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);

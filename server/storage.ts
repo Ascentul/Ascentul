@@ -3804,9 +3804,5 @@ export class DatabaseStorage implements IStorage {
   // We'll implement more as we go through conversion
 }
 
-// Since we're transitioning to database storage but not all methods are implemented yet,
-// let's use the MemStorage for now
+// Use MemStorage for now until we fully implement the database storage
 export const storage = new MemStorage();
-
-// Export the hybrid storage
-export const storage = new HybridStorage();
