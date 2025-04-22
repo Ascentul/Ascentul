@@ -26,6 +26,8 @@ import {
   insertRecommendationSchema,
   insertCertificationSchema,
   insertUserPersonalAchievementSchema,
+  insertSkillStackerPlanSchema,
+  skillStackerTaskSchema,
   type User
 } from "@shared/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";

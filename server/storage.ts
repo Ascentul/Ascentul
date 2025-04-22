@@ -2902,6 +2902,143 @@ export class MemStorage implements IStorage {
   async deleteCareerPath(id: number): Promise<boolean> {
     return this.careerPaths.delete(id);
   }
+  
+  // Skill Stacker operations
+  async getSkillStackerPlan(id: number): Promise<SkillStackerPlan | undefined> {
+    return this.skillStackerPlans.get(id);
+  }
+
+  async getSkillStackerPlanByGoalAndWeek(goalId: number, week: number): Promise<SkillStackerPlan | undefined> {
+    return Array.from(this.skillStackerPlans.values()).find(
+      plan => plan.goalId === goalId && plan.week === week
+    );
+  }
+
+  async getAllSkillStackerPlans(userId: number): Promise<SkillStackerPlan[]> {
+    return Array.from(this.skillStackerPlans.values()).filter(
+      plan => plan.userId === userId
+    );
+  }
+
+  async getSkillStackerPlansByGoal(goalId: number): Promise<SkillStackerPlan[]> {
+    return Array.from(this.skillStackerPlans.values()).filter(
+      plan => plan.goalId === goalId
+    );
+  }
+
+  async createSkillStackerPlan(userId: number, plan: InsertSkillStackerPlan): Promise<SkillStackerPlan> {
+    const id = this.skillStackerPlanIdCounter++;
+    const now = new Date();
+    
+    const newPlan: SkillStackerPlan = {
+      ...plan,
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      status: plan.status || 'active',
+      isCompleted: false,
+      completedAt: null,
+      streak: 0,
+      tasks: plan.tasks || []
+    };
+    
+    this.skillStackerPlans.set(id, newPlan);
+    
+    // Award XP for creating a skill stacker plan
+    await this.addUserXP(userId, 25, "skill_stacker_created", "Created a new skill stacker plan");
+    
+    return newPlan;
+  }
+
+  async updateSkillStackerPlan(id: number, planData: Partial<SkillStackerPlan>): Promise<SkillStackerPlan | undefined> {
+    const plan = this.skillStackerPlans.get(id);
+    if (!plan) return undefined;
+    
+    const now = new Date();
+    const updatedPlan = { 
+      ...plan, 
+      ...planData,
+      updatedAt: now
+    };
+    
+    this.skillStackerPlans.set(id, updatedPlan);
+    return updatedPlan;
+  }
+
+  async updateSkillStackerTaskStatus(planId: number, taskId: string, status: "complete" | "incomplete", rating?: number): Promise<SkillStackerPlan | undefined> {
+    const plan = this.skillStackerPlans.get(planId);
+    if (!plan) return undefined;
+    
+    const now = new Date();
+    
+    // Find the task to update
+    const updatedTasks = plan.tasks.map(task => {
+      if (task.id === taskId) {
+        const updatedTask: SkillStackerTask = {
+          ...task,
+          status,
+          completedAt: status === 'complete' ? now : null
+        };
+        
+        if (rating && status === 'complete') {
+          updatedTask.rating = rating;
+        }
+        
+        return updatedTask;
+      }
+      return task;
+    });
+    
+    // Calculate if all tasks are complete
+    const allTasksComplete = updatedTasks.every(task => task.status === 'complete');
+    
+    // Update the plan
+    const updatedPlan: SkillStackerPlan = {
+      ...plan,
+      tasks: updatedTasks,
+      updatedAt: now,
+      isCompleted: allTasksComplete,
+      completedAt: allTasksComplete && !plan.isCompleted ? now : plan.completedAt
+    };
+    
+    this.skillStackerPlans.set(planId, updatedPlan);
+    
+    // Award XP for completing a task
+    if (status === 'complete') {
+      await this.addUserXP(plan.userId, 10, "skill_task_completed", "Completed a skill development task");
+    }
+    
+    return updatedPlan;
+  }
+
+  async completeSkillStackerWeek(planId: number): Promise<SkillStackerPlan | undefined> {
+    const plan = this.skillStackerPlans.get(planId);
+    if (!plan || plan.isCompleted) return plan;
+    
+    const now = new Date();
+    
+    // Mark as completed and update the streak
+    const updatedPlan: SkillStackerPlan = {
+      ...plan,
+      isCompleted: true,
+      status: 'completed',
+      completedAt: now,
+      updatedAt: now,
+      streak: plan.streak + 1
+    };
+    
+    this.skillStackerPlans.set(planId, updatedPlan);
+    
+    // Award XP for completing the weekly plan
+    await this.addUserXP(plan.userId, 50, "skill_stacker_completed", "Completed a weekly skill development plan");
+    
+    return updatedPlan;
+  }
+
+  async deleteSkillStackerPlan(id: number): Promise<boolean> {
+    return this.skillStackerPlans.delete(id);
+  }
 
   // Support ticket functions
   async getSupportTickets(filters?: any): Promise<any[]> {
