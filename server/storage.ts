@@ -94,6 +94,7 @@ import {
 import session from "express-session";
 import { sessionStore } from "./session-store";
 import { db } from "./db";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Session store
@@ -3680,6 +3681,11 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
@@ -3688,11 +3694,213 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
-
-  // ...
-  // The rest of the methods would be implemented here following the same pattern
-  // For now, we'll use the MemStorage for the remaining methods
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser || undefined;
+  }
+  
+  // Skills Methods
+  async getSkills(): Promise<Skill[]> {
+    return db.select().from(skills).orderBy(skills.name);
+  }
+  
+  async getSkill(id: number): Promise<Skill | undefined> {
+    const [skill] = await db.select().from(skills).where(eq(skills.id, id));
+    return skill || undefined;
+  }
+  
+  async createSkill(skill: InsertSkill): Promise<Skill> {
+    const [newSkill] = await db.insert(skills).values(skill).returning();
+    return newSkill;
+  }
+  
+  async getUserSkills(userId: number): Promise<Skill[]> {
+    // This assumes there's a userSkills junction table that relates users to skills
+    // If it doesn't exist in your schema, you'll need to add it
+    return [];
+  }
+  
+  // Languages Methods
+  async getLanguages(): Promise<Language[]> {
+    return db.select().from(languages).orderBy(languages.name);
+  }
+  
+  async getLanguage(id: number): Promise<Language | undefined> {
+    const [language] = await db.select().from(languages).where(eq(languages.id, id));
+    return language || undefined;
+  }
+  
+  async createLanguage(language: InsertLanguage): Promise<Language> {
+    const [newLanguage] = await db.insert(languages).values(language).returning();
+    return newLanguage;
+  }
+  
+  async getUserLanguages(userId: number): Promise<Language[]> {
+    // This assumes there's a userLanguages junction table that relates users to languages
+    // If it doesn't exist in your schema, you'll need to add it
+    return [];
+  }
+  
+  // Networking Contacts
+  async getNetworkingContacts(userId: number): Promise<NetworkingContact[]> {
+    return db
+      .select()
+      .from(networkingContacts)
+      .where(eq(networkingContacts.userId, userId))
+      .orderBy(networkingContacts.createdAt);
+  }
+  
+  async getNetworkingContact(id: number): Promise<NetworkingContact | undefined> {
+    const [contact] = await db
+      .select()
+      .from(networkingContacts)
+      .where(eq(networkingContacts.id, id));
+    return contact || undefined;
+  }
+  
+  async createNetworkingContact(userId: number, contact: InsertNetworkingContact): Promise<NetworkingContact> {
+    const [newContact] = await db
+      .insert(networkingContacts)
+      .values({ ...contact, userId })
+      .returning();
+    return newContact;
+  }
+  
+  async updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>): Promise<NetworkingContact | undefined> {
+    const [updatedContact] = await db
+      .update(networkingContacts)
+      .set(contactData)
+      .where(eq(networkingContacts.id, id))
+      .returning();
+    return updatedContact || undefined;
+  }
+  
+  async deleteNetworkingContact(id: number): Promise<boolean> {
+    await db
+      .delete(networkingContacts)
+      .where(eq(networkingContacts.id, id));
+    return true;
+  }
+  
+  async getContactsNeedingFollowup(userId: number): Promise<NetworkingContact[]> {
+    const now = new Date();
+    
+    return db
+      .select()
+      .from(networkingContacts)
+      .where(eq(networkingContacts.userId, userId))
+      .where(eq(networkingContacts.status, "active"))
+      .where(sql`${networkingContacts.followUpDate} IS NOT NULL`)
+      .where(sql`${networkingContacts.followUpDate} <= ${now}`)
+      .orderBy(networkingContacts.followUpDate);
+  }
+  
+  // These methods remain to be implemented
+  // We'll implement more as we go through conversion
 }
 
-// Use MemStorage for development until DatabaseStorage is fully implemented
-export const storage = new MemStorage();
+// Create a hybrid storage that uses DatabaseStorage for implemented methods
+// and falls back to MemStorage for unimplemented methods
+class HybridStorage implements IStorage {
+  private dbStorage: DatabaseStorage;
+  private memStorage: MemStorage;
+  [key: string]: any;
+  
+  constructor() {
+    this.dbStorage = new DatabaseStorage();
+    this.memStorage = new MemStorage();
+    
+    // Create proxy methods for all methods in IStorage that haven't been explicitly defined
+    Object.getOwnPropertyNames(Object.getPrototypeOf(this.memStorage))
+      .filter(prop => prop !== 'constructor' && typeof this.memStorage[prop] === 'function' && !(prop in this))
+      .forEach(method => {
+        this[method] = (...args: any[]) => {
+          return this.memStorage[method](...args);
+        };
+      });
+  }
+  
+  // Session store should come from database storage
+  get sessionStore() {
+    return this.dbStorage.sessionStore;
+  }
+  
+  // USER OPERATIONS
+  async getUser(id: number) {
+    return this.dbStorage.getUser(id);
+  }
+  
+  async getUserByUsername(username: string) {
+    return this.dbStorage.getUserByUsername(username);
+  }
+  
+  async getUserByEmail(email: string) {
+    return this.dbStorage.getUserByEmail(email);
+  }
+  
+  async createUser(user: InsertUser) {
+    return this.dbStorage.createUser(user);
+  }
+  
+  async updateUser(id: number, userData: Partial<User>) {
+    return this.dbStorage.updateUser(id, userData);
+  }
+  
+  // NETWORKING CONTACTS OPERATIONS
+  async getNetworkingContacts(userId: number) {
+    return this.dbStorage.getNetworkingContacts(userId);
+  }
+  
+  async getNetworkingContact(id: number) {
+    return this.dbStorage.getNetworkingContact(id);
+  }
+  
+  async createNetworkingContact(userId: number, contact: InsertNetworkingContact) {
+    return this.dbStorage.createNetworkingContact(userId, contact);
+  }
+  
+  async updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>) {
+    return this.dbStorage.updateNetworkingContact(id, contactData);
+  }
+  
+  async deleteNetworkingContact(id: number) {
+    return this.dbStorage.deleteNetworkingContact(id);
+  }
+  
+  async getContactsNeedingFollowup(userId: number) {
+    return this.dbStorage.getContactsNeedingFollowup(userId);
+  }
+  
+  // SKILLS AND LANGUAGES OPERATIONS
+  async getSkills() {
+    return this.dbStorage.getSkills();
+  }
+  
+  async getSkill(id: number) {
+    return this.dbStorage.getSkill(id);
+  }
+  
+  async createSkill(skill: InsertSkill) {
+    return this.dbStorage.createSkill(skill);
+  }
+  
+  async getLanguages() {
+    return this.dbStorage.getLanguages();
+  }
+  
+  async getLanguage(id: number) {
+    return this.dbStorage.getLanguage(id);
+  }
+  
+  async createLanguage(language: InsertLanguage) {
+    return this.dbStorage.createLanguage(language);
+  }
+}
+
+// Export the hybrid storage
+export const storage = new HybridStorage();
