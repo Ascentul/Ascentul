@@ -411,6 +411,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Set the user ID in session
       req.session.userId = user.id;
+      req.session.authenticated = true;
+      
+      // Save the session explicitly to ensure it's stored
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+        }
+      });
       
       // Set a cookie with the user ID
       res.cookie('userId', user.id, {
@@ -769,13 +777,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // User Routes
   apiRouter.get("/users/me", async (req: Request, res: Response) => {
     try {
-      // Check the authorization header
-      const authHeader = req.headers.authorization;
-      
-      // Normally we would validate the auth header here
-      // For demo purposes, we'll just check if the header exists
-      // and always return the sample user
-      
       // Check if the browser has a special logout flag set (from localStorage)
       const isLoggedOut = req.headers['x-auth-logout'] === 'true';
       if (isLoggedOut) {
@@ -790,19 +791,27 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         userId = req.session.userId;
       }
       
-      // If we still don't have a user ID, use the default "alex" for backward compatibility
+      // DEVELOPMENT ONLY: For goal templates feature testing
+      // If we don't have a user ID and we're in development, use the default "alex"
       let user;
       if (userId) {
         user = await storage.getUser(userId);
-      }
-      
-      // If we couldn't find the user by ID, fall back to the default user
-      if (!user) {
+      } else if (process.env.NODE_ENV !== 'production') {
+        // This fallback only happens in development
+        console.log("DEVELOPMENT MODE: Using default user for /users/me");
         user = await storage.getUserByUsername("alex");
       }
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Set a flag in the session to indicate it was used successfully
+      if (req.session) {
+        req.session.authenticated = true;
+        req.session.lastAccess = new Date().toISOString();
+        // Explicitly save the session
+        req.session.save();
       }
       
       const { password: userPassword, ...safeUser } = user;
@@ -828,19 +837,20 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         userId = req.session.userId;
       }
       
-      // Get the user by ID or fall back to default
+      // Get the user by ID
       let user;
       if (userId) {
         user = await storage.getUser(userId);
       }
       
-      // If not found, use the sample user for backward compatibility
-      if (!user) {
+      // In development mode only, fall back to default user
+      if (!user && process.env.NODE_ENV !== 'production') {
+        console.log("DEVELOPMENT MODE: Using default user for /users/profile");
         user = await storage.getUserByUsername("alex");
       }
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // Update only allowed fields
@@ -934,19 +944,20 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         userId = req.session.userId;
       }
       
-      // Get the user by ID or fall back to default
+      // Get the user by ID
       let user;
       if (userId) {
         user = await storage.getUser(userId);
       }
       
-      // If not found, use the sample user for backward compatibility
-      if (!user) {
+      // In development mode only, fall back to default user
+      if (!user && process.env.NODE_ENV !== 'production') {
+        console.log("DEVELOPMENT MODE: Using default user for profile image upload");
         user = await storage.getUserByUsername("alex");
       }
       
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       console.log("User found:", user.id);
