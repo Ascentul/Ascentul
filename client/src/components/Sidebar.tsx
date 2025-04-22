@@ -112,7 +112,7 @@ export default function Sidebar() {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/ai-coach') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
       setActiveSection('career-growth');
-    } else if (location.startsWith('/projects') || location.startsWith('/career-profile')) {
+    } else if (location.startsWith('/projects')) {
       setActiveSection('portfolio');
     } else if (location.startsWith('/exit-plan') || location.startsWith('/momentum-coach') || location.startsWith('/weekly-recap')) {
       setActiveSection('planning');
@@ -163,13 +163,7 @@ export default function Sidebar() {
         { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Career Coach' },
       ]
     },
-    {
-      id: 'career-profile',
-      title: 'Career Profile',
-      icon: <User className="w-5 h-5" />,
-      items: [],
-      href: '/career-profile'
-    },
+    // Removed Career Profile button - now integrated into Account page
     {
       id: 'portfolio',
       title: 'Portfolio & Assets',
