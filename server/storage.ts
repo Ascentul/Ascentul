@@ -67,7 +67,11 @@ import {
   type InsertUserPersonalAchievement,
   careerPaths,
   type CareerPath,
-  type InsertCareerPath
+  type InsertCareerPath,
+  skillStackerPlans,
+  type SkillStackerPlan,
+  type InsertSkillStackerPlan,
+  type SkillStackerTask
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
@@ -180,6 +184,17 @@ export interface IStorage {
   createGoal(userId: number, goal: InsertGoal): Promise<Goal>;
   updateGoal(id: number, goalData: Partial<Goal>): Promise<Goal | undefined>;
   deleteGoal(id: number): Promise<boolean>;
+  
+  // Skill Stacker operations
+  getSkillStackerPlan(id: number): Promise<SkillStackerPlan | undefined>;
+  getSkillStackerPlanByGoalAndWeek(goalId: number, week: number): Promise<SkillStackerPlan | undefined>;
+  getAllSkillStackerPlans(userId: number): Promise<SkillStackerPlan[]>;
+  getSkillStackerPlansByGoal(goalId: number): Promise<SkillStackerPlan[]>;
+  createSkillStackerPlan(userId: number, plan: InsertSkillStackerPlan): Promise<SkillStackerPlan>;
+  updateSkillStackerPlan(id: number, planData: Partial<SkillStackerPlan>): Promise<SkillStackerPlan | undefined>;
+  updateSkillStackerTaskStatus(planId: number, taskId: string, status: "complete" | "incomplete", rating?: number): Promise<SkillStackerPlan | undefined>;
+  completeSkillStackerWeek(planId: number): Promise<SkillStackerPlan | undefined>;
+  deleteSkillStackerPlan(id: number): Promise<boolean>;
 
   // Work history operations
   getWorkHistory(userId: number): Promise<WorkHistory[]>;
@@ -356,6 +371,7 @@ export class MemStorage implements IStorage {
   private certifications: Map<number, Certification>;
   private userPersonalAchievements: Map<number, UserPersonalAchievement>;
   private careerPaths: Map<number, CareerPath>;
+  private skillStackerPlans: Map<number, SkillStackerPlan>;
   private supportTickets: Map<number, any> = new Map();// Added supportTickets map
 
   private userIdCounter: number;
@@ -381,6 +397,7 @@ export class MemStorage implements IStorage {
   private certificationIdCounter: number;
   private userPersonalAchievementIdCounter: number;
   private careerPathIdCounter: number;
+  private skillStackerPlanIdCounter: number;
   private supportTicketIdCounter: number = 1; // Counter for support tickets
 
   public sessionStore: session.Store;
@@ -412,6 +429,7 @@ export class MemStorage implements IStorage {
     this.certifications = new Map();
     this.userPersonalAchievements = new Map();
     this.careerPaths = new Map();
+    this.skillStackerPlans = new Map();
 
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -436,6 +454,7 @@ export class MemStorage implements IStorage {
     this.certificationIdCounter = 1;
     this.userPersonalAchievementIdCounter = 1;
     this.careerPathIdCounter = 1;
+    this.skillStackerPlanIdCounter = 1;
 
     // Initialize with sample data for testing
     this.initializeData();
