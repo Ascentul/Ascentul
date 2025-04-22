@@ -31,24 +31,41 @@ export default function SignInPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook, which properly updates authentication state
-      const userData = await login(loginEmail, loginPassword);
+      // Make direct fetch request to login endpoint
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: loginEmail, 
+          password: loginPassword 
+        }),
+        credentials: 'include' // Include cookies
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+      
+      const data = await response.json();
+      
+      // Log the response to help debugging
+      console.log('Login response:', data);
       
       toast({
         title: "Login successful!",
-        description: "You have been logged in successfully.",
+        description: "You have been logged in successfully. Redirecting to dashboard...",
       });
       
-      // The login function in useUser should handle redirection through its success handler
-      // But as a fallback, let's also manually redirect after a short delay
+      // Force update the user query data to reflect logged in state
+      login(loginEmail, loginPassword).catch(e => console.error('Secondary login error:', e));
+      
+      // Force redirection immediately to the dashboard
+      // Hard-code the dashboard path to ensure it works
+      console.log('Manual redirect initiated to /career-dashboard');
       setTimeout(() => {
-        // Check if we're still on the login page (the automatic redirect didn't work)
-        if (window.location.pathname.includes('/sign-in')) {
-          console.log('Fallback redirect triggered');
-          const redirectPath = '/career-dashboard';
-          document.location.href = redirectPath;
-        }
-      }, 1000);
+        window.location.href = '/career-dashboard';
+      }, 500);
       
     } catch (error) {
       toast({
