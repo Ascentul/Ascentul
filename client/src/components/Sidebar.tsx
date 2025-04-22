@@ -201,10 +201,8 @@ export default function Sidebar() {
       data-expanded={expanded ? 'true' : 'false'}
     >
       <div className="flex items-center justify-between h-16 border-b px-3">
-        {expanded ? (
-          <img src={ascentulLogo} alt="Ascentul" className="h-4 ml-2" />
-        ) : (
-          <img src={ascentulLogo} alt="Ascentul" className="h-3 mx-auto" />
+        {expanded && (
+          <img src={ascentulLogo} alt="Ascentul" className="h-6 ml-2" />
         )}
         <Button 
           variant="ghost" 
