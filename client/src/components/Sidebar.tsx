@@ -212,7 +212,7 @@ export default function Sidebar() {
           className="ml-auto"
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {expanded ? <ChevronsLeft size={18} /> : <Menu size={18} />}
+          {expanded ? <PanelLeft size={18} /> : <PanelRight size={18} />}
         </Button>
       </div>
       
