@@ -365,7 +365,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log('Login attempt:', { email, loginType });
       
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        return res.status(400)
+          .set('X-Auth-Status', 'unauthenticated')
+          .json({ message: "Email and password are required" });
       }
       
       // Find user by email or username
@@ -374,7 +376,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log('User found:', user ? { id: user.id, userType: user.userType } : 'null');
       
       if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401)
+          .set('X-Auth-Status', 'unauthenticated')
+          .json({ message: "Invalid credentials" });
       }
       
       // Verify password using crypto
@@ -384,23 +388,31 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           const [storedHash, salt] = user.password.split('.');
           const inputHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
           if (storedHash !== inputHash) {
-            return res.status(401).json({ message: "Invalid credentials" });
+            return res.status(401)
+              .set('X-Auth-Status', 'unauthenticated')
+              .json({ message: "Invalid credentials" });
           }
         } else {
           // For backward compatibility with non-hashed passwords
           if (user.password !== password) {
-            return res.status(401).json({ message: "Invalid credentials" });
+            return res.status(401)
+              .set('X-Auth-Status', 'unauthenticated')
+              .json({ message: "Invalid credentials" });
           }
         }
       } catch (error) {
         console.error("Password verification error:", error);
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401)
+          .set('X-Auth-Status', 'unauthenticated')
+          .json({ message: "Invalid credentials" });
       }
       
       // Check user type based on the login type
       if (loginType) {
         if (loginType === "university" && user.userType === "regular") {
-          return res.status(403).json({ message: "Access denied. This account is not associated with a university." });
+          return res.status(403)
+            .set('X-Auth-Status', 'unauthenticated')
+            .json({ message: "Access denied. This account is not associated with a university." });
         }
         
         // MODIFICATION: Allow university users to log in through the regular portal
@@ -411,17 +423,22 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         // }
         
         if (loginType === "admin" && user.userType !== "admin") {
-          return res.status(403).json({ message: "Access denied. You do not have administrator privileges." });
+          return res.status(403)
+            .set('X-Auth-Status', 'unauthenticated')
+            .json({ message: "Access denied. You do not have administrator privileges." });
         }
         
         if (loginType === "staff" && user.userType !== "staff" && user.userType !== "admin") {
-          return res.status(403).json({ message: "Access denied. You do not have staff privileges." });
+          return res.status(403)
+            .set('X-Auth-Status', 'unauthenticated')
+            .json({ message: "Access denied. You do not have staff privileges." });
         }
       }
       
       // Set the user ID in session
       req.session.userId = user.id;
       req.session.authenticated = true;
+      req.session.lastAccess = new Date().toISOString();
       
       // Save the session explicitly to ensure it's stored
       req.session.save((err) => {
@@ -435,6 +452,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
         path: '/',
+        secure: false, // Allow non-HTTPS in development
       });
       
       const { password: pwd, ...safeUser } = user;

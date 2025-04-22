@@ -121,17 +121,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
       password: string; 
       loginType?: 'staff' | 'admin' 
     }) => {
-      const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
-      const data = await res.json();
-      // Return both user and redirectPath from the server response
-      return {
-        user: data.user as User,
-        redirectPath: data.redirectPath
-      };
+      try {
+        // Clear any logout flag before attempting login
+        localStorage.removeItem('auth-logout');
+        
+        const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
+        
+        // Check for successful response
+        if (!res.ok) {
+          throw new Error("Login failed");
+        }
+        
+        // Check for auth header to confirm authentication worked
+        if (res.headers.get('X-Auth-Status') !== 'authenticated') {
+          console.warn('Authentication header not found in response');
+        }
+        
+        const data = await res.json();
+        
+        if (!data || !data.user) {
+          throw new Error("Invalid server response");
+        }
+        
+        // Return both user and redirectPath from the server response
+        return {
+          user: data.user as User,
+          redirectPath: data.redirectPath
+        };
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      // Update auth state
       queryClient.setQueryData(['/api/users/me'], data.user);
       setIsAuthenticated(true);
+      
+      console.log('Authentication successful, user data:', data.user);
       
       // Use the redirect path provided by the server, or fall back to role-based redirect
       if (data.redirectPath) {
@@ -149,6 +176,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
           window.location.href = '/dashboard';
         }
       }
+    },
+    onError: (error) => {
+      console.error('Login mutation error:', error);
+      // Ensure we're marked as unauthenticated
+      setIsAuthenticated(false);
+      // Clear any cached user data
+      queryClient.setQueryData(['/api/users/me'], null);
     },
   });
 
