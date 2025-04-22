@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
-import Layout from '@/components/Layout';
+import StaticLayout from '@/components/StaticLayout';
 // Import components that would normally be in Dashboard but without API dependencies
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,7 +122,7 @@ export default function QuickLogin() {
   if (isAuthenticated) {
     // Do NOT reference the Dashboard component here as it has API dependencies
     return (
-      <Layout>
+      <StaticLayout>
         <div className="container mx-auto p-4">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Welcome back, Test User!</h1>
@@ -275,7 +275,7 @@ export default function QuickLogin() {
             </p>
           </div>
         </div>
-      </Layout>
+      </StaticLayout>
     );
   }
   
