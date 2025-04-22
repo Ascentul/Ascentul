@@ -617,6 +617,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Return user without password
       const { password: pwd, ...safeUser } = newUser;
       
+      // Set a special header to indicate authentication is confirmed
+      res.setHeader('X-Auth-Status', 'authenticated');
+      
       return res.status(201).json({
         success: true,
         user: safeUser,

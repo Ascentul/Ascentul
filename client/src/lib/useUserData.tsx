@@ -55,11 +55,8 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Check if user has explicitly logged out
-    const loggedOut = localStorage.getItem('auth-logout') === 'true';
-    return !loggedOut; // Consider authenticated unless explicitly logged out
-  });
+  // Start with authentication as false by default, only set true after validating
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Handle authentication errors from other components
   useEffect(() => {
@@ -76,6 +73,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('auth-error', handleAuthError);
     };
+  }, [queryClient]);
+  
+  // Try to automatically check if the user is already logged in
+  useEffect(() => {
+    // Skip if already authenticated or explicitly logged out
+    if (localStorage.getItem('auth-logout') === 'true') {
+      return;
+    }
+    
+    // Attempt to fetch the current user to see if session is valid
+    fetch('/api/users/me', { 
+      credentials: "include" // Include cookies for session authentication
+    })
+    .then(async (res) => {
+      if (res.ok) {
+        // User is authenticated
+        const userData = await res.json();
+        queryClient.setQueryData(['/api/users/me'], userData);
+        setIsAuthenticated(true);
+      }
+    })
+    .catch(err => {
+      console.log('Initial auth check failed:', err);
+      // Do nothing - user will need to log in
+    });
   }, [queryClient]);
 
   const {
