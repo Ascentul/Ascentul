@@ -52,13 +52,17 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     error,
   } = useQuery({
     queryKey: [`/api/contacts/${contactId}`],
-    queryFn: async () => apiRequest<NetworkingContact>(`/api/contacts/${contactId}`),
+    queryFn: async () => apiRequest<NetworkingContact>({
+      url: `/api/contacts/${contactId}`,
+      method: 'GET',
+    }),
   });
 
   // Log interaction mutation
   const logInteractionMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/contacts/${contactId}/log-interaction`, {
+      return apiRequest({
+        url: `/api/contacts/${contactId}/log-interaction`,
         method: 'POST',
       });
     },

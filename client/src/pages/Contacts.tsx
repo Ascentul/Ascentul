@@ -63,7 +63,10 @@ export default function Contacts() {
         url = `${url}?${params.toString()}`;
       }
       
-      return apiRequest<NetworkingContact[]>(url);
+      return apiRequest<NetworkingContact[]>({
+        url,
+        method: 'GET',
+      });
     },
   });
 
@@ -73,13 +76,17 @@ export default function Contacts() {
     isLoading: isLoadingFollowUp,
   } = useQuery({
     queryKey: ['/api/contacts/need-followup'],
-    queryFn: async () => apiRequest<NetworkingContact[]>('/api/contacts/need-followup'),
+    queryFn: async () => apiRequest<NetworkingContact[]>({
+      url: '/api/contacts/need-followup',
+      method: 'GET',
+    }),
   });
 
   // Delete contact mutation
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      await apiRequest<void>(`/api/contacts/${contactId}`, {
+      await apiRequest<void>({
+        url: `/api/contacts/${contactId}`,
         method: 'DELETE',
       });
     },
@@ -169,7 +176,7 @@ export default function Contacts() {
                   <SelectValue placeholder="Filter by relationship" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Relationships</SelectItem>
+                  <SelectItem value="all">All Relationships</SelectItem>
                   <SelectItem value="Current Colleague">Current Colleague</SelectItem>
                   <SelectItem value="Former Colleague">Former Colleague</SelectItem>
                   <SelectItem value="Industry Expert">Industry Expert</SelectItem>
