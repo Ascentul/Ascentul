@@ -93,6 +93,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import { sessionStore } from "./session-store";
+import { db } from "./db";
 
 export interface IStorage {
   // Session store
@@ -3666,4 +3667,32 @@ export class MemStorage implements IStorage {
   }
 }
 
+export class DatabaseStorage implements IStorage {
+  sessionStore = sessionStore;
+
+  // User Methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // ...
+  // The rest of the methods would be implemented here following the same pattern
+  // For now, we'll use the MemStorage for the remaining methods
+}
+
+// Use MemStorage for development until DatabaseStorage is fully implemented
 export const storage = new MemStorage();
