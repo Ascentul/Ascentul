@@ -48,6 +48,22 @@ export default function ProfileImageUploader({
       const reader = new FileReader();
       reader.onload = (event) => {
         setImage(event.target?.result as string);
+        
+        // Reset zoom and position
+        setZoom(1);
+        setPosition({ x: 0, y: 0 });
+        
+        // Center the image after it loads
+        setTimeout(() => {
+          if (imageContainerRef.current) {
+            const container = imageContainerRef.current;
+            const rect = container.getBoundingClientRect();
+            setPosition({ 
+              x: (rect.width - rect.width * zoom) / 2, 
+              y: (rect.height - rect.height * zoom) / 2 
+            });
+          }
+        }, 100);
       };
       reader.readAsDataURL(file);
     }
@@ -195,24 +211,43 @@ export default function ProfileImageUploader({
       const formData = new FormData();
       formData.append('profileImage', blob, 'profile.jpg');
       
-      const response = await fetch('/api/users/profile-image', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
+      try {
+        const response = await fetch('/api/users/profile-image', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          console.error('Server response not ok:', response.status, response.statusText);
+          throw new Error('Failed to upload image');
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          // Call the callback with the new image URL
+          if (data && data.profileImage) {
+            onImageUploaded(data.profileImage);
+          } else {
+            // If the server response is successful but doesn't have the expected data format
+            console.log('Server response successful but missing profileImage:', data);
+            onImageUploaded(currentImage || '');
+          }
+        } else {
+          // If the server response is not JSON, still consider it a success
+          console.log('Server response successful but not JSON');
+          onImageUploaded(currentImage || '');
+        }
+        
+        // Close the dialog
+        setIsOpen(false);
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
       }
-      
-      const data = await response.json();
-      
-      // Call the callback with the new image URL
-      onImageUploaded(data.profileImage);
-      
-      // Close the dialog
-      setIsOpen(false);
     } catch (error) {
       console.error('Error saving image:', error);
+      alert('Failed to save profile image. Please try again.');
     } finally {
       setIsLoading(false);
     }
