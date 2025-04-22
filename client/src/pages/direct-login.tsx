@@ -36,7 +36,15 @@ export default function DirectLogin() {
 
   // Function to handle direct redirection to dashboard
   const redirectToDashboard = () => {
-    window.location.replace('/career-dashboard');
+    console.log('REDIRECTING TO DASHBOARD NOW');
+    // Use the most forceful redirect possible
+    window.location.href = '/career-dashboard';
+    
+    // Backup: try again after a short delay if not redirected
+    setTimeout(() => {
+      console.log('REDIRECT RETRY');
+      document.location.href = '/career-dashboard';
+    }, 800);
   };
 
   // Function to handle AJAX login
@@ -59,22 +67,28 @@ export default function DirectLogin() {
         credentials: 'include' // Important for cookies
       });
       
-      if (!response.ok) {
-        let message = 'Login failed';
-        try {
-          const data = await response.json();
-          message = data.message || 'Authentication failed';
-        } catch (e) {
-          message = `Error: ${response.statusText}`;
+      let userData;
+      
+      try {
+        // Always parse the JSON response first
+        userData = await response.json();
+        console.log('Parsed response data:', userData);
+        
+        if (!response.ok) {
+          // If status is not OK, handle as error
+          const message = userData?.message || `Error: ${response.statusText}`;
+          setErrorMessage(message);
+          setIsLoading(false);
+          return;
         }
-        setErrorMessage(message);
+        
+        console.log('Login successful, user data:', userData);
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        setErrorMessage(`Error parsing response: ${response.statusText}`);
         setIsLoading(false);
         return;
       }
-      
-      // Store authentication and user data in localStorage for backup
-      const userData = await response.json();
-      console.log('Login successful, user data:', userData);
       
       localStorage.setItem('auth-user', JSON.stringify({
         id: userData.id || (userData.user && userData.user.id),
