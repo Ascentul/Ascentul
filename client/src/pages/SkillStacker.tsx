@@ -26,7 +26,8 @@ import {
   Target,
   Laptop,
   ClipboardList,
-  Star
+  Star,
+  Flame
 } from 'lucide-react';
 
 // Form imports
