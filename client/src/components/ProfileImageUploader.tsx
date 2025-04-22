@@ -218,8 +218,9 @@ export default function ProfileImageUploader({
       
       console.log('FormData created, sending to server...');
       
-      // Send the image directly to the server instead of using FormData
-      // which may not be properly handled in this simple implementation
+      // We're not actually using FormData in this implementation,
+      // but instead sending the image as a base64 data URL
+      // which is easier to handle in a simple backend
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       
       // Send the request

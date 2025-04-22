@@ -60,7 +60,7 @@ type SidebarItem = {
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user, logout, updateUser, updateProfile } = useUser();
+  const { user, logout, updateUser, updateProfile, refetch } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -222,25 +222,44 @@ export default function Sidebar() {
             onImageUploaded={async (imageUrl) => {
               console.log("Image uploaded, URL:", imageUrl);
               
+              // We won't use the ProfileImageUploader component's built-in update
+              // Instead, we'll handle everything here in the callback for better control
+              
               try {
-                // First, update the local cache for immediate UI update
+                // First make a direct call to update the user profile with this URL
+                const profileUpdateResponse = await fetch('/api/users/profile', {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ 
+                    profileImage: imageUrl
+                  }),
+                });
+                
+                if (!profileUpdateResponse.ok) {
+                  throw new Error('Failed to update profile with new image');
+                }
+                
+                const updatedUserData = await profileUpdateResponse.json();
+                console.log("Profile successfully updated:", updatedUserData);
+                
+                // Update local state
                 updateUser({
                   ...user,
                   profileImage: imageUrl
                 });
                 
-                // Then, persist to the server using updateProfile
-                await updateProfile({ profileImage: imageUrl });
-                console.log("Profile image persisted to server");
+                // Force a cache invalidation by fetching the user data again
+                // We don't have direct access to refetchUser here
                 
-                // No need to reload - the image should now be properly persisted
-                // but we'll do a short delay to ensure everything is updated
+                // Short delay to ensure everything is updated before reload
                 setTimeout(() => {
                   window.location.reload();
-                }, 500);
+                }, 750);
               } catch (error) {
-                console.error("Error saving profile image:", error);
-                alert("Failed to save profile image. Please try again.");
+                console.error("Error updating profile with image:", error);
+                alert("Your image was uploaded but we couldn't update your profile. Please try again or contact support.");
               }
             }}
             currentImage={user.profileImage}
