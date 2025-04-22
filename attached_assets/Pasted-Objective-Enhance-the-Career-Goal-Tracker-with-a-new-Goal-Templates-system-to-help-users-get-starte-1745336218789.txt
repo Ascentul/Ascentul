@@ -1,0 +1,132 @@
+Objective:
+Enhance the Career Goal Tracker with a new Goal Templates system to help users get started faster with structured, pre-filled goal options like Job Change and Promotion Path. These template-based goals should function identically to manually created goals in every way.
+
+🔨 1. Add "Popular Templates" Section to UI
+Add a horizontal scrollable section labeled:
+🔥 Popular Templates
+Place it above the Active Goals block.
+
+Each template card should include:
+
+Emoji/icon (e.g. 🧭, 📣)
+
+Template title
+
+One-line description
+
+CTA button: "Start with this Template"
+
+Example:
+
+json
+Copy
+Edit
+{
+  "icon": "🧭",
+  "title": "Job Change",
+  "summary": "Plan your next role with clarity.",
+  "button": "Start with this Template"
+}
+🧩 2. Template Selection Behavior
+When a user clicks "Start with this Template":
+
+Open the existing New Goal modal or page
+
+Pre-fill the form with:
+
+Goal Title
+
+Milestones (checkbox list)
+
+Optional description
+
+Users can fully edit the pre-filled content before saving.
+
+🧱 3. Data Structure & Reusability
+Create a reusable array of templates like this:
+
+js
+Copy
+Edit
+const goalTemplates = [
+  {
+    id: "job-change",
+    icon: "🧭",
+    title: "Job Change",
+    summary: "Plan your next role with clarity.",
+    prefill: {
+      title: "Plan My Job Change",
+      milestones: [
+        "Complete self-assessment",
+        "Update resume and portfolio",
+        "Identify 5 target roles",
+        "Submit 10 applications",
+        "Prep for interviews"
+      ]
+    }
+  },
+  {
+    id: "promotion-path",
+    icon: "📣",
+    title: "Promotion Path",
+    summary: "Showcase your growth and move up.",
+    prefill: {
+      title: "Prepare for Promotion",
+      milestones: [
+        "Track 3 major achievements",
+        "Request peer feedback",
+        "Review skill gaps",
+        "Meet with manager",
+        "Present promotion case"
+      ]
+    }
+  }
+];
+🧠 4. Make Template-Based Goals Function Like Normal Goals
+Template-based goals should use the same schema and logic as all other goals:
+
+Appear in Active/Completed Goals
+
+Editable
+
+Milestone tracking
+
+Mark complete
+
+Persistent across sessions
+
+Store a flag in each goal:
+
+js
+Copy
+Edit
+createdFromTemplate: true
+templateId: "job-change"
+(optional for analytics or future filtering)
+
+🎨 5. Optional Visual Enhancements
+Display a small badge or icon next to goals created from templates:
+
+text
+Copy
+Edit
+📂 From Template
+Allow users to filter or sort by "Template Goals" in the UI.
+
+📱 6. Responsiveness & Mobile UX
+Template bar should be horizontally scrollable on mobile.
+
+Maintain clean, swipe-friendly experience across viewports.
+
+✅ 7. QA Testing Instructions
+Open page → Confirm “Popular Templates” section displays above Active Goals
+
+Click template → Confirm New Goal modal pre-fills correctly
+
+Edit and save → Goal appears in Active Goals list
+
+Track milestones, complete goal → Confirm behavior matches manual goals
+
+Reload page → Confirm persistence
+
+Mobile → Confirm swipe and tap work on templates
