@@ -1,8 +1,43 @@
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-// Initialize the OpenAI client with the API key from environment variables
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Check for OpenAI API key and use mock mode if missing
+const apiKey = process.env.OPENAI_API_KEY;
+let useMockOpenAI = false;
+let openai: any;
+
+if (!apiKey) {
+  console.warn('OPENAI_API_KEY is not set in utils/openai.ts. Using mock OpenAI mode.');
+  useMockOpenAI = true;
+  
+  // Create a mock OpenAI instance
+  openai = {
+    chat: {
+      completions: {
+        create: async (params: any) => {
+          console.log('Mock OpenAI API call in utils with params:', params);
+          return {
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    message: "This is mock AI content from utils/openai. Please provide an OpenAI API key for real responses.",
+                    recommendations: ["Add an OpenAI API key to enable AI features"]
+                  })
+                }
+              }
+            ],
+            model: "mock-gpt-4o",
+            usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+          };
+        }
+      }
+    }
+  };
+} else {
+  // Initialize with the real API key
+  openai = new OpenAI({ apiKey });
+}
 
 // Schedule for daily recommendations - midnight (00:00:00)
 export const RECOMMENDATIONS_REFRESH_TIME = {

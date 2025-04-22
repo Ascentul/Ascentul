@@ -1,8 +1,43 @@
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Check for OpenAI API key and use mock mode if missing
+const apiKey = process.env.OPENAI_API_KEY;
+let useMockOpenAI = false;
+let openai: any;
+
+if (!apiKey) {
+  console.warn('OPENAI_API_KEY is not set. Using mock OpenAI mode for career path features.');
+  useMockOpenAI = true;
+  
+  // Create a mock OpenAI instance
+  openai = {
+    chat: {
+      completions: {
+        create: async (params: any) => {
+          console.log('Mock OpenAI API call with params:', params);
+          return {
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    message: "This is mock AI content. Please provide an OpenAI API key for real responses.",
+                    details: "The application is running in mock mode because the OPENAI_API_KEY is not set."
+                  })
+                }
+              }
+            ],
+            model: "mock-gpt-4o",
+            usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+          };
+        }
+      }
+    }
+  };
+} else {
+  // Initialize with the real API key
+  openai = new OpenAI({ apiKey });
+}
 
 // Interface for LinkedIn profile analysis
 export interface LinkedInProfileAnalysis {
