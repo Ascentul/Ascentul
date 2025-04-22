@@ -21,6 +21,12 @@ import {
   Search,
   BookOpenText,
   GanttChartSquare as Timeline,
+  Building,
+  MapPin,
+  FileText,
+  Calendar,
+  Link as LinkIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -169,7 +175,7 @@ const HorizontalTimelineSection = ({
 };
 
 const Interview = () => {
-  const [activeTab, setActiveTab] = useState('processes');
+  const [activeTab, setActiveTab] = useState('applications');
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showPracticeSession, setShowPracticeSession] = useState(false);
@@ -261,7 +267,7 @@ const Interview = () => {
   // Function to view/edit a process, passed to the HorizontalTimelineSection
   const handleViewProcess = (processId: number) => {
     setSelectedProcessId(processId);
-    setActiveTab('processes'); // Switch to processes tab to show details
+    setActiveTab('applications'); // Switch to applications tab to show details
   };
   
   const renderProcessCard = (process: InterviewProcess, index: number) => {
@@ -328,12 +334,12 @@ const Interview = () => {
         className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0"
       >
         <div>
-          <h1 className="text-2xl font-bold">Interview Tracker</h1>
-          <p className="text-muted-foreground">Manage your job applications and interviews</p>
+          <h1 className="text-2xl font-bold">Application Tracker</h1>
+          <p className="text-muted-foreground">Manage your job applications from first save to final offer</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Interview Process
+          New Application
         </Button>
       </motion.div>
 
@@ -341,9 +347,9 @@ const Interview = () => {
       <motion.div variants={subtleUp} className="mb-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full max-w-md mx-auto">
-            <TabsTrigger value="processes" className="flex-1">
+            <TabsTrigger value="applications" className="flex-1">
               <Briefcase className="h-4 w-4 mr-2" />
-              All Processes
+              All Applications
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex-1">
               <Timeline className="h-4 w-4 mr-2" />
