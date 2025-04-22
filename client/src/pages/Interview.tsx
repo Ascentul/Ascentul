@@ -27,6 +27,9 @@ import {
   Calendar,
   Link as LinkIcon,
   ExternalLink,
+  ArrowRight,
+  FilterX,
+  Filter,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +39,11 @@ import { NewInterviewProcessForm } from '@/components/interview/NewInterviewProc
 import { InterviewProcessDetails } from '@/components/interview/InterviewProcessDetails';
 import { GamePracticeSession } from '@/components/interview/GamePracticeSession';
 import { HorizontalTimeline, StageDetailsDialog } from '@/components/interview/HorizontalTimeline';
-import { type InterviewProcess, type InterviewStage } from '@shared/schema';
+import { ApplyWizard } from '@/components/apply/ApplyWizard';
+import { ApplicationCard } from '@/components/apply/ApplicationCard';
+import { ApplicationDetails } from '@/components/apply/ApplicationDetails';
+import { ApplicationStatusBadge } from '@/components/apply/ApplicationStatusBadge';
+import { type InterviewProcess, type InterviewStage, type JobApplication } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
 import { useLoading } from '@/contexts/loading-context';
@@ -177,10 +184,13 @@ const HorizontalTimelineSection = ({
 const Interview = () => {
   const [activeTab, setActiveTab] = useState('applications');
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showApplyWizard, setShowApplyWizard] = useState(false);
   const [showPracticeSession, setShowPracticeSession] = useState(false);
   const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const { showGlobalLoading, hideGlobalLoading } = useLoading();
   const [location] = useLocation();
 
@@ -222,19 +232,28 @@ const Interview = () => {
   };
 
   // Fetch interview processes
-  const { data: processes, isLoading } = useQuery<InterviewProcess[]>({
+  const { data: processes, isLoading: isLoadingProcesses } = useQuery<InterviewProcess[]>({
     queryKey: ['/api/interview/processes'],
     placeholderData: [],
   });
+  
+  // Fetch job applications
+  const { data: applications, isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
+    queryKey: ['/api/job-applications'],
+    placeholderData: [],
+  });
+  
+  // Get selected application details
+  const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
 
   // Use global loading state for initial data fetch
   useEffect(() => {
-    if (isLoading) {
-      showGlobalLoading("Loading your interview processes...", "thinking");
+    if (isLoadingProcesses || isLoadingApplications) {
+      showGlobalLoading("Loading your applications...", "thinking");
     } else {
       hideGlobalLoading();
     }
-  }, [isLoading, showGlobalLoading, hideGlobalLoading]);
+  }, [isLoadingProcesses, isLoadingApplications, showGlobalLoading, hideGlobalLoading]);
 
   // Get selected process details
   const selectedProcess = processes?.find(p => p.id === selectedProcessId) || null;
