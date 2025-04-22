@@ -181,29 +181,45 @@ export default function ProfileImageUploader({
       
       const containerRect = container.getBoundingClientRect();
       
-      // Set canvas size to the container (this will be our crop size)
-      canvas.width = containerRect.width;
-      canvas.height = containerRect.height;
+      // Set canvas size to a larger resolution (300x300) to maintain quality
+      const outputSize = 300;
+      canvas.width = outputSize;
+      canvas.height = outputSize;
       
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
       // Calculate the source rectangle (the part of the image we want to draw)
-      const sourceWidth = containerRect.width / zoom;
-      const sourceHeight = containerRect.height / zoom;
-      const sourceX = -position.x / zoom;
-      const sourceY = -position.y / zoom;
+      const containerSize = containerRect.width; // container is square so width = height
+      const originalImageWidth = img.width;
+      const originalImageHeight = img.height;
       
-      // Draw the image with the correct cropping
+      // Calculate the scale of the image as displayed in the container
+      const displayedImageWidth = originalImageWidth * zoom;
+      const displayedImageHeight = originalImageHeight * zoom;
+      
+      // Calculate the portion of the original image that's visible
+      const visiblePortionWidth = containerSize / displayedImageWidth * originalImageWidth;
+      const visiblePortionHeight = containerSize / displayedImageHeight * originalImageHeight;
+      
+      // Calculate the source coordinates (where to start cropping from the original image)
+      const sourceX = (-position.x / displayedImageWidth) * originalImageWidth;
+      const sourceY = (-position.y / displayedImageHeight) * originalImageHeight;
+      
+      // Fix if image is smaller than container
+      const effectiveSourceWidth = Math.min(visiblePortionWidth, originalImageWidth);
+      const effectiveSourceHeight = Math.min(visiblePortionHeight, originalImageHeight);
+      
+      // Draw image with the proper cropping
       ctx.drawImage(
         img,
-        sourceX, sourceY, sourceWidth, sourceHeight,
+        sourceX, sourceY, effectiveSourceWidth, effectiveSourceHeight,
         0, 0, canvas.width, canvas.height
       );
       
       console.log('Image cropped, converting to data URL...');
       
-      // Convert canvas to data URL
+      // Convert canvas to data URL with high quality
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       
       // Use the callback to upload the image and update the user profile
