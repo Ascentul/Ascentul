@@ -492,8 +492,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           res.clearCookie('userId');
           res.clearCookie('connect.sid');
           
-          // Set a special header to indicate logout for the client (for backward compatibility)
+          // Set special headers to indicate logout for the client
           res.setHeader('X-Auth-Logout', 'true');
+          res.setHeader('X-Auth-Status', 'unauthenticated');
           
           res.status(200).json({ message: "Logged out successfully" });
         });
@@ -502,6 +503,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         res.clearCookie('userId');
         res.clearCookie('connect.sid');
         res.setHeader('X-Auth-Logout', 'true');
+        res.setHeader('X-Auth-Status', 'unauthenticated');
         res.status(200).json({ message: "Logged out successfully" });
       }
     } catch (error) {
