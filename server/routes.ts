@@ -926,6 +926,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Profile image upload endpoint
   apiRouter.post("/users/profile-image", async (req: Request, res: Response) => {
     try {
+      console.log("Profile image upload endpoint called");
+      
       // Get user ID from session
       let userId;
       if (req.session && req.session.userId) {
@@ -947,25 +949,64 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Create a unique filename
-      const timestamp = Date.now();
-      const filename = `profile_${user.id}_${timestamp}.jpg`;
-      const filepath = `/uploads/images/${filename}`;
+      console.log("User found:", user.id);
       
-      // Update the user profile with the image URL
-      const updatedUser = await storage.updateUser(user.id, { 
-        profileImage: filepath 
-      });
-      
-      if (!updatedUser) {
-        return res.status(404).json({ message: "Failed to update profile image" });
+      // Check if we received image data in JSON format
+      if (req.body && req.body.imageDataUrl) {
+        console.log("Received image data URL");
+        
+        // Extract the base64 data from the data URL
+        const matches = req.body.imageDataUrl.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+        
+        if (!matches || matches.length !== 3) {
+          console.error("Invalid image data URL format");
+          return res.status(400).json({ message: "Invalid image data" });
+        }
+        
+        const imageType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Create a unique filename
+        const timestamp = Date.now();
+        const filename = `profile_${user.id}_${timestamp}.${imageType === 'jpeg' ? 'jpg' : imageType}`;
+        const fullPath = path.join(process.cwd(), 'uploads', 'images', filename);
+        const filepath = `/uploads/images/${filename}`;
+        
+        console.log("Saving image to:", fullPath);
+        
+        // Create the uploads/images directory if it doesn't exist
+        const dir = path.join(process.cwd(), 'uploads', 'images');
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Write the file
+        fs.writeFileSync(fullPath, buffer);
+        console.log("Image saved successfully");
+        
+        // Update the user profile with the image URL
+        const updatedUser = await storage.updateUser(user.id, { 
+          profileImage: filepath 
+        });
+        
+        if (!updatedUser) {
+          console.error("Failed to update user profile with new image URL");
+          return res.status(404).json({ message: "Failed to update profile image" });
+        }
+        
+        console.log("User profile updated with new image URL:", filepath);
+        
+        // Return success response
+        return res.status(200).json({ 
+          message: "Profile image updated successfully",
+          profileImage: filepath 
+        });
       }
       
-      // Return success response
-      res.status(200).json({ 
-        message: "Profile image updated successfully",
-        profileImage: filepath 
-      });
+      // If no image data found, log error and return error response
+      console.error("No image data found in request");
+      return res.status(400).json({ message: "No image data provided" });
     } catch (error) {
       console.error("Error updating profile image:", error);
       res.status(500).json({ message: "Error updating profile image" });

@@ -164,6 +164,7 @@ export default function ProfileImageUploader({
     
     try {
       setIsLoading(true);
+      console.log('Starting profile image save process...');
       
       // Create a canvas to crop the image
       const canvas = document.createElement('canvas');
@@ -200,6 +201,8 @@ export default function ProfileImageUploader({
         0, 0, canvas.width, canvas.height
       );
       
+      console.log('Image cropped, converting to blob...');
+      
       // Convert canvas to blob
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
@@ -207,44 +210,53 @@ export default function ProfileImageUploader({
       
       if (!blob) throw new Error('Failed to create image blob');
       
+      console.log('Blob created, size:', blob.size, 'bytes');
+      
       // Create FormData and send to server
       const formData = new FormData();
       formData.append('profileImage', blob, 'profile.jpg');
       
-      try {
-        const response = await fetch('/api/users/profile-image', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          console.error('Server response not ok:', response.status, response.statusText);
-          throw new Error('Failed to upload image');
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          // Call the callback with the new image URL
-          if (data && data.profileImage) {
-            onImageUploaded(data.profileImage);
-          } else {
-            // If the server response is successful but doesn't have the expected data format
-            console.log('Server response successful but missing profileImage:', data);
-            onImageUploaded(currentImage || '');
-          }
-        } else {
-          // If the server response is not JSON, still consider it a success
-          console.log('Server response successful but not JSON');
-          onImageUploaded(currentImage || '');
-        }
-        
-        // Close the dialog
-        setIsOpen(false);
-      } catch (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw fetchError;
+      console.log('FormData created, sending to server...');
+      
+      // Send the image directly to the server instead of using FormData
+      // which may not be properly handled in this simple implementation
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      
+      // Send the request
+      const response = await fetch('/api/users/profile-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          imageDataUrl: dataUrl
+        }),
+      });
+      
+      console.log('Server response received:', response.status);
+      
+      if (!response.ok) {
+        console.error('Server response not ok:', response.status, response.statusText);
+        throw new Error('Failed to upload image');
       }
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      // If the response contains a profile image URL, use it
+      if (data && data.profileImage) {
+        console.log('New profile image URL:', data.profileImage);
+        onImageUploaded(data.profileImage);
+      } else {
+        // Otherwise, use a timestamp-based URL to force a refresh of the current image
+        const timestamp = new Date().getTime();
+        const refreshedCurrentImage = currentImage ? `${currentImage}?t=${timestamp}` : '';
+        console.log('Using refreshed current image:', refreshedCurrentImage);
+        onImageUploaded(refreshedCurrentImage);
+      }
+      
+      // Close the dialog
+      setIsOpen(false);
     } catch (error) {
       console.error('Error saving image:', error);
       alert('Failed to save profile image. Please try again.');
