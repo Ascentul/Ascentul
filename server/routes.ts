@@ -40,6 +40,7 @@ import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generat
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
+import { requireAuth, sendUnauthenticatedResponse, markResponseAuthenticated } from "./auth";
 
 // Helper function to get the current user from the session
 async function getCurrentUser(req: Request): Promise<User | null> {
@@ -60,21 +61,13 @@ async function getCurrentUser(req: Request): Promise<User | null> {
   }
 }
 
-// Middleware to check if user is authenticated
-function requireAuth(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  
-  // Set authentication header when using auth middleware
-  res.setHeader('X-Auth-Status', 'authenticated');
-  next();
-}
+// Note: requireAuth is now imported from ./auth.ts
+// This provides consistent auth handling and header management
 
 // Middleware to check if user is an admin
 async function requireAdmin(req: Request, res: Response, next: () => void) {
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+    return sendUnauthenticatedResponse(res);
   }
 
   const user = await storage.getUser(req.session.userId);
@@ -83,8 +76,8 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
     return res.status(403).json({ message: "Access denied. Admin privileges required." });
   }
   
-  // Set authentication header
-  res.setHeader('X-Auth-Status', 'authenticated');
+  // Mark response as authenticated
+  markResponseAuthenticated(res);
   next();
 }
 
@@ -467,8 +460,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/career-dashboard";
       }
       
-      // Set a special header to indicate authentication is confirmed
-      res.setHeader('X-Auth-Status', 'authenticated');
+      // Use the utility function from auth.ts to set consistent headers
+      markResponseAuthenticated(res);
       
       res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
@@ -488,23 +481,32 @@ Based on your profile and the job you're targeting, I recommend highlighting:
             return res.status(500).json({ message: "Error destroying session" });
           }
           
-          // Clear the cookie
+          // Clear the cookies
           res.clearCookie('userId');
           res.clearCookie('connect.sid');
           
-          // Set special headers to indicate logout for the client
+          // Use the utility function from auth.ts to set consistent headers
           res.setHeader('X-Auth-Logout', 'true');
-          res.setHeader('X-Auth-Status', 'unauthenticated');
           
-          res.status(200).json({ message: "Logged out successfully" });
+          // Send response with proper unauthenticated headers
+          return res
+            .status(200)
+            .set('X-Auth-Status', 'unauthenticated')
+            .json({ message: "Logged out successfully" });
         });
       } else {
         // If there's no session, just clear the cookies
         res.clearCookie('userId');
         res.clearCookie('connect.sid');
+        
+        // Use the utility function from auth.ts to set consistent headers
         res.setHeader('X-Auth-Logout', 'true');
-        res.setHeader('X-Auth-Status', 'unauthenticated');
-        res.status(200).json({ message: "Logged out successfully" });
+        
+        // Send response with proper unauthenticated headers
+        return res
+          .status(200)
+          .set('X-Auth-Status', 'unauthenticated')
+          .json({ message: "Logged out successfully" });
       }
     } catch (error) {
       res.status(500).json({ message: "Error during logout" });
