@@ -60,7 +60,7 @@ type SidebarItem = {
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user, logout, updateUser } = useUser();
+  const { user, logout, updateUser, updateProfile } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -219,18 +219,29 @@ export default function Sidebar() {
       <div className="flex flex-col items-center py-6 border-b">
         <div className="relative">
           <ProfileImageUploader
-            onImageUploaded={(imageUrl) => {
-              // Update the user object with the new profile image URL
-              updateUser({
-                ...user,
-                profileImage: imageUrl
-              });
+            onImageUploaded={async (imageUrl) => {
+              console.log("Image uploaded, URL:", imageUrl);
               
-              // We'll also simulate a short delay before refreshing
-              // This helps ensure the browser doesn't use a cached version
-              setTimeout(() => {
-                window.location.reload();
-              }, 300);
+              try {
+                // First, update the local cache for immediate UI update
+                updateUser({
+                  ...user,
+                  profileImage: imageUrl
+                });
+                
+                // Then, persist to the server using updateProfile
+                await updateProfile({ profileImage: imageUrl });
+                console.log("Profile image persisted to server");
+                
+                // No need to reload - the image should now be properly persisted
+                // but we'll do a short delay to ensure everything is updated
+                setTimeout(() => {
+                  window.location.reload();
+                }, 500);
+              } catch (error) {
+                console.error("Error saving profile image:", error);
+                alert("Failed to save profile image. Please try again.");
+              }
             }}
             currentImage={user.profileImage}
           >
