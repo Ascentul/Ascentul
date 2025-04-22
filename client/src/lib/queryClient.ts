@@ -77,31 +77,48 @@ export async function apiRequest<T>(
   
   // Check if user is logged out from localStorage
   const isLoggedOut = localStorage.getItem('auth-logout') === 'true';
-  if (isLoggedOut && url !== '/auth/login') {
+  if (isLoggedOut && url !== '/api/auth/login') {
     headers["X-Auth-Logout"] = "true";
   }
   
   // Clear the logout flag if this is a login request
-  if (url === '/auth/login' && method === 'POST') {
+  if (url === '/api/auth/login' && method === 'POST') {
     localStorage.removeItem('auth-logout');
   }
   
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include", // Always include credentials for session cookies
+    });
+    
+    // Handle 401 Unauthorized errors
+    if (res.status === 401) {
+      console.error(`Authentication error for ${method} ${url}`);
+      
+      // Only add the logout flag if this isn't already a login/logout request
+      if (!url.includes('/auth/')) {
+        localStorage.setItem('auth-logout', 'true');
+      }
+      
+      throw new Error("Authentication required");
+    }
 
-  await throwIfResNotOk(res);
-  
-  // If we're using the object pattern, assume they want JSON back
-  if (typeof methodOrOptions === 'object') {
-    return await res.json() as T;
+    await throwIfResNotOk(res);
+    
+    // If we're using the object pattern, assume they want JSON back
+    if (typeof methodOrOptions === 'object') {
+      return await res.json() as T;
+    }
+    
+    // Otherwise return the response object
+    return res;
+  } catch (error) {
+    console.error(`API request error (${method} ${url}):`, error);
+    throw error;
   }
-  
-  // Otherwise return the response object
-  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -119,17 +136,33 @@ export const getQueryFn: <T>(options: {
       headers["X-Auth-Logout"] = "true";
     }
     
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-      headers
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    try {
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+        headers
+      });
+  
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log('Auth required but returning null as requested for', queryKey[0]);
+        return null;
+      }
+  
+      if (res.status === 401) {
+        console.log('Authentication required for', queryKey[0]);
+        // User is not authenticated, clear any cached user data
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(['/api/users/me'], null);
+        
+        // Don't set logout flag here, as we still want to attempt auth with cookies
+        throw new Error("Authentication required");
+      }
+  
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      console.error(`Error fetching ${queryKey[0]}:`, error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

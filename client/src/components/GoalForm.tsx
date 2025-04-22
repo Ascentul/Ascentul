@@ -127,6 +127,19 @@ export default function GoalForm({ goal, templateId, onSuccess }: GoalFormProps)
       if (onSuccess) onSuccess();
     },
     onError: (error) => {
+      // Special handling for authentication errors
+      if (error.message.includes('Authentication required')) {
+        toast({
+          title: 'Authentication Error',
+          description: 'Please sign in to create a goal.',
+          variant: 'destructive',
+        });
+        
+        // Redirect to login page
+        window.location.href = '/sign-in';
+        return;
+      }
+      
       toast({
         title: 'Error',
         description: `Failed to create goal: ${error.message}`,
@@ -149,6 +162,19 @@ export default function GoalForm({ goal, templateId, onSuccess }: GoalFormProps)
       if (onSuccess) onSuccess();
     },
     onError: (error) => {
+      // Special handling for authentication errors
+      if (error.message.includes('Authentication required')) {
+        toast({
+          title: 'Authentication Error',
+          description: 'Please sign in to update goals.',
+          variant: 'destructive',
+        });
+        
+        // Redirect to login page
+        window.location.href = '/sign-in';
+        return;
+      }
+      
       toast({
         title: 'Error',
         description: `Failed to update goal: ${error.message}`,
