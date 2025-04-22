@@ -113,22 +113,21 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     ? format(new Date(contact.createdAt), 'MMMM d, yyyy')
     : 'Unknown';
   
-  const formattedLastContact = contact.lastContactDate
-    ? format(new Date(contact.lastContactDate), 'MMMM d, yyyy')
+  const formattedLastContact = contact.lastContactedDate
+    ? format(new Date(contact.lastContactedDate), 'MMMM d, yyyy')
     : 'Never';
   
-  const formattedNextFollowUp = contact.nextFollowUpDate
-    ? format(new Date(contact.nextFollowUpDate), 'MMMM d, yyyy')
-    : 'Not scheduled';
+  // NOTE: nextFollowUpDate is not in the current schema
+  const formattedNextFollowUp = 'Not scheduled';
 
   // Check if follow-up is needed
   const needsFollowUp = () => {
-    if (!contact.lastContactDate) return true;
+    if (!contact.lastContactedDate) return true;
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    return new Date(contact.lastContactDate) < thirtyDaysAgo;
+    return new Date(contact.lastContactedDate) < thirtyDaysAgo;
   };
 
   // Handle log interaction
@@ -169,13 +168,13 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
           <div>
             <h2 className="text-xl font-semibold">{contact.fullName}</h2>
             <div className="flex items-center gap-1 text-muted-foreground">
-              {contact.position && (
+              {contact.jobTitle && (
                 <span className="flex items-center gap-1">
                   <Briefcase className="h-3 w-3" />
-                  {contact.position}
+                  {contact.jobTitle}
                 </span>
               )}
-              {contact.position && contact.company && (
+              {contact.jobTitle && contact.company && (
                 <span className="mx-1">•</span>
               )}
               {contact.company && (
@@ -247,11 +246,11 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Social & Web</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {contact.linkedinUrl && (
+              {contact.linkedInUrl && (
                 <div className="flex items-center gap-2">
                   <Linkedin className="h-4 w-4 text-muted-foreground" />
                   <a 
-                    href={contact.linkedinUrl} 
+                    href={contact.linkedInUrl} 
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline flex items-center"
@@ -261,21 +260,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   </a>
                 </div>
               )}
-              
-              {contact.websiteUrl && (
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <a 
-                    href={contact.websiteUrl} 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline flex items-center"
-                  >
-                    Website
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </div>
-              )}
+              {/* Website URL field is not in the current schema */}
             </div>
           </div>
 

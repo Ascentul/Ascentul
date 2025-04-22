@@ -39,13 +39,11 @@ const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   email: z.string().email({ message: 'Please enter a valid email' }).optional().nullable(),
   phone: z.string().optional().nullable(),
-  position: z.string().optional().nullable(),
+  jobTitle: z.string().optional().nullable(), // changed from position to jobTitle
   company: z.string().optional().nullable(),
-  linkedinUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(),
-  websiteUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(),
+  linkedInUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(), // changed from linkedinUrl to linkedInUrl
   relationshipType: z.string(),
-  lastContactDate: z.date().optional().nullable(),
-  nextFollowUpDate: z.date().optional().nullable(),
+  lastContactedDate: z.date().optional().nullable(), // changed from lastContactDate to lastContactedDate
   notes: z.string().optional().nullable(),
 });
 
@@ -74,13 +72,11 @@ export default function ContactForm({
       fullName: initialData?.fullName || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
-      position: initialData?.position || '',
+      jobTitle: initialData?.jobTitle || '', // Changed from position to jobTitle
       company: initialData?.company || '',
-      linkedinUrl: initialData?.linkedinUrl || '',
-      websiteUrl: initialData?.websiteUrl || '',
+      linkedInUrl: initialData?.linkedInUrl || '', // Changed from linkedinUrl to linkedInUrl
       relationshipType: initialData?.relationshipType || '',
-      lastContactDate: initialData?.lastContactDate ? new Date(initialData.lastContactDate) : null,
-      nextFollowUpDate: initialData?.nextFollowUpDate ? new Date(initialData.nextFollowUpDate) : null,
+      lastContactedDate: initialData?.lastContactedDate ? new Date(initialData.lastContactedDate) : null, // Changed from lastContactDate to lastContactedDate
       notes: initialData?.notes || '',
     },
   });
@@ -177,7 +173,7 @@ export default function ContactForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="position"
+            name="jobTitle"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Position</FormLabel>
