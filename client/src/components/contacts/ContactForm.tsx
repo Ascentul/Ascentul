@@ -1,13 +1,14 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { NetworkingContact, insertNetworkingContactSchema } from '@shared/schema';
 import { z } from 'zod';
+import { apiRequest } from '@/lib/queryClient';
+import { NetworkingContact } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
-// Import UI components
+// UI Components
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -18,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -26,17 +27,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { 
+  AlertTriangle,
+  CalendarRange, 
+  Loader2 
+} from 'lucide-react';
+import { format } from 'date-fns';
 
-// Extend schema with validation
-const formSchema = insertNetworkingContactSchema.extend({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  jobTitle: z.string().min(2, 'Job title must be at least 2 characters'),
-  company: z.string().min(1, 'Company name is required'),
-  linkedInUrl: z.string().url().nullable().optional(),
+// Form validation schema
+const formSchema = z.object({
+  fullName: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  email: z.string().email({ message: 'Please enter a valid email' }).optional().nullable(),
+  phone: z.string().optional().nullable(),
+  position: z.string().optional().nullable(),
+  company: z.string().optional().nullable(),
+  linkedinUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(),
+  websiteUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(),
+  relationshipType: z.string(),
+  lastContactDate: z.date().optional().nullable(),
+  nextFollowUpDate: z.date().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -57,19 +67,21 @@ export default function ContactForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Set up form with react-hook-form
+  // Set up form with default values
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: initialData?.fullName || '',
-      email: initialData?.email || null,
-      phone: initialData?.phone || null,
-      jobTitle: initialData?.jobTitle || '',
+      email: initialData?.email || '',
+      phone: initialData?.phone || '',
+      position: initialData?.position || '',
       company: initialData?.company || '',
-      relationshipType: initialData?.relationshipType || 'Other',
-      linkedInUrl: initialData?.linkedInUrl || null,
-      notes: initialData?.notes || null,
-      lastContactedDate: initialData?.lastContactedDate || null,
+      linkedinUrl: initialData?.linkedinUrl || '',
+      websiteUrl: initialData?.websiteUrl || '',
+      relationshipType: initialData?.relationshipType || '',
+      lastContactDate: initialData?.lastContactDate ? new Date(initialData.lastContactDate) : null,
+      nextFollowUpDate: initialData?.nextFollowUpDate ? new Date(initialData.nextFollowUpDate) : null,
+      notes: initialData?.notes || '',
     },
   });
 
@@ -94,7 +106,7 @@ export default function ContactForm({
       toast({
         title: isEdit ? 'Contact updated' : 'Contact added',
         description: isEdit
-          ? 'The contact information has been updated successfully.'
+          ? 'The contact has been successfully updated.'
           : 'The contact has been added to your network.',
       });
       onSuccess();
@@ -110,84 +122,22 @@ export default function ContactForm({
     },
   });
 
-  // Form submission handler
+  // Submit form
   const onSubmit = (values: FormValues) => {
     mutation.mutate(values);
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name *</FormLabel>
+              <FormLabel>Full Name*</FormLabel>
               <FormControl>
                 <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="jobTitle"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Job Title *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Software Engineer" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="company"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Acme Inc." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="relationshipType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Relationship Type *</FormLabel>
-              <FormControl>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select relationship type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Current Colleague">Current Colleague</SelectItem>
-                    <SelectItem value="Former Colleague">Former Colleague</SelectItem>
-                    <SelectItem value="Industry Expert">Industry Expert</SelectItem>
-                    <SelectItem value="Mentor">Mentor</SelectItem>
-                    <SelectItem value="Client">Client</SelectItem>
-                    <SelectItem value="Recruiter">Recruiter</SelectItem>
-                    <SelectItem value="Hiring Manager">Hiring Manager</SelectItem>
-                    <SelectItem value="Friend">Friend</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -202,13 +152,7 @@ export default function ContactForm({
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="email" 
-                    placeholder="john.doe@example.com" 
-                    {...field}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value || null)}
-                  />
+                  <Input placeholder="john.doe@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -222,13 +166,67 @@ export default function ContactForm({
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="tel" 
-                    placeholder="+1 (555) 123-4567"
-                    {...field}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value || null)}
-                  />
+                  <Input placeholder="+1 (555) 123-4567" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="position"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Position</FormLabel>
+                <FormControl>
+                  <Input placeholder="Software Engineer" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="company"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <FormControl>
+                  <Input placeholder="Acme Inc." {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="linkedinUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>LinkedIn URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://linkedin.com/in/johndoe" {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="websiteUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Website URL</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://johndoe.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -238,48 +236,84 @@ export default function ContactForm({
 
         <FormField
           control={form.control}
-          name="linkedInUrl"
+          name="relationshipType"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>LinkedIn URL</FormLabel>
-              <FormControl>
-                <Input 
-                  type="url" 
-                  placeholder="https://linkedin.com/in/johndoe" 
-                  {...field}
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(e.target.value || null)}
-                />
-              </FormControl>
-              <FormDescription>
-                Full URL to their LinkedIn profile
-              </FormDescription>
+              <FormLabel>Relationship Type*</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a relationship type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Current Colleague">Current Colleague</SelectItem>
+                  <SelectItem value="Former Colleague">Former Colleague</SelectItem>
+                  <SelectItem value="Industry Expert">Industry Expert</SelectItem>
+                  <SelectItem value="Mentor">Mentor</SelectItem>
+                  <SelectItem value="Client">Client</SelectItem>
+                  <SelectItem value="Recruiter">Recruiter</SelectItem>
+                  <SelectItem value="Hiring Manager">Hiring Manager</SelectItem>
+                  <SelectItem value="Friend">Friend</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="lastContactedDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Last Contacted Date</FormLabel>
-              <FormControl>
-                <Input 
-                  type="date" 
-                  {...field}
-                  value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                  onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
-                />
-              </FormControl>
-              <FormDescription>
-                When did you last interact with this contact?
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="lastContactDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Contact Date</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        const date = e.target.value ? new Date(e.target.value) : null;
+                        field.onChange(date);
+                      }}
+                    />
+                    <CalendarRange className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nextFollowUpDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Next Follow-Up Date</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        const date = e.target.value ? new Date(e.target.value) : null;
+                        field.onChange(date);
+                      }}
+                    />
+                    <CalendarRange className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -289,11 +323,10 @@ export default function ContactForm({
               <FormLabel>Notes</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Add notes about this contact, like meeting details, things to remember, or potential collaboration opportunities."
-                  className="min-h-[100px]"
+                  placeholder="Add any additional notes about this contact" 
+                  className="min-h-[100px]" 
                   {...field}
                   value={field.value || ''}
-                  onChange={(e) => field.onChange(e.target.value || null)}
                 />
               </FormControl>
               <FormMessage />
@@ -301,19 +334,12 @@ export default function ContactForm({
           )}
         />
 
-        <div className="flex justify-end gap-3 pt-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={mutation.isPending}
-          >
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEdit ? 'Update Contact' : 'Add Contact'}
           </Button>
         </div>

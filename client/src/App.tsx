@@ -19,6 +19,7 @@ import Account from "@/pages/Account";
 import SkillStacker from "@/pages/SkillStacker";
 import Apply from "@/pages/Apply";
 import CareerProfile from "@/pages/CareerProfile";
+import Contacts from "@/pages/Contacts";
 import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import AdminLogin from "@/pages/admin-login";
@@ -470,6 +471,11 @@ function App() {
         <Route path="/career-profile">
           <CareerRoute>
             <CareerProfile />
+          </CareerRoute>
+        </Route>
+        <Route path="/contacts">
+          <CareerRoute>
+            <Contacts />
           </CareerRoute>
         </Route>
         <Route path="/canva-editor">

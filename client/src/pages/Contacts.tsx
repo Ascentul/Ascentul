@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { NetworkingContact } from '@shared/schema';
-import { Helmet } from 'react-helmet';
 import ContactDetails from '@/components/contacts/ContactDetails';
 import ContactForm from '@/components/contacts/ContactForm';
 import ContactsTable from '@/components/contacts/ContactsTable';
@@ -133,10 +132,6 @@ export default function Contacts() {
 
   return (
     <PrivateLayout>
-      <Helmet>
-        <title>Ascentul CRM | CareerTracker.io</title>
-      </Helmet>
-      
       <div className="container px-4 py-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>

@@ -1,31 +1,35 @@
 import React from 'react';
+import { format } from 'date-fns';
 import { NetworkingContact } from '@shared/schema';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { 
-  MoreHorizontal, 
+  CalendarDays, 
   Edit, 
+  MoreHorizontal, 
   Trash2, 
+  User, 
+  Building, 
+  Phone, 
   Mail, 
-  ExternalLink, 
-  Phone,
-  Calendar
+  RotateCw,
+  Briefcase
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
 
 interface ContactsTableProps {
   contacts: NetworkingContact[];
@@ -34,157 +38,148 @@ interface ContactsTableProps {
 }
 
 export default function ContactsTable({ 
-  contacts,
-  onSelectContact,
-  onDeleteContact
+  contacts, 
+  onSelectContact, 
+  onDeleteContact 
 }: ContactsTableProps) {
-  // Helper function to get the relationship type color
-  const getRelationshipTypeColor = (type: string): string => {
-    switch (type) {
-      case 'Current Colleague':
-        return 'bg-blue-100 text-blue-800';
-      case 'Former Colleague':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'Industry Expert':
-        return 'bg-purple-100 text-purple-800';
-      case 'Mentor':
-        return 'bg-green-100 text-green-800';
-      case 'Client':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Recruiter':
-        return 'bg-orange-100 text-orange-800';
-      case 'Hiring Manager':
-        return 'bg-pink-100 text-pink-800';
-      case 'Friend':
-        return 'bg-teal-100 text-teal-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  
+  // Helper function to get relation type badge color
+  const getRelationTypeColor = (type: string): string => {
+    const types: Record<string, string> = {
+      'Current Colleague': 'bg-blue-100 text-blue-800',
+      'Former Colleague': 'bg-purple-100 text-purple-800',
+      'Industry Expert': 'bg-amber-100 text-amber-800',
+      'Mentor': 'bg-emerald-100 text-emerald-800',
+      'Client': 'bg-green-100 text-green-800',
+      'Recruiter': 'bg-fuchsia-100 text-fuchsia-800',
+      'Hiring Manager': 'bg-indigo-100 text-indigo-800',
+      'Friend': 'bg-teal-100 text-teal-800'
+    };
+    
+    return types[type] || 'bg-gray-100 text-gray-800';
   };
 
-  // Sort contacts by last contacted date (null values first)
-  const sortedContacts = [...contacts].sort((a, b) => {
-    if (!a.lastContactedDate && !b.lastContactedDate) return 0;
-    if (!a.lastContactedDate) return -1;
-    if (!b.lastContactedDate) return 1;
-    return new Date(b.lastContactedDate).getTime() - new Date(a.lastContactedDate).getTime();
-  });
-
-  // Format date function
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Never';
-    return format(new Date(date), 'MMM d, yyyy');
-  };
-
-  // Function to open email client
-  const sendEmail = (email: string | null) => {
-    if (email) {
-      window.location.href = `mailto:${email}`;
-    }
-  };
-
-  // Function to open phone dialer
-  const callPhone = (phone: string | null) => {
-    if (phone) {
-      window.location.href = `tel:${phone}`;
-    }
-  };
-
-  // Function to open LinkedIn URL
-  const openLinkedIn = (url: string | null) => {
-    if (url) {
-      window.open(url, '_blank');
-    }
+  // Helper function to check if a contact needs follow-up
+  const needsFollowUp = (lastContact?: Date | null): boolean => {
+    if (!lastContact) return true;
+    
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    return new Date(lastContact) < thirtyDaysAgo;
   };
 
   return (
-    <div className="rounded-md border bg-white overflow-hidden">
+    <div className="border rounded-md shadow-sm bg-white">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[250px]">Contact</TableHead>
-            <TableHead>Company</TableHead>
+            <TableHead>Position</TableHead>
             <TableHead>Relationship</TableHead>
-            <TableHead>Last Contacted</TableHead>
+            <TableHead>Last Contact</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedContacts.map((contact) => (
-            <TableRow key={contact.id}>
+          {contacts.map((contact) => (
+            <TableRow key={contact.id} className="group hover:bg-muted/20">
               <TableCell className="font-medium">
-                <div className="flex flex-col">
-                  <span 
-                    className="cursor-pointer hover:text-primary"
-                    onClick={() => onSelectContact(contact.id)}
-                  >
-                    {contact.fullName}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {contact.jobTitle}
-                  </span>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3 flex-shrink-0">
+                    {contact.fullName ? contact.fullName.charAt(0).toUpperCase() : <User />}
+                  </div>
+                  <div>
+                    <div className="font-medium cursor-pointer hover:text-primary" onClick={() => onSelectContact(contact.id)}>
+                      {contact.fullName}
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      {contact.email && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          <span>{contact.email}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </TableCell>
-              <TableCell>{contact.company}</TableCell>
               <TableCell>
-                <Badge className={getRelationshipTypeColor(contact.relationshipType)}>
-                  {contact.relationshipType}
-                </Badge>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1">
+                    <Briefcase className="w-3 h-3 text-muted-foreground" />
+                    <span>{contact.position || 'Not specified'}</span>
+                  </div>
+                  {contact.company && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <Building className="w-3 h-3" />
+                      <span>{contact.company}</span>
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
-                {formatDate(contact.lastContactedDate)}
+                {contact.relationshipType && (
+                  <Badge variant="outline" className={`${getRelationTypeColor(contact.relationshipType)} border-transparent`}>
+                    {contact.relationshipType}
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  {contact.lastContactDate ? (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                        <span>{format(new Date(contact.lastContactDate), 'MMM d, yyyy')}</span>
+                      </div>
+                      {needsFollowUp(contact.lastContactDate) && (
+                        <Badge variant="outline" className="mt-1 bg-red-100 text-red-800 border-transparent">
+                          Needs follow-up
+                        </Badge>
+                      )}
+                    </>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent">
+                      Never contacted
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  {contact.email && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => sendEmail(contact.email)}
-                      title="Send Email"
-                    >
-                      <Mail className="h-4 w-4" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
-                  )}
-                  {contact.phone && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => callPhone(contact.phone)}
-                      title="Call"
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onSelectContact(contact.id)}>
+                      <User className="mr-2 h-4 w-4" />
+                      View details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      // View contact details for editing
+                      onSelectContact(contact.id);
+                    }}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit contact
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <RotateCw className="mr-2 h-4 w-4" />
+                      Log interaction
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-red-600"
+                      onClick={() => onDeleteContact(contact.id)}
                     >
-                      <Phone className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {contact.linkedInUrl && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      onClick={() => openLinkedIn(contact.linkedInUrl)}
-                      title="View LinkedIn Profile"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onSelectContact(contact.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        View & Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDeleteContact(contact.id)}
-                        className="text-red-600 focus:text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete contact
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
