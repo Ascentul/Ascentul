@@ -221,14 +221,26 @@ export default function Sidebar() {
         <div className="relative">
           <ProfileImageUploader
             onImageUploaded={(imageUrl) => {
-              // We'll refresh the page to show the updated profile image
-              window.location.reload();
+              // Update the user object with the new profile image URL
+              updateUser({
+                ...user,
+                profileImage: imageUrl
+              });
+              
+              // We'll also simulate a short delay before refreshing
+              // This helps ensure the browser doesn't use a cached version
+              setTimeout(() => {
+                window.location.reload();
+              }, 300);
             }}
             currentImage={user.profileImage}
           >
             <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
               {user.profileImage ? (
-                <AvatarImage src={user.profileImage} alt={user.name} />
+                <AvatarImage 
+                  src={`${user.profileImage}?t=${Date.now()}`} 
+                  alt={user.name} 
+                />
               ) : (
                 <AvatarFallback className="bg-primary/10 text-primary text-xl">
                   {user.name.charAt(0)}
