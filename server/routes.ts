@@ -11,6 +11,7 @@ import { registerCareerPathRoutes } from "./career-path";
 import { registerAICoachRoutes } from "./routes/ai-coach";
 import { registerSkillsRoutes } from "./skills";
 import { registerLanguagesRoutes } from "./languages";
+import { registerContactsRoutes } from "./contacts";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -4200,6 +4201,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   
   // Register languages routes
   registerLanguagesRoutes(app, storage);
+  
+  // Register networking contacts routes (Ascentul CRM)
+  registerContactsRoutes(app, storage);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {

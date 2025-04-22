@@ -7,7 +7,7 @@ import { insertNetworkingContactSchema } from '../shared/schema';
 export function registerContactsRoutes(app: Express, storage: any) {
   const router = express.Router();
 
-// Get all contacts for the current user
+  // Get all contacts for the current user
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -174,4 +174,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
-export default router;
+  // Register the router
+  app.use('/api/contacts', router);
+  console.log('Registered contacts routes at /api/contacts');
+}
