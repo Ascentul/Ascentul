@@ -61,6 +61,7 @@ export default function Sidebar() {
   const { user, logout } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<boolean>(
@@ -124,9 +125,6 @@ export default function Sidebar() {
       items: [
         { href: '/apply', icon: <FileEdit className="w-5 h-5 mr-3" />, label: 'Application Agent' },
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
-        { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
-        { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
-        { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
       ]
     },
     {
@@ -149,6 +147,9 @@ export default function Sidebar() {
         { href: '/work-history', icon: <Building className="w-5 h-5 mr-3" />, label: 'Work History' },
         { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
         { href: '/education-history', icon: <GraduationCap className="w-5 h-5 mr-3" />, label: 'Education Tracker' },
+        { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
+        { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
+        { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
       ]
     },
     {
