@@ -65,6 +65,9 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
+  
+  // Set authentication header when using auth middleware
+  res.setHeader('X-Auth-Status', 'authenticated');
   next();
 }
 
@@ -80,6 +83,8 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
     return res.status(403).json({ message: "Access denied. Admin privileges required." });
   }
   
+  // Set authentication header
+  res.setHeader('X-Auth-Status', 'authenticated');
   next();
 }
 
@@ -95,6 +100,8 @@ async function requireStaff(req: Request, res: Response, next: () => void) {
     return res.status(403).json({ message: "Access denied. Staff privileges required." });
   }
   
+  // Set authentication header
+  res.setHeader('X-Auth-Status', 'authenticated');
   next();
 }
 
@@ -137,6 +144,9 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
     console.log(`Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`);
     return res.status(403).json({ message: "Access denied. You can only access your own data." });
   }
+  
+  // Set authentication header
+  res.setHeader('X-Auth-Status', 'authenticated');
   
   // Default case - proceed to the route handler
   next();
