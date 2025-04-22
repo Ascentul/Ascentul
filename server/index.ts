@@ -9,8 +9,6 @@ import path from "path";
 declare module "express-session" {
   interface SessionData {
     userId?: number;
-    authenticated?: boolean;
-    lastAccess?: string;
   }
 }
 
@@ -32,26 +30,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Configure session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || "career-dev-platform-secret-key-" + Math.random().toString(36).substring(2, 15),
-  resave: true, // Force the session to be saved back to the store even if not modified
-  saveUninitialized: true, // Ensure session is saved even if not modified
-  rolling: true, // Reset the cookie expiration on each response
+  secret: "career-dev-platform-secret", // In production, use environment variable
+  resave: false,
+  saveUninitialized: false,
   store: sessionStore,
-  name: 'connect.sid', // Set explicit name for the session cookie
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Only secure in production
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    httpOnly: true,
-    sameSite: 'lax', // Prevent CSRF while allowing normal navigation
-    path: '/' // Ensure cookie is accessible for all paths
+    secure: process.env.NODE_ENV === "production", // Only secure in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
-
-// Log all requests to server to diagnose session issues
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Session ID: ${req.sessionID}`);
-  next();
-});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -106,22 +93,11 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 3000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000");
-  const startServer = (retryPort = port) => {
-    server.listen({
-      port: retryPort,
-      host: "0.0.0.0",
-    }, () => {
-      log(`Server running at http://0.0.0.0:${retryPort}`);
-    }).on('error', (e: any) => {
-      if (e.code === 'EADDRINUSE') {
-        log(`Port ${retryPort} is busy, trying ${retryPort + 1}...`);
-        startServer(retryPort + 1);
-      } else {
-        console.error('Server error:', e);
-      }
-    });
-  };
-  
-  startServer();
+  const port = process.env.PORT || 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+  }, () => {
+    log(`Server running at http://0.0.0.0:${port}`);
+  });
 })();

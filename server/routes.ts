@@ -7,9 +7,6 @@ import Stripe from "stripe";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { db } from "./db";
-import { eq, or } from "drizzle-orm";
-import * as schema from "@shared/schema";
 import { registerCareerPathRoutes } from "./career-path";
 import { registerAICoachRoutes } from "./routes/ai-coach";
 import { registerSkillsRoutes } from "./skills";
@@ -43,14 +40,107 @@ import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generat
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
-import { requireAuth, requireAdmin, requireStaff, validateUserAccess, getCurrentUser, sendUnauthenticatedResponse, markResponseAuthenticated } from "./auth";
 
-// All authentication middleware functions have been centralized in auth.ts
-// - getCurrentUser gets user from session with consistent session management 
-// - requireAuth ensures user is authenticated
-// - requireAdmin verifies admin access rights
-// - requireStaff checks for staff or admin permissions
-// - validateUserAccess ensures users can only access their own data
+// Helper function to get the current user from the session
+async function getCurrentUser(req: Request): Promise<User | null> {
+  try {
+    // Check if user is logged in via session
+    if (req.session && req.session.userId) {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        return user;
+      }
+    }
+    
+    // Return null if no valid user found
+    return null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+}
+
+// Middleware to check if user is authenticated
+function requireAuth(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+}
+
+// Middleware to check if user is an admin
+async function requireAdmin(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || user.userType !== 'admin') {
+    console.log(`Access denied: User ${req.session.userId} tried to access admin route`);
+    return res.status(403).json({ message: "Access denied. Admin privileges required." });
+  }
+  
+  next();
+}
+
+// Middleware to check if user is a staff member
+async function requireStaff(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = await storage.getUser(req.session.userId);
+  if (!user || (user.userType !== 'staff' && user.userType !== 'admin')) {
+    console.log(`Access denied: User ${req.session.userId} tried to access staff route`);
+    return res.status(403).json({ message: "Access denied. Staff privileges required." });
+  }
+  
+  next();
+}
+
+// User type middleware removed as university-specific features are no longer used
+
+// Middleware for data validation to ensure users can only access their own data
+async function validateUserAccess(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  // Get the requested resource ID (usually from URL params)
+  const resourceId = req.params.id ? parseInt(req.params.id) : null;
+  const resourceUserId = req.params.userId ? parseInt(req.params.userId) : null;
+  
+  if (!resourceId && !resourceUserId) {
+    // If no specific resource is targeted, allow the request to proceed
+    return next();
+  }
+  
+  const user = await storage.getUser(req.session.userId);
+  if (!user) {
+    return res.status(401).json({ message: "User not found" });
+  }
+  
+  // Admins can access any data
+  if (user.userType === 'admin') {
+    return next();
+  }
+  
+  // Check if the targeted resource belongs to the user
+  // This will need to be customized based on the specific resource type
+  // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
+  // Then check if resource.userId === user.id
+  
+  // University-specific code removed
+  
+  // For all other cases, only allow access to own data
+  if (resourceUserId && resourceUserId !== user.id) {
+    console.log(`Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`);
+    return res.status(403).json({ message: "Access denied. You can only access your own data." });
+  }
+  
+  // Default case - proceed to the route handler
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
@@ -265,35 +355,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       console.log('Login attempt:', { email, loginType });
       
       if (!email || !password) {
-        return sendUnauthenticatedResponse(res.status(400), "Email and password are required");
+        return res.status(400).json({ message: "Email and password are required" });
       }
       
       // Find user by email or username
       let user = await storage.getUserByEmail(email) || await storage.getUserByUsername(email);
       
-      console.log('User found:', user ? { id: user.id, email: user.email, username: user.username } : 'null');
-      
-      // If user is not found, try direct database query
-      if (!user) {
-        try {
-          // Try direct database query to verify if user exists but mapping is wrong
-          const directResult = await db.query.users.findFirst({
-            where: or(eq(schema.users.email, email), eq(schema.users.username, email))
-          });
-          console.log('Direct DB query result:', directResult);
-          
-          // If found via direct query, use this result 
-          if (directResult) {
-            console.log('Found user via direct query, using this result');
-            user = directResult;
-          }
-        } catch (error) {
-          console.error('Error in direct DB query:', error);
-        }
-      }
+      console.log('User found:', user ? { id: user.id, userType: user.userType } : 'null');
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Invalid credentials");
+        return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Verify password using crypto
@@ -303,23 +374,23 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           const [storedHash, salt] = user.password.split('.');
           const inputHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
           if (storedHash !== inputHash) {
-            return sendUnauthenticatedResponse(res, "Invalid credentials");
+            return res.status(401).json({ message: "Invalid credentials" });
           }
         } else {
           // For backward compatibility with non-hashed passwords
           if (user.password !== password) {
-            return sendUnauthenticatedResponse(res, "Invalid credentials");
+            return res.status(401).json({ message: "Invalid credentials" });
           }
         }
       } catch (error) {
         console.error("Password verification error:", error);
-        return sendUnauthenticatedResponse(res, "Invalid credentials");
+        return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Check user type based on the login type
       if (loginType) {
         if (loginType === "university" && user.userType === "regular") {
-          return sendUnauthenticatedResponse(res.status(403), "Access denied. This account is not associated with a university.");
+          return res.status(403).json({ message: "Access denied. This account is not associated with a university." });
         }
         
         // MODIFICATION: Allow university users to log in through the regular portal
@@ -330,38 +401,22 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         // }
         
         if (loginType === "admin" && user.userType !== "admin") {
-          return sendUnauthenticatedResponse(res.status(403), "Access denied. You do not have administrator privileges.");
+          return res.status(403).json({ message: "Access denied. You do not have administrator privileges." });
         }
         
         if (loginType === "staff" && user.userType !== "staff" && user.userType !== "admin") {
-          return sendUnauthenticatedResponse(res.status(403), "Access denied. You do not have staff privileges.");
+          return res.status(403).json({ message: "Access denied. You do not have staff privileges." });
         }
       }
       
       // Set the user ID in session
       req.session.userId = user.id;
-      req.session.authenticated = true;
-      req.session.lastAccess = new Date().toISOString();
-      
-      // Save the session synchronously to ensure it's stored before response
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session:", err);
-            reject(err);
-          } else {
-            console.log("Session saved successfully on login with ID:", req.sessionID);
-            resolve();
-          }
-        });
-      });
       
       // Set a cookie with the user ID
       res.cookie('userId', user.id, {
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
         path: '/',
-        secure: false, // Allow non-HTTPS in development
       });
       
       const { password: pwd, ...safeUser } = user;
@@ -376,22 +431,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/career-dashboard";
       }
       
-      // Use the utility function from auth.ts to set consistent headers
-      markResponseAuthenticated(res);
-      
-      // Format response to match what the frontend expects
-      // Add redirectPath directly to the user object as well for backward compatibility
-      const userWithRedirect = {
-        ...safeUser,
-        redirectPath
-      };
-      
-      // Return both formats for maximum compatibility
-      res.status(200).json({ 
-        user: userWithRedirect, 
-        redirectPath,
-        ...userWithRedirect,  // Spread the user+redirect properties at the top level too
-      });
+      res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
     }
@@ -409,26 +449,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
             return res.status(500).json({ message: "Error destroying session" });
           }
           
-          // Clear the cookies
+          // Clear the cookie
           res.clearCookie('userId');
           res.clearCookie('connect.sid');
           
-          // Use the utility function from auth.ts to set consistent headers
+          // Set a special header to indicate logout for the client (for backward compatibility)
           res.setHeader('X-Auth-Logout', 'true');
           
-          // Send response with proper unauthenticated headers
-          sendUnauthenticatedResponse(res.status(200), "Logged out successfully");
+          res.status(200).json({ message: "Logged out successfully" });
         });
       } else {
         // If there's no session, just clear the cookies
         res.clearCookie('userId');
         res.clearCookie('connect.sid');
-        
-        // Use the utility function from auth.ts to set consistent headers
         res.setHeader('X-Auth-Logout', 'true');
-        
-        // Send response with proper unauthenticated headers
-        sendUnauthenticatedResponse(res.status(200), "Logged out successfully");
+        res.status(200).json({ message: "Logged out successfully" });
       }
     } catch (error) {
       res.status(500).json({ message: "Error during logout" });
@@ -567,27 +602,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Set user in session
       req.session.userId = newUser.id;
-      req.session.authenticated = true;
-      req.session.lastAccess = new Date().toISOString();
-      
-      // Save the session synchronously
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session on staff registration:", err);
-            reject(err);
-          } else {
-            console.log("Session saved successfully on staff registration with ID:", req.sessionID);
-            resolve();
-          }
-        });
-      });
       
       // Return user without password
       const { password: pwd, ...safeUser } = newUser;
-      
-      // Set a special header to indicate authentication is confirmed
-      res.setHeader('X-Auth-Status', 'authenticated');
       
       return res.status(201).json({
         success: true,
@@ -646,21 +663,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Store user ID in session to log them in
       req.session.userId = newUser.id;
-      req.session.authenticated = true;
-      req.session.lastAccess = new Date().toISOString();
-      
-      // Save the session synchronously to ensure it's stored before response
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session after registration:", err);
-            reject(err);
-          } else {
-            console.log("Session saved successfully on registration with ID:", req.sessionID);
-            resolve();
-          }
-        });
-      });
       
       // Set a cookie with the user ID
       res.cookie('userId', newUser.id, {
@@ -679,9 +681,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/onboarding"; 
       }
       
-      // Set a special header to indicate authentication is confirmed
-      res.setHeader('X-Auth-Status', 'authenticated');
-      
       res.status(201).json({ user: safeUser, redirectPath });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -693,57 +692,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // Username validation and update endpoints
-  // Get current authenticated user
-  apiRouter.get("/users/me", async (req: Request, res: Response) => {
-    try {
-      console.log("GET /api/users/me called with session ID:", req.sessionID);
-      
-      // Dump full session data for debugging
-      console.log("Session data:", {
-        id: req.sessionID,
-        userId: req.session?.userId,
-        authenticated: req.session?.authenticated,
-        cookie: req.session?.cookie
-      });
-      
-      if (!req.session || !req.session.userId) {
-        console.log("No userId in session or session doesn't exist");
-        return sendUnauthenticatedResponse(res);
-      }
-      
-      const user = await storage.getUser(req.session.userId);
-      if (!user) {
-        console.log("User not found in database:", req.session.userId);
-        return sendUnauthenticatedResponse(res, "User not found");
-      }
-      
-      // Remove sensitive fields
-      const { password, ...safeUser } = user;
-      
-      // Add a redirect path based on user type
-      let redirectPath = '/career-dashboard';
-      if (user.userType === 'admin') {
-        redirectPath = '/admin-dashboard';
-      } else if (user.userType === 'staff') {
-        redirectPath = '/staff-dashboard';
-      }
-      
-      // Add redirectPath to the user object
-      const userWithRedirect = {
-        ...safeUser,
-        redirectPath
-      };
-      
-      // Mark the response as authenticated
-      markResponseAuthenticated(res);
-      
-      return res.status(200).json(userWithRedirect);
-    } catch (error) {
-      console.error("Error in /api/users/me:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
-  
   apiRouter.get("/users/check-username", async (req: Request, res: Response) => {
     try {
       const { username } = req.query;
@@ -819,16 +767,80 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   });
   
   // User Routes
+  apiRouter.get("/users/me", async (req: Request, res: Response) => {
+    try {
+      // Check the authorization header
+      const authHeader = req.headers.authorization;
+      
+      // Normally we would validate the auth header here
+      // For demo purposes, we'll just check if the header exists
+      // and always return the sample user
+      
+      // Check if the browser has a special logout flag set (from localStorage)
+      const isLoggedOut = req.headers['x-auth-logout'] === 'true';
+      if (isLoggedOut) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the user ID from the session
+      let userId;
+      
+      // Try to get user ID from the session
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
+      
+      // If we still don't have a user ID, use the default "alex" for backward compatibility
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If we couldn't find the user by ID, fall back to the default user
+      if (!user) {
+        user = await storage.getUserByUsername("alex");
+      }
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password: userPassword, ...safeUser } = user;
+      
+      // Add password length for visual representation, but never send actual password
+      const passwordLength = userPassword ? userPassword.length : 0;
+      
+      res.status(200).json({
+        ...safeUser,
+        passwordLength
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching user" });
+    }
+  });
   
   // Update user profile
   apiRouter.put("/users/profile", async (req: Request, res: Response) => {
     try {
-      // Use the centralized getCurrentUser function
-      const user = await getCurrentUser(req);
+      // Get user ID from session
+      let userId;
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
       
-      // If no user is found, return 401 Unauthorized
+      // Get the user by ID or fall back to default
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If not found, use the sample user for backward compatibility
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        user = await storage.getUserByUsername("alex");
+      }
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
       
       // Update only allowed fields
@@ -896,9 +908,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: userPassword, ...safeUser } = updatedUser;
       
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       // Add a message about email verification if needed
       if (updateData.pendingEmail) {
         return res.status(200).json({
@@ -919,12 +928,25 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       console.log("Profile image upload endpoint called");
       
-      // Use the centralized getCurrentUser function
-      const user = await getCurrentUser(req);
+      // Get user ID from session
+      let userId;
+      if (req.session && req.session.userId) {
+        userId = req.session.userId;
+      }
       
-      // If no user is found, return 401 Unauthorized
+      // Get the user by ID or fall back to default
+      let user;
+      if (userId) {
+        user = await storage.getUser(userId);
+      }
+      
+      // If not found, use the sample user for backward compatibility
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        user = await storage.getUserByUsername("alex");
+      }
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
       
       console.log("User found:", user.id);
@@ -975,9 +997,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         
         console.log("User profile updated with new image URL:", filepath);
         
-        // Set authentication header using the centralized utility
-        markResponseAuthenticated(res);
-        
         // Return success response
         return res.status(200).json({ 
           message: "Profile image updated successfully",
@@ -996,11 +1015,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
 
   apiRouter.put("/users/subscription", async (req: Request, res: Response) => {
     try {
-      // Get user from session using the centralized getCurrentUser function
+      // Get user from session
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // Extract subscription data from request
@@ -1050,9 +1069,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Remove sensitive data before sending response
       const { password: userPassword, ...safeUser } = updatedUser;
       
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       res.status(200).json(safeUser);
     } catch (error) {
       console.error("Error updating user subscription:", error);
@@ -1062,18 +1078,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/statistics", async (req: Request, res: Response) => {
     try {
-      // Get the current authenticated user using the centralized getCurrentUser function
+      // Get the current authenticated user
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const stats = await storage.getUserStatistics(user.id);
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       res.status(200).json(stats);
     } catch (error) {
       res.status(500).json({ message: "Error fetching statistics" });
@@ -1082,19 +1094,15 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.get("/users/xp-history", async (req: Request, res: Response) => {
     try {
-      // Get the current authenticated user using the centralized getCurrentUser function
+      // Get the current authenticated user
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       // Return XP history for all users
       const xpHistory = await storage.getXpHistory(user.id);
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       res.status(200).json(xpHistory);
     } catch (error) {
       res.status(500).json({ message: "Error fetching XP history" });
@@ -1104,18 +1112,14 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   // Goal Routes
   apiRouter.get("/goals", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Get current user from session using the centralized getCurrentUser function
+      // Get current user from session
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goals = await storage.getGoals(user.id);
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       res.status(200).json(goals);
     } catch (error) {
       res.status(500).json({ message: "Error fetching goals" });
@@ -1126,20 +1130,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     try {
       const goalData = insertGoalSchema.parse(req.body);
       
-      // Get current user from session using the centralized getCurrentUser function
+      // Get current user from session
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goal = await storage.createGoal(user.id, goalData);
       
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
       
       res.status(201).json(goal);
     } catch (error) {
@@ -1159,10 +1160,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(400).json({ message: "Invalid goal ID" });
       }
       
-      // Get current user from session using the centralized getCurrentUser function
+      // Get current user from session
       const user = await getCurrentUser(req);
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goal = await storage.getGoal(goalId);
@@ -1180,9 +1181,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
       
       res.status(200).json(updatedGoal);
     } catch (error) {
@@ -1254,14 +1252,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const plans = await storage.getAllSkillStackerPlans(user.id);
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
-      
       res.status(200).json(plans);
     } catch (error) {
       res.status(500).json({ message: "Error fetching skill stacker plans" });
@@ -1273,7 +1267,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const goalId = parseInt(req.params.goalId);
@@ -1299,7 +1293,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       const user = await getCurrentUser(req);
       
       if (!user) {
-        return sendUnauthenticatedResponse(res, "Authentication required");
+        return res.status(401).json({ message: "Authentication required" });
       }
       
       const planId = parseInt(req.params.id);
@@ -1313,9 +1307,6 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       if (!plan || plan.userId !== user.id) {
         return res.status(403).json({ message: "Access denied or plan not found" });
       }
-      
-      // Set authentication header using the centralized utility
-      markResponseAuthenticated(res);
       
       res.status(200).json(plan);
     } catch (error) {

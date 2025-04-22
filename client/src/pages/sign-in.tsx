@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { useLocation, Link } from 'wouter';
+import { useUser } from '@/lib/useUserData';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,162 +8,156 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, Mail, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function SignIn() {
+export default function SignInPage() {
+  const [, setLocation] = useLocation();
+  const { user, login, isLoading } = useUser();
   const { toast } = useToast();
   
-  // Pre-fill with test credentials
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('testpassword');
-  const [isLoading, setIsLoading] = useState(false);
+  // Form state for login
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  
+  // Redirect if user is already logged in
+  if (user) {
+    if (user.userType === 'regular') {
+      setLocation('/');
+    } else {
+      setLocation('/university');
+    }
+    return null;
+  }
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoginLoading(true);
     
     try {
-      console.log('Starting login process for:', email);
+      // First clear any logout flag from localStorage
+      localStorage.removeItem('auth-logout');
       
-      // Make direct API request
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include' // Important for cookies
-      });
+      // Use the login function from useUser hook
+      // The login function in useUserData will handle the redirection based on the server response
+      await login(loginEmail, loginPassword);
       
-      if (!response.ok) {
-        let errorMessage = 'Login failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || 'Login failed';
-        } catch (e) {
-          // If the response isn't JSON, use the status text
-          errorMessage = `Login failed: ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
-      }
-      
-      const data = await response.json();
-      console.log('Login API success, received data:', data);
-      
-      // Show success message
       toast({
         title: "Login successful!",
-        description: "Redirecting to dashboard...",
+        description: "You have been logged in successfully.",
       });
-      
-      // Store authentication state in localStorage
-      localStorage.setItem('auth-user', JSON.stringify({
-        id: data.id || (data.user && data.user.id),
-        authenticated: true,
-        timestamp: new Date().toISOString()
-      }));
-      
-      // For the most reliable navigation, use plain JavaScript to change the URL
-      // This bypasses routing frameworks completely
-      console.log('Authentication successful, redirecting to dashboard');
-      
-      // Force the navigation via document.location with hard-coded path
-      // The server may provide redirectPath, but we're setting a fallback
-      document.location.href = '/career-dashboard';
-      
     } catch (error) {
-      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Please check your credentials and try again.",
         variant: "destructive",
       });
-      setIsLoading(false);
+    } finally {
+      setIsLoginLoading(false);
     }
   };
   
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          <span className="text-primary">CareerTracker</span>
-        </h1>
-        
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="email" 
-                    type="email"
-                    placeholder="Enter your email" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    placeholder="Enter your password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="pt-2">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Sign In
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">
-              Don't have an account? <Link href="/sign-up" className="text-primary hover:underline">Sign up</Link>
-            </p>
-            
-            <div className="text-xs text-muted-foreground p-2 bg-gray-50 dark:bg-gray-900 rounded">
-              <p className="font-semibold">Test Credentials:</p>
-              <p>Email: test@example.com</p>
-              <p>Password: testpassword</p>
-              
-              <div className="mt-3 flex flex-col gap-2">
-                <p className="text-xs text-muted-foreground">Having trouble logging in?</p>
-                <div className="flex space-x-2">
-                  <a 
-                    href="/direct-login" 
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Try Direct Login
-                  </a>
-                  <span className="text-xs text-muted-foreground">|</span>
-                  <a 
-                    href="/quick-login" 
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Use Quick Login (Bypass Auth)
-                  </a>
-                </div>
-              </div>
-            </div>
-          </CardFooter>
-        </Card>
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Side - Auth Forms */}
+      <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center">
+        <div className="max-w-md mx-auto w-full">
+          <h1 className="text-3xl font-bold mb-6 text-center">
+            <span className="text-primary">CareerTracker.io</span>
+          </h1>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign In</CardTitle>
+              <CardDescription>
+                Enter your credentials to access your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="login-email" 
+                      type="email"
+                      placeholder="Enter your email" 
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="login-password" 
+                      type="password" 
+                      placeholder="Enter your password" 
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="pt-2">
+                  <Button type="submit" className="w-full" disabled={isLoginLoading}>
+                    {isLoginLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Sign In
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <p className="text-sm text-muted-foreground">
+                Don't have an account? <Link href="/sign-up" className="text-primary hover:underline">Sign up</Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+      
+      {/* Right Side - Hero */}
+      <div className="hidden lg:w-1/2 lg:flex bg-primary p-8">
+        <div className="m-auto max-w-lg text-primary-foreground">
+          <h1 className="text-5xl font-bold mb-6">
+            Accelerate Your Career Journey
+          </h1>
+          
+          <p className="text-xl mb-8">
+            Your all-in-one platform for career development, resume building, interview preparation, and professional growth.
+          </p>
+          
+          <div className="space-y-4">
+            <FeatureItem icon="✓" text="AI-powered career coaching and goal tracking" />
+            <FeatureItem icon="✓" text="Resume and cover letter builder with AI suggestions" />
+            <FeatureItem icon="✓" text="Interactive interview preparation tools" />
+            <FeatureItem icon="✓" text="Gamified learning with XP and achievements" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeatureItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="flex items-center space-x-3">
+      <div className="bg-primary-foreground text-primary font-bold rounded-full w-8 h-8 flex items-center justify-center">
+        {icon}
+      </div>
+      <div className="text-primary-foreground">{text}</div>
     </div>
   );
 }

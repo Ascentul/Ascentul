@@ -55,58 +55,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  // Start with authentication as false by default, only set true after validating
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Handle authentication errors from other components
-  useEffect(() => {
-    const handleAuthError = (event: Event) => {
-      const authEvent = event as CustomEvent;
-      console.log('Auth error event received:', authEvent.detail);
-      // Update authentication state accordingly
-      setIsAuthenticated(false);
-      queryClient.setQueryData(['/api/users/me'], null);
-    };
-
-    window.addEventListener('auth-error', handleAuthError);
-    
-    return () => {
-      window.removeEventListener('auth-error', handleAuthError);
-    };
-  }, [queryClient]);
-  
-  // Try to automatically check if the user is already logged in
-  useEffect(() => {
-    // Skip if already authenticated or explicitly logged out
-    if (localStorage.getItem('auth-logout') === 'true') {
-      return;
-    }
-    
-    // Attempt to fetch the current user to see if session is valid
-    fetch('/api/users/me', { 
-      credentials: "include" // Include cookies for session authentication
-    })
-    .then(async (res) => {
-      // Check for auth header
-      const authStatus = res.headers.get('X-Auth-Status');
-      
-      if (res.ok && authStatus === 'authenticated') {
-        // User is authenticated
-        const userData = await res.json();
-        queryClient.setQueryData(['/api/users/me'], userData);
-        setIsAuthenticated(true);
-      } else if (authStatus === 'unauthenticated') {
-        // User is explicitly unauthenticated - set the logout flag
-        localStorage.setItem('auth-logout', 'true');
-        setIsAuthenticated(false);
-        queryClient.setQueryData(['/api/users/me'], null);
-      }
-    })
-    .catch(err => {
-      console.log('Initial auth check failed:', err);
-      // Do nothing - user will need to log in
-    });
-  }, [queryClient]);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for demo
 
   const {
     data: user,
@@ -129,86 +78,34 @@ export function UserProvider({ children }: { children: ReactNode }) {
       password: string; 
       loginType?: 'staff' | 'admin' 
     }) => {
-      try {
-        // Clear any logout flag before attempting login
-        localStorage.removeItem('auth-logout');
-        
-        const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
-        
-        // Check for successful response
-        if (!res.ok) {
-          throw new Error("Login failed");
-        }
-        
-        // Check for auth header to confirm authentication worked
-        if (res.headers.get('X-Auth-Status') !== 'authenticated') {
-          console.warn('Authentication header not found in response');
-        }
-        
-        const data = await res.json();
-        
-        // Handle both response formats - one with nested user and one with user directly
-        let userData: User;
-        let redirectPathData: string | undefined;
-        
-        if (data && data.user) {
-          // New response format
-          userData = data.user as User;
-          redirectPathData = data.redirectPath;
-        } else if (data && data.id) {
-          // Direct user object format
-          userData = data as User;
-          redirectPathData = userData.redirectPath;
-        } else {
-          throw new Error("Invalid server response");
-        }
-        
-        // Return both user and redirectPath from the server response
-        return {
-          user: userData,
-          redirectPath: redirectPathData
-        };
-      } catch (error) {
-        console.error('Login error:', error);
-        throw error;
-      }
+      const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
+      const data = await res.json();
+      // Return both user and redirectPath from the server response
+      return {
+        user: data.user as User,
+        redirectPath: data.redirectPath
+      };
     },
     onSuccess: (data) => {
-      // Update auth state
       queryClient.setQueryData(['/api/users/me'], data.user);
       setIsAuthenticated(true);
       
-      console.log('Authentication successful, user data:', data.user);
-      
-      // Directly set document.location for immediate navigation without React update issues
-      const redirectToUrl = (url: string) => {
-        console.log('Redirecting to:', url);
-        document.location.href = url;
-      };
-        
       // Use the redirect path provided by the server, or fall back to role-based redirect
       if (data.redirectPath) {
-        redirectToUrl(data.redirectPath);
+        window.location.href = data.redirectPath;
       } else {
         // Fall back to role-based redirection
         const user = data.user;
         if (user.userType === 'admin') {
-          redirectToUrl('/admin');
+          window.location.href = '/admin';
         } else if (user.userType === 'staff') {
-          redirectToUrl('/staff');
+          window.location.href = '/staff';
         } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-          redirectToUrl('/university');
+          window.location.href = '/university';
         } else { // regular user
-          redirectToUrl('/dashboard');
+          window.location.href = '/dashboard';
         }
       }
-    },
-    onError: (error) => {
-      console.error('Login mutation error:', error);
-      // Ensure we're marked as unauthenticated
-      setIsAuthenticated(false);
-      // Clear any cached user data
-      queryClient.setQueryData(['/api/users/me'], null);
     },
   });
 
@@ -232,80 +129,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');
     
-    try {
-      console.log('Starting login process for:', email);
-      
-      // Make direct fetch request instead of using mutation to avoid React state update issues
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, loginType }),
-        credentials: 'include' // Include cookies
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-      
-      // Parse the response
-      const data = await response.json();
-      console.log('Login API success, received data:', data);
-      
-      // Extract user data from response (handle both formats)
-      let userData: User;
-      if (data.user && data.user.id) {
-        userData = data.user; 
-      } else if (data.id) {
-        userData = data;
-      } else {
-        console.error('Invalid login response format:', data);
-        throw new Error('Invalid server response format');
-      }
-      
-      // Update the authentication state
-      queryClient.setQueryData(['/api/users/me'], userData);
-      setIsAuthenticated(true);
-      
-      // Store login state in localStorage
-      localStorage.setItem('auth-user', JSON.stringify({
-        id: userData.id,
-        authenticated: true,
-        timestamp: new Date().toISOString()
-      }));
-      
-      // Determine redirect path
-      const redirectPath = data.redirectPath || userData.redirectPath || getRedirectPathByRole(userData.userType);
-      console.log('Authentication successful, redirecting to:', redirectPath);
-      
-      // Perform the redirect
-      window.location.href = redirectPath;
-      
-      return userData;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    const result = await loginMutation.mutateAsync({ email, password, loginType });
+    return result.user;
   };
 
   const logout = () => {
-    // Utility function for redirection to avoid React update issues
-    const redirectToSignIn = () => {
-      console.log('Redirecting to sign-in page after logout');
-      document.location.href = '/sign-in';
-    };
-    
     // Make an API call to logout
     apiRequest('POST', '/api/auth/logout')
       .then((response) => {
-        // Check both special headers we've added
+        // Check for the special header we added for logout
         const logoutHeader = response.headers.get('X-Auth-Logout');
-        const authStatus = response.headers.get('X-Auth-Status');
-        
-        console.log('Logout response headers:', {
-          logoutHeader,
-          authStatus
-        });
         
         // Set the auth-logout flag in localStorage for future requests
         localStorage.setItem('auth-logout', 'true');
@@ -314,8 +147,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
         
-        // Redirect to sign-in using document.location
-        redirectToSignIn();
+        // Redirect to sign-in page
+        window.location.href = '/sign-in';
       })
       .catch(error => {
         console.error('Logout error:', error);
@@ -323,9 +156,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('auth-logout', 'true');
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
-        
-        // Redirect to sign-in using document.location
-        redirectToSignIn();
+        window.location.href = '/sign-in';
       });
   };
 
@@ -399,9 +230,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // the theme preference to the user's record in the database
       
       // For now, we'll directly update the theme.json file by simulating it
-      // and reload the theme using document.location to avoid React state updates
+      // and reload the theme
       setTimeout(() => {
-        document.location.reload();
+        window.location.reload();
       }, 500);
       
     } catch (error) {
