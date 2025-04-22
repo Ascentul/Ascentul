@@ -48,6 +48,15 @@ import {
   type InterviewProcess,
   type InsertInterviewProcess,
   interviewStages,
+  jobListings,
+  type JobListing,
+  type InsertJobListing,
+  jobApplications,
+  type JobApplication,
+  type InsertJobApplication,
+  applicationWizardSteps,
+  type ApplicationWizardStep,
+  type InsertApplicationWizardStep,
   type InterviewStage,
   type InsertInterviewStage,
   followupActions,
@@ -287,6 +296,35 @@ export interface IStorage {
   getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined>;
   createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation>;
   getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]>;
+  
+  // Job Listings operations
+  getJobListings(filters?: { 
+    query?: string; 
+    location?: string; 
+    remote?: boolean; 
+    jobType?: string; 
+    page?: number; 
+    pageSize?: number; 
+  }): Promise<{ listings: JobListing[]; total: number }>;
+  getJobListing(id: number): Promise<JobListing | undefined>;
+  createJobListing(listing: InsertJobListing): Promise<JobListing>;
+  updateJobListing(id: number, listingData: Partial<JobListing>): Promise<JobListing | undefined>;
+  deleteJobListing(id: number): Promise<boolean>;
+  
+  // Job Applications operations
+  getJobApplications(userId: number): Promise<JobApplication[]>;
+  getJobApplication(id: number): Promise<JobApplication | undefined>;
+  createJobApplication(userId: number, application: InsertJobApplication): Promise<JobApplication>;
+  updateJobApplication(id: number, applicationData: Partial<JobApplication>): Promise<JobApplication | undefined>;
+  submitJobApplication(id: number): Promise<JobApplication | undefined>;
+  deleteJobApplication(id: number): Promise<boolean>;
+  
+  // Application Wizard Steps operations
+  getApplicationWizardSteps(applicationId: number): Promise<ApplicationWizardStep[]>;
+  getApplicationWizardStep(id: number): Promise<ApplicationWizardStep | undefined>;
+  createApplicationWizardStep(applicationId: number, step: InsertApplicationWizardStep): Promise<ApplicationWizardStep>;
+  updateApplicationWizardStep(id: number, stepData: Partial<ApplicationWizardStep>): Promise<ApplicationWizardStep | undefined>;
+  completeApplicationWizardStep(id: number): Promise<ApplicationWizardStep | undefined>;
   addMentorChatMessage(message: InsertMentorChatMessage): Promise<MentorChatMessage>;
 
   // Stats operations
@@ -383,6 +421,9 @@ export class MemStorage implements IStorage {
   private userPersonalAchievements: Map<number, UserPersonalAchievement>;
   private careerPaths: Map<number, CareerPath>;
   private skillStackerPlans: Map<number, SkillStackerPlan>;
+  private jobListings: Map<number, JobListing>;
+  private jobApplications: Map<number, JobApplication>;
+  private applicationWizardSteps: Map<number, ApplicationWizardStep>;
   private supportTickets: Map<number, any> = new Map();// Added supportTickets map
 
   private userIdCounter: number;
@@ -409,6 +450,9 @@ export class MemStorage implements IStorage {
   private userPersonalAchievementIdCounter: number;
   private careerPathIdCounter: number;
   private skillStackerPlanIdCounter: number;
+  private jobListingIdCounter: number;
+  private jobApplicationIdCounter: number;
+  private applicationWizardStepIdCounter: number;
   private supportTicketIdCounter: number = 1; // Counter for support tickets
 
   public sessionStore: session.Store;
@@ -441,6 +485,9 @@ export class MemStorage implements IStorage {
     this.userPersonalAchievements = new Map();
     this.careerPaths = new Map();
     this.skillStackerPlans = new Map();
+    this.jobListings = new Map();
+    this.jobApplications = new Map();
+    this.applicationWizardSteps = new Map();
 
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -466,6 +513,9 @@ export class MemStorage implements IStorage {
     this.userPersonalAchievementIdCounter = 1;
     this.careerPathIdCounter = 1;
     this.skillStackerPlanIdCounter = 1;
+    this.jobListingIdCounter = 1;
+    this.jobApplicationIdCounter = 1;
+    this.applicationWizardStepIdCounter = 1;
 
     // Initialize with sample data for testing
     this.initializeData();
