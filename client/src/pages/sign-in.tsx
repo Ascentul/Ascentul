@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useUser } from '@/lib/useUserData';
 import { Button } from "@/components/ui/button";
