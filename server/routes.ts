@@ -12,6 +12,7 @@ import { registerAICoachRoutes } from "./routes/ai-coach";
 import { registerSkillsRoutes } from "./skills";
 import { registerLanguagesRoutes } from "./languages";
 import { registerContactsRoutes } from "./contacts";
+import * as openai from "./openai";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -2250,6 +2251,107 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     } catch (error: any) {
       console.error("Error generating resume:", error);
       res.status(500).json({ message: `Error generating resume: ${error.message}` });
+    }
+  });
+  
+  // Resume file upload endpoint
+  apiRouter.post("/resumes/upload", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Get current user from session
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Check if we received file data in JSON format
+      if (req.body && req.body.fileDataUrl) {
+        console.log("Received resume file data");
+        
+        // Extract the base64 data from the data URL
+        const matches = req.body.fileDataUrl.match(/^data:application\/([A-Za-z-+\/]+);base64,(.+)$/);
+        
+        if (!matches || matches.length !== 3) {
+          console.error("Invalid file data URL format");
+          return res.status(400).json({ message: "Invalid file data" });
+        }
+        
+        const fileType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Create a unique filename
+        const timestamp = Date.now();
+        const filename = `resume_${user.id}_${timestamp}.${fileType}`;
+        const dir = path.join(process.cwd(), 'uploads', 'resumes');
+        const fullPath = path.join(dir, filename);
+        const filepath = `/uploads/resumes/${filename}`;
+        
+        // Create the uploads/resumes directory if it doesn't exist
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Write the file
+        fs.writeFileSync(fullPath, buffer);
+        console.log("Resume file saved successfully");
+        
+        // Return the file path to the client
+        res.json({ 
+          success: true, 
+          filePath: filepath,
+          message: "Resume uploaded successfully" 
+        });
+      } else {
+        return res.status(400).json({ message: "No file data provided" });
+      }
+    } catch (error) {
+      console.error("Error uploading resume:", error);
+      res.status(500).json({ message: "Error uploading resume" });
+    }
+  });
+
+  // Resume text extraction endpoint (parse text from file)
+  apiRouter.post("/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // For now, we'll just use the text provided by the client
+      // In a production app, we would use a PDF parser to extract text from the uploaded file
+      const { text } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "No resume text provided" });
+      }
+      
+      res.json({ 
+        success: true, 
+        text: text,
+        message: "Text extracted successfully" 
+      });
+    } catch (error) {
+      console.error("Error extracting text from resume:", error);
+      res.status(500).json({ message: "Error extracting text from resume" });
+    }
+  });
+
+  // Resume analysis endpoint
+  apiRouter.post("/resumes/analyze", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { resumeText, jobDescription } = req.body;
+      
+      if (!resumeText || !jobDescription) {
+        return res.status(400).json({ 
+          message: "Both resume text and job description are required" 
+        });
+      }
+      
+      const analysis = await openai.analyzeResumeForJob(resumeText, jobDescription);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing resume:", error);
+      res.status(500).json({ 
+        message: "Error analyzing resume",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   
