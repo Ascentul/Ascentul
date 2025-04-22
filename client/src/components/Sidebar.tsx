@@ -39,8 +39,7 @@ import {
   PanelRight,
   ChevronsLeft,
   Menu,
-
-  User
+  User as UserIcon
 } from 'lucide-react';
 
 // Sidebar section types
@@ -61,7 +60,7 @@ type SidebarItem = {
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const { user, logout } = useUser();
+  const { user, logout, updateUser } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
   const sidebarRef = useRef<HTMLDivElement>(null);
