@@ -58,7 +58,12 @@ type SidebarItem = {
   pro?: boolean;
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onToggle?: () => void;
+}
+
+export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [location] = useLocation();
   const { user, logout, updateUser, updateProfile } = useUser();
   const isUnivUser = useIsUniversityUser();
@@ -197,22 +202,39 @@ export default function Sidebar() {
   return (
     <div 
       ref={sidebarRef}
-      className={`hidden md:flex flex-col transition-all duration-300 ease-in-out bg-white shadow-md z-30 ${expanded ? 'w-64' : 'w-16'}`} 
+      className={`flex-col transition-all duration-300 ease-in-out bg-white shadow-md z-30 
+        ${expanded ? 'w-64' : 'w-16'} 
+        ${isOpen ? 'flex fixed inset-y-0 left-0 md:relative' : 'hidden md:flex'}`} 
       data-expanded={expanded ? 'true' : 'false'}
     >
       <div className="flex items-center justify-between h-16 border-b px-3">
         {expanded && (
           <img src={ascentulLogo} alt="Ascentul" className="h-6 ml-2" />
         )}
+        
+        {/* Desktop sidebar toggle */}
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={toggleSidebar} 
-          className="ml-auto"
+          onClick={toggleSidebar}
+          className="ml-auto hidden md:flex"
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
           {expanded ? <PanelLeft size={18} /> : <PanelRight size={18} />}
         </Button>
+        
+        {/* Mobile close button */}
+        {isOpen && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggle}
+            className="ml-auto md:hidden"
+            aria-label="Close sidebar"
+          >
+            <ChevronsLeft className="h-6 w-6" />
+          </Button>
+        )}
       </div>
       
       {/* User Profile Summary */}
