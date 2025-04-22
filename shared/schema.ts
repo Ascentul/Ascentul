@@ -919,3 +919,35 @@ export type InsertLanguage = z.infer<typeof insertLanguageSchema>;
 
 export type EducationHistory = typeof educationHistory.$inferSelect;
 export type InsertEducationHistory = z.infer<typeof insertEducationHistorySchema>;
+
+// Networking Contacts (Ascentul CRM)
+export const networkingContacts = pgTable("networking_contacts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  fullName: text("full_name").notNull(),
+  jobTitle: text("job_title").notNull(),
+  company: text("company").notNull(),
+  relationshipType: text("relationship_type").notNull(), // Mentor, Recruiter, Peer, Leader, etc.
+  email: text("email"),
+  phone: text("phone"),
+  linkedInUrl: text("linkedin_url"),
+  lastContactedDate: timestamp("last_contacted_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertNetworkingContactSchema = createInsertSchema(networkingContacts).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  // Convert lastContactedDate string to Date object if it's not already a Date
+  lastContactedDate: z.date().optional().nullable().or(
+    z.string().transform((val) => val ? new Date(val) : null)
+  ),
+});
+
+export type NetworkingContact = typeof networkingContacts.$inferSelect;
+export type InsertNetworkingContact = z.infer<typeof insertNetworkingContactSchema>;

@@ -1,0 +1,70 @@
+Project Title: Ascentul – AI-Powered Connection CRM
+
+Build a full-stack career networking assistant (mini-CRM) where users can log their professional contacts, track interactions, and use AI to manage networking follow-ups.
+
+Core Purpose:
+Help users build, maintain, and grow their professional network in one place. The system should intelligently suggest when to follow up, summarize meeting notes, and draft personalized messages using AI.
+
+---
+
+🛠 MVP Feature Set:
+
+🔐 Authentication
+- Simple email/password login or Replit Auth for user sessions
+- Each user manages their own contacts
+
+👥 Contact Manager
+- Create, edit, delete professional contacts with the following fields:
+  - Full Name
+  - Job Title
+  - Company
+  - Relationship Type (dropdown: Mentor, Recruiter, Peer, Leader, etc.)
+  - Last Contacted Date (manual input or auto-update)
+  - Free-form Notes (meeting summary, details, etc.)
+- Store in SQLite or Supabase database, linked to user ID
+
+📊 Dashboard
+- Table view of contacts with:
+  - Search bar (filter by name, title, company)
+  - Sort by Last Contact Date (most to least recent)
+  - Tag-based filtering (by Relationship Type)
+- Follow-up badge logic:
+  - If contact hasn’t been updated in 30+ days → mark “Follow Up This Week”
+
+🤖 AI Tools (OpenAI API)
+- ✨ Summarize Notes:
+  - Take the user’s raw notes and summarize them into 3-5 bullet points
+- ✉️ Draft Follow-Up Message:
+  - Auto-generate a personalized follow-up message
+  - Allow user to select tone: Friendly, Warm, Professional
+  - Pre-fill context: last contact date, notes, company
+
+💡 Bonus AI Feature (optional):
+- Suggest 3 contacts to reconnect with weekly (based on inactivity + priority tags)
+
+---
+
+💻 Tech Stack:
+- Frontend: HTML/CSS + Tailwind or React (optional for speed)
+- Backend: Flask or FastAPI
+- Database: SQLite for MVP, Supabase for scaling
+- AI: OpenAI GPT-4 or ChatGPT API
+- Hosting: Replit
+
+---
+
+🚀 Stretch Goals (if time allows):
+- Timeline view per contact showing history of interactions
+- “Wins” tagging for resume or brand-building purposes
+- Weekly digest email: “3 people to follow up with this week”
+
+---
+
+🧠 Prompt Notes:
+- Design the UI to feel like a modern productivity tool (Notion or Linear-inspired)
+- Make the AI interactions seamless and non-intrusive
+- Prioritize mobile responsiveness and clean UX
+
+---
+
+End goal: This should feel like the user's **networking command center**—a mix of Notion, Superhuman, and AI wizardry—designed to reduce networking friction, build better relationships, and help Ascentul users move faster.
