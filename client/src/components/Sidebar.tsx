@@ -36,7 +36,9 @@ import {
   PanelLeft,
   PanelRight,
   ChevronsLeft,
-  Menu
+  Menu,
+  LayoutPanelLeft,
+  PanelLeftClose
 } from 'lucide-react';
 
 // Sidebar section types
@@ -64,6 +66,20 @@ export default function Sidebar() {
   const [expanded, setExpanded] = useState<boolean>(
     localStorage.getItem('sidebarExpanded') !== 'false'
   );
+  const [menuPositions, setMenuPositions] = useState<Record<string, number>>({});
+  
+  // Update menu positions when active section changes
+  useEffect(() => {
+    if (!expanded && activeSection) {
+      const element = document.querySelector(`[data-section-id="${activeSection}"]`) as HTMLElement;
+      if (element) {
+        setMenuPositions(prev => ({
+          ...prev,
+          [activeSection]: element.getBoundingClientRect().top
+        }));
+      }
+    }
+  }, [activeSection, expanded]);
   
   // Auto-detect the current section based on location
   useEffect(() => {
@@ -172,7 +188,7 @@ export default function Sidebar() {
           className="ml-auto"
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {expanded ? <ChevronsLeft size={18} /> : <Menu size={18} />}
+          {expanded ? <PanelLeftClose size={18} /> : <LayoutPanelLeft size={18} />}
         </Button>
       </div>
       
@@ -291,6 +307,7 @@ export default function Sidebar() {
               <div key={section.id} className="relative">
                 {/* Section header */}
                 <button
+                  data-section-id={section.id}
                   className={`w-full flex items-center ${expanded ? 'justify-between' : 'justify-center'} rounded-md ${expanded ? 'px-3' : 'px-2'} py-2 text-sm transition-colors
                     ${activeSection === section.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
                   onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
@@ -304,10 +321,13 @@ export default function Sidebar() {
                   </div>
                   {expanded && (
                     <motion.div
-                      animate={{ rotate: activeSection === section.id ? 90 : 0 }}
+                      animate={{ rotate: activeSection === section.id ? 0 : 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      {activeSection === section.id ? 
+                        <PanelLeftClose className="w-4 h-4" /> : 
+                        <LayoutPanelLeft className="w-4 h-4" />
+                      }
                     </motion.div>
                   )}
                 </button>
@@ -347,8 +367,14 @@ export default function Sidebar() {
                   
                   {/* Popup menu for collapsed mode */}
                   {!expanded && activeSection === section.id && (
-                    <div className="absolute left-full top-0 ml-2 bg-white rounded-md shadow-md z-50 min-w-48 border overflow-hidden">
+                    <div className="fixed left-16 top-auto mt-0 bg-white rounded-md shadow-md z-50 min-w-64 border overflow-hidden"
+                         style={{ top: `${menuPositions[section.id] || 0}px` }}
+                    >
                       <div className="py-1">
+                        <div className="px-4 py-2 font-medium border-b mb-1 flex items-center">
+                          {section.icon}
+                          <span className="ml-2">{section.title}</span>
+                        </div>
                         {section.items.map((item) => (
                           <Link
                             key={item.href}
