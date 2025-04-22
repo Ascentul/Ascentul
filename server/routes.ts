@@ -84,7 +84,7 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
 // Middleware to check if user is a staff member
 async function requireStaff(req: Request, res: Response, next: () => void) {
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+    return sendUnauthenticatedResponse(res);
   }
 
   const user = await storage.getUser(req.session.userId);
@@ -93,8 +93,8 @@ async function requireStaff(req: Request, res: Response, next: () => void) {
     return res.status(403).json({ message: "Access denied. Staff privileges required." });
   }
   
-  // Set authentication header
-  res.setHeader('X-Auth-Status', 'authenticated');
+  // Mark response as authenticated
+  markResponseAuthenticated(res);
   next();
 }
 
@@ -103,7 +103,7 @@ async function requireStaff(req: Request, res: Response, next: () => void) {
 // Middleware for data validation to ensure users can only access their own data
 async function validateUserAccess(req: Request, res: Response, next: () => void) {
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+    return sendUnauthenticatedResponse(res);
   }
 
   // Get the requested resource ID (usually from URL params)
@@ -112,16 +112,20 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
   
   if (!resourceId && !resourceUserId) {
     // If no specific resource is targeted, allow the request to proceed
+    // Mark response as authenticated
+    markResponseAuthenticated(res);
     return next();
   }
   
   const user = await storage.getUser(req.session.userId);
   if (!user) {
-    return res.status(401).json({ message: "User not found" });
+    return sendUnauthenticatedResponse(res, "User not found");
   }
   
   // Admins can access any data
   if (user.userType === 'admin') {
+    // Mark response as authenticated for admin
+    markResponseAuthenticated(res);
     return next();
   }
   
@@ -130,16 +134,14 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
   // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
   // Then check if resource.userId === user.id
   
-  // University-specific code removed
-  
   // For all other cases, only allow access to own data
   if (resourceUserId && resourceUserId !== user.id) {
     console.log(`Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`);
     return res.status(403).json({ message: "Access denied. You can only access your own data." });
   }
   
-  // Set authentication header
-  res.setHeader('X-Auth-Status', 'authenticated');
+  // Mark response as authenticated
+  markResponseAuthenticated(res);
   
   // Default case - proceed to the route handler
   next();
