@@ -56,6 +56,7 @@ export default function Sidebar() {
     { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
     { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
     { href: '/work-history', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Work History' },
+    { href: '/education-history', icon: <GraduationCap className="w-5 h-5 mr-3" />, label: 'Education History' },
     { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
   ];
 
