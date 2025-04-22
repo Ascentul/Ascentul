@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Loader2 } from 'lucide-react';
+import { JobSearch, type Job } from './JobSearch';
 
 // Define the form schema for job application
 const applicationSchema = z.object({
@@ -119,13 +120,13 @@ export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
   };
 
   // Handle job selection
-  const handleJobSelect = (job: any) => {
+  const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
     form.setValue('jobTitle', job.title);
     form.setValue('companyName', job.company);
     form.setValue('jobLocation', job.location || '');
-    form.setValue('jobLink', job.jobUrl);
-    form.setValue('jobDescription', job.description);
+    form.setValue('jobLink', job.applyUrl);
+    form.setValue('jobDescription', job.fullDescription || job.description);
     setStep(2);
   };
 
@@ -270,9 +271,10 @@ export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <h3 className="font-medium mb-2">Recent job searches</h3>
-                  <p className="text-muted-foreground text-sm">No recent searches found.</p>
+                <div className="mt-6">
+                  <h3 className="font-medium mb-4">Search for Jobs</h3>
+                  {/* Add our new JobSearch component */}
+                  <JobSearch onSelectJob={handleJobSelect} />
                 </div>
               </div>
             </TabsContent>

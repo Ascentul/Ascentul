@@ -69,7 +69,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
     queryKey: ['/api/jobs/sources'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('/api/jobs/sources', { method: 'GET' });
+        const response = await apiRequest<{ sources: Array<{ name: string, id: string }> }>('/api/jobs/sources');
         return response.sources || [];
       } catch (error) {
         console.error('Error fetching job sources:', error);
@@ -79,13 +79,21 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
     enabled: true,
   });
 
+  // Define the search results type
+  interface JobSearchResults {
+    jobs: Job[];
+    totalJobs: number;
+    currentPage: number;
+    pageCount: number;
+  }
+
   // Job search query
   const { 
     data: searchResults, 
     isLoading, 
     isError,
     error 
-  } = useQuery({
+  } = useQuery<JobSearchResults>({
     queryKey: ['/api/jobs/search', searchParams],
     queryFn: async () => {
       if (!searchParams) {
@@ -103,7 +111,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
           pageSize: '10',
         }).toString();
         
-        const response = await apiRequest(`/api/jobs/search?${queryString}`, { method: 'GET' });
+        const response = await apiRequest<JobSearchResults>(`/api/jobs/search?${queryString}`);
         return response;
       } catch (error) {
         console.error('Error searching jobs:', error);
@@ -140,7 +148,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
   // Handle pagination
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
-    setSearchParams(prev => ({ ...prev, page: newPage }));
+    setSearchParams((prev: any) => ({ ...prev, page: newPage }));
   };
 
   // Render job card
