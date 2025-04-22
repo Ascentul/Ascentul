@@ -31,7 +31,8 @@ import {
   ClipboardList,
   Clock,
   Building,
-  Calendar
+  Calendar,
+  FileEdit
 } from 'lucide-react';
 
 // Sidebar section types
@@ -91,6 +92,7 @@ export default function Sidebar() {
       title: 'Job Search',
       icon: <Search className="w-5 h-5" />,
       items: [
+        { href: '/apply', icon: <FileEdit className="w-5 h-5 mr-3" />, label: 'Application Agent' },
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
