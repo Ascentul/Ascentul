@@ -419,12 +419,13 @@ export class MemStorage implements IStorage {
   private recommendations: Map<number, Recommendation>;
   private certifications: Map<number, Certification>;
   private userPersonalAchievements: Map<number, UserPersonalAchievement>;
+  private projects: Map<number, Project>;
+  private supportTickets: Map<number, any>;
   private careerPaths: Map<number, CareerPath>;
   private skillStackerPlans: Map<number, SkillStackerPlan>;
   private jobListings: Map<number, JobListing>;
   private jobApplications: Map<number, JobApplication>;
   private applicationWizardSteps: Map<number, ApplicationWizardStep>;
-  private supportTickets: Map<number, any> = new Map();// Added supportTickets map
 
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -453,7 +454,8 @@ export class MemStorage implements IStorage {
   private jobListingIdCounter: number;
   private jobApplicationIdCounter: number;
   private applicationWizardStepIdCounter: number;
-  private supportTicketIdCounter: number = 1; // Counter for support tickets
+  private supportTicketIdCounter: number;
+  private projectIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -516,6 +518,12 @@ export class MemStorage implements IStorage {
     this.jobListingIdCounter = 1;
     this.jobApplicationIdCounter = 1;
     this.applicationWizardStepIdCounter = 1;
+    this.supportTicketIdCounter = 1;
+    this.projectIdCounter = 1;
+    
+    // Initialize new maps for the Apply feature
+    this.projects = new Map();
+    this.supportTickets = new Map();
 
     // Initialize with sample data for testing
     this.initializeData();

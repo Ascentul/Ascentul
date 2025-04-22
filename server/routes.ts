@@ -4447,6 +4447,356 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
     }
   });
 
+  // Job Listings API Routes
+  apiRouter.get("/api/job-listings", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const query = req.query.query as string | undefined;
+      const location = req.query.location as string | undefined;
+      const remote = req.query.remote === 'true';
+      const jobType = req.query.jobType as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : 10;
+      
+      const result = await storage.getJobListings({
+        query,
+        location,
+        remote: req.query.remote === 'true' ? true : undefined,
+        jobType,
+        page,
+        pageSize
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching job listings:", error);
+      res.status(500).json({ message: "Failed to fetch job listings" });
+    }
+  });
+
+  apiRouter.get("/api/job-listings/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const listing = await storage.getJobListing(id);
+      
+      if (!listing) {
+        return res.status(404).json({ message: "Job listing not found" });
+      }
+      
+      res.json(listing);
+    } catch (error) {
+      console.error("Error fetching job listing:", error);
+      res.status(500).json({ message: "Failed to fetch job listing" });
+    }
+  });
+
+  apiRouter.post("/api/job-listings", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Only admin users can create job listings
+      const listingData = insertJobListingSchema.parse(req.body);
+      const listing = await storage.createJobListing(listingData);
+      res.status(201).json(listing);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid job listing data", errors: error.errors });
+      }
+      console.error("Error creating job listing:", error);
+      res.status(500).json({ message: "Failed to create job listing" });
+    }
+  });
+
+  apiRouter.put("/api/job-listings/:id", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Only admin users can update job listings
+      const id = parseInt(req.params.id);
+      const listingData = req.body;
+      const updatedListing = await storage.updateJobListing(id, listingData);
+      
+      if (!updatedListing) {
+        return res.status(404).json({ message: "Job listing not found" });
+      }
+      
+      res.json(updatedListing);
+    } catch (error) {
+      console.error("Error updating job listing:", error);
+      res.status(500).json({ message: "Failed to update job listing" });
+    }
+  });
+
+  apiRouter.delete("/api/job-listings/:id", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Only admin users can delete job listings
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteJobListing(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Job listing not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting job listing:", error);
+      res.status(500).json({ message: "Failed to delete job listing" });
+    }
+  });
+
+  // Job Applications API Routes
+  apiRouter.get("/api/applications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const applications = await storage.getJobApplications(user.id);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching job applications:", error);
+      res.status(500).json({ message: "Failed to fetch job applications" });
+    }
+  });
+
+  apiRouter.get("/api/applications/:id", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const application = await storage.getJobApplication(id);
+      
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      // Get application wizard steps
+      const steps = await storage.getApplicationWizardSteps(id);
+      
+      res.json({
+        application,
+        steps
+      });
+    } catch (error) {
+      console.error("Error fetching job application:", error);
+      res.status(500).json({ message: "Failed to fetch job application" });
+    }
+  });
+
+  apiRouter.post("/api/applications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const applicationData = insertJobApplicationSchema.parse(req.body);
+      const application = await storage.createJobApplication(user.id, applicationData);
+      
+      // Create default application wizard steps
+      const defaultSteps = [
+        {
+          applicationId: application.id,
+          order: 1,
+          title: "Resume Selection",
+          description: "Select a resume for this application or create a new one tailored to the position",
+          type: "resume",
+          isRequired: true
+        },
+        {
+          applicationId: application.id,
+          order: 2,
+          title: "Cover Letter",
+          description: "Create a custom cover letter for this job application",
+          type: "cover_letter",
+          isRequired: true
+        },
+        {
+          applicationId: application.id,
+          order: 3,
+          title: "Application Details",
+          description: "Complete the application details required by the employer",
+          type: "details",
+          isRequired: true
+        },
+        {
+          applicationId: application.id,
+          order: 4,
+          title: "Review",
+          description: "Review your application before submission",
+          type: "review",
+          isRequired: true
+        }
+      ];
+      
+      const wizardSteps = await Promise.all(
+        defaultSteps.map(step => storage.createApplicationWizardStep(application.id, step))
+      );
+      
+      res.status(201).json({
+        application,
+        steps: wizardSteps
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid application data", errors: error.errors });
+      }
+      console.error("Error creating job application:", error);
+      res.status(500).json({ message: "Failed to create job application" });
+    }
+  });
+
+  apiRouter.put("/api/applications/:id", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const applicationData = req.body;
+      const updatedApplication = await storage.updateJobApplication(id, applicationData);
+      
+      if (!updatedApplication) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      res.json(updatedApplication);
+    } catch (error) {
+      console.error("Error updating job application:", error);
+      res.status(500).json({ message: "Failed to update job application" });
+    }
+  });
+
+  apiRouter.post("/api/applications/:id/submit", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      try {
+        const submittedApplication = await storage.submitJobApplication(id);
+        
+        if (!submittedApplication) {
+          return res.status(404).json({ message: "Application not found" });
+        }
+        
+        res.json(submittedApplication);
+      } catch (error) {
+        if (error instanceof Error) {
+          return res.status(400).json({ message: error.message });
+        }
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error submitting job application:", error);
+      res.status(500).json({ message: "Failed to submit job application" });
+    }
+  });
+
+  apiRouter.delete("/api/applications/:id", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteJobApplication(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting job application:", error);
+      res.status(500).json({ message: "Failed to delete job application" });
+    }
+  });
+
+  // Application Wizard Steps API Routes
+  apiRouter.get("/api/applications/:applicationId/steps", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
+    try {
+      const applicationId = parseInt(req.params.applicationId);
+      const steps = await storage.getApplicationWizardSteps(applicationId);
+      res.json(steps);
+    } catch (error) {
+      console.error("Error fetching application wizard steps:", error);
+      res.status(500).json({ message: "Failed to fetch application wizard steps" });
+    }
+  });
+
+  apiRouter.get("/api/application-steps/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const step = await storage.getApplicationWizardStep(id);
+      
+      if (!step) {
+        return res.status(404).json({ message: "Application step not found" });
+      }
+      
+      // Get the application to check user access
+      const application = await storage.getJobApplication(step.applicationId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      const user = await getCurrentUser(req);
+      if (!user || (application.userId !== user.id && user.userType !== 'admin')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(step);
+    } catch (error) {
+      console.error("Error fetching application step:", error);
+      res.status(500).json({ message: "Failed to fetch application step" });
+    }
+  });
+
+  apiRouter.put("/api/application-steps/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const stepData = req.body;
+      
+      // First get the step to verify user access
+      const step = await storage.getApplicationWizardStep(id);
+      if (!step) {
+        return res.status(404).json({ message: "Application step not found" });
+      }
+      
+      // Get the application
+      const application = await storage.getJobApplication(step.applicationId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      // Verify the user has access to this application
+      const user = await getCurrentUser(req);
+      if (!user || (application.userId !== user.id && user.userType !== 'admin')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedStep = await storage.updateApplicationWizardStep(id, stepData);
+      res.json(updatedStep);
+    } catch (error) {
+      console.error("Error updating application step:", error);
+      res.status(500).json({ message: "Failed to update application step" });
+    }
+  });
+
+  apiRouter.post("/api/application-steps/:id/complete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // First get the step to verify user access
+      const step = await storage.getApplicationWizardStep(id);
+      if (!step) {
+        return res.status(404).json({ message: "Application step not found" });
+      }
+      
+      // Get the application
+      const application = await storage.getJobApplication(step.applicationId);
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+      
+      // Verify the user has access to this application
+      const user = await getCurrentUser(req);
+      if (!user || (application.userId !== user.id && user.userType !== 'admin')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const completedStep = await storage.completeApplicationWizardStep(id);
+      res.json(completedStep);
+    } catch (error) {
+      console.error("Error completing application step:", error);
+      res.status(500).json({ message: "Failed to complete application step" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
