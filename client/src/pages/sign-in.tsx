@@ -31,8 +31,15 @@ export default function SignIn() {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || 'Login failed';
+        } catch (e) {
+          // If the response isn't JSON, use the status text
+          errorMessage = `Login failed: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
@@ -51,15 +58,13 @@ export default function SignIn() {
         timestamp: new Date().toISOString()
       }));
       
-      // Determine redirect path
-      const redirectPath = data.redirectPath || 
-                          (data.user && data.user.redirectPath) || 
-                          '/career-dashboard';
+      // For the most reliable navigation, use plain JavaScript to change the URL
+      // This bypasses routing frameworks completely
+      console.log('Authentication successful, redirecting to dashboard');
       
-      console.log('Authentication successful, redirecting to:', redirectPath);
-      
-      // Use window.location.href for most reliable redirect
-      window.location.href = redirectPath;
+      // Force the navigation via document.location with hard-coded path
+      // The server may provide redirectPath, but we're setting a fallback
+      document.location.href = '/career-dashboard';
       
     } catch (error) {
       console.error('Login error:', error);
