@@ -214,11 +214,11 @@ export default function ProfileImageUploader({
       // Close the dialog
       setIsOpen(false);
       
-      // Force a refresh of the page to ensure all component updates
-      // This is a more aggressive solution but ensures everything gets updated
+      // Add a delay before reloading to ensure the server has processed the image
       setTimeout(() => {
+        console.log("Reloading page to refresh all components with new image");
         window.location.reload();
-      }, 500);
+      }, 800);
       
     } catch (error) {
       console.error('Error saving image:', error);

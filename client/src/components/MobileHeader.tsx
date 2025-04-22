@@ -71,7 +71,7 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
                         e.currentTarget.style.display = 'none';
                       }}
                       className="force-refresh-image"
-                      key={`mobile-avatar-${user.profileImage}`}
+                      key={`mobile-avatar-${Date.now()}`}
                     />
                   ) : (
                     <AvatarFallback className="bg-primary/10 text-primary">
