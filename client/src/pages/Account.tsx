@@ -16,12 +16,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import {
-  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw, Palette
+  User, CreditCard, ShieldCheck, Edit, CheckCircle2, Loader2, Sparkles, CreditCardIcon, RotateCcw,
+  Building, GraduationCap, Trophy, BookOpen, Award, Languages, MapPin, Users, Plus, Settings
 } from 'lucide-react';
 import EmailChangeForm, { EmailChangeFormValues } from '@/components/EmailChangeForm';
 import { z } from 'zod';
@@ -237,20 +239,18 @@ export default function Account() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
 
-  // Theme customization state
-  const [customColor, setCustomColor] = useState<string>('#0C29AB');
-  const [themeSettings, setThemeSettings] = useState<{
-    primary: string;
-    appearance: 'light' | 'dark' | 'system';
-    variant: 'professional' | 'tint' | 'vibrant';
-    radius: number;
-  }>({
-    primary: user?.theme?.primary || '#0C29AB',
-    appearance: (user?.theme?.appearance as 'light' | 'dark' | 'system') || 'light',
-    variant: (user?.theme?.variant as 'professional' | 'tint' | 'vibrant') || 'professional',
-    radius: user?.theme?.radius || 0.5
-  });
-  const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
+  // State for Career Profile sections completion tracking
+  const [profileSections, setProfileSections] = useState([
+    { id: 'work-history', title: 'Work History', icon: 'Building', completed: false },
+    { id: 'education', title: 'Education', icon: 'GraduationCap', completed: false },
+    { id: 'achievements', title: 'Achievements', icon: 'Trophy', completed: false },
+    { id: 'skills', title: 'Skills', icon: 'BookOpen', completed: false },
+    { id: 'certifications', title: 'Certifications', icon: 'Award', completed: false },
+    { id: 'languages', title: 'Languages', icon: 'Languages', completed: false },
+    { id: 'summary', title: 'Career Summary', icon: 'Users', completed: false },
+    { id: 'location', title: 'Location Preferences', icon: 'MapPin', completed: false },
+  ]);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
   // State for Stripe payment elements
   const [isLoading, setIsLoading] = useState(false);
@@ -266,12 +266,20 @@ export default function Account() {
   const changeEmailMutation = useChangeEmail();
   const changePasswordMutation = useChangePassword();
 
-  // Fetch current payment method when component mounts
+  // Fetch current payment method and calculate profile completion
   useEffect(() => {
     if (user && user.subscriptionPlan !== 'free') {
       fetchPaymentMethodInfo();
     }
-  }, [user]);
+    
+    // Calculate profile completion percentage
+    const completedSections = profileSections.filter(section => section.completed).length;
+    const percentage = (completedSections / profileSections.length) * 100;
+    setCompletionPercentage(percentage);
+    
+    // In a real implementation, fetch the profile sections data from the server
+    // and update the completion status based on that
+  }, [user, profileSections]);
 
   // Function to fetch the user's current payment method info
   const fetchPaymentMethodInfo = async () => {
@@ -490,66 +498,13 @@ export default function Account() {
     });
   };
 
-  // Theme update functions
-  const updateTheme = (updates: Partial<typeof themeSettings>) => {
-    setThemeSettings(prev => ({ ...prev, ...updates }));
-  };
-
-  const resetTheme = () => {
-    const defaultTheme = {
-      primary: '#0C29AB',
-      appearance: 'light' as const,
-      variant: 'professional' as const,
-      radius: 0.5
-    };
-    setThemeSettings(defaultTheme);
-    setCustomColor('#0C29AB');
-  };
-
-  const applyTheme = async () => {
-    try {
-      setIsUpdatingTheme(true);
-
-      // Send theme settings to the server
-      const response = await fetch('/api/theme', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(themeSettings)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update theme');
-      }
-
-      const data = await response.json();
-
-      // Update user context with the new theme
-      if (user) {
-        user.theme = themeSettings;
-      }
-
-      // Success message
-      toast({
-        title: "Theme Updated",
-        description: "Your theme settings have been saved successfully.",
-        variant: "default"
-      });
-
-      // Reload the page to apply the theme changes
-      window.location.reload();
-
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update theme",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdatingTheme(false);
-    }
+  // Function to handle edit for a career profile section
+  const handleEditSection = (sectionId: string) => {
+    // You would implement section-specific edit logic here
+    toast({
+      title: "Edit Section",
+      description: `Editing ${sectionId} section`,
+    });
   };
 
   if (!user) {
