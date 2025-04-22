@@ -381,6 +381,14 @@ export interface IStorage {
   createUserPersonalAchievement(userId: number, achievement: InsertUserPersonalAchievement): Promise<UserPersonalAchievement>;
   updateUserPersonalAchievement(id: number, achievementData: Partial<UserPersonalAchievement>): Promise<UserPersonalAchievement | undefined>;
   deleteUserPersonalAchievement(id: number): Promise<boolean>;
+  
+  // Networking Contacts (Ascentul CRM) operations
+  getNetworkingContacts(userId: number, filters?: { query?: string, relationshipType?: string }): Promise<NetworkingContact[]>;
+  getNetworkingContact(id: number): Promise<NetworkingContact | undefined>;
+  createNetworkingContact(userId: number, contact: InsertNetworkingContact): Promise<NetworkingContact>;
+  updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>): Promise<NetworkingContact | undefined>;
+  deleteNetworkingContact(id: number): Promise<boolean>;
+  getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]>;
 
   // Career Path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
@@ -432,6 +440,7 @@ export class MemStorage implements IStorage {
   private jobListings: Map<number, JobListing>;
   private jobApplications: Map<number, JobApplication>;
   private applicationWizardSteps: Map<number, ApplicationWizardStep>;
+  private networkingContacts: Map<number, NetworkingContact>;
 
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -462,6 +471,7 @@ export class MemStorage implements IStorage {
   private applicationWizardStepIdCounter: number;
   private supportTicketIdCounter: number;
   private projectIdCounter: number;
+  private networkingContactIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -496,6 +506,7 @@ export class MemStorage implements IStorage {
     this.jobListings = new Map();
     this.jobApplications = new Map();
     this.applicationWizardSteps = new Map();
+    this.networkingContacts = new Map();
 
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -526,6 +537,7 @@ export class MemStorage implements IStorage {
     this.applicationWizardStepIdCounter = 1;
     this.supportTicketIdCounter = 1;
     this.projectIdCounter = 1;
+    this.networkingContactIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
