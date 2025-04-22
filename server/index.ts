@@ -30,13 +30,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Configure session middleware
 app.use(session({
-  secret: "career-dev-platform-secret", // In production, use environment variable
+  secret: process.env.SESSION_SECRET || "career-dev-platform-secret-key-" + Math.random().toString(36).substring(2, 15),
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Changed to true to ensure session is saved
   store: sessionStore,
   cookie: { 
     secure: process.env.NODE_ENV === "production", // Only secure in production
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    httpOnly: true,
+    sameSite: 'lax' // Prevent CSRF while allowing normal navigation
   }
 }));
 
