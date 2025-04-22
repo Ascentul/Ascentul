@@ -268,6 +268,29 @@ const Interview = () => {
       process.status.toLowerCase().includes(query)
     );
   });
+  
+  // Filter applications by search query and status
+  const filteredApplications = applications?.filter(app => {
+    // First filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const companyMatch = app.companyName?.toLowerCase().includes(query) || false;
+      const titleMatch = app.jobTitle?.toLowerCase().includes(query) || false;
+      const statusMatch = app.status?.toLowerCase().includes(query) || false;
+      const locationMatch = app.jobLocation?.toLowerCase().includes(query) || false;
+      
+      if (!(companyMatch || titleMatch || statusMatch || locationMatch)) {
+        return false;
+      }
+    }
+    
+    // Then filter by status if a status filter is set
+    if (statusFilter && app.status !== statusFilter) {
+      return false;
+    }
+    
+    return true;
+  }) || [];
 
   // Group processes by status for dashboard view
   const activeProcesses = processes?.filter(p => 
@@ -321,6 +344,25 @@ const Interview = () => {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+    );
+  };
+  
+  // Render a job application card
+  const renderApplicationCard = (application: JobApplication, index: number) => {
+    return (
+      <motion.div
+        variants={listItem}
+        initial="hidden"
+        animate="visible"
+        key={application.id}
+        className="md:w-full"
+      >
+        <ApplicationCard 
+          application={application}
+          isSelected={selectedApplicationId === application.id}
+          onClick={() => setSelectedApplicationId(application.id)}
+        />
       </motion.div>
     );
   };
@@ -437,7 +479,7 @@ const Interview = () => {
             <div className="space-y-3">
               {activeTab === 'applications' && (
                 <>
-                  {isLoading ? (
+                  {isLoadingApplications ? (
                     <div className="py-6">
                       <LoadingState 
                         message="Loading applications..." 
@@ -446,59 +488,128 @@ const Interview = () => {
                         className="w-full rounded-lg"
                       />
                     </div>
-                  ) : filteredProcesses && filteredProcesses.length > 0 ? (
+                  ) : applications && applications.length > 0 ? (
                     <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
                       {/* Active section */}
                       <div className="space-y-3">
-                        <h3 className="font-medium flex items-center">
-                          <Briefcase className="h-4 w-4 mr-2" />
-                          Active Applications
-                        </h3>
-                        {filteredProcesses.filter(p => 
-                          p.status !== 'Completed' && 
-                          p.status !== 'Rejected' && 
-                          p.status !== 'Not Selected' && 
-                          p.status !== 'Hired'
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium flex items-center">
+                            <Briefcase className="h-4 w-4 mr-2" />
+                            Active Applications
+                          </h3>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setShowApplyWizard(true)}
+                            className="text-xs"
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1" />
+                            New Application
+                          </Button>
+                        </div>
+                        
+                        {/* Status filter buttons */}
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Button
+                            variant={statusFilter === null ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter(null)}
+                          >
+                            All
+                          </Button>
+                          <Button
+                            variant={statusFilter === "Not Started" ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter("Not Started")}
+                          >
+                            <ApplicationStatusBadge status="Not Started" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                          </Button>
+                          <Button
+                            variant={statusFilter === "Applied" ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter("Applied")}
+                          >
+                            <ApplicationStatusBadge status="Applied" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                          </Button>
+                          <Button
+                            variant={statusFilter === "Interviewing" ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter("Interviewing")}
+                          >
+                            <ApplicationStatusBadge status="Interviewing" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                          </Button>
+                          <Button
+                            variant={statusFilter === "Offer" ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter("Offer")}
+                          >
+                            <ApplicationStatusBadge status="Offer" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                          </Button>
+                          <Button
+                            variant={statusFilter === "Rejected" ? "secondary" : "outline"}
+                            size="sm"
+                            className="text-xs h-7"
+                            onClick={() => setStatusFilter("Rejected")}
+                          >
+                            <ApplicationStatusBadge status="Rejected" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                          </Button>
+                          {statusFilter && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs h-7"
+                              onClick={() => setStatusFilter(null)}
+                            >
+                              <FilterX className="h-3.5 w-3.5 mr-1" />
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {filteredApplications.filter(app => 
+                          app.status !== 'Offer' && 
+                          app.status !== 'Rejected'
                         ).length > 0 ? (
-                          <div className="space-y-3">
-                            {filteredProcesses
-                              .filter(p => 
-                                p.status !== 'Completed' && 
-                                p.status !== 'Rejected' && 
-                                p.status !== 'Not Selected' && 
-                                p.status !== 'Hired'
+                          <div className="grid grid-cols-1 gap-3 mt-4">
+                            {filteredApplications
+                              .filter(app => 
+                                app.status !== 'Offer' && 
+                                app.status !== 'Rejected'
                               )
-                              .map((process, index) => renderProcessCard(process, index))}
+                              .map((app, index) => renderApplicationCard(app, index))}
                           </div>
                         ) : (
-                          <p className="text-muted-foreground text-center py-2">No active processes</p>
+                          <p className="text-muted-foreground text-center py-6">
+                            {statusFilter ? 'No applications matching the selected filter' : 'No active applications'}
+                          </p>
                         )}
                       </div>
                       
-                      {/* Completed section */}
+                      {/* Completed applications section */}
                       <div className="space-y-3 pt-2">
                         <h3 className="font-medium flex items-center">
                           <Check className="h-4 w-4 mr-2" />
                           Completed Applications
                         </h3>
-                        {filteredProcesses.filter(p => 
-                          p.status === 'Completed' || 
-                          p.status === 'Rejected' || 
-                          p.status === 'Not Selected' || 
-                          p.status === 'Hired'
+                        {filteredApplications.filter(app => 
+                          app.status === 'Offer' || 
+                          app.status === 'Rejected'
                         ).length > 0 ? (
-                          <div className="space-y-3">
-                            {filteredProcesses
-                              .filter(p => 
-                                p.status === 'Completed' || 
-                                p.status === 'Rejected' || 
-                                p.status === 'Not Selected' || 
-                                p.status === 'Hired'
+                          <div className="grid grid-cols-1 gap-3">
+                            {filteredApplications
+                              .filter(app => 
+                                app.status === 'Offer' || 
+                                app.status === 'Rejected'
                               )
-                              .map((process, index) => renderProcessCard(process, index))}
+                              .map((app, index) => renderApplicationCard(app, index))}
                           </div>
                         ) : (
-                          <p className="text-muted-foreground text-center py-2">No completed processes</p>
+                          <p className="text-muted-foreground text-center py-6">No completed applications</p>
                         )}
                       </div>
                     </motion.div>
@@ -507,12 +618,23 @@ const Interview = () => {
                       <p className="text-muted-foreground">No applications found.</p>
                       <Button 
                         variant="link" 
-                        onClick={() => setShowCreateForm(true)}
+                        onClick={() => setShowApplyWizard(true)}
                         className="mt-2"
                       >
                         Create your first application
                       </Button>
                     </motion.div>
+                  )}
+                  
+                  {/* Selected application details */}
+                  {selectedApplication && (
+                    <div className="mt-6">
+                      <ApplicationDetails 
+                        application={selectedApplication}
+                        onClose={() => setSelectedApplicationId(null)}
+                        onDelete={() => setSelectedApplicationId(null)}
+                      />
+                    </div>
                   )}
                 </>
               )}
@@ -525,7 +647,7 @@ const Interview = () => {
                       Choose a job application to practice for. We'll generate relevant interview questions based on the job description.
                     </p>
 
-                    {isLoading ? (
+                    {isLoadingProcesses ? (
                       <div className="py-4">
                         <LoadingState 
                           message="Loading practice interviews..." 
@@ -723,6 +845,12 @@ const Interview = () => {
         isOpen={showPracticeSession}
         onClose={() => setShowPracticeSession(false)}
         process={processes?.find(p => p.id === practiceProcessId) || undefined}
+      />
+      
+      {/* Apply Wizard Dialog */}
+      <ApplyWizard 
+        isOpen={showApplyWizard}
+        onClose={() => setShowApplyWizard(false)}
       />
     </motion.div>
   );
