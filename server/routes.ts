@@ -321,11 +321,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       req.session.authenticated = true;
       req.session.lastAccess = new Date().toISOString();
       
-      // Save the session explicitly to ensure it's stored
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
-        }
+      // Save the session synchronously to ensure it's stored before response
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully on login with ID:", req.sessionID);
+            resolve();
+          }
+        });
       });
       
       // Set a cookie with the user ID
@@ -527,6 +533,21 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       // Set user in session
       req.session.userId = newUser.id;
+      req.session.authenticated = true;
+      req.session.lastAccess = new Date().toISOString();
+      
+      // Save the session synchronously
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session on staff registration:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully on staff registration with ID:", req.sessionID);
+            resolve();
+          }
+        });
+      });
       
       // Return user without password
       const { password: pwd, ...safeUser } = newUser;
@@ -594,11 +615,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       req.session.authenticated = true;
       req.session.lastAccess = new Date().toISOString();
       
-      // Save the session explicitly to ensure it's stored
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session after registration:", err);
-        }
+      // Save the session synchronously to ensure it's stored before response
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session after registration:", err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully on registration with ID:", req.sessionID);
+            resolve();
+          }
+        });
       });
       
       // Set a cookie with the user ID

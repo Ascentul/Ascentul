@@ -81,7 +81,7 @@ export async function getCurrentUser(req: Request): Promise<User | null> {
 }
 
 // Middleware to check if user is authenticated
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   // Debug session information
   console.log("Session data in requireAuth:", {
     id: req.sessionID,
@@ -108,13 +108,23 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     req.session.lastAccess = new Date().toISOString();
     
     // Save the session synchronously to ensure it's properly stored
-    req.session.save(err => {
-      if (err) {
-        console.error('Error saving session in requireAuth:', err);
-      } else {
-        console.log("Session saved successfully in requireAuth");
-      }
-    });
+    // Using Promise to make the save operation wait before continuing
+    try {
+      await new Promise<void>((resolve, reject) => {
+        req.session.save(err => {
+          if (err) {
+            console.error('Error saving session in requireAuth:', err);
+            reject(err);
+          } else {
+            console.log("Session saved successfully in requireAuth");
+            resolve();
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Failed to save session in requireAuth:', error);
+      return sendUnauthenticatedResponse(res, "Session error");
+    }
   }
   
   // Mark response as authenticated
