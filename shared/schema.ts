@@ -15,6 +15,10 @@ export const users = pgTable("users", {
   level: integer("level").default(1),
   rank: text("rank").default("Career Explorer"),
   profileImage: text("profile_image"),
+  // Career profile fields
+  location: text("location"),
+  remotePreference: text("remote_preference"), // Options: "remote", "hybrid", "onsite", "flexible"
+  careerSummary: text("career_summary"),
   // Subscription fields
   subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium"
   subscriptionStatus: text("subscription_status").notNull().default("inactive"), // Options: "active", "inactive", "cancelled", "past_due"
@@ -567,7 +571,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   mentorChatConversations: many(mentorChatConversations),
   certifications: many(certifications),
   personalAchievements: many(userPersonalAchievements),
-  projects: many(projects), // Added projects relation
+  projects: many(projects),
+  skills: many(skills),
+  languages: many(languages),
 }));
 
 // Interview Questions Relations
@@ -867,6 +873,49 @@ export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
 
 export type ApplicationWizardStep = typeof applicationWizardSteps.$inferSelect;
 export type InsertApplicationWizardStep = z.infer<typeof insertApplicationWizardStepSchema>;
+
+// User Skills model
+export const skills = pgTable("skills", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  proficiencyLevel: integer("proficiency_level").notNull().default(1), // 1-5 scale
+  category: text("category").notNull().default("technical"), // technical, soft, language, etc.
+  yearOfExperience: integer("year_of_experience"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSkillSchema = createInsertSchema(skills).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Skill = typeof skills.$inferSelect;
+export type InsertSkill = z.infer<typeof insertSkillSchema>;
+
+// User Languages model
+export const languages = pgTable("languages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  proficiencyLevel: text("proficiency_level").notNull().default("beginner"), // beginner, intermediate, advanced, native
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLanguageSchema = createInsertSchema(languages).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Language = typeof languages.$inferSelect;
+export type InsertLanguage = z.infer<typeof insertLanguageSchema>;
 
 export type EducationHistory = typeof educationHistory.$inferSelect;
 export type InsertEducationHistory = z.infer<typeof insertEducationHistorySchema>;
