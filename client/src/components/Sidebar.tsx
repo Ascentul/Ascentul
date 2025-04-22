@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Target, 
@@ -23,14 +24,53 @@ import {
   ShieldCheck,
   GitBranch,
   Linkedin,
-  FolderGit2
+  FolderGit2,
+  Search,
+  ChevronRight,
+  LineChart,
+  ClipboardList,
+  Clock,
+  Building,
+  Calendar
 } from 'lucide-react';
+
+// Sidebar section types
+type SidebarSection = {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  items: SidebarItem[];
+}
+
+type SidebarItem = {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  pro?: boolean;
+}
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, logout } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [hoverSection, setHoverSection] = useState<string | null>(null);
+  
+  // Auto-detect the current section based on location
+  useEffect(() => {
+    if (location.startsWith('/interview') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
+      setActiveSection('job-search');
+    } else if (location.startsWith('/goals') || location.startsWith('/ai-coach') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
+      setActiveSection('career-growth');
+    } else if (location.startsWith('/projects') || location.startsWith('/work-history') || location.startsWith('/education-history') || location.startsWith('/achievements')) {
+      setActiveSection('portfolio');
+    } else if (location.startsWith('/exit-plan') || location.startsWith('/momentum-coach') || location.startsWith('/weekly-recap')) {
+      setActiveSection('planning');
+    } else {
+      setActiveSection(null);
+    }
+  }, [location]);
 
   if (!user) return null;
 
@@ -44,24 +84,62 @@ export default function Sidebar() {
     progressPercentage = Math.min(100, (xpInCurrentLevel / xpToNextLevel) * 100);
   }
 
-  // Career app navigation items
-  const careerNavigationItems = [
-    { href: '/career-dashboard', icon: <LayoutDashboard className="w-5 h-5 mr-3" />, label: 'Dashboard' },
-    { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goals' },
-    { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
-    { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
-    { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letters' },
-    { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Coach' },
-    { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
-    { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
-    { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
-    { href: '/work-history', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Work History' },
-    { href: '/education-history', icon: <GraduationCap className="w-5 h-5 mr-3" />, label: 'Education History' },
-    { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
+  // The four main sections with their corresponding features
+  const sidebarSections: SidebarSection[] = [
+    {
+      id: 'job-search',
+      title: 'Job Search',
+      icon: <Search className="w-5 h-5" />,
+      items: [
+        { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
+        { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
+        { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
+        { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
+      ]
+    },
+    {
+      id: 'career-growth',
+      title: 'Career Growth',
+      icon: <LineChart className="w-5 h-5" />,
+      items: [
+        { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goal Tracker' },
+        { href: '/skill-stacker', icon: <ClipboardList className="w-5 h-5 mr-3" />, label: 'Skill Stacker', pro: true },
+        { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
+        { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Career Coach' },
+      ]
+    },
+    {
+      id: 'portfolio',
+      title: 'Portfolio & Assets',
+      icon: <FolderGit2 className="w-5 h-5" />,
+      items: [
+        { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
+        { href: '/work-history', icon: <Building className="w-5 h-5 mr-3" />, label: 'Work History' },
+        { href: '/achievements', icon: <Trophy className="w-5 h-5 mr-3" />, label: 'Achievements' },
+        { href: '/education-history', icon: <GraduationCap className="w-5 h-5 mr-3" />, label: 'Education Tracker' },
+      ]
+    },
+    {
+      id: 'planning',
+      title: 'Planning & Transitions',
+      icon: <Calendar className="w-5 h-5" />,
+      items: [
+        { href: '/exit-plan', icon: <Clock className="w-5 h-5 mr-3" />, label: 'Exit Plan', pro: true },
+        { href: '/momentum-coach', icon: <Target className="w-5 h-5 mr-3" />, label: 'Momentum Coach' },
+        { href: '/weekly-recap', icon: <ClipboardList className="w-5 h-5 mr-3" />, label: 'Weekly Recap / Journal' },
+      ]
+    }
   ];
 
+  // Dashboard link - always visible
+  const dashboardLink = { 
+    href: '/career-dashboard', 
+    icon: <LayoutDashboard className="w-5 h-5 mr-3" />, 
+    label: 'Dashboard'
+  };
+
   return (
-    <div className="hidden md:flex flex-col w-64 bg-white shadow-md z-10">
+    <div className="hidden md:flex flex-col w-64 bg-white shadow-md z-30">
       <div className="flex items-center justify-center h-16 border-b">
         <h1 className="text-xl font-bold text-primary font-poppins">CareerTracker.io</h1>
       </div>
@@ -148,32 +226,96 @@ export default function Sidebar() {
         )}
       </div>
       
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto py-4">
-        {/* Career App Navigation Items */}
-        {careerNavigationItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-              ${location === item.href ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
-          >
-            {item.icon}
-            {item.label}
-          </Link>
-        ))}
+      {/* Navigation with four main sections */}
+      <nav className="flex-1 overflow-hidden py-4 flex flex-col">
+        {/* Dashboard link is always visible */}
+        <Link
+          href={dashboardLink.href}
+          className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
+            ${location === dashboardLink.href ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+        >
+          {dashboardLink.icon}
+          {dashboardLink.label}
+        </Link>
+
+        <div className="mt-3 px-3">
+          <div className="text-xs font-medium text-neutral-400 uppercase mb-2 px-3">
+            Features
+          </div>
+          
+          {/* Four main sections with flyout animation */}
+          <div className="space-y-1">
+            {sidebarSections.map((section) => (
+              <div key={section.id} className="relative">
+                {/* Section header */}
+                <button
+                  className={`w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors
+                    ${activeSection === section.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
+                  onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
+                  onMouseEnter={() => setHoverSection(section.id)}
+                  onMouseLeave={() => setHoverSection(null)}
+                >
+                  <div className="flex items-center">
+                    <span className="mr-3">{section.icon}</span>
+                    <span>{section.title}</span>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: activeSection === section.id ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.div>
+                </button>
+                
+                {/* Flyout content */}
+                <AnimatePresence>
+                  {activeSection === section.id && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-1 pl-7 pb-1">
+                        {section.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors my-1
+                              ${location === item.href ? 'bg-primary/10 text-primary' : 'hover:bg-primary/5'}`}
+                          >
+                            <div className="flex items-center">
+                              {item.icon}
+                              <span>{item.label}</span>
+                            </div>
+                            {item.pro && (
+                              <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-medium">
+                                PRO
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </div>
+        </div>
         
         {/* University Quick Access - only show for university users */}
         {isUnivUser && (
-          <>
-            <div className="px-6 py-3 mt-4 text-xs font-medium text-neutral-400 uppercase">
+          <div className="mt-4 px-6">
+            <div className="text-xs font-medium text-neutral-400 uppercase mb-2">
               University Resources
             </div>
             
             <Link 
               href="/university-dashboard"
-              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-                ${location === "/university-dashboard" || location === "/university" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+                ${location === "/university-dashboard" || location === "/university" ? 'text-primary bg-primary/10' : ''}`}
             >
               <School className="w-5 h-5 mr-3" />
               University Dashboard
@@ -181,8 +323,8 @@ export default function Sidebar() {
             
             <Link 
               href="/university/study-plan"
-              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-                ${location === "/university/study-plan" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+                ${location === "/university/study-plan" ? 'text-primary bg-primary/10' : ''}`}
             >
               <Target className="w-5 h-5 mr-3" />
               Study Plan
@@ -190,14 +332,17 @@ export default function Sidebar() {
             
             <Link 
               href="/university/learning"
-              className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-                ${location === "/university/learning" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+              className={`flex items-center px-3 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md
+                ${location === "/university/learning" ? 'text-primary bg-primary/10' : ''}`}
             >
               <BookOpen className="w-5 h-5 mr-3" />
               Learning Modules
             </Link>
-          </>
+          </div>
         )}
+        
+        {/* Spacer to push settings to bottom */}
+        <div className="flex-1"></div>
       </nav>
       
       {/* Admin Dashboard - only show for admin users */}
@@ -208,8 +353,8 @@ export default function Sidebar() {
           </div>
           <Link 
             href="/admin-dashboard"
-            className={`flex items-center px-6 py-3 text-sm transition-colors hover:bg-primary/5
-              ${location.startsWith("/admin") || location === "/admin-dashboard" ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'border-l-4 border-transparent'}`}
+            className={`flex items-center px-6 py-2 text-sm transition-colors hover:bg-primary/5 rounded-md mx-3
+              ${location.startsWith("/admin") || location === "/admin-dashboard" ? 'text-primary bg-primary/10' : ''}`}
           >
             <ShieldCheck className="w-5 h-5 mr-3" />
             Admin Dashboard
@@ -219,12 +364,12 @@ export default function Sidebar() {
       
       {/* Settings */}
       <div className="border-t py-4">
-        <a href="/account" className="flex items-center px-6 py-3 text-sm hover:bg-primary/5 transition-colors cursor-pointer">
+        <a href="/account" className="flex items-center px-6 py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md mx-3">
           <Settings className="w-5 h-5 mr-3" />
           Account Settings
         </a>
         <button 
-          className="flex items-center px-6 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+          className="flex items-center px-6 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left rounded-md mx-3"
           onClick={() => logout()}
         >
           <LogOut className="w-5 h-5 mr-3" />

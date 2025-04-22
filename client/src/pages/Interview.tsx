@@ -416,12 +416,12 @@ const Interview = () => {
             </motion.div>
 
             <div className="space-y-3">
-              {activeTab === 'processes' && (
+              {activeTab === 'applications' && (
                 <>
                   {isLoading ? (
                     <div className="py-6">
                       <LoadingState 
-                        message="Loading interview processes..." 
+                        message="Loading applications..." 
                         size="md" 
                         variant="card" 
                         className="w-full rounded-lg"
@@ -433,7 +433,7 @@ const Interview = () => {
                       <div className="space-y-3">
                         <h3 className="font-medium flex items-center">
                           <Briefcase className="h-4 w-4 mr-2" />
-                          Active Interview Processes
+                          Active Applications
                         </h3>
                         {filteredProcesses.filter(p => 
                           p.status !== 'Completed' && 
@@ -460,7 +460,7 @@ const Interview = () => {
                       <div className="space-y-3 pt-2">
                         <h3 className="font-medium flex items-center">
                           <Check className="h-4 w-4 mr-2" />
-                          Completed Interview Processes
+                          Completed Applications
                         </h3>
                         {filteredProcesses.filter(p => 
                           p.status === 'Completed' || 
@@ -485,13 +485,13 @@ const Interview = () => {
                     </motion.div>
                   ) : (
                     <motion.div variants={fadeIn} className="text-center py-8">
-                      <p className="text-muted-foreground">No interview processes found.</p>
+                      <p className="text-muted-foreground">No applications found.</p>
                       <Button 
                         variant="link" 
                         onClick={() => setShowCreateForm(true)}
                         className="mt-2"
                       >
-                        Create your first interview process
+                        Create your first application
                       </Button>
                     </motion.div>
                   )}
@@ -501,9 +501,9 @@ const Interview = () => {
               {activeTab === 'practice' && (
                 <motion.div variants={fadeIn} className="space-y-6">
                   <div className="space-y-2">
-                    <h3 className="font-medium">Select an Interview Process</h3>
+                    <h3 className="font-medium">Select an Application</h3>
                     <p className="text-sm text-muted-foreground">
-                      Choose an interview process to practice for. We'll generate relevant questions based on the job description.
+                      Choose a job application to practice for. We'll generate relevant interview questions based on the job description.
                     </p>
 
                     {isLoading ? (
@@ -527,7 +527,7 @@ const Interview = () => {
                         <div className="space-y-3">
                           <h3 className="font-medium flex items-center text-sm">
                             <Briefcase className="h-4 w-4 mr-2" />
-                            Active Processes
+                            Active Applications
                           </h3>
                           
                           {activeProcesses.length > 0 ? (
@@ -576,7 +576,7 @@ const Interview = () => {
                         <div className="space-y-3">
                           <h3 className="font-medium flex items-center text-sm">
                             <Check className="h-4 w-4 mr-2" />
-                            Completed Processes
+                            Completed Applications
                           </h3>
                           
                           {completedProcesses.length > 0 ? (
@@ -623,16 +623,16 @@ const Interview = () => {
                       </motion.div>
                     ) : (
                       <motion.div variants={fadeIn} className="text-center py-8">
-                        <p className="text-muted-foreground">No interview processes found.</p>
+                        <p className="text-muted-foreground">No applications found.</p>
                         <Button 
                           variant="link" 
                           onClick={() => {
-                            setActiveTab('processes');
+                            setActiveTab('applications');
                             setShowCreateForm(true);
                           }}
                           className="mt-2"
                         >
-                          Create an interview process first
+                          Create an application first
                         </Button>
                       </motion.div>
                     )}
@@ -675,9 +675,9 @@ const Interview = () => {
                   transition={{ duration: 0.3 }}
                 >
                   <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No Process Selected</h3>
+                  <h3 className="text-lg font-medium">No Application Selected</h3>
                   <p className="text-muted-foreground max-w-md mt-2">
-                    Select an interview process from the list to view details, or create a new one to start tracking your interview journey.
+                    Select an application from the list to view details, or create a new one to start tracking your job application journey.
                   </p>
                   <Button 
                     variant="outline" 
@@ -685,7 +685,7 @@ const Interview = () => {
                     onClick={() => setShowCreateForm(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Create New Process
+                    Create New Application
                   </Button>
                 </motion.div>
               </Card>
