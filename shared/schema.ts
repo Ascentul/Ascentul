@@ -683,6 +683,56 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type Goal = typeof goals.$inferSelect;
 export type InsertGoal = z.infer<typeof insertGoalSchema>;
 
+// Skill Stacker Weekly Plan task type
+export const skillStackerTaskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.enum(["Article", "Video", "Practice", "Reflection"]),
+  link: z.string().optional(),
+  estimated_time: z.string(),
+  status: z.enum(["incomplete", "complete"]).default("incomplete"),
+  rating: z.number().min(1).max(5).optional(),
+  completedAt: z.date().optional().nullable(),
+});
+
+export type SkillStackerTask = z.infer<typeof skillStackerTaskSchema>;
+
+// Skill Stacker Weekly Plan model
+export const skillStackerPlans = pgTable("skill_stacker_plans", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  goalId: integer("goal_id").notNull(),
+  week: integer("week").notNull(),
+  weekStartDate: timestamp("week_start_date").notNull(),
+  weekEndDate: timestamp("week_end_date").notNull(),
+  status: text("status").notNull().default("active"), // active, completed
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  tasks: jsonb("tasks").$type<SkillStackerTask[]>().default([]),
+  streak: integer("streak").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSkillStackerPlanSchema = createInsertSchema(skillStackerPlans).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAt: true,
+}).extend({
+  // Convert date strings to Date objects if needed
+  weekStartDate: z.date().or(
+    z.string().transform((val) => new Date(val))
+  ),
+  weekEndDate: z.date().or(
+    z.string().transform((val) => new Date(val))
+  ),
+});
+
+export type SkillStackerPlan = typeof skillStackerPlans.$inferSelect;
+export type InsertSkillStackerPlan = z.infer<typeof insertSkillStackerPlanSchema>;
+
 export type WorkHistory = typeof workHistory.$inferSelect;
 export type InsertWorkHistory = z.infer<typeof insertWorkHistorySchema>;
 
