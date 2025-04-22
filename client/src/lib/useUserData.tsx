@@ -168,26 +168,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       console.log('Authentication successful, user data:', data.user);
       
-      // Use setTimeout to perform navigation after the current render cycle completes
-      // This avoids the React warning about state updates during rendering
-      setTimeout(() => {
-        // Use the redirect path provided by the server, or fall back to role-based redirect
-        if (data.redirectPath) {
-          window.location.href = data.redirectPath;
-        } else {
-          // Fall back to role-based redirection
-          const user = data.user;
-          if (user.userType === 'admin') {
-            window.location.href = '/admin';
-          } else if (user.userType === 'staff') {
-            window.location.href = '/staff';
-          } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-            window.location.href = '/university';
-          } else { // regular user
-            window.location.href = '/dashboard';
-          }
+      // Directly set document.location for immediate navigation without React update issues
+      const redirectToUrl = (url: string) => {
+        console.log('Redirecting to:', url);
+        document.location.href = url;
+      };
+        
+      // Use the redirect path provided by the server, or fall back to role-based redirect
+      if (data.redirectPath) {
+        redirectToUrl(data.redirectPath);
+      } else {
+        // Fall back to role-based redirection
+        const user = data.user;
+        if (user.userType === 'admin') {
+          redirectToUrl('/admin');
+        } else if (user.userType === 'staff') {
+          redirectToUrl('/staff');
+        } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
+          redirectToUrl('/university');
+        } else { // regular user
+          redirectToUrl('/dashboard');
         }
-      }, 0);
+      }
     },
     onError: (error) => {
       console.error('Login mutation error:', error);
@@ -223,6 +225,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Utility function for redirection to avoid React update issues
+    const redirectToSignIn = () => {
+      console.log('Redirecting to sign-in page after logout');
+      document.location.href = '/sign-in';
+    };
+    
     // Make an API call to logout
     apiRequest('POST', '/api/auth/logout')
       .then((response) => {
@@ -242,11 +250,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
         
-        // Use setTimeout to avoid React state update during render issues
-        setTimeout(() => {
-          // Redirect to sign-in page
-          window.location.href = '/sign-in';
-        }, 0);
+        // Redirect to sign-in using document.location
+        redirectToSignIn();
       })
       .catch(error => {
         console.error('Logout error:', error);
@@ -255,11 +260,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(['/api/users/me'], null);
         setIsAuthenticated(false);
         
-        // Use setTimeout to avoid React state update during render issues
-        setTimeout(() => {
-          // Redirect to sign-in page
-          window.location.href = '/sign-in';
-        }, 0);
+        // Redirect to sign-in using document.location
+        redirectToSignIn();
       });
   };
 
@@ -333,9 +335,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // the theme preference to the user's record in the database
       
       // For now, we'll directly update the theme.json file by simulating it
-      // and reload the theme
+      // and reload the theme using document.location to avoid React state updates
       setTimeout(() => {
-        window.location.reload();
+        document.location.reload();
       }, 500);
       
     } catch (error) {
