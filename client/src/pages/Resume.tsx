@@ -393,6 +393,7 @@ export default function Resume() {
         <TabsList className="mb-4">
           <TabsTrigger value="resumes">My Resumes</TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
+          <TabsTrigger value="analyze">Analyze Resume</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumes" className="space-y-6">
