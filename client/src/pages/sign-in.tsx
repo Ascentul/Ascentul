@@ -140,6 +140,25 @@ export default function SignIn() {
               <p className="font-semibold">Test Credentials:</p>
               <p>Email: test@example.com</p>
               <p>Password: testpassword</p>
+              
+              <div className="mt-3 flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground">Having trouble logging in?</p>
+                <div className="flex space-x-2">
+                  <a 
+                    href="/direct-login" 
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Try Direct Login
+                  </a>
+                  <span className="text-xs text-muted-foreground">|</span>
+                  <a 
+                    href="/quick-login" 
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Use Quick Login (Bypass Auth)
+                  </a>
+                </div>
+              </div>
             </div>
           </CardFooter>
         </Card>

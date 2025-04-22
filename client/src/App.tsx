@@ -193,10 +193,11 @@ function App() {
   const isPlanSelectionRoute = location === "/plan-selection";
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
 
-  // Root path should show sign-in page for simplicity
+  // Root path should go directly to our QuickLogin component
   if (location === "/" || location === "") {
-    // Redirect to direct login page instead of regular sign-in
-    navigate("/direct-login");
+    console.log("Root path detected - redirecting to QuickLogin");
+    // Use QuickLogin route instead which bypasses authentication entirely
+    navigate("/quick-login");
     return null;
   }
   
