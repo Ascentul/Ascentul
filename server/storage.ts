@@ -3486,6 +3486,91 @@ export class MemStorage implements IStorage {
   async deleteLanguage(id: number): Promise<boolean> {
     return this.languages.delete(id);
   }
+  
+  // Networking Contacts (Ascentul CRM) operations
+  async getNetworkingContacts(userId: number, filters?: { query?: string, relationshipType?: string }): Promise<NetworkingContact[]> {
+    let contacts = Array.from(this.networkingContacts.values()).filter(contact => contact.userId === userId);
+    
+    // Apply filters if provided
+    if (filters) {
+      if (filters.query) {
+        const query = filters.query.toLowerCase();
+        contacts = contacts.filter(contact => 
+          contact.name.toLowerCase().includes(query) || 
+          (contact.company && contact.company.toLowerCase().includes(query)) || 
+          (contact.position && contact.position.toLowerCase().includes(query)) || 
+          (contact.email && contact.email.toLowerCase().includes(query))
+        );
+      }
+      
+      if (filters.relationshipType) {
+        contacts = contacts.filter(contact => contact.relationshipType === filters.relationshipType);
+      }
+    }
+    
+    // Sort by most recent first
+    return contacts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+  
+  async getNetworkingContact(id: number): Promise<NetworkingContact | undefined> {
+    return this.networkingContacts.get(id);
+  }
+  
+  async createNetworkingContact(userId: number, contact: InsertNetworkingContact): Promise<NetworkingContact> {
+    const id = this.networkingContactIdCounter++;
+    const now = new Date();
+    const newContact: NetworkingContact = {
+      ...contact,
+      id,
+      userId,
+      createdAt: now,
+      updatedAt: now,
+      // Set default values for optional fields if not provided
+      followUpDate: contact.followUpDate || null,
+      lastContactDate: contact.lastContactDate || now,
+      notes: contact.notes || "",
+      source: contact.source || "manual",
+      status: contact.status || "active"
+    };
+    this.networkingContacts.set(id, newContact);
+    return newContact;
+  }
+  
+  async updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>): Promise<NetworkingContact | undefined> {
+    const contact = this.networkingContacts.get(id);
+    if (!contact) return undefined;
+    
+    const updatedContact = {
+      ...contact,
+      ...contactData,
+      updatedAt: new Date()
+    };
+    this.networkingContacts.set(id, updatedContact);
+    return updatedContact;
+  }
+  
+  async deleteNetworkingContact(id: number): Promise<boolean> {
+    return this.networkingContacts.delete(id);
+  }
+  
+  async getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]> {
+    const now = new Date();
+    
+    return Array.from(this.networkingContacts.values())
+      .filter(contact => 
+        contact.userId === userId && 
+        contact.status === "active" &&
+        contact.followUpDate && 
+        contact.followUpDate <= now
+      )
+      .sort((a, b) => {
+        // Sort by followUpDate (oldest first)
+        if (a.followUpDate && b.followUpDate) {
+          return a.followUpDate.getTime() - b.followUpDate.getTime();
+        }
+        return 0;
+      });
+  }
 }
 
 export const storage = new MemStorage();
