@@ -28,7 +28,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Alert, 
-  AlertCircle, 
   AlertDescription, 
   AlertTitle 
 } from '@/components/ui/alert';
@@ -41,7 +40,7 @@ import {
   ChevronRight,
   BarChart,
   LucideCheck,
-  AlertCircle as AlertCircleIcon,
+  AlertCircle,
   XCircle,
 } from 'lucide-react';
 
@@ -283,7 +282,7 @@ In a production environment, we would parse the actual text content from your re
             </CardHeader>
             <CardContent className="space-y-4">
               <Alert>
-                <AlertCircleIcon className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Resume Text Extraction</AlertTitle>
                 <AlertDescription>
                   In a production environment, we would automatically extract text from your resume.
@@ -469,7 +468,7 @@ In a production environment, we would parse the actual text content from your re
                     <ul className="space-y-1">
                       {analysis.improvementSuggestions.map((suggestion, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <AlertCircleIcon className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{suggestion}</span>
                         </li>
                       ))}

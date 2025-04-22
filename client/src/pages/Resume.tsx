@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import ResumeForm from '@/components/ResumeForm';
+import ResumeAnalyzer from '@/components/ResumeAnalyzer';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
@@ -395,6 +396,68 @@ export default function Resume() {
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
           <TabsTrigger value="analyze">Analyze Resume</TabsTrigger>
         </TabsList>
+        
+        {/* Add ResumeAnalyzer to "analyze" tab */}
+        <TabsContent value="analyze" className="space-y-6">
+          <motion.div
+            variants={subtleUp}
+            style={{ transform: 'translateZ(0)' }}
+          >
+            <Card className="p-4 mb-4">
+              <CardContent className="p-2">
+                <h3 className="text-lg font-semibold mb-2">Resume Analysis Tool</h3>
+                <p className="text-neutral-600 text-sm">
+                  Upload your resume and analyze it against specific job descriptions. Get detailed feedback on how well your resume matches the job requirements and suggestions for improvement.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <ResumeAnalyzer 
+              onAnalysisComplete={(result, resumeText, jobDescription) => {
+                // When analysis is complete, we can offer to create a new resume
+                // based on the analysis results
+                toast({
+                  title: "Analysis Complete",
+                  description: "Would you like to create or update a resume based on this analysis?",
+                  action: (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // Create a new resume with the analyzed content
+                        const newResume = {
+                          name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
+                          template: 'modern',
+                          content: {
+                            personalInfo: {
+                              fullName: '',
+                              email: '',
+                              phone: '',
+                              location: '',
+                              linkedIn: '',
+                              portfolio: '',
+                            },
+                            summary: '',
+                            skills: result.missingKeywords || [],
+                            experience: [],
+                            education: [],
+                            projects: []
+                          }
+                        };
+                        
+                        // Set selected resume to this new one and open the edit dialog
+                        setSelectedResume(newResume);
+                        setIsAddResumeOpen(true);
+                      }}
+                    >
+                      Create Resume
+                    </Button>
+                  ),
+                });
+              }} 
+            />
+          </motion.div>
+        </TabsContent>
 
         <TabsContent value="resumes" className="space-y-6">
           {/* Search */}
