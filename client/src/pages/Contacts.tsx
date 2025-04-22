@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, PlusCircle, UserRound, Users, Clock } from 'lucide-react';
-import PrivateLayout from '@/components/PrivateLayout';
+// Remove PrivateLayout to avoid duplicate wrappers
 import {
   Select,
   SelectContent,
@@ -138,7 +138,7 @@ export default function Contacts() {
   };
 
   return (
-    <PrivateLayout>
+    <>
       <div className="container px-4 py-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -313,6 +313,6 @@ export default function Contacts() {
           />
         </DialogContent>
       </Dialog>
-    </PrivateLayout>
+    </>
   );
 }
