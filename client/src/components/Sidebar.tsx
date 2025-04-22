@@ -3,9 +3,10 @@ import { useLocation, Link } from 'wouter';
 import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import ProfileImageUploader from './ProfileImageUploader';
 import { motion, AnimatePresence } from 'framer-motion';
 import ascentulLogo from '@/assets/ascentul-logo.png';
 import { 
@@ -218,51 +219,23 @@ export default function Sidebar() {
       {/* User Profile Summary */}
       <div className="flex flex-col items-center py-6 border-b">
         <div className="relative">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
-                {user.profileImage ? (
-                  <AvatarImage src={user.profileImage} alt={user.name} />
-                ) : (
-                  <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                    {user.name.charAt(0)}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Update Profile Photo</DialogTitle>
-                <DialogDescription>
-                  Upload a new profile photo. Supported formats: JPG, PNG.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const response = await fetch('/api/users/profile-image', {
-                  method: 'POST',
-                  body: formData,
-                });
-                if (response.ok) {
-                  const data = await response.json();
-                  // Force a refresh of user data
-                  window.location.reload();
-                }
-              }}>
-                <Input 
-                  type="file" 
-                  name="profileImage" 
-                  accept="image/jpeg,image/png"
-                  className="mb-4"
-                  required
-                />
-                <DialogFooter>
-                  <Button type="submit">Upload Photo</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <ProfileImageUploader
+            onImageUploaded={(imageUrl) => {
+              // We'll refresh the page to show the updated profile image
+              window.location.reload();
+            }}
+            currentImage={user.profileImage}
+          >
+            <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
+              {user.profileImage ? (
+                <AvatarImage src={user.profileImage} alt={user.name} />
+              ) : (
+                <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                  {user.name.charAt(0)}
+                </AvatarFallback>
+              )}
+            </Avatar>
+          </ProfileImageUploader>
           {/* Only show level badge for university users */}
           {isUnivUser && user.level !== undefined && expanded && (
             <div className="absolute -top-1 -right-1 bg-[#8bc34a] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
