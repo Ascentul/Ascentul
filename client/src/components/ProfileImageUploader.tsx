@@ -166,74 +166,94 @@ export default function ProfileImageUploader({
       setIsLoading(true);
       console.log('Starting profile image save process...');
       
-      // Instead of recalculating the crop, we'll capture exactly what's showing in the container
+      // Instead of recalculating the crop, we'll take a "screenshot" of what's visible in the container
       const container = imageContainerRef.current;
       if (!container) return;
       
-      // Create a canvas that exactly matches the preview
-      const canvas = document.createElement('canvas');
+      // Create a temporary canvas to render the visible content exactly as seen in the preview
+      const tempCanvas = document.createElement('canvas');
+      const containerRect = container.getBoundingClientRect();
       
-      // Set high resolution for better quality (600x600)
-      const outputSize = 600;
-      canvas.width = outputSize;
-      canvas.height = outputSize;
+      // First render at actual display size
+      tempCanvas.width = containerRect.width;
+      tempCanvas.height = containerRect.height;
       
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      // Get a context for the temp canvas
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return;
       
-      // Create a new image element with the current source
+      // Create a final high-resolution canvas for output
+      const finalCanvas = document.createElement('canvas');
+      const outputSize = 800; // Higher resolution for better quality
+      finalCanvas.width = outputSize;
+      finalCanvas.height = outputSize;
+      const finalCtx = finalCanvas.getContext('2d');
+      if (!finalCtx) return;
+      
+      // Fill background with white
+      tempCtx.fillStyle = '#FFFFFF';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+      
+      // Wait for the image to be ready
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = image;
       
-      // Wait for the image to load
       await new Promise<void>((resolve) => {
         img.onload = () => resolve();
       });
       
-      // Get the container dimensions and image styling
-      const containerRect = container.getBoundingClientRect();
-      const containerSize = containerRect.width; // This is our cropping window
+      // Draw with the exact styling from the preview
+      tempCtx.save();
+      tempCtx.beginPath();
+      tempCtx.arc(
+        tempCanvas.width / 2,
+        tempCanvas.height / 2,
+        tempCanvas.width / 2,
+        0,
+        Math.PI * 2
+      );
+      tempCtx.clip();
       
-      // Calculate how the image is displayed in the container
-      const scale = zoom;
-      const imgWidth = img.width * scale;
-      const imgHeight = img.height * scale;
-      
-      // Account for centering if image is smaller than container
-      const offsetX = position.x;
-      const offsetY = position.y;
-      
-      // The exact rendering logic that the browser uses in the preview
-      ctx.fillStyle = '#FFFFFF'; // White background
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Scale and position context exactly as the image appears in the preview
-      const previewToOutputRatio = outputSize / containerSize;
-      
-      // Save state before transformations
-      ctx.save();
-      
-      // Apply same transformations that are applied to the preview image
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.scale(previewToOutputRatio, previewToOutputRatio);
-      ctx.translate(-containerSize / 2, -containerSize / 2);
-      ctx.translate(offsetX, offsetY);
-      
-      // Draw the image with the exact same position and scale as shown in the preview
-      ctx.drawImage(
+      // Apply the same transformations as in the preview
+      tempCtx.translate(position.x, position.y);
+      tempCtx.drawImage(
         img,
-        0, 0, img.width, img.height, 
-        0, 0, imgWidth, imgHeight
+        0, 0, img.width, img.height,
+        0, 0, img.width * zoom, img.height * zoom
       );
       
-      // Restore context
-      ctx.restore();
+      tempCtx.restore();
       
-      console.log('Image cropped exactly as preview, converting to data URL...');
+      // Now draw the temp canvas onto the final high-res canvas
+      finalCtx.fillStyle = '#FFFFFF';
+      finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
       
-      // Convert canvas to data URL with high quality
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      // Draw the circular clipped image
+      finalCtx.save();
+      finalCtx.beginPath();
+      finalCtx.arc(
+        finalCanvas.width / 2,
+        finalCanvas.height / 2,
+        finalCanvas.width / 2,
+        0,
+        Math.PI * 2
+      );
+      finalCtx.clip();
+      
+      // Scale up the temp canvas
+      finalCtx.drawImage(
+        tempCanvas,
+        0, 0, tempCanvas.width, tempCanvas.height,
+        0, 0, finalCanvas.width, finalCanvas.height
+      );
+      
+      finalCtx.restore();
+      
+      console.log('Image cropped exactly as visible in preview, converting to data URL...');
+      
+      // Convert to data URL with high quality
+      const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
       
       // Use the callback to upload the image and update the user profile
       // This will be handled by the useUserData context's uploadProfileImage function

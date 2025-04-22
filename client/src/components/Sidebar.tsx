@@ -262,15 +262,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 <Avatar className={`border-2 border-primary cursor-pointer hover:opacity-90 transition-opacity ${expanded ? 'w-16 h-16' : 'w-10 h-10'}`}>
                   {user.profileImage ? (
                     <AvatarImage 
-                      src={user.profileImage} 
+                      src={`${user.profileImage}?t=${Date.now()}`} 
                       alt={user.name} 
                       onError={(e) => {
                         console.log("Error loading image, falling back to text");
                         // Hide the broken image icon
                         e.currentTarget.style.display = 'none';
                       }}
-                      className="force-refresh-image"
-                      key={`sidebar-avatar-${Date.now()}`}
+                      className="force-refresh-image object-cover"
+                      style={{ objectPosition: 'center' }}
                     />
                   ) : (
                     <AvatarFallback className="bg-primary/10 text-primary text-xl">
