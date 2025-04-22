@@ -33,8 +33,9 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Configure session middleware
 app.use(session({
   secret: process.env.SESSION_SECRET || "career-dev-platform-secret-key-" + Math.random().toString(36).substring(2, 15),
-  resave: false,
+  resave: true, // Force the session to be saved back to the store even if not modified
   saveUninitialized: true, // Ensure session is saved even if not modified
+  rolling: true, // Reset the cookie expiration on each response
   store: sessionStore,
   cookie: { 
     secure: false, // Allow non-HTTPS in development
@@ -44,6 +45,12 @@ app.use(session({
     path: '/' // Ensure cookie is accessible for all paths
   }
 }));
+
+// Log all requests to server to diagnose session issues
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Session ID: ${req.sessionID}`);
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

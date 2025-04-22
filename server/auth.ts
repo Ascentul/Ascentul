@@ -26,27 +26,50 @@ export function markResponseAuthenticated(res: Response) {
  */
 export async function getCurrentUser(req: Request): Promise<User | null> {
   try {
+    // Debug session information
+    console.log("Session data in getCurrentUser:", {
+      id: req.sessionID,
+      userId: req.session?.userId,
+      authenticated: req.session?.authenticated,
+      cookies: req.headers.cookie
+    });
+    
     // Check if the browser has a special logout flag set (from localStorage)
     if (req.headers['x-auth-logout'] === 'true') {
+      console.log("Logout flag set in headers, returning null");
       return null;
     }
     
     // Check if user is logged in via session
     if (req.session && req.session.userId) {
+      console.log(`Getting user with ID ${req.session.userId} from storage`);
       const user = await storage.getUser(req.session.userId);
+      
       if (user) {
+        console.log(`User found: ${user.id}, ${user.name}, ${user.email}`);
         // Set a flag in the session to indicate it was used successfully
         req.session.authenticated = true;
         req.session.lastAccess = new Date().toISOString();
-        // Don't wait for save to complete before continuing
-        req.session.save(err => {
-          if (err) {
-            console.error('Error saving session:', err);
-          }
+        
+        // Save session synchronously to ensure it's updated before response
+        await new Promise<void>((resolve, reject) => {
+          req.session.save(err => {
+            if (err) {
+              console.error('Error saving session:', err);
+              reject(err);
+            } else {
+              console.log("Session saved successfully");
+              resolve();
+            }
+          });
         });
         
         return user;
+      } else {
+        console.log(`No user found for ID ${req.session.userId}`);
       }
+    } else {
+      console.log("No userId in session or session doesn't exist");
     }
     
     // Return null if no valid user found
@@ -59,13 +82,23 @@ export async function getCurrentUser(req: Request): Promise<User | null> {
 
 // Middleware to check if user is authenticated
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  // Debug session information
+  console.log("Session data in requireAuth:", {
+    id: req.sessionID,
+    userId: req.session?.userId,
+    authenticated: req.session?.authenticated,
+    cookies: req.headers.cookie
+  });
+  
   // Check if the browser has a special logout flag set (from localStorage)
   const isLoggedOut = req.headers['x-auth-logout'] === 'true';
   if (isLoggedOut) {
+    console.log("Logout flag set in headers, denying authentication");
     return sendUnauthenticatedResponse(res, "Session flagged as logged out");
   }
   
   if (!req.session || !req.session.userId) {
+    console.log("No valid session or userId for authentication");
     return sendUnauthenticatedResponse(res);
   }
   
@@ -73,16 +106,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (req.session) {
     req.session.authenticated = true;
     req.session.lastAccess = new Date().toISOString();
-    // Don't wait for save to complete before continuing
+    
+    // Save the session synchronously to ensure it's properly stored
     req.session.save(err => {
       if (err) {
-        console.error('Error saving session:', err);
+        console.error('Error saving session in requireAuth:', err);
+      } else {
+        console.log("Session saved successfully in requireAuth");
       }
     });
   }
   
   // Mark response as authenticated
   markResponseAuthenticated(res);
+  console.log("User authenticated, proceeding");
   next();
 }
 
