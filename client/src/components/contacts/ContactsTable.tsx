@@ -60,13 +60,13 @@ export default function ContactsTable({
   };
 
   // Helper function to check if a contact needs follow-up
-  const needsFollowUp = (lastContact?: Date | null): boolean => {
-    if (!lastContact) return true;
+  const needsFollowUp = (lastContactedDate?: Date | null): boolean => {
+    if (!lastContactedDate) return true;
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    return new Date(lastContact) < thirtyDaysAgo;
+    return new Date(lastContactedDate) < thirtyDaysAgo;
   };
 
   return (
@@ -108,7 +108,7 @@ export default function ContactsTable({
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
                     <Briefcase className="w-3 h-3 text-muted-foreground" />
-                    <span>{contact.position || 'Not specified'}</span>
+                    <span>{contact.jobTitle || 'Not specified'}</span>
                   </div>
                   {contact.company && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
@@ -127,13 +127,13 @@ export default function ContactsTable({
               </TableCell>
               <TableCell>
                 <div className="flex flex-col">
-                  {contact.lastContactDate ? (
+                  {contact.lastContactedDate ? (
                     <>
                       <div className="flex items-center gap-1">
                         <CalendarDays className="w-3 h-3 text-muted-foreground" />
-                        <span>{format(new Date(contact.lastContactDate), 'MMM d, yyyy')}</span>
+                        <span>{format(new Date(contact.lastContactedDate), 'MMM d, yyyy')}</span>
                       </div>
-                      {needsFollowUp(contact.lastContactDate) && (
+                      {needsFollowUp(contact.lastContactedDate) && (
                         <Badge variant="outline" className="mt-1 bg-red-100 text-red-800 border-transparent">
                           Needs follow-up
                         </Badge>
