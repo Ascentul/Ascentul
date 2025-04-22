@@ -1,5 +1,6 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Switch, Route, useLocation, Link } from "wouter";
+import { Loader2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
@@ -193,8 +194,8 @@ function App() {
 
   // Root path should show sign-in page for simplicity
   if (location === "/" || location === "") {
-    // Redirect to sign-in page
-    navigate("/sign-in");
+    // Redirect to direct login page instead of regular sign-in
+    navigate("/direct-login");
     return null;
   }
 
@@ -202,6 +203,22 @@ function App() {
   const isAdminLoginRoute = location === "/admin-login";
   const isStaffLoginRoute = location === "/staff-login";
 
+  // Check for direct login route
+  const isDirectLoginRoute = location === "/direct-login";
+  
+  // Import the DirectLogin page directly to avoid dynamic import issues
+  const DirectLogin = React.lazy(() => import("@/pages/direct-login"));
+
+  if (isDirectLoginRoute) {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <Switch>
+          <Route path="/direct-login" component={DirectLogin} />
+        </Switch>
+      </React.Suspense>
+    );
+  }
+  
   if (isSignInRoute) {
     return (
       <Switch>
