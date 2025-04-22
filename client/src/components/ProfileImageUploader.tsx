@@ -23,7 +23,7 @@ export default function ProfileImageUploader({
   children 
 }: ProfileImageUploaderProps) {
   const [image, setImage] = useState<string | null>(null);
-  const [zoom, setZoom] = useState<number>(1);
+  const [zoom, setZoom] = useState<number>(0.8); // Lower initial zoom for better framing
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -37,7 +37,7 @@ export default function ProfileImageUploader({
   useEffect(() => {
     if (isOpen) {
       setImage(null);
-      setZoom(1);
+      setZoom(0.8); // Match the initial zoom
       setPosition({ x: 0, y: 0 });
     }
   }, [isOpen]);
@@ -49,8 +49,8 @@ export default function ProfileImageUploader({
       reader.onload = (event) => {
         setImage(event.target?.result as string);
         
-        // Reset zoom and position
-        setZoom(1);
+        // Reset zoom and position with a lower initial zoom
+        setZoom(0.8);
         setPosition({ x: 0, y: 0 });
         
         // Center the image after it loads
@@ -338,8 +338,8 @@ export default function ProfileImageUploader({
                   <span className="text-sm text-gray-500">{Math.round(zoom * 100)}%</span>
                 </div>
                 <Slider
-                  defaultValue={[1]}
-                  min={1}
+                  defaultValue={[0.8]}
+                  min={0.5}
                   max={3}
                   step={0.1}
                   value={[zoom]}
@@ -358,7 +358,7 @@ export default function ProfileImageUploader({
             variant="outline"
             onClick={() => {
               setImage(null);
-              setZoom(1);
+              setZoom(0.8);
             }}
             disabled={!image || isLoading}
           >
