@@ -1,6 +1,7 @@
 import React, { Suspense } from "react";
 import { Switch, Route, useLocation, Link } from "wouter";
 import { Loader2 } from "lucide-react";
+import QuickLogin from "@/pages/QuickLogin";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
@@ -212,6 +213,9 @@ function App() {
   // Check for direct login route
   const isDirectLoginRoute = location === "/direct-login";
   
+  // Check for quick login route (completely bypasses auth)
+  const isQuickLoginRoute = location === "/quick-login";
+  
   // Import the DirectLogin page directly to avoid dynamic import issues
   const DirectLogin = React.lazy(() => import("@/pages/direct-login"));
 
@@ -220,6 +224,18 @@ function App() {
       <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
         <Switch>
           <Route path="/direct-login" component={DirectLogin} />
+        </Switch>
+      </React.Suspense>
+    );
+  }
+  
+  // Quick login - this completely bypasses authentication by rendering 
+  // the Dashboard component directly after performing a login API call
+  if (isQuickLoginRoute) {
+    return (
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <Switch>
+          <Route path="/quick-login" component={QuickLogin} />
         </Switch>
       </React.Suspense>
     );
