@@ -32,20 +32,23 @@ export default function SignInPage() {
       localStorage.removeItem('auth-logout');
       
       // Use the login function from useUser hook, which properly updates authentication state
-      await login(loginEmail, loginPassword);
+      const userData = await login(loginEmail, loginPassword);
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
       
-      // Note: The login function in useUser already handles redirection
-      // If it doesn't redirect automatically, uncomment the following:
-      /*
+      // The login function in useUser should handle redirection through its success handler
+      // But as a fallback, let's also manually redirect after a short delay
       setTimeout(() => {
-        document.location.href = '/career-dashboard';
-      }, 500);
-      */
+        // Check if we're still on the login page (the automatic redirect didn't work)
+        if (window.location.pathname.includes('/sign-in')) {
+          console.log('Fallback redirect triggered');
+          const redirectPath = '/career-dashboard';
+          document.location.href = redirectPath;
+        }
+      }, 1000);
       
     } catch (error) {
       toast({

@@ -147,14 +147,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
         
         const data = await res.json();
         
-        if (!data || !data.user) {
+        // Handle both response formats - one with nested user and one with user directly
+        let userData: User;
+        let redirectPathData: string | undefined;
+        
+        if (data && data.user) {
+          // New response format
+          userData = data.user as User;
+          redirectPathData = data.redirectPath;
+        } else if (data && data.id) {
+          // Direct user object format
+          userData = data as User;
+          redirectPathData = userData.redirectPath;
+        } else {
           throw new Error("Invalid server response");
         }
         
         // Return both user and redirectPath from the server response
         return {
-          user: data.user as User,
-          redirectPath: data.redirectPath
+          user: userData,
+          redirectPath: redirectPathData
         };
       } catch (error) {
         console.error('Login error:', error);

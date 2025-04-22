@@ -380,9 +380,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       markResponseAuthenticated(res);
       
       // Format response to match what the frontend expects
+      // Add redirectPath directly to the user object as well for backward compatibility
+      const userWithRedirect = {
+        ...safeUser,
+        redirectPath
+      };
+      
+      // Return both formats for maximum compatibility
       res.status(200).json({ 
-        user: safeUser, 
-        redirectPath 
+        user: userWithRedirect, 
+        redirectPath,
+        ...userWithRedirect,  // Spread the user+redirect properties at the top level too
       });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
