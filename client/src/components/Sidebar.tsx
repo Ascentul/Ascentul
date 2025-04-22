@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+import ascentulLogo from '@/assets/ascentul-logo.png';
 import { 
   LayoutDashboard, 
   Target, 
@@ -201,9 +202,9 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between h-16 border-b px-3">
         {expanded ? (
-          <h1 className="text-xl font-bold text-primary font-poppins ml-2">CareerTracker.io</h1>
+          <img src={ascentulLogo} alt="Ascentul" className="h-8 ml-2" />
         ) : (
-          <span className="w-full text-center text-primary text-xl font-bold">C</span>
+          <img src={ascentulLogo} alt="Ascentul" className="h-6 mx-auto" />
         )}
         <Button 
           variant="ghost" 
