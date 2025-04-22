@@ -37,8 +37,7 @@ import {
   PanelRight,
   ChevronsLeft,
   Menu,
-  LayoutPanelLeft,
-  PanelLeftClose,
+
   User
 } from 'lucide-react';
 
@@ -213,7 +212,7 @@ export default function Sidebar() {
           className="ml-auto"
           aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {expanded ? <PanelLeftClose size={18} /> : <LayoutPanelLeft size={18} />}
+          {expanded ? <ChevronsLeft size={18} /> : <Menu size={18} />}
         </Button>
       </div>
       
@@ -346,7 +345,7 @@ export default function Sidebar() {
                       {expanded && <span>{section.title}</span>}
                     </div>
                     {expanded && section.items.length > 0 && (
-                      <LayoutPanelLeft className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4" />
                     )}
                   </Link>
                 ) : (
@@ -369,8 +368,8 @@ export default function Sidebar() {
                         transition={{ duration: 0.2 }}
                       >
                         {activeSection === section.id ? 
-                          <PanelLeftClose className="w-4 h-4" /> : 
-                          <LayoutPanelLeft className="w-4 h-4" />
+                          <ChevronRight className="w-4 h-4 transform rotate-90" /> : 
+                          <ChevronRight className="w-4 h-4" />
                         }
                       </motion.div>
                     )}
