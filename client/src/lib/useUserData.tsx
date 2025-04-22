@@ -55,7 +55,11 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for demo
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if user has explicitly logged out
+    const loggedOut = localStorage.getItem('auth-logout') === 'true';
+    return !loggedOut; // Consider authenticated unless explicitly logged out
+  });
 
   const {
     data: user,
