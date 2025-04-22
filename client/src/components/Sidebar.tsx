@@ -48,6 +48,7 @@ type SidebarSection = {
   title: string;
   icon: React.ReactNode;
   items: SidebarItem[];
+  href?: string;
 }
 
 type SidebarItem = {
@@ -139,7 +140,7 @@ export default function Sidebar() {
     progressPercentage = Math.min(100, (xpInCurrentLevel / xpToNextLevel) * 100);
   }
 
-  // The four main sections with their corresponding features
+  // The main navigation items
   const sidebarSections: SidebarSection[] = [
     {
       id: 'job-search',
@@ -162,11 +163,17 @@ export default function Sidebar() {
       ]
     },
     {
+      id: 'career-profile',
+      title: 'Career Profile',
+      icon: <User className="w-5 h-5" />,
+      items: [],
+      href: '/career-profile'
+    },
+    {
       id: 'portfolio',
       title: 'Portfolio & Assets',
       icon: <FolderGit2 className="w-5 h-5" />,
       items: [
-        { href: '/career-profile', icon: <User className="w-5 h-5 mr-3" />, label: 'Career Profile' },
         { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
@@ -329,31 +336,51 @@ export default function Sidebar() {
             {sidebarSections.map((section) => (
               <div key={section.id} className="relative">
                 {/* Section header */}
-                <button
-                  data-section-id={section.id}
-                  className={`w-full flex items-center ${expanded ? 'justify-between' : 'justify-center'} rounded-md ${expanded ? 'px-3' : 'px-2'} py-2 text-sm transition-colors
-                    ${activeSection === section.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
-                  onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
-                  onMouseEnter={() => setHoverSection(section.id)}
-                  onMouseLeave={() => setHoverSection(null)}
-                  title={!expanded ? section.title : undefined}
-                >
-                  <div className="flex items-center">
-                    <span className={expanded ? 'mr-3' : ''}>{section.icon}</span>
-                    {expanded && <span>{section.title}</span>}
-                  </div>
-                  {expanded && (
-                    <motion.div
-                      animate={{ rotate: activeSection === section.id ? 0 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {activeSection === section.id ? 
-                        <PanelLeftClose className="w-4 h-4" /> : 
-                        <LayoutPanelLeft className="w-4 h-4" />
-                      }
-                    </motion.div>
-                  )}
-                </button>
+                {section.href ? (
+                  <Link
+                    href={section.href}
+                    data-section-id={section.id}
+                    className={`w-full flex items-center ${expanded ? 'justify-between' : 'justify-center'} rounded-md ${expanded ? 'px-3' : 'px-2'} py-2 text-sm transition-colors
+                      ${location === section.href ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
+                    onMouseEnter={() => setHoverSection(section.id)}
+                    onMouseLeave={() => setHoverSection(null)}
+                    title={!expanded ? section.title : undefined}
+                  >
+                    <div className="flex items-center">
+                      <span className={expanded ? 'mr-3' : ''}>{section.icon}</span>
+                      {expanded && <span>{section.title}</span>}
+                    </div>
+                    {expanded && section.items.length > 0 && (
+                      <LayoutPanelLeft className="w-4 h-4" />
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    data-section-id={section.id}
+                    className={`w-full flex items-center ${expanded ? 'justify-between' : 'justify-center'} rounded-md ${expanded ? 'px-3' : 'px-2'} py-2 text-sm transition-colors
+                      ${activeSection === section.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-primary/5'}`}
+                    onClick={() => setActiveSection(activeSection === section.id ? null : section.id)}
+                    onMouseEnter={() => setHoverSection(section.id)}
+                    onMouseLeave={() => setHoverSection(null)}
+                    title={!expanded ? section.title : undefined}
+                  >
+                    <div className="flex items-center">
+                      <span className={expanded ? 'mr-3' : ''}>{section.icon}</span>
+                      {expanded && <span>{section.title}</span>}
+                    </div>
+                    {expanded && (
+                      <motion.div
+                        animate={{ rotate: activeSection === section.id ? 0 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {activeSection === section.id ? 
+                          <PanelLeftClose className="w-4 h-4" /> : 
+                          <LayoutPanelLeft className="w-4 h-4" />
+                        }
+                      </motion.div>
+                    )}
+                  </button>
+                )}
                 
                 {/* Flyout content - only show in expanded mode or as popup in collapsed mode */}
                 <AnimatePresence>
