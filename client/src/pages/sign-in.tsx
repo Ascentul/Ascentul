@@ -38,21 +38,41 @@ export default function SignInPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook
-      // The login function in useUserData will handle the redirection based on the server response
-      await login(loginEmail, loginPassword);
+      // Make direct fetch request to login endpoint to avoid React state update issues
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: loginEmail, 
+          password: loginPassword 
+        }),
+        credentials: 'include' // Include cookies
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+      
+      const data = await response.json();
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
+      
+      // Use direct document.location redirection to avoid React state update issues
+      console.log('Redirecting to:', data.redirectPath || '/career-dashboard');
+      setTimeout(() => {
+        document.location.href = data.redirectPath || '/career-dashboard';
+      }, 500); // Small delay to ensure toast is shown
+      
     } catch (error) {
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "Please check your credentials and try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoginLoading(false);
     }
   };
