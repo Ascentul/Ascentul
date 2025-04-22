@@ -106,11 +106,22 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 3000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`Server running at http://0.0.0.0:${port}`);
-  });
+  const port = parseInt(process.env.PORT || "5000");
+  const startServer = (retryPort = port) => {
+    server.listen({
+      port: retryPort,
+      host: "0.0.0.0",
+    }, () => {
+      log(`Server running at http://0.0.0.0:${retryPort}`);
+    }).on('error', (e: any) => {
+      if (e.code === 'EADDRINUSE') {
+        log(`Port ${retryPort} is busy, trying ${retryPort + 1}...`);
+        startServer(retryPort + 1);
+      } else {
+        console.error('Server error:', e);
+      }
+    });
+  };
+  
+  startServer();
 })();
