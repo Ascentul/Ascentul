@@ -379,7 +379,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       // Use the utility function from auth.ts to set consistent headers
       markResponseAuthenticated(res);
       
-      res.status(200).json({ user: safeUser, redirectPath });
+      // Format response to match what the frontend expects
+      res.status(200).json({ 
+        user: safeUser, 
+        redirectPath 
+      });
     } catch (error) {
       res.status(500).json({ message: "Error during login" });
     }
