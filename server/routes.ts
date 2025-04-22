@@ -1099,6 +1099,325 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Skill Stacker Routes
+  apiRouter.get("/skill-stacker", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const plans = await storage.getAllSkillStackerPlans(user.id);
+      res.status(200).json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill stacker plans" });
+    }
+  });
+  
+  apiRouter.get("/skill-stacker/goal/:goalId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const goalId = parseInt(req.params.goalId);
+      if (isNaN(goalId)) {
+        return res.status(400).json({ message: "Invalid goal ID" });
+      }
+      
+      // Check if the goal belongs to the user
+      const goal = await storage.getGoal(goalId);
+      if (!goal || goal.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or goal not found" });
+      }
+      
+      const plans = await storage.getSkillStackerPlansByGoal(goalId);
+      res.status(200).json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill stacker plans for goal" });
+    }
+  });
+  
+  apiRouter.get("/skill-stacker/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      if (isNaN(planId)) {
+        return res.status(400).json({ message: "Invalid plan ID" });
+      }
+      
+      const plan = await storage.getSkillStackerPlan(planId);
+      
+      // Check if plan exists and belongs to the user
+      if (!plan || plan.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or plan not found" });
+      }
+      
+      res.status(200).json(plan);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching skill stacker plan" });
+    }
+  });
+  
+  apiRouter.post("/skill-stacker", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      // Validate the request body against the schema
+      const result = insertSkillStackerPlanSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid plan data", errors: result.error.format() });
+      }
+      
+      // Check if the goal exists and belongs to the user
+      const goal = await storage.getGoal(result.data.goalId);
+      if (!goal || goal.userId !== user.id) {
+        return res.status(403).json({ message: "Goal not found or access denied" });
+      }
+      
+      // Check if a plan already exists for this goal and week
+      const existingPlan = await storage.getSkillStackerPlanByGoalAndWeek(result.data.goalId, result.data.week);
+      if (existingPlan) {
+        return res.status(409).json({ message: "A plan already exists for this goal and week" });
+      }
+      
+      // Create the plan
+      const newPlan = await storage.createSkillStackerPlan(user.id, result.data);
+      res.status(201).json(newPlan);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating skill stacker plan" });
+    }
+  });
+  
+  // Generate AI-driven skill stacker plan
+  apiRouter.post("/skill-stacker/generate", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { goalId, week, currentSkillLevel } = req.body;
+      
+      if (!goalId || typeof week !== 'number' || !currentSkillLevel) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if the goal exists and belongs to the user
+      const goal = await storage.getGoal(goalId);
+      if (!goal || goal.userId !== user.id) {
+        return res.status(403).json({ message: "Goal not found or access denied" });
+      }
+      
+      // Check if a plan already exists for this goal and week
+      const existingPlan = await storage.getSkillStackerPlanByGoalAndWeek(goalId, week);
+      if (existingPlan) {
+        return res.status(409).json({ message: "A plan already exists for this goal and week" });
+      }
+      
+      // Generate tasks using OpenAI
+      try {
+        // Mock response for now, will integrate with OpenAI in the next phase
+        const skillTasksMock = [
+          {
+            id: crypto.randomUUID(),
+            title: `Learn the fundamentals of ${goal.title}`,
+            description: "Understand the core concepts and principles",
+            estimatedHours: 3,
+            resources: ["Documentation", "Online tutorials"],
+            type: "learning",
+            status: "incomplete",
+            completedAt: null
+          },
+          {
+            id: crypto.randomUUID(),
+            title: `Practice ${goal.title} with exercises`,
+            description: "Complete 5-10 practice problems to reinforce concepts",
+            estimatedHours: 2,
+            resources: ["Practice problems", "Coding challenges"],
+            type: "practice",
+            status: "incomplete",
+            completedAt: null
+          },
+          {
+            id: crypto.randomUUID(),
+            title: `Build a small project using ${goal.title}`,
+            description: "Apply what you've learned in a mini-project",
+            estimatedHours: 4,
+            resources: ["Project examples", "GitHub repositories"],
+            type: "project",
+            status: "incomplete",
+            completedAt: null
+          }
+        ];
+        
+        // Create the plan
+        const newPlan = await storage.createSkillStackerPlan(user.id, {
+          goalId,
+          week,
+          title: `Week ${week} Skills Plan for ${goal.title}`,
+          description: `Structured learning and practice activities to develop your ${goal.title} skills (Week ${week})`,
+          tasks: skillTasksMock,
+          status: "active"
+        });
+        
+        res.status(201).json(newPlan);
+      } catch (error) {
+        console.error("Error generating skill tasks:", error);
+        res.status(500).json({ message: "Error generating skill tasks" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Error creating skill stacker plan" });
+    }
+  });
+  
+  apiRouter.put("/skill-stacker/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      if (isNaN(planId)) {
+        return res.status(400).json({ message: "Invalid plan ID" });
+      }
+      
+      // Get the existing plan
+      const plan = await storage.getSkillStackerPlan(planId);
+      
+      // Check if plan exists and belongs to the user
+      if (!plan || plan.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or plan not found" });
+      }
+      
+      // Update the plan
+      const updatedPlan = await storage.updateSkillStackerPlan(planId, req.body);
+      res.status(200).json(updatedPlan);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating skill stacker plan" });
+    }
+  });
+  
+  apiRouter.put("/skill-stacker/:id/task/:taskId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      const taskId = req.params.taskId;
+      
+      if (isNaN(planId) || !taskId) {
+        return res.status(400).json({ message: "Invalid plan ID or task ID" });
+      }
+      
+      // Get the existing plan
+      const plan = await storage.getSkillStackerPlan(planId);
+      
+      // Check if plan exists and belongs to the user
+      if (!plan || plan.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or plan not found" });
+      }
+      
+      // Validate the request body
+      const { status, rating } = req.body;
+      
+      if (status !== "complete" && status !== "incomplete") {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      
+      // Update the task status
+      const updatedPlan = await storage.updateSkillStackerTaskStatus(planId, taskId, status, rating);
+      res.status(200).json(updatedPlan);
+    } catch (error) {
+      res.status(500).json({ message: "Error updating task status" });
+    }
+  });
+  
+  apiRouter.put("/skill-stacker/:id/complete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      
+      if (isNaN(planId)) {
+        return res.status(400).json({ message: "Invalid plan ID" });
+      }
+      
+      // Get the existing plan
+      const plan = await storage.getSkillStackerPlan(planId);
+      
+      // Check if plan exists and belongs to the user
+      if (!plan || plan.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or plan not found" });
+      }
+      
+      // Check if all tasks are complete
+      const allTasksComplete = plan.tasks.every(task => task.status === "complete");
+      
+      if (!allTasksComplete) {
+        return res.status(400).json({ message: "Cannot complete plan - some tasks are still incomplete" });
+      }
+      
+      // Complete the week
+      const completedPlan = await storage.completeSkillStackerWeek(planId);
+      res.status(200).json(completedPlan);
+    } catch (error) {
+      res.status(500).json({ message: "Error completing skill stacker week" });
+    }
+  });
+  
+  apiRouter.delete("/skill-stacker/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = await getCurrentUser(req);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const planId = parseInt(req.params.id);
+      
+      if (isNaN(planId)) {
+        return res.status(400).json({ message: "Invalid plan ID" });
+      }
+      
+      // Get the existing plan
+      const plan = await storage.getSkillStackerPlan(planId);
+      
+      // Check if plan exists and belongs to the user
+      if (!plan || plan.userId !== user.id) {
+        return res.status(403).json({ message: "Access denied or plan not found" });
+      }
+      
+      // Delete the plan
+      await storage.deleteSkillStackerPlan(planId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Error deleting skill stacker plan" });
+    }
+  });
+  
   // Work History Routes
   apiRouter.get("/work-history", requireAuth, async (req: Request, res: Response) => {
     try {

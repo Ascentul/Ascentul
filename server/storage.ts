@@ -343,6 +343,17 @@ export interface IStorage {
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
   getCareerPath(id: number): Promise<CareerPath | undefined>;
   deleteCareerPath(id: number): Promise<boolean>;
+  
+  // Skill Stacker operations
+  getSkillStackerPlan(id: number): Promise<SkillStackerPlan | undefined>;
+  getSkillStackerPlanByGoalAndWeek(goalId: number, week: number): Promise<SkillStackerPlan | undefined>;
+  getAllSkillStackerPlans(userId: number): Promise<SkillStackerPlan[]>;
+  getSkillStackerPlansByGoal(goalId: number): Promise<SkillStackerPlan[]>;
+  createSkillStackerPlan(userId: number, plan: InsertSkillStackerPlan): Promise<SkillStackerPlan>;
+  updateSkillStackerPlan(id: number, planData: Partial<SkillStackerPlan>): Promise<SkillStackerPlan | undefined>;
+  updateSkillStackerTaskStatus(planId: number, taskId: string, status: "complete" | "incomplete", rating?: number): Promise<SkillStackerPlan | undefined>;
+  completeSkillStackerWeek(planId: number): Promise<SkillStackerPlan | undefined>;
+  deleteSkillStackerPlan(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
