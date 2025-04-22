@@ -176,6 +176,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       items: [
         { href: '/projects', icon: <FolderGit2 className="w-5 h-5 mr-3" />, label: 'Project Portfolio' },
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Builder' },
+        { href: '/resume-analysis', icon: <BarChart className="w-5 h-5 mr-3" />, label: 'Resume Analysis' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
         { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
       ]
