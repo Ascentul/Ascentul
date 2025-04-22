@@ -214,6 +214,12 @@ export default function ProfileImageUploader({
       // Close the dialog
       setIsOpen(false);
       
+      // Force a refresh of the page to ensure all component updates
+      // This is a more aggressive solution but ensures everything gets updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      
     } catch (error) {
       console.error('Error saving image:', error);
       alert('Failed to save profile image. Please try again.');
