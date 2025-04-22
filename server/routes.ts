@@ -224,6 +224,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add some XP to the sample user
       await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
       
+      // Create a sample Skill Stacker plan
+      const pythonGoal = await storage.getGoals(sampleUser.id).then(goals => 
+        goals.find(g => g.title === "Complete Python Course")
+      );
+      
+      if (pythonGoal) {
+        // Create a sample skill stacker plan for the Python goal
+        const sampleTasks = [
+          {
+            id: crypto.randomUUID(),
+            title: "Python Basics Review",
+            description: "Review fundamental Python concepts including variables, data types, loops, and functions",
+            estimatedHours: 2,
+            resources: ["Python Documentation", "W3Schools Python Tutorial"],
+            type: "learning",
+            status: "complete",
+            completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+          },
+          {
+            id: crypto.randomUUID(),
+            title: "Advanced Data Structures",
+            description: "Study lists, dictionaries, sets, and tuples in depth",
+            estimatedHours: 3,
+            resources: ["Python Data Structures Guide", "Practice Exercises"],
+            type: "practice",
+            status: "complete",
+            completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+          },
+          {
+            id: crypto.randomUUID(),
+            title: "Object-Oriented Programming",
+            description: "Learn about classes, inheritance, and polymorphism in Python",
+            estimatedHours: 4,
+            resources: ["OOP Python Tutorial", "GitHub Examples"],
+            type: "project",
+            status: "incomplete",
+            completedAt: null
+          }
+        ];
+        
+        await storage.createSkillStackerPlan(sampleUser.id, {
+          goalId: pythonGoal.id,
+          week: 1,
+          title: "Week 1: Python Fundamentals",
+          description: "Master the core concepts of Python programming to build a solid foundation",
+          tasks: sampleTasks,
+          status: "active"
+        });
+      }
+      
       // Create a sample conversation
       const conversation = await storage.createAiCoachConversation(sampleUser.id, {
         title: "Interview Preparation"
