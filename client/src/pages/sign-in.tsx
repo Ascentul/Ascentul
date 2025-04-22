@@ -38,34 +38,21 @@ export default function SignInPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Make direct fetch request to login endpoint to avoid React state update issues
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: loginEmail, 
-          password: loginPassword 
-        }),
-        credentials: 'include' // Include cookies
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-      
-      const data = await response.json();
+      // Use the login function from useUser hook, which properly updates authentication state
+      await login(loginEmail, loginPassword);
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
       
-      // Use direct document.location redirection to avoid React state update issues
-      console.log('Redirecting to:', data.redirectPath || '/career-dashboard');
+      // Note: The login function in useUser already handles redirection
+      // If it doesn't redirect automatically, uncomment the following:
+      /*
       setTimeout(() => {
-        document.location.href = data.redirectPath || '/career-dashboard';
-      }, 500); // Small delay to ensure toast is shown
+        document.location.href = '/career-dashboard';
+      }, 500);
+      */
       
     } catch (error) {
       toast({
