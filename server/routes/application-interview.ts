@@ -64,11 +64,15 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
         return res.status(403).json({ message: "You don't have permission to add stages to this application" });
       }
       
-      // Ensure the application is in "Interviewing" status
+      // If the application isn't in "Interviewing" status, update it
       if (application.status !== "Interviewing") {
-        return res.status(400).json({ 
-          message: "Cannot add interview stages to applications not in 'Interviewing' status" 
+        // Update the application status to "Interviewing"
+        await storage.updateJobApplication(applicationId, {
+          ...application,
+          status: "Interviewing"
         });
+        
+        console.log(`Updated application ${applicationId} status to "Interviewing"`);
       }
       
       // Parse the stage data
