@@ -9,6 +9,7 @@ import { ExternalLink, Loader2, Search, Lightbulb } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
 import { ApplicationAssistant } from './ApplicationAssistant';
+import { ApplicationWizard } from './ApplicationWizard';
 
 interface AdzunaJobSearchProps {
   onSelectJob?: (jobInfo: { title: string; company: string; url: string; description: string }) => void;
@@ -171,6 +172,28 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   // State to store selected job
   const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [showApplicationWizard, setShowApplicationWizard] = useState(false);
+  const [applicationJob, setApplicationJob] = useState<{
+    id?: string;
+    title: string;
+    company: string;
+    description: string;
+    location?: string;
+    url?: string;
+  } | null>(null);
+  
+  // Handle starting an application
+  const handleStartApplication = (job: AdzunaJob) => {
+    setApplicationJob({
+      id: job.id,
+      title: job.title,
+      company: job.company.display_name,
+      description: job.description,
+      location: job.location.display_name,
+      url: job.redirect_url
+    });
+    setShowApplicationWizard(true);
+  };
   
   const handleSelectJob = (job: AdzunaJob) => {
     // Store the full job object
@@ -225,6 +248,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   }, [searchResults]);
   
   return (
+    <>
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -317,10 +341,27 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   >
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-lg">{job.title}</h3>
-                      <Button size="sm" variant="ghost" className="h-6 gap-1">
-                        <ExternalLink className="h-3 w-3" />
-                        View
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-6 gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartApplication(job);
+                          }}
+                        >
+                          Start Application
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-sm font-medium">{job.company.display_name}</p>
                     <p className="text-sm text-gray-500">{job.location.display_name}</p>
@@ -466,12 +507,21 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                     Get Application Help
                   </Button>
                   
-                  <Button 
-                    variant="default" 
-                    onClick={() => window.open(selectedJob.redirect_url, '_blank')}
-                  >
-                    Apply for This Job
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleStartApplication(selectedJob)}
+                    >
+                      Start Application
+                    </Button>
+                    
+                    <Button 
+                      variant="default" 
+                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
+                    >
+                      Apply on Adzuna
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -500,5 +550,22 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         )}
       </CardFooter>
     </Card>
+    
+    {applicationJob && (
+      <ApplicationWizard
+        isOpen={showApplicationWizard}
+        onClose={() => setShowApplicationWizard(false)}
+        jobDetails={applicationJob}
+      />
+    )}
+    
+    <ApplicationAssistant
+      isOpen={showAssistant}
+      onClose={() => setShowAssistant(false)}
+      jobTitle={selectedJob?.title}
+      companyName={selectedJob?.company?.display_name}
+      jobDescription={selectedJob?.description}
+    />
+    </>
   );
 }
