@@ -228,9 +228,12 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             applicationDate: formatDate(),
             // Include these fields for the application tracker display
             company: jobDetails.company,
+            companyName: jobDetails.company, // Add this for filter compatibility
             position: jobDetails.title,
             jobTitle: jobDetails.title,
+            title: jobDetails.title, // Add this for filter compatibility
             location: jobDetails.location || 'Remote',
+            jobLocation: jobDetails.location || 'Remote', // Add this for filter compatibility
             notes: 'Applied via Ascentul',
             createdAt: formatDate(),
             updatedAt: formatDate(),

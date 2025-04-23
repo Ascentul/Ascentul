@@ -288,6 +288,12 @@ const Interview = () => {
   
   // Get selected application details
   const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
+  
+  // Refresh the applications list when the page loads
+  useEffect(() => {
+    // Force a refresh of applications on mount
+    queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+  }, []);
 
   // Use global loading state for initial data fetch
   useEffect(() => {
