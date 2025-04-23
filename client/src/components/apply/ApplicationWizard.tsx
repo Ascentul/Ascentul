@@ -219,12 +219,17 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, simulate a successful application submission
         if (error.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
+          
+          // Get the applied checkbox value from the most recent form data
+          const formData = form.getValues();
+          const hasBeenApplied = formData.applied || false;
+          
           // Create a more complete mock application object for the Interview page
           const completedApplication = { 
             id: applicationId,
-            status: 'Applied', // Match the capitalization expected by Interview.tsx
-            appliedAt: formatDate(),
-            submittedAt: formatDate(),
+            status: hasBeenApplied ? 'Applied' : 'Not Applied', // Set status based on checkbox
+            appliedAt: hasBeenApplied ? formatDate() : null,
+            submittedAt: hasBeenApplied ? formatDate() : null,
             applicationDate: formatDate(),
             // Include these fields for the application tracker display
             company: jobDetails.company,
@@ -234,7 +239,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             title: jobDetails.title, // Add this for filter compatibility
             location: jobDetails.location || 'Remote',
             jobLocation: jobDetails.location || 'Remote', // Add this for filter compatibility
-            notes: 'Applied via Ascentul',
+            notes: hasBeenApplied ? 'Applied via Ascentul' : 'Started application in Ascentul',
             createdAt: formatDate(),
             updatedAt: formatDate(),
             jobLink: jobDetails.url || '',
