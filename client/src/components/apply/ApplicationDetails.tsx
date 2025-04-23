@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   Pencil
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ApplicationStatusBadge, ApplicationStatus } from './ApplicationStatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -29,12 +30,7 @@ import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
 import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
 import { EditInterviewStageForm } from '@/components/interview/EditInterviewStageForm';
 import type { InterviewStage, FollowupAction } from '@shared/schema';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 
 interface ApplicationDetailsProps {
   application: any;
@@ -157,6 +153,64 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
       // Add other fields as needed
     });
   };
+  
+  // Function to update interview stage outcome
+  const handleUpdateStageOutcome = async (stageId: number, outcome: string) => {
+    try {
+      // Try to update on server first
+      await apiRequest('PATCH', `/api/applications/${application.id}/stages/${stageId}`, {
+        outcome
+      });
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
+      
+      toast({
+        title: "Status updated",
+        description: `Interview status updated to ${outcome}`,
+      });
+    } catch (error) {
+      console.error(`Error updating interview stage outcome:`, error);
+      
+      // Check if it's a localStorage-only stage
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+        // Update in localStorage if stage is only there
+        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${application.id}`) || '[]');
+        const stageIndex = mockStages.findIndex((s: any) => s.id === stageId);
+        
+        if (stageIndex === -1) {
+          toast({
+            title: "Error",
+            description: "Interview stage not found",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Update the stage outcome
+        mockStages[stageIndex].outcome = outcome;
+        mockStages[stageIndex].updatedAt = new Date().toISOString();
+        
+        // Save back to localStorage
+        localStorage.setItem(`mockInterviewStages_${application.id}`, JSON.stringify(mockStages));
+        
+        // Force update by invalidating the query
+        queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
+        
+        toast({
+          title: "Status updated",
+          description: `Interview status updated to ${outcome}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to update status: ${errorMessage}`,
+          variant: "destructive"
+        });
+      }
+    }
+  };
 
   // Format dates for display
   const formatDate = (date: string | Date | null) => {
@@ -202,7 +256,30 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
               </SelectContent>
             </Select>
           ) : (
-            <ApplicationStatusBadge status={localApplication.status} className="text-sm" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="p-0 h-auto hover:bg-transparent cursor-pointer">
+                  <ApplicationStatusBadge status={localApplication.status} className="text-sm" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleStatusChange('Not Started')}>
+                  Not Started
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Applied')}>
+                  Applied
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Interviewing')}>
+                  Interviewing
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Offer')}>
+                  Offer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleStatusChange('Rejected')}>
+                  Rejected
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           
           {localApplication.applicationDate && (
@@ -384,15 +461,28 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                       {interviewStages.map((stage) => (
                         <div key={stage.id} className="flex items-start justify-between border rounded-md p-3">
                           <div>
-                            <h4 className="font-medium">
-                              {stage.type === 'phone_screen' ? 'Phone Screen' : 
-                               stage.type === 'technical' ? 'Technical Interview' :
-                               stage.type === 'behavioral' ? 'Behavioral Interview' :
-                               stage.type === 'onsite' ? 'Onsite Interview' :
-                               stage.type === 'panel' ? 'Panel Interview' :
-                               stage.type === 'final' ? 'Final Round' : 
-                               'Interview'}
-                            </h4>
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-medium">
+                                {stage.type === 'phone_screen' ? 'Phone Screen' : 
+                                 stage.type === 'technical' ? 'Technical Interview' :
+                                 stage.type === 'behavioral' ? 'Behavioral Interview' :
+                                 stage.type === 'onsite' ? 'Onsite Interview' :
+                                 stage.type === 'panel' ? 'Panel Interview' :
+                                 stage.type === 'final' ? 'Final Round' : 
+                                 'Interview'}
+                              </h4>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 ml-2" 
+                                onClick={() => {
+                                  setCurrentStageToEdit(stage);
+                                  setShowEditStageForm(true);
+                                }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                             {stage.scheduledDate && (
                               <div className="flex items-center text-sm text-muted-foreground mt-1">
                                 <CalendarClock className="h-4 w-4 mr-1.5" />
@@ -411,18 +501,38 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                               </div>
                             )}
                           </div>
-                          <Badge variant="outline" 
-                            className={
-                              stage.outcome === 'passed' ? "bg-green-50 text-green-700 border-green-200" :
-                              stage.outcome === 'failed' ? "bg-red-50 text-red-700 border-red-200" :
-                              stage.completedDate ? "bg-orange-50 text-orange-700 border-orange-200" : 
-                              "bg-blue-50 text-blue-700 border-blue-200"
-                            }
-                          >
-                            {stage.outcome === 'passed' ? 'Passed' :
-                             stage.outcome === 'failed' ? 'Failed' :
-                             stage.completedDate ? 'Completed' : 'Upcoming'}
-                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" 
+                                className={
+                                  stage.outcome === 'passed' ? "bg-green-50 text-green-700 border-green-200" :
+                                  stage.outcome === 'failed' ? "bg-red-50 text-red-700 border-red-200" :
+                                  stage.outcome === 'scheduled' ? "bg-blue-50 text-blue-700 border-blue-200" : 
+                                  "bg-orange-50 text-orange-700 border-orange-200"
+                                }
+                                size="sm"
+                              >
+                                {stage.outcome === 'passed' ? 'Passed' :
+                                 stage.outcome === 'failed' ? 'Rejected' :
+                                 stage.outcome === 'scheduled' ? 'Scheduled' :
+                                 'Pending'}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'scheduled')}>
+                                Scheduled
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'pending')}>
+                                Pending
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'passed')}>
+                                Passed
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'failed')}>
+                                Rejected
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       ))}
                     </div>
@@ -586,6 +696,26 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
             Close
           </Button>
         </div>
+      )}
+      
+      {/* Show edit interview stage form */}
+      {showEditStageForm && currentStageToEdit && (
+        <EditInterviewStageForm
+          isOpen={showEditStageForm}
+          onClose={() => setShowEditStageForm(false)}
+          stage={currentStageToEdit}
+          applicationId={application.id}
+          onSuccess={() => {
+            // Refresh interview stages data
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/applications/${application.id}/stages`] 
+            });
+            toast({
+              title: "Interview updated",
+              description: "The interview stage has been updated successfully."
+            });
+          }}
+        />
       )}
     </div>
   );
