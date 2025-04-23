@@ -12,7 +12,7 @@ import { ApplicationAssistant } from './ApplicationAssistant';
 import { ApplicationWizard } from './ApplicationWizard';
 
 interface AdzunaJobSearchProps {
-  onSelectJob?: (jobInfo: { title: string; company: string; url: string; description: string }) => void;
+  onSelectJob?: (jobInfo: { title: string; company: string; url: string; description: string; location?: string }) => void;
 }
 
 export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
@@ -209,6 +209,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         company: job.company.display_name,
         url: job.redirect_url,
         description: job.description,
+        location: job.location?.display_name
       });
     }
   };
@@ -496,6 +497,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                           company: selectedJob.company.display_name,
                           url: selectedJob.redirect_url,
                           description: selectedJob.description,
+                          location: selectedJob.location?.display_name
                         });
                       }
                       
