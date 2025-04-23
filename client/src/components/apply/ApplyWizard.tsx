@@ -106,12 +106,57 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   // Create application mutation
   const createApplication = useMutation({
     mutationFn: async (values: ApplicationFormValues) => {
-      const response = await apiRequest<{ success: boolean, message: string }>({
-        url: '/api/applications',
-        method: 'POST',
-        data: values,
-      });
-      return response;
+      // Determine if this application has been applied to
+      const hasBeenApplied = values.status === 'Applied';
+      
+      // Set appropriate date fields based on status
+      const applicationData = {
+        ...values,
+        appliedAt: hasBeenApplied ? new Date().toISOString() : null,
+        submittedAt: hasBeenApplied ? new Date().toISOString() : null
+      };
+      
+      // For demo mode, update mock applications in localStorage
+      try {
+        const response = await apiRequest<{ success: boolean, message: string }>({
+          url: '/api/applications',
+          method: 'POST',
+          data: applicationData,
+        });
+        return response;
+      } catch (error) {
+        if (error.message?.includes('Authentication required')) {
+          // Save to localStorage for demo mode
+          console.log('Demo mode: Creating application in localStorage');
+          const mockId = Date.now();
+          const mockApp = {
+            id: mockId,
+            ...applicationData,
+            status: values.status,
+            notes: values.notes || '',
+            company: values.companyName,
+            companyName: values.companyName,
+            position: values.jobTitle,
+            jobTitle: values.jobTitle,
+            title: values.jobTitle,
+            location: values.jobLocation || 'Remote',
+            jobLocation: values.jobLocation || 'Remote',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            jobLink: values.jobLink || '',
+            source: 'Manual Entry'
+          };
+          
+          // Store in localStorage
+          const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+          storedApplications.push(mockApp);
+          localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+          console.log('Stored mock application in localStorage:', mockApp);
+          
+          return { success: true, message: 'Application created in demo mode' };
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
