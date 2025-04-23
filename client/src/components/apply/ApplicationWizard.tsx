@@ -131,12 +131,12 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
               jobDescription: jobDetails.description,
               externalJobUrl: jobDetails.url || '',
               notes: data.notes || '',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              createdAt: formatDate(),
+              updatedAt: formatDate(),
+              applicationDate: formatDate(),
               // Additional fields needed for proper display in the Interview page
               jobTitle: jobDetails.title,
               jobLink: jobDetails.url || '',
-              applicationDate: new Date().toISOString(),
             },
             steps: [
               { id: mockId * 10 + 1, applicationId: mockId, stepName: 'personal_info', stepOrder: 1, completed: true, data: { notes: data.notes || '' } },
@@ -208,10 +208,21 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, simulate a successful application submission
         if (error.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
+          // Create a more complete mock application object for the Interview page
           return { 
             id: applicationId,
-            status: 'applied', 
-            appliedAt: new Date().toISOString()
+            status: 'Applied', // Match the capitalization expected by Interview.tsx
+            appliedAt: formatDate(),
+            submittedAt: formatDate(),
+            applicationDate: formatDate(),
+            // Include these fields for the application tracker display
+            company: jobDetails.company,
+            position: jobDetails.title,
+            jobTitle: jobDetails.title,
+            location: jobDetails.location || 'Remote',
+            notes: 'Applied via Ascentul',
+            createdAt: formatDate(),
+            updatedAt: formatDate()
           };
         }
         throw error;
@@ -220,10 +231,15 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
     onSuccess: (data) => {
       // Invalidate all application-related queries to ensure updated data is fetched
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       
       // For backwards compatibility, also invalidate interview processes
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/applications'] });
+      
+      // Invalidate general user data to refresh notifications and counts
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
       
       toast({
         title: 'Application submitted',
@@ -491,6 +507,12 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       default:
         return <div>Invalid step</div>;
     }
+  };
+
+  // Create a date for application date in correct format
+  const formatDate = () => {
+    const now = new Date();
+    return now.toISOString();
   };
 
   return (
