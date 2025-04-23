@@ -19,8 +19,8 @@ export function ApplicationCard({
   className
 }: ApplicationCardProps) {
   // Extract job details with multiple property name support for compatibility
-  const jobTitle = application.jobTitle || application.title || application.position || "";
-  const companyName = application.companyName || application.company || "";
+  const jobTitle = application.jobTitle || application.title || application.position || "Untitled Position";
+  const companyName = application.companyName || application.company || "Company Not Specified";
   const jobLocation = application.jobLocation || application.location || "Remote";
   
   const viewMode = application.jobId ? 'compact' : 'full';
@@ -46,7 +46,12 @@ export function ApplicationCard({
               <h3 className="font-medium text-base text-foreground">{jobTitle}</h3>
               <p className="text-muted-foreground text-sm">{companyName}</p>
             </div>
-            <ApplicationStatusBadge status={application.status} size="sm" />
+            <ApplicationStatusBadge 
+              status={application.status && typeof application.status === 'string' 
+                ? application.status.charAt(0).toUpperCase() + application.status.slice(1) 
+                : 'In Progress'} 
+              size="sm" 
+            />
           </div>
           
           <div className="flex flex-col gap-1.5">
