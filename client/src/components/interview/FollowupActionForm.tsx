@@ -93,8 +93,56 @@ export function FollowupActionForm({
           ...followupData,
           applicationId,
         };
-        const response = await apiRequest('POST', `/api/applications/${applicationId}/followups`, followupData);
-        return await response.json();
+        try {
+          // Try to save the followup action to the server
+          const response = await apiRequest('POST', `/api/applications/${applicationId}/followups`, followupData);
+          return await response.json();
+        } catch (error) {
+          console.error(`Error adding followup action to application ${applicationId}:`, error);
+          
+          // Check if error is "Application not found" (indicating localStorage-only application)
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+            // Fallback to localStorage for applications that exist only there
+            console.log('Application not found on server, adding followup action to localStorage application');
+            
+            // Get applications from localStorage
+            const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+            const appIndex = storedApplications.findIndex((app: any) => app.id === applicationId);
+            
+            if (appIndex === -1) {
+              throw new Error('Application not found in localStorage either');
+            }
+            
+            // Create a mock followup action
+            const now = new Date().toISOString();
+            const mockFollowup = {
+              id: Date.now(), // Use timestamp as mock ID
+              applicationId: applicationId,
+              processId: null,
+              stageId: stageId || null,
+              type: followupData.type,
+              description: followupData.description,
+              dueDate: followupData.dueDate ? new Date(followupData.dueDate).toISOString() : null,
+              completed: false,
+              completedDate: null,
+              notes: followupData.notes || null,
+              createdAt: now,
+              updatedAt: now
+            };
+            
+            // Store mock followup action in localStorage
+            const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${applicationId}`) || '[]');
+            mockFollowups.push(mockFollowup);
+            localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(mockFollowups));
+            
+            console.log('Saved mock followup action in localStorage:', mockFollowup);
+            return mockFollowup;
+          }
+          
+          // If it's another error, rethrow
+          throw error;
+        }
       } else if (processId) {
         followupData = {
           ...followupData,
