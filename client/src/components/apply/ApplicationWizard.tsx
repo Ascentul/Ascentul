@@ -332,9 +332,10 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       let errorMessage = 'Failed to submit application. Please try again.';
       
       // Check if the error has detailed information from the server
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message;
+      } else if ((error as Error).message) {
         errorMessage = error.message;
       }
       
@@ -352,7 +353,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       if (step === 1) {
         createApplicationMutation.mutate(data);
       } else if (applicationId && existingApplication) {
-        const currentStep = existingApplication.steps.find((s: any) => s.stepOrder === step);
+        const applicationWithSteps = existingApplication as { steps: Array<{ id: number, stepOrder: number }> };
+        const currentStep = applicationWithSteps.steps.find((s) => s.stepOrder === step);
         if (currentStep) {
           await updateStepMutation.mutateAsync({ 
             stepId: currentStep.id, 
@@ -363,7 +365,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
           });
           
           // If this is the last step, submit the application
-          if (step === existingApplication.steps.length) {
+          const applicationWithSteps = existingApplication as { steps: Array<{ id: number, stepOrder: number }> };
+          if (step === applicationWithSteps.steps.length) {
             submitApplicationMutation.mutate();
           } else {
             // Move to next step
@@ -377,7 +380,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       // Provide a user-friendly error message based on the error type
       let errorMessage = 'Failed to complete this step. Please try again.';
       
-      if (error.message?.includes('Authentication required')) {
+      const errorWithMessage = error as { message?: string };
+      if (errorWithMessage.message?.includes('Authentication required')) {
         errorMessage = 'Please sign in to track your application progress.';
       }
       
