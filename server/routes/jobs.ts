@@ -4,14 +4,18 @@ import { jobProviders } from '../services/job-sources';
 import { IStorage } from '../storage';
 
 export function registerJobRoutes(app: Router, storage: IStorage) {
+  console.log('Registering job routes at /api/jobs/...');
+  
   // Get available job sources
   app.get('/api/jobs/sources', (req: Request, res: Response) => {
+    console.log('GET /api/jobs/sources request received');
     try {
       const sources = Object.keys(jobProviders).map(id => ({
         id,
         name: jobProviders[id].name,
       }));
       
+      console.log('Available job sources:', sources);
       return res.json({ sources });
     } catch (error) {
       console.error('Error getting job sources:', error);
@@ -21,6 +25,7 @@ export function registerJobRoutes(app: Router, storage: IStorage) {
 
   // Search for jobs
   app.get('/api/jobs/search', async (req: Request, res: Response) => {
+    console.log('GET /api/jobs/search request received', req.url);
     try {
       const { 
         query = '', 
@@ -33,6 +38,7 @@ export function registerJobRoutes(app: Router, storage: IStorage) {
       } = req.query;
 
       console.log('Job search request:', { query, location, jobType, source, isRemote, page, pageSize });
+      console.log('Available job providers:', Object.keys(jobProviders));
 
       // Use the specified provider or default to using all providers
       const providers = source 

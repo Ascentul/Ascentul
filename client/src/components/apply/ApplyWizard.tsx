@@ -83,7 +83,7 @@ export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
       const response = await apiRequest<{ success: boolean, message: string }>({
         url: '/api/job-applications',
         method: 'POST',
-        body: JSON.stringify(values),
+        data: values,
       });
       return response;
     },

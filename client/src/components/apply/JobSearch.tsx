@@ -345,7 +345,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
               <SelectContent>
                 <SelectItem value="">All Sources</SelectItem>
                 {sources.map((src: any) => (
-                  <SelectItem key={src.name} value={src.name}>
+                  <SelectItem key={src.id} value={src.id}>
                     {src.name}
                   </SelectItem>
                 ))}
