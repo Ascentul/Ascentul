@@ -32,10 +32,12 @@ export default function Resume() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch user's resumes
+  // Fetch user's resumes with authentication
   const { data: resumes = [], isLoading } = useQuery<any[]>({
     queryKey: ['/api/resumes'],
     placeholderData: [],
+    retry: 3, // Retry 3 times in case of failures
+    refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
   // Job description for AI suggestions
@@ -43,10 +45,12 @@ export default function Resume() {
   const [userWorkHistory, setUserWorkHistory] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Fetch user's work history
+  // Fetch user's work history with authentication
   const { data: workHistoryData = [] } = useQuery<any[]>({
     queryKey: ['/api/work-history'],
-    placeholderData: []
+    placeholderData: [],
+    retry: 3, // Retry 3 times in case of failures
+    refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
   // Fetch suggestions
