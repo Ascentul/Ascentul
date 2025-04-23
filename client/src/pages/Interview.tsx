@@ -242,20 +242,48 @@ const Interview = () => {
     queryKey: ['/api/job-applications'],
     queryFn: async () => {
       try {
-        const response = await apiRequest({
-          url: '/api/job-applications',
-          method: 'GET'
-        });
-        return response;
+        // First check localStorage for any saved applications
+        const mockApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        
+        // Try to get server applications (if logged in)
+        try {
+          const response = await apiRequest({
+            url: '/api/job-applications',
+            method: 'GET'
+          });
+          
+          // If we have mock applications in localStorage, merge with server applications
+          if (mockApplications.length > 0) {
+            // Create a set of existing IDs to avoid duplicates
+            const existingIds = new Set(response.map((app: any) => app.id));
+            // Merge server and local applications
+            const mergedApps = [
+              ...response,
+              ...mockApplications.filter((app: any) => !existingIds.has(app.id))
+            ];
+            
+            console.log('Combined applications:', mergedApps);
+            return mergedApps;
+          }
+          
+          return response;
+        } catch (serverError) {
+          // If server request fails, fall back to the localStorage applications
+          console.log('Using mock job applications from localStorage due to server error');
+          if (mockApplications.length > 0) {
+            console.log('Retrieved applications from localStorage:', mockApplications);
+            return mockApplications;
+          }
+          throw serverError; // Re-throw if no localStorage data available
+        }
       } catch (error) {
-        console.log('Using mock job applications from localStorage');
-        // In demo mode, load applications from localStorage
-        const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-        console.log('Retrieved applications from localStorage:', storedApplications);
-        return storedApplications;
+        console.error('Error fetching job applications:', error);
+        return [];
       }
     },
     placeholderData: [],
+    staleTime: 10000, // Refresh every 10 seconds
+    refetchOnWindowFocus: true, // Refresh when the page gains focus
   });
   
   // Get selected application details
@@ -289,10 +317,18 @@ const Interview = () => {
     // First filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const companyMatch = app.companyName?.toLowerCase().includes(query) || false;
-      const titleMatch = app.jobTitle?.toLowerCase().includes(query) || false;
-      const statusMatch = app.status?.toLowerCase().includes(query) || false;
-      const locationMatch = app.jobLocation?.toLowerCase().includes(query) || false;
+      
+      // Get properties safely with fallbacks for different property formats
+      const company = (app.companyName || app.company || '').toLowerCase();
+      const title = (app.jobTitle || app.title || app.position || '').toLowerCase();
+      const status = (app.status || '').toLowerCase();
+      const location = (app.jobLocation || app.location || '').toLowerCase();
+      
+      // Check if any field matches the search query
+      const companyMatch = company.includes(query);
+      const titleMatch = title.includes(query);
+      const statusMatch = status.includes(query);
+      const locationMatch = location.includes(query);
       
       if (!(companyMatch || titleMatch || statusMatch || locationMatch)) {
         return false;
