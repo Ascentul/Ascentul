@@ -648,9 +648,9 @@ const Interview = () => {
                       />
                     </div>
                   ) : applications && applications.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
-                      {/* Left column: Applications list */}
-                      <div className="md:col-span-3">
+                    <div className={`grid grid-cols-1 ${selectedApplication ? 'md:grid-cols-7' : 'md:grid-cols-1'} gap-6`}>
+                      {/* Left column: Applications list - always visible but width changes */}
+                      <div className={selectedApplication ? "md:col-span-3" : "md:col-span-1"}>
                         <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
                           {/* Active section */}
                           <div className="space-y-3">
@@ -777,49 +777,31 @@ const Interview = () => {
                         </motion.div>
                       </div>
                       
-                      {/* Right column: Application details */}
-                      <div className="md:col-span-4">
-                        <motion.div 
-                          variants={fadeIn}
-                          className="w-full h-full"
-                        >
-                          {/* Debug info for selection */}
-                          <div className="bg-amber-100 border border-amber-300 rounded mb-2 p-2 text-xs text-amber-800">
-                            Debug: selectedApplicationId: {selectedApplicationId ? selectedApplicationId : 'null'} | 
-                            Applications: {applications?.length || 0} | Auto-refresh: {shouldAutoRefresh ? 'Yes' : 'No'}
-                          </div>
-                          
-                          {selectedApplication ? (
+                      {/* Right column: Application details - only visible when an application is selected */}
+                      {selectedApplication && (
+                        <div className="md:col-span-4">
+                          <motion.div 
+                            variants={fadeIn}
+                            className="w-full h-full"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {/* Debug info for selection */}
+                            <div className="bg-amber-100 border border-amber-300 rounded mb-2 p-2 text-xs text-amber-800">
+                              Debug: selectedApplicationId: {selectedApplicationId ? selectedApplicationId : 'null'} | 
+                              Applications: {applications?.length || 0} | Auto-refresh: {shouldAutoRefresh ? 'Yes' : 'No'}
+                            </div>
+                            
                             <ApplicationDetails 
                               application={selectedApplication}
                               onClose={() => setSelectedApplicationId(null)}
                               onDelete={() => setSelectedApplicationId(null)}
                             />
-                          ) : (
-                            <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
-                              <motion.div 
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 0.3 }}
-                              >
-                                <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-medium">No Application Selected</h3>
-                                <p className="text-muted-foreground max-w-md mt-2">
-                                  Select an application from the list to view details, or create a new one to start tracking your job application journey.
-                                </p>
-                                <Button 
-                                  variant="outline" 
-                                  className="mt-4"
-                                  onClick={() => setShowApplyWizard(true)}
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Create New Application
-                                </Button>
-                              </motion.div>
-                            </Card>
-                          )}
-                        </motion.div>
-                      </div>
+                          </motion.div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <motion.div variants={fadeIn} className="text-center py-8">
