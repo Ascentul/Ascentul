@@ -57,7 +57,8 @@ const defaultValues: Partial<FollowupActionFormValues> = {
 interface FollowupActionFormProps {
   isOpen: boolean;
   onClose: () => void;
-  processId: number;
+  processId?: number;
+  applicationId?: number;
   stageId?: number; // Optional, if the follow-up is for a specific stage
   onSuccess?: () => void;
 }
@@ -66,6 +67,7 @@ export function FollowupActionForm({
   isOpen, 
   onClose, 
   processId, 
+  applicationId,
   stageId, 
   onSuccess 
 }: FollowupActionFormProps) {
@@ -80,20 +82,44 @@ export function FollowupActionForm({
   // Create follow-up action mutation
   const createFollowupMutation = useMutation({
     mutationFn: async (values: FollowupActionFormValues) => {
-      const followupData = {
+      let followupData = {
         ...values,
-        processId,
         ...(stageId && { stageId }),
       };
       
-      const response = await apiRequest('POST', `/api/interview/processes/${processId}/followups`, followupData);
-      return await response.json();
+      // Add the appropriate ID based on what's available
+      if (applicationId) {
+        followupData = {
+          ...followupData,
+          applicationId,
+        };
+        const response = await apiRequest('POST', `/api/applications/${applicationId}/followups`, followupData);
+        return await response.json();
+      } else if (processId) {
+        followupData = {
+          ...followupData,
+          processId,
+        };
+        const response = await apiRequest('POST', `/api/interview/processes/${processId}/followups`, followupData);
+        return await response.json();
+      } else {
+        throw new Error('Either applicationId or processId must be provided');
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['/api/interview/followups'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${processId}/followups`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      
+      if (processId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${processId}/followups`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      }
+      
+      if (applicationId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/followups`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      }
       
       toast({
         title: 'Success',
