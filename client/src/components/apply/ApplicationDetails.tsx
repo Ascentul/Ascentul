@@ -36,69 +36,34 @@ interface ApplicationDetailsProps {
 export function ApplicationDetails({ application, onClose, onDelete }: ApplicationDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localApplication, setLocalApplication] = useState(application);
-  const [relatedProcessId, setRelatedProcessId] = useState<number | null>(null);
+  // We no longer need relatedProcessId as interview stages are linked directly to applications
   const [showInterviewStageForm, setShowInterviewStageForm] = useState(false);
   const [showFollowupForm, setShowFollowupForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Find or create a related interview process
-  useEffect(() => {
-    const findOrCreateProcess = async () => {
-      try {
-        // Try to fetch a matching interview process
-        const response = await apiRequest('GET', `/api/interview/processes/match?company=${encodeURIComponent(application.company || '')}&position=${encodeURIComponent(application.position || '')}`);
-        const matchData = await response.json();
-        
-        if (matchData && matchData.id) {
-          setRelatedProcessId(matchData.id);
-        } else if (application.status === 'Interviewing') {
-          // If application is in interviewing status but no process exists, create one
-          try {
-            const createResponse = await apiRequest('POST', '/api/interview/processes', {
-              companyName: application.company || application.companyName,
-              position: application.position || application.jobTitle || application.title,
-              jobDescription: application.description || "",
-              status: application.status,
-              jobLink: application.jobLink || application.externalJobUrl,
-              notes: application.notes,
-            });
-            
-            const newProcess = await createResponse.json();
-            setRelatedProcessId(newProcess.id);
-          } catch (createError) {
-            console.error('Failed to create interview process:', createError);
-          }
-        }
-      } catch (error) {
-        console.error('Error finding or creating interview process:', error);
-      }
-    };
-    
-    findOrCreateProcess();
-  }, [application]);
+  // No longer need to find or create a related interview process
+  // as interview stages are now directly connected to the application
 
-  // Fetch interview stages if we have a related process ID
+  // Fetch interview stages directly for this application
   const { data: interviewStages } = useQuery<InterviewStage[]>({
-    queryKey: [`/api/interview/processes/${relatedProcessId}/stages`],
+    queryKey: [`/api/applications/${application.id}/stages`],
     queryFn: async () => {
-      if (!relatedProcessId) return [];
-      const response = await apiRequest('GET', `/api/interview/processes/${relatedProcessId}/stages`);
+      const response = await apiRequest('GET', `/api/applications/${application.id}/stages`);
       return await response.json();
     },
-    enabled: !!relatedProcessId,
+    enabled: !!application.id && localApplication.status === 'Interviewing',
     placeholderData: [],
   });
 
-  // Fetch follow-up actions if we have a related process ID
+  // Fetch follow-up actions directly for this application
   const { data: followupActions } = useQuery<FollowupAction[]>({
-    queryKey: [`/api/interview/processes/${relatedProcessId}/followups`],
+    queryKey: [`/api/applications/${application.id}/followups`],
     queryFn: async () => {
-      if (!relatedProcessId) return [];
-      const response = await apiRequest('GET', `/api/interview/processes/${relatedProcessId}/followups`);
+      const response = await apiRequest('GET', `/api/applications/${application.id}/followups`);
       return await response.json();
     },
-    enabled: !!relatedProcessId,
+    enabled: !!application.id,
     placeholderData: [],
   });
 
@@ -115,10 +80,9 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
       });
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       
-      // If application status is "Interviewing", refresh interview processes
-      if (localApplication.status === 'Interviewing') {
-        queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
-      }
+      // If application status is changing, we should refresh any related data
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/followups`] });
       
       setIsEditing(false);
     },
@@ -356,7 +320,7 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                 <CardDescription>Manage interviews for this application</CardDescription>
               </div>
               
-              {relatedProcessId && (
+              {localApplication.status === 'Interviewing' && (
                 <Button 
                   size="sm" 
                   onClick={() => setShowInterviewStageForm(true)}
