@@ -117,6 +117,20 @@ export function LinkedInJobSearch({ onSelectJob, onOpenLinkedIn }: LinkedInJobSe
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-2">
+              <p className="font-medium">LinkedIn Embedding Restrictions</p>
+              <p className="mt-1">Due to LinkedIn's security policies, jobs will open in a new tab when selected. You can use the AI assistant for application help once you've viewed a job.</p>
+            </div>
+          </div>
+        </div>
+        
         <Tabs defaultValue="search">
           <TabsList className="w-full mb-4">
             <TabsTrigger value="search" className="flex-1">Search</TabsTrigger>

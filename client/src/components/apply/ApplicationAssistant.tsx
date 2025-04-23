@@ -65,16 +65,24 @@ export function ApplicationAssistant({
     setError(null);
 
     try {
-      const response = await apiRequest('/api/jobs/ai-assist', {
+      const response = await fetch('/api/jobs/ai-assist', {
         method: 'POST',
-        data: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           jobTitle,
           companyName,
           jobDescription,
-        },
+        }),
       });
-
-      setAssistanceData(response);
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setAssistanceData(data);
     } catch (err) {
       console.error('Error generating application suggestions:', err);
       setError('Failed to generate application suggestions. Please try again later.');
@@ -139,7 +147,7 @@ export function ApplicationAssistant({
   };
 
   // Use mock data if real data is not available and we're not loading
-  const displayData = assistanceData || (!loading && mockAssistanceData);
+  const displayData = assistanceData ? assistanceData : (!loading ? mockAssistanceData : null);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -156,7 +164,7 @@ export function ApplicationAssistant({
 
         {!jobTitle || !companyName || !jobDescription ? (
           <div className="p-6">
-            <Alert variant="warning" className="mb-4">
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200 text-yellow-800">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Incomplete Job Information</AlertTitle>
               <AlertDescription>

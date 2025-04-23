@@ -24,7 +24,19 @@ export default function Apply() {
   // Handle selecting a job from the search
   const handleSelectJob = (jobInfo: { title: string; company: string; url: string }) => {
     setLinkedInUrl(jobInfo.url);
-    setIsLinkedInFrameOpen(true);
+    
+    // Extract job information from the URL for the AI assistant
+    const jobTitle = jobInfo.title || decodeURIComponent(jobInfo.url.split('keywords=')[1]?.split('&')[0] || 'Job Position');
+    
+    // Set the selected job information
+    setSelectedJob({
+      title: jobTitle,
+      company: 'LinkedIn',
+      description: 'This is a job found on LinkedIn. For more details, please view the job posting directly on LinkedIn.'
+    });
+    
+    // Due to LinkedIn's iframe restrictions, we'll open in a new tab by default
+    window.open(jobInfo.url, '_blank', 'noopener,noreferrer');
   };
 
   // Handle opening LinkedIn in the iframe

@@ -31,6 +31,11 @@ export function LinkedInFrame({ isOpen, onClose, jobUrl, onSelectJob }: LinkedIn
   const handleIframeError = () => {
     setLoading(false);
     setLoadError(true);
+    
+    // After a brief delay, automatically redirect to new tab since LinkedIn blocks iframe embedding
+    setTimeout(() => {
+      openInNewTab();
+    }, 2000);
   };
 
   const openInNewTab = () => {
