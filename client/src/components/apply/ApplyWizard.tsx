@@ -107,7 +107,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   const createApplication = useMutation({
     mutationFn: async (values: ApplicationFormValues) => {
       const response = await apiRequest<{ success: boolean, message: string }>({
-        url: '/api/job-applications',
+        url: '/api/applications',
         method: 'POST',
         data: values,
       });
@@ -119,7 +119,9 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
         description: "Your job application has been added to the tracker.",
         variant: "default",
       });
+      // Invalidate both endpoints since they're aliased in the backend
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
       onClose();
       setStep(1);
       form.reset();
