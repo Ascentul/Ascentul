@@ -47,7 +47,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
   const [, setLocation] = useLocation();
   
   // Form control
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, reset, watch, getValues, formState: { errors, isSubmitting } } = useForm();
 
   // Reset step when dialog opens
   useEffect(() => {
@@ -220,9 +220,24 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (error.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
           
-          // Get the applied checkbox value from the most recent form data
-          const formData = form.getValues();
-          const hasBeenApplied = formData.applied || false;
+          // In demo mode, default to not applied
+          let hasBeenApplied = false;
+          
+          // For the final step where a checkbox is present, try to determine if it was checked
+          // This must be done before form submission since the form will be reset after submission
+          try {
+            // Look for applied status in local storage
+            const storedData = localStorage.getItem(`application_${applicationId}_data`);
+            if (storedData) {
+              const parsedData = JSON.parse(storedData);
+              hasBeenApplied = !!parsedData.applied;
+              console.log('Found stored application data with applied status:', hasBeenApplied);
+            } else {
+              console.log('No stored application data found, using default not applied status');
+            }
+          } catch (err) {
+            console.log('Could not determine applied status, using default not applied status');
+          }
           
           // Create a more complete mock application object for the Interview page
           const completedApplication = { 
@@ -544,7 +559,22 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
               <Button type="button" variant="outline" onClick={() => setStep(3)}>
                 Previous
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                onClick={() => {
+                  // Store the current form data with applied checkbox status in localStorage
+                  try {
+                    // Get form values including the applied checkbox status
+                    // We have to access the form values from the form object
+                    const formData = getValues();
+                    console.log('Storing application data before submission:', formData);
+                    localStorage.setItem(`application_${applicationId}_data`, JSON.stringify(formData));
+                  } catch (e) {
+                    console.error('Failed to store form data:', e);
+                  }
+                }}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
