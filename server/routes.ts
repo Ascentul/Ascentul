@@ -2700,98 +2700,13 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  // Resume API routes
-  apiRouter.get("/resumes", requireAuth, async (req: Request, res: Response) => {
-    try {
-      // Get current user from session
-      const user = await getCurrentUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      const resumes = await storage.getResumes(user.id);
-      res.status(200).json(resumes);
-    } catch (error) {
-      console.error("Error fetching resumes:", error);
-      res.status(500).json({ message: "Error fetching resumes" });
-    }
-  });
+  // Resume API routes are defined earlier, around line 2031
 
-  apiRouter.get("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const resumeId = parseInt(req.params.id);
-      const resume = await storage.getResume(resumeId);
-      
-      if (!resume) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-      
-      // Get current user from session
-      const user = await getCurrentUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      // Security check - ensure user can only access their own resumes
-      if (resume.userId !== user.id) {
-        return res.status(403).json({ message: "Unauthorized access to resume" });
-      }
-      
-      res.json(resume);
-    } catch (error) {
-      console.error("Error fetching resume:", error);
-      res.status(500).json({ message: "Error fetching resume" });
-    }
-  });
+  // Get resume by id route is already defined above
 
-  apiRouter.post("/resumes", requireAuth, async (req: Request, res: Response) => {
-    try {
-      // Get current user from session
-      const user = await getCurrentUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      const resumeData = req.body;
-      const resume = await storage.createResume(user.id, resumeData);
-      res.status(201).json(resume);
-    } catch (error) {
-      console.error("Error creating resume:", error);
-      res.status(500).json({ message: "Error creating resume" });
-    }
-  });
+  // Create resume route is already defined above
 
-  apiRouter.put("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
-    try {
-      const resumeId = parseInt(req.params.id);
-      const resume = await storage.getResume(resumeId);
-      
-      if (!resume) {
-        return res.status(404).json({ message: "Resume not found" });
-      }
-      
-      // Get current user from session
-      const user = await getCurrentUser(req);
-      
-      if (!user) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      // Security check - ensure user can only update their own resumes
-      if (resume.userId !== user.id) {
-        return res.status(403).json({ message: "Unauthorized access to resume" });
-      }
-      
-      const updatedResume = await storage.updateResume(resumeId, req.body);
-      res.json(updatedResume);
-    } catch (error) {
-      console.error("Error updating resume:", error);
-      res.status(500).json({ message: "Error updating resume" });
-    }
-  });
+  // Resume update route is already defined above
 
   apiRouter.delete("/resumes/:id", requireAuth, async (req: Request, res: Response) => {
     try {
