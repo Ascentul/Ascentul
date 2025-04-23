@@ -94,7 +94,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       try {
         const response = await fetch('/api/resumes');
         if (!response.ok) return [];
-        return response.json();
+        return await response.json();
       } catch (error) {
         console.error('Error fetching resumes:', error);
         return [];
@@ -124,7 +124,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       setStep(1);
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: "There was a problem creating your application. Please try again.",
@@ -277,8 +277,8 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                   <Button 
                     type="button" 
                     className="w-full" 
-                    onClick={() => {
-                      const result = form.trigger(['jobTitle', 'companyName']);
+                    onClick={async () => {
+                      const result = await form.trigger(['jobTitle', 'companyName']);
                       if (result) setStep(2);
                     }}
                   >
@@ -366,57 +366,71 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
         {step === 3 && (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium mb-2">Job Details</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex">
-                      <span className="font-medium w-24">Title:</span>
-                      <span>{form.getValues('jobTitle')}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">Company:</span>
-                      <span>{form.getValues('companyName')}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">Location:</span>
-                      <span>{form.getValues('jobLocation') || 'Not specified'}</span>
-                    </div>
+              <div className="bg-muted p-4 rounded-lg">
+                <h3 className="font-medium">Job Details</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Job Title</Label>
+                    <p className="text-sm font-medium">{form.getValues('jobTitle')}</p>
                   </div>
-                </div>
-                
-                <div>
-                  <h3 className="font-medium mb-2">Application Details</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex">
-                      <span className="font-medium w-24">Status:</span>
-                      <span>Not Started</span>
-                    </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">Date:</span>
-                      <span>{form.getValues('applicationDate')}</span>
-                    </div>
-                    <div className="flex">
-                      <span className="font-medium w-24">Resume:</span>
-                      <span>{form.getValues('resumeId') ? `Selected (ID: ${form.getValues('resumeId')})` : 'None selected'}</span>
-                    </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Company</Label>
+                    <p className="text-sm font-medium">{form.getValues('companyName')}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Location</Label>
+                    <p className="text-sm">{form.getValues('jobLocation') || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Date</Label>
+                    <p className="text-sm">{form.getValues('applicationDate')}</p>
                   </div>
                 </div>
               </div>
-
+              
               <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
+                    <FormLabel>Application Notes</FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Add any notes about this application..." 
-                        className="min-h-[100px]"
+                        className="min-h-[120px]"
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Include any details you want to remember about this application.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        {...field}
+                      >
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Interviewing">Interviewing</option>
+                        <option value="Offer">Offer</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </FormControl>
+                    <FormDescription>
+                      Update the status as your application progresses.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -426,42 +440,41 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                 control={form.control}
                 name="aiAssisted"
                 render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 mt-1"
                         checked={field.value}
                         onChange={field.onChange}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
                       />
                     </FormControl>
-                    <div>
-                      <FormLabel className="cursor-pointer">Use AI to optimize this application</FormLabel>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>AI Assistant Enabled</FormLabel>
                       <FormDescription>
-                        Let our AI suggest improvements for your resume and cover letter
+                        Get AI-powered insights and suggestions for this application.
                       </FormDescription>
                     </div>
                   </FormItem>
                 )}
               />
               
-              <DialogFooter className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                  Back
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createApplication.isPending}
-                >
-                  {createApplication.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    'Add Application'
-                  )}
-                </Button>
+              <DialogFooter>
+                <div className="flex justify-between w-full">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                    Back
+                  </Button>
+                  <Button type="submit" disabled={createApplication.isPending}>
+                    {createApplication.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Create Application'
+                    )}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
