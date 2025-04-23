@@ -380,7 +380,8 @@ export const insertInterviewProcessSchema = createInsertSchema(interviewProcesse
 
 export const interviewStages = pgTable("interview_stages", {
   id: serial("id").primaryKey(),
-  processId: integer("process_id").notNull(),
+  processId: integer("process_id"),
+  applicationId: integer("application_id"),
   type: text("type").notNull(), // e.g., "phone_screen", "technical", "onsite", "final"
   scheduledDate: timestamp("scheduled_date"),
   completedDate: timestamp("completed_date"),
@@ -411,7 +412,8 @@ export const insertInterviewStageSchema = createInsertSchema(interviewStages).om
 
 export const followupActions = pgTable("followup_actions", {
   id: serial("id").primaryKey(),
-  processId: integer("process_id").notNull(),
+  processId: integer("process_id"),
+  applicationId: integer("application_id"),
   stageId: integer("stage_id"),
   type: text("type").notNull(), // e.g., "thank_you_email", "follow_up", "preparation", "document_submission"
   description: text("description").notNull(),
@@ -608,7 +610,11 @@ export const interviewStagesRelations = relations(interviewStages, ({ one, many 
   process: one(interviewProcesses, {
     fields: [interviewStages.processId],
     references: [interviewProcesses.id],
-  }),
+  }, { relationName: "stageToProcess" }),
+  application: one(jobApplications, {
+    fields: [interviewStages.applicationId],
+    references: [jobApplications.id],
+  }, { relationName: "stageToApplication" }),
   followupActions: many(followupActions),
 }));
 
@@ -617,7 +623,11 @@ export const followupActionsRelations = relations(followupActions, ({ one }) => 
   process: one(interviewProcesses, {
     fields: [followupActions.processId],
     references: [interviewProcesses.id],
-  }),
+  }, { relationName: "followupToProcess" }),
+  application: one(jobApplications, {
+    fields: [followupActions.applicationId],
+    references: [jobApplications.id],
+  }, { relationName: "followupToApplication" }),
   stage: one(interviewStages, {
     fields: [followupActions.stageId],
     references: [interviewStages.id],

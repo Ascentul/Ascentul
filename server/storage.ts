@@ -3436,6 +3436,83 @@ export class MemStorage implements IStorage {
     return this.jobApplications.delete(id);
   }
   
+  // Application Interview Stages operations
+  async getInterviewStagesForApplication(applicationId: number): Promise<InterviewStage[]> {
+    return Array.from(this.interviewStages.values())
+      .filter(stage => {
+        // Handle both legacy data and new data structure
+        return stage.applicationId === applicationId;
+      })
+      .sort((a, b) => {
+        if (a.scheduledDate && b.scheduledDate) {
+          return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
+        }
+        return 0;
+      });
+  }
+
+  async createInterviewStageForApplication(applicationId: number, stageData: any): Promise<InterviewStage> {
+    const id = this.interviewStageIdCounter++;
+    const now = new Date();
+    
+    const newStage: InterviewStage = {
+      id,
+      applicationId,
+      processId: null, // Not associated with an interview process
+      type: stageData.type || 'interview',
+      status: stageData.status || 'scheduled',
+      scheduledDate: stageData.scheduledDate ? new Date(stageData.scheduledDate) : null,
+      completedDate: stageData.completedDate ? new Date(stageData.completedDate) : null,
+      location: stageData.location || null,
+      interviewers: stageData.interviewers || [],
+      notes: stageData.notes || null,
+      outcome: stageData.outcome || null,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.interviewStages.set(id, newStage);
+    return newStage;
+  }
+  
+  // Application Follow-up Actions operations
+  async getFollowupActionsForApplication(applicationId: number): Promise<FollowupAction[]> {
+    return Array.from(this.followupActions.values())
+      .filter(action => {
+        // Handle both legacy data and new data structure
+        return action.applicationId === applicationId;
+      })
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return 0;
+      });
+  }
+
+  async createFollowupActionForApplication(applicationId: number, actionData: any): Promise<FollowupAction> {
+    const id = this.followupActionIdCounter++;
+    const now = new Date();
+    
+    const newAction: FollowupAction = {
+      id,
+      applicationId,
+      processId: null, // Not associated with an interview process
+      stageId: actionData.stageId || null,
+      type: actionData.type || 'follow_up',
+      description: actionData.description || '',
+      dueDate: actionData.dueDate ? new Date(actionData.dueDate) : null,
+      completed: actionData.completed || false,
+      completedDate: actionData.completedDate ? new Date(actionData.completedDate) : null,
+      notes: actionData.notes || null,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.followupActions.set(id, newAction);
+    return newAction;
+  }
+  
   // Application Wizard Steps operations
   async getApplicationWizardSteps(applicationId: number): Promise<ApplicationWizardStep[]> {
     return Array.from(this.applicationWizardSteps.values())
