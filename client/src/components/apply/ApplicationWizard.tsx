@@ -230,13 +230,14 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
     },
     onSuccess: (data) => {
       // Invalidate all application-related queries to ensure updated data is fetched
+      // Invalidate both /api/applications and /api/job-applications endpoints
+      // as both may be used in different parts of the application
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/applications', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       
       // For backwards compatibility, also invalidate interview processes
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/interview/applications'] });
       
       // Invalidate general user data to refresh notifications and counts
       queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
