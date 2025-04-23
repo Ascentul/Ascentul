@@ -153,7 +153,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
 
   // Submit an application (mark as applied)
-  app.post('/api/applications/:id/submit', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/applications/:id/submit', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const userId = req.session.userId as number;
@@ -191,7 +191,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
 
   // Delete an application
-  app.delete('/api/applications/:id', requireAuth, async (req: Request, res: Response) => {
+  app.delete('/api/applications/:id', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const userId = req.session.userId as number;
@@ -220,7 +220,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Application wizard step routes
   
   // Get all steps for an application
-  app.get('/api/applications/:id/steps', requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/applications/:id/steps', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.id);
       const userId = req.session.userId as number;
@@ -247,7 +247,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
 
   // Update a specific step
-  app.put('/api/applications/steps/:stepId', requireAuth, async (req: Request, res: Response) => {
+  app.put('/api/applications/steps/:stepId', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const stepId = parseInt(req.params.stepId);
       const userId = req.session.userId as number;
@@ -277,7 +277,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
 
   // Mark a step as completed
-  app.post('/api/applications/steps/:stepId/complete', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/applications/steps/:stepId/complete', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const stepId = parseInt(req.params.stepId);
       const userId = req.session.userId as number;
