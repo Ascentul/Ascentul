@@ -5038,9 +5038,10 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   apiRouter.post("/api/applications/:id/submit", requireAuth, validateUserAccess, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      const { applied = false } = req.body; // Get applied status from request body, default to false
       
       try {
-        const submittedApplication = await storage.submitJobApplication(id);
+        const submittedApplication = await storage.submitJobApplication(id, !!applied);
         
         if (!submittedApplication) {
           return res.status(404).json({ message: "Application not found" });

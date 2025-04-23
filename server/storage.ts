@@ -328,7 +328,7 @@ export interface IStorage {
   getJobApplication(id: number): Promise<JobApplication | undefined>;
   createJobApplication(userId: number, application: InsertJobApplication): Promise<JobApplication>;
   updateJobApplication(id: number, applicationData: Partial<JobApplication>): Promise<JobApplication | undefined>;
-  submitJobApplication(id: number): Promise<JobApplication | undefined>;
+  submitJobApplication(id: number, applied?: boolean): Promise<JobApplication | undefined>;
   deleteJobApplication(id: number): Promise<boolean>;
   
   // Application Wizard Steps operations
@@ -3380,7 +3380,7 @@ export class MemStorage implements IStorage {
     return updatedApplication;
   }
 
-  async submitJobApplication(id: number): Promise<JobApplication | undefined> {
+  async submitJobApplication(id: number, applied: boolean = true): Promise<JobApplication | undefined> {
     const application = this.jobApplications.get(id);
     if (!application) return undefined;
     
@@ -3397,17 +3397,21 @@ export class MemStorage implements IStorage {
     }
     */
     
+    // Set status based on whether the user has checked "I've submitted this application"
+    const status = applied ? "Applied" : "In Progress";
+    
     const submittedApplication: JobApplication = {
       ...application,
-      status: "Applied",  // Capitalized for consistency with UI
-      submittedAt: new Date(),
+      status: status,  // Set to "Applied" or "In Progress" based on checkbox
+      submittedAt: applied ? new Date() : null, // Only set submittedAt if actually applied
+      appliedAt: applied ? new Date() : null, // Only set appliedAt if actually applied
       updatedAt: new Date()
     };
     
     this.jobApplications.set(id, submittedApplication);
     
-    // Award XP for applying to a job
-    if (application.userId) {
+    // Award XP for applying to a job only if actually applied
+    if (applied && application.userId) {
       await this.addUserXP(application.userId, 50, "job_application", `Applied to ${application.title || application.jobTitle} at ${application.company}`);
     }
     
