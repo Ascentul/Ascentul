@@ -1,151 +1,124 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertTriangle, ExternalLink, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ExternalLink, AlertCircle } from 'lucide-react';
 
 interface LinkedInFrameProps {
   isOpen: boolean;
   onClose: () => void;
-  url: string;
-  jobTitle?: string;
-  companyName?: string;
-  onOpenAssistant?: () => void;
+  jobUrl: string;
+  onSelectJob?: (jobInfo: { title: string; company: string; description: string }) => void;
 }
 
-export function LinkedInFrame({ isOpen, onClose, url, jobTitle, companyName, onOpenAssistant }: LinkedInFrameProps) {
-  const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
+export function LinkedInFrame({ isOpen, onClose, jobUrl, onSelectJob }: LinkedInFrameProps) {
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
+  
   // Reset state when URL changes
   useEffect(() => {
-    if (url) {
-      setIframeLoaded(false);
-      setIframeError(false);
+    if (jobUrl) {
+      setLoading(true);
+      setLoadError(false);
     }
-  }, [url]);
+  }, [jobUrl]);
 
-  // Handle iframe load event
   const handleIframeLoad = () => {
-    setIframeLoaded(true);
-    
-    // Check if the iframe can actually display the content
-    // LinkedIn and many sites block being embedded in iframes
-    try {
-      // This will throw an error if the iframe is blocked due to X-Frame-Options
-      if (iframeRef.current?.contentWindow?.location.href) {
-        setIframeError(false);
-      }
-    } catch (error) {
-      console.log('LinkedIn iframe blocked:', error);
-      setIframeError(true);
-    }
+    setLoading(false);
   };
 
-  // Handle iframe error
   const handleIframeError = () => {
-    setIframeError(true);
+    setLoading(false);
+    setLoadError(true);
   };
 
-  // Open URL in new tab
   const openInNewTab = () => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(jobUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Handle selecting a job from the iframe (placeholder for future integration)
+  const handleSelectCurrentJob = () => {
+    if (onSelectJob) {
+      // In a real implementation, we would try to extract job details from the iframe
+      // For now, we'll just use the URL to construct basic info
+      const urlParts = jobUrl.split('/');
+      const jobTitle = urlParts.includes('keywords') 
+        ? decodeURIComponent(jobUrl.split('keywords=')[1]?.split('&')[0] || 'LinkedIn Job')
+        : 'LinkedIn Job';
+      
+      onSelectJob({
+        title: jobTitle,
+        company: 'LinkedIn',
+        description: 'To view the full job description, please click the "Open in LinkedIn" button.'
+      });
+      
+      onClose();
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0 flex flex-col overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-4 border-b">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between w-full">
             <div>
-              <DialogTitle className="text-xl">
-                {jobTitle ? jobTitle : "LinkedIn Job Search"}
-                {companyName && ` at ${companyName}`}
-              </DialogTitle>
-              <DialogDescription className="text-sm truncate">
-                {url}
-              </DialogDescription>
+              <DialogTitle className="text-xl">LinkedIn Job</DialogTitle>
+              <DialogDescription>View job details and apply directly through LinkedIn</DialogDescription>
             </div>
-            
-            <div className="flex space-x-2">
-              {onOpenAssistant && (
-                <Button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onOpenAssistant();
-                  }}
-                  size="sm"
-                >
-                  Open AI Assistant
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={openInNewTab}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={openInNewTab} className="flex items-center gap-1">
+                <ExternalLink className="h-4 w-4" />
                 Open in New Tab
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSelectCurrentJob} className="flex items-center gap-1">
+                Select Job
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </DialogHeader>
         
-        {iframeError ? (
-          <div className="flex flex-col items-center justify-center p-8 flex-1">
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                LinkedIn prevents embedding job listings directly in our app. Please open the job in a new tab.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={openInNewTab}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open LinkedIn Job Search
-            </Button>
-            {onOpenAssistant && (
-              <div className="mt-4">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Want AI help with your application? Open our assistant while you browse.
-                </p>
-                <Button 
-                  onClick={onOpenAssistant}
-                  variant="outline"
-                >
-                  Open AI Assistant
-                </Button>
+        <div className="relative flex-1 overflow-hidden">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+              <div className="flex flex-col items-center">
+                <div className="h-8 w-8 rounded-full border-4 border-t-blue-500 animate-spin mb-4"></div>
+                <p className="text-gray-500">Loading LinkedIn job page...</p>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 relative min-h-[60vh] bg-muted overflow-hidden">
-            {!iframeLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full"></div>
-                <span className="ml-2">Loading LinkedIn...</span>
+            </div>
+          )}
+          
+          {loadError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+              <div className="max-w-md mx-auto">
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  <AlertDescription>
+                    Unable to load LinkedIn content in the iframe. This might be due to LinkedIn's content security policy.
+                  </AlertDescription>
+                </Alert>
+                <div className="flex justify-center">
+                  <Button onClick={openInNewTab}>
+                    Open in New Tab Instead
+                  </Button>
+                </div>
               </div>
-            )}
-            
-            <iframe
-              ref={iframeRef}
-              src={url}
-              className="w-full h-full"
-              onLoad={handleIframeLoad}
-              onError={handleIframeError}
-              allow="clipboard-write"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            />
-          </div>
-        )}
-        
-        <DialogFooter className="p-4 border-t flex justify-between">
-          <div className="text-xs text-muted-foreground">
-            Note: This is a LinkedIn job search. We don't track, scrape, or store data from LinkedIn.
-          </div>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </DialogFooter>
+            </div>
+          )}
+          
+          <iframe
+            ref={iframeRef}
+            src={jobUrl}
+            className="w-full h-full border-0"
+            onLoad={handleIframeLoad}
+            onError={handleIframeError}
+            title="LinkedIn Job"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
