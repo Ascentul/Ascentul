@@ -53,8 +53,14 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      // Debug logging
+      console.log(`Attempting to get application with ID: ${applicationId}`);
+      console.log(`Current applications:`, Array.from(storage.jobApplications.keys()));
+      
       // Get the application to verify ownership
       const application = await storage.getJobApplication(applicationId);
+      console.log(`Application lookup result: ${application ? 'Found' : 'Not found'}`);
+      
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
       }
