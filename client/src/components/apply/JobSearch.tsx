@@ -74,7 +74,9 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
     queryKey: ['/api/jobs/sources'],
     queryFn: async () => {
       try {
-        const response = await apiRequest<{ sources: Array<{ name: string, id: string }> }>('/api/jobs/sources');
+        const response = await apiRequest<{ sources: Array<{ name: string, id: string }> }>({
+          url: '/api/jobs/sources'
+        });
         return response.sources || [];
       } catch (error) {
         console.error('Error fetching job sources:', error);
@@ -116,7 +118,9 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
           pageSize: '10',
         }).toString();
         
-        const response = await apiRequest<JobSearchResults>(`/api/jobs/search?${queryString}`);
+        const response = await apiRequest<JobSearchResults>({
+          url: `/api/jobs/search?${queryString}`
+        });
         return response;
       } catch (error) {
         console.error('Error searching jobs:', error);
@@ -264,6 +268,17 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      {/* Embedded Apply Frame */}
+      {applyJob && (
+        <EmbeddedApplyFrame
+          isOpen={applyModalOpen}
+          onClose={() => setApplyModalOpen(false)}
+          jobTitle={applyJob.title}
+          companyName={applyJob.company}
+          applyUrl={applyJob.applyUrl}
+        />
+      )}
+    
       {/* Search form */}
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row gap-3">
@@ -357,7 +372,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
           </div>
         )}
         
-        {!isLoading && !isError && searchResults?.jobs?.length === 0 && (
+        {!isLoading && !isError && (!searchResults || !searchResults.jobs || searchResults.jobs.length === 0) && (
           <div className="text-center py-8">
             <Search className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <p className="text-lg font-medium">No jobs found</p>
@@ -365,7 +380,7 @@ export function JobSearch({ onSelectJob }: JobSearchProps) {
           </div>
         )}
         
-        {!isLoading && !isError && searchResults?.jobs?.length > 0 && (
+        {!isLoading && !isError && searchResults && searchResults.jobs && searchResults.jobs.length > 0 && (
           <>
             <div className="mb-4">
               <p className="text-sm text-muted-foreground">

@@ -80,7 +80,8 @@ export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
   // Create application mutation
   const createApplication = useMutation({
     mutationFn: async (values: ApplicationFormValues) => {
-      const response = await apiRequest<{ success: boolean, message: string }>('/api/job-applications', {
+      const response = await apiRequest<{ success: boolean, message: string }>({
+        url: '/api/job-applications',
         method: 'POST',
         body: JSON.stringify(values),
       });
