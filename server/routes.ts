@@ -14,6 +14,7 @@ import { registerLanguagesRoutes } from "./languages";
 import { registerContactsRoutes } from "./contacts";
 import { registerJobRoutes } from "./routes/jobs";
 import { registerJobsAIRoutes } from "./routes/jobs-ai";
+import { registerAdzunaRoutes } from "./routes/adzuna";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
