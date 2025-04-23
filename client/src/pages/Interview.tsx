@@ -437,7 +437,7 @@ const Interview = () => {
             
             <Card>
               <CardContent className="pt-6">
-                {isLoading ? (
+                {isLoadingProcesses ? (
                   <div className="py-4">
                     <LoadingState 
                       message="Loading interview stages..." 
