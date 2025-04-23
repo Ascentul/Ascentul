@@ -70,7 +70,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         return response;
       } catch (error) {
         // For demo purposes, create a mock application if authentication fails
-        if (error.message?.includes('Authentication required')) {
+        const errorWithMessage = error as { message?: string };
+        if (errorWithMessage.message?.includes('Authentication required')) {
           console.log('Demo mode: Creating mock application data');
           return {
             application: {
@@ -122,7 +123,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         return response;
       } catch (error) {
         // For demo purposes, create a temporary mock application
-        if (error.message?.includes('Authentication required')) {
+        const errorWithMessage = error as { message?: string };
+        if (errorWithMessage.message?.includes('Authentication required')) {
           // Simulate a successful response with mock data
           const mockId = Math.floor(Math.random() * 10000);
           console.log('Demo mode: Creating mock application data');
@@ -166,7 +168,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setApplicationId(data.application.id);
       toast({
         title: 'Application created',
@@ -195,7 +197,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         });
       } catch (error) {
         // For demo purposes, simulate a successful step update
-        if (error.message?.includes('Authentication required')) {
+        const errorWithMessage = error as { message?: string };
+        if (errorWithMessage.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful step update');
           return { 
             id: stepId,
@@ -223,7 +226,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         });
       } catch (error) {
         // For demo purposes, simulate a successful application submission
-        if (error.message?.includes('Authentication required')) {
+        const errorWithMessage = error as { message?: string };
+        if (errorWithMessage.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
           
           // In demo mode, default to not applied
@@ -288,7 +292,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Invalidate all application-related queries to ensure updated data is fetched
       // Invalidate both /api/applications and /api/job-applications endpoints
       // as both may be used in different parts of the application
