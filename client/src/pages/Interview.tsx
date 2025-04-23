@@ -43,6 +43,8 @@ import { ApplyWizard } from '@/components/apply/ApplyWizard';
 import { ApplicationCard } from '@/components/apply/ApplicationCard';
 import { ApplicationDetails } from '@/components/apply/ApplicationDetails';
 import { ApplicationStatusBadge } from '@/components/apply/ApplicationStatusBadge';
+import { AdzunaJobSearch } from '@/components/apply/AdzunaJobSearch';
+import { ApplicationWizard } from '@/components/apply/ApplicationWizard';
 import { type InterviewProcess, type InterviewStage, type JobApplication } from '@shared/schema';
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -191,6 +193,13 @@ const Interview = () => {
   const [practiceProcessId, setPracticeProcessId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [selectedJobInfo, setSelectedJobInfo] = useState<{ 
+    title: string; 
+    company: string; 
+    url: string; 
+    description: string;
+    location?: string;
+  } | null>(null);
   const { showGlobalLoading, hideGlobalLoading } = useLoading();
   const [location] = useLocation();
 
@@ -472,6 +481,10 @@ const Interview = () => {
               <Briefcase className="h-4 w-4 mr-2" />
               All Applications
             </TabsTrigger>
+            <TabsTrigger value="job_search" className="flex-1">
+              <Search className="h-4 w-4 mr-2" />
+              Find Jobs
+            </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex-1">
               <Timeline className="h-4 w-4 mr-2" />
               Timeline
@@ -484,6 +497,33 @@ const Interview = () => {
         </Tabs>
       </motion.div>
 
+      {/* Job Search Tab */}
+      {activeTab === 'job_search' && (
+        <motion.div variants={fadeIn} className="container mx-auto">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-lg font-medium">Find Jobs</h2>
+                <p className="text-sm text-muted-foreground">Search for jobs and start applying</p>
+              </div>
+            </div>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <AdzunaJobSearch 
+                  onSelectJob={(jobInfo) => {
+                    // When a job is selected from search results
+                    // Store the job info and open the application wizard with pre-filled job info
+                    setSelectedJobInfo(jobInfo);
+                    setShowApplyWizard(true);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      )}
+      
       {/* Timeline View - Full Width */}
       {activeTab === 'dashboard' && (
         <motion.div variants={fadeIn} className="container mx-auto">
@@ -519,10 +559,10 @@ const Interview = () => {
       )}
 
       {/* All Processes & Practice Views - Full Width */}
-      {activeTab !== 'dashboard' && (
+      {activeTab !== 'dashboard' && activeTab !== 'job_search' && (
         <div className="space-y-6">
           <div className="space-y-4">
-            {/* Search Input - Only for Processes and Practice */}
+            {/* Search Input - Only for Applications and Practice */}
             <motion.div variants={subtleUp} className="w-full max-w-md">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
