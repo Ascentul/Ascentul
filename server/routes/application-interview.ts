@@ -40,7 +40,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
   });
   
   // Create a new interview stage for an application
-  app.post('/api/applications/:applicationId/stages', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/applications/:applicationId/stages', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
@@ -54,17 +54,36 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       }
       
       // Debug logging
-      console.log(`Attempting to get application with ID: ${applicationId}`);
+      console.log(`Attempting to get application with ID: ${applicationId} for user ${userId}`);
       
-      // For debugging, let's try to get applications for common user IDs
-      for (const testUserId of [1, 2, 3]) {
-        const userApps = await storage.getJobApplications(testUserId);
-        console.log(`Applications for user ${testUserId}:`, userApps.map(app => app.id));
-      }
+      // Get all applications for this user
+      const userApps = await storage.getJobApplications(userId);
+      console.log(`Found ${userApps.length} applications for user ${userId}:`, 
+        userApps.map(app => ({id: app.id, title: app.jobTitle || app.title, company: app.company}))
+      );
       
       // Get the application to verify ownership
       const application = await storage.getJobApplication(applicationId);
-      console.log(`Application lookup result: ${application ? 'Found' : 'Not found'}`);
+      
+      if (!application) {
+        console.log(`ERROR: Application with ID ${applicationId} not found`);
+        // For debugging, if application not found, check if there's a mismatch in ID type
+        console.log(`Debug: Checking all application IDs to match ${applicationId} (${typeof applicationId})`);
+        const allApps = [];
+        for (let testId = 1; testId <= 10; testId++) {
+          const testApp = await storage.getJobApplication(testId);
+          if (testApp) allApps.push({id: testId, userId: testApp.userId});
+        }
+        console.log(`Found these applications:`, allApps);
+      } else {
+        console.log(`Application found:`, {
+          id: application.id,
+          userId: application.userId,
+          jobTitle: application.jobTitle || application.title,
+          company: application.company,
+          status: application.status
+        });
+      }
       
       if (!application) {
         return res.status(404).json({ message: "Application not found" });
@@ -139,7 +158,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
   });
   
   // Create a new follow-up action for an application
-  app.post('/api/applications/:applicationId/followups', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/applications/:applicationId/followups', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
