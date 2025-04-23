@@ -232,6 +232,7 @@ export interface IStorage {
 
   // Resume operations
   getResumes(userId: number): Promise<Resume[]>;
+  getResumesByUserId(userId: number): Promise<Resume[]>; // Alias for getResumes for clarity
   getResume(id: number): Promise<Resume | undefined>;
   createResume(userId: number, resume: InsertResume): Promise<Resume>;
   updateResume(id: number, resumeData: Partial<Resume>): Promise<Resume | undefined>;
