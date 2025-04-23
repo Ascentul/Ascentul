@@ -36,11 +36,20 @@ export function ApplicationCard({
   const timeAgo = application.applicationDate 
     ? formatDistanceToNow(new Date(application.applicationDate), { addSuffix: true })
     : formatDistanceToNow(new Date(application.createdAt), { addSuffix: true });
+    
+  // Debug ID display
+  const debugIdInfo = `[ID: ${application.id}]`;
 
   // Prevent card click from triggering when edit button is clicked
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowEditForm(true);
+  };
+  
+  // Handle click on the entire card
+  const handleCardClick = () => {
+    console.log("Application card clicked:", application.id);
+    if (onClick) onClick();
   };
 
   return (
@@ -51,13 +60,15 @@ export function ApplicationCard({
           isSelected && "border-primary/80 shadow-sm bg-primary/5",
           className
         )}
-        onClick={onClick}
+        onClick={handleCardClick}
       >
         <CardContent className={cn("p-3 sm:p-4 pb-2", className)}>
           <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-medium text-base text-foreground">{jobTitle}</h3>
+                <h3 className="font-medium text-base text-foreground">
+                  {jobTitle} <span className="text-xs text-amber-600">{debugIdInfo}</span>
+                </h3>
                 <p className="text-muted-foreground text-sm">{companyName}</p>
               </div>
               <ApplicationStatusBadge 
