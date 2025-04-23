@@ -1,6 +1,6 @@
 /**
  * ZipRecruiter Job Provider
- * This provider integrates with the ZipRecruiter API
+ * This provider integrates with the ZipRecruiter API using the Publisher API
  */
 
 import https from 'https';
@@ -9,6 +9,53 @@ import { JobProvider, JobSearchParams } from './index';
 
 // ZipRecruiter API key is required for this provider to work
 const API_KEY = process.env.ZIPRECRUITER_API_KEY;
+
+// Helper function to fetch data from ZipRecruiter API
+function fetchZipRecruiterApi(url: string, headers: Record<string, string>): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const options = {
+      headers: headers
+    };
+
+    https.get(url, options, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          // Log detailed response information for debugging
+          console.log(`ZipRecruiter API response status: ${res.statusCode}`);
+          console.log(`ZipRecruiter API response headers:`, res.headers);
+          
+          // Log the first 500 characters of the response for debugging
+          console.log(`ZipRecruiter API response preview: ${data.substring(0, 500)}...`);
+          
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(new Error(`API returned ${res.statusCode}: ${data}`));
+            return;
+          }
+          
+          try {
+            const parsedData = JSON.parse(data);
+            resolve(parsedData);
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Response was not valid JSON:', data.substring(0, 200));
+            reject(new Error(`Failed to parse API response: ${parseError.message}`));
+          }
+        } catch (e) {
+          console.error('Error processing response:', e);
+          reject(e);
+        }
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
 
 // ZipRecruiter Provider Implementation
 export const zipRecruiterProvider: JobProvider = {
@@ -23,15 +70,20 @@ export const zipRecruiterProvider: JobProvider = {
     }
     
     try {
-      // Build query parameters
+      console.log('Searching ZipRecruiter with params:', params);
+      
+      // Build query parameters for the new API endpoint
       const queryParams = new URLSearchParams({
-        api_key: API_KEY,
-        search: params.query,
+        job_title: params.query,
+        ...(params.location && { location: params.location }),
+        distance: '10', // Default to 10 miles as requested
         page: params.page.toString(),
         jobs_per_page: params.pageSize.toString(),
-        ...(params.location && { location: params.location }),
-        ...(params.isRemote && { remote_jobs_only: 'true' }),
       });
+
+      if (params.isRemote) {
+        queryParams.set('location', 'remote');
+      }
 
       if (params.jobType) {
         // Map our job types to ZipRecruiter job types
@@ -47,38 +99,57 @@ export const zipRecruiterProvider: JobProvider = {
         }
       }
       
-      // API URL
-      const apiUrl = `https://api.ziprecruiter.com/jobs/v1?${queryParams.toString()}`;
+      // API URL using the new endpoint
+      const apiUrl = `https://api.ziprecruiter.com/jobs?${queryParams.toString()}`;
       
-      // Call the API
-      const response = await fetchZipRecruiterApi(apiUrl);
+      console.log('ZipRecruiter API URL:', apiUrl);
       
-      if (!response.success || !response.jobs) {
-        throw new Error('Failed to fetch jobs from ZipRecruiter');
+      // API headers with Bearer token authentication
+      const headers = {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Accept': 'application/json'
+      };
+      
+      // Call the API with the new authentication method
+      const data = await fetchZipRecruiterApi(apiUrl, headers);
+      console.log('ZipRecruiter API response:', JSON.stringify(data).substring(0, 200) + '...');
+      
+      if (!data.jobs) {
+        console.error('No jobs found in ZipRecruiter response');
+        return [];
       }
       
+      // Calculate pagination info
+      const totalJobs = data.total_jobs || data.jobs.length;
+      const totalPages = Math.ceil(totalJobs / params.pageSize);
+      
+      console.log(`Found ${totalJobs} jobs, ${totalPages} pages`);
+      
       // Map API response to our Job interface
-      return response.jobs.map((job: any) => ({
-        id: `ziprecruiter_${job.id}`,
-        source: 'ZipRecruiter',
-        sourceId: job.id,
-        title: job.name,
-        company: job.hiring_company.name,
-        location: job.location,
-        description: job.snippet,
-        fullDescription: job.description,
-        applyUrl: job.url,
-        salary: job.salary_interval ? `${job.salary_min}-${job.salary_max} ${job.salary_interval}` : undefined,
-        datePosted: job.posted_time,
-        jobType: job.employment_type,
-        isRemote: job.remote,
-        logo: job.hiring_company.logo,
-        tags: job.category ? [job.category] : [],
-        benefits: [],
-        requirements: [],
-        isSaved: false,
-        isApplied: false,
-      }));
+      return data.jobs.map((job: any) => {
+        // Normalize the job data to our schema
+        return {
+          id: `ziprecruiter_${job.id || job.job_id}`,
+          source: 'ZipRecruiter',
+          sourceId: job.id || job.job_id,
+          title: job.name || job.title,
+          company: job.hiring_company?.name || job.company_name || 'Unknown Company',
+          location: job.location || job.city_state_country || 'Unknown Location',
+          description: job.snippet || job.description_preview || job.description || '',
+          fullDescription: job.description || job.snippet || '',
+          applyUrl: job.url || job.apply_url || job.job_url,
+          salary: job.salary_formatted || job.salary_range || '',
+          datePosted: job.posted_time || job.posted_date || new Date().toISOString(),
+          jobType: job.employment_type || job.job_type || '',
+          isRemote: job.remote || job.location?.toLowerCase().includes('remote') || false,
+          logo: job.hiring_company?.logo || job.company_logo || '',
+          tags: job.category ? [job.category] : [],
+          benefits: job.benefits || [],
+          requirements: job.requirements || [],
+          isSaved: false,
+          isApplied: false,
+        };
+      });
     } catch (error) {
       console.error('Error searching ZipRecruiter jobs:', error);
       return [];
@@ -93,37 +164,47 @@ export const zipRecruiterProvider: JobProvider = {
     }
     
     try {
-      // API URL for specific job
-      const apiUrl = `https://api.ziprecruiter.com/jobs/v1/${id}?api_key=${API_KEY}`;
+      // Extract the actual job ID from our prefixed ID
+      const jobId = id.replace('ziprecruiter_', '');
       
-      // Call the API
-      const response = await fetchZipRecruiterApi(apiUrl);
+      // API URL for specific job with the new endpoint
+      const apiUrl = `https://api.ziprecruiter.com/jobs/${jobId}`;
       
-      if (!response.success || !response.job) {
-        throw new Error('Failed to fetch job from ZipRecruiter');
+      // API headers with Bearer token authentication
+      const headers = {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Accept': 'application/json'
+      };
+      
+      // Call the API with the new authentication method
+      const data = await fetchZipRecruiterApi(apiUrl, headers);
+      
+      if (!data.job) {
+        console.error('No job found in ZipRecruiter response');
+        return null;
       }
       
-      const job = response.job;
+      const job = data.job;
       
-      // Map API response to our Job interface
+      // Map API response to our Job interface with the normalized schema
       return {
-        id: `ziprecruiter_${job.id}`,
+        id: `ziprecruiter_${job.id || job.job_id}`,
         source: 'ZipRecruiter',
-        sourceId: job.id,
-        title: job.name,
-        company: job.hiring_company.name,
-        location: job.location,
-        description: job.snippet,
-        fullDescription: job.description,
-        applyUrl: job.url,
-        salary: job.salary_interval ? `${job.salary_min}-${job.salary_max} ${job.salary_interval}` : undefined,
-        datePosted: job.posted_time,
-        jobType: job.employment_type,
-        isRemote: job.remote,
-        logo: job.hiring_company.logo,
+        sourceId: job.id || job.job_id,
+        title: job.name || job.title,
+        company: job.hiring_company?.name || job.company_name || 'Unknown Company',
+        location: job.location || job.city_state_country || 'Unknown Location',
+        description: job.snippet || job.description_preview || job.description || '',
+        fullDescription: job.description || job.snippet || '',
+        applyUrl: job.url || job.apply_url || job.job_url,
+        salary: job.salary_formatted || job.salary_range || '',
+        datePosted: job.posted_time || job.posted_date || new Date().toISOString(),
+        jobType: job.employment_type || job.job_type || '',
+        isRemote: job.remote || job.location?.toLowerCase().includes('remote') || false,
+        logo: job.hiring_company?.logo || job.company_logo || '',
         tags: job.category ? [job.category] : [],
-        benefits: [],
-        requirements: [],
+        benefits: job.benefits || [],
+        requirements: job.requirements || [],
         isSaved: false,
         isApplied: false,
       };
@@ -133,27 +214,3 @@ export const zipRecruiterProvider: JobProvider = {
     }
   },
 };
-
-// Helper function to fetch data from ZipRecruiter API
-function fetchZipRecruiterApi(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          const parsedData = JSON.parse(data);
-          resolve(parsedData);
-        } catch (e) {
-          reject(e);
-        }
-      });
-    }).on('error', (err) => {
-      reject(err);
-    });
-  });
-}
