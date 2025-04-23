@@ -5,6 +5,30 @@ import { z } from 'zod';
 import { insertJobApplicationSchema } from '@shared/schema';
 
 export function registerApplicationRoutes(app: Router, storage: IStorage) {
+  // Debug route to check all existing applications (remove in production)
+  app.get('/api/debug/applications', async (req: Request, res: Response) => {
+    try {
+      // Get applications for all users for debugging purposes
+      const testUsers = [1, 2, 3]; // Try common user IDs
+      let allApplications = [];
+      
+      // Get applications for each test user ID
+      for (const userId of testUsers) {
+        const userApps = await storage.getJobApplications(userId);
+        allApplications = [...allApplications, ...userApps];
+      }
+      
+      // Return information about the applications
+      res.json({
+        applications: allApplications,
+        count: allApplications.length,
+        userIds: testUsers
+      });
+    } catch (error) {
+      console.error('Error in debug route:', error);
+      res.status(500).json({ message: 'Debug route error', error: String(error) });
+    }
+  });
   // Get all applications for the current user
   app.get('/api/applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {

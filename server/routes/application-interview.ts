@@ -55,7 +55,12 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       
       // Debug logging
       console.log(`Attempting to get application with ID: ${applicationId}`);
-      console.log(`Current applications:`, Array.from(storage.jobApplications.keys()));
+      
+      // For debugging, let's try to get applications for common user IDs
+      for (const testUserId of [1, 2, 3]) {
+        const userApps = await storage.getJobApplications(testUserId);
+        console.log(`Applications for user ${testUserId}:`, userApps.map(app => app.id));
+      }
       
       // Get the application to verify ownership
       const application = await storage.getJobApplication(applicationId);
