@@ -1,7 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { ExternalLink, Loader2, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EmbeddedApplyFrameProps {
   isOpen: boolean;
@@ -11,113 +19,112 @@ interface EmbeddedApplyFrameProps {
   applyUrl: string;
 }
 
-export function EmbeddedApplyFrame({ 
-  isOpen, 
-  onClose, 
-  jobTitle, 
-  companyName, 
-  applyUrl 
+export function EmbeddedApplyFrame({
+  isOpen,
+  onClose,
+  jobTitle,
+  companyName,
+  applyUrl,
 }: EmbeddedApplyFrameProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [iframeError, setIframeError] = useState(false);
-  
+  const [isFrameBlocked, setIsFrameBlocked] = useState(false);
+  const [frameHeight, setFrameHeight] = useState(600);
+
+  // Check if frame can be loaded or if it's blocked by the target site
   useEffect(() => {
-    // Reset states when opening/closing
-    if (isOpen) {
-      setIsLoading(true);
-      setIframeError(false);
-    }
-  }, [isOpen]);
-  
-  // Handle iframe load
+    if (!isOpen) return;
+
+    setIsLoading(true);
+    setIsFrameBlocked(false);
+
+    const timeoutId = setTimeout(() => {
+      // If loading takes too long, assume the frame is blocked
+      if (isLoading) {
+        setIsFrameBlocked(true);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, [isOpen, applyUrl]);
+
+  // Handle iframe load success
   const handleIframeLoad = () => {
     setIsLoading(false);
   };
-  
-  // Handle iframe error
+
+  // Handle iframe load error
   const handleIframeError = () => {
     setIsLoading(false);
-    setIframeError(true);
+    setIsFrameBlocked(true);
+  };
+
+  // Handle opening the application in a new tab
+  const openInNewTab = () => {
+    window.open(applyUrl, '_blank');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] h-[90vh] w-full p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Apply to {jobTitle}</DialogTitle>
+      <DialogContent className="max-w-4xl w-full max-h-[90vh] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle>Apply: {jobTitle}</DialogTitle>
           <DialogDescription>
-            {companyName} • Click continue to view the application form
+            Complete your application for {companyName}
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="relative h-full p-6 pt-2 pb-16 flex flex-col">
+
+        <div className="relative">
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-                <p>Loading application form...</p>
-              </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading application form...</p>
             </div>
           )}
-          
-          {iframeError ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <div className="mb-4">
-                <svg className="h-12 w-12 text-muted-foreground mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium mb-2">Unable to load the application form</h3>
-              <p className="text-muted-foreground mb-6">
-                This website may not allow embedding. You can still apply by visiting the original job posting.
+
+          {isFrameBlocked ? (
+            <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
+              <AlertTriangle className="h-12 w-12 text-orange-500 mb-4" />
+              <h3 className="text-lg font-medium mb-2">Unable to load application form</h3>
+              <p className="text-center text-muted-foreground mb-6 max-w-md">
+                This website doesn't allow their application form to be embedded.
+                You'll need to apply directly on their website.
               </p>
-              <a 
-                href={applyUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-flex items-center gap-2 text-primary hover:underline"
-              >
-                <Button>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Application in New Tab
-                </Button>
-              </a>
+              <Button onClick={openInNewTab} className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Apply on {companyName}'s website
+              </Button>
             </div>
           ) : (
-            <>
-              <div className="flex-1 border rounded overflow-hidden">
-                <iframe 
-                  src={applyUrl}
-                  className="w-full h-full border-0" 
-                  onLoad={handleIframeLoad}
-                  onError={handleIframeError}
-                  sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
-                  referrerPolicy="no-referrer"
-                  title={`Application for ${jobTitle} at ${companyName}`}
-                />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Applying for: {jobTitle}
-                </p>
-                <div className="flex gap-2">
-                  <a 
-                    href={applyUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm flex items-center gap-1 hover:underline"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Open in new tab
-                  </a>
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-                </div>
-              </div>
-            </>
+            <div className="px-6 min-h-[400px]">
+              <Alert variant="warning" className="mb-4">
+                <AlertDescription>
+                  Some job sites may block embedding. If the form doesn't load, use the "Open Original" button below.
+                </AlertDescription>
+              </Alert>
+              <iframe
+                src={applyUrl}
+                className="w-full border rounded-md"
+                style={{ height: `${frameHeight}px`, minHeight: '400px' }}
+                onLoad={handleIframeLoad}
+                onError={handleIframeError}
+              />
+            </div>
           )}
         </div>
+
+        <DialogFooter className="p-6 pt-4">
+          <div className="flex justify-between w-full">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            {!isFrameBlocked && (
+              <Button variant="outline" onClick={openInNewTab} className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Open Original
+              </Button>
+            )}
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

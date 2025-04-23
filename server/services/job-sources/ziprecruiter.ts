@@ -1,159 +1,159 @@
+/**
+ * ZipRecruiter Job Provider
+ * This provider integrates with the ZipRecruiter API
+ */
+
 import https from 'https';
-import { Job, JobSearchParams, JobSearchResults, JobSourceProvider } from '../../../shared/jobs';
+import { Job } from '@shared/jobs';
+import { JobProvider, JobSearchParams } from './index';
 
-// ZipRecruiter API response types
-interface ZipRecruiterSearchResponse {
-  success: boolean;
-  jobs: ZipRecruiterJob[];
-  total_jobs: number;
-  num_pages: number;
-  page: number;
-}
+// ZipRecruiter API key is required for this provider to work
+const API_KEY = process.env.ZIPRECRUITER_API_KEY;
 
-interface ZipRecruiterJob {
-  id: string;
-  name: string;
-  snippet: string;
-  job_description?: string;
-  posted_time: string;
-  hiring_company: {
-    name: string;
-    url?: string;
-    logo?: string;
-  };
-  location: string;
-  city: string;
-  state: string;
-  country: string;
-  url: string;
-  salary_min?: number;
-  salary_max?: number;
-  salary_interval?: string;
-  job_type?: string;
-  job_type_full?: string;
-  has_zipapply?: boolean;
-  posted_date?: string;
-}
-
-// Transform a ZipRecruiter job to our standardized job format
-function transformZipRecruiterJob(job: ZipRecruiterJob): Job {
-  // Extract salary information if available
-  let salary: string | undefined;
-  if (job.salary_min && job.salary_max) {
-    const interval = job.salary_interval ? job.salary_interval.toLowerCase() : 'year';
-    salary = `$${job.salary_min.toLocaleString()} - $${job.salary_max.toLocaleString()} per ${interval}`;
-  }
-
-  // Check if job is remote based on location or description
-  const isRemote = 
-    job.location?.toLowerCase().includes('remote') || 
-    job.job_description?.toLowerCase().includes('remote') || 
-    job.snippet?.toLowerCase().includes('remote');
-
-  return {
-    id: `ziprecruiter-${job.id}`,
-    source: 'ZipRecruiter',
-    sourceId: job.id,
-    title: job.name,
-    company: job.hiring_company.name,
-    location: job.location || `${job.city}, ${job.state}, ${job.country}`,
-    description: job.snippet || '',
-    fullDescription: job.job_description,
-    applyUrl: job.url,
-    salary,
-    datePosted: job.posted_date || job.posted_time,
-    jobType: job.job_type_full || job.job_type,
-    isRemote,
-    logo: job.hiring_company.logo,
-    tags: [],
-    benefits: [],
-    requirements: [],
-    isSaved: false,
-    isApplied: false
-  };
-}
-
-// ZipRecruiter API implementation
-export const zipRecruiterProvider: JobSourceProvider = {
+// ZipRecruiter Provider Implementation
+export const zipRecruiterProvider: JobProvider = {
+  id: 'ziprecruiter',
   name: 'ZipRecruiter',
-  icon: '/ziprecruiter-logo.png', // Replace with actual logo path
-  enabled: true,
   
-  searchJobs: async (params: JobSearchParams): Promise<JobSearchResults> => {
+  // Search for jobs
+  searchJobs: async (params: JobSearchParams): Promise<Job[]> => {
+    if (!API_KEY) {
+      console.error('ZIPRECRUITER_API_KEY is not set');
+      return [];
+    }
+    
     try {
-      // Construct ZipRecruiter API URL with query parameters
-      const apiUrl = 'https://api.ziprecruiter.com/jobs/v1';
-      
-      const queryParams = {
-        api_key: process.env.ZIPRECRUITER_API_KEY,
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        api_key: API_KEY,
         search: params.query,
-        location: params.location || '',
-        radius_miles: params.radius || 25,
-        page: params.page || 1,
-        jobs_per_page: params.pageSize || 10,
-        refine_by_salary: params.salary || '',
-        refine_by_tags: params.isRemote ? 'remote' : '',
-        refine_by_job_type: params.jobType || '',
-        days_ago: params.datePosted || '',
-        sort: params.sortBy === 'date' ? 'date' : 'relevance',
-      };
-      
-      // Build query string
-      const queryString = Object.entries(queryParams)
-        .filter(([_, value]) => value !== undefined && value !== '')
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-        .join('&');
-      
-      const url = `${apiUrl}?${queryString}`;
-      
-      // Make API request using https
-      const response = await new Promise<ZipRecruiterSearchResponse>((resolve, reject) => {
-        https.get(url, (res) => {
-          let data = '';
-          
-          res.on('data', (chunk) => {
-            data += chunk;
-          });
-          
-          res.on('end', () => {
-            try {
-              const parsedData = JSON.parse(data);
-              resolve(parsedData);
-            } catch (e: any) {
-              reject(new Error(`Failed to parse ZipRecruiter response: ${e?.message || 'Unknown error'}`));
-            }
-          });
-        }).on('error', (err) => {
-          reject(new Error(`ZipRecruiter API request failed: ${err.message}`));
-        });
+        page: params.page.toString(),
+        jobs_per_page: params.pageSize.toString(),
+        ...(params.location && { location: params.location }),
+        ...(params.isRemote && { remote_jobs_only: 'true' }),
       });
-      
-      // Check if the request was successful
-      if (!response.success) {
-        throw new Error('ZipRecruiter API request failed');
+
+      if (params.jobType) {
+        // Map our job types to ZipRecruiter job types
+        const jobTypeMap: Record<string, string> = {
+          'full-time': 'full_time',
+          'part-time': 'part_time',
+          'contract': 'contractor',
+          'internship': 'intern',
+        };
+        
+        if (jobTypeMap[params.jobType]) {
+          queryParams.append('employment_type', jobTypeMap[params.jobType]);
+        }
       }
       
-      // Transform the results
-      const jobs = response.jobs.map(transformZipRecruiterJob);
+      // API URL
+      const apiUrl = `https://api.ziprecruiter.com/jobs/v1?${queryParams.toString()}`;
       
-      // Return the standardized results
-      return {
-        jobs,
-        totalJobs: response.total_jobs,
-        pageCount: response.num_pages,
-        currentPage: response.page,
-        source: 'ZipRecruiter'
-      };
+      // Call the API
+      const response = await fetchZipRecruiterApi(apiUrl);
+      
+      if (!response.success || !response.jobs) {
+        throw new Error('Failed to fetch jobs from ZipRecruiter');
+      }
+      
+      // Map API response to our Job interface
+      return response.jobs.map((job: any) => ({
+        id: `ziprecruiter_${job.id}`,
+        source: 'ZipRecruiter',
+        sourceId: job.id,
+        title: job.name,
+        company: job.hiring_company.name,
+        location: job.location,
+        description: job.snippet,
+        fullDescription: job.description,
+        applyUrl: job.url,
+        salary: job.salary_interval ? `${job.salary_min}-${job.salary_max} ${job.salary_interval}` : undefined,
+        datePosted: job.posted_time,
+        jobType: job.employment_type,
+        isRemote: job.remote,
+        logo: job.hiring_company.logo,
+        tags: job.category ? [job.category] : [],
+        benefits: [],
+        requirements: [],
+        isSaved: false,
+        isApplied: false,
+      }));
     } catch (error) {
       console.error('Error searching ZipRecruiter jobs:', error);
-      throw error;
+      return [];
     }
   },
   
-  getJobDetails: async (id: string): Promise<Job> => {
-    // ZipRecruiter doesn't have a direct job details API endpoint
-    // We would normally parse the ID and fetch it from our database or
-    // implement scraping logic, but for now we'll return an error
-    throw new Error('Direct job details fetching not supported for ZipRecruiter');
-  }
+  // Get job details
+  getJob: async (id: string): Promise<Job | null> => {
+    if (!API_KEY) {
+      console.error('ZIPRECRUITER_API_KEY is not set');
+      return null;
+    }
+    
+    try {
+      // API URL for specific job
+      const apiUrl = `https://api.ziprecruiter.com/jobs/v1/${id}?api_key=${API_KEY}`;
+      
+      // Call the API
+      const response = await fetchZipRecruiterApi(apiUrl);
+      
+      if (!response.success || !response.job) {
+        throw new Error('Failed to fetch job from ZipRecruiter');
+      }
+      
+      const job = response.job;
+      
+      // Map API response to our Job interface
+      return {
+        id: `ziprecruiter_${job.id}`,
+        source: 'ZipRecruiter',
+        sourceId: job.id,
+        title: job.name,
+        company: job.hiring_company.name,
+        location: job.location,
+        description: job.snippet,
+        fullDescription: job.description,
+        applyUrl: job.url,
+        salary: job.salary_interval ? `${job.salary_min}-${job.salary_max} ${job.salary_interval}` : undefined,
+        datePosted: job.posted_time,
+        jobType: job.employment_type,
+        isRemote: job.remote,
+        logo: job.hiring_company.logo,
+        tags: job.category ? [job.category] : [],
+        benefits: [],
+        requirements: [],
+        isSaved: false,
+        isApplied: false,
+      };
+    } catch (error) {
+      console.error('Error getting ZipRecruiter job:', error);
+      return null;
+    }
+  },
 };
+
+// Helper function to fetch data from ZipRecruiter API
+function fetchZipRecruiterApi(url: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = '';
+      
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        try {
+          const parsedData = JSON.parse(data);
+          resolve(parsedData);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
