@@ -612,9 +612,9 @@ const Interview = () => {
                       />
                     </div>
                   ) : applications && applications.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                       {/* Left column: Applications list */}
-                      <div className="md:col-span-1">
+                      <div className="md:col-span-2">
                         <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
                           {/* Active section */}
                           <div className="space-y-3">
@@ -742,7 +742,7 @@ const Interview = () => {
                       </div>
                       
                       {/* Right column: Application details */}
-                      <div className="md:col-span-2">
+                      <div className="md:col-span-3">
                         <motion.div 
                           variants={fadeIn}
                           className="w-full h-full"

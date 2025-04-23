@@ -30,9 +30,10 @@ import type { InterviewStage, FollowupAction } from '@shared/schema';
 interface ApplicationDetailsProps {
   application: any;
   onClose?: () => void;
+  onDelete?: () => void;
 }
 
-export function ApplicationDetails({ application, onClose }: ApplicationDetailsProps) {
+export function ApplicationDetails({ application, onClose, onDelete }: ApplicationDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localApplication, setLocalApplication] = useState(application);
   const [relatedProcessId, setRelatedProcessId] = useState<number | null>(null);
