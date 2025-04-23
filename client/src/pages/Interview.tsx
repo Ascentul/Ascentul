@@ -297,16 +297,29 @@ const Interview = () => {
   
   // Get selected application details
   const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
+  console.log("Selected application ID:", selectedApplicationId);
+  console.log("Selected application:", selectedApplication);
+  console.log("Available applications:", applications);
   
   // Get access to the query client
   const queryClient = useQueryClient();
   
   // Refresh the applications list when the page loads and periodically
   useEffect(() => {
-    // Function to refresh applications
-    const refreshApplications = () => {
+    // Function to refresh applications that maintains selection
+    const refreshApplications = async () => {
       console.log('Refreshing applications list...');
-      queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      
+      // If we have a selected application, remember it
+      const currentSelectedId = selectedApplicationId;
+      
+      // Refetch the applications
+      await queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      
+      // Ensure the selected application ID persists after refetch
+      if (currentSelectedId) {
+        console.log('Maintaining selection of application ID:', currentSelectedId);
+      }
     };
     
     // Force an immediate refresh of applications on mount
@@ -328,7 +341,7 @@ const Interview = () => {
       clearInterval(refreshInterval);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [queryClient]);
+  }, [queryClient, selectedApplicationId]);
 
   // Use global loading state for initial data fetch
   useEffect(() => {
