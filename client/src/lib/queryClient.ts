@@ -92,6 +92,9 @@ export async function apiRequest<T>(
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include", // This ensures cookies are sent with the request
   });
+  
+  // Debug authentication info
+  console.log(`API Request to ${url}: Status ${res.status}, Auth: ${res.headers.get('x-auth-status') || 'N/A'}`);
 
   await throwIfResNotOk(res);
   
