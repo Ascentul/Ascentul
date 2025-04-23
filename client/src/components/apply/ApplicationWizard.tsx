@@ -129,25 +129,33 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
           const mockId = Math.floor(Math.random() * 10000);
           console.log('Demo mode: Creating mock application data');
           
-          // Create a complete mock application object
+          // Create a complete mock application object with full compatibility
           const mockApp = {
             id: mockId,
+            // Standard fields
             title: jobDetails.title,
             company: jobDetails.company,
-            companyName: jobDetails.company, // Additional field for Interview.tsx compatibility
-            status: 'In Progress', // Capitalized for consistency in display
+            companyName: jobDetails.company,
+            status: 'In Progress',
             location: jobDetails.location || 'Remote',
-            jobLocation: jobDetails.location || 'Remote', // Additional field for Interview.tsx compatibility
+            jobLocation: jobDetails.location || 'Remote',
             position: jobDetails.title,
+            jobTitle: jobDetails.title,
             jobDescription: jobDetails.description,
-            externalJobUrl: jobDetails.url || '',
-            jobLink: jobDetails.url || '', // Additional field for Interview.tsx compatibility
             notes: data.notes || '',
+            // URL fields
+            externalJobUrl: jobDetails.url || '',
+            jobLink: jobDetails.url || '',
+            // Date fields
             createdAt: formatDate(),
             updatedAt: formatDate(),
             applicationDate: formatDate(),
-            jobTitle: jobDetails.title,
+            submittedAt: null,
+            appliedAt: null,
+            // Source tracking
             source: 'Adzuna',
+            // Additional metadata
+            adzunaJobId: jobDetails.adzunaJobId || null,
           };
           
           // Store initial application in localStorage
