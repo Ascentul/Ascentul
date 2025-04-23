@@ -330,6 +330,14 @@ export interface IStorage {
   updateJobApplication(id: number, applicationData: Partial<JobApplication>): Promise<JobApplication | undefined>;
   submitJobApplication(id: number, applied?: boolean): Promise<JobApplication | undefined>;
   deleteJobApplication(id: number): Promise<boolean>;
+
+  // Application Interview Stages operations
+  getInterviewStagesForApplication(applicationId: number): Promise<InterviewStage[]>;
+  createInterviewStageForApplication(applicationId: number, stageData: any): Promise<InterviewStage>;
+  
+  // Application Follow-up Actions operations
+  getFollowupActionsForApplication(applicationId: number): Promise<FollowupAction[]>;
+  createFollowupActionForApplication(applicationId: number, actionData: any): Promise<FollowupAction>;
   
   // Application Wizard Steps operations
   getApplicationWizardSteps(applicationId: number): Promise<ApplicationWizardStep[]>;
