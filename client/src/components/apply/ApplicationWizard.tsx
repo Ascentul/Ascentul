@@ -273,6 +273,12 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       // Invalidate general user data to refresh notifications and counts
       queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
       
+      // Force refresh the application list by refetching the job-applications query
+      // This ensures that our localStorage applications are picked up immediately
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      }, 500);
+      
       toast({
         title: 'Application submitted',
         description: 'Your application has been marked as submitted and added to your applications tracker.',
