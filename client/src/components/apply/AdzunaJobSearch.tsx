@@ -29,11 +29,58 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     setSearchResults([]);
   }, [searchParams]);
 
+  // Log shouldFetch changes
+  useEffect(() => {
+    console.log('shouldFetch state changed to:', shouldFetch);
+  }, [shouldFetch]);
+  
+  // Direct fetch function (alternative approach)
+  const directFetch = useCallback(async () => {
+    if (!searchParams.keywords) return;
+    
+    setIsLoading(true);
+    console.log('Direct fetch initiated with params:', searchParams);
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('keywords', searchParams.keywords);
+      if (searchParams.location) {
+        params.append('location', searchParams.location);
+      }
+      params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
+      
+      console.log('Directly fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      
+      const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+      console.log('Direct fetch response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error in direct fetch:', errorText);
+        throw new Error(`Failed to fetch jobs: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Direct fetch received data:', data);
+      
+      if (data.results) {
+        setSearchResults(data.results);
+      }
+    } catch (error) {
+      console.error('Direct fetch error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchParams]);
+  
   // Fetch jobs from Adzuna API
-  const { isLoading, data } = useQuery({
+  const { isLoading: queryIsLoading, data, error } = useQuery({
     queryKey: ['jobs', searchParams, shouldFetch],
     queryFn: async () => {
-      if (!shouldFetch) return null;
+      if (!shouldFetch) {
+        console.log('Search is not enabled yet');
+        return null;
+      }
       
       const params = new URLSearchParams();
       params.append('keywords', searchParams.keywords);
@@ -42,15 +89,39 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       }
       params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
       
-      const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
+      console.log('Fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      
+      try {
+        const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API error:', errorText);
+          throw new Error(`Failed to fetch jobs: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
       }
-      return response.json();
     },
     enabled: shouldFetch,
     refetchOnWindowFocus: false
   });
+  
+  // Update loading state to combine both loading indicators
+  const isLoading = queryIsLoading;
+  
+  // Log any errors
+  useEffect(() => {
+    if (error) {
+      console.error('Query error:', error);
+    }
+  }, [error]);
 
   // Update search results when data changes
   useEffect(() => {
@@ -81,6 +152,8 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       return;
     }
 
+    console.log('Search initiated with params:', searchParams);
+
     // Add to search history
     setSearchHistory((prev) => [
       { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
@@ -88,7 +161,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     ]);
 
     // Trigger fetch
+    console.log('Setting shouldFetch to true');
     setShouldFetch(true);
+    console.log('shouldFetch should now be true');
   }, [searchParams]);
 
   const handleSelectJob = (job: AdzunaJob) => {
@@ -182,7 +257,17 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             </div>
             
             <Button 
-              onClick={handleSearch} 
+              onClick={(e) => {
+                console.log('Search button clicked!');
+                e.preventDefault();
+                // Use direct fetch instead of the query
+                directFetch();
+                // Also update search history
+                setSearchHistory((prev) => [
+                  { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
+                  ...prev.slice(0, 9), // Keep only the 10 most recent searches
+                ]);
+              }} 
               disabled={isLoading || !searchParams.keywords.trim()} 
               className="w-full mt-2"
             >

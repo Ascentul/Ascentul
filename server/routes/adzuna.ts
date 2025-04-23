@@ -10,7 +10,10 @@ const ADZUNA_APP_KEY = 'a1dbabfabe43a4514a5436fca0a13183';
 const searchParamsSchema = z.object({
   keywords: z.string().min(1, "Keywords are required"),
   location: z.string().optional(),
-  remoteOnly: z.boolean().optional().default(false),
+  remoteOnly: z.union([
+    z.boolean(),
+    z.string().transform(val => val === 'true')
+  ]).optional().default(false),
 });
 
 export const registerAdzunaRoutes = (app: any) => {
