@@ -18,11 +18,10 @@ export function ApplicationCard({
   onClick,
   className
 }: ApplicationCardProps) {
-  // For the demo, we'll mock the job relationship here
-  // In a real implementation, this would be fetched from the API with the job relationship
-  const jobTitle = application.jobTitle || "Software Engineer";
-  const companyName = application.companyName || "Acme Inc.";
-  const jobLocation = application.jobLocation || "Remote";
+  // Extract job details with multiple property name support for compatibility
+  const jobTitle = application.jobTitle || application.title || application.position || "";
+  const companyName = application.companyName || application.company || "";
+  const jobLocation = application.jobLocation || application.location || "Remote";
   
   const viewMode = application.jobId ? 'compact' : 'full';
   
