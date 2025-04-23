@@ -4624,6 +4624,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerContactsRoutes(app, storage);
   registerJobRoutes(apiRouter, storage);
   registerJobsAIRoutes(apiRouter);
+  registerAdzunaRoutes(apiRouter);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {
