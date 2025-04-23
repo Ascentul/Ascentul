@@ -13,6 +13,7 @@ import { registerSkillsRoutes } from "./skills";
 import { registerLanguagesRoutes } from "./languages";
 import { registerContactsRoutes } from "./contacts";
 import { registerJobRoutes } from "./routes/jobs";
+import { registerJobsAIRoutes } from "./routes/jobs-ai";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
@@ -4621,6 +4622,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Register networking contacts routes (Ascentul CRM)
   registerContactsRoutes(app, storage);
   registerJobRoutes(apiRouter, storage);
+  registerJobsAIRoutes(apiRouter);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {

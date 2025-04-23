@@ -1,120 +1,146 @@
-import { Router, Request, Response } from 'express';
-import OpenAI from 'openai';
-import { requireAuth } from '../auth';
-import { storage } from '../storage';
+import { Router, Request, Response } from "express";
+import { storage } from "../storage";
+import { z } from "zod";
+import OpenAI from "openai";
 
-// Initialize OpenAI SDK with API key
+// Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Helper function to check if user is authenticated
+function requireAuth(req: Request, res: Response, next: () => void) {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  next();
+}
+
 export const registerJobsAIRoutes = (router: Router) => {
-  // POST /api/jobs/ai-assist - Get AI assistance for job applications
+  // Route for AI-assisted job application suggestions
   router.post('/api/jobs/ai-assist', requireAuth, async (req: Request, res: Response) => {
     try {
       const { jobTitle, companyName, jobDescription } = req.body;
-      const userId = req.session.userId;
       
-      if (!jobTitle) {
-        return res.status(400).json({ error: 'Job title is required' });
+      if (!jobTitle || !companyName || !jobDescription) {
+        return res.status(400).json({ 
+          message: "Missing required fields. Please provide jobTitle, companyName, and jobDescription." 
+        });
       }
       
-      // Get user resume data if available
-      let resumeData = '';
-      try {
-        const user = await storage.getUser(userId!);
-        if (user && user.id) {
-          const resumes = await storage.getResumesByUserId(user.id);
-          if (resumes && resumes.length > 0) {
-            // Use the most recently updated resume
-            const latestResume = resumes.sort((a, b) => 
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-            )[0];
-            
-            resumeData = latestResume.content || '';
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching resume data:', error);
-        // Continue without resume data if there's an error
-      }
+      // Get user's most recent resume to personalize suggestions
+      const userId = req.session!.userId;
+      const resumes = await storage.getResumesByUserId(userId);
       
-      // Construct the prompt for the OpenAI API
-      const prompt = constructJobAssistantPrompt(jobTitle, companyName, jobDescription, resumeData);
+      // Sort by last updated
+      resumes.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
       
-      // Call OpenAI API
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional career advisor who helps job seekers tailor their applications to specific jobs. Provide concise, actionable, and personalized advice."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7
-      });
+      // Get the most recent resume if available
+      const resume = resumes.length > 0 ? resumes[0] : null;
       
-      // Parse the response
-      const aiResponse = JSON.parse(response.choices[0].message.content || '{}');
+      // Generate personalized suggestions based on the job and user's resume
+      const suggestions = await generateJobApplicationSuggestions(
+        jobTitle,
+        companyName,
+        jobDescription,
+        resume?.content || ""
+      );
       
-      return res.json(aiResponse);
+      res.json(suggestions);
     } catch (error) {
-      console.error('Error getting AI assistance:', error);
-      return res.status(500).json({ error: 'Failed to generate AI assistance' });
+      console.error("Error generating AI job application suggestions:", error);
+      res.status(500).json({ 
+        message: "Failed to generate job application suggestions",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
-  
-  // More AI-powered job application endpoints can be added here
 };
 
-// Helper function to construct the prompt for the OpenAI API
+// Helper function to generate AI-powered job application suggestions
+async function generateJobApplicationSuggestions(
+  jobTitle: string,
+  companyName: string,
+  jobDescription: string,
+  resumeContent: string
+): Promise<any> {
+  try {
+    // Prepare the prompt
+    const prompt = constructJobAssistantPrompt(
+      jobTitle,
+      companyName,
+      jobDescription,
+      resumeContent
+    );
+
+    // Call OpenAI API
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI job application assistant that helps users customize their application materials for specific job opportunities. Provide concise, actionable suggestions based on the job description and the user's resume."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1500
+    });
+
+    // Parse and return the suggestions
+    const suggestionsContent = response.choices[0].message.content;
+    const suggestions = JSON.parse(suggestionsContent || "{}");
+    
+    return suggestions;
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    throw new Error("Failed to generate job application suggestions");
+  }
+}
+
+// Helper function to construct the prompt for the AI assistant
 function constructJobAssistantPrompt(
   jobTitle: string,
-  companyName: string = '',
-  jobDescription: string = '',
-  resumeData: string = ''
+  companyName: string,
+  jobDescription: string,
+  resumeContent: string
 ): string {
   return `
-I need help tailoring my job application for the following position:
+I need help customizing my job application for the following position:
 
 Job Title: ${jobTitle}
-${companyName ? `Company: ${companyName}` : ''}
+Company: ${companyName}
 
-${jobDescription ? `Job Description:
-${jobDescription}` : 'No job description provided.'}
+Job Description:
+${jobDescription}
 
-${resumeData ? `My Resume:
-${resumeData}` : 'No resume provided.'}
+My Resume Content:
+${resumeContent || "No resume provided."}
 
-Please provide me with:
-1. 5 tailored bullet points I should include in my resume for this position
-2. 3 short responses to common questions like "Why are you interested in this position?", "What relevant experience do you have?", and "Why do you want to work at our company?"
-3. 3 snippets for a cover letter (introduction, highlighting relevant experience, and closing paragraph)
+Please provide me with the following in JSON format:
+1. 5-7 tailored resume bullet points that highlight my relevant skills for this position
+2. 3-5 suggested short responses for common application questions for this role
+3. 3 cover letter paragraph snippets tailored to this company and position
 
 Format your response as a JSON object with the following structure:
 {
   "suggestions": {
     "resumeBulletPoints": ["Bullet 1", "Bullet 2", ...],
     "shortResponses": [
-      {
-        "question": "Question text",
-        "response": "Answer text"
-      },
+      { "question": "Question 1", "response": "Response 1" },
+      { "question": "Question 2", "response": "Response 2" },
       ...
     ],
     "coverLetterSnippets": [
-      {
-        "title": "Section title",
-        "content": "Section content"
-      },
-      ...
+      { "title": "Introduction", "content": "Paragraph content..." },
+      { "title": "Experience Highlight", "content": "Paragraph content..." },
+      { "title": "Conclusion", "content": "Paragraph content..." }
     ]
   }
 }
-
-Ensure your suggestions are specific to this job and highlight transferable skills. Make the language professional but conversational. If I provided resume data, use it to personalize your suggestions.
 `;
 }

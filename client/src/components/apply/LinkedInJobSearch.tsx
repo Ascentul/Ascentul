@@ -1,225 +1,206 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, MapPin, Briefcase, Building, ExternalLink } from 'lucide-react';
-import { constructLinkedInSearchUrl, LinkedInSearchParams } from '@shared/linkedin';
-import { LinkedInFrame } from './LinkedInFrame';
-import { ApplicationAssistant } from './ApplicationAssistant';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { SiLinkedin } from 'react-icons/si';
 
 interface LinkedInJobSearchProps {
-  onSelectJob?: (jobInfo: { title: string, company: string, url: string }) => void;
+  onSelectJob?: (jobInfo: { title: string; company: string; url: string }) => void;
+  onOpenLinkedIn?: (url: string) => void;
 }
 
-export function LinkedInJobSearch({ onSelectJob }: LinkedInJobSearchProps) {
-  // Search parameters
-  const [jobTitle, setJobTitle] = useState('');
-  const [location, setLocation] = useState('');
-  const [isRemote, setIsRemote] = useState(false);
-  const [jobType, setJobType] = useState('');
-  const [experience, setExperience] = useState('');
-  
-  // UI state
-  const [searchUrl, setSearchUrl] = useState('');
-  const [isFrameOpen, setIsFrameOpen] = useState(false);
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+interface LinkedInSearchParams {
+  jobTitle: string;
+  location: string;
+  remoteOnly: boolean;
+}
 
-  // Handle search submission
-  const handleSearch = () => {
-    if (!jobTitle) return;
-    
-    const searchParams: LinkedInSearchParams = {
-      jobTitle,
-      location,
-      remote: isRemote,
-      jobType: jobType || undefined,
-      experience: experience || undefined
-    };
-    
-    const url = constructLinkedInSearchUrl(searchParams);
-    setSearchUrl(url);
-    setIsFrameOpen(true);
-    
-    // If callback provided, pass the job info
-    if (onSelectJob) {
-      onSelectJob({
-        title: jobTitle,
-        company: '', // Not available until a specific job is selected
-        url
-      });
-    }
+export function LinkedInJobSearch({ onSelectJob, onOpenLinkedIn }: LinkedInJobSearchProps) {
+  const [searchParams, setSearchParams] = useState<LinkedInSearchParams>({
+    jobTitle: '',
+    location: '',
+    remoteOnly: false,
+  });
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<Array<{ title: string; location: string; timestamp: Date }>>([]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSearchParams((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // Toggle AI assistant
-  const toggleAssistant = () => {
-    setIsAssistantOpen(!isAssistantOpen);
+  const handleRemoteOnlyChange = (checked: boolean) => {
+    setSearchParams((prev) => ({
+      ...prev,
+      remoteOnly: checked,
+    }));
+  };
+
+  const handleSearch = useCallback(() => {
+    // Validate inputs
+    if (!searchParams.jobTitle.trim()) {
+      alert('Please enter a job title');
+      return;
+    }
+
+    setIsSearching(true);
+
+    // Add to search history
+    setSearchHistory((prev) => [
+      { title: searchParams.jobTitle, location: searchParams.location, timestamp: new Date() },
+      ...prev.slice(0, 9), // Keep only the 10 most recent searches
+    ]);
+
+    // Construct LinkedIn search URL
+    let linkedInUrl = 'https://www.linkedin.com/jobs/search/?keywords=';
+    
+    // Encode the job title
+    linkedInUrl += encodeURIComponent(searchParams.jobTitle);
+    
+    // Add location if provided
+    if (searchParams.location.trim()) {
+      linkedInUrl += '&location=' + encodeURIComponent(searchParams.location);
+    }
+    
+    // Add remote filter if selected
+    if (searchParams.remoteOnly) {
+      linkedInUrl += '&f_WT=2';
+    }
+
+    // Simulate network delay
+    setTimeout(() => {
+      setIsSearching(false);
+      // If a job is selected, call the onSelectJob callback
+      if (onSelectJob) {
+        onSelectJob({
+          title: searchParams.jobTitle,
+          company: 'LinkedIn Search',
+          url: linkedInUrl,
+        });
+      }
+      
+      // If open in LinkedIn is requested, call the onOpenLinkedIn callback
+      if (onOpenLinkedIn) {
+        onOpenLinkedIn(linkedInUrl);
+      }
+    }, 800);
+  }, [searchParams, onSelectJob, onOpenLinkedIn]);
+
+  const handleHistoryItemClick = (item: { title: string; location: string }) => {
+    setSearchParams((prev) => ({
+      ...prev,
+      jobTitle: item.title,
+      location: item.location,
+    }));
+  };
+
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Search form */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">LinkedIn Job Search</h3>
-        
-        <div className="flex flex-col md:flex-row gap-3">
-          {/* Job title search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Job title or keyword"
-              className="pl-9"
-              value={jobTitle}
-              onChange={(e) => setJobTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <SiLinkedin className="text-[#0A66C2]" size={24} />
+          LinkedIn Job Search
+        </CardTitle>
+        <CardDescription>
+          Search for jobs on LinkedIn directly within the application
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="search">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="search" className="flex-1">Search</TabsTrigger>
+            <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
+          </TabsList>
           
-          {/* Location search */}
-          <div className="flex-1 relative">
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Location (city, state, or country)"
-              className="pl-9"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-          </div>
-          
-          <Button onClick={handleSearch} className="md:w-auto w-full">
-            Search LinkedIn
-          </Button>
-        </div>
-        
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Remote filter */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="remote-filter"
-              checked={isRemote}
-              onCheckedChange={setIsRemote}
-            />
-            <Label htmlFor="remote-filter">Remote only</Label>
-          </div>
-          
-          {/* Job type filter */}
-          <div className="flex items-center space-x-2">
-            <Label htmlFor="job-type">Job Type:</Label>
-            <Select value={jobType} onValueChange={setJobType}>
-              <SelectTrigger id="job-type" className="w-[140px]">
-                <SelectValue placeholder="Any" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Any Type</SelectItem>
-                <SelectItem value="full_time">Full-time</SelectItem>
-                <SelectItem value="part_time">Part-time</SelectItem>
-                <SelectItem value="contract">Contract</SelectItem>
-                <SelectItem value="internship">Internship</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Experience level filter */}
-          <div className="flex items-center space-x-2">
-            <Label htmlFor="experience">Experience:</Label>
-            <Select value={experience} onValueChange={setExperience}>
-              <SelectTrigger id="experience" className="w-[140px]">
-                <SelectValue placeholder="Any" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Any Level</SelectItem>
-                <SelectItem value="entry_level">Entry Level</SelectItem>
-                <SelectItem value="mid_level">Mid-Senior Level</SelectItem>
-                <SelectItem value="senior_level">Director/Executive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-      
-      {/* Tips card */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">How it works:</h4>
-            <ol className="list-decimal pl-5 text-sm space-y-1">
-              <li>Search for jobs using the form above</li>
-              <li>Browse LinkedIn search results in the embedded view</li>
-              <li>When you find a job you like, use our AI Assistant to help craft your application</li>
-              <li>Apply directly through LinkedIn's platform</li>
-            </ol>
+          <TabsContent value="search" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="jobTitle">Job Title</Label>
+              <Input
+                id="jobTitle"
+                name="jobTitle"
+                placeholder="Software Engineer, Product Manager, etc."
+                value={searchParams.jobTitle}
+                onChange={handleInputChange}
+              />
+            </div>
             
-            <p className="text-xs text-muted-foreground mt-2">
-              Note: Some websites block being embedded in iframes. If LinkedIn results don't load properly, 
-              you'll be prompted to open in a new tab.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Quick search examples */}
-      <div className="space-y-2">
-        <h4 className="text-sm font-medium">Quick searches:</h4>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              setJobTitle('Software Engineer');
-              setLocation('');
-              setIsRemote(true);
-              handleSearch();
-            }}
-          >
-            Remote Software Engineer
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              setJobTitle('Marketing Manager');
-              setLocation('New York');
-              setIsRemote(false);
-              handleSearch();
-            }}
-          >
-            Marketing Manager in New York
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              setJobTitle('Data Analyst');
-              setLocation('San Francisco');
-              setIsRemote(false);
-              handleSearch();
-            }}
-          >
-            Data Analyst in San Francisco
-          </Button>
-        </div>
-      </div>
-      
-      {/* LinkedIn Iframe Dialog */}
-      {searchUrl && (
-        <LinkedInFrame
-          isOpen={isFrameOpen}
-          onClose={() => setIsFrameOpen(false)}
-          url={searchUrl}
-          jobTitle={jobTitle}
-          onOpenAssistant={toggleAssistant}
-        />
-      )}
-      
-      {/* Application Assistant */}
-      <ApplicationAssistant
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
-        jobTitle={jobTitle}
-      />
-    </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location (Optional)</Label>
+              <Input
+                id="location"
+                name="location"
+                placeholder="San Francisco, Remote, etc."
+                value={searchParams.location}
+                onChange={handleInputChange}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="remoteOnly"
+                checked={searchParams.remoteOnly}
+                onCheckedChange={handleRemoteOnlyChange}
+              />
+              <Label htmlFor="remoteOnly">Remote jobs only</Label>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="history">
+            {searchHistory.length > 0 ? (
+              <>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {searchHistory.map((item, index) => (
+                    <div
+                      key={index}
+                      className="p-3 border rounded-md hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                      onClick={() => handleHistoryItemClick(item)}
+                    >
+                      <div>
+                        <p className="font-medium">{item.title}</p>
+                        <p className="text-sm text-gray-500">{item.location || 'No location'}</p>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {item.timestamp.toLocaleDateString()} {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="outline" size="sm" onClick={clearSearchHistory} className="mt-4">
+                  Clear History
+                </Button>
+              </>
+            ) : (
+              <p className="text-center py-8 text-gray-500">No search history available</p>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={() => window.open('https://www.linkedin.com/jobs', '_blank')}>
+          Browse LinkedIn Jobs
+        </Button>
+        <Button onClick={handleSearch} disabled={isSearching || !searchParams.jobTitle.trim()}>
+          {isSearching ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Searching...
+            </>
+          ) : (
+            'Search Jobs'
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

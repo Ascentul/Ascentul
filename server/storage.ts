@@ -1162,6 +1162,11 @@ export class MemStorage implements IStorage {
       .filter(resume => resume.userId === userId)
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
+  
+  // Alias for getResumes for clarity and API consistency
+  async getResumesByUserId(userId: number): Promise<Resume[]> {
+    return this.getResumes(userId);
+  }
 
   async getResume(id: number): Promise<Resume | undefined> {
     return this.resumes.get(id);
