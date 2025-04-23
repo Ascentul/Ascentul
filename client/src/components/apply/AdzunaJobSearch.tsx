@@ -22,6 +22,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   const [searchHistory, setSearchHistory] = useState<Array<{ keywords: string; location: string; timestamp: Date }>>([]);
   const [shouldFetch, setShouldFetch] = useState(false);
   const [searchResults, setSearchResults] = useState<AdzunaJob[]>([]);
+  const [directIsLoading, setDirectIsLoading] = useState(false);
 
   // Reset search results when search params change
   useEffect(() => {
@@ -38,7 +39,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   const directFetch = useCallback(async () => {
     if (!searchParams.keywords) return;
     
-    setIsLoading(true);
+    setDirectIsLoading(true);
     console.log('Direct fetch initiated with params:', searchParams);
     
     try {
@@ -69,7 +70,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     } catch (error) {
       console.error('Direct fetch error:', error);
     } finally {
-      setIsLoading(false);
+      setDirectIsLoading(false);
     }
   }, [searchParams]);
   
@@ -114,7 +115,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   });
   
   // Update loading state to combine both loading indicators
-  const isLoading = queryIsLoading;
+  const isLoading = queryIsLoading || directIsLoading;
   
   // Log any errors
   useEffect(() => {
