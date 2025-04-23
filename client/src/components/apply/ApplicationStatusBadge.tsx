@@ -16,12 +16,17 @@ interface ApplicationStatusBadgeProps {
   status: ApplicationStatus | string;
   size?: 'sm' | 'default';
   className?: string;
+  showIcon?: boolean;
 }
 
 // Configuration for styling and icons based on status
 const statusConfig: Record<string, { color: string; icon: React.ReactNode; label?: string }> = {
   'Not Started': {
     color: 'bg-slate-100 text-slate-800 border-slate-200',
+    icon: <PenSquare className="h-3 w-3 mr-1" />,
+  },
+  'In Progress': {
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
     icon: <PenSquare className="h-3 w-3 mr-1" />,
   },
   'Applied': {
@@ -49,7 +54,8 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode; label
 export function ApplicationStatusBadge({ 
   status, 
   size = 'default',
-  className
+  className,
+  showIcon = true
 }: ApplicationStatusBadgeProps) {
   // Get configuration for the status or use default if not found
   const config = statusConfig[status] || statusConfig.default;
@@ -64,7 +70,7 @@ export function ApplicationStatusBadge({
         className
       )}
     >
-      {config.icon}
+      {showIcon && config.icon}
       <span>{config.label || status}</span>
     </Badge>
   );
