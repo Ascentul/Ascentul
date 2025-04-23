@@ -71,7 +71,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
   // Create application mutation
   const createApplicationMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('/api/applications', {
+      const response = await apiRequest({
+        url: '/api/applications',
         method: 'POST',
         data: {
           jobId: 0, // We'll create a local job entry from the Adzuna data
@@ -108,7 +109,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
   // Update application step mutation
   const updateStepMutation = useMutation({
     mutationFn: async ({ stepId, data }: { stepId: number; data: any }) => {
-      return await apiRequest(`/api/applications/steps/${stepId}/complete`, {
+      return await apiRequest({
+        url: `/api/applications/steps/${stepId}/complete`,
         method: 'POST',
         data
       });
@@ -123,7 +125,8 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
   const submitApplicationMutation = useMutation({
     mutationFn: async () => {
       if (!applicationId) throw new Error('No application ID');
-      return await apiRequest(`/api/applications/${applicationId}/submit`, {
+      return await apiRequest({
+        url: `/api/applications/${applicationId}/submit`,
         method: 'POST'
       });
     },
@@ -134,7 +137,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       });
       // Navigate to the interview/application tracking page
       onClose();
-      navigate('/interview');
+      setLocation('/interview');
     }
   });
 
