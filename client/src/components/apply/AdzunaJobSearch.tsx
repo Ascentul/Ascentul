@@ -167,6 +167,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     console.log('shouldFetch should now be true');
   }, [searchParams]);
 
+  // State to store selected job URL for iframe
+  const [selectedJobUrl, setSelectedJobUrl] = useState<string | null>(null);
+  
   const handleSelectJob = (job: AdzunaJob) => {
     if (onSelectJob) {
       onSelectJob({
@@ -176,8 +179,12 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         description: job.description,
       });
     }
-    // Open job URL in a new tab
-    window.open(job.redirect_url, '_blank', 'noopener,noreferrer');
+    
+    // Set the selected job URL for the iframe
+    setSelectedJobUrl(job.redirect_url);
+    
+    // Set tab to job view
+    setActiveTab('job-view');
   };
 
   const handleHistoryItemClick = (item: { keywords: string; location: string }) => {
@@ -232,6 +239,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
             {searchResults.length > 0 && (
               <TabsTrigger value="results" className="flex-1">Results ({searchResults.length})</TabsTrigger>
+            )}
+            {selectedJobUrl && (
+              <TabsTrigger value="job-view" className="flex-1">Job Details</TabsTrigger>
             )}
           </TabsList>
           
@@ -364,6 +374,53 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
               </>
             ) : (
               <p className="text-center py-8 text-gray-500">No search history available</p>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="job-view">
+            {selectedJobUrl ? (
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Job Application Page</h3>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => window.open(selectedJobUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Open in New Tab
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={() => setActiveTab('results')}
+                    >
+                      Back to Results
+                    </Button>
+                  </div>
+                </div>
+                <div className="border rounded-md h-[600px] overflow-hidden">
+                  <iframe 
+                    src={selectedJobUrl} 
+                    title="Job Details" 
+                    className="w-full h-full"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                  />
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    variant="default" 
+                    onClick={() => setSelectedJobUrl(null)}
+                  >
+                    Close Job View
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No job selected. Select a job from the results to view details.</p>
+              </div>
             )}
           </TabsContent>
         </Tabs>
