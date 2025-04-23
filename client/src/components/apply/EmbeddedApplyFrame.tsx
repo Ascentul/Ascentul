@@ -96,8 +96,8 @@ export function EmbeddedApplyFrame({
             </div>
           ) : (
             <div className="px-6 min-h-[400px]">
-              <Alert variant="warning" className="mb-4">
-                <AlertDescription>
+              <Alert className="mb-4 bg-amber-50 border-amber-200">
+                <AlertDescription className="text-amber-700">
                   Some job sites may block embedding. If the form doesn't load, use the "Open Original" button below.
                 </AlertDescription>
               </Alert>

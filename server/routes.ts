@@ -4620,7 +4620,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   
   // Register networking contacts routes (Ascentul CRM)
   registerContactsRoutes(app, storage);
-  registerJobRoutes(app, storage);
+  registerJobRoutes(apiRouter, storage);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {

@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../auth';
 import { jobProviders } from '../services/job-sources';
+import { IStorage } from '../storage';
 
-export function registerJobRoutes(router: Router) {
+export function registerJobRoutes(app: Router, storage: IStorage) {
   // Get available job sources
-  router.get('/api/jobs/sources', (req: Request, res: Response) => {
+  app.get('/api/jobs/sources', (req: Request, res: Response) => {
     try {
       const sources = Object.keys(jobProviders).map(id => ({
         id,
@@ -19,7 +20,7 @@ export function registerJobRoutes(router: Router) {
   });
 
   // Search for jobs
-  router.get('/api/jobs/search', async (req: Request, res: Response) => {
+  app.get('/api/jobs/search', async (req: Request, res: Response) => {
     try {
       const { 
         query = '', 
@@ -30,6 +31,8 @@ export function registerJobRoutes(router: Router) {
         page = '1',
         pageSize = '10' 
       } = req.query;
+
+      console.log('Job search request:', { query, location, jobType, source, isRemote, page, pageSize });
 
       // Use the specified provider or default to using all providers
       const providers = source 
@@ -54,7 +57,9 @@ export function registerJobRoutes(router: Router) {
       const allJobs = [];
       for (const provider of providers) {
         try {
+          console.log(`Searching jobs with provider: ${provider.name}`);
           const results = await provider.searchJobs(searchParams);
+          console.log(`Found ${results.length} jobs from ${provider.name}`);
           allJobs.push(...results);
         } catch (providerError) {
           console.error(`Error searching jobs with provider ${provider.name}:`, providerError);
@@ -66,6 +71,8 @@ export function registerJobRoutes(router: Router) {
       const startIndex = (searchParams.page - 1) * searchParams.pageSize;
       const endIndex = startIndex + searchParams.pageSize;
       const paginatedJobs = allJobs.slice(startIndex, endIndex);
+      
+      console.log(`Returning ${paginatedJobs.length} jobs, total: ${allJobs.length}`);
       
       return res.json({
         jobs: paginatedJobs,
@@ -80,7 +87,7 @@ export function registerJobRoutes(router: Router) {
   });
 
   // Get job details
-  router.get('/api/jobs/:id', async (req: Request, res: Response) => {
+  app.get('/api/jobs/:id', async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { source } = req.query;
@@ -111,10 +118,19 @@ export function registerJobRoutes(router: Router) {
   });
 
   // Save job (add to favorites/saved jobs)
-  router.post('/api/jobs/save', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/jobs/save', requireAuth, async (req: Request, res: Response) => {
     try {
-      // In a real implementation, you would save the job to the database
+      const { userId } = req.session;
+      const { job } = req.body;
+      
+      if (!job || !job.id) {
+        return res.status(400).json({ message: 'Invalid job data' });
+      }
+      
+      // In a real implementation, save to database
       // For now, just return success
+      console.log(`User ${userId} saved job ${job.id}`);
+      
       return res.json({ success: true, message: 'Job saved' });
     } catch (error) {
       console.error('Error saving job:', error);
