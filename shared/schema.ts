@@ -869,6 +869,9 @@ export const insertJobApplicationSchema = createInsertSchema(jobApplications).om
   createdAt: true,
   updatedAt: true,
   submittedAt: true,
+}).extend({
+  // Make jobId optional - it's required in the table but we'll set a default in the application code
+  jobId: z.number().optional().default(0),
 });
 
 // Application Wizard Steps

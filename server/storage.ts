@@ -3361,15 +3361,20 @@ export class MemStorage implements IStorage {
     const id = this.jobApplicationIdCounter++;
     const now = new Date();
     
+    // Ensure jobId is set (use provided value or default to 0 for manually created applications)
+    const jobId = application.jobId ?? 0;
+    
     const newApplication: JobApplication = {
       ...application,
       id,
       userId,
+      jobId, 
       status: application.status || "In Progress", // Capitalized for consistency with UI
       createdAt: now,
       updatedAt: now
     };
     
+    console.log(`Creating job application with ID ${id} for user ${userId} with jobId ${jobId}`);
     this.jobApplications.set(id, newApplication);
     return newApplication;
   }
