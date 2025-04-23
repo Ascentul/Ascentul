@@ -1,12 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { IStorage } from '../storage';
-import { requireAuth } from '../auth';
+import { requireAuth, requireLoginFallback } from '../auth';
 import { z } from 'zod';
 import { insertJobApplicationSchema } from '@shared/schema';
 
 export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Get all applications for the current user
-  app.get('/api/applications', requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as number;
       const applications = await storage.getJobApplications(userId);
@@ -18,7 +18,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
   
   // Get all applications for job tracker (alias for /api/applications)
-  app.get('/api/job-applications', requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/job-applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as number;
       const applications = await storage.getJobApplications(userId);
@@ -60,7 +60,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   });
 
   // Create a new application
-  app.post('/api/applications', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as number;
       
