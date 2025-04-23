@@ -610,11 +610,11 @@ export const interviewStagesRelations = relations(interviewStages, ({ one, many 
   process: one(interviewProcesses, {
     fields: [interviewStages.processId],
     references: [interviewProcesses.id],
-  }, { relationName: "stageToProcess" }),
+  }),
   application: one(jobApplications, {
     fields: [interviewStages.applicationId],
     references: [jobApplications.id],
-  }, { relationName: "stageToApplication" }),
+  }),
   followupActions: many(followupActions),
 }));
 
@@ -623,11 +623,11 @@ export const followupActionsRelations = relations(followupActions, ({ one }) => 
   process: one(interviewProcesses, {
     fields: [followupActions.processId],
     references: [interviewProcesses.id],
-  }, { relationName: "followupToProcess" }),
+  }),
   application: one(jobApplications, {
     fields: [followupActions.applicationId],
     references: [jobApplications.id],
-  }, { relationName: "followupToApplication" }),
+  }),
   stage: one(interviewStages, {
     fields: [followupActions.stageId],
     references: [interviewStages.id],
@@ -897,6 +897,21 @@ export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
 
 export type ApplicationWizardStep = typeof applicationWizardSteps.$inferSelect;
 export type InsertApplicationWizardStep = z.infer<typeof insertApplicationWizardStepSchema>;
+
+// Job Applications Relations
+export const jobApplicationsRelations = relations(jobApplications, ({ many, one }) => ({
+  user: one(users, {
+    fields: [jobApplications.userId],
+    references: [users.id],
+  }),
+  job: one(jobListings, {
+    fields: [jobApplications.jobId],
+    references: [jobListings.id],
+  }),
+  stages: many(interviewStages),
+  followupActions: many(followupActions),
+  wizardSteps: many(applicationWizardSteps),
+}));
 
 // User Skills model
 export const skills = pgTable("skills", {
