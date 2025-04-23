@@ -118,19 +118,31 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         // For demo purposes, create a temporary mock application
         if (error.message?.includes('Authentication required')) {
           // Simulate a successful response with mock data
+          const mockId = Math.floor(Math.random() * 10000);
+          console.log('Creating mock application with ID:', mockId);
           return {
             application: {
-              id: Math.floor(Math.random() * 10000),
+              id: mockId,
               title: jobDetails.title,
               company: jobDetails.company,
               status: 'in_progress',
+              location: jobDetails.location || 'Remote',
+              position: jobDetails.title,
+              jobDescription: jobDetails.description,
+              externalJobUrl: jobDetails.url || '',
+              notes: data.notes || '',
               createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              // Additional fields needed for proper display in the Interview page
+              jobTitle: jobDetails.title,
+              jobLink: jobDetails.url || '',
+              applicationDate: new Date().toISOString(),
             },
             steps: [
-              { id: 1, stepName: 'personal_info', stepOrder: 1, completed: false },
-              { id: 2, stepName: 'resume', stepOrder: 2, completed: false },
-              { id: 3, stepName: 'cover_letter', stepOrder: 3, completed: false },
-              { id: 4, stepName: 'review', stepOrder: 4, completed: false }
+              { id: mockId * 10 + 1, applicationId: mockId, stepName: 'personal_info', stepOrder: 1, completed: true, data: { notes: data.notes || '' } },
+              { id: mockId * 10 + 2, applicationId: mockId, stepName: 'resume', stepOrder: 2, completed: false, data: {} },
+              { id: mockId * 10 + 3, applicationId: mockId, stepName: 'cover_letter', stepOrder: 3, completed: false, data: {} },
+              { id: mockId * 10 + 4, applicationId: mockId, stepName: 'review', stepOrder: 4, completed: false, data: {} }
             ]
           };
         }
@@ -205,12 +217,21 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate all application-related queries to ensure updated data is fetched
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      
+      // For backwards compatibility, also invalidate interview processes
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      
       toast({
         title: 'Application submitted',
-        description: 'Your application has been marked as submitted.',
+        description: 'Your application has been marked as submitted and added to your applications tracker.',
+        duration: 5000, // Give users a bit more time to read the message
       });
-      // Navigate to the interview/application tracking page
+      
+      // Navigate to the interview page which contains the application tracker
       onClose();
       setLocation('/interview');
     },
