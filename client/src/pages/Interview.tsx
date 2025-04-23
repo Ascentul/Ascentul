@@ -304,44 +304,54 @@ const Interview = () => {
   // Get access to the query client
   const queryClient = useQueryClient();
   
+  // Disable automatic refreshing if an application is selected
+  const shouldAutoRefresh = selectedApplicationId === null;
+  
   // Refresh the applications list when the page loads and periodically
   useEffect(() => {
     // Function to refresh applications that maintains selection
     const refreshApplications = async () => {
       console.log('Refreshing applications list...');
       
-      // If we have a selected application, remember it
-      const currentSelectedId = selectedApplicationId;
+      // If we have a selected application, skip refresh to prevent losing selection
+      if (!shouldAutoRefresh) {
+        console.log('Application selected, skipping auto-refresh to maintain selection');
+        return;
+      }
       
       // Refetch the applications
       await queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
-      
-      // Ensure the selected application ID persists after refetch
-      if (currentSelectedId) {
-        console.log('Maintaining selection of application ID:', currentSelectedId);
-      }
     };
     
     // Force an immediate refresh of applications on mount
-    refreshApplications();
+    if (shouldAutoRefresh) {
+      refreshApplications();
+    }
     
-    // Set up periodic refreshes while the page is open
-    const refreshInterval = setInterval(refreshApplications, 5000); // Refresh every 5 seconds
+    // Set up periodic refreshes while the page is open, but only if no application is selected
+    let refreshInterval: NodeJS.Timeout | null = null;
+    if (shouldAutoRefresh) {
+      refreshInterval = setInterval(refreshApplications, 5000); // Refresh every 5 seconds
+    }
     
     // Set up focus-based refresh
     const handleFocus = () => {
-      console.log('Window gained focus, refreshing applications...');
-      refreshApplications();
+      if (shouldAutoRefresh) {
+        console.log('Window gained focus, refreshing applications...');
+        refreshApplications();
+      }
     };
     
     window.addEventListener('focus', handleFocus);
     
     // Clean up
     return () => {
-      clearInterval(refreshInterval);
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
       window.removeEventListener('focus', handleFocus);
     };
-  }, [queryClient, selectedApplicationId]);
+  }, [queryClient, shouldAutoRefresh]);
 
   // Use global loading state for initial data fetch
   useEffect(() => {
@@ -455,6 +465,18 @@ const Interview = () => {
   
   // Render a job application card
   const renderApplicationCard = (application: JobApplication, index: number) => {
+    // Create a function that captures the application ID in a closure
+    const handleCardClick = () => {
+      console.log("Card clicked, setting selectedApplicationId to:", application.id);
+      // Explicitly disable auto-refresh before setting ID
+      setSelectedApplicationId(application.id);
+      // Verify the selection happened
+      console.log("Selection should now be:", application.id);
+      setTimeout(() => {
+        console.log("After setState, selectedApplicationId is now:", selectedApplicationId);
+      }, 10);
+    };
+
     return (
       <motion.div
         variants={listItem}
@@ -466,10 +488,8 @@ const Interview = () => {
         <ApplicationCard 
           application={application}
           isSelected={selectedApplicationId === application.id}
-          onClick={() => {
-            console.log("Card clicked, setting selectedApplicationId to:", application.id);
-            setSelectedApplicationId(application.id);
-          }}
+          onClick={handleCardClick}
+          onEditSuccess={() => queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] })}
         />
       </motion.div>
     );
@@ -763,6 +783,12 @@ const Interview = () => {
                           variants={fadeIn}
                           className="w-full h-full"
                         >
+                          {/* Debug info for selection */}
+                          <div className="bg-amber-100 border border-amber-300 rounded mb-2 p-2 text-xs text-amber-800">
+                            Debug: selectedApplicationId: {selectedApplicationId ? selectedApplicationId : 'null'} | 
+                            Applications: {applications?.length || 0} | Auto-refresh: {shouldAutoRefresh ? 'Yes' : 'No'}
+                          </div>
+                          
                           {selectedApplication ? (
                             <ApplicationDetails 
                               application={selectedApplication}
