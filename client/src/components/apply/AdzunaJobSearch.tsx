@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExternalLink, Loader2, Search } from 'lucide-react';
+import { ExternalLink, Loader2, Search, Lightbulb } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
+import { ApplicationAssistant } from './ApplicationAssistant';
 
 interface AdzunaJobSearchProps {
   onSelectJob?: (jobInfo: { title: string; company: string; url: string; description: string }) => void;
@@ -167,10 +168,18 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     console.log('shouldFetch should now be true');
   }, [searchParams]);
 
-  // State to store selected job URL for iframe
-  const [selectedJobUrl, setSelectedJobUrl] = useState<string | null>(null);
+  // State to store selected job
+  const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
+  const [showAssistant, setShowAssistant] = useState(false);
   
   const handleSelectJob = (job: AdzunaJob) => {
+    // Store the full job object
+    setSelectedJob(job);
+    
+    // Set tab to job view
+    setActiveTab('job-view');
+    
+    // Pass job info to parent component if callback exists
     if (onSelectJob) {
       onSelectJob({
         title: job.title,
@@ -179,12 +188,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         description: job.description,
       });
     }
-    
-    // Set the selected job URL for the iframe
-    setSelectedJobUrl(job.redirect_url);
-    
-    // Set tab to job view
-    setActiveTab('job-view');
   };
 
   const handleHistoryItemClick = (item: { keywords: string; location: string }) => {
@@ -240,7 +243,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             {searchResults.length > 0 && (
               <TabsTrigger value="results" className="flex-1">Results ({searchResults.length})</TabsTrigger>
             )}
-            {selectedJobUrl && (
+            {selectedJob && (
               <TabsTrigger value="job-view" className="flex-1">Job Details</TabsTrigger>
             )}
           </TabsList>
@@ -378,18 +381,18 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
           </TabsContent>
           
           <TabsContent value="job-view">
-            {selectedJobUrl ? (
+            {selectedJob ? (
               <div className="flex flex-col h-full">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Job Application Page</h3>
+                  <h3 className="text-lg font-semibold">Job Details</h3>
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => window.open(selectedJobUrl, '_blank')}
+                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
                     >
                       <ExternalLink className="h-4 w-4 mr-1" />
-                      Open in New Tab
+                      Apply on Adzuna
                     </Button>
                     <Button 
                       variant="secondary" 
@@ -400,20 +403,74 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                     </Button>
                   </div>
                 </div>
-                <div className="border rounded-md h-[600px] overflow-hidden">
-                  <iframe 
-                    src={selectedJobUrl} 
-                    title="Job Details" 
-                    className="w-full h-full"
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                  />
+                
+                <div className="border rounded-md p-6 overflow-auto max-h-[600px]">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
+                    <div className="flex flex-wrap gap-2 mb-4 text-sm">
+                      <span className="font-medium">{selectedJob.company.display_name}</span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-600">{selectedJob.location.display_name}</span>
+                    </div>
+                    
+                    {(selectedJob.salary_min || selectedJob.salary_max) && (
+                      <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
+                        <span className="font-medium">Salary: </span>
+                        <span>{formatSalary(selectedJob)}</span>
+                      </div>
+                    )}
+                    
+                    {selectedJob.contract_time && (
+                      <div className="mb-4">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
+                           selectedJob.contract_time === 'part_time' ? 'Part-time' : 
+                           selectedJob.contract_time}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-2">Job Description</h3>
+                      <div className="text-gray-700 whitespace-pre-line">
+                        {selectedJob.description}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6">
+                      <span className="text-sm text-gray-500">
+                        Posted: {new Date(selectedJob.created).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 flex justify-end">
+                
+                <div className="mt-6 flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      if (onSelectJob) {
+                        onSelectJob({
+                          title: selectedJob.title,
+                          company: selectedJob.company.display_name,
+                          url: selectedJob.redirect_url,
+                          description: selectedJob.description,
+                        });
+                      }
+                      
+                      // Open AI application assistant
+                      setShowAssistant(true);
+                    }}
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
+                    Get Application Help
+                  </Button>
+                  
                   <Button 
                     variant="default" 
-                    onClick={() => setSelectedJobUrl(null)}
+                    onClick={() => window.open(selectedJob.redirect_url, '_blank')}
                   >
-                    Close Job View
+                    Apply for This Job
                   </Button>
                 </div>
               </div>
@@ -430,7 +487,14 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
           Visit Adzuna
         </Button>
         {searchResults.length > 0 && (
-          <Button onClick={() => setShouldFetch(false)} variant="secondary">
+          <Button 
+            onClick={() => {
+              setShouldFetch(false);
+              setSelectedJob(null);
+              setActiveTab('search');
+            }} 
+            variant="secondary"
+          >
             Clear Results
           </Button>
         )}
