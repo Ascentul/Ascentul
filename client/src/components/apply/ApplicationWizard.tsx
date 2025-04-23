@@ -213,6 +213,24 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       // Navigate to the interview/application tracking page
       onClose();
       setLocation('/interview');
+    },
+    onError: (error) => {
+      console.error('Error submitting application:', error);
+      
+      let errorMessage = 'Failed to submit application. Please try again.';
+      
+      // Check if the error has detailed information from the server
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: 'Submission Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   });
 

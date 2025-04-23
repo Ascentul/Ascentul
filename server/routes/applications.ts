@@ -157,10 +157,21 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
         return res.status(403).json({ message: 'You do not have permission to submit this application' });
       }
       
-      // Submit the application
-      const submittedApplication = await storage.submitJobApplication(id);
-      
-      res.json(submittedApplication);
+      try {
+        // Submit the application
+        const submittedApplication = await storage.submitJobApplication(id);
+        res.json(submittedApplication);
+      } catch (submitError) {
+        // If there's a validation error from the storage layer, send it as a 400 error
+        console.error('Error in submitJobApplication:', submitError);
+        if (submitError instanceof Error) {
+          return res.status(400).json({ 
+            message: submitError.message || 'Could not submit application',
+            details: 'Make sure all required steps are completed before submitting.'
+          });
+        }
+        throw submitError; // Re-throw if it's not an Error instance
+      }
     } catch (error) {
       console.error('Error submitting application:', error);
       res.status(500).json({ message: 'Failed to submit application' });
