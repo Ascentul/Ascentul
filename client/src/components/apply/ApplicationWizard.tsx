@@ -243,10 +243,26 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
   const submitApplicationMutation = useMutation({
     mutationFn: async () => {
       if (!applicationId) throw new Error('No application ID');
+      
+      // Get form values including the applied checkbox status before sending
+      let hasBeenApplied = false;
+      try {
+        // Look for applied status in local storage
+        const storedData = localStorage.getItem(`application_${applicationId}_data`);
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          hasBeenApplied = !!parsedData.applied;
+          console.log('Found stored application data with applied status:', hasBeenApplied);
+        }
+      } catch (err) {
+        console.error('Error reading applied checkbox state:', err);
+      }
+      
       try {
         return await apiRequest({
           url: `/api/applications/${applicationId}/submit`,
-          method: 'POST'
+          method: 'POST',
+          data: { applied: hasBeenApplied } // Send the checkbox state to the server
         });
       } catch (error) {
         // For demo purposes, simulate a successful application submission
@@ -254,24 +270,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (errorWithMessage.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
           
-          // In demo mode, default to not applied
-          let hasBeenApplied = false;
-          
-          // For the final step where a checkbox is present, try to determine if it was checked
-          // This must be done before form submission since the form will be reset after submission
-          try {
-            // Look for applied status in local storage
-            const storedData = localStorage.getItem(`application_${applicationId}_data`);
-            if (storedData) {
-              const parsedData = JSON.parse(storedData);
-              hasBeenApplied = !!parsedData.applied;
-              console.log('Found stored application data with applied status:', hasBeenApplied);
-            } else {
-              console.log('No stored application data found, using default not applied status');
-            }
-          } catch (err) {
-            console.log('Could not determine applied status, using default not applied status');
-          }
+          // In demo mode, use the checkbox state we determined above
           
           // Create a complete mock application object for the Interview page with full format compatibility
           const completedApplication = { 
