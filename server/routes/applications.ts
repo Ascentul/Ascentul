@@ -16,6 +16,18 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
       res.status(500).json({ message: 'Failed to fetch applications' });
     }
   });
+  
+  // Get all applications for job tracker (alias for /api/applications)
+  app.get('/api/job-applications', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId as number;
+      const applications = await storage.getJobApplications(userId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching job applications:', error);
+      res.status(500).json({ message: 'Failed to fetch job applications' });
+    }
+  });
 
   // Get a specific application
   app.get('/api/applications/:id', requireAuth, async (req: Request, res: Response) => {
