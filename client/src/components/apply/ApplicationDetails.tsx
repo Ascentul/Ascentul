@@ -1,17 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarClock, ExternalLink, MapPin, Calendar, Briefcase, Building, SendHorizontal, FileText, FileEdit } from 'lucide-react';
+import { 
+  CalendarClock, 
+  ExternalLink, 
+  MapPin, 
+  Calendar, 
+  Briefcase, 
+  Building, 
+  SendHorizontal, 
+  FileText, 
+  FileEdit,
+  PlusCircle
+} from 'lucide-react';
 import { ApplicationStatusBadge, ApplicationStatus } from './ApplicationStatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
+import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
+import type { InterviewStage, FollowupAction } from '@shared/schema';
 
 interface ApplicationDetailsProps {
   application: any;
@@ -21,15 +35,75 @@ interface ApplicationDetailsProps {
 export function ApplicationDetails({ application, onClose }: ApplicationDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localApplication, setLocalApplication] = useState(application);
+  const [relatedProcessId, setRelatedProcessId] = useState<number | null>(null);
+  const [showInterviewStageForm, setShowInterviewStageForm] = useState(false);
+  const [showFollowupForm, setShowFollowupForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Find or create a related interview process
+  useEffect(() => {
+    const findOrCreateProcess = async () => {
+      try {
+        // Try to fetch a matching interview process
+        const response = await apiRequest('GET', `/api/interview/processes/match?company=${encodeURIComponent(application.company || '')}&position=${encodeURIComponent(application.position || '')}`);
+        const matchData = await response.json();
+        
+        if (matchData && matchData.id) {
+          setRelatedProcessId(matchData.id);
+        } else if (application.status === 'Interviewing') {
+          // If application is in interviewing status but no process exists, create one
+          try {
+            const createResponse = await apiRequest('POST', '/api/interview/processes', {
+              companyName: application.company || application.companyName,
+              position: application.position || application.jobTitle || application.title,
+              jobDescription: application.description || "",
+              status: application.status,
+              jobLink: application.jobLink || application.externalJobUrl,
+              notes: application.notes,
+            });
+            
+            const newProcess = await createResponse.json();
+            setRelatedProcessId(newProcess.id);
+          } catch (createError) {
+            console.error('Failed to create interview process:', createError);
+          }
+        }
+      } catch (error) {
+        console.error('Error finding or creating interview process:', error);
+      }
+    };
+    
+    findOrCreateProcess();
+  }, [application]);
+
+  // Fetch interview stages if we have a related process ID
+  const { data: interviewStages } = useQuery<InterviewStage[]>({
+    queryKey: [`/api/interview/processes/${relatedProcessId}/stages`],
+    queryFn: async () => {
+      if (!relatedProcessId) return [];
+      const response = await apiRequest('GET', `/api/interview/processes/${relatedProcessId}/stages`);
+      return await response.json();
+    },
+    enabled: !!relatedProcessId,
+    placeholderData: [],
+  });
+
+  // Fetch follow-up actions if we have a related process ID
+  const { data: followupActions } = useQuery<FollowupAction[]>({
+    queryKey: [`/api/interview/processes/${relatedProcessId}/followups`],
+    queryFn: async () => {
+      if (!relatedProcessId) return [];
+      const response = await apiRequest('GET', `/api/interview/processes/${relatedProcessId}/followups`);
+      return await response.json();
+    },
+    enabled: !!relatedProcessId,
+    placeholderData: [],
+  });
+
   const updateApplication = useMutation({
     mutationFn: async (updatedApplication: any) => {
-      const response = await apiRequest(`/api/job-applications/${application.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(updatedApplication),
-      });
+      const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
       return response;
     },
     onSuccess: () => {
@@ -39,6 +113,12 @@ export function ApplicationDetails({ application, onClose }: ApplicationDetailsP
         variant: "default",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      
+      // If application status is "Interviewing", refresh interview processes
+      if (localApplication.status === 'Interviewing') {
+        queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      }
+      
       setIsEditing(false);
     },
     onError: (error) => {
@@ -77,8 +157,6 @@ export function ApplicationDetails({ application, onClose }: ApplicationDetailsP
   // Mock data for tabs (would come from API in real implementation)
   const mockResume = { id: 1, name: "Software Engineer Resume" };
   const mockCoverLetter = { id: 1, name: "Software Engineer Cover Letter" };
-  const mockInterviewDate = new Date();
-  mockInterviewDate.setDate(mockInterviewDate.getDate() + 5);
 
   return (
     <div className="space-y-6">
@@ -183,15 +261,15 @@ export function ApplicationDetails({ application, onClose }: ApplicationDetailsP
             <CardContent>
               {isEditing ? (
                 <Textarea 
-                  value={localApplication.jobDescription || ""}
-                  onChange={(e) => setLocalApplication({...localApplication, jobDescription: e.target.value})}
+                  value={localApplication.description || ""}
+                  onChange={(e) => setLocalApplication({...localApplication, description: e.target.value})}
                   placeholder="Enter or paste the job description"
                   className="min-h-[200px]"
                 />
               ) : (
                 <div className="prose prose-sm max-w-none">
-                  {localApplication.jobDescription ? (
-                    <p>{localApplication.jobDescription}</p>
+                  {localApplication.description ? (
+                    <p>{localApplication.description}</p>
                   ) : (
                     <p className="text-muted-foreground italic">No job description has been added yet.</p>
                   )}
@@ -271,62 +349,236 @@ export function ApplicationDetails({ application, onClose }: ApplicationDetailsP
         
         <TabsContent value="interviews" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Upcoming Interviews</CardTitle>
-              <CardDescription>Your scheduled interviews for this application</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Interviews</CardTitle>
+                <CardDescription>Manage interviews for this application</CardDescription>
+              </div>
+              
+              {relatedProcessId && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowInterviewStageForm(true)}
+                  className="flex items-center"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Interview
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {localApplication.status === 'Interviewing' ? (
                 <div className="space-y-3">
-                  <div className="flex items-start justify-between border rounded-md p-3">
-                    <div>
-                      <h4 className="font-medium">Technical Interview</h4>
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <CalendarClock className="h-4 w-4 mr-1.5" />
-                        <span>{format(mockInterviewDate, 'MMM d, yyyy - h:mm a')}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground mt-1">
-                        <Briefcase className="h-4 w-4 mr-1.5" />
-                        <span>Virtual (Zoom)</span>
-                      </div>
+                  {interviewStages && interviewStages.length > 0 ? (
+                    <div className="space-y-3">
+                      {interviewStages.map((stage) => (
+                        <div key={stage.id} className="flex items-start justify-between border rounded-md p-3">
+                          <div>
+                            <h4 className="font-medium">
+                              {stage.type === 'phone_screen' ? 'Phone Screen' : 
+                               stage.type === 'technical' ? 'Technical Interview' :
+                               stage.type === 'behavioral' ? 'Behavioral Interview' :
+                               stage.type === 'onsite' ? 'Onsite Interview' :
+                               stage.type === 'panel' ? 'Panel Interview' :
+                               stage.type === 'final' ? 'Final Round' : 
+                               'Interview'}
+                            </h4>
+                            {stage.scheduledDate && (
+                              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                <CalendarClock className="h-4 w-4 mr-1.5" />
+                                <span>{format(new Date(stage.scheduledDate), 'MMM d, yyyy')}</span>
+                              </div>
+                            )}
+                            {stage.location && (
+                              <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                <Briefcase className="h-4 w-4 mr-1.5" />
+                                <span>{stage.location}</span>
+                              </div>
+                            )}
+                            {stage.notes && (
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                <p className="line-clamp-2">{stage.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                          <Badge variant="outline" 
+                            className={
+                              stage.outcome === 'passed' ? "bg-green-50 text-green-700 border-green-200" :
+                              stage.outcome === 'failed' ? "bg-red-50 text-red-700 border-red-200" :
+                              stage.completedDate ? "bg-orange-50 text-orange-700 border-orange-200" : 
+                              "bg-blue-50 text-blue-700 border-blue-200"
+                            }
+                          >
+                            {stage.outcome === 'passed' ? 'Passed' :
+                             stage.outcome === 'failed' ? 'Failed' :
+                             stage.completedDate ? 'Completed' : 'Upcoming'}
+                          </Badge>
+                        </div>
+                      ))}
                     </div>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      Upcoming
-                    </Badge>
-                  </div>
-                  <Button variant="outline" className="w-full">
-                    Add Interview
-                  </Button>
+                  ) : !relatedProcessId ? (
+                    <div className="text-center py-6">
+                      <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">No interview process linked to this application</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">No interviews scheduled yet</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-3"
+                        onClick={() => setShowInterviewStageForm(true)}
+                      >
+                        Schedule Interview
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-6">
                   <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No interviews scheduled yet</p>
-                  <Button variant="outline" className="mt-3">
-                    Add Interview
+                  <p className="text-muted-foreground">Update application status to "Interviewing" to add interviews</p>
+                  <div className="mt-3">
+                    <Select 
+                      value={localApplication.status}
+                      onValueChange={(value) => handleStatusChange(value as ApplicationStatus)}
+                    >
+                      <SelectTrigger className="w-[250px] mx-auto">
+                        <SelectValue placeholder="Change status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Not Started">Not Started</SelectItem>
+                        <SelectItem value="Applied">Applied</SelectItem>
+                        <SelectItem value="Interviewing">Interviewing</SelectItem>
+                        <SelectItem value="Offer">Offer</SelectItem>
+                        <SelectItem value="Rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Show interview stage form */}
+          {showInterviewStageForm && relatedProcessId && (
+            <InterviewStageForm
+              isOpen={showInterviewStageForm}
+              onClose={() => setShowInterviewStageForm(false)}
+              processId={relatedProcessId}
+              onSuccess={() => {
+                // Refresh interview stages data
+                queryClient.invalidateQueries({ 
+                  queryKey: [`/api/interview/processes/${relatedProcessId}/stages`] 
+                });
+                toast({
+                  title: "Interview added",
+                  description: "The interview stage has been added successfully."
+                });
+              }}
+            />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="follow-up" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Follow-up Actions</CardTitle>
+                <CardDescription>Track your follow-up communications</CardDescription>
+              </div>
+              
+              {relatedProcessId && (
+                <Button 
+                  size="sm" 
+                  onClick={() => setShowFollowupForm(true)}
+                  className="flex items-center"
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Add Follow-up
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {followupActions && followupActions.length > 0 ? (
+                <div className="space-y-3">
+                  {followupActions.map((action) => (
+                    <div key={action.id} className="flex items-start justify-between border rounded-md p-3">
+                      <div>
+                        <h4 className="font-medium">
+                          {action.type === 'thank_you_email' ? 'Thank You Email' : 
+                           action.type === 'follow_up' ? 'Follow-up' :
+                           action.type === 'preparation' ? 'Interview Preparation' :
+                           action.type === 'document_submission' ? 'Document Submission' :
+                           action.type === 'networking' ? 'Networking Connection' : 
+                           action.description}
+                        </h4>
+                        <p className="text-sm">{action.description}</p>
+                        
+                        {action.dueDate && (
+                          <div className="flex items-center text-sm text-muted-foreground mt-1">
+                            <Calendar className="h-4 w-4 mr-1.5" />
+                            <span>Due: {format(new Date(action.dueDate), 'MMM d, yyyy')}</span>
+                          </div>
+                        )}
+                        
+                        {action.notes && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            <p className="line-clamp-2">{action.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                      <Badge variant="outline" 
+                        className={
+                          action.completed ? "bg-green-50 text-green-700 border-green-200" : 
+                          "bg-blue-50 text-blue-700 border-blue-200"
+                        }
+                      >
+                        {action.completed ? 'Completed' : 'Pending'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : !relatedProcessId ? (
+                <div className="text-center py-6">
+                  <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No follow-up process linked to this application</p>
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No follow-up actions yet</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-3"
+                    onClick={() => setShowFollowupForm(true)}
+                  >
+                    Add Follow-up
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="follow-up" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Follow-up Actions</CardTitle>
-              <CardDescription>Track your follow-up communications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-6">
-                <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No follow-up actions yet</p>
-                <Button variant="outline" className="mt-3">
-                  Add Follow-up
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          
+          {/* Show follow-up form */}
+          {showFollowupForm && relatedProcessId && (
+            <FollowupActionForm
+              isOpen={showFollowupForm}
+              onClose={() => setShowFollowupForm(false)}
+              processId={relatedProcessId}
+              onSuccess={() => {
+                // Refresh follow-up actions data
+                queryClient.invalidateQueries({ 
+                  queryKey: [`/api/interview/processes/${relatedProcessId}/followups`] 
+                });
+                toast({
+                  title: "Follow-up added",
+                  description: "The follow-up action has been added successfully."
+                });
+              }}
+            />
+          )}
         </TabsContent>
       </Tabs>
       
