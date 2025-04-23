@@ -90,7 +90,7 @@ export async function apiRequest<T>(
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // This ensures cookies are sent with the request
   });
 
   await throwIfResNotOk(res);
