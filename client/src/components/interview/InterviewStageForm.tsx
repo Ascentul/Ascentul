@@ -59,11 +59,12 @@ const defaultValues: Partial<InterviewStageFormValues> = {
 interface InterviewStageFormProps {
   isOpen: boolean;
   onClose: () => void;
-  processId: number;
+  processId?: number;
+  applicationId?: number;
   onSuccess?: () => void;
 }
 
-export function InterviewStageForm({ isOpen, onClose, processId, onSuccess }: InterviewStageFormProps) {
+export function InterviewStageForm({ isOpen, onClose, processId, applicationId, onSuccess }: InterviewStageFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -82,18 +83,36 @@ export function InterviewStageForm({ isOpen, onClose, processId, onSuccess }: In
       
       const stageData = {
         ...values,
-        processId,
         interviewers: interviewersArray,
       };
       
-      const response = await apiRequest('POST', `/api/interview/processes/${processId}/stages`, stageData);
-      return await response.json();
+      // Add the appropriate ID based on what's available
+      if (applicationId) {
+        stageData.applicationId = applicationId;
+        const response = await apiRequest('POST', `/api/applications/${applicationId}/stages`, stageData);
+        return await response.json();
+      } else if (processId) {
+        stageData.processId = processId;
+        const response = await apiRequest('POST', `/api/interview/processes/${processId}/stages`, stageData);
+        return await response.json();
+      } else {
+        throw new Error('Either applicationId or processId must be provided');
+      }
     },
     onSuccess: () => {
       // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${processId}/stages`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      
+      if (processId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/interview/processes/${processId}/stages`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      }
+      
+      if (applicationId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      }
       
       toast({
         title: 'Success',
