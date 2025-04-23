@@ -42,7 +42,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       }
       params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
       
-      const response = await fetch(`/api/jobs/search?${params.toString()}`);
+      const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch jobs');
       }
