@@ -3357,7 +3357,7 @@ export class MemStorage implements IStorage {
       ...application,
       id,
       userId,
-      status: application.status || "draft",
+      status: application.status || "In Progress", // Capitalized for consistency with UI
       createdAt: now,
       updatedAt: now
     };
@@ -3399,7 +3399,7 @@ export class MemStorage implements IStorage {
     
     const submittedApplication: JobApplication = {
       ...application,
-      status: "applied",
+      status: "Applied",  // Capitalized for consistency with UI
       submittedAt: new Date(),
       updatedAt: new Date()
     };

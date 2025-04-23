@@ -104,13 +104,19 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
           data: {
             jobId: 0, // We'll create a local job entry from the Adzuna data
             title: jobDetails.title,
+            jobTitle: jobDetails.title, // Additional field for Interview.tsx compatibility
+            position: jobDetails.title, // Additional field for Interview.tsx compatibility
             company: jobDetails.company,
-            location: jobDetails.location || '',
+            companyName: jobDetails.company, // Additional field for Interview.tsx compatibility
+            location: jobDetails.location || 'Remote',
+            jobLocation: jobDetails.location || 'Remote', // Additional field for Interview.tsx compatibility
             description: jobDetails.description,
-            status: 'in_progress',
+            status: 'In Progress', // Capitalized for consistency in display
             adzunaJobId: jobDetails.id || '',
             externalJobUrl: jobDetails.url || '',
+            jobLink: jobDetails.url || '', // Additional field for Interview.tsx compatibility
             notes: data.notes || '',
+            source: 'Adzuna'
           }
         });
         return response;
