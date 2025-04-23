@@ -3273,7 +3273,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.get("/api/interview/processes", requireAuth, async (req: Request, res: Response) => {
+  apiRouter.get("/api/interview/processes", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       // Get current user from session
       const user = await getCurrentUser(req);
@@ -3289,7 +3289,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
-  apiRouter.post("/api/interview/processes", requireAuth, async (req: Request, res: Response) => {
+  apiRouter.post("/api/interview/processes", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const processData = insertInterviewProcessSchema.parse(req.body);
       
