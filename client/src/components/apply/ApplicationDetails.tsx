@@ -49,8 +49,25 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
   const { data: interviewStages } = useQuery<InterviewStage[]>({
     queryKey: [`/api/applications/${application.id}/stages`],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/applications/${application.id}/stages`);
-      return await response.json();
+      try {
+        // First try to get from server
+        const response = await apiRequest('GET', `/api/applications/${application.id}/stages`);
+        return await response.json();
+      } catch (error) {
+        // If server request fails, try localStorage
+        console.log('Server request for interview stages failed, checking localStorage');
+        
+        // Check if there are mock interview stages in localStorage
+        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${application.id}`) || '[]');
+        
+        if (mockStages.length > 0) {
+          console.log('Using mock interview stages from localStorage:', mockStages);
+          return mockStages;
+        }
+        
+        // If no localStorage data, return empty array
+        return [];
+      }
     },
     enabled: !!application.id && localApplication.status === 'Interviewing',
     placeholderData: [],
@@ -60,8 +77,25 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
   const { data: followupActions } = useQuery<FollowupAction[]>({
     queryKey: [`/api/applications/${application.id}/followups`],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/applications/${application.id}/followups`);
-      return await response.json();
+      try {
+        // First try to get from server
+        const response = await apiRequest('GET', `/api/applications/${application.id}/followups`);
+        return await response.json();
+      } catch (error) {
+        // If server request fails, try localStorage
+        console.log('Server request for followup actions failed, checking localStorage');
+        
+        // Check if there are mock followup actions in localStorage
+        const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${application.id}`) || '[]');
+        
+        if (mockFollowups.length > 0) {
+          console.log('Using mock followup actions from localStorage:', mockFollowups);
+          return mockFollowups;
+        }
+        
+        // If no localStorage data, return empty array
+        return [];
+      }
     },
     enabled: !!application.id,
     placeholderData: [],
