@@ -522,7 +522,7 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                               <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'scheduled')}>
                                 Scheduled
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'pending')}>
+                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, '')}>
                                 Pending
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'passed')}>
