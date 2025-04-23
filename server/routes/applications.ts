@@ -152,11 +152,12 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
     }
   });
 
-  // Submit an application (mark as applied)
+  // Submit an application (mark as applied or in progress)
   app.post('/api/applications/:id/submit', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const userId = req.session.userId as number;
+      const { applied = false } = req.body; // Get applied status from request body, default to false
       
       // Check if the application exists and belongs to the user
       const existingApplication = await storage.getJobApplication(id);
@@ -170,8 +171,8 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
       }
       
       try {
-        // Submit the application
-        const submittedApplication = await storage.submitJobApplication(id);
+        // Submit the application with the applied status
+        const submittedApplication = await storage.submitJobApplication(id, !!applied);
         res.json(submittedApplication);
       } catch (submitError) {
         // If there's a validation error from the storage layer, send it as a 400 error
