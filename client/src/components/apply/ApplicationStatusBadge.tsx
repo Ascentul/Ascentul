@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 // Status types
 export type ApplicationStatus = 
   | 'Not Started' 
+  | 'In Progress'
   | 'Applied' 
   | 'Interviewing' 
   | 'Offer' 

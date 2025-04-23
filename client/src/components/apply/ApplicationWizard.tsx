@@ -242,7 +242,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
           // Create a more complete mock application object for the Interview page
           const completedApplication = { 
             id: applicationId,
-            status: hasBeenApplied ? 'Applied' : 'Not Applied', // Set status based on checkbox
+            status: hasBeenApplied ? 'Applied' : 'In Progress', // Set status based on checkbox
             appliedAt: hasBeenApplied ? formatDate() : null,
             submittedAt: hasBeenApplied ? formatDate() : null,
             applicationDate: formatDate(),

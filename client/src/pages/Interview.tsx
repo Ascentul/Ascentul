@@ -642,12 +642,12 @@ const Interview = () => {
                             All
                           </Button>
                           <Button
-                            variant={statusFilter === "Not Started" ? "secondary" : "outline"}
+                            variant={statusFilter === "In Progress" ? "secondary" : "outline"}
                             size="sm"
                             className="text-xs h-7"
-                            onClick={() => setStatusFilter("Not Started")}
+                            onClick={() => setStatusFilter("In Progress")}
                           >
-                            <ApplicationStatusBadge status="Not Started" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                            <ApplicationStatusBadge status="In Progress" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
                           </Button>
                           <Button
                             variant={statusFilter === "Applied" ? "secondary" : "outline"}
