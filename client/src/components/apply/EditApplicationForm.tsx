@@ -91,7 +91,7 @@ export function EditApplicationForm({
             const createResponse = await apiRequest('POST', '/api/interview/processes', {
               companyName: application.company || application.companyName,
               position: application.position || application.jobTitle || application.title,
-              jobDescription: application.jobDescription || application.description,
+              jobDescription: application.description || "",
               status: application.status,
               jobLink: application.jobLink || application.externalJobUrl,
               notes: application.notes,
@@ -145,7 +145,7 @@ export function EditApplicationForm({
           const createResponse = await apiRequest('POST', '/api/interview/processes', {
             companyName: values.company || values.companyName,
             position: values.position || values.jobTitle || values.title,
-            jobDescription: values.jobDescription || values.description,
+            jobDescription: values.description || "",
             status: values.status,
             jobLink: values.jobLink || values.externalJobUrl,
             notes: values.notes,
@@ -221,7 +221,7 @@ export function EditApplicationForm({
     values.companyName = values.company;
     values.jobTitle = values.position;
     values.title = values.position;
-    values.description = values.jobDescription;
+    // values.description already set
     values.externalJobUrl = values.jobLink;
     
     updateApplicationMutation.mutate(values);
@@ -339,7 +339,7 @@ export function EditApplicationForm({
               {/* Job Description */}
               <FormField
                 control={form.control}
-                name="jobDescription"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Job Description</FormLabel>
