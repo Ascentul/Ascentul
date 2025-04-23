@@ -612,152 +612,200 @@ const Interview = () => {
                       />
                     </div>
                   ) : applications && applications.length > 0 ? (
-                    <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
-                      {/* Active section */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium flex items-center">
-                            <Briefcase className="h-4 w-4 mr-2" />
-                            Active Applications
-                          </h3>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setShowApplyWizard(true)}
-                            className="text-xs"
-                          >
-                            <Plus className="h-3.5 w-3.5 mr-1" />
-                            New Application
-                          </Button>
-                        </div>
-                        
-                        {/* Status filter buttons */}
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Button
-                            variant={statusFilter === null ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter(null)}
-                          >
-                            All
-                          </Button>
-                          <Button
-                            variant={statusFilter === "In Progress" ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter("In Progress")}
-                          >
-                            <ApplicationStatusBadge status="In Progress" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
-                          </Button>
-                          <Button
-                            variant={statusFilter === "Applied" ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter("Applied")}
-                          >
-                            <ApplicationStatusBadge status="Applied" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
-                          </Button>
-                          <Button
-                            variant={statusFilter === "Interviewing" ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter("Interviewing")}
-                          >
-                            <ApplicationStatusBadge status="Interviewing" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
-                          </Button>
-                          <Button
-                            variant={statusFilter === "Offer" ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter("Offer")}
-                          >
-                            <ApplicationStatusBadge status="Offer" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
-                          </Button>
-                          <Button
-                            variant={statusFilter === "Rejected" ? "secondary" : "outline"}
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={() => setStatusFilter("Rejected")}
-                          >
-                            <ApplicationStatusBadge status="Rejected" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
-                          </Button>
-                          {statusFilter && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs h-7"
-                              onClick={() => setStatusFilter(null)}
-                            >
-                              <FilterX className="h-3.5 w-3.5 mr-1" />
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-                        
-                        {filteredApplications.filter(app => 
-                          app.status !== 'Offer' && 
-                          app.status !== 'Rejected'
-                        ).length > 0 ? (
-                          <div className="grid grid-cols-1 gap-3 mt-4">
-                            {filteredApplications
-                              .filter(app => 
-                                app.status !== 'Offer' && 
-                                app.status !== 'Rejected'
-                              )
-                              .map((app, index) => renderApplicationCard(app, index))}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Left column: Applications list */}
+                      <div className="md:col-span-1">
+                        <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
+                          {/* Active section */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h3 className="font-medium flex items-center">
+                                <Briefcase className="h-4 w-4 mr-2" />
+                                Active Applications
+                              </h3>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => setShowApplyWizard(true)}
+                                className="text-xs"
+                              >
+                                <Plus className="h-3.5 w-3.5 mr-1" />
+                                New Application
+                              </Button>
+                            </div>
+                            
+                            {/* Status filter buttons */}
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <Button
+                                variant={statusFilter === null ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter(null)}
+                              >
+                                All
+                              </Button>
+                              <Button
+                                variant={statusFilter === "In Progress" ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter("In Progress")}
+                              >
+                                <ApplicationStatusBadge status="In Progress" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                              </Button>
+                              <Button
+                                variant={statusFilter === "Applied" ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter("Applied")}
+                              >
+                                <ApplicationStatusBadge status="Applied" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                              </Button>
+                              <Button
+                                variant={statusFilter === "Interviewing" ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter("Interviewing")}
+                              >
+                                <ApplicationStatusBadge status="Interviewing" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                              </Button>
+                              <Button
+                                variant={statusFilter === "Offer" ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter("Offer")}
+                              >
+                                <ApplicationStatusBadge status="Offer" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                              </Button>
+                              <Button
+                                variant={statusFilter === "Rejected" ? "secondary" : "outline"}
+                                size="sm"
+                                className="text-xs h-7"
+                                onClick={() => setStatusFilter("Rejected")}
+                              >
+                                <ApplicationStatusBadge status="Rejected" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
+                              </Button>
+                              {statusFilter && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => setStatusFilter(null)}
+                                >
+                                  <FilterX className="h-3.5 w-3.5 mr-1" />
+                                  Clear
+                                </Button>
+                              )}
+                            </div>
+                            
+                            {filteredApplications.filter(app => 
+                              app.status !== 'Offer' && 
+                              app.status !== 'Rejected'
+                            ).length > 0 ? (
+                              <div className="grid grid-cols-1 gap-3 mt-4">
+                                {filteredApplications
+                                  .filter(app => 
+                                    app.status !== 'Offer' && 
+                                    app.status !== 'Rejected'
+                                  )
+                                  .map((app, index) => renderApplicationCard(app, index))}
+                              </div>
+                            ) : (
+                              <p className="text-muted-foreground text-center py-6">
+                                {statusFilter ? 'No applications matching the selected filter' : 'No active applications'}
+                              </p>
+                            )}
                           </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center py-6">
-                            {statusFilter ? 'No applications matching the selected filter' : 'No active applications'}
-                          </p>
-                        )}
+                          
+                          {/* Completed applications section */}
+                          <div className="space-y-3 pt-2">
+                            <h3 className="font-medium flex items-center">
+                              <Check className="h-4 w-4 mr-2" />
+                              Completed Applications
+                            </h3>
+                            {filteredApplications.filter(app => 
+                              app.status === 'Offer' || 
+                              app.status === 'Rejected'
+                            ).length > 0 ? (
+                              <div className="grid grid-cols-1 gap-3">
+                                {filteredApplications
+                                  .filter(app => 
+                                    app.status === 'Offer' || 
+                                    app.status === 'Rejected'
+                                  )
+                                  .map((app, index) => renderApplicationCard(app, index))}
+                              </div>
+                            ) : (
+                              <p className="text-muted-foreground text-center py-6">No completed applications</p>
+                            )}
+                          </div>
+                        </motion.div>
                       </div>
                       
-                      {/* Completed applications section */}
-                      <div className="space-y-3 pt-2">
-                        <h3 className="font-medium flex items-center">
-                          <Check className="h-4 w-4 mr-2" />
-                          Completed Applications
-                        </h3>
-                        {filteredApplications.filter(app => 
-                          app.status === 'Offer' || 
-                          app.status === 'Rejected'
-                        ).length > 0 ? (
-                          <div className="grid grid-cols-1 gap-3">
-                            {filteredApplications
-                              .filter(app => 
-                                app.status === 'Offer' || 
-                                app.status === 'Rejected'
-                              )
-                              .map((app, index) => renderApplicationCard(app, index))}
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground text-center py-6">No completed applications</p>
-                        )}
+                      {/* Right column: Application details */}
+                      <div className="md:col-span-2">
+                        <motion.div 
+                          variants={fadeIn}
+                          className="w-full h-full"
+                        >
+                          {selectedApplication ? (
+                            <ApplicationDetails 
+                              application={selectedApplication}
+                              onClose={() => setSelectedApplicationId(null)}
+                              onDelete={() => setSelectedApplicationId(null)}
+                            />
+                          ) : (
+                            <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
+                              <motion.div 
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium">No Application Selected</h3>
+                                <p className="text-muted-foreground max-w-md mt-2">
+                                  Select an application from the list to view details, or create a new one to start tracking your job application journey.
+                                </p>
+                                <Button 
+                                  variant="outline" 
+                                  className="mt-4"
+                                  onClick={() => setShowApplyWizard(true)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Create New Application
+                                </Button>
+                              </motion.div>
+                            </Card>
+                          )}
+                        </motion.div>
                       </div>
-                    </motion.div>
+                    </div>
                   ) : (
                     <motion.div variants={fadeIn} className="text-center py-8">
-                      <p className="text-muted-foreground">No applications found.</p>
-                      <Button 
-                        variant="link" 
-                        onClick={() => setShowApplyWizard(true)}
-                        className="mt-2"
-                      >
-                        Create your first application
-                      </Button>
+                      <div className="mx-auto flex flex-col items-center justify-center space-y-4">
+                        <div className="rounded-full bg-muted p-3">
+                          <Briefcase className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-xl font-semibold tracking-tight">No applications yet</h3>
+                          <p className="text-muted-foreground max-w-md mx-auto">
+                            Get started by creating your first job application or searching for jobs.
+                          </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button onClick={() => setShowApplyWizard(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Application
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => setActiveTab('job_search')}
+                          >
+                            <Search className="h-4 w-4 mr-2" />
+                            Search for Jobs
+                          </Button>
+                        </div>
+                      </div>
                     </motion.div>
-                  )}
-                  
-                  {/* Selected application details */}
-                  {selectedApplication && (
-                    <div className="mt-6">
-                      <ApplicationDetails 
-                        application={selectedApplication}
-                        onClose={() => setSelectedApplicationId(null)}
-                        onDelete={() => setSelectedApplicationId(null)}
-                      />
-                    </div>
                   )}
                 </>
               )}
