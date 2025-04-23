@@ -122,6 +122,12 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       // Invalidate both endpoints since they're aliased in the backend
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      
+      // Force an immediate refetch to ensure the new application appears
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      }, 300);
+      
       onClose();
       setStep(1);
       form.reset();

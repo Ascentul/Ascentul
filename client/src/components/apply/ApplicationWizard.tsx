@@ -276,11 +276,19 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
       // Invalidate general user data to refresh notifications and counts
       queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
       
-      // Force refresh the application list by refetching the job-applications query
-      // This ensures that our localStorage applications are picked up immediately
+      // Force multiple immediate refreshes of the application list to ensure data is updated
+      // First immediate refresh
+      queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      
+      // Second refresh after a short delay to ensure any server processing is complete
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
-      }, 500);
+      }, 300);
+      
+      // Final refresh after database operations should be complete
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      }, 800);
       
       toast({
         title: 'Application submitted',
