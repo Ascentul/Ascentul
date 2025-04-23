@@ -453,7 +453,10 @@ const Interview = () => {
         <ApplicationCard 
           application={application}
           isSelected={selectedApplicationId === application.id}
-          onClick={() => setSelectedApplicationId(application.id)}
+          onClick={() => {
+            console.log("Card clicked, setting selectedApplicationId to:", application.id);
+            setSelectedApplicationId(application.id);
+          }}
         />
       </motion.div>
     );
