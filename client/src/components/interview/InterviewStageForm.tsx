@@ -89,8 +89,61 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
       // Add the appropriate ID based on what's available
       if (applicationId) {
         stageData.applicationId = applicationId;
-        const response = await apiRequest('POST', `/api/applications/${applicationId}/stages`, stageData);
-        return await response.json();
+        try {
+          // Try to save the interview stage to the server
+          const response = await apiRequest('POST', `/api/applications/${applicationId}/stages`, stageData);
+          return await response.json();
+        } catch (error) {
+          console.error(`Error adding interview stage to application ${applicationId}:`, error);
+          
+          // Check if error is "Application not found" (indicating localStorage-only application)
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+            // Fallback to localStorage for applications that exist only there
+            console.log('Application not found on server, adding interview stage to localStorage application');
+            
+            // Get applications from localStorage
+            const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+            const appIndex = storedApplications.findIndex((app: any) => app.id === applicationId);
+            
+            if (appIndex === -1) {
+              throw new Error('Application not found in localStorage either');
+            }
+            
+            // Create a mock interview stage
+            const now = new Date().toISOString();
+            const mockStage = {
+              id: Date.now(), // Use timestamp as mock ID
+              applicationId: applicationId,
+              type: stageData.type,
+              status: 'scheduled',
+              scheduledDate: stageData.scheduledDate ? new Date(stageData.scheduledDate).toISOString() : null,
+              completedDate: null,
+              location: stageData.location || null,
+              interviewers: stageData.interviewers || [],
+              notes: stageData.notes || null,
+              outcome: null,
+              createdAt: now,
+              updatedAt: now
+            };
+            
+            // Update application status to "Interviewing"
+            storedApplications[appIndex].status = 'Interviewing';
+            storedApplications[appIndex].updatedAt = now;
+            
+            // Store mock interview stage in localStorage
+            const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+            mockStages.push(mockStage);
+            localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+            localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+            
+            console.log('Saved mock interview stage in localStorage:', mockStage);
+            return mockStage;
+          }
+          
+          // If it's another error, rethrow
+          throw error;
+        }
       } else if (processId) {
         stageData.processId = processId;
         const response = await apiRequest('POST', `/api/interview/processes/${processId}/stages`, stageData);
