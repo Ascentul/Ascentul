@@ -417,11 +417,6 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                         </div>
                       ))}
                     </div>
-                  ) : !relatedProcessId ? (
-                    <div className="text-center py-6">
-                      <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No interview process linked to this application</p>
-                    </div>
                   ) : (
                     <div className="text-center py-6">
                       <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -463,15 +458,15 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
           </Card>
           
           {/* Show interview stage form */}
-          {showInterviewStageForm && relatedProcessId && (
+          {showInterviewStageForm && (
             <InterviewStageForm
               isOpen={showInterviewStageForm}
               onClose={() => setShowInterviewStageForm(false)}
-              processId={relatedProcessId}
+              applicationId={application.id}
               onSuccess={() => {
                 // Refresh interview stages data
                 queryClient.invalidateQueries({ 
-                  queryKey: [`/api/interview/processes/${relatedProcessId}/stages`] 
+                  queryKey: [`/api/applications/${application.id}/stages`] 
                 });
                 toast({
                   title: "Interview added",
@@ -490,16 +485,14 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                 <CardDescription>Track your follow-up communications</CardDescription>
               </div>
               
-              {relatedProcessId && (
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowFollowupForm(true)}
-                  className="flex items-center"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Follow-up
-                </Button>
-              )}
+              <Button 
+                size="sm" 
+                onClick={() => setShowFollowupForm(true)}
+                className="flex items-center"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Follow-up
+              </Button>
             </CardHeader>
             <CardContent>
               {followupActions && followupActions.length > 0 ? (
@@ -541,11 +534,6 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
                     </div>
                   ))}
                 </div>
-              ) : !relatedProcessId ? (
-                <div className="text-center py-6">
-                  <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No follow-up process linked to this application</p>
-                </div>
               ) : (
                 <div className="text-center py-6">
                   <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
@@ -563,15 +551,15 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
           </Card>
           
           {/* Show follow-up form */}
-          {showFollowupForm && relatedProcessId && (
+          {showFollowupForm && (
             <FollowupActionForm
               isOpen={showFollowupForm}
               onClose={() => setShowFollowupForm(false)}
-              processId={relatedProcessId}
+              applicationId={application.id}
               onSuccess={() => {
                 // Refresh follow-up actions data
                 queryClient.invalidateQueries({ 
-                  queryKey: [`/api/interview/processes/${relatedProcessId}/followups`] 
+                  queryKey: [`/api/applications/${application.id}/followups`] 
                 });
                 toast({
                   title: "Follow-up added",
