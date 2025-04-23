@@ -37,6 +37,7 @@ interface ApplicationWizardProps {
     description: string;
     location?: string;
     url?: string;
+    adzunaJobId?: string;
   };
 }
 
@@ -113,7 +114,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             jobLocation: jobDetails.location || 'Remote', // Additional field for Interview.tsx compatibility
             description: jobDetails.description,
             status: 'In Progress', // Capitalized for consistency in display
-            adzunaJobId: jobDetails.id || '',
+            adzunaJobId: jobDetails.adzunaJobId || jobDetails.id || '',
             externalJobUrl: jobDetails.url || '',
             jobLink: jobDetails.url || '', // Additional field for Interview.tsx compatibility
             notes: data.notes || '',
@@ -155,7 +156,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             // Source tracking
             source: 'Adzuna',
             // Additional metadata
-            adzunaJobId: jobDetails.adzunaJobId || null,
+            adzunaJobId: jobDetails.adzunaJobId || jobDetails.id || null,
           };
           
           // Store initial application in localStorage
@@ -178,6 +179,16 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
     },
     onSuccess: (data: any) => {
       setApplicationId(data.application.id);
+      
+      // Invalidate all application-related queries to ensure updated data is fetched
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      
+      // Force an immediate refresh of the job applications list
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      }, 100);
+      
       toast({
         title: 'Application created',
         description: 'Your application has been started successfully.',
@@ -220,6 +231,11 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
     onSuccess: () => {
       // Refresh application data
       queryClient.invalidateQueries({ queryKey: ['/api/applications', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      
+      // Force immediate refresh
+      queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
     }
   });
 
@@ -257,26 +273,36 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             console.log('Could not determine applied status, using default not applied status');
           }
           
-          // Create a more complete mock application object for the Interview page
+          // Create a complete mock application object for the Interview page with full format compatibility
           const completedApplication = { 
             id: applicationId,
+            // Status fields
             status: hasBeenApplied ? 'Applied' : 'In Progress', // Set status based on checkbox
             appliedAt: hasBeenApplied ? formatDate() : null,
             submittedAt: hasBeenApplied ? formatDate() : null,
             applicationDate: formatDate(),
-            // Include these fields for the application tracker display
+            // Job details fields with multiple naming formats for compatibility
             company: jobDetails.company,
-            companyName: jobDetails.company, // Add this for filter compatibility
+            companyName: jobDetails.company, 
             position: jobDetails.title,
             jobTitle: jobDetails.title,
-            title: jobDetails.title, // Add this for filter compatibility
+            title: jobDetails.title,
+            // Location fields with multiple naming formats
             location: jobDetails.location || 'Remote',
-            jobLocation: jobDetails.location || 'Remote', // Add this for filter compatibility
+            jobLocation: jobDetails.location || 'Remote',
+            // Description and notes
+            jobDescription: jobDetails.description,
+            description: jobDetails.description,
             notes: hasBeenApplied ? 'Applied via Ascentul' : 'Started application in Ascentul',
+            // Date tracking
             createdAt: formatDate(),
             updatedAt: formatDate(),
+            // URL fields
             jobLink: jobDetails.url || '',
-            source: 'Adzuna'
+            externalJobUrl: jobDetails.url || '',
+            // Source tracking
+            source: 'Adzuna',
+            adzunaJobId: jobDetails.adzunaJobId || jobDetails.id || null,
           };
           
           // Store the completed application in localStorage for demo mode
