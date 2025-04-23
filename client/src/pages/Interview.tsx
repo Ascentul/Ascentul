@@ -301,10 +301,33 @@ const Interview = () => {
   // Get access to the query client
   const queryClient = useQueryClient();
   
-  // Refresh the applications list when the page loads
+  // Refresh the applications list when the page loads and periodically
   useEffect(() => {
-    // Force a refresh of applications on mount
-    queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+    // Function to refresh applications
+    const refreshApplications = () => {
+      console.log('Refreshing applications list...');
+      queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+    };
+    
+    // Force an immediate refresh of applications on mount
+    refreshApplications();
+    
+    // Set up periodic refreshes while the page is open
+    const refreshInterval = setInterval(refreshApplications, 5000); // Refresh every 5 seconds
+    
+    // Set up focus-based refresh
+    const handleFocus = () => {
+      console.log('Window gained focus, refreshing applications...');
+      refreshApplications();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // Clean up
+    return () => {
+      clearInterval(refreshInterval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [queryClient]);
 
   // Use global loading state for initial data fetch
