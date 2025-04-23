@@ -119,25 +119,36 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (error.message?.includes('Authentication required')) {
           // Simulate a successful response with mock data
           const mockId = Math.floor(Math.random() * 10000);
-          console.log('Creating mock application with ID:', mockId);
+          console.log('Demo mode: Creating mock application data');
+          
+          // Create a complete mock application object
+          const mockApp = {
+            id: mockId,
+            title: jobDetails.title,
+            company: jobDetails.company,
+            companyName: jobDetails.company, // Additional field for Interview.tsx compatibility
+            status: 'In Progress', // Capitalized for consistency in display
+            location: jobDetails.location || 'Remote',
+            jobLocation: jobDetails.location || 'Remote', // Additional field for Interview.tsx compatibility
+            position: jobDetails.title,
+            jobDescription: jobDetails.description,
+            externalJobUrl: jobDetails.url || '',
+            jobLink: jobDetails.url || '', // Additional field for Interview.tsx compatibility
+            notes: data.notes || '',
+            createdAt: formatDate(),
+            updatedAt: formatDate(),
+            applicationDate: formatDate(),
+            jobTitle: jobDetails.title,
+            source: 'Adzuna',
+          };
+          
+          // Store initial application in localStorage
+          const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+          storedApplications.push(mockApp);
+          localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+          
           return {
-            application: {
-              id: mockId,
-              title: jobDetails.title,
-              company: jobDetails.company,
-              status: 'in_progress',
-              location: jobDetails.location || 'Remote',
-              position: jobDetails.title,
-              jobDescription: jobDetails.description,
-              externalJobUrl: jobDetails.url || '',
-              notes: data.notes || '',
-              createdAt: formatDate(),
-              updatedAt: formatDate(),
-              applicationDate: formatDate(),
-              // Additional fields needed for proper display in the Interview page
-              jobTitle: jobDetails.title,
-              jobLink: jobDetails.url || '',
-            },
+            application: mockApp,
             steps: [
               { id: mockId * 10 + 1, applicationId: mockId, stepName: 'personal_info', stepOrder: 1, completed: true, data: { notes: data.notes || '' } },
               { id: mockId * 10 + 2, applicationId: mockId, stepName: 'resume', stepOrder: 2, completed: false, data: {} },
@@ -209,7 +220,7 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         if (error.message?.includes('Authentication required')) {
           console.log('Demo mode: Simulating successful application submission');
           // Create a more complete mock application object for the Interview page
-          return { 
+          const completedApplication = { 
             id: applicationId,
             status: 'Applied', // Match the capitalization expected by Interview.tsx
             appliedAt: formatDate(),
@@ -222,8 +233,28 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
             location: jobDetails.location || 'Remote',
             notes: 'Applied via Ascentul',
             createdAt: formatDate(),
-            updatedAt: formatDate()
+            updatedAt: formatDate(),
+            jobLink: jobDetails.url || '',
+            source: 'Adzuna'
           };
+          
+          // Store the completed application in localStorage for demo mode
+          const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+          // Check if application with this ID already exists
+          const existingIndex = storedApplications.findIndex((app: any) => app.id === applicationId);
+          
+          if (existingIndex >= 0) {
+            // Update existing application
+            storedApplications[existingIndex] = completedApplication;
+          } else {
+            // Add new application
+            storedApplications.push(completedApplication);
+          }
+          
+          localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+          console.log('Stored mock application in localStorage:', completedApplication);
+          
+          return completedApplication;
         }
         throw error;
       }

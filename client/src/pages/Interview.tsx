@@ -240,6 +240,21 @@ const Interview = () => {
   // Fetch job applications
   const { data: applications, isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
     queryKey: ['/api/job-applications'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest({
+          url: '/api/job-applications',
+          method: 'GET'
+        });
+        return response;
+      } catch (error) {
+        console.log('Using mock job applications from localStorage');
+        // In demo mode, load applications from localStorage
+        const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        console.log('Retrieved applications from localStorage:', storedApplications);
+        return storedApplications;
+      }
+    },
     placeholderData: [],
   });
   
