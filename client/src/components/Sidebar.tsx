@@ -153,7 +153,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       title: 'Job Search',
       icon: <Search className="w-5 h-5" />,
       items: [
-        { href: '/apply', icon: <FileEdit className="w-5 h-5 mr-3" />, label: 'Application Agent' },
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
         { href: '/contacts', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Ascentul CRM' },
       ]
