@@ -192,27 +192,44 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
 
   // Handle step submission
   const onSubmitStep = async (data: any) => {
-    if (step === 1) {
-      createApplicationMutation.mutate(data);
-    } else if (applicationId && existingApplication) {
-      const currentStep = existingApplication.steps.find((s: any) => s.stepOrder === step);
-      if (currentStep) {
-        await updateStepMutation.mutateAsync({ 
-          stepId: currentStep.id, 
-          data: {
-            ...data,
-            completed: true
+    try {
+      if (step === 1) {
+        createApplicationMutation.mutate(data);
+      } else if (applicationId && existingApplication) {
+        const currentStep = existingApplication.steps.find((s: any) => s.stepOrder === step);
+        if (currentStep) {
+          await updateStepMutation.mutateAsync({ 
+            stepId: currentStep.id, 
+            data: {
+              ...data,
+              completed: true
+            }
+          });
+          
+          // If this is the last step, submit the application
+          if (step === existingApplication.steps.length) {
+            submitApplicationMutation.mutate();
+          } else {
+            // Move to next step
+            setStep(step + 1);
           }
-        });
-        
-        // If this is the last step, submit the application
-        if (step === existingApplication.steps.length) {
-          submitApplicationMutation.mutate();
-        } else {
-          // Move to next step
-          setStep(step + 1);
         }
       }
+    } catch (error) {
+      console.error('Error in onSubmitStep:', error);
+      
+      // Provide a user-friendly error message based on the error type
+      let errorMessage = 'Failed to complete this step. Please try again.';
+      
+      if (error.message?.includes('Authentication required')) {
+        errorMessage = 'Please sign in to track your application progress.';
+      }
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   };
 
