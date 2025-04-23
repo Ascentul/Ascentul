@@ -828,13 +828,27 @@ export const jobApplications = pgTable("job_applications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   jobId: integer("job_id").notNull(), // Reference to jobListings
+  title: text("title"), // Job title
+  jobTitle: text("job_title"), // Alternative name for job title
+  position: text("position"), // Alternative name for job title
+  company: text("company"), // Company name
+  companyName: text("company_name"), // Alternative name for company
+  location: text("location"), // Job location
+  jobLocation: text("job_location"), // Alternative name for location
+  description: text("description"), // Job description
+  adzunaJobId: text("adzuna_job_id"), // ID from Adzuna if applicable
+  externalJobUrl: text("external_job_url"), // URL to external job posting
+  jobLink: text("job_link"), // Alternative name for external job URL
+  source: text("source").default("manual"), // Where the job was found (Adzuna, manual, etc.)
+  progress: integer("progress").default(0), // Application progress (0-100%)
   resumeId: integer("resume_id"),
   coverLetterId: integer("cover_letter_id"),
-  status: text("status").notNull().default("draft"), // draft, submitted, in_progress, completed
+  status: text("status").notNull().default("In Progress"), // In Progress, Applied, Rejected, etc.
   responses: jsonb("responses").$type<Record<string, string>>(), // Form field responses
   notes: text("notes"),
   aiAssisted: boolean("ai_assisted").default(true),
   submittedAt: timestamp("submitted_at"),
+  applicationDate: timestamp("application_date"), // Date when user applied for the job
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
