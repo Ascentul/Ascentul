@@ -10,15 +10,44 @@ import { JobProvider, JobSearchParams } from './index';
 // ZipRecruiter API key is required for this provider to work
 const API_KEY = process.env.ZIPRECRUITER_API_KEY;
 
-// Helper function to fetch data from ZipRecruiter API
-function fetchZipRecruiterApi(url: string, headers: Record<string, string>): Promise<any> {
+// Helper function to fetch data from ZipRecruiter API with redirect handling
+function fetchZipRecruiterApi(url: string, headers: Record<string, string>, redirectCount = 0): Promise<any> {
   return new Promise((resolve, reject) => {
+    // Maximum number of redirects to follow to prevent infinite loops
+    const MAX_REDIRECTS = 5;
+    
+    if (redirectCount > MAX_REDIRECTS) {
+      reject(new Error(`Maximum number of redirects (${MAX_REDIRECTS}) exceeded`));
+      return;
+    }
+    
     const options = {
       headers: headers
     };
 
+    console.log(`Requesting URL (redirect ${redirectCount}): ${url}`);
+    
     https.get(url, options, (res) => {
       let data = '';
+      
+      // Handle redirects
+      if (res.statusCode && (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 307 || res.statusCode === 308)) {
+        const location = res.headers.location;
+        
+        if (!location) {
+          reject(new Error(`Redirect response ${res.statusCode} without Location header`));
+          return;
+        }
+        
+        console.log(`Following redirect (${res.statusCode}) to: ${location}`);
+        
+        // Recursively follow the redirect
+        fetchZipRecruiterApi(location, headers, redirectCount + 1)
+          .then(resolve)
+          .catch(reject);
+        
+        return;
+      }
       
       res.on('data', (chunk) => {
         data += chunk;
@@ -31,27 +60,37 @@ function fetchZipRecruiterApi(url: string, headers: Record<string, string>): Pro
           console.log(`ZipRecruiter API response headers:`, res.headers);
           
           // Log the first 500 characters of the response for debugging
-          console.log(`ZipRecruiter API response preview: ${data.substring(0, 500)}...`);
+          if (data.length > 0) {
+            console.log(`ZipRecruiter API response preview: ${data.substring(0, 500)}...`);
+          } else {
+            console.log('ZipRecruiter API response is empty');
+          }
           
           if (res.statusCode && res.statusCode >= 400) {
             reject(new Error(`API returned ${res.statusCode}: ${data}`));
             return;
           }
           
+          if (data.trim().length === 0) {
+            resolve({});
+            return;
+          }
+          
           try {
             const parsedData = JSON.parse(data);
             resolve(parsedData);
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError);
+          } catch (parseError: any) {
+            console.error('JSON parse error:', parseError.message);
             console.error('Response was not valid JSON:', data.substring(0, 200));
             reject(new Error(`Failed to parse API response: ${parseError.message}`));
           }
-        } catch (e) {
-          console.error('Error processing response:', e);
+        } catch (e: any) {
+          console.error('Error processing response:', e.message);
           reject(e);
         }
       });
     }).on('error', (err) => {
+      console.error('HTTP request error:', err.message);
       reject(err);
     });
   });
@@ -99,8 +138,8 @@ export const zipRecruiterProvider: JobProvider = {
         }
       }
       
-      // API URL using the new endpoint
-      const apiUrl = `https://api.ziprecruiter.com/jobs?${queryParams.toString()}`;
+      // API URL using the new endpoint - using trailing slash as the API redirects to this
+      const apiUrl = `https://api.ziprecruiter.com/jobs/?${queryParams.toString()}`;
       
       console.log('ZipRecruiter API URL:', apiUrl);
       
@@ -167,8 +206,8 @@ export const zipRecruiterProvider: JobProvider = {
       // Extract the actual job ID from our prefixed ID
       const jobId = id.replace('ziprecruiter_', '');
       
-      // API URL for specific job with the new endpoint
-      const apiUrl = `https://api.ziprecruiter.com/jobs/${jobId}`;
+      // API URL for specific job with the new endpoint - using trailing slash
+      const apiUrl = `https://api.ziprecruiter.com/jobs/${jobId}/`;
       
       // API headers with Bearer token authentication
       const headers = {
