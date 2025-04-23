@@ -15,7 +15,9 @@ import {
   SendHorizontal, 
   FileText, 
   FileEdit,
-  PlusCircle
+  PlusCircle,
+  MoreHorizontal,
+  Pencil
 } from 'lucide-react';
 import { ApplicationStatusBadge, ApplicationStatus } from './ApplicationStatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +27,14 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
 import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
+import { EditInterviewStageForm } from '@/components/interview/EditInterviewStageForm';
 import type { InterviewStage, FollowupAction } from '@shared/schema';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ApplicationDetailsProps {
   application: any;
@@ -39,6 +48,8 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
   // We no longer need relatedProcessId as interview stages are linked directly to applications
   const [showInterviewStageForm, setShowInterviewStageForm] = useState(false);
   const [showFollowupForm, setShowFollowupForm] = useState(false);
+  const [currentStageToEdit, setCurrentStageToEdit] = useState<InterviewStage | null>(null);
+  const [showEditStageForm, setShowEditStageForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
