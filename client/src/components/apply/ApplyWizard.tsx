@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -37,14 +37,21 @@ type ApplicationFormValues = z.infer<typeof applicationSchema>;
 interface ApplyWizardProps {
   isOpen: boolean;
   onClose: () => void;
+  jobInfo?: { 
+    title: string; 
+    company: string; 
+    url: string; 
+    description: string;
+    location?: string;
+  } | null;
 }
 
-export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
+export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProps) {
   const [step, setStep] = useState<number>(1);
   const [selectedJob, setSelectedJob] = useState<any | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
+  
   // React Hook Form setup
   const form = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
@@ -60,6 +67,25 @@ export function ApplyWizard({ isOpen, onClose }: ApplyWizardProps) {
       aiAssisted: true,
     }
   });
+
+  // When jobInfo is provided, use it to pre-populate the form
+  useEffect(() => {
+    if (jobInfo && isOpen) {
+      // If we have job info coming in from a search result, use it
+      const initialValues = {
+        jobTitle: jobInfo.title,
+        companyName: jobInfo.company,
+        jobLocation: jobInfo.location || '',
+        jobLink: jobInfo.url,
+        jobDescription: jobInfo.description,
+        status: "Not Started" as const,
+      };
+      
+      form.reset(initialValues);
+      // Skip job search step if we already have job info
+      setStep(2);
+    }
+  }, [jobInfo, isOpen, form]);
 
   // Fetch resumes for the resume selection step
   const { data: resumes, isLoading: isLoadingResumes } = useQuery({

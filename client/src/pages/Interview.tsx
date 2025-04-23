@@ -950,7 +950,11 @@ const Interview = () => {
       {/* Apply Wizard Dialog */}
       <ApplyWizard 
         isOpen={showApplyWizard}
-        onClose={() => setShowApplyWizard(false)}
+        onClose={() => {
+          setShowApplyWizard(false);
+          setSelectedJobInfo(null); // Clear selected job when closing
+        }}
+        jobInfo={selectedJobInfo}
       />
     </motion.div>
   );
