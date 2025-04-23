@@ -204,6 +204,16 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     return 'Salary not specified';
   };
 
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('search');
+  
+  // Automatically switch to results tab when search results are received
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      setActiveTab('results');
+    }
+  }, [searchResults]);
+  
   return (
     <Card className="w-full">
       <CardHeader>
@@ -216,7 +226,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="search">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full mb-4">
             <TabsTrigger value="search" className="flex-1">Search</TabsTrigger>
             <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
