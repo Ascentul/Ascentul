@@ -180,7 +180,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
           
           localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(followups));
           
-          // Dispatch custom event for other components to react to
+          // Dispatch custom events for other components to react to
+          // First our own TASK_STATUS_CHANGE_EVENT
           window.dispatchEvent(new CustomEvent(TASK_STATUS_CHANGE_EVENT, { 
             detail: { 
               applicationId,
@@ -188,12 +189,25 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
               isCompleted
             } 
           }));
+          
+          // Also dispatch a regular 'taskStatusChange' event that other components can listen for
+          // without having to import TASK_STATUS_CHANGE_EVENT constant
+          window.dispatchEvent(new CustomEvent('taskStatusChange', { 
+            detail: { 
+              applicationId,
+              followupId,
+              isCompleted
+            } 
+          }));
+          
+          // Force refresh the count
+          updatePendingFollowupCount();
         }
       }
     } catch (error) {
       console.error('Error updating task status:', error);
     }
-  }, []);
+  }, [updatePendingFollowupCount]);
   
   // Helper function to mark a task as completed
   const markTaskCompleted = useCallback((applicationId: number, followupId: number) => {
