@@ -110,8 +110,17 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
 
   const updateApplication = useMutation({
     mutationFn: async (updatedApplication: any) => {
-      const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
-      return response;
+      // Try first with the applications endpoint
+      try {
+        console.log(`Updating application ${application.id} with data:`, updatedApplication);
+        const response = await apiRequest('PUT', `/api/applications/${application.id}`, updatedApplication);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error updating with /api/applications endpoint:`, error);
+        // Fall back to job-applications endpoint
+        const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
+        return await response.json();
+      }
     },
     onSuccess: () => {
       toast({

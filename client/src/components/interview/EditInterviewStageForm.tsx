@@ -41,8 +41,8 @@ const interviewStageSchema = z.object({
   type: z.string().min(1, { message: "Please select an interview type" }),
   scheduledDate: z.date().nullable(),
   location: z.string().nullable(),
-  interviewers: z.string().nullable().transform(val => 
-    val ? val.split(',').map(v => v.trim()) : null
+  interviewers: z.string().transform(val => 
+    val.length > 0 ? val.split(',').map(v => v.trim()) : []
   ),
   notes: z.string().nullable(),
   outcome: z.string().nullable(),
@@ -70,13 +70,13 @@ export function EditInterviewStageForm({
   const queryClient = useQueryClient();
   
   // Initialize form with stage values
-  const form = useForm<InterviewStageFormValues>({
+  const form = useForm<Omit<InterviewStageFormValues, 'interviewers'> & { interviewers: string }>({
     resolver: zodResolver(interviewStageSchema),
     defaultValues: {
       type: stage.type || 'phone_screen',
       scheduledDate: stage.scheduledDate ? new Date(stage.scheduledDate) : null,
       location: stage.location || null,
-      interviewers: stage.interviewers ? stage.interviewers.join(', ') : null,
+      interviewers: stage.interviewers && stage.interviewers.length > 0 ? stage.interviewers.join(', ') : '',
       notes: stage.notes || null,
       outcome: stage.outcome || null,
       feedback: stage.feedback || null,
