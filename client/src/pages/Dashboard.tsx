@@ -11,7 +11,7 @@ import CreateGoalModal from '@/components/modals/CreateGoalModal';
 import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
-import { InterviewFollowupActions } from '@/components/interview/InterviewFollowupActions';
+import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -674,15 +674,15 @@ export default function Dashboard() {
           <Card>
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold font-poppins">Interview Followup Actions</h2>
-                <Link href="/interviews">
+                <h2 className="text-lg font-semibold font-poppins">Application Follow-up Actions</h2>
+                <Link href="/job-applications">
                   <Button variant="outline" size="sm" className="text-xs">
                     <Eye className="mr-1 h-3 w-3" />
-                    View All Interviews
+                    View Applications
                   </Button>
                 </Link>
               </div>
-              <InterviewFollowupActions limit={3} showTitle={false} />
+              <ApplicationFollowupActions limit={3} showTitle={false} />
             </CardContent>
           </Card>
         </motion.div>
