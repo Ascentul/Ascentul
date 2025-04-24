@@ -16,33 +16,67 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
   // Function to count all pending followups from localStorage
   const updatePendingFollowupCount = async () => {
     try {
-      // Get all applications
-      let applications = [];
-      try {
-        const response = await apiRequest('GET', '/api/job-applications');
-        applications = await response.json();
-      } catch (error) {
-        // Fallback to localStorage
-        applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      // First load applications from localStorage for immediate display
+      let localApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      if (!Array.isArray(localApplications)) {
+        localApplications = [];
       }
       
-      if (!Array.isArray(applications)) {
-        applications = [];
-      }
-      
-      // Count pending followups for each application
-      let count = 0;
-      for (const app of applications) {
+      // Count pending followups from localStorage applications first for immediate feedback
+      let localCount = 0;
+      for (const app of localApplications) {
         try {
           const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
           const pendingCount = mockFollowups.filter((f: any) => !f.completed).length;
-          count += pendingCount;
+          localCount += pendingCount;
         } catch (error) {
-          console.error(`Error counting followups for application ${app.id}:`, error);
+          console.error(`Error counting followups for local application ${app.id}:`, error);
         }
       }
       
-      setPendingFollowupCount(count);
+      // Update the count immediately from localStorage data
+      setPendingFollowupCount(localCount);
+      
+      // Then try to get applications from the API in the background
+      try {
+        const response = await apiRequest('GET', '/api/job-applications');
+        const apiApplications = await response.json();
+        
+        if (Array.isArray(apiApplications) && apiApplications.length > 0) {
+          // Update count with API data
+          let apiCount = 0;
+          for (const app of apiApplications) {
+            try {
+              // First check localStorage for this application's followups
+              const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
+              if (mockFollowups.length > 0) {
+                const pendingCount = mockFollowups.filter((f: any) => !f.completed).length;
+                apiCount += pendingCount;
+              } else {
+                // Try to fetch from API if nothing in localStorage
+                try {
+                  const followupResponse = await apiRequest('GET', `/api/applications/${app.id}/followups`);
+                  const apiFollowups = await followupResponse.json();
+                  if (Array.isArray(apiFollowups)) {
+                    const pendingApiCount = apiFollowups.filter((f: any) => !f.completed).length;
+                    apiCount += pendingApiCount;
+                  }
+                } catch (apiFollowupError) {
+                  // API endpoint might not exist yet, just continue
+                }
+              }
+            } catch (error) {
+              console.error(`Error processing followups for application ${app.id}:`, error);
+            }
+          }
+          
+          // Update with the API data
+          setPendingFollowupCount(apiCount);
+        }
+      } catch (apiError) {
+        // API error, we already have local data so just log the error
+        console.error('API error fetching applications:', apiError);
+      }
     } catch (error) {
       console.error('Error updating pending followup count:', error);
     }
