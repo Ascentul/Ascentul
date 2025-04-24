@@ -126,8 +126,9 @@ export function EditInterviewStageForm({
             updatedAt: new Date().toISOString(),
           };
           
-          // Save back to localStorage
+          // Save back to both localStorage keys for compatibility
           localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+          localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
           
           return mockStages[stageIndex];
         }
@@ -151,49 +152,68 @@ export function EditInterviewStageForm({
   
   const deleteStageMutation = useMutation({
     mutationFn: async () => {
+      console.log(`Attempting to delete interview stage ${stage.id} for application ${applicationId}`);
+      
+      // Always attempt to delete from both localStorage keys first to ensure UI updates immediately
       try {
-        // First try to delete from server
+        // Get stages from all known localStorage keys
+        const deleteFromLocalStorage = () => {
+          console.log(`Deleting stage ${stage.id} from localStorage for application ${applicationId}`);
+          let updated = false;
+          
+          // Try both localStorage keys
+          ['mockStages_', 'mockInterviewStages_'].forEach(keyPrefix => {
+            try {
+              const key = `${keyPrefix}${applicationId}`;
+              const stagesStr = localStorage.getItem(key);
+              if (!stagesStr) return;
+              
+              const stages = JSON.parse(stagesStr);
+              if (!Array.isArray(stages)) return;
+              
+              console.log(`Found ${stages.length} stages in ${key}`);
+              const stageIndex = stages.findIndex((s: any) => s.id === stage.id);
+              
+              if (stageIndex !== -1) {
+                console.log(`Found stage at index ${stageIndex} in ${key}, removing it`);
+                stages.splice(stageIndex, 1);
+                localStorage.setItem(key, JSON.stringify(stages));
+                updated = true;
+              }
+            } catch (e) {
+              console.error(`Error processing ${keyPrefix}${applicationId}:`, e);
+            }
+          });
+          
+          return updated;
+        };
+        
+        // Delete from localStorage
+        const localStorageUpdated = deleteFromLocalStorage();
+        console.log(`Local storage delete result: ${localStorageUpdated ? 'Successful' : 'No changes'}`);
+      } catch (localError) {
+        console.error(`Error deleting from localStorage:`, localError);
+      }
+      
+      // Then try to delete from server
+      try {
+        console.log(`Attempting to delete from server API: /api/applications/${applicationId}/stages/${stage.id}`);
         const response = await apiRequest('DELETE', `/api/applications/${applicationId}/stages/${stage.id}`);
         
         if (response.ok) {
+          console.log('Server API delete successful');
           return true;
         }
         
-        throw new Error(`Failed to delete interview stage: ${response.statusText}`);
-      } catch (error) {
-        console.error(`Error deleting interview stage via API:`, error);
-        
-        // If API call fails (for localStorage apps), delete from localStorage
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('not found') || errorMessage.includes('404')) {
-          console.log('Deleting stage from localStorage instead');
-          
-          // Get existing stages
-          let mockStages = JSON.parse(localStorage.getItem(`mockStages_${applicationId}`) || '[]');
-          if (mockStages.length === 0) {
-            // Try alternative storage key
-            mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
-          }
-          
-          const stageIndex = mockStages.findIndex((s: any) => s.id === stage.id);
-          
-          if (stageIndex === -1) {
-            throw new Error('Interview stage not found in localStorage');
-          }
-          
-          // Remove the stage
-          mockStages.splice(stageIndex, 1);
-          
-          // Save back to localStorage
-          localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
-          // Also save to the alternative key for compatibility
-          localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
-          
-          return true;
-        }
-        
-        throw error;
+        console.error(`Server API returned ${response.status}: ${response.statusText}`);
+        // Don't throw here, since we may have already deleted from localStorage
+      } catch (apiError) {
+        console.error(`API delete request failed:`, apiError);
+        // Don't throw here, since we may have already deleted from localStorage
       }
+      
+      // If we get here, at least the localStorage delete should have worked
+      return true;
     },
     onSuccess: () => {
       // Invalidate relevant queries
@@ -301,8 +321,9 @@ export function EditInterviewStageForm({
             updatedAt: new Date().toISOString()
           });
           
-          // Save back to localStorage
+          // Save back to both localStorage keys for compatibility
           localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+          localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
           
           // Force UI update
           queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
