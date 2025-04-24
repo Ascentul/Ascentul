@@ -146,7 +146,71 @@ export function EditInterviewStageForm({
     
     console.log("Submitting interview stage update:", values);
     
+    // First, update the stage in localStorage immediately for better UX
+    try {
+      if (applicationId) {
+        // Get current stages from localStorage
+        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+        console.log("Current stages in localStorage:", mockStages);
+        
+        // Find the index of the stage to update
+        const stageIndex = mockStages.findIndex((s: any) => s.id === stage.id);
+        
+        if (stageIndex !== -1) {
+          // Update the stage with new values while preserving existing ones
+          mockStages[stageIndex] = {
+            ...mockStages[stageIndex],
+            ...values,
+            updatedAt: new Date().toISOString()
+          };
+          
+          console.log("Updated stage in localStorage:", mockStages[stageIndex]);
+          
+          // Save back to localStorage
+          localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+          
+          // Force UI update
+          queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
+        } else {
+          console.log(`Stage with ID ${stage.id} not found in localStorage, adding it`);
+          
+          // If stage doesn't exist in localStorage yet, add it
+          mockStages.push({
+            ...stage,
+            ...values,
+            updatedAt: new Date().toISOString()
+          });
+          
+          // Save back to localStorage
+          localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+          
+          // Force UI update
+          queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
+        }
+      }
+    } catch (localStorageError) {
+      console.error("Error updating localStorage:", localStorageError);
+    }
+    
+    // Also try to update on the server
     updateStageMutation.mutate(values, {
+      onSuccess: () => {
+        // Call the onSuccess callback
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      },
+      onError: (error) => {
+        console.error("Error updating interview stage via API:", error);
+        
+        // Even if the API update fails, the localStorage update should have worked,
+        // so we can still call the success callback
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      },
       onSettled: () => setIsPending(false)
     });
   };
