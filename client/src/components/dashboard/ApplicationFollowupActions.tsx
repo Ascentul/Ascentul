@@ -114,6 +114,12 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       
       // Update UI with localStorage data first
       const sortedFollowups = sortFollowups([...allFollowups]);
+      
+      // Debug what we're displaying
+      console.log(`Found ${allFollowups.length} total followups from localStorage:`, 
+        allFollowups.map(f => ({id: f.id, type: f.type, completed: f.completed, appId: f.applicationId}))
+      );
+      
       setFollowupActions(sortedFollowups);
       
       // While we've already got the data, trigger a refresh of the pending count
