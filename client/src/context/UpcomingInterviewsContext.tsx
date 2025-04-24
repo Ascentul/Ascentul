@@ -165,10 +165,10 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
     window.addEventListener('applicationStatusChange', handleApplicationStatusChange as EventListener);
     window.addEventListener('interviewStageChange', handleInterviewStageChange as EventListener);
     
-    // Refresh every 5 seconds to match pending tasks responsiveness
+    // Refresh every 2 seconds for much faster updates
     const interval = setInterval(() => {
       updateInterviewCount();
-    }, 5000);
+    }, 2000);
     
     return () => {
       // Clean up all event listeners
