@@ -38,7 +38,7 @@ interface ApplicationFollowupActionsProps {
 export function ApplicationFollowupActions({ limit = 5, showTitle = true }: ApplicationFollowupActionsProps) {
   const [followupActions, setFollowupActions] = useState<Array<FollowupAction & { application?: Application }>>([]);
   const { toast } = useToast();
-  const { decrementPendingFollowupCount, incrementPendingFollowupCount } = usePendingTasks();
+  const { updateTaskStatus } = usePendingTasks();
   
   // Fetch job applications
   const { data: applications, isLoading: isLoadingApplications } = useQuery<Application[]>({
@@ -144,47 +144,27 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     const followupToUpdate = followupActions.find(f => f.id === followupId);
     if (!followupToUpdate) return;
     
-    // Optimistic UI update for the pending tasks counter
-    if (followupToUpdate.completed) {
-      // If it was completed and now being marked as incomplete
-      incrementPendingFollowupCount();
-    } else {
-      // If it was incomplete and now being marked as complete
-      decrementPendingFollowupCount();
-    }
+    // Determine the new completion status (reverse of current status)
+    const newCompletionStatus = !followupToUpdate.completed;
     
     // Create a copy of the followups array for optimistic UI update
     const updatedFollowups = followupActions.map(f => 
-      f.id === followupId ? { ...f, completed: !f.completed } : f
+      f.id === followupId ? { ...f, completed: newCompletionStatus } : f
     );
     
     // Update state immediately for better UX
     setFollowupActions(updatedFollowups);
     
-    // Update in localStorage
-    try {
-      const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${applicationId}`) || '[]');
-      const followupIndex = mockFollowups.findIndex((f: any) => f.id === followupId);
-      
-      if (followupIndex !== -1) {
-        mockFollowups[followupIndex] = {
-          ...mockFollowups[followupIndex],
-          completed: !followupToUpdate.completed,
-          updatedAt: new Date().toISOString()
-        };
-        
-        localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(mockFollowups));
-      }
-    } catch (localStorageError) {
-      console.error('Error updating localStorage:', localStorageError);
-    }
+    // Use our context updateTaskStatus method to update the localStorage and task count
+    // This will update the task status AND synchronize the counter in one operation
+    updateTaskStatus(applicationId, followupId, newCompletionStatus);
     
     // Try server update
     try {
       await apiRequest(
         'PATCH',
         `/api/applications/${applicationId}/followups/${followupId}`,
-        { completed: !followupToUpdate.completed }
+        { completed: newCompletionStatus }
       );
       
       // Show success toast
@@ -195,7 +175,8 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       });
     } catch (error) {
       console.error('Error updating followup status via API:', error);
-      // Since we've already updated localStorage and the UI, we don't need to revert anything
+      // Since we've already updated the localStorage and counter via updateTaskStatus,
+      // and updated the UI state, we don't need to revert anything here
     }
   };
 
