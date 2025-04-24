@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   Pencil
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ApplicationStatusBadge, ApplicationStatus } from './ApplicationStatusBadge';
 import { Badge } from '@/components/ui/badge';
@@ -767,7 +768,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                   {followupActions.map((action) => (
                     <div key={action.id} className="flex items-start justify-between border rounded-md p-3">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-1">
                           <h4 className="font-medium">
                             {action.type === 'thank_you_email' ? 'Thank You Email' : 
                              action.type === 'follow_up' ? 'Follow-up' :
@@ -776,17 +777,29 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                              action.type === 'networking' ? 'Networking Connection' : 
                              action.description}
                           </h4>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 ml-2 -mr-2" 
-                            onClick={() => {
-                              setCurrentFollowupToEdit(action);
-                              setShowEditFollowupForm(true);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1.5">
+                              <span className="text-xs text-muted-foreground">
+                                {action.completed ? 'Completed' : 'Pending'}
+                              </span>
+                              <Switch 
+                                checked={action.completed}
+                                onCheckedChange={() => handleToggleFollowupStatus(action.id)}
+                                className="data-[state=checked]:bg-green-500"
+                              />
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 flex-shrink-0" 
+                              onClick={() => {
+                                setCurrentFollowupToEdit(action);
+                                setShowEditFollowupForm(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm">{action.description}</p>
                         
@@ -803,19 +816,6 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                           </div>
                         )}
                       </div>
-                      <button 
-                        onClick={() => handleToggleFollowupStatus(action.id)}
-                        className="ml-2 cursor-pointer flex-shrink-0"
-                      >
-                        <Badge variant="outline" 
-                          className={
-                            action.completed ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" : 
-                            "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-                          }
-                        >
-                          {action.completed ? 'Completed' : 'Pending'}
-                        </Badge>
-                      </button>
                     </div>
                   ))}
                 </div>
