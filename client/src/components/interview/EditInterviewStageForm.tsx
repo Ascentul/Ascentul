@@ -238,8 +238,38 @@ export function EditInterviewStageForm({
     // First, update the stage in localStorage immediately for better UX
     try {
       if (applicationId) {
-        // Get current stages from localStorage
-        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+        // Get current stages from both possible localStorage keys
+        let mockStages: any[] = [];
+        
+        // First try mockInterviewStages_${applicationId}
+        try {
+          const interviewStagesJson = localStorage.getItem(`mockInterviewStages_${applicationId}`);
+          if (interviewStagesJson) {
+            mockStages = JSON.parse(interviewStagesJson);
+            console.log("Found stages in mockInterviewStages_", mockStages.length);
+          }
+        } catch (e) {
+          console.error("Error parsing mockInterviewStages_:", e);
+        }
+        
+        // If that didn't work, try mockStages_${applicationId}
+        if (!Array.isArray(mockStages) || mockStages.length === 0) {
+          try {
+            const stagesJson = localStorage.getItem(`mockStages_${applicationId}`);
+            if (stagesJson) {
+              mockStages = JSON.parse(stagesJson);
+              console.log("Found stages in mockStages_", mockStages.length);
+            }
+          } catch (e) {
+            console.error("Error parsing mockStages_:", e);
+          }
+        }
+        
+        // Ensure we have a valid array
+        if (!Array.isArray(mockStages)) {
+          mockStages = [];
+        }
+        
         console.log("Current stages in localStorage:", mockStages);
         
         // Find the index of the stage to update
@@ -255,8 +285,9 @@ export function EditInterviewStageForm({
           
           console.log("Updated stage in localStorage:", mockStages[stageIndex]);
           
-          // Save back to localStorage
+          // Save back to both localStorage keys
           localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+          localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
           
           // Force UI update
           queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });

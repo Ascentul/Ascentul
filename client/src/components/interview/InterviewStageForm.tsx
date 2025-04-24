@@ -131,10 +131,13 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
             storedApplications[appIndex].status = 'Interviewing';
             storedApplications[appIndex].updatedAt = now;
             
-            // Store mock interview stage in localStorage
+            // Store mock interview stage in both localStorage keys for compatibility
             const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
             mockStages.push(mockStage);
+            
+            // Store in both localStorage keys
             localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+            localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
             localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
             
             console.log('Saved mock interview stage in localStorage:', mockStage);
@@ -220,8 +223,9 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
         // Add new stage
         mockStages.push(mockStage);
         
-        // Save updated stages back to localStorage
+        // Save updated stages back to both localStorage keys
         localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+        localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
         console.log(`Saved new stage to localStorage with ID ${mockStageId}:`, mockStage);
         
         // Update application to ensure it's in "Interviewing" status
