@@ -162,46 +162,30 @@ export function UpcomingInterviewsCard() {
         </div>
       </CardHeader>
       <CardContent className="pb-4 overflow-auto max-h-[600px]">
-        {/* Display upcoming interview stages if available */}
-        {upcomingInterviews.length > 0 ? (
+        {/* Display only scheduled or pending interview stages */}
+        {upcomingInterviews.filter(stage => 
+          stage.outcome === 'scheduled' || stage.outcome === 'pending'
+        ).length > 0 ? (
           <div className="space-y-4">
-            {upcomingInterviews.map((stage) => (
-              <InterviewCard 
-                key={stage.id} 
-                stage={stage}
-                onEdit={handleEditInterview}
-              />
+            {upcomingInterviews
+              .filter(stage => stage.outcome === 'scheduled' || stage.outcome === 'pending')
+              .map((stage) => (
+                <InterviewCard 
+                  key={stage.id} 
+                  stage={stage}
+                  onEdit={handleEditInterview}
+                />
             ))}
           </div>
         ) : (
           <div className="py-2 space-y-4">
-            {interviewingApplications.map(app => (
-              <Card key={app.id} className="p-4 border-dashed border-2">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex justify-between items-start">
-                    <span className="font-medium">{app.company || app.companyName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      Interviewing
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {app.position || app.jobTitle}
-                  </p>
-                  <div className="flex items-center text-xs text-muted-foreground mt-2">
-                    <Calendar className="h-3 w-3 mr-1.5" />
-                    <span>No interviews scheduled yet</span>
-                  </div>
-                  <div className="mt-3">
-                    <Link href={`/job-applications/${app.id}?addInterview=true`}>
-                      <Button variant="outline" size="sm" className="w-full text-xs">
-                        <Plus className="h-3 w-3 mr-1" />
-                        Schedule Interview
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            ))}
+            <div className="text-center p-6">
+              <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+              <h3 className="text-lg font-medium">No scheduled interviews</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                When you schedule interviews, they will appear here
+              </p>
+            </div>
           </div>
         )}
         
