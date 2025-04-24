@@ -39,7 +39,7 @@ interface ApplicationDetailsProps {
   onStatusChange?: (applicationId: number, newStatus: string) => void;
 }
 
-export function ApplicationDetails({ application, onClose, onDelete }: ApplicationDetailsProps) {
+export function ApplicationDetails({ application, onClose, onDelete, onStatusChange }: ApplicationDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [localApplication, setLocalApplication] = useState(application);
   // We no longer need relatedProcessId as interview stages are linked directly to applications
@@ -178,7 +178,14 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
     setLocalApplication(updatedApplication);
     
     if (!isEditing) {
+      // First try the normal update through API
       updateApplication.mutate({ status });
+      
+      // Then call the parent callback if it exists
+      if (onStatusChange) {
+        console.log(`Calling onStatusChange with application ID ${application.id} and status ${status}`);
+        onStatusChange(application.id, status);
+      }
     }
   };
 

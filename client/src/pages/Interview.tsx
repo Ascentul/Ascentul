@@ -295,6 +295,9 @@ const Interview = () => {
     refetchOnWindowFocus: true, // Refresh when the page gains focus
   });
   
+  // Get access to the query client
+  const queryClient = useQueryClient();
+  
   // Helper function to sync application updates to localStorage
   const syncApplicationToLocalStorage = useCallback((applicationId: number, updates: Partial<JobApplication>) => {
     try {
@@ -330,9 +333,6 @@ const Interview = () => {
   console.log("Selected application ID:", selectedApplicationId);
   console.log("Selected application:", selectedApplication);
   console.log("Available applications:", applications);
-  
-  // Get access to the query client
-  const queryClient = useQueryClient();
   
   // Disable automatic refreshing if an application is selected
   const shouldAutoRefresh = selectedApplicationId === null;
@@ -828,6 +828,11 @@ const Interview = () => {
                               application={selectedApplication}
                               onClose={() => setSelectedApplicationId(null)}
                               onDelete={() => setSelectedApplicationId(null)}
+                              onStatusChange={(applicationId, newStatus) => {
+                                console.log(`Status change handler called for application ${applicationId} to status ${newStatus}`);
+                                // Update the application status in localStorage
+                                syncApplicationToLocalStorage(applicationId, { status: newStatus });
+                              }}
                             />
                           </motion.div>
                         </div>
