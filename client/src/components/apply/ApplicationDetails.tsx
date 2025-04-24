@@ -53,6 +53,13 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   const [showEditFollowupForm, setShowEditFollowupForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Update localApplication when the application prop changes
+  useEffect(() => {
+    console.log("Application changed:", application);
+    setLocalApplication(application);
+    setIsEditing(false); // Reset editing state when application changes
+  }, [application]);
 
   // No longer need to find or create a related interview process
   // as interview stages are now directly connected to the application
