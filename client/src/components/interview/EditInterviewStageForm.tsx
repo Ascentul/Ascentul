@@ -275,7 +275,7 @@ export function EditInterviewStageForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Pending</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="scheduled">Scheduled</SelectItem>
                       <SelectItem value="passed">Passed</SelectItem>
                       <SelectItem value="failed">Rejected</SelectItem>
