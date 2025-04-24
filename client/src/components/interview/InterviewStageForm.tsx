@@ -189,6 +189,60 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
   });
 
   const onSubmit = (values: InterviewStageFormValues) => {
+    console.log("Submitting new interview stage:", values);
+    
+    // Enhanced approach: Immediately store in localStorage before API call for better UX
+    if (applicationId) {
+      try {
+        // Generate a unique ID for the new stage
+        const now = new Date().toISOString();
+        const mockStageId = Date.now();
+        
+        // Create a new stage with consistent object structure
+        const mockStage = {
+          id: mockStageId,
+          applicationId,
+          type: values.type,
+          scheduledDate: values.scheduledDate ? new Date(values.scheduledDate).toISOString() : null,
+          completedDate: null,
+          location: values.location || null,
+          interviewers: values.interviewers || [],
+          notes: values.notes || null,
+          outcome: 'pending', // Default outcome for new stages
+          feedback: null,
+          createdAt: now,
+          updatedAt: now
+        };
+        
+        // Get existing stages from localStorage or create empty array
+        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+        
+        // Add new stage
+        mockStages.push(mockStage);
+        
+        // Save updated stages back to localStorage
+        localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
+        console.log(`Saved new stage to localStorage with ID ${mockStageId}:`, mockStage);
+        
+        // Update application to ensure it's in "Interviewing" status
+        const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        const appIndex = applications.findIndex((app: any) => app.id === applicationId);
+        if (appIndex !== -1) {
+          applications[appIndex].status = 'Interviewing';
+          applications[appIndex].updatedAt = now;
+          localStorage.setItem('mockJobApplications', JSON.stringify(applications));
+          console.log(`Updated application status to Interviewing in localStorage`);
+        }
+        
+        // Force UI refresh
+        queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      } catch (error) {
+        console.error("Error saving to localStorage:", error);
+      }
+    }
+    
+    // Also try the API call
     createStageMutation.mutate(values);
   };
 
