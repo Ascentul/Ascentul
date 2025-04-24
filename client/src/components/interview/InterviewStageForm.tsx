@@ -44,6 +44,9 @@ const interviewStageSchema = z.object({
   location: z.string().optional(),
   interviewers: z.string().optional(),
   notes: z.string().optional(),
+  // Add these fields for TypeScript compatibility
+  applicationId: z.number().optional(),
+  processId: z.number().optional(),
 });
 
 type InterviewStageFormValues = z.infer<typeof interviewStageSchema>;
@@ -81,7 +84,12 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
         ? values.interviewers.split(',').map(i => i.trim()) 
         : [];
       
-      const stageData = {
+      // Create properly typed data object for the stage
+      const stageData: InterviewStageFormValues & {
+        interviewers: string[];
+        applicationId?: number;
+        processId?: number;
+      } = {
         ...values,
         interviewers: interviewersArray,
       };
@@ -112,17 +120,27 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
             
             // Create a mock interview stage
             const now = new Date().toISOString();
+            
+            // Ensure we have a scheduled date for localStorage storage
+            let scheduledDate = stageData.scheduledDate;
+            if (!scheduledDate) {
+              // Default to 7 days from now if no date provided
+              const defaultDate = new Date();
+              defaultDate.setDate(defaultDate.getDate() + 7);
+              scheduledDate = defaultDate;
+            }
+            
             const mockStage = {
               id: Date.now(), // Use timestamp as mock ID
               applicationId: applicationId,
               type: stageData.type,
               status: 'scheduled',
-              scheduledDate: stageData.scheduledDate ? new Date(stageData.scheduledDate).toISOString() : null,
+              scheduledDate: new Date(scheduledDate).toISOString(), // Always ensure a valid date
               completedDate: null,
               location: stageData.location || null,
               interviewers: stageData.interviewers || [],
               notes: stageData.notes || null,
-              outcome: null,
+              outcome: 'scheduled', // Set outcome to scheduled for dashboard display
               createdAt: now,
               updatedAt: now
             };
@@ -195,69 +213,19 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
     console.log("Submitting new interview stage:", values);
     
     // Ensure we have a scheduled date for the interview (required for dashboard display)
-    let scheduledDate = values.scheduledDate;
+    const updatedValues = { ...values };
     
     // If no date was selected, default to 7 days from now
-    if (!scheduledDate) {
+    if (!updatedValues.scheduledDate) {
       console.log("No scheduled date selected, defaulting to 7 days from now");
-      scheduledDate = new Date();
-      scheduledDate.setDate(scheduledDate.getDate() + 7);
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 7);
+      updatedValues.scheduledDate = defaultDate;
     }
     
-    // Enhanced approach: Immediately store in localStorage before API call for better UX
-    if (applicationId) {
-      try {
-        // Generate a unique ID for the new stage
-        const now = new Date().toISOString();
-        const mockStageId = Date.now();
-        
-        // Create a new stage with consistent object structure
-        const mockStage = {
-          id: mockStageId,
-          applicationId,
-          type: values.type,
-          scheduledDate: scheduledDate.toISOString(), // Always provide a scheduled date
-          completedDate: null,
-          location: values.location || null,
-          interviewers: values.interviewers || [],
-          notes: values.notes || null,
-          outcome: 'scheduled', // Always set to scheduled with a date
-          feedback: null,
-          createdAt: now,
-          updatedAt: now
-        };
-        
-        // Get existing stages from localStorage or create empty array
-        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
-        
-        // Add new stage
-        mockStages.push(mockStage);
-        
-        // Save updated stages back to both localStorage keys
-        localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
-        localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
-        console.log(`Saved new stage to localStorage with ID ${mockStageId}:`, mockStage);
-        
-        // Update application to ensure it's in "Interviewing" status
-        const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-        const appIndex = applications.findIndex((app: any) => app.id === applicationId);
-        if (appIndex !== -1) {
-          applications[appIndex].status = 'Interviewing';
-          applications[appIndex].updatedAt = now;
-          localStorage.setItem('mockJobApplications', JSON.stringify(applications));
-          console.log(`Updated application status to Interviewing in localStorage`);
-        }
-        
-        // Force UI refresh
-        queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/stages`] });
-        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
-      } catch (error) {
-        console.error("Error saving to localStorage:", error);
-      }
-    }
-    
-    // Also try the API call
-    createStageMutation.mutate(values);
+    // Use the mutation to handle the interview stage creation
+    // The mutation will try the API first, then fall back to localStorage if needed
+    createStageMutation.mutate(updatedValues);
   };
 
   return (
