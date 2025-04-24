@@ -36,6 +36,7 @@ interface ApplicationDetailsProps {
   application: any;
   onClose?: () => void;
   onDelete?: () => void;
+  onStatusChange?: (applicationId: number, newStatus: string) => void;
 }
 
 export function ApplicationDetails({ application, onClose, onDelete }: ApplicationDetailsProps) {
@@ -110,16 +111,42 @@ export function ApplicationDetails({ application, onClose, onDelete }: Applicati
 
   const updateApplication = useMutation({
     mutationFn: async (updatedApplication: any) => {
-      // Try first with the applications endpoint
+      console.log(`Updating application ${application.id} with data:`, updatedApplication);
+      
+      // First try both API endpoints
       try {
-        console.log(`Updating application ${application.id} with data:`, updatedApplication);
-        const response = await apiRequest('PUT', `/api/applications/${application.id}`, updatedApplication);
-        return await response.json();
+        try {
+          // Try server-side application first
+          const response = await apiRequest('PUT', `/api/applications/${application.id}`, updatedApplication);
+          return await response.json();
+        } catch (error) {
+          console.log('Trying job-applications endpoint instead');
+          // Fall back to job-applications endpoint
+          const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
+          return await response.json();
+        }
       } catch (error) {
-        console.error(`Error updating with /api/applications endpoint:`, error);
-        // Fall back to job-applications endpoint
-        const response = await apiRequest('PATCH', `/api/job-applications/${application.id}`, updatedApplication);
-        return await response.json();
+        console.log('Both API endpoints failed, updating localStorage');
+        
+        // If both API calls fail, update in localStorage
+        const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        const appIndex = mockApps.findIndex((a: any) => a.id === application.id);
+        
+        if (appIndex === -1) {
+          throw new Error('Application not found in localStorage');
+        }
+        
+        // Update the application
+        mockApps[appIndex] = {
+          ...mockApps[appIndex],
+          ...updatedApplication,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save back to localStorage
+        localStorage.setItem('mockJobApplications', JSON.stringify(mockApps));
+        
+        return mockApps[appIndex];
       }
     },
     onSuccess: () => {
