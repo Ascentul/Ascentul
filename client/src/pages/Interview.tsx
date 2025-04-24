@@ -263,11 +263,13 @@ const Interview = () => {
           
           // If we have mock applications in localStorage, merge with server applications
           if (mockApplications.length > 0) {
+            // Check if response is an array
+            const serverApps = Array.isArray(response) ? response : [];
             // Create a set of existing IDs to avoid duplicates
-            const existingIds = new Set(response.map((app: any) => app.id));
+            const existingIds = new Set(serverApps.map((app: any) => app.id));
             // Merge server and local applications
             const mergedApps = [
-              ...response,
+              ...serverApps,
               ...mockApplications.filter((app: any) => !existingIds.has(app.id))
             ];
             
@@ -275,7 +277,7 @@ const Interview = () => {
             return mergedApps;
           }
           
-          return response;
+          return Array.isArray(response) ? response : [];
         } catch (serverError) {
           // If server request fails, fall back to the localStorage applications
           console.log('Using mock job applications from localStorage due to server error');
