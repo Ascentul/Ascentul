@@ -199,30 +199,66 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   
   // Function to update interview stage outcome
   const handleUpdateStageOutcome = async (stageId: number, outcome: string) => {
+    console.log(`Updating stage ${stageId} outcome to ${outcome} for application ${application.id}`);
+    
     try {
-      // Try to update on server first
-      await apiRequest('PATCH', `/api/applications/${application.id}/stages/${stageId}`, {
+      // Find the current stage from our data
+      const stageToUpdate = interviewStages?.find(s => s.id === stageId);
+      if (!stageToUpdate) {
+        console.error(`Stage with ID ${stageId} not found in current data`);
+        toast({
+          title: "Error",
+          description: "Interview stage not found in current data",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Current stage data:", stageToUpdate);
+      
+      // Create a proper update payload that preserves all existing values
+      const updatePayload = {
+        ...stageToUpdate,
         outcome
-      });
+      };
+      
+      console.log("Sending update payload:", updatePayload);
+      
+      // Try to update on server first
+      const response = await apiRequest('PATCH', `/api/applications/${application.id}/stages/${stageId}`, updatePayload);
+      
+      console.log(`API response status:`, response.status);
       
       // Refresh the data
       queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
       
       toast({
         title: "Status updated",
-        description: `Interview status updated to ${outcome}`,
+        description: `Interview status updated to ${outcome === 'passed' ? 'Passed' : 
+                       outcome === 'failed' ? 'Rejected' : 
+                       outcome === 'scheduled' ? 'Scheduled' : 
+                       'Pending'}`,
       });
     } catch (error) {
       console.error(`Error updating interview stage outcome:`, error);
       
       // Check if it's a localStorage-only stage
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Add more detailed logging
+      console.log(`Error message:`, errorMessage);
+      
       if (errorMessage.includes('not found') || errorMessage.includes('404')) {
+        console.log(`Stage ${stageId} not found on server, attempting localStorage update`);
+        
         // Update in localStorage if stage is only there
         const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${application.id}`) || '[]');
+        console.log("Mock stages from localStorage:", mockStages);
+        
         const stageIndex = mockStages.findIndex((s: any) => s.id === stageId);
         
         if (stageIndex === -1) {
+          console.error(`Stage ${stageId} not found in localStorage either`);
           toast({
             title: "Error",
             description: "Interview stage not found",
@@ -235,6 +271,8 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         mockStages[stageIndex].outcome = outcome;
         mockStages[stageIndex].updatedAt = new Date().toISOString();
         
+        console.log(`Updated stage in localStorage:`, mockStages[stageIndex]);
+        
         // Save back to localStorage
         localStorage.setItem(`mockInterviewStages_${application.id}`, JSON.stringify(mockStages));
         
@@ -243,7 +281,10 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         
         toast({
           title: "Status updated",
-          description: `Interview status updated to ${outcome}`,
+          description: `Interview status updated to ${outcome === 'passed' ? 'Passed' : 
+                         outcome === 'failed' ? 'Rejected' : 
+                         outcome === 'scheduled' ? 'Scheduled' : 
+                         'Pending'}`,
         });
       } else {
         toast({
