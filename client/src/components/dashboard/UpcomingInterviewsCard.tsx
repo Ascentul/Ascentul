@@ -51,18 +51,39 @@ export function UpcomingInterviewsCard() {
     // Count interviewing applications
     const appCount = interviewingApps.length;
     
+    console.log(`Local count: ${appCount} interviewing applications, ${upcomingInterviews.length} scheduled interviews`);
+    
     // Load interview stages from localStorage
     const stages: InterviewStage[] = [];
     
     // Check each application for interview stages
     interviewingApps.forEach(app => {
       try {
-        // Get stages from localStorage
-        const stagesJson = localStorage.getItem(`mockStages_${app.id}`);
-        if (!stagesJson) return;
+        // First check mockStages_${app.id}
+        let appStages: any[] = [];
+        let stagesJson = localStorage.getItem(`mockStages_${app.id}`);
         
-        const appStages = JSON.parse(stagesJson);
-        if (!Array.isArray(appStages)) return;
+        if (stagesJson) {
+          const parsedStages = JSON.parse(stagesJson);
+          if (Array.isArray(parsedStages) && parsedStages.length > 0) {
+            appStages = parsedStages;
+          }
+        }
+        
+        // If no stages found, check mockInterviewStages_${app.id}
+        if (appStages.length === 0) {
+          stagesJson = localStorage.getItem(`mockInterviewStages_${app.id}`);
+          if (stagesJson) {
+            const parsedStages = JSON.parse(stagesJson);
+            if (Array.isArray(parsedStages) && parsedStages.length > 0) {
+              appStages = parsedStages;
+            }
+          }
+        }
+        
+        if (appStages.length === 0) {
+          return; // No stages found for this application
+        }
         
         // Filter only scheduled or pending stages and add application info
         appStages
@@ -70,7 +91,7 @@ export function UpcomingInterviewsCard() {
             stage && 
             (stage.status === 'scheduled' || stage.status === 'pending' || 
              stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
-            new Date(stage.scheduledDate) > new Date() // Only future interviews
+            stage.scheduledDate && new Date(stage.scheduledDate) > new Date() // Only future interviews
           )
           .forEach((stage: any) => {
             stages.push({
@@ -96,13 +117,10 @@ export function UpcomingInterviewsCard() {
     setUpcomingInterviews(sortedStages);
     
     // Calculate total count (interviewing apps + scheduled interviews)
-    // If we want to avoid double-counting, we can use:
-    // const totalCount = Math.max(appCount, sortedStages.length);
-    // If we want to count both, use:
-    const totalCount = appCount;
+    const totalCount = sortedStages.length > 0 ? sortedStages.length : appCount;
     
     setInterviewCount(totalCount);
-  }, [applications]);
+  }, [applications, upcomingInterviews.length]);
 
   // Handle editing an interview
   const handleEditInterview = (stageId: number, applicationId: number) => {
