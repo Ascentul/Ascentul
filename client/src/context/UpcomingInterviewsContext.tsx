@@ -16,24 +16,8 @@ type UpcomingInterviewsContextType = {
 const UpcomingInterviewsContext = createContext<UpcomingInterviewsContextType | undefined>(undefined);
 
 export function UpcomingInterviewsProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage if available
-  const initialCount = (() => {
-    try {
-      const storedCount = localStorage.getItem('upcomingInterviewCount');
-      if (storedCount) {
-        const count = parseInt(storedCount, 10);
-        if (!isNaN(count)) {
-          console.log(`Initialized upcoming interview count from localStorage: ${count}`);
-          return count;
-        }
-      }
-    } catch (e) {
-      console.error('Error reading upcomingInterviewCount from localStorage:', e);
-    }
-    return 0;
-  })();
-  
-  const [upcomingInterviewCount, setUpcomingInterviewCount] = useState(initialCount);
+  // Start with 0 and immediately fetch accurate count
+  const [upcomingInterviewCount, setUpcomingInterviewCount] = useState(0);
   
   // Function to count applications in interview stage and upcoming interviews
   const updateInterviewCount = useCallback(async (): Promise<number> => {
@@ -84,13 +68,7 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       // For now, let's just count the applications as requested
       const totalCount = appCount;
       
-      // Update state
-      setUpcomingInterviewCount(totalCount);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('upcomingInterviewCount', String(totalCount));
-      
-      // Try to get applications from API as a backup
+      // Always prioritize API count if available
       try {
         const response = await apiRequest('GET', '/api/job-applications');
         if (!response.ok) {
@@ -100,17 +78,22 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
         
         const apiApplications = await response.json();
         
-        if (Array.isArray(apiApplications) && apiApplications.length > 0) {
+        if (Array.isArray(apiApplications)) {
           // Count applications with status "Interviewing" from API
           const apiInterviewingApps = apiApplications.filter((app: any) => app.status === 'Interviewing');
           const apiCount = apiInterviewingApps.length;
           
-          if (apiCount !== totalCount) {
-            console.log(`API count (${apiCount}) differs from local count (${totalCount}), updating to API count`);
-            setUpcomingInterviewCount(apiCount);
-            localStorage.setItem('upcomingInterviewCount', String(apiCount));
-            return apiCount;
+          // Always use API count as source of truth - don't store in localStorage to avoid conflicts
+          setUpcomingInterviewCount(apiCount);
+          
+          // Remove localStorage entry to prevent conflicts
+          try {
+            localStorage.removeItem('upcomingInterviewCount');
+          } catch (e) {
+            // Ignore localStorage errors
           }
+          
+          return apiCount;
         }
       } catch (apiError) {
         console.error('Error fetching applications from API:', apiError);
