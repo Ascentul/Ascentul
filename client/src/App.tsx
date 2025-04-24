@@ -530,16 +530,19 @@ function App() {
   );
 }
 
-// Import PendingTasksProvider
+// Import Providers
 import { PendingTasksProvider } from '@/context/PendingTasksContext';
+import { UpcomingInterviewsProvider } from '@/context/UpcomingInterviewsContext';
 
-// Wrap the app with the LoadingProvider and PendingTasksProvider
+// Wrap the app with all providers
 const AppWithLoading = () => {
   return (
     <LoadingProvider>
       <PendingTasksProvider>
-        <ScrollToTop />
-        <App />
+        <UpcomingInterviewsProvider>
+          <ScrollToTop />
+          <App />
+        </UpcomingInterviewsProvider>
       </PendingTasksProvider>
     </LoadingProvider>
   );
