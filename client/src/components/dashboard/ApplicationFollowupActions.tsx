@@ -59,6 +59,9 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
   });
 
   // Collect followup actions from all applications
+  // Use the updatePendingFollowupCount from the PendingTasksContext
+  const { updatePendingFollowupCount } = usePendingTasks();
+  
   useEffect(() => {
     if (!applications || !Array.isArray(applications)) return;
     
@@ -68,15 +71,20 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       // First attempt: Load everything from localStorage for immediate display
       for (const app of applications) {
         try {
-          const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
-          
-          if (mockFollowups.length > 0) {
-            mockFollowups.forEach((followup: FollowupAction) => {
-              allFollowups.push({
-                ...followup,
-                application: app
+          const mockFollowupsJson = localStorage.getItem(`mockFollowups_${app.id}`);
+          if (mockFollowupsJson) {
+            const mockFollowups = JSON.parse(mockFollowupsJson);
+            
+            if (Array.isArray(mockFollowups) && mockFollowups.length > 0) {
+              mockFollowups.forEach((followup: FollowupAction) => {
+                if (followup && typeof followup === 'object') {
+                  allFollowups.push({
+                    ...followup,
+                    application: app
+                  });
+                }
               });
-            });
+            }
           }
         } catch (error) {
           console.error(`Error loading localStorage followups for application ${app.id}:`, error);
@@ -105,39 +113,64 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       };
       
       // Update UI with localStorage data first
-      setFollowupActions(sortFollowups([...allFollowups]));
+      const sortedFollowups = sortFollowups([...allFollowups]);
+      setFollowupActions(sortedFollowups);
+      
+      // While we've already got the data, trigger a refresh of the pending count
+      // to ensure it stays in sync with what we're displaying
+      updatePendingFollowupCount().catch(err => 
+        console.error('Error updating pending followup count:', err)
+      );
       
       // Then try API for each application in the background
-      for (const app of applications) {
+      const apiPromises = applications.map(async (app) => {
         try {
           const response = await apiRequest('GET', `/api/applications/${app.id}/followups`);
-          const appFollowups = await response.json();
+          if (!response.ok) return [];
           
+          const appFollowups = await response.json();
           if (Array.isArray(appFollowups) && appFollowups.length > 0) {
-            // First, remove any existing followups for this app
-            const filteredFollowups = allFollowups.filter(f => 
-              f.applicationId !== app.id
-            );
-            
-            // Then add the new API followups
-            appFollowups.forEach((followup: FollowupAction) => {
-              filteredFollowups.push({
-                ...followup,
-                application: app
-              });
-            });
-            
-            // Update state with the new combined data
-            setFollowupActions(sortFollowups(filteredFollowups));
+            return appFollowups.map(followup => ({
+              ...followup,
+              application: app
+            }));
           }
+          return [];
         } catch (apiError) {
-          // API might not be available, already showing localStorage data
+          console.error(`Error fetching followups for application ${app.id}:`, apiError);
+          return [];
         }
+      });
+      
+      try {
+        // Wait for all API requests to complete
+        const apiFollowupsArrays = await Promise.all(apiPromises);
+        
+        // Flatten the array of arrays and check if we have any API followups
+        const apiFollowups = apiFollowupsArrays.flat();
+        if (apiFollowups.length > 0) {
+          // Create a map of application IDs we got from the API
+          const apiAppIds = new Set(apiFollowups.map(f => f.applicationId));
+          
+          // Filter out followups for applications we got from the API
+          const nonApiFollowups = allFollowups.filter(f => !apiAppIds.has(f.applicationId));
+          
+          // Combine and sort the API followups with the non-API followups
+          const combinedFollowups = [...nonApiFollowups, ...apiFollowups];
+          setFollowupActions(sortFollowups(combinedFollowups));
+          
+          // After updating from API, refresh the pending count again
+          updatePendingFollowupCount().catch(err => 
+            console.error('Error updating pending followup count after API fetch:', err)
+          );
+        }
+      } catch (error) {
+        console.error('Error processing API followup results:', error);
       }
     };
     
     collectFollowups();
-  }, [applications]);
+  }, [applications, updatePendingFollowupCount]);
 
   // Function to toggle followup completion status
   const handleToggleStatus = async (followupId: number, applicationId: number) => {
