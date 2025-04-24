@@ -68,20 +68,64 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     const collectFollowups = async () => {
       const allFollowups: Array<FollowupAction & { application?: Application }> = [];
       
+      // DIRECT DEBUGGING OF LOCAL STORAGE DATA
+      // For the application 8382 that logs show has 5 pending followups
+      const mockFollowupsJsonDirect = localStorage.getItem('mockFollowups_8382');
+      if (mockFollowupsJsonDirect) {
+        try {
+          const parsedFollowups = JSON.parse(mockFollowupsJsonDirect);
+          console.log('Direct check of followups_8382:', parsedFollowups);
+          
+          // Count how many pending items
+          if (Array.isArray(parsedFollowups)) {
+            const pendingCount = parsedFollowups.filter(f => !f.completed).length;
+            console.log(`Direct count of pending followups for 8382: ${pendingCount}`);
+            
+            // Check if we need to ensure applicationId is set
+            const needsApplicationId = parsedFollowups.some(f => f.applicationId === undefined);
+            if (needsApplicationId) {
+              console.log("Some followups don't have applicationId set");
+              
+              // Fix them by setting the applicationId
+              const fixedFollowups = parsedFollowups.map(f => ({
+                ...f, 
+                applicationId: f.applicationId || 8382 // Set it if missing
+              }));
+              
+              // Save back to localStorage
+              localStorage.setItem('mockFollowups_8382', JSON.stringify(fixedFollowups));
+              console.log("Fixed and saved followups with applicationId");
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing direct followups:', e);
+        }
+      }
+      
       // First attempt: Load everything from localStorage for immediate display
       for (const app of applications) {
         try {
           const mockFollowupsJson = localStorage.getItem(`mockFollowups_${app.id}`);
           if (mockFollowupsJson) {
-            const mockFollowups = JSON.parse(mockFollowupsJson);
+            let mockFollowups;
+            try {
+              mockFollowups = JSON.parse(mockFollowupsJson);
+            } catch (parseError) {
+              console.error(`Error parsing followups for app ${app.id}:`, parseError);
+              continue; // Skip this application
+            }
             
             if (Array.isArray(mockFollowups) && mockFollowups.length > 0) {
-              mockFollowups.forEach((followup: FollowupAction) => {
+              mockFollowups.forEach((followup: any) => {
                 if (followup && typeof followup === 'object') {
-                  allFollowups.push({
+                  // Make sure applicationId is set
+                  const followupWithAppId = {
                     ...followup,
+                    applicationId: followup.applicationId || app.id,
                     application: app
-                  });
+                  };
+                  
+                  allFollowups.push(followupWithAppId);
                 }
               });
             }
@@ -90,6 +134,13 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
           console.error(`Error loading localStorage followups for application ${app.id}:`, error);
         }
       }
+      
+      // Log details about what we found
+      console.log(`Total found ${allFollowups.length} followups across all applications`);
+      
+      // Now count pending items
+      const pendingFollowups = allFollowups.filter(f => !f.completed);
+      console.log(`Found ${pendingFollowups.length} pending followups to display`);
       
       // Sort and display localStorage data immediately for better UX
       const sortFollowups = (followups: Array<FollowupAction & { application?: Application }>) => {
@@ -116,8 +167,14 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       const sortedFollowups = sortFollowups([...allFollowups]);
       
       // Debug what we're displaying
-      console.log(`Found ${allFollowups.length} total followups from localStorage:`, 
-        allFollowups.map(f => ({id: f.id, type: f.type, completed: f.completed, appId: f.applicationId}))
+      console.log(`After sorting, ready to display ${sortedFollowups.length} followups:`, 
+        sortedFollowups.slice(0, 3).map(f => ({
+          id: f.id, 
+          type: f.type, 
+          completed: f.completed, 
+          appId: f.applicationId,
+          company: f.application?.company
+        }))
       );
       
       setFollowupActions(sortedFollowups);
