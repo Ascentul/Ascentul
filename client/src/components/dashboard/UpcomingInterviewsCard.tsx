@@ -64,11 +64,12 @@ export function UpcomingInterviewsCard() {
         const appStages = JSON.parse(stagesJson);
         if (!Array.isArray(appStages)) return;
         
-        // Filter only scheduled stages and add application info
+        // Filter only scheduled or pending stages and add application info
         appStages
           .filter((stage: any) => 
             stage && 
-            stage.status === 'scheduled' && 
+            (stage.status === 'scheduled' || stage.status === 'pending' || 
+             stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
             new Date(stage.scheduledDate) > new Date() // Only future interviews
           )
           .forEach((stage: any) => {
@@ -164,11 +165,15 @@ export function UpcomingInterviewsCard() {
       <CardContent className="pb-4 overflow-auto max-h-[600px]">
         {/* Display only scheduled or pending interview stages */}
         {upcomingInterviews.filter(stage => 
-          stage.outcome === 'scheduled' || stage.outcome === 'pending'
+          stage.outcome === 'scheduled' || stage.outcome === 'pending' || 
+          stage.status === 'scheduled' || stage.status === 'pending'
         ).length > 0 ? (
           <div className="space-y-4">
             {upcomingInterviews
-              .filter(stage => stage.outcome === 'scheduled' || stage.outcome === 'pending')
+              .filter(stage => 
+                stage.outcome === 'scheduled' || stage.outcome === 'pending' || 
+                stage.status === 'scheduled' || stage.status === 'pending'
+              )
               .map((stage) => (
                 <InterviewCard 
                   key={stage.id} 
