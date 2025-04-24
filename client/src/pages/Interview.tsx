@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -294,6 +294,36 @@ const Interview = () => {
     staleTime: 10000, // Refresh every 10 seconds
     refetchOnWindowFocus: true, // Refresh when the page gains focus
   });
+  
+  // Helper function to sync application updates to localStorage
+  const syncApplicationToLocalStorage = useCallback((applicationId: number, updates: Partial<JobApplication>) => {
+    try {
+      // Get applications from localStorage
+      const mockApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      const appIndex = mockApplications.findIndex((a: any) => a.id === applicationId);
+      
+      // If the application exists in localStorage, update it
+      if (appIndex !== -1) {
+        mockApplications[appIndex] = {
+          ...mockApplications[appIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem('mockJobApplications', JSON.stringify(mockApplications));
+        console.log(`Application ${applicationId} updated in localStorage:`, updates);
+        
+        // Force refresh the applications query
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error syncing application to localStorage:', error);
+      return false;
+    }
+  }, [queryClient]);
   
   // Get selected application details
   const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;

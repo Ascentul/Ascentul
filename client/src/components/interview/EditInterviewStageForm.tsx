@@ -135,8 +135,17 @@ export function EditInterviewStageForm({
     }
   });
 
-  const onSubmit = (values: InterviewStageFormValues) => {
+  const onSubmit = (data: any) => {
     setIsPending(true);
+    
+    // Convert the form data to the expected format for the API
+    const values: InterviewStageFormValues = {
+      ...data,
+      // interviewers is already transformed by the schema
+    };
+    
+    console.log("Submitting interview stage update:", values);
+    
     updateStageMutation.mutate(values, {
       onSettled: () => setIsPending(false)
     });
