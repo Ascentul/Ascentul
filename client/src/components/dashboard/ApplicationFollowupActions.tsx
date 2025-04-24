@@ -65,61 +65,75 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     const collectFollowups = async () => {
       const allFollowups: Array<FollowupAction & { application?: Application }> = [];
       
-      // For each application, try to get its followups
+      // First attempt: Load everything from localStorage for immediate display
       for (const app of applications) {
         try {
-          // First try API
-          try {
-            const response = await apiRequest('GET', `/api/applications/${app.id}/followups`);
-            const appFollowups = await response.json();
-            
-            if (Array.isArray(appFollowups) && appFollowups.length > 0) {
-              // Add application info to each followup
-              appFollowups.forEach((followup: FollowupAction) => {
-                allFollowups.push({
-                  ...followup,
-                  application: app
-                });
+          const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
+          
+          if (mockFollowups.length > 0) {
+            mockFollowups.forEach((followup: FollowupAction) => {
+              allFollowups.push({
+                ...followup,
+                application: app
               });
-            }
-          } catch (apiError) {
-            // If API fails, try localStorage
-            const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
-            
-            if (mockFollowups.length > 0) {
-              mockFollowups.forEach((followup: FollowupAction) => {
-                allFollowups.push({
-                  ...followup,
-                  application: app
-                });
-              });
-            }
+            });
           }
         } catch (error) {
-          console.error(`Error fetching followups for application ${app.id}:`, error);
+          console.error(`Error loading localStorage followups for application ${app.id}:`, error);
         }
       }
       
-      // Sort by due date (most recent first) and completion status (incomplete first)
-      const sortedFollowups = allFollowups.sort((a, b) => {
-        // Incomplete items first
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1;
-        }
-        
-        // Then sort by due date
-        if (a.dueDate && b.dueDate) {
-          return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
-        }
-        
-        if (a.dueDate && !b.dueDate) return -1;
-        if (!a.dueDate && b.dueDate) return 1;
-        
-        // Finally sort by creation date
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+      // Sort and display localStorage data immediately for better UX
+      const sortFollowups = (followups: Array<FollowupAction & { application?: Application }>) => {
+        return followups.sort((a, b) => {
+          // Incomplete items first
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+          
+          // Then sort by due date
+          if (a.dueDate && b.dueDate) {
+            return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+          }
+          
+          if (a.dueDate && !b.dueDate) return -1;
+          if (!a.dueDate && b.dueDate) return 1;
+          
+          // Finally sort by creation date
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+      };
       
-      setFollowupActions(sortedFollowups);
+      // Update UI with localStorage data first
+      setFollowupActions(sortFollowups([...allFollowups]));
+      
+      // Then try API for each application in the background
+      for (const app of applications) {
+        try {
+          const response = await apiRequest('GET', `/api/applications/${app.id}/followups`);
+          const appFollowups = await response.json();
+          
+          if (Array.isArray(appFollowups) && appFollowups.length > 0) {
+            // First, remove any existing followups for this app
+            const filteredFollowups = allFollowups.filter(f => 
+              f.applicationId !== app.id
+            );
+            
+            // Then add the new API followups
+            appFollowups.forEach((followup: FollowupAction) => {
+              filteredFollowups.push({
+                ...followup,
+                application: app
+              });
+            });
+            
+            // Update state with the new combined data
+            setFollowupActions(sortFollowups(filteredFollowups));
+          }
+        } catch (apiError) {
+          // API might not be available, already showing localStorage data
+        }
+      }
     };
     
     collectFollowups();
