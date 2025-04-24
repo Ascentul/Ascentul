@@ -45,8 +45,19 @@ export function UpcomingInterviewsCard() {
   useEffect(() => {
     if (!applications || !Array.isArray(applications)) return;
     
+    // For debugging - dump all localStorage keys related to interviews
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('mockInterviewStages_') || key.includes('mockStages_'))) {
+        keys.push(key);
+      }
+    }
+    console.log("All interview stage localStorage keys:", keys);
+    
     // Filter applications with status "Interviewing"
     const interviewingApps = applications.filter(app => app.status === 'Interviewing');
+    console.log("Interviewing applications:", interviewingApps.map(app => ({id: app.id, company: app.company || app.companyName})));
     
     // Count interviewing applications
     const appCount = interviewingApps.length;
@@ -58,15 +69,22 @@ export function UpcomingInterviewsCard() {
     
     // Check each application for interview stages
     interviewingApps.forEach(app => {
+      console.log(`Checking stages for application ${app.id} (${app.company || app.companyName})`);
+      
       try {
         // First check mockStages_${app.id}
         let appStages: any[] = [];
         let stagesJson = localStorage.getItem(`mockStages_${app.id}`);
         
         if (stagesJson) {
-          const parsedStages = JSON.parse(stagesJson);
-          if (Array.isArray(parsedStages) && parsedStages.length > 0) {
-            appStages = parsedStages;
+          try {
+            const parsedStages = JSON.parse(stagesJson);
+            if (Array.isArray(parsedStages) && parsedStages.length > 0) {
+              appStages = parsedStages;
+              console.log(`Found ${parsedStages.length} stages in mockStages_${app.id}:`, parsedStages);
+            }
+          } catch (e) {
+            console.error(`Error parsing mockStages_${app.id}:`, e);
           }
         }
         
@@ -74,32 +92,45 @@ export function UpcomingInterviewsCard() {
         if (appStages.length === 0) {
           stagesJson = localStorage.getItem(`mockInterviewStages_${app.id}`);
           if (stagesJson) {
-            const parsedStages = JSON.parse(stagesJson);
-            if (Array.isArray(parsedStages) && parsedStages.length > 0) {
-              appStages = parsedStages;
+            try {
+              const parsedStages = JSON.parse(stagesJson);
+              if (Array.isArray(parsedStages) && parsedStages.length > 0) {
+                appStages = parsedStages;
+                console.log(`Found ${parsedStages.length} stages in mockInterviewStages_${app.id}:`, parsedStages);
+              }
+            } catch (e) {
+              console.error(`Error parsing mockInterviewStages_${app.id}:`, e);
             }
           }
         }
         
         if (appStages.length === 0) {
+          console.log(`No interview stages found for application ${app.id}`);
           return; // No stages found for this application
         }
         
         // Filter only scheduled or pending stages and add application info
-        appStages
-          .filter((stage: any) => 
-            stage && 
-            (stage.status === 'scheduled' || stage.status === 'pending' || 
-             stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
-            stage.scheduledDate && new Date(stage.scheduledDate) > new Date() // Only future interviews
-          )
-          .forEach((stage: any) => {
-            stages.push({
-              ...stage,
-              applicationId: stage.applicationId || app.id,
-              application: app
-            });
+        const scheduledStages = appStages
+          .filter((stage: any) => {
+            const isValid = stage && 
+              (stage.status === 'scheduled' || stage.status === 'pending' || 
+               stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
+              stage.scheduledDate && new Date(stage.scheduledDate) > new Date(); // Only future interviews
+            
+            console.log(`Stage ${stage.id} status=${stage.status} outcome=${stage.outcome} isScheduled=${isValid}`);
+            
+            return isValid;
           });
+        
+        console.log(`Found ${scheduledStages.length} scheduled stages for application ${app.id}`);
+        
+        scheduledStages.forEach((stage: any) => {
+          stages.push({
+            ...stage,
+            applicationId: stage.applicationId || app.id,
+            application: app
+          });
+        });
       } catch (error) {
         console.error(`Error loading stages for application ${app.id}:`, error);
       }
@@ -113,6 +144,8 @@ export function UpcomingInterviewsCard() {
       return 0;
     });
     
+    console.log(`Total upcoming interviews found: ${sortedStages.length}:`, sortedStages);
+    
     // Update state
     setUpcomingInterviews(sortedStages);
     
@@ -120,7 +153,7 @@ export function UpcomingInterviewsCard() {
     const totalCount = sortedStages.length > 0 ? sortedStages.length : appCount;
     
     setInterviewCount(totalCount);
-  }, [applications, upcomingInterviews.length]);
+  }, [applications]);
 
   // Handle editing an interview
   const handleEditInterview = (stageId: number, applicationId: number) => {
