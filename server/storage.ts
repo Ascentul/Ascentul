@@ -1733,6 +1733,30 @@ export class MemStorage implements IStorage {
       const dueDate = new Date(g.dueDate);
       return dueDate <= oneWeekFromNow;
     }).length;
+    
+    // Add pending follow-up actions from job applications
+    try {
+      // Get all job applications for the user
+      const applications = await this.getJobApplications(userId);
+      
+      // For each application, get and count pending follow-up actions
+      for (const application of applications) {
+        try {
+          // Check if we can get follow-up actions for this application
+          const followups = await this.getFollowupActionsForApplication(application.id);
+          
+          // Add pending (not completed) follow-up actions to the count
+          const pendingFollowups = followups.filter(followup => !followup.completed);
+          pendingTasks += pendingFollowups.length;
+        } catch (error) {
+          console.error(`Error getting follow-ups for application ${application.id}:`, error);
+          // Continue with other applications if there's an error with one
+        }
+      }
+    } catch (error) {
+      console.error(`Error getting job applications for user ${userId}:`, error);
+      // Continue with the statistics calculation even if we can't get application follow-ups
+    }
 
     // Count upcoming interviews (stages with status "scheduled" and not completed)
     // First get all interview processes for this user
