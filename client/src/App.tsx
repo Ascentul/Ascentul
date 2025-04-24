@@ -530,12 +530,17 @@ function App() {
   );
 }
 
-// Wrap the app with the LoadingProvider
+// Import PendingTasksProvider
+import { PendingTasksProvider } from '@/context/PendingTasksContext';
+
+// Wrap the app with the LoadingProvider and PendingTasksProvider
 const AppWithLoading = () => {
   return (
     <LoadingProvider>
-      <ScrollToTop />
-      <App />
+      <PendingTasksProvider>
+        <ScrollToTop />
+        <App />
+      </PendingTasksProvider>
     </LoadingProvider>
   );
 };
