@@ -601,16 +601,52 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                 <CardDescription>Manage interviews for this application</CardDescription>
               </div>
               
-              {localApplication.status === 'Interviewing' && (
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowInterviewStageForm(true)}
-                  className="flex items-center"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Interview
-                </Button>
-              )}
+              <Button 
+                size="sm" 
+                onClick={() => {
+                  if (localApplication.status !== 'Interviewing') {
+                    // Show a confirmation dialog before adding an interview
+                    // This will also change the application status to Interviewing
+                    toast({
+                      title: "Application Status Change",
+                      description: "Adding an interview will change the application status to 'Interviewing'. Continue?",
+                      action: (
+                        <Button 
+                          onClick={() => {
+                            // Update application status first
+                            const updatedApplication = { ...localApplication, status: 'Interviewing' };
+                            setLocalApplication(updatedApplication);
+                            
+                            // Call the normal update function
+                            updateApplication.mutate({ status: 'Interviewing' });
+                            
+                            // Show the interview form after a slight delay
+                            setTimeout(() => {
+                              setShowInterviewStageForm(true);
+                            }, 300);
+                            
+                            // Then call the parent callback if it exists
+                            if (onStatusChange) {
+                              onStatusChange(application.id, 'Interviewing');
+                            }
+                          }}
+                          variant="default"
+                          size="sm"
+                        >
+                          Confirm
+                        </Button>
+                      ),
+                    });
+                  } else {
+                    // If already in interviewing status, just show the form
+                    setShowInterviewStageForm(true);
+                  }
+                }}
+                className="flex items-center"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Interview
+              </Button>
             </CardHeader>
             <CardContent>
               {localApplication.status === 'Interviewing' ? (
@@ -712,24 +748,46 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
               ) : (
                 <div className="text-center py-6">
                   <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">Update application status to "Interviewing" to add interviews</p>
-                  <div className="mt-3">
-                    <Select 
-                      value={localApplication.status}
-                      onValueChange={(value) => handleStatusChange(value as ApplicationStatus)}
-                    >
-                      <SelectTrigger className="w-[250px] mx-auto">
-                        <SelectValue placeholder="Change status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Not Started">Not Started</SelectItem>
-                        <SelectItem value="Applied">Applied</SelectItem>
-                        <SelectItem value="Interviewing">Interviewing</SelectItem>
-                        <SelectItem value="Offer">Offer</SelectItem>
-                        <SelectItem value="Rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <p className="text-muted-foreground">No interviews scheduled yet</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-3"
+                    onClick={() => {
+                      // Show a confirmation dialog before adding an interview
+                      toast({
+                        title: "Application Status Change",
+                        description: "Adding an interview will change the application status to 'Interviewing'. Continue?",
+                        action: (
+                          <Button 
+                            onClick={() => {
+                              // Update application status first
+                              const updatedApplication = { ...localApplication, status: 'Interviewing' };
+                              setLocalApplication(updatedApplication);
+                              
+                              // Call the normal update function
+                              updateApplication.mutate({ status: 'Interviewing' });
+                              
+                              // Show the interview form after a slight delay
+                              setTimeout(() => {
+                                setShowInterviewStageForm(true);
+                              }, 300);
+                              
+                              // Then call the parent callback if it exists
+                              if (onStatusChange) {
+                                onStatusChange(application.id, 'Interviewing');
+                              }
+                            }}
+                            variant="default"
+                            size="sm"
+                          >
+                            Confirm
+                          </Button>
+                        ),
+                      });
+                    }}
+                  >
+                    Add Interview
+                  </Button>
                 </div>
               )}
             </CardContent>
