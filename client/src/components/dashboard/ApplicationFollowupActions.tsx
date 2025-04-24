@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { usePendingTasks } from '@/context/PendingTasksContext';
 
 interface FollowupAction {
   id: number;
@@ -37,6 +38,7 @@ interface ApplicationFollowupActionsProps {
 export function ApplicationFollowupActions({ limit = 5, showTitle = true }: ApplicationFollowupActionsProps) {
   const [followupActions, setFollowupActions] = useState<Array<FollowupAction & { application?: Application }>>([]);
   const { toast } = useToast();
+  const { decrementPendingFollowupCount, incrementPendingFollowupCount } = usePendingTasks();
   
   // Fetch job applications
   const { data: applications, isLoading: isLoadingApplications } = useQuery<Application[]>({
@@ -128,6 +130,15 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     const followupToUpdate = followupActions.find(f => f.id === followupId);
     if (!followupToUpdate) return;
     
+    // Optimistic UI update for the pending tasks counter
+    if (followupToUpdate.completed) {
+      // If it was completed and now being marked as incomplete
+      incrementPendingFollowupCount();
+    } else {
+      // If it was incomplete and now being marked as complete
+      decrementPendingFollowupCount();
+    }
+    
     // Create a copy of the followups array for optimistic UI update
     const updatedFollowups = followupActions.map(f => 
       f.id === followupId ? { ...f, completed: !f.completed } : f
@@ -161,6 +172,13 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
         `/api/applications/${applicationId}/followups/${followupId}`,
         { completed: !followupToUpdate.completed }
       );
+      
+      // Show success toast
+      toast({
+        title: followupToUpdate.completed ? "Task marked as pending" : "Task marked as completed",
+        description: "Follow-up action updated successfully",
+        variant: followupToUpdate.completed ? "default" : "success",
+      });
     } catch (error) {
       console.error('Error updating followup status via API:', error);
       // Since we've already updated localStorage and the UI, we don't need to revert anything
