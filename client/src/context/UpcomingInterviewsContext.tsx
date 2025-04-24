@@ -1,8 +1,10 @@
 import React, { createContext, useState, useContext, useCallback, useEffect, ReactNode } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 
-// Event name constant for interview count updates
+// Event name constants for updates
 export const INTERVIEW_COUNT_UPDATE_EVENT = 'interviewCountUpdate';
+export const APPLICATION_STATUS_CHANGE_EVENT = 'applicationStatusChange';
+export const INTERVIEW_STAGE_CHANGE_EVENT = 'interviewStageChange';
 
 // Context type definition
 type UpcomingInterviewsContextType = {
@@ -136,23 +138,48 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       }
     };
     
-    // Set up a custom event for other components to trigger updates
+    // Set up custom events for components to trigger updates
+    
+    // Generic interview count update event
     const handleInterviewUpdate = () => {
+      updateInterviewCount();
+    };
+    
+    // Application status change event (like when moving to "Interviewing" status)
+    const handleApplicationStatusChange = () => {
+      updateInterviewCount();
+    };
+    
+    // Interview stage change event (scheduled, completed, etc.)
+    const handleInterviewStageChange = () => {
       updateInterviewCount();
     };
     
     // Add event listeners
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewUpdate as EventListener);
+    window.addEventListener(APPLICATION_STATUS_CHANGE_EVENT, handleApplicationStatusChange as EventListener);
+    window.addEventListener(INTERVIEW_STAGE_CHANGE_EVENT, handleInterviewStageChange as EventListener);
     
-    // Refresh every 30 seconds to catch any changes
+    // Also add simple, generic event names that don't require importing constants
+    window.addEventListener('applicationStatusChange', handleApplicationStatusChange as EventListener);
+    window.addEventListener('interviewStageChange', handleInterviewStageChange as EventListener);
+    
+    // Refresh every 5 seconds to match pending tasks responsiveness
     const interval = setInterval(() => {
       updateInterviewCount();
-    }, 30000);
+    }, 5000);
     
     return () => {
+      // Clean up all event listeners
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewUpdate as EventListener);
+      window.removeEventListener(APPLICATION_STATUS_CHANGE_EVENT, handleApplicationStatusChange as EventListener);
+      window.removeEventListener(INTERVIEW_STAGE_CHANGE_EVENT, handleInterviewStageChange as EventListener);
+      window.removeEventListener('applicationStatusChange', handleApplicationStatusChange as EventListener);
+      window.removeEventListener('interviewStageChange', handleInterviewStageChange as EventListener);
+      
+      // Clear the interval
       clearInterval(interval);
     };
   }, [updateInterviewCount]);
