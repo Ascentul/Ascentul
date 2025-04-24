@@ -24,15 +24,25 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       
       // Count pending followups from localStorage applications first for immediate feedback
       let localCount = 0;
+      
+      console.log("Starting to count pending followups from localStorage...");
+      
       for (const app of localApplications) {
         try {
-          const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
-          const pendingCount = mockFollowups.filter((f: any) => !f.completed).length;
-          localCount += pendingCount;
+          const mockFollowupsJson = localStorage.getItem(`mockFollowups_${app.id}`) || '[]';
+          const mockFollowups = JSON.parse(mockFollowupsJson);
+          
+          if (mockFollowups.length > 0) {
+            const pendingCount = mockFollowups.filter((f: any) => !f.completed).length;
+            localCount += pendingCount;
+            console.log(`Application ${app.id} (${app.company}): ${pendingCount} pending followups found`);
+          }
         } catch (error) {
           console.error(`Error counting followups for local application ${app.id}:`, error);
         }
       }
+      
+      console.log(`Total pending followups from localStorage: ${localCount}`);
       
       // Update the count immediately from localStorage data
       setPendingFollowupCount(localCount);

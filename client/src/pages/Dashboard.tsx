@@ -139,11 +139,11 @@ export default function Dashboard() {
   // Get the pending followup count from the PendingTasksContext
   const { pendingFollowupCount } = usePendingTasks();
   
-  // Use default stats if data is not available, and override pendingTasks with our count
+  // Use default stats if data is not available, and override pendingTasks with our follow-up count
   const stats: Stats = {
     ...(statsData || DEFAULT_STATS),
-    // Add the pending follow-up count from localStorage to the server-provided count
-    pendingTasks: (statsData?.pendingTasks || 0) + pendingFollowupCount
+    // Use the direct count from our context which reflects actual pending tasks in localStorage
+    pendingTasks: pendingFollowupCount
   };
 
   // State to track goals that should be hidden (recently completed)
