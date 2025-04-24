@@ -817,17 +817,13 @@ export default function Dashboard() {
           </Card>
         </motion.div>
         
-        {/* Today's Recommendations */}
+        {/* Upcoming Interviews */}
         <motion.div
           variants={cardAnimation}
           className="will-change-transform"
           style={{ transform: 'translateZ(0)' }}
         >
-          <Card className="h-full">
-            <CardContent className="p-5 h-full">
-              <TodaysRecommendations />
-            </CardContent>
-          </Card>
+          <UpcomingInterviewsCard />
         </motion.div>
       </motion.div>
       
