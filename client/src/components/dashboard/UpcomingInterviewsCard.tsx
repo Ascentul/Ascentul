@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Users, ArrowRight } from "lucide-react";
+import { Loader2, Calendar, MapPin, Users, ArrowRight, Plus } from "lucide-react";
 import { format } from 'date-fns';
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { 
   type InterviewStage, 
   type Application 
 } from '@/types/application'; 
+import InterviewCard from './InterviewCard';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 // Tracks both applications with status "Interviewing" and interview stages with status "scheduled"
 export function UpcomingInterviewsCard() {
   const [upcomingInterviews, setUpcomingInterviews] = useState<InterviewStage[]>([]);
   const [interviewCount, setInterviewCount] = useState<number>(0);
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
   
   // Fetch job applications
   const { data: applications, isLoading: isLoadingApplications } = useQuery<Application[]>({
@@ -96,18 +101,22 @@ export function UpcomingInterviewsCard() {
     const totalCount = appCount;
     
     setInterviewCount(totalCount);
-    
-    // Store the count in localStorage for persistence
-    localStorage.setItem('upcomingInterviewCount', String(totalCount));
-    
   }, [applications]);
+
+  // Handle editing an interview
+  const handleEditInterview = (stageId: number, applicationId: number) => {
+    navigate(`/interview/${stageId}?edit=true`);
+  };
 
   // Handle loading state
   if (isLoadingApplications) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex justify-center items-center py-4">
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="flex justify-center items-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         </CardContent>
@@ -118,90 +127,126 @@ export function UpcomingInterviewsCard() {
   // Show specific message when no interviews
   if (interviewCount === 0) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="text-lg font-medium mb-2">Upcoming Interviews</h3>
-          <div className="text-center text-muted-foreground py-2">
+      <Card className="h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="text-center text-muted-foreground py-8 space-y-3">
             <p>No upcoming interviews</p>
+            <Link href="/job-applications?filter=active">
+              <Button variant="secondary" size="sm">
+                View Active Applications
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  // Find applications in interviewing stage but without scheduled interviews
+  const interviewingApplications = applications?.filter(app => 
+    app.status === 'Interviewing' && 
+    !upcomingInterviews.some(interview => interview.applicationId === app.id)
+  ) || [];
+
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-medium">Upcoming Interviews</h3>
+    <Card className="h-full">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
           <Badge variant="secondary" className="text-xs">
             {interviewCount} {interviewCount === 1 ? 'application' : 'applications'}
           </Badge>
         </div>
-        
+      </CardHeader>
+      <CardContent className="pb-4 overflow-auto max-h-[600px]">
         {/* Display upcoming interview stages if available */}
         {upcomingInterviews.length > 0 ? (
-          <div className="space-y-3">
-            {upcomingInterviews.slice(0, 3).map((stage) => (
-              <div key={stage.id} className="border rounded-md p-3">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex justify-between items-start">
-                    <span className="font-medium">{stage.application?.company}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {stage.type}
-                    </Badge>
-                  </div>
-                  
-                  {stage.scheduledDate && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 mr-1.5" />
-                      <span>{format(new Date(stage.scheduledDate), 'MMM d, yyyy h:mm a')}</span>
-                    </div>
-                  )}
-                  
-                  {stage.location && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 mr-1.5" />
-                      <span>{stage.location}</span>
-                    </div>
-                  )}
-                  
-                  {stage.interviewers && stage.interviewers.length > 0 && (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Users className="h-3 w-3 mr-1.5" />
-                      <span>
-                        {stage.interviewers.slice(0, 2).join(', ')}
-                        {stage.interviewers.length > 2 && ` +${stage.interviewers.length - 2} more`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className="space-y-4">
+            {upcomingInterviews.map((stage) => (
+              <InterviewCard 
+                key={stage.id} 
+                stage={stage}
+                onEdit={handleEditInterview}
+              />
             ))}
-            
-            {upcomingInterviews.length > 3 && (
-              <div className="text-center mt-2">
-                <span className="text-xs text-muted-foreground">
-                  +{upcomingInterviews.length - 3} more interview{upcomingInterviews.length - 3 !== 1 ? 's' : ''}
-                </span>
-              </div>
-            )}
           </div>
         ) : (
-          <div className="py-2">
-            <p className="text-sm text-muted-foreground">
-              {interviewCount} application{interviewCount !== 1 ? 's' : ''} in interview stage
-            </p>
+          <div className="py-2 space-y-4">
+            {interviewingApplications.map(app => (
+              <Card key={app.id} className="p-4 border-dashed border-2">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between items-start">
+                    <span className="font-medium">{app.company || app.companyName}</span>
+                    <Badge variant="outline" className="text-xs">
+                      Interviewing
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {app.position || app.jobTitle}
+                  </p>
+                  <div className="flex items-center text-xs text-muted-foreground mt-2">
+                    <Calendar className="h-3 w-3 mr-1.5" />
+                    <span>No interviews scheduled yet</span>
+                  </div>
+                  <div className="mt-3">
+                    <Link href={`/job-applications/${app.id}?addInterview=true`}>
+                      <Button variant="outline" size="sm" className="w-full text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Schedule Interview
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
         
-        <div className="mt-3">
-          <Link href="/job-applications?filter=interviewing">
-            <Button variant="outline" size="sm" className="w-full">
-              View all interviews
-              <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-          </Link>
+        <div className="mt-5 pt-3 border-t">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full">
+                Add New Interview
+                <Plus className="h-4 w-4 ml-1" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Schedule New Interview</DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <h3 className="text-sm font-medium mb-3">Select an application:</h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {applications?.filter(app => app.status === 'Applied' || app.status === 'Interviewing').map(app => (
+                    <Card key={app.id} className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => {
+                        navigate(`/job-applications/${app.id}?addInterview=true`);
+                      }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{app.company || app.companyName}</p>
+                          <p className="text-sm text-muted-foreground">{app.position || app.jobTitle}</p>
+                        </div>
+                        <Badge>{app.status}</Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <Link href="/job-applications?filter=interviewing">
+                    <Button variant="outline" size="sm" className="w-full">
+                      View all applications
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>
