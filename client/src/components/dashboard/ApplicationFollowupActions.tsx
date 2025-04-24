@@ -38,16 +38,62 @@ interface ApplicationFollowupActionsProps {
 export function ApplicationFollowupActions({ limit = 5, showTitle = true }: ApplicationFollowupActionsProps) {
   const [followupActions, setFollowupActions] = useState<Array<FollowupAction & { application?: Application }>>([]);
   const { toast } = useToast();
-  const { updateTaskStatus, updatePendingFollowupCount } = usePendingTasks();
+  const { updateTaskStatus, updatePendingFollowupCount, pendingFollowupCount } = usePendingTasks();
   
-  // Fetch job applications
+  // Track if applications have loaded from localStorage
+  const [localApplicationsLoaded, setLocalApplicationsLoaded] = useState(false);
+
+  // Get applications directly from localStorage first for faster loading
+  useEffect(() => {
+    try {
+      const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      if (Array.isArray(mockApps) && mockApps.length > 0) {
+        console.log(`Loaded ${mockApps.length} applications from localStorage`);
+        setLocalApplicationsLoaded(true);
+        // Immediately load followups based on these applications
+        const pendingFollowups = loadPendingFollowupsFromApps(mockApps);
+        const sortedFollowups = sortFollowups(pendingFollowups);
+        setFollowupActions(sortedFollowups);
+        
+        // Also sync the counter
+        updatePendingFollowupCount().catch(console.error);
+      }
+    } catch (error) {
+      console.error("Error loading applications from localStorage:", error);
+    }
+  }, []);
+  
+  // Fetch job applications from API as backup
   const { data: applications, isLoading: isLoadingApplications } = useQuery<Application[]>({
     queryKey: ['/api/job-applications'],
     queryFn: async () => {
       try {
+        console.log("Refreshing applications list...");
         const response = await apiRequest('GET', '/api/job-applications');
         if (!response.ok) throw new Error(`API error: ${response.status}`);
-        return await response.json();
+        const apiApps = await response.json();
+        
+        // Combine with localStorage applications to ensure we have everything
+        try {
+          const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+          const combinedApps = [...apiApps];
+          
+          // Add any localStorage apps that aren't in the API response
+          if (Array.isArray(mockApps)) {
+            const apiAppIds = new Set(apiApps.map((app: any) => app.id));
+            mockApps.forEach((app: any) => {
+              if (!apiAppIds.has(app.id)) {
+                combinedApps.push(app);
+              }
+            });
+          }
+          
+          console.log("Combined applications:", combinedApps.slice(0, 2));
+          return combinedApps;
+        } catch (e) {
+          console.error("Error combining applications:", e);
+          return apiApps;
+        }
       } catch (error) {
         console.error('Failed to fetch applications:', error);
         
@@ -59,14 +105,14 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Function to load ONLY PENDING followups from localStorage
-  const loadPendingFollowups = () => {
-    if (!applications || !Array.isArray(applications)) return [];
+  // Function to load ONLY PENDING followups from localStorage given an array of applications
+  const loadPendingFollowupsFromApps = (apps: Application[]): Array<FollowupAction & { application?: Application }> => {
+    if (!apps || !Array.isArray(apps)) return [];
     
     const pendingFollowups: Array<FollowupAction & { application?: Application }> = [];
     
     // Go through each application
-    for (const app of applications) {
+    for (const app of apps) {
       try {
         // Get all followups for this application
         const followupsJson = localStorage.getItem(`mockFollowups_${app.id}`);
@@ -91,8 +137,12 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
       }
     }
     
-    // Return all pending followups with application data
     return pendingFollowups;
+  };
+  
+  // Wrapper function that uses the current applications
+  const loadPendingFollowups = () => {
+    return loadPendingFollowupsFromApps(applications || []);
   };
   
   // Sort followups by due date and creation date
@@ -123,36 +173,42 @@ export function ApplicationFollowupActions({ limit = 5, showTitle = true }: Appl
     console.log(`Loaded ${pendingFollowups.length} pending followups across all applications`);
     setFollowupActions(sortedFollowups);
     
-    // Also refresh the pending count in the context
-    updatePendingFollowupCount().catch(err => 
-      console.error('Error updating pending followup count:', err)
-    );
+    // Ensure the counter matches the number of followups we've loaded
+    if (pendingFollowups.length !== pendingFollowupCount) {
+      updatePendingFollowupCount().catch(err => 
+        console.error('Error updating pending followup count:', err)
+      );
+    }
   };
   
   // Listen for localStorage changes and task status changes to refresh the component
   useEffect(() => {
     if (!applications) return;
     
-    // Initial load
+    // Initial load from API data
     refreshFollowups();
     
     // Function to handle when a task status changes via the TaskStatusChangeEvent
     const handleTaskStatusChange = (event: Event) => {
       const taskEvent = event as CustomEvent;
-      if (taskEvent.detail && taskEvent.detail.isCompleted) {
-        // If a task was completed, immediately refresh our list to remove it
-        refreshFollowups();
-      }
+      // Always refresh when a task status changes
+      refreshFollowups();
     };
     
-    // Listen for the custom event that fires when task status changes
+    // Listen for both taskStatusChange and storage events
     window.addEventListener('taskStatusChange', handleTaskStatusChange);
+    window.addEventListener('storage', (event) => {
+      if (event.key && event.key.startsWith('mockFollowups_')) {
+        refreshFollowups();
+      }
+    });
     
     // Set up a refresh interval (every 5 seconds) to ensure the list stays updated
     const interval = setInterval(refreshFollowups, 5000);
     
     return () => {
       window.removeEventListener('taskStatusChange', handleTaskStatusChange);
+      window.removeEventListener('storage', handleTaskStatusChange);
       clearInterval(interval);
     };
   }, [applications]);

@@ -23,7 +23,24 @@ interface TaskStatusChangeEvent extends CustomEvent {
 const PendingTasksContext = createContext<PendingTasksContextType | undefined>(undefined);
 
 export function PendingTasksProvider({ children }: { children: ReactNode }) {
-  const [pendingFollowupCount, setPendingFollowupCount] = useState(0);
+  // Initialize from localStorage if available
+  const initialCount = (() => {
+    try {
+      const storedCount = localStorage.getItem('pendingFollowupCount');
+      if (storedCount) {
+        const count = parseInt(storedCount, 10);
+        if (!isNaN(count)) {
+          console.log(`Initialized pending followup count from localStorage: ${count}`);
+          return count;
+        }
+      }
+    } catch (e) {
+      console.error('Error reading pendingFollowupCount from localStorage:', e);
+    }
+    return 0;
+  })();
+  
+  const [pendingFollowupCount, setPendingFollowupCount] = useState(initialCount);
   
   // Enhanced function to count all pending followups from localStorage and API
   const updatePendingFollowupCount = useCallback(async (): Promise<number> => {
@@ -59,6 +76,24 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
             };
             
             console.log(`Application ${app.id} (${appCounts[app.id].company}): ${pendingCount} pending followups found`);
+            
+            // If we found pending followups for this application, make sure they have applicationId set
+            if (pendingCount > 0) {
+              let needsUpdate = false;
+              const updatedFollowups = mockFollowups.map((f: any) => {
+                if (!f.applicationId) {
+                  needsUpdate = true;
+                  return { ...f, applicationId: app.id };
+                }
+                return f;
+              });
+              
+              // If any followups were missing applicationId, save the updated data
+              if (needsUpdate) {
+                localStorage.setItem(`mockFollowups_${app.id}`, JSON.stringify(updatedFollowups));
+                console.log(`Fixed applicationId for some followups of application ${app.id}`);
+              }
+            }
           }
         } catch (error) {
           console.error(`Error counting followups for local application ${app.id}:`, error);
@@ -69,6 +104,9 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       
       // Update the count immediately from localStorage data
       setPendingFollowupCount(localCount);
+      
+      // Save this value to localStorage so it persists across page reloads
+      localStorage.setItem('pendingFollowupCount', String(localCount));
       
       // Then try to get applications from the API in the background
       // to ensure we have the latest data
@@ -130,6 +168,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
           if (apiCount !== localCount) {
             console.log(`API count (${apiCount}) differs from localStorage count (${localCount}), updating to API count...`);
             setPendingFollowupCount(apiCount);
+            localStorage.setItem('pendingFollowupCount', String(apiCount));
             return apiCount;
           }
         }
