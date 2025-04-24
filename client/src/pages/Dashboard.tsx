@@ -593,13 +593,13 @@ export default function Dashboard() {
         </motion.div>
       </motion.div>
       
-      {/* Current Goals & Interview Followup Actions */}
+      {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 will-change-opacity"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
-        {/* Current Goals */}
+        {/* Career Goals */}
         <motion.div 
           className="will-change-transform"
           variants={cardAnimation}
@@ -679,6 +679,15 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+        
+        {/* Upcoming Interviews - between Career Goals and Follow-up Actions */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <UpcomingInterviewsCard />
         </motion.div>
         
         {/* Interview Followup Actions */}
@@ -815,15 +824,6 @@ export default function Dashboard() {
               </form>
             </CardContent>
           </Card>
-        </motion.div>
-        
-        {/* Upcoming Interviews */}
-        <motion.div
-          variants={cardAnimation}
-          className="will-change-transform"
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <UpcomingInterviewsCard />
         </motion.div>
       </motion.div>
       
