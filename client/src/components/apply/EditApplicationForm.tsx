@@ -247,7 +247,24 @@ export function EditApplicationForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Application Status*</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={(value) => {
+                        // Check if the user is trying to select "Interviewing" status
+                        if (value === "Interviewing") {
+                          // Show a toast informing them they need to add an interview first
+                          toast({
+                            title: "Action Required",
+                            description: "You need to create an interview stage first before setting status to 'Interviewing'. Add an interview in the interview section.",
+                            variant: "default"
+                          });
+                          // Don't change the status to "Interviewing"
+                          return;
+                        }
+                        // For other statuses, update normally
+                        field.onChange(value);
+                      }} 
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select application status" />
@@ -256,13 +273,21 @@ export function EditApplicationForm({
                       <SelectContent>
                         <SelectItem value="In Progress">In Progress</SelectItem>
                         <SelectItem value="Applied">Applied</SelectItem>
-                        <SelectItem value="Interviewing">Interviewing</SelectItem>
+                        {/* Only show Interviewing option if there's already an interview stage */}
+                        {application.status === 'Interviewing' && 
+                          <SelectItem value="Interviewing">Interviewing</SelectItem>
+                        }
                         <SelectItem value="Offer">Offer</SelectItem>
                         <SelectItem value="Rejected">Rejected</SelectItem>
                         <SelectItem value="Accepted">Accepted</SelectItem>
                         <SelectItem value="Withdrawn">Withdrawn</SelectItem>
                       </SelectContent>
                     </Select>
+                    {application.status !== 'Interviewing' && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Note: To set status to "Interviewing", create an interview stage in the Interview section first.
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

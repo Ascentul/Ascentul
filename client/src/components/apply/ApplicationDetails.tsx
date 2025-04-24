@@ -178,6 +178,16 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   });
 
   const handleStatusChange = (status: ApplicationStatus) => {
+    // Check if trying to update to Interviewing without interview stages
+    if (status === 'Interviewing' && (!interviewStages || interviewStages.length === 0)) {
+      toast({
+        title: "Action Required",
+        description: "You need to create an interview stage first before setting status to 'Interviewing'.",
+        variant: "default"
+      });
+      return; // Don't update the status
+    }
+    
     const updatedApplication = { ...localApplication, status };
     setLocalApplication(updatedApplication);
     
