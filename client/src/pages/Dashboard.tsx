@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser, useIsUniversityUser } from '@/lib/useUserData';
+import { usePendingTasks } from '@/context/PendingTasksContext';
 import StatCard from '@/components/StatCard';
 import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
@@ -135,50 +136,8 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
   
-  // Get applications for follow-up actions counting
-  const { data: applications } = useQuery<Application[]>({
-    queryKey: ['/api/job-applications'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/job-applications');
-        return await response.json();
-      } catch (error) {
-        // Fallback to localStorage if API fails
-        const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-        return mockApps;
-      }
-    },
-    staleTime: 1000 * 30, // 30 seconds
-  });
-  
-  // Count pending follow-up actions from localStorage
-  const [pendingFollowupCount, setPendingFollowupCount] = useState(0);
-  
-  useEffect(() => {
-    if (!applications || !Array.isArray(applications)) return;
-    
-    // Collect and count pending follow-ups from localStorage
-    const countPendingFollowups = async () => {
-      let count = 0;
-      
-      for (const app of applications) {
-        try {
-          // Get follow-ups from localStorage
-          const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${app.id}`) || '[]');
-          
-          // Count pending (not completed) follow-ups
-          const pendingCount = mockFollowups.filter((f: any) => !f.completed).length;
-          count += pendingCount;
-        } catch (error) {
-          console.error(`Error counting follow-ups for application ${app.id}:`, error);
-        }
-      }
-      
-      setPendingFollowupCount(count);
-    };
-    
-    countPendingFollowups();
-  }, [applications]);
+  // Get the pending followup count from the PendingTasksContext
+  const { pendingFollowupCount } = usePendingTasks();
   
   // Use default stats if data is not available, and override pendingTasks with our count
   const stats: Stats = {
