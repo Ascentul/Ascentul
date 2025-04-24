@@ -41,10 +41,8 @@ export function UpcomingInterviewsCard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Count applications with status "Interviewing" and load interview stages
-  useEffect(() => {
-    if (!applications || !Array.isArray(applications)) return;
-    
+  // Fix existing interviews with missing scheduled dates
+  const fixExistingInterviews = () => {
     // For debugging - dump all localStorage keys related to interviews
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -54,6 +52,52 @@ export function UpcomingInterviewsCard() {
       }
     }
     console.log("All interview stage localStorage keys:", keys);
+    
+    // Process each key to fix any interviews with missing scheduled dates
+    keys.forEach(key => {
+      try {
+        const stages = JSON.parse(localStorage.getItem(key) || '[]');
+        let hasChanges = false;
+        
+        stages.forEach((stage: any) => {
+          // Check if this is a scheduled or pending interview without a date
+          if ((stage.status === 'scheduled' || stage.status === 'pending' || 
+               stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
+              !stage.scheduledDate) {
+            
+            console.log(`Fixing stage ${stage.id} in ${key} - adding scheduled date`);
+            
+            // Add a scheduled date (7 days from now)
+            const defaultDate = new Date();
+            defaultDate.setDate(defaultDate.getDate() + 7);
+            stage.scheduledDate = defaultDate.toISOString();
+            
+            // Ensure it has a status or outcome set to scheduled
+            if (!stage.status && !stage.outcome) {
+              stage.status = 'scheduled';
+            }
+            
+            hasChanges = true;
+          }
+        });
+        
+        // Save back if changes were made
+        if (hasChanges) {
+          console.log(`Saving fixed stages back to ${key}`);
+          localStorage.setItem(key, JSON.stringify(stages));
+        }
+      } catch (error) {
+        console.error(`Error processing ${key}:`, error);
+      }
+    });
+  };
+  
+  // Count applications with status "Interviewing" and load interview stages
+  useEffect(() => {
+    if (!applications || !Array.isArray(applications)) return;
+    
+    // Fix any existing interviews with missing scheduled dates
+    fixExistingInterviews();
     
     // Filter applications with status "Interviewing"
     const interviewingApps = applications.filter(app => app.status === 'Interviewing');
@@ -112,12 +156,26 @@ export function UpcomingInterviewsCard() {
         // Filter only scheduled or pending stages and add application info
         const scheduledStages = appStages
           .filter((stage: any) => {
-            const isValid = stage && 
-              (stage.status === 'scheduled' || stage.status === 'pending' || 
-               stage.outcome === 'scheduled' || stage.outcome === 'pending') && 
-              stage.scheduledDate && new Date(stage.scheduledDate) > new Date(); // Only future interviews
+            // Ensure the stage exists and has a scheduled date
+            if (!stage || !stage.scheduledDate) {
+              console.log(`Stage ${stage?.id || 'unknown'} has no scheduledDate, skipping`);
+              return false;
+            }
             
-            console.log(`Stage ${stage.id} status=${stage.status} outcome=${stage.outcome} isScheduled=${isValid}`);
+            // Check status and outcome fields for 'scheduled' or 'pending'
+            // Also accept undefined or null statuses if outcome is set appropriately
+            const isScheduledOrPending = (
+              (!stage.status || stage.status === 'scheduled' || stage.status === 'pending') &&
+              (!stage.outcome || stage.outcome === 'scheduled' || stage.outcome === 'pending')
+            );
+            
+            // Check if the interview is in the future
+            const interviewDate = new Date(stage.scheduledDate);
+            const isInFuture = interviewDate > new Date();
+            
+            const isValid = isScheduledOrPending && isInFuture;
+            
+            console.log(`Stage ${stage.id} status=${stage.status} outcome=${stage.outcome} date=${interviewDate.toISOString()} isScheduled=${isValid}`);
             
             return isValid;
           });
@@ -214,23 +272,15 @@ export function UpcomingInterviewsCard() {
         </div>
       </CardHeader>
       <CardContent className="pb-4 overflow-auto max-h-[600px]">
-        {/* Display only scheduled or pending interview stages */}
-        {upcomingInterviews.filter(stage => 
-          stage.outcome === 'scheduled' || stage.outcome === 'pending' || 
-          stage.status === 'scheduled' || stage.status === 'pending'
-        ).length > 0 ? (
+        {/* Display only upcoming interview stages */}
+        {upcomingInterviews.length > 0 ? (
           <div className="space-y-4">
-            {upcomingInterviews
-              .filter(stage => 
-                stage.outcome === 'scheduled' || stage.outcome === 'pending' || 
-                stage.status === 'scheduled' || stage.status === 'pending'
-              )
-              .map((stage) => (
-                <InterviewCard 
-                  key={stage.id} 
-                  stage={stage}
-                  onEdit={handleEditInterview}
-                />
+            {upcomingInterviews.map((stage) => (
+              <InterviewCard 
+                key={stage.id} 
+                stage={stage}
+                onEdit={handleEditInterview}
+              />
             ))}
           </div>
         ) : (

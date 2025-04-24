@@ -194,6 +194,16 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
   const onSubmit = (values: InterviewStageFormValues) => {
     console.log("Submitting new interview stage:", values);
     
+    // Ensure we have a scheduled date for the interview (required for dashboard display)
+    let scheduledDate = values.scheduledDate;
+    
+    // If no date was selected, default to 7 days from now
+    if (!scheduledDate) {
+      console.log("No scheduled date selected, defaulting to 7 days from now");
+      scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() + 7);
+    }
+    
     // Enhanced approach: Immediately store in localStorage before API call for better UX
     if (applicationId) {
       try {
@@ -206,12 +216,12 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
           id: mockStageId,
           applicationId,
           type: values.type,
-          scheduledDate: values.scheduledDate ? new Date(values.scheduledDate).toISOString() : null,
+          scheduledDate: scheduledDate.toISOString(), // Always provide a scheduled date
           completedDate: null,
           location: values.location || null,
           interviewers: values.interviewers || [],
           notes: values.notes || null,
-          outcome: 'pending', // Default outcome for new stages
+          outcome: 'scheduled', // Always set to scheduled with a date
           feedback: null,
           createdAt: now,
           updatedAt: now
