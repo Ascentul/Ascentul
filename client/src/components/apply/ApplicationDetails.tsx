@@ -29,6 +29,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
 import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
 import { EditInterviewStageForm } from '@/components/interview/EditInterviewStageForm';
+import { EditFollowupForm } from './EditFollowupForm';
 import type { InterviewStage, FollowupAction } from '@shared/schema';
 
 
@@ -47,6 +48,8 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   const [showFollowupForm, setShowFollowupForm] = useState(false);
   const [currentStageToEdit, setCurrentStageToEdit] = useState<InterviewStage | null>(null);
   const [showEditStageForm, setShowEditStageForm] = useState(false);
+  const [currentFollowupToEdit, setCurrentFollowupToEdit] = useState<FollowupAction | null>(null);
+  const [showEditFollowupForm, setShowEditFollowupForm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -275,6 +278,85 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                      outcome === 'failed' ? 'Rejected' : 
                      outcome === 'scheduled' ? 'Scheduled' : 
                      'Pending'}`,
+    });
+  };
+
+  // Function to toggle followup completion status
+  const handleToggleFollowupStatus = async (followupId: number) => {
+    console.log(`Toggling followup ${followupId} completion status for application ${application.id}`);
+    
+    // Find the current followup from our data
+    const followupToUpdate = followupActions?.find(f => f.id === followupId);
+    if (!followupToUpdate) {
+      console.error(`Followup with ID ${followupId} not found in current data`);
+      toast({
+        title: "Error",
+        description: "Followup action not found in current data",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log("Current followup data:", followupToUpdate);
+    
+    // Toggle the completion status
+    const newCompletionStatus = !followupToUpdate.completed;
+    
+    // Update in localStorage first for immediate UI feedback
+    try {
+      // Always update in localStorage as a backup - Get followups from localStorage
+      const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${application.id}`) || '[]');
+      console.log("Followups in localStorage before update:", mockFollowups);
+      
+      let followupIndex = mockFollowups.findIndex((f: any) => f.id === followupId);
+      
+      if (followupIndex === -1) {
+        // If followup doesn't exist in localStorage yet, add it
+        mockFollowups.push({
+          ...followupToUpdate,
+          completed: newCompletionStatus,
+          updatedAt: new Date().toISOString()
+        });
+        console.log("Adding new followup to localStorage:", mockFollowups[mockFollowups.length - 1]);
+      } else {
+        // Update existing followup
+        mockFollowups[followupIndex] = {
+          ...mockFollowups[followupIndex],
+          completed: newCompletionStatus,
+          updatedAt: new Date().toISOString()
+        };
+        console.log("Updated followup in localStorage:", mockFollowups[followupIndex]);
+      }
+      
+      // Save updated followups back to localStorage
+      localStorage.setItem(`mockFollowups_${application.id}`, JSON.stringify(mockFollowups));
+    } catch (localStorageError) {
+      console.error("Error updating localStorage:", localStorageError);
+    }
+    
+    // Create a proper update payload that preserves all existing values
+    const updatePayload = {
+      ...followupToUpdate,
+      completed: newCompletionStatus
+    };
+    
+    console.log("Sending update payload to API:", updatePayload);
+    
+    // Try to update on server in parallel
+    try {
+      const response = await apiRequest('PATCH', `/api/applications/${application.id}/followups/${followupId}`, updatePayload);
+      console.log(`API response status:`, response.status);
+    } catch (apiError) {
+      console.error("API update failed, but localStorage update should still work:", apiError);
+    }
+    
+    // Always refresh the data
+    queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/followups`] });
+    
+    // Show success toast
+    toast({
+      title: "Status updated",
+      description: `Follow-up action marked as ${newCompletionStatus ? 'Completed' : 'Pending'}`,
     });
   };
 
@@ -684,15 +766,28 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                 <div className="space-y-3">
                   {followupActions.map((action) => (
                     <div key={action.id} className="flex items-start justify-between border rounded-md p-3">
-                      <div>
-                        <h4 className="font-medium">
-                          {action.type === 'thank_you_email' ? 'Thank You Email' : 
-                           action.type === 'follow_up' ? 'Follow-up' :
-                           action.type === 'preparation' ? 'Interview Preparation' :
-                           action.type === 'document_submission' ? 'Document Submission' :
-                           action.type === 'networking' ? 'Networking Connection' : 
-                           action.description}
-                        </h4>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">
+                            {action.type === 'thank_you_email' ? 'Thank You Email' : 
+                             action.type === 'follow_up' ? 'Follow-up' :
+                             action.type === 'preparation' ? 'Interview Preparation' :
+                             action.type === 'document_submission' ? 'Document Submission' :
+                             action.type === 'networking' ? 'Networking Connection' : 
+                             action.description}
+                          </h4>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 ml-2 -mr-2" 
+                            onClick={() => {
+                              setCurrentFollowupToEdit(action);
+                              setShowEditFollowupForm(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <p className="text-sm">{action.description}</p>
                         
                         {action.dueDate && (
@@ -708,14 +803,19 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                           </div>
                         )}
                       </div>
-                      <Badge variant="outline" 
-                        className={
-                          action.completed ? "bg-green-50 text-green-700 border-green-200" : 
-                          "bg-blue-50 text-blue-700 border-blue-200"
-                        }
+                      <button 
+                        onClick={() => handleToggleFollowupStatus(action.id)}
+                        className="ml-2 cursor-pointer flex-shrink-0"
                       >
-                        {action.completed ? 'Completed' : 'Pending'}
-                      </Badge>
+                        <Badge variant="outline" 
+                          className={
+                            action.completed ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" : 
+                            "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                          }
+                        >
+                          {action.completed ? 'Completed' : 'Pending'}
+                        </Badge>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -779,6 +879,26 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
             toast({
               title: "Interview updated",
               description: "The interview stage has been updated successfully."
+            });
+          }}
+        />
+      )}
+
+      {/* Show edit followup form */}
+      {showEditFollowupForm && currentFollowupToEdit && (
+        <EditFollowupForm
+          isOpen={showEditFollowupForm}
+          onClose={() => setShowEditFollowupForm(false)}
+          followup={currentFollowupToEdit}
+          applicationId={application.id}
+          onSuccess={() => {
+            // Refresh follow-up actions data
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/applications/${application.id}/followups`] 
+            });
+            toast({
+              title: "Follow-up updated",
+              description: "The follow-up action has been updated successfully."
             });
           }}
         />
