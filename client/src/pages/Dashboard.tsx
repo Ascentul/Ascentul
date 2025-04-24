@@ -13,6 +13,9 @@ import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
 import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
+import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
+import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
+import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -143,7 +146,8 @@ export default function Dashboard() {
   const stats: Stats = {
     ...(statsData || DEFAULT_STATS),
     // Use the direct count from our context which reflects actual pending tasks in localStorage
-    pendingTasks: pendingFollowupCount
+    pendingTasks: pendingFollowupCount,
+    // We'll get the upcoming interview count from our context later
   };
 
   // State to track goals that should be hidden (recently completed)
@@ -555,17 +559,7 @@ export default function Dashboard() {
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <StatCard 
-            icon={<Calendar className="h-5 w-5 text-[#8bc34a]" />}
-            iconBgColor="bg-[#8bc34a]/25"
-            iconColor="text-[#8bc34a]"
-            label="Upcoming Interviews"
-            value={stats.upcomingInterviews}
-            change={{
-              type: stats.upcomingInterviews > 0 ? 'increase' : 'no-change',
-              text: stats.upcomingInterviews > 0 ? `${stats.upcomingInterviews} in the next 2 weeks` : 'No upcoming interviews'
-            }}
-          />
+          <InterviewsStatCard />
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
