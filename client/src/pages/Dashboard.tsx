@@ -590,8 +590,10 @@ export default function Dashboard() {
             label="Pending Tasks"
             value={stats.pendingTasks}
             change={{
-              type: 'increase',
-              text: '2 more due this week'
+              type: stats.pendingTasks > 0 ? 'increase' : 'no-change',
+              text: stats.pendingTasks > 0 
+                ? `${stats.pendingTasks} item${stats.pendingTasks !== 1 ? 's' : ''} need attention` 
+                : 'No pending tasks'
             }}
           />
         </motion.div>
