@@ -169,7 +169,12 @@ export function EditInterviewStageForm({
           console.log('Deleting stage from localStorage instead');
           
           // Get existing stages
-          const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+          let mockStages = JSON.parse(localStorage.getItem(`mockStages_${applicationId}`) || '[]');
+          if (mockStages.length === 0) {
+            // Try alternative storage key
+            mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
+          }
+          
           const stageIndex = mockStages.findIndex((s: any) => s.id === stage.id);
           
           if (stageIndex === -1) {
@@ -180,6 +185,8 @@ export function EditInterviewStageForm({
           mockStages.splice(stageIndex, 1);
           
           // Save back to localStorage
+          localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
+          // Also save to the alternative key for compatibility
           localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
           
           return true;
