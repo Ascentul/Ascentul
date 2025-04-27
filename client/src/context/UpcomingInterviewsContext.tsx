@@ -46,13 +46,25 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
           const appStages = JSON.parse(stagesJson);
           if (!Array.isArray(appStages)) return;
           
-          // Count scheduled stages with future dates
+          // Count scheduled or pending stages with future dates
           const now = new Date();
-          const scheduledStages = appStages.filter((stage: any) => 
-            stage && 
-            stage.status === 'scheduled' && 
-            new Date(stage.scheduledDate) > now
-          );
+          const scheduledStages = appStages.filter((stage: any) => {
+            // Ensure we have a valid stage with scheduledDate
+            if (!stage || !stage.scheduledDate) return false;
+            
+            // Check if it has status or outcome of 'scheduled' or 'pending'
+            const isScheduledOrPending = (
+              stage.status === 'scheduled' || 
+              stage.status === 'pending' || 
+              stage.outcome === 'scheduled' || 
+              stage.outcome === 'pending'
+            );
+            
+            // Check if the date is in the future
+            const isInFuture = new Date(stage.scheduledDate) > now;
+            
+            return isScheduledOrPending && isInFuture;
+          });
           
           scheduledInterviewsCount += scheduledStages.length;
         } catch (error) {
@@ -62,11 +74,11 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       
       console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
       
-      // For this stat card, we want to count the applications, not individual interviews
-      // We could use Math.max(appCount, scheduledInterviewsCount) to avoid double counting
-      // Or we could use appCount + scheduledInterviewsCount to count both
-      // For now, let's just count the applications as requested
-      const totalCount = appCount;
+      // For this stat card, we want to include both applications in interviewing status
+      // and those with scheduled interviews
+      // If an application has scheduled interviews, we'll count that instead of just the app status
+      // This ensures the count reflects actual upcoming interviews
+      const totalCount = scheduledInterviewsCount > 0 ? scheduledInterviewsCount : appCount;
       
       // Always prioritize API count if available
       try {
@@ -81,7 +93,14 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
         if (Array.isArray(apiApplications)) {
           // Count applications with status "Interviewing" from API
           const apiInterviewingApps = apiApplications.filter((app: any) => app.status === 'Interviewing');
-          const apiCount = apiInterviewingApps.length;
+          
+          // Also check for scheduled interviews from API (if available)
+          // For now, we'll continue to use the localStorage count for scheduled interviews
+          // since that's more reliable than the API data at this point
+          let apiScheduledInterviewCount = 0;
+          
+          // Prefer scheduled interviews count if available, otherwise use interviewing apps count
+          const apiCount = scheduledInterviewsCount > 0 ? scheduledInterviewsCount : apiInterviewingApps.length;
           
           // Always use API count as source of truth - don't store in localStorage to avoid conflicts
           setUpcomingInterviewCount(apiCount);
