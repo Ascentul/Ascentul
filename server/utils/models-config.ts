@@ -56,6 +56,31 @@ export function getFilteredModels(isAdmin: boolean): OpenAIModel[] {
   return config.models.filter(model => model.active);
 }
 
+// Default model to fall back to if requested model is not available
+export const DEFAULT_MODEL = "gpt-4o";
+
+// Validate if a model ID is valid and active
+export function validateModelAndGetId(modelId: string): string {
+  try {
+    const config = getModelsConfig();
+    const activeModels = config.models.filter(model => model.active);
+    
+    // Check if the requested model exists and is active
+    const model = activeModels.find(m => m.id === modelId);
+    
+    if (model) {
+      return model.id;
+    }
+    
+    // If model is not found or not active, return the default model
+    console.log(`Model ${modelId} not found or not active. Using default model: ${DEFAULT_MODEL}`);
+    return DEFAULT_MODEL;
+  } catch (error) {
+    console.error('Error validating model:', error);
+    return DEFAULT_MODEL;
+  }
+}
+
 // Update the models configuration
 export function updateModelsConfig(updatedModels: OpenAIModel[]): boolean {
   try {
