@@ -114,11 +114,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/interview') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer') || location.startsWith('/apply')) {
+    if (location.startsWith('/interview') || location.startsWith('/apply')) {
       setActiveSection('job-search');
-    } else if (location.startsWith('/goals') || location.startsWith('/ai-coach') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
+    } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
       setActiveSection('career-growth');
-    } else if (location.startsWith('/projects')) {
+    } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer') || location.startsWith('/ai-coach')) {
       setActiveSection('portfolio');
     } else if (location.startsWith('/exit-plan') || location.startsWith('/momentum-coach') || location.startsWith('/weekly-recap')) {
       setActiveSection('planning');
@@ -165,7 +165,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goal Tracker' },
         { href: '/skill-stacker', icon: <ClipboardList className="w-5 h-5 mr-3" />, label: 'Skill Stacker', pro: true },
         { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
-        { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Career Coach' },
       ]
     },
     // Removed Career Profile button - now integrated into Account page
@@ -178,6 +177,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Studio' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
         { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
+        { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Career Coach' },
       ]
     },
 
