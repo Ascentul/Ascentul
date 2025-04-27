@@ -37,14 +37,15 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       // Count upcoming interviews from stages
       let scheduledInterviewsCount = 0;
       
-      // Check for stages with status "scheduled"
-      interviewingApps.forEach((app: any) => {
+      // Check for stages with status "scheduled" or "pending" from both patterns
+      // Define a helper to check stages for a single app using a specific pattern
+      const checkAppStagesWithPattern = (app: any, keyPattern: string): number => {
         try {
-          const stagesJson = localStorage.getItem(`mockStages_${app.id}`);
-          if (!stagesJson) return;
+          const stagesJson = localStorage.getItem(`${keyPattern}${app.id}`);
+          if (!stagesJson) return 0;
           
           const appStages = JSON.parse(stagesJson);
-          if (!Array.isArray(appStages)) return;
+          if (!Array.isArray(appStages)) return 0;
           
           // Count scheduled or pending stages with future dates
           const now = new Date();
@@ -66,11 +67,68 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
             return isScheduledOrPending && isInFuture;
           });
           
-          scheduledInterviewsCount += scheduledStages.length;
+          return scheduledStages.length;
         } catch (error) {
-          console.error(`Error counting stages for application ${app.id}:`, error);
+          console.error(`Error counting stages for application ${app.id} with pattern ${keyPattern}:`, error);
+          return 0;
         }
+      };
+      
+      // A set to track seen stage IDs and avoid double-counting
+      const processedStageIds = new Set<number>();
+      
+      // First check all interviewing applications for stages in both patterns
+      interviewingApps.forEach((app: any) => {
+        // Check both key patterns for each application
+        scheduledInterviewsCount += checkAppStagesWithPattern(app, 'mockStages_');
+        scheduledInterviewsCount += checkAppStagesWithPattern(app, 'mockInterviewStages_');
       });
+      
+      // Also scan all localStorage keys for any interview stages regardless of application status
+      // This catches any interviews where the application status might be inconsistent
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        
+        // Only process interview stage keys
+        if (!key.includes('mockStages_') && !key.includes('mockInterviewStages_')) continue;
+        
+        try {
+          const stagesJson = localStorage.getItem(key);
+          if (!stagesJson) continue;
+          
+          const stages = JSON.parse(stagesJson);
+          if (!Array.isArray(stages)) continue;
+          
+          // Check each stage for scheduled/pending status with future dates
+          const now = new Date();
+          
+          stages.forEach((stage: any) => {
+            // Skip if we've already counted this stage ID
+            if (processedStageIds.has(stage.id)) return;
+            
+            // Check if it's a valid interview with a future date
+            if (!stage || !stage.scheduledDate) return;
+            
+            const isScheduledOrPending = (
+              stage.status === 'scheduled' || 
+              stage.status === 'pending' || 
+              stage.outcome === 'scheduled' || 
+              stage.outcome === 'pending'
+            );
+            
+            const isInFuture = new Date(stage.scheduledDate) > now;
+            
+            if (isScheduledOrPending && isInFuture) {
+              // Count this stage and mark it as processed
+              processedStageIds.add(stage.id);
+              scheduledInterviewsCount++;
+            }
+          });
+        } catch (error) {
+          console.error(`Error processing stages from key ${key}:`, error);
+        }
+      }
       
       console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
       
