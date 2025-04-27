@@ -96,6 +96,14 @@ export function UpcomingInterviewsCard() {
   // Use the UpcomingInterviewsContext hook
   const { upcomingInterviewCount, updateInterviewCount } = useUpcomingInterviews();
   
+  // Pre-load interview data immediately on component mount
+  useEffect(() => {
+    // Immediately dispatch an update event to force context to refresh
+    window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+    // Update context data immediately
+    updateInterviewCount();
+  }, [updateInterviewCount]);
+  
   // Count applications with status "Interviewing" and load interview stages
   useEffect(() => {
     if (!applications || !Array.isArray(applications)) return;
@@ -119,7 +127,8 @@ export function UpcomingInterviewsCard() {
       }
     }
     
-    // Second pass - process all keys
+    // Second pass - process all keys, now including all applications (not just interviewing)
+    // This ensures we find all interviews even if application status is inconsistent
     stageKeys.forEach(key => {
       try {
         const stagesJson = localStorage.getItem(key);
@@ -140,8 +149,14 @@ export function UpcomingInterviewsCard() {
           }
           
           if (applicationId) {
-            // Find the application this stage belongs to
-            const app = interviewingApps.find(a => a.id.toString() === applicationId.toString());
+            // Try to find the application - look in interviewing apps first
+            let app = interviewingApps.find(a => a.id.toString() === applicationId.toString());
+            
+            // If not found and it's a valid interview stage, try to find in all applications
+            if (!app && (stage.status === 'scheduled' || stage.status === 'pending')) {
+              app = applications.find(a => a.id.toString() === applicationId.toString());
+            }
+            
             if (app) {
               // Add application info to the stage
               allStages.push({
