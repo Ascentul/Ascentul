@@ -717,10 +717,6 @@ const Interview = () => {
               <Search className="h-4 w-4 mr-2" />
               Find Jobs
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex-1">
-              <Timeline className="h-4 w-4 mr-2" />
-              Timeline
-            </TabsTrigger>
             <TabsTrigger value="practice" className="flex-1">
               <BookOpenText className="h-4 w-4 mr-2" />
               Practice
@@ -756,42 +752,10 @@ const Interview = () => {
         </motion.div>
       )}
       
-      {/* Timeline View - Full Width */}
-      {activeTab === 'dashboard' && (
-        <motion.div variants={fadeIn} className="container mx-auto">
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-lg font-medium">Interview Process Timeline</h2>
-                <p className="text-sm text-muted-foreground">Visualize your interview journey</p>
-              </div>
-            </div>
-            
-            <Card>
-              <CardContent className="pt-6">
-                {isLoadingProcesses ? (
-                  <div className="py-4">
-                    <LoadingState 
-                      message="Loading interview stages..." 
-                      size="sm" 
-                      variant="card" 
-                      className="w-full rounded-lg"
-                    />
-                  </div>
-                ) : (
-                  <HorizontalTimelineSection 
-                    processes={filteredProcesses || []} 
-                    onEditProcess={handleViewProcess}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
-      )}
+      {/* Timeline View has been removed */}
 
-      {/* All Processes & Practice Views - Full Width */}
-      {activeTab !== 'dashboard' && activeTab !== 'job_search' && (
+      {/* Applications & Practice Views - Full Width */}
+      {activeTab !== 'job_search' && (
         <div className="space-y-6">
           <div className="space-y-4">
             {/* Search Input - Only for Applications and Practice */}
