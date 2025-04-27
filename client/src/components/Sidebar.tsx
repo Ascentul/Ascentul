@@ -48,7 +48,7 @@ type SidebarSection = {
   id: string;
   title: string;
   icon: React.ReactNode;
-  items: SidebarItem[];
+  items?: SidebarItem[];
   href?: string;
 }
 
@@ -118,8 +118,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
       setActiveSection('career-growth');
-    } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer') || location.startsWith('/ai-coach')) {
+    } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
       setActiveSection('portfolio');
+    } else if (location.startsWith('/ai-coach')) {
+      setActiveSection('ai-coach');
     } else if (location.startsWith('/exit-plan') || location.startsWith('/momentum-coach') || location.startsWith('/weekly-recap')) {
       setActiveSection('planning');
     } else {
@@ -177,10 +179,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         { href: '/resume', icon: <FileText className="w-5 h-5 mr-3" />, label: 'Resume Studio' },
         { href: '/cover-letter', icon: <Mail className="w-5 h-5 mr-3" />, label: 'Cover Letter Coach' },
         { href: '/linkedin-optimizer', icon: <Linkedin className="w-5 h-5 mr-3" />, label: 'LinkedIn Optimizer' },
-        { href: '/ai-coach', icon: <Bot className="w-5 h-5 mr-3" />, label: 'AI Career Coach' },
       ]
     },
-
+    {
+      id: 'ai-coach',
+      title: 'AI Career Coach',
+      icon: <Bot className="w-5 h-5" />,
+      href: '/ai-coach',
+    },
   ];
 
   // Dashboard link - always visible
@@ -352,7 +358,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                       <span className={expanded ? 'mr-3' : ''}>{section.icon}</span>
                       {expanded && <span>{section.title}</span>}
                     </div>
-                    {expanded && section.items.length > 0 && (
+                    {expanded && section.items && section.items.length > 0 && (
                       <ChevronRight className="w-4 h-4" />
                     )}
                   </Link>
@@ -395,7 +401,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                       className="overflow-hidden"
                     >
                       <div className="pt-1 pl-7 pb-1">
-                        {section.items.map((item) => (
+                        {section.items && section.items.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
@@ -427,7 +433,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                           {section.icon}
                           <span className="ml-2">{section.title}</span>
                         </div>
-                        {section.items.map((item) => (
+                        {section.items && section.items.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}
