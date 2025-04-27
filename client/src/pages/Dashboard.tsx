@@ -563,14 +563,7 @@ export default function Dashboard() {
           <InterviewsStatCard />
         </motion.div>
         
-        {/* Debug section - only visible in development mode or when problems occur */}
-        {true || window.location.hostname === 'localhost' || (
-          localStorage.getItem('debugMode') === 'true')
-         ? (
-          <motion.div variants={cardAnimation} className="will-change-transform mt-4" style={{ transform: 'translateZ(0)' }}>
-            <InterviewDebugTools />
-          </motion.div>
-        ) : null}
+        {/* Debug section removed - interview issue has been resolved */}
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
@@ -590,14 +583,14 @@ export default function Dashboard() {
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
-            icon={<Briefcase className="h-5 w-5 text-secondary" />}
-            iconBgColor="bg-secondary/25"
-            iconColor="text-secondary"
-            label="Interview Processes"
-            value={activeInterviewProcesses}
+            icon={<Target className="h-5 w-5 text-green-500" />}
+            iconBgColor="bg-green-500/25"
+            iconColor="text-green-500"
+            label="Skill Plans"
+            value={3} 
             change={{
-              type: activeInterviewProcesses > 0 ? 'increase' : 'no-change',
-              text: activeInterviewProcesses > 0 ? `${activeInterviewProcesses} in progress` : 'No active processes'
+              type: 'increase',
+              text: '3 active learning paths'
             }}
           />
         </motion.div>
