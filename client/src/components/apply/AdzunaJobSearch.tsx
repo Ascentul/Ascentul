@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExternalLink, Loader2, Search, Lightbulb } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ApplicationAssistant } from './ApplicationAssistant';
 import { ApplicationWizard } from './ApplicationWizard';
 
@@ -16,6 +18,7 @@ interface AdzunaJobSearchProps {
 }
 
 export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useState<JobSearchParams>({
     keywords: '',
     location: '',
@@ -183,16 +186,80 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   } | null>(null);
   
   // Handle starting an application
-  const handleStartApplication = (job: AdzunaJob) => {
-    setApplicationJob({
-      id: job.id,
-      title: job.title,
-      company: job.company.display_name,
-      description: job.description,
-      location: job.location.display_name,
-      url: job.redirect_url
-    });
-    setShowApplicationWizard(true);
+  const handleStartApplication = async (job: AdzunaJob) => {
+    try {
+      // Open the job URL in a new tab
+      window.open(job.redirect_url, '_blank');
+      
+      // Directly create the application with "In Progress" status
+      const now = new Date().toISOString();
+      const newApplication = {
+        jobId: 0, // Local job entry from Adzuna data
+        title: job.title,
+        jobTitle: job.title,
+        position: job.title,
+        company: job.company.display_name,
+        companyName: job.company.display_name,
+        location: job.location.display_name || 'Remote',
+        jobLocation: job.location.display_name || 'Remote',
+        description: job.description,
+        status: 'In Progress',
+        adzunaJobId: job.id || '',
+        externalJobUrl: job.redirect_url || '',
+        jobLink: job.redirect_url || '',
+        notes: '',
+        source: 'Adzuna',
+        applicationDate: now,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      try {
+        // Try to use the API first
+        const response = await apiRequest({
+          url: '/api/applications',
+          method: 'POST',
+          data: newApplication
+        });
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+        
+        console.log('Application created:', response);
+      } catch (error) {
+        console.error('API error, falling back to localStorage:', error);
+        
+        // Fallback to localStorage for demo mode
+        const mockId = Date.now();
+        const mockApp = {
+          id: mockId,
+          ...newApplication
+        };
+        
+        // Store application in localStorage
+        const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        storedApplications.push(mockApp);
+        localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+        
+        // Dispatch event to notify application status change
+        window.dispatchEvent(new Event('applicationStatusChange'));
+      }
+      
+      // Show success toast
+      toast({
+        title: "Added to Application Tracker",
+        description: `${job.title} at ${job.company.display_name} has been added to your tracker`,
+      });
+      
+    } catch (error) {
+      console.error('Error starting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start application. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleSelectJob = (job: AdzunaJob) => {
@@ -352,7 +419,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                             handleStartApplication(job);
                           }}
                         >
-                          Start Application
+                          Add to Tracker
                         </Button>
                         <Button 
                           size="sm" 
@@ -514,7 +581,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                       variant="outline" 
                       onClick={() => handleStartApplication(selectedJob)}
                     >
-                      Start Application
+                      Add to Tracker
                     </Button>
                     
                     <Button 
