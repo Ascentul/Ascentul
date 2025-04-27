@@ -1,6 +1,8 @@
 import { Express, Request, Response } from 'express';
 import { requireAuth, isAdmin, requireAdmin } from '../auth';
-import { getFilteredModels, updateModelsConfig, OpenAIModel } from '../utils/models-config';
+import { getFilteredModels, updateModelsConfig, OpenAIModel, getModelsConfig } from '../utils/models-config';
+import { ModelNotificationService } from '../utils/notification-service';
+import { storage } from '../storage';
 
 export function registerModelsRoutes(app: Express) {
   // GET /api/models - Get all models (filtered by user role)
@@ -21,7 +23,7 @@ export function registerModelsRoutes(app: Express) {
   });
 
   // PUT /api/models - Update models (admin only)
-  app.put('/api/models', requireAdmin, (req: Request, res: Response) => {
+  app.put('/api/models', requireAdmin, async (req: Request, res: Response) => {
     try {
       const { models } = req.body;
       
@@ -53,7 +55,43 @@ export function registerModelsRoutes(app: Express) {
       const success = updateModelsConfig(modelsArray);
       
       if (success) {
-        res.status(200).json({ success: true, message: 'Models configuration updated successfully' });
+        try {
+          // Check for newly activated models and send notifications
+          const notificationService = new ModelNotificationService(storage);
+          const notificationResult = await notificationService.checkAndNotify(modelsArray);
+          
+          // If new models were activated, include them in the response
+          if (notificationResult.newlyActivatedModels.length > 0) {
+            // Send email notifications to users who have opted in (if SendGrid is configured)
+            await notificationService.sendEmailNotifications(
+              undefined, // Send to all users
+              notificationResult.newlyActivatedModels
+            );
+            
+            res.status(200).json({ 
+              success: true, 
+              message: 'Models configuration updated successfully',
+              newlyActivatedModels: notificationResult.newlyActivatedModels,
+              notificationsSent: notificationResult.notificationsSent 
+            });
+          } else {
+            res.status(200).json({ 
+              success: true, 
+              message: 'Models configuration updated successfully',
+              newlyActivatedModels: [],
+              notificationsSent: false
+            });
+          }
+        } catch (error) {
+          const notificationError = error as Error;
+          console.error('Error handling model notifications:', notificationError);
+          // Still return success since the models were updated
+          res.status(200).json({ 
+            success: true, 
+            message: 'Models configuration updated successfully, but notification processing failed',
+            notificationError: notificationError.message
+          });
+        }
       } else {
         res.status(500).json({ error: 'Failed to update models configuration' });
       }
