@@ -725,13 +725,12 @@ const Interview = () => {
           <TabsList className="w-full max-w-md mx-auto">
             <TabsTrigger value="applications" className="flex-1">
               <Briefcase className="h-4 w-4 mr-2" />
-              All Applications
+              Interview Practice
             </TabsTrigger>
             <TabsTrigger value="job_search" className="flex-1">
               <Search className="h-4 w-4 mr-2" />
               Find Jobs
             </TabsTrigger>
-            {/* Practice tab removed and moved to sidebar as a submenu under Job Search */}
           </TabsList>
         </Tabs>
       </motion.div>
@@ -769,6 +768,14 @@ const Interview = () => {
       {activeTab !== 'job_search' && (
         <div className="space-y-6">
           <div className="space-y-4">
+            {/* Add title for Interview Practice */}
+            {activeTab === 'applications' && (
+              <motion.div variants={subtleUp}>
+                <h2 className="text-2xl font-semibold mb-2">Interview Practice</h2>
+                <p className="text-muted-foreground">Practice and prepare for your interviews with AI-powered assistance</p>
+              </motion.div>
+            )}
+            
             {/* Search Input - Only for Applications and Practice */}
             <motion.div variants={subtleUp} className="w-full max-w-md">
               <div className="relative">
