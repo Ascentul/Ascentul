@@ -76,31 +76,31 @@ const HorizontalTimelineSection = ({
   const [isStageDialogOpen, setIsStageDialogOpen] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
-  
+
   // Fetch stages for all applications with interview data
   const { data: allStages, isLoading, refetch: refetchAllStages } = useQuery<Record<number, InterviewStage[]>>({
     queryKey: ['/api/interview/stages'],
     queryFn: async () => {
       console.log('Loading interview stages from localStorage...');
-      
+
       try {
         // Use our improved utility function to load all stages from all sources
         const stagesMap = loadAllInterviewStages();
-        
+
         // Log summary info for debugging
         const applications = Object.keys(stagesMap);
         console.log(`Found ${applications.length} applications with interviews to display`);
-        
+
         // Log details about each application's stages
         for (const appId of applications) {
           const numericAppId = Number(appId);
           const stages = stagesMap[numericAppId];
           const app = stages[0]; // Get the first stage which has company info attached
-          
+
           // Log each application's stages
           console.log(`Application ${appId} (${app?.companyName || 'Unknown'}): found ${stages.length} stages`);
         }
-        
+
         console.log('Combined timeline stages:', stagesMap);
         return stagesMap;
       } catch (error) {
@@ -113,7 +113,7 @@ const HorizontalTimelineSection = ({
     refetchOnWindowFocus: true,
     refetchInterval: 5000 // Refresh every 5 seconds to pick up new stages
   });
-  
+
   // Set up listeners for interview data changes to trigger refreshes
   useEffect(() => {
     // Event handler for any interview data change
@@ -121,12 +121,12 @@ const HorizontalTimelineSection = ({
       console.log('Interview data changed event received, refreshing stages');
       refetchAllStages();
     };
-    
+
     // Listen to all our custom events from interview-utils.ts
     window.addEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChanged);
     window.addEventListener(INTERVIEW_STAGE_ADDED_EVENT, handleInterviewDataChanged);
     window.addEventListener(INTERVIEW_STAGE_UPDATED_EVENT, handleInterviewDataChanged);
-    
+
     // Also listen to storage events that might come from other tabs/windows
     window.addEventListener('storage', (event) => {
       if (event.key && (
@@ -137,7 +137,7 @@ const HorizontalTimelineSection = ({
         refetchAllStages();
       }
     });
-    
+
     return () => {
       // Clean up event listeners
       window.removeEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChanged);
@@ -146,7 +146,7 @@ const HorizontalTimelineSection = ({
       window.removeEventListener('storage', handleInterviewDataChanged);
     };
   }, [refetchAllStages]);
-  
+
   // Update stage
   const updateStageMutation = useMutation({
     mutationFn: async (updatedStage: Partial<InterviewStage>) => {
@@ -163,7 +163,7 @@ const HorizontalTimelineSection = ({
       queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
-      
+
       // Dispatch event to notify components about interview data changes
       notifyInterviewDataChanged();
       setIsStageDialogOpen(false);
@@ -176,16 +176,16 @@ const HorizontalTimelineSection = ({
       });
     }
   });
-  
+
   // Handle stage click to open edit dialog
   const handleStageClick = (processId: number, stageId: number) => {
     // In our adapter, processId is actually applicationId
     const applicationId = processId;
     setSelectedProcessId(processId);
     setSelectedStageId(stageId);
-    
+
     console.log(`Stage clicked: Application ${applicationId}, Stage ${stageId}`);
-    
+
     // Find the selected stage - using the application ID to look up in our stored stages
     const stage = allStages && allStages[applicationId]?.find(s => s.id === stageId);
     if (stage) {
@@ -197,38 +197,38 @@ const HorizontalTimelineSection = ({
       console.log("Available stages:", allStages && allStages[applicationId]);
     }
   };
-  
+
   // Handle saving changes to a stage
   const handleSaveStage = (updatedStage: Partial<InterviewStage>) => {
     if (selectedStageId) {
       updateStageMutation.mutate(updatedStage);
     }
   };
-  
+
   // Debug the derived states
   const hasProcesses = Array.isArray(processes) && processes.length > 0;
   const hasStages = allStages && Object.keys(allStages).length > 0;
   const stagesCount = hasStages ? Object.values(allStages).flat().length : 0;
-  
+
   // Generate a map of application IDs to "fake" process IDs for the timeline
   // This allows us to use the applications data with the process-oriented timeline
   const applicationToProcessMap = new Map<number, number>();
   const processToApplicationMap = new Map<number, number>();
-  
+
   // Build adapted data for the timeline by treating applications as processes
   let adaptedStages: Record<number, InterviewStage[]> = {};
   let generatedProcesses: InterviewProcess[] = [];
-  
+
   if (hasStages) {
     // Extract applications with stages
     const applicationIds = Object.keys(allStages).map(Number);
-    
+
     // Map each application to a unique process ID (for now, just use the app ID)
     applicationIds.forEach(appId => {
       // Use application ID as process ID for simplicity
       applicationToProcessMap.set(appId, appId);
       processToApplicationMap.set(appId, appId);
-      
+
       // Build a fake process object from the application data
       // using stage data to get company and position info
       const stages = allStages[appId] || [];
@@ -242,13 +242,13 @@ const HorizontalTimelineSection = ({
           createdAt: new Date(firstStage.createdAt || Date.now()),
           updatedAt: new Date(firstStage.updatedAt || Date.now())
         });
-        
+
         // Use the same mapping for stages
         adaptedStages[appId] = stages;
       }
     });
   }
-  
+
   console.log("Timeline Debug:", {
     isLoading,
     hasProcesses,
@@ -258,7 +258,7 @@ const HorizontalTimelineSection = ({
     stageKeys: hasStages ? Object.keys(allStages) : [],
     allStagesData: allStages
   });
-  
+
   return (
     <div className="space-y-6">
       {/* Debug panel */}
@@ -268,7 +268,7 @@ const HorizontalTimelineSection = ({
           Generated processes: {generatedProcesses.length} |
           Total stages: {stagesCount}</p>
       </div>
-      
+
       {isLoading ? (
         <LoadingState 
           message="Loading interview stages..." 
@@ -345,13 +345,13 @@ const Interview = () => {
     } else {
       // Parse the URL to check for query parameters
       const url = new URL(window.location.href);
-      
+
       // Handle create=true parameter
       const shouldCreate = url.searchParams.get('create');
       if (shouldCreate === 'true') {
         setShowCreateForm(true);
       }
-      
+
       // Handle tab parameter as fallback
       const tabParam = url.searchParams.get('tab');
       if (tabParam === 'practice') {
@@ -392,7 +392,7 @@ const Interview = () => {
     queryKey: ['/api/interview/processes'],
     placeholderData: [],
   });
-  
+
   // Fetch job applications
   const { data: applications, isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
     queryKey: ['/api/job-applications'],
@@ -400,14 +400,14 @@ const Interview = () => {
       try {
         // First check localStorage for any saved applications
         const mockApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-        
+
         // Try to get server applications (if logged in)
         try {
           const response = await apiRequest({
             url: '/api/job-applications',
             method: 'GET'
           });
-          
+
           // If we have mock applications in localStorage, merge with server applications
           if (mockApplications.length > 0) {
             // Check if response is an array
@@ -419,11 +419,11 @@ const Interview = () => {
               ...serverApps,
               ...mockApplications.filter((app: any) => !existingIds.has(app.id))
             ];
-            
+
             console.log('Combined applications:', mergedApps);
             return mergedApps;
           }
-          
+
           return Array.isArray(response) ? response : [];
         } catch (serverError) {
           // If server request fails, fall back to the localStorage applications
@@ -443,17 +443,17 @@ const Interview = () => {
     staleTime: 10000, // Refresh every 10 seconds
     refetchOnWindowFocus: true, // Refresh when the page gains focus
   });
-  
+
   // Get access to the query client
   const queryClient = useQueryClient();
-  
+
   // Helper function to sync application updates to localStorage
   const syncApplicationToLocalStorage = useCallback((applicationId: number, updates: Partial<JobApplication>) => {
     try {
       // Get applications from localStorage
       const mockApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
       const appIndex = mockApplications.findIndex((a: any) => a.id === applicationId);
-      
+
       // If the application exists in localStorage, update it
       if (appIndex !== -1) {
         mockApplications[appIndex] = {
@@ -461,13 +461,13 @@ const Interview = () => {
           ...updates,
           updatedAt: new Date().toISOString()
         };
-        
+
         localStorage.setItem('mockJobApplications', JSON.stringify(mockApplications));
         console.log(`Application ${applicationId} updated in localStorage:`, updates);
-        
+
         // Force refresh the applications query
         queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
-        
+
         return true;
       }
       return false;
@@ -476,43 +476,43 @@ const Interview = () => {
       return false;
     }
   }, [queryClient]);
-  
+
   // Get selected application details
   const selectedApplication = applications?.find(a => a.id === selectedApplicationId) || null;
   console.log("Selected application ID:", selectedApplicationId);
   console.log("Selected application:", selectedApplication);
   console.log("Available applications:", applications);
-  
+
   // Disable automatic refreshing if an application is selected
   const shouldAutoRefresh = selectedApplicationId === null;
-  
+
   // Refresh the applications list when the page loads and periodically
   useEffect(() => {
     // Function to refresh applications that maintains selection
     const refreshApplications = async () => {
       console.log('Refreshing applications list...');
-      
+
       // If we have a selected application, skip refresh to prevent losing selection
       if (!shouldAutoRefresh) {
         console.log('Application selected, skipping auto-refresh to maintain selection');
         return;
       }
-      
+
       // Refetch the applications
       await queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
     };
-    
+
     // Force an immediate refresh of applications on mount
     if (shouldAutoRefresh) {
       refreshApplications();
     }
-    
+
     // Set up periodic refreshes while the page is open, but only if no application is selected
     let refreshInterval: NodeJS.Timeout | null = null;
     if (shouldAutoRefresh) {
       refreshInterval = setInterval(refreshApplications, 5000); // Refresh every 5 seconds
     }
-    
+
     // Set up focus-based refresh
     const handleFocus = () => {
       if (shouldAutoRefresh) {
@@ -520,9 +520,9 @@ const Interview = () => {
         refreshApplications();
       }
     };
-    
+
     window.addEventListener('focus', handleFocus);
-    
+
     // Clean up
     return () => {
       if (refreshInterval) {
@@ -554,35 +554,35 @@ const Interview = () => {
       process.status.toLowerCase().includes(query)
     );
   });
-  
+
   // Filter applications by search query and status
   const filteredApplications = applications?.filter(app => {
     // First filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      
+
       // Get properties safely with fallbacks for different property formats
       const company = (app.companyName || app.company || '').toLowerCase();
       const title = (app.jobTitle || app.title || app.position || '').toLowerCase();
       const status = (app.status || '').toLowerCase();
       const location = (app.jobLocation || app.location || '').toLowerCase();
-      
+
       // Check if any field matches the search query
       const companyMatch = company.includes(query);
       const titleMatch = title.includes(query);
       const statusMatch = status.includes(query);
       const locationMatch = location.includes(query);
-      
+
       if (!(companyMatch || titleMatch || statusMatch || locationMatch)) {
         return false;
       }
     }
-    
+
     // Then filter by status if a status filter is set
     if (statusFilter && app.status !== statusFilter) {
       return false;
     }
-    
+
     return true;
   }) || [];
 
@@ -604,21 +604,21 @@ const Interview = () => {
   const handleViewProcess = (processId: number) => {
     // In our adapter, processId is actually applicationId
     const applicationId = processId;
-    
+
     console.log(`View application request for process/application ID: ${applicationId}`);
-    
+
     // Set the selected application ID
     setSelectedApplicationId(applicationId);
-    
+
     // Switch to applications tab to show details
     setActiveTab('applications');
   };
-  
+
   const renderProcessCard = (process: InterviewProcess, index: number) => {
     // Determine card background color based on status
     const isRejected = process.status === 'Not Selected';
     const isHired = process.status === 'Hired';
-    
+
     return (
       <motion.div
         variants={listItem}
@@ -649,7 +649,7 @@ const Interview = () => {
       </motion.div>
     );
   };
-  
+
   // Render a job application card
   const renderApplicationCard = (application: JobApplication, index: number) => {
     // Create a function that captures the application ID in a closure
@@ -746,7 +746,7 @@ const Interview = () => {
                 <p className="text-sm text-muted-foreground">Search for jobs and start applying</p>
               </div>
             </div>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <AdzunaJobSearch 
@@ -762,7 +762,7 @@ const Interview = () => {
           </div>
         </motion.div>
       )}
-      
+
       {/* Timeline View has been removed */}
 
       {/* Applications & Practice Views - Full Width */}
@@ -817,7 +817,7 @@ const Interview = () => {
                                 New Application
                               </Button>
                             </div>
-                            
+
                             {/* Status filter buttons */}
                             <div className="flex flex-wrap gap-2 mt-2">
                               <Button
@@ -864,7 +864,7 @@ const Interview = () => {
                                 variant={statusFilter === "Rejected" ? "secondary" : "outline"}
                                 size="sm"
                                 className="text-xs h-7"
-                                onClick={() => setStatusFilter("Rejected")}
+                                                               onClick={() => setStatusFilter("Rejected")}
                               >
                                 <ApplicationStatusBadge status="Rejected" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
                               </Button>
@@ -880,7 +880,7 @@ const Interview = () => {
                                 </Button>
                               )}
                             </div>
-                            
+
                             {filteredApplications.filter(app => 
                               app.status !== 'Offer' && 
                               app.status !== 'Rejected'
@@ -899,7 +899,7 @@ const Interview = () => {
                               </p>
                             )}
                           </div>
-                          
+
                           {/* Completed applications section */}
                           <div className="space-y-3 pt-2">
                             <h3 className="font-medium flex items-center">
@@ -924,7 +924,7 @@ const Interview = () => {
                           </div>
                         </motion.div>
                       </div>
-                      
+
                       {/* Right column: Application details - only visible when an application is selected */}
                       {selectedApplication && (
                         <div className="md:col-span-4">
@@ -941,7 +941,7 @@ const Interview = () => {
                               Debug: selectedApplicationId: {selectedApplicationId ? selectedApplicationId : 'null'} | 
                               Applications: {applications?.length || 0} | Auto-refresh: {shouldAutoRefresh ? 'Yes' : 'No'}
                             </div>
-                            
+
                             <ApplicationDetails 
                               application={selectedApplication}
                               onClose={() => setSelectedApplicationId(null)}
@@ -1018,7 +1018,7 @@ const Interview = () => {
                             <Briefcase className="h-4 w-4 mr-2" />
                             Active Applications
                           </h3>
-                          
+
                           {activeProcesses.length > 0 ? (
                             <div className="space-y-3">
                               {activeProcesses.map((process, index) => (
@@ -1060,14 +1060,14 @@ const Interview = () => {
                             <p className="text-muted-foreground text-center py-2">No active processes</p>
                           )}
                         </div>
-                        
+
                         {/* Completed processes for practice */}
                         <div className="space-y-3">
                           <h3 className="font-medium flex items-center text-sm">
                             <Check className="h-4 w-4 mr-2" />
                             Completed Applications
                           </h3>
-                          
+
                           {completedProcesses.length > 0 ? (
                             <div className="space-y-3">
                               {completedProcesses.map((process, index) => (
@@ -1156,29 +1156,7 @@ const Interview = () => {
           >
             {activeTab === 'practice' ? null : selectedProcess ? (
               <InterviewProcessDetails process={selectedProcess} />
-            ) : (
-              <Card className="h-full flex flex-col items-center justify-center p-8 text-center">
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Briefcase className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium">No Application Selected</h3>
-                  <p className="text-muted-foreground max-w-md mt-2">
-                    Select an application from the list to view details, or create a new one to start tracking your job application journey.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setShowCreateForm(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Application
-                  </Button>
-                </motion.div>
-              </Card>
-            )}
+            ) : null}
           </motion.div>
         </div>
       )}
@@ -1194,7 +1172,7 @@ const Interview = () => {
         onClose={() => setShowPracticeSession(false)}
         process={processes?.find(p => p.id === practiceProcessId) || undefined}
       />
-      
+
       {/* Apply Wizard Dialog */}
       <ApplyWizard 
         isOpen={showApplyWizard}
