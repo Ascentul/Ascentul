@@ -176,8 +176,20 @@ export function UpcomingInterviewsCard() {
       return isScheduledOrPending && isInFuture;
     });
     
+    // Deduplicate stages - we might have the same stage from both mockStages_ and mockInterviewStages_
+    const uniqueStages: InterviewStage[] = [];
+    const stageIds = new Set<number>();
+    
+    // Only add stages with unique IDs to avoid duplicates
+    upcomingStages.forEach(stage => {
+      if (!stageIds.has(stage.id)) {
+        stageIds.add(stage.id);
+        uniqueStages.push(stage);
+      }
+    });
+    
     // Sort by date
-    const sortedStages = upcomingStages.sort((a, b) => {
+    const sortedStages = uniqueStages.sort((a, b) => {
       if (a.scheduledDate && b.scheduledDate) {
         return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
       }
@@ -267,7 +279,7 @@ export function UpcomingInterviewsCard() {
           <div className="space-y-4">
             {upcomingInterviews.map((stage) => (
               <InterviewCard 
-                key={stage.id} 
+                key={`interview-${stage.id}-${stage.applicationId}`} 
                 stage={stage}
                 onEdit={handleEditInterview}
               />
