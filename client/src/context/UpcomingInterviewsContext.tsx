@@ -132,11 +132,10 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       
       console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
       
-      // For this stat card, we want to include both applications in interviewing status
-      // and those with scheduled interviews
-      // If an application has scheduled interviews, we'll count that instead of just the app status
-      // This ensures the count reflects actual upcoming interviews
-      const totalCount = scheduledInterviewsCount > 0 ? scheduledInterviewsCount : appCount;
+      // For this stat card, we always want to show the total number of scheduled interviews
+      // This ensures the count reflects the actual number of upcoming interviews 
+      // rather than just the number of applications
+      const totalCount = scheduledInterviewsCount;
       
       // Always prioritize API count if available
       try {
@@ -157,8 +156,9 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
           // since that's more reliable than the API data at this point
           let apiScheduledInterviewCount = 0;
           
-          // Prefer scheduled interviews count if available, otherwise use interviewing apps count
-          const apiCount = scheduledInterviewsCount > 0 ? scheduledInterviewsCount : apiInterviewingApps.length;
+          // Always use the scheduled interviews count to ensure consistency
+          // This matches our totalCount value from above
+          const apiCount = scheduledInterviewsCount;
           
           // Always use API count as source of truth - don't store in localStorage to avoid conflicts
           setUpcomingInterviewCount(apiCount);

@@ -304,7 +304,7 @@ export function UpcomingInterviewsCard() {
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
           <Badge variant="secondary" className="text-xs">
-            {interviewCount} {interviewCount === 1 ? 'application' : 'applications'}
+            {interviewCount} {interviewCount === 1 ? 'interview' : 'interviews'}
           </Badge>
         </div>
       </CardHeader>
