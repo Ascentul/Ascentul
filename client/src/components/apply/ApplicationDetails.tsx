@@ -34,7 +34,17 @@ import { EditInterviewStageForm } from '@/components/interview/EditInterviewStag
 import { EditFollowupForm } from './EditFollowupForm';
 import InterviewTimeline from '@/components/interview/InterviewTimeline';
 import type { InterviewStage, FollowupAction } from '@shared/schema';
-import { loadInterviewStagesForApplication, updateInterviewStage, notifyInterviewDataChanged } from '@/lib/interview-utils';
+import { 
+  loadInterviewStagesForApplication, 
+  updateInterviewStage, 
+  notifyInterviewDataChanged,
+  INTERVIEW_DATA_CHANGED_EVENT,
+  INTERVIEW_STAGE_ADDED_EVENT,
+  INTERVIEW_STAGE_UPDATED_EVENT,
+  INTERVIEW_COUNT_UPDATE_EVENT,
+  MOCK_STAGES_PREFIX,
+  MOCK_INTERVIEW_STAGES_PREFIX
+} from '@/lib/interview-utils';
 
 
 interface ApplicationDetailsProps {
@@ -64,7 +74,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     setIsEditing(false); // Reset editing state when application changes
   }, [application]);
   
-  // Add event listener for interview data changes
+  // Add event listener for interview data changes using all the event types from interview-utils
   useEffect(() => {
     // Function to handle interview data change event
     const handleInterviewDataChange = () => {
@@ -73,12 +83,30 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
     };
     
-    // Add event listener
-    window.addEventListener('interviewDataChanged', handleInterviewDataChange);
+    // Add event listeners for all relevant events
+    window.addEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChange);
+    window.addEventListener(INTERVIEW_STAGE_ADDED_EVENT, handleInterviewDataChange);
+    window.addEventListener(INTERVIEW_STAGE_UPDATED_EVENT, handleInterviewDataChange);
+    window.addEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewDataChange);
     
-    // Cleanup function to remove event listener
+    // Also listen to storage events that might come from other tabs/windows
+    window.addEventListener('storage', (event) => {
+      if (event.key && (
+        event.key.startsWith(MOCK_STAGES_PREFIX) || 
+        event.key.startsWith(MOCK_INTERVIEW_STAGES_PREFIX)
+      )) {
+        console.log('Storage event detected for interview stages, refreshing');
+        handleInterviewDataChange();
+      }
+    });
+    
+    // Cleanup function to remove event listeners
     return () => {
-      window.removeEventListener('interviewDataChanged', handleInterviewDataChange);
+      window.removeEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChange);
+      window.removeEventListener(INTERVIEW_STAGE_ADDED_EVENT, handleInterviewDataChange);
+      window.removeEventListener(INTERVIEW_STAGE_UPDATED_EVENT, handleInterviewDataChange);
+      window.removeEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewDataChange);
+      window.removeEventListener('storage', handleInterviewDataChange);
     };
   }, [application.id, queryClient]);
 

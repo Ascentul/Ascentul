@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { loadInterviewStagesForApplication, notifyInterviewDataChanged } from '@/lib/interview-utils';
+import { 
+  loadInterviewStagesForApplication, 
+  loadAllInterviewStages,
+  notifyInterviewDataChanged,
+  INTERVIEW_DATA_CHANGED_EVENT,
+  INTERVIEW_STAGE_ADDED_EVENT,
+  INTERVIEW_STAGE_UPDATED_EVENT,
+  MOCK_STAGES_PREFIX,
+  MOCK_INTERVIEW_STAGES_PREFIX
+} from '@/lib/interview-utils';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -69,85 +78,74 @@ const HorizontalTimelineSection = ({
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
   
   // Fetch stages for all applications with interview data
-  const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
+  const { data: allStages, isLoading, refetch: refetchAllStages } = useQuery<Record<number, InterviewStage[]>>({
     queryKey: ['/api/interview/stages'],
     queryFn: async () => {
-      // Create a map of application ID -> stages array
-      const stagesMap: Record<number, InterviewStage[]> = {};
-      
       console.log('Loading interview stages from localStorage...');
       
-      // Start by loading all mock stages from localStorage
       try {
-        // Load all interview stages from job applications (using the utility function)
-        const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-        const interviewingApps = applications.filter((app: any) => 
-          app.status === 'Interviewing' || app.status === 'Interview Scheduled' || app.hasInterviews);
+        // Use our improved utility function to load all stages from all sources
+        const stagesMap = loadAllInterviewStages();
         
-        console.log(`Found ${interviewingApps.length} applications with interviews to display`);
+        // Log summary info for debugging
+        const applications = Object.keys(stagesMap);
+        console.log(`Found ${applications.length} applications with interviews to display`);
         
-        // Include stages from applications in the timeline
-        for (const app of interviewingApps) {
-          if (app && app.id) {
-            try {
-              // Get interview stages using the utility function that checks both storage patterns
-              const appStages = loadInterviewStagesForApplication(app.id);
-              
-              console.log(`Application ${app.id} (${app.company || app.companyName}): found ${appStages.length} stages`);
-              
-              if (appStages && appStages.length > 0) {
-                // Use app ID as the key 
-                const mappedId = app.id;
-                
-                // Create a new entry with company name tagged
-                stagesMap[mappedId] = appStages.map(stage => ({
-                  ...stage,
-                  companyName: app.company || app.companyName || 'Unknown Company',
-                  jobTitle: app.title || app.jobTitle || app.position || 'Unknown Position'
-                }));
-              }
-            } catch (err) {
-              console.error('Error loading interview stages for application:', app.id, err);
-            }
-          }
+        // Log details about each application's stages
+        for (const appId of applications) {
+          const numericAppId = Number(appId);
+          const stages = stagesMap[numericAppId];
+          const app = stages[0]; // Get the first stage which has company info attached
+          
+          // Log each application's stages
+          console.log(`Application ${appId} (${app?.companyName || 'Unknown'}): found ${stages.length} stages`);
         }
         
-        // If we have any processes available, also try to map those
-        if (processes && processes.length > 0) {
-          for (const process of processes) {
-            try {
-              // Skip if we already have stages for this process from applications
-              if (stagesMap[process.id] && stagesMap[process.id].length > 0) {
-                continue;
-              }
-              
-              // Check if there are stages for this process
-              const processStages = loadInterviewStagesForApplication(process.id);
-              
-              if (processStages && processStages.length > 0) {
-                stagesMap[process.id] = processStages.map(stage => ({
-                  ...stage,
-                  companyName: process.companyName || 'Unknown Company',
-                  jobTitle: process.position || 'Unknown Position'
-                }));
-              }
-            } catch (error) {
-              console.error(`Error loading stages for process ${process.id}:`, error);
-            }
-          }
-        }
+        console.log('Combined timeline stages:', stagesMap);
+        return stagesMap;
       } catch (error) {
-        console.error('Error building stages map:', error);
+        console.error('Error loading interview stages:', error);
+        return {};
       }
-      
-      console.log('Combined timeline stages:', stagesMap);
-      return stagesMap;
     },
     enabled: true, // Always enable the query
     placeholderData: {},
     refetchOnWindowFocus: true,
     refetchInterval: 5000 // Refresh every 5 seconds to pick up new stages
   });
+  
+  // Set up listeners for interview data changes to trigger refreshes
+  useEffect(() => {
+    // Event handler for any interview data change
+    const handleInterviewDataChanged = () => {
+      console.log('Interview data changed event received, refreshing stages');
+      refetchAllStages();
+    };
+    
+    // Listen to all our custom events from interview-utils.ts
+    window.addEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChanged);
+    window.addEventListener(INTERVIEW_STAGE_ADDED_EVENT, handleInterviewDataChanged);
+    window.addEventListener(INTERVIEW_STAGE_UPDATED_EVENT, handleInterviewDataChanged);
+    
+    // Also listen to storage events that might come from other tabs/windows
+    window.addEventListener('storage', (event) => {
+      if (event.key && (
+        event.key.startsWith(MOCK_STAGES_PREFIX) || 
+        event.key.startsWith(MOCK_INTERVIEW_STAGES_PREFIX)
+      )) {
+        console.log('Storage event detected for interview stages, refreshing');
+        refetchAllStages();
+      }
+    });
+    
+    return () => {
+      // Clean up event listeners
+      window.removeEventListener(INTERVIEW_DATA_CHANGED_EVENT, handleInterviewDataChanged);
+      window.removeEventListener(INTERVIEW_STAGE_ADDED_EVENT, handleInterviewDataChanged);
+      window.removeEventListener(INTERVIEW_STAGE_UPDATED_EVENT, handleInterviewDataChanged);
+      window.removeEventListener('storage', handleInterviewDataChanged);
+    };
+  }, [refetchAllStages]);
   
   // Update stage
   const updateStageMutation = useMutation({
