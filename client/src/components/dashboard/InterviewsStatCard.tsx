@@ -21,16 +21,18 @@ export function InterviewsStatCard({ isLoading = false }: InterviewsStatCardProp
 
   return (
     <Link href="/job-applications?filter=interviewing">
-      <Card className="p-5 cursor-pointer hover:shadow-md transition-shadow">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Calendar className="h-5 w-5 text-primary" />
+      <Card className="cursor-pointer hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 p-3 rounded-full bg-primary/20">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div className="ml-4">
+              <h3 className="text-neutral-500 text-sm">Upcoming Interviews</h3>
+              <p className="text-2xl font-semibold">{upcomingInterviewCount}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Upcoming Interviews</p>
-            <h2 className="text-3xl font-bold mt-1">{upcomingInterviewCount}</h2>
-          </div>
-        </div>
+        </CardContent>
       </Card>
     </Link>
   );
