@@ -6,8 +6,8 @@
       "active": true
     },
     {
-      "id": "gpt-4o-mini",
-      "label": "GPT-4o Mini",
+      "id": "gpt-3.5-turbo",
+      "label": "GPT-3.5 Turbo",
       "active": true
     },
     {
@@ -16,9 +16,14 @@
       "active": false
     },
     {
-      "id": "gpt-3.5-turbo",
-      "label": "GPT-3.5 Turbo",
-      "active": true
+      "id": "gpt-4-vision-preview",
+      "label": "GPT-4 Vision",
+      "active": false
+    },
+    {
+      "id": "gpt-4",
+      "label": "GPT-4",
+      "active": false
     }
   ]
 }
