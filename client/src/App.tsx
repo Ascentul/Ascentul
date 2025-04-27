@@ -539,17 +539,20 @@ function App() {
 // Import Providers
 import { PendingTasksProvider } from '@/context/PendingTasksContext';
 import { UpcomingInterviewsProvider } from '@/context/UpcomingInterviewsContext';
+import { AuthProvider } from '@/hooks/use-auth';
 
 // Wrap the app with all providers
 const AppWithLoading = () => {
   return (
     <LoadingProvider>
-      <PendingTasksProvider>
-        <UpcomingInterviewsProvider>
-          <ScrollToTop />
-          <App />
-        </UpcomingInterviewsProvider>
-      </PendingTasksProvider>
+      <AuthProvider>
+        <PendingTasksProvider>
+          <UpcomingInterviewsProvider>
+            <ScrollToTop />
+            <App />
+          </UpcomingInterviewsProvider>
+        </PendingTasksProvider>
+      </AuthProvider>
     </LoadingProvider>
   );
 };
