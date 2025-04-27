@@ -564,20 +564,6 @@ export default function Dashboard() {
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
-            icon={<Briefcase className="h-5 w-5 text-secondary" />}
-            iconBgColor="bg-secondary/25"
-            iconColor="text-secondary"
-            label="Interview Processes"
-            value={activeInterviewProcesses}
-            change={{
-              type: activeInterviewProcesses > 0 ? 'increase' : 'no-change',
-              text: activeInterviewProcesses > 0 ? `${activeInterviewProcesses} in progress` : 'No active processes'
-            }}
-          />
-        </motion.div>
-        
-        <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <StatCard 
             icon={<Clock className="h-5 w-5 text-[#ff9800]" />}
             iconBgColor="bg-[#ff9800]/25"
             iconColor="text-[#ff9800]"
@@ -588,6 +574,20 @@ export default function Dashboard() {
               text: stats.pendingTasks > 0 
                 ? `${stats.pendingTasks} item${stats.pendingTasks !== 1 ? 's' : ''} need attention` 
                 : 'No pending tasks'
+            }}
+          />
+        </motion.div>
+        
+        <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
+          <StatCard 
+            icon={<Briefcase className="h-5 w-5 text-secondary" />}
+            iconBgColor="bg-secondary/25"
+            iconColor="text-secondary"
+            label="Interview Processes"
+            value={activeInterviewProcesses}
+            change={{
+              type: activeInterviewProcesses > 0 ? 'increase' : 'no-change',
+              text: activeInterviewProcesses > 0 ? `${activeInterviewProcesses} in progress` : 'No active processes'
             }}
           />
         </motion.div>
