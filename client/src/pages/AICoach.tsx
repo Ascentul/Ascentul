@@ -10,6 +10,7 @@ import AICoachMessage from '@/components/AICoachMessage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import ModelSelector from '@/components/ModelSelector';
+import { ModelNotificationContainer } from '@/components/ModelNotification';
 
 // Types for the simplified AI Coach
 type Message = {
@@ -164,6 +165,9 @@ export default function AICoach() {
   
   return (
     <div className="container mx-auto">
+      {/* Model notification alert specific to AI Coach page */}
+      <ModelNotificationContainer />
+      
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold font-poppins">AI Career Coach</h1>
