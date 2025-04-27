@@ -14,6 +14,7 @@ import {
 import InterviewCard from './InterviewCard';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useUpcomingInterviews, INTERVIEW_COUNT_UPDATE_EVENT } from '@/context/UpcomingInterviewsContext';
 
 // Tracks both applications with status "Interviewing" and interview stages with status "scheduled"
 export function UpcomingInterviewsCard() {
@@ -92,6 +93,9 @@ export function UpcomingInterviewsCard() {
     });
   };
   
+  // Use the UpcomingInterviewsContext hook
+  const { upcomingInterviewCount, updateInterviewCount } = useUpcomingInterviews();
+  
   // Count applications with status "Interviewing" and load interview stages
   useEffect(() => {
     if (!applications || !Array.isArray(applications)) return;
@@ -103,120 +107,104 @@ export function UpcomingInterviewsCard() {
     const interviewingApps = applications.filter(app => app.status === 'Interviewing');
     console.log("Interviewing applications:", interviewingApps.map(app => ({id: app.id, company: app.company || app.companyName})));
     
-    // Count interviewing applications
-    const appCount = interviewingApps.length;
+    // Load all interview stages from both localStorage key patterns
+    let allStages: any[] = [];
     
-    console.log(`Local count: ${appCount} interviewing applications, ${upcomingInterviews.length} scheduled interviews`);
+    // First pass - collect all keys for interview stages
+    const stageKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.includes('mockInterviewStages_') || key.includes('mockStages_'))) {
+        stageKeys.push(key);
+      }
+    }
     
-    // Load interview stages from localStorage
-    const stages: InterviewStage[] = [];
-    
-    // Check each application for interview stages
-    interviewingApps.forEach(app => {
-      console.log(`Checking stages for application ${app.id} (${app.company || app.companyName})`);
-      
+    // Second pass - process all keys
+    stageKeys.forEach(key => {
       try {
-        // First check mockStages_${app.id}
-        let appStages: any[] = [];
-        let stagesJson = localStorage.getItem(`mockStages_${app.id}`);
+        const stagesJson = localStorage.getItem(key);
+        if (!stagesJson) return;
         
-        if (stagesJson) {
-          try {
-            const parsedStages = JSON.parse(stagesJson);
-            if (Array.isArray(parsedStages) && parsedStages.length > 0) {
-              appStages = parsedStages;
-              console.log(`Found ${parsedStages.length} stages in mockStages_${app.id}:`, parsedStages);
-            }
-          } catch (e) {
-            console.error(`Error parsing mockStages_${app.id}:`, e);
+        const parsedStages = JSON.parse(stagesJson);
+        if (!Array.isArray(parsedStages) || parsedStages.length === 0) return;
+        
+        // For each stage, determine which application it belongs to
+        parsedStages.forEach((stage: any) => {
+          // Extract application ID from the key
+          let applicationId: string | number | null = null;
+          
+          if (key.includes('mockStages_')) {
+            applicationId = key.replace('mockStages_', '');
+          } else if (key.includes('mockInterviewStages_')) {
+            applicationId = key.replace('mockInterviewStages_', '');
           }
-        }
-        
-        // If no stages found, check mockInterviewStages_${app.id}
-        if (appStages.length === 0) {
-          stagesJson = localStorage.getItem(`mockInterviewStages_${app.id}`);
-          if (stagesJson) {
-            try {
-              const parsedStages = JSON.parse(stagesJson);
-              if (Array.isArray(parsedStages) && parsedStages.length > 0) {
-                appStages = parsedStages;
-                console.log(`Found ${parsedStages.length} stages in mockInterviewStages_${app.id}:`, parsedStages);
-              }
-            } catch (e) {
-              console.error(`Error parsing mockInterviewStages_${app.id}:`, e);
+          
+          if (applicationId) {
+            // Find the application this stage belongs to
+            const app = interviewingApps.find(a => a.id.toString() === applicationId.toString());
+            if (app) {
+              // Add application info to the stage
+              allStages.push({
+                ...stage,
+                applicationId: stage.applicationId || app.id,
+                application: app
+              });
             }
           }
-        }
-        
-        if (appStages.length === 0) {
-          console.log(`No interview stages found for application ${app.id}`);
-          return; // No stages found for this application
-        }
-        
-        // Filter only scheduled or pending stages and add application info
-        const scheduledStages = appStages
-          .filter((stage: any) => {
-            // Ensure the stage exists and has a scheduled date
-            if (!stage || !stage.scheduledDate) {
-              console.log(`Stage ${stage?.id || 'unknown'} has no scheduledDate, skipping`);
-              return false;
-            }
-            
-            // Check status and outcome fields for 'scheduled' or 'pending'
-            // At least one of them needs to be 'scheduled' or 'pending'
-            const isScheduledOrPending = (
-              stage.status === 'scheduled' || 
-              stage.status === 'pending' || 
-              stage.outcome === 'scheduled' || 
-              stage.outcome === 'pending'
-            );
-            
-            // Check if the interview is in the future
-            const interviewDate = new Date(stage.scheduledDate);
-            const isInFuture = interviewDate > new Date();
-            
-            const isValid = isScheduledOrPending && isInFuture;
-            
-            console.log(`Stage ${stage.id} status=${stage.status} outcome=${stage.outcome} date=${interviewDate.toISOString()} isScheduled=${isValid}`);
-            
-            return isValid;
-          });
-        
-        console.log(`Found ${scheduledStages.length} scheduled stages for application ${app.id}`);
-        
-        scheduledStages.forEach((stage: any) => {
-          stages.push({
-            ...stage,
-            applicationId: stage.applicationId || app.id,
-            application: app
-          });
         });
       } catch (error) {
-        console.error(`Error loading stages for application ${app.id}:`, error);
+        console.error(`Error processing ${key}:`, error);
       }
     });
     
-    // Sort stages by scheduled date
-    const sortedStages = stages.sort((a, b) => {
+    // Filter for upcoming interviews
+    const upcomingStages = allStages.filter(stage => {
+      // Ensure stage has a scheduled date
+      if (!stage || !stage.scheduledDate) return false;
+      
+      // Check for scheduled or pending status/outcome
+      const isScheduledOrPending = (
+        stage.status === 'scheduled' || 
+        stage.status === 'pending' || 
+        stage.outcome === 'scheduled' || 
+        stage.outcome === 'pending'
+      );
+      
+      // Check if the interview is in the future
+      const isInFuture = new Date(stage.scheduledDate) > new Date();
+      
+      return isScheduledOrPending && isInFuture;
+    });
+    
+    // Sort by date
+    const sortedStages = upcomingStages.sort((a, b) => {
       if (a.scheduledDate && b.scheduledDate) {
         return new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime();
       }
       return 0;
     });
     
-    console.log(`Total upcoming interviews found: ${sortedStages.length}:`, sortedStages);
-    
-    // Update state
+    // Update state with all upcoming interviews
     setUpcomingInterviews(sortedStages);
     
-    // Calculate total count (interviewing apps + scheduled interviews)
-    const totalCount = sortedStages.length > 0 ? sortedStages.length : appCount;
+    // Set the count of interviews (from context if available, otherwise use local count)
+    setInterviewCount(upcomingInterviewCount > 0 ? upcomingInterviewCount : sortedStages.length);
     
-    setInterviewCount(totalCount);
-  }, [applications]);
+    // Update the central context with our findings
+    updateInterviewCount();
+    
+    // Force a UI update by dispatching the update event
+    window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+    
+  }, [applications, upcomingInterviewCount, updateInterviewCount]);
 
   // Handle editing an interview
   const handleEditInterview = (stageId: number, applicationId: number) => {
+    // Trigger an event to refresh the interview display when navigating back
+    window.localStorage.setItem('lastEditedInterviewStage', stageId.toString());
+    // Trigger interview update event
+    window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+    // Navigate to edit page
     navigate(`/interview/${stageId}?edit=true`);
   };
 
