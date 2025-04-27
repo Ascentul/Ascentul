@@ -1,0 +1,8 @@
+{
+  "models": [
+    {"id": "gpt-4o", "label": "GPT-4o (Recommended)", "active": true},
+    {"id": "o3", "label": "Advanced Reasoning (o3)", "active": true},
+    {"id": "o4-mini", "label": "Fast Responses (o4-mini)", "active": false},
+    {"id": "o4-mini-high", "label": "Detailed Coding & Visuals (o4-mini-high)", "active": true}
+  ]
+}
