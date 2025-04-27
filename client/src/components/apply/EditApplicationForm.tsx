@@ -230,19 +230,83 @@ export function EditApplicationForm({
   // Delete application mutation
   const deleteApplicationMutation = useMutation({
     mutationFn: async () => {
+      // Clean up all interview stages associated with this application
+      const cleanupInterviewStages = () => {
+        console.log(`Cleaning up interview stages for application ID ${application.id}`);
+        
+        // Delete interview stages from both key patterns
+        const mockStagesKey = `mockStages_${application.id}`;
+        const mockInterviewStagesKey = `mockInterviewStages_${application.id}`;
+        
+        try {
+          localStorage.removeItem(mockStagesKey);
+          console.log(`Removed ${mockStagesKey}`);
+        } catch (e) {
+          console.error(`Error removing ${mockStagesKey}:`, e);
+        }
+        
+        try {
+          localStorage.removeItem(mockInterviewStagesKey);
+          console.log(`Removed ${mockInterviewStagesKey}`);
+        } catch (e) {
+          console.error(`Error removing ${mockInterviewStagesKey}:`, e);
+        }
+        
+        // Also clean up any follow-up actions
+        const mockFollowupsKey = `mockFollowups_${application.id}`;
+        try {
+          localStorage.removeItem(mockFollowupsKey);
+          console.log(`Removed ${mockFollowupsKey}`);
+        } catch (e) {
+          console.error(`Error removing ${mockFollowupsKey}:`, e);
+        }
+        
+        // Remove any application-specific data
+        const applicationDataKey = `application_${application.id}_data`;
+        try {
+          localStorage.removeItem(applicationDataKey);
+          console.log(`Removed ${applicationDataKey}`);
+        } catch (e) {
+          console.error(`Error removing ${applicationDataKey}:`, e);
+        }
+        
+        // Dispatch events to update counters
+        try {
+          window.dispatchEvent(new Event('interviewStageChange'));
+          window.dispatchEvent(new Event('applicationStatusChange'));
+        } catch (e) {
+          console.error('Error dispatching update events:', e);
+        }
+      };
+      
       // Handle local storage mock applications for demo purposes
       const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
       const mockAppIndex = mockApps.findIndex((app: any) => app.id === application.id);
       
       if (mockAppIndex !== -1) {
-        // Remove the application from localStorage
+        // First clean up all associated interview stages
+        cleanupInterviewStages();
+        
+        // Then remove the application from localStorage
         mockApps.splice(mockAppIndex, 1);
         localStorage.setItem('mockJobApplications', JSON.stringify(mockApps));
+        
+        // Also update interview count in localStorage
+        try {
+          localStorage.removeItem('upcomingInterviewCount');
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+        
         return { success: true };
       }
       
       // Otherwise, delete via API
       try {
+        // First clean up all local storage items (client-side data)
+        cleanupInterviewStages();
+        
+        // Then delete the application via API
         const response = await apiRequest('DELETE', `/api/applications/${application.id}`);
         return { success: true };
       } catch (error) {
@@ -254,6 +318,7 @@ export function EditApplicationForm({
       // Invalidate all relevant queries to refresh UI
       queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       
       toast({
         title: 'Application Deleted',
@@ -262,6 +327,11 @@ export function EditApplicationForm({
       
       // Force an immediate refresh of application data
       queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      
+      // Force a complete refresh of the page to ensure all counters are updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
       
       if (onSuccess) {
         onSuccess();

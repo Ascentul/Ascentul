@@ -37,15 +37,15 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       // Count upcoming interviews from stages
       let scheduledInterviewsCount = 0;
       
-      // Directly collect ALL interview stages from localStorage regardless of app status
-      // This is the most reliable way to count upcoming interviews
+      // DETAILED DEBUGGING APPROACH
+      // Count ALL stages regardless of status or date
+      const allStages: any[] = [];
+      const allStagesSet = new Set<number>();
       
-      // A set to track seen stage IDs and avoid double-counting
-      const processedStageIds = new Set<number>();
-      const scheduledStageIds = new Set<number>();
-      const validStages: any[] = [];
+      // Directly count ALL interview stages from localStorage regardless of status
+      console.log("=========== ALL INTERVIEW STAGES DEBUGGING ===========");
       
-      // Scan all localStorage for interview stages
+      // Scan all localStorage for interview stages - get a complete picture
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key) continue;
@@ -53,57 +53,111 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
         // Only process interview stage keys
         if (!key.includes('mockStages_') && !key.includes('mockInterviewStages_')) continue;
         
+        console.log(`Checking key: ${key}`);
+        
         try {
           const stagesJson = localStorage.getItem(key);
-          if (!stagesJson) continue;
+          if (!stagesJson) {
+            console.log(`  Key ${key} has no content`);
+            continue;
+          }
           
           const stages = JSON.parse(stagesJson);
-          if (!Array.isArray(stages)) continue;
+          if (!Array.isArray(stages)) {
+            console.log(`  Key ${key} content is not an array`);
+            continue;
+          }
           
-          // Check each stage
-          const now = new Date();
+          if (stages.length === 0) {
+            console.log(`  Key ${key} has empty array`);
+            continue;
+          }
           
+          console.log(`  Key ${key} has ${stages.length} stages`);
+          
+          // Log ALL stages regardless of status or date
           stages.forEach((stage: any) => {
-            // Skip if we've already processed this stage ID
-            if (processedStageIds.has(stage.id)) return;
-            processedStageIds.add(stage.id);
+            if (!stage) {
+              console.log(`  Stage is null/undefined`);
+              return;
+            }
             
-            // Check if it's a valid interview with a future date
-            if (!stage || !stage.scheduledDate) return;
+            if (!stage.id) {
+              console.log(`  Stage has no ID`, stage);
+              return;
+            }
             
-            // Consider a stage valid if it:
-            // 1. Has a status or outcome of scheduled/pending
-            // 2. Has a date in the future
-            const isScheduledOrPending = (
-              stage.status === 'scheduled' || 
-              stage.status === 'pending' || 
-              stage.outcome === 'scheduled' || 
-              stage.outcome === 'pending'
-            );
-            
-            const isInFuture = new Date(stage.scheduledDate) > now;
-            
-            if (isScheduledOrPending && isInFuture) {
-              // Count this stage and add it to our valid stages list
-              scheduledStageIds.add(stage.id);
-              validStages.push(stage);
+            // Add to collection of ALL stages
+            if (!allStagesSet.has(stage.id)) {
+              allStagesSet.add(stage.id);
+              allStages.push(stage);
+              
+              // Log EVERY stage for debugging
+              const date = stage.scheduledDate ? new Date(stage.scheduledDate) : null;
+              const isInFuture = date ? date > new Date() : false;
+              const statusInfo = `status=${stage.status || 'unset'}, outcome=${stage.outcome || 'unset'}`;
+              const dateInfo = stage.scheduledDate ? 
+                `date=${stage.scheduledDate}, in future=${isInFuture}` : 
+                'no date';
+              
+              console.log(`  Stage ID ${stage.id}: ${statusInfo}, ${dateInfo}`);
             }
           });
+          
         } catch (error) {
           console.error(`Error processing stages from key ${key}:`, error);
         }
       }
       
+      // NOW count the valid upcoming interview stages
+      
+      // A set to track seen stage IDs and avoid double-counting
+      const processedStageIds = new Set<number>();
+      const scheduledStageIds = new Set<number>();
+      const validStages: any[] = [];
+      
+      // Check each stage from our complete collection
+      const now = new Date();
+      
+      allStages.forEach((stage: any) => {
+        // Check if it's a valid interview with a future date
+        if (!stage || !stage.scheduledDate) return;
+        
+        // Consider a stage valid if it:
+        // 1. Has a status or outcome of scheduled/pending
+        // 2. Has a date in the future
+        const isScheduledOrPending = (
+          stage.status === 'scheduled' || 
+          stage.status === 'pending' || 
+          stage.outcome === 'scheduled' || 
+          stage.outcome === 'pending'
+        );
+        
+        const isInFuture = new Date(stage.scheduledDate) > now;
+        
+        if (isScheduledOrPending && isInFuture) {
+          // Count this stage and add it to our valid stages list
+          scheduledStageIds.add(stage.id);
+          validStages.push(stage);
+        }
+      });
+      
       // Set the count to the number of valid unique stage IDs we found
       scheduledInterviewsCount = scheduledStageIds.size;
       
       // Debug information
-      console.log(`Found ${processedStageIds.size} total stages, ${scheduledStageIds.size} are upcoming interviews`);
-      console.log("Valid upcoming interviews:", validStages.map(stage => ({
-        id: stage.id,
-        date: stage.scheduledDate,
-        status: stage.status || stage.outcome
-      })));
+      console.log(`Found ${allStages.length} total stages in ALL storages`);
+      console.log(`Found ${scheduledStageIds.size} upcoming scheduled interviews`);
+      
+      if (validStages.length > 0) {
+        console.log("Valid upcoming interviews:", validStages.map(stage => ({
+          id: stage.id,
+          date: stage.scheduledDate,
+          status: stage.status || stage.outcome
+        })));
+      }
+      
+      console.log("============== END DEBUGGING ==============");
       
       console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
       
