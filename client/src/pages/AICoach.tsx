@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, Send, RefreshCw } from 'lucide-react';
+import { Bot, Send, RefreshCw, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import AICoachMessage from '@/components/AICoachMessage';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import ModelSelector from '@/components/ModelSelector';
 
 // Types for the simplified AI Coach
 type Message = {
@@ -22,6 +23,7 @@ export default function AICoach() {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o'); // Default to gpt-4o
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'assistant', 
@@ -69,7 +71,8 @@ export default function AICoach() {
       
       const res = await apiRequest("POST", "/api/ai-coach/generate-response", {
         query,
-        conversationHistory: formattedMessages
+        conversationHistory: formattedMessages,
+        selectedModel
       });
       
       if (!res.ok) {
@@ -166,15 +169,24 @@ export default function AICoach() {
           <h1 className="text-2xl font-bold font-poppins">AI Career Coach</h1>
           <p className="text-neutral-500">Get personalized career guidance and feedback</p>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-2 md:mt-0"
-          onClick={handleReset}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reset Conversation
-        </Button>
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <div className="flex items-center gap-2">
+            <Cpu className="h-4 w-4 text-muted-foreground" />
+            <ModelSelector 
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              disabled={isSending}
+            />
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleReset}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 gap-6">
