@@ -138,14 +138,49 @@ export function UpcomingInterviewsCard() {
     // Load all interview stages from both localStorage key patterns
     let allStages: any[] = [];
     
+    // DEBUG: Log all localStorage keys to help diagnose the issue
+    const allKeys: string[] = [];
+    let totalInterviewStages = 0;
+    
+    console.log("===== DEBUGGING INTERVIEW COUNT ISSUE =====");
+    
     // First pass - collect all keys for interview stages
     const stageKeys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.includes('mockInterviewStages_') || key.includes('mockStages_'))) {
-        stageKeys.push(key);
+      if (key) {
+        allKeys.push(key);
+        if (key.includes('mockInterviewStages_') || key.includes('mockStages_')) {
+          stageKeys.push(key);
+          
+          // Count and log all interview stages
+          try {
+            const data = localStorage.getItem(key);
+            if (data) {
+              const stages = JSON.parse(data);
+              if (Array.isArray(stages)) {
+                totalInterviewStages += stages.length;
+                console.log(`Key ${key}: ${stages.length} stages`);
+                
+                // Print details of each stage
+                stages.forEach((stage, idx) => {
+                  const date = stage.scheduledDate ? new Date(stage.scheduledDate) : null;
+                  const isInFuture = date ? date > new Date() : false;
+                  
+                  console.log(`  Stage ${idx+1}: ID=${stage.id}, status=${stage.status}, outcome=${stage.outcome}, date=${stage.scheduledDate}, in future=${isInFuture}`);
+                });
+              }
+            }
+          } catch (e) {
+            console.error(`Error processing key ${key}:`, e);
+          }
+        }
       }
     }
+    
+    console.log(`Found ${stageKeys.length} stage keys and ${totalInterviewStages} total interview stages`);
+    console.log(`All localStorage keys: ${allKeys.join(", ")}`);
+    console.log("========================================");
     
     // Second pass - process all keys, now including all applications (not just interviewing)
     // This ensures we find all interviews even if application status is inconsistent
