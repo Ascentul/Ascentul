@@ -21,6 +21,7 @@ import SkillStacker from "@/pages/SkillStacker";
 import Apply from "@/pages/Apply";
 import CareerProfile from "@/pages/CareerProfile";
 import Contacts from "@/pages/Contacts";
+import VoicePractice from "@/pages/VoicePractice";
 import SignIn from "@/pages/sign-in";
 import SignUp from "@/pages/sign-up";
 import AdminLogin from "@/pages/admin-login";

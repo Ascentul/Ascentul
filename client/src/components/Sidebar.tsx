@@ -40,7 +40,8 @@ import {
   PanelRight,
   ChevronsLeft,
   Menu,
-  User as UserIcon
+  User as UserIcon,
+  Mic
 } from 'lucide-react';
 
 // Sidebar section types
@@ -114,7 +115,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/interview') || location.startsWith('/apply')) {
+    if (location.startsWith('/interview') || location.startsWith('/apply') || location.startsWith('/contacts') || location.startsWith('/voice-practice')) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
       setActiveSection('career-growth');
@@ -157,6 +158,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       items: [
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
         { href: '/contacts', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Ascentul CRM' },
+        { href: '/voice-practice', icon: <Mic className="w-5 h-5 mr-3" />, label: 'Voice Interview Practice' },
       ]
     },
     {
