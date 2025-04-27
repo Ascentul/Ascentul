@@ -160,12 +160,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       ]
     },
     {
-      id: 'interview-practice',
-      title: 'Interview Prep',
-      icon: <BookOpen className="w-5 h-5" />,
-      href: '/interviews/practice',
-    },
-    {
       id: 'career-growth',
       title: 'Career Growth',
       icon: <LineChart className="w-5 h-5" />,

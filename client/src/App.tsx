@@ -442,11 +442,6 @@ function App() {
             <Interview />
           </CareerRoute>
         </Route>
-        <Route path="/interviews/practice">
-          <CareerRoute>
-            <Interview practice={true} />
-          </CareerRoute>
-        </Route>
         <Route path="/work-history">
           <CareerRoute>
             <WorkHistory />
