@@ -179,14 +179,22 @@ const HorizontalTimelineSection = ({
   
   // Handle stage click to open edit dialog
   const handleStageClick = (processId: number, stageId: number) => {
+    // In our adapter, processId is actually applicationId
+    const applicationId = processId;
     setSelectedProcessId(processId);
     setSelectedStageId(stageId);
     
-    // Find the selected stage
-    const stage = allStages && allStages[processId]?.find(s => s.id === stageId);
+    console.log(`Stage clicked: Application ${applicationId}, Stage ${stageId}`);
+    
+    // Find the selected stage - using the application ID to look up in our stored stages
+    const stage = allStages && allStages[applicationId]?.find(s => s.id === stageId);
     if (stage) {
+      console.log("Found stage for viewing/editing:", stage);
       setSelectedStage(stage);
       setIsStageDialogOpen(true);
+    } else {
+      console.error(`Stage not found: Application ${applicationId}, Stage ${stageId}`);
+      console.log("Available stages:", allStages && allStages[applicationId]);
     }
   };
   
@@ -202,11 +210,51 @@ const HorizontalTimelineSection = ({
   const hasStages = allStages && Object.keys(allStages).length > 0;
   const stagesCount = hasStages ? Object.values(allStages).flat().length : 0;
   
+  // Generate a map of application IDs to "fake" process IDs for the timeline
+  // This allows us to use the applications data with the process-oriented timeline
+  const applicationToProcessMap = new Map<number, number>();
+  const processToApplicationMap = new Map<number, number>();
+  
+  // Build adapted data for the timeline by treating applications as processes
+  let adaptedStages: Record<number, InterviewStage[]> = {};
+  let generatedProcesses: InterviewProcess[] = [];
+  
+  if (hasStages) {
+    // Extract applications with stages
+    const applicationIds = Object.keys(allStages).map(Number);
+    
+    // Map each application to a unique process ID (for now, just use the app ID)
+    applicationIds.forEach(appId => {
+      // Use application ID as process ID for simplicity
+      applicationToProcessMap.set(appId, appId);
+      processToApplicationMap.set(appId, appId);
+      
+      // Build a fake process object from the application data
+      // using stage data to get company and position info
+      const stages = allStages[appId] || [];
+      if (stages.length > 0) {
+        const firstStage = stages[0];
+        generatedProcesses.push({
+          id: appId, // Use application ID as process ID
+          companyName: firstStage.companyName || 'Unknown Company',
+          position: firstStage.jobTitle || 'Unknown Position',
+          status: 'Interviewing', // Default status
+          createdAt: new Date(firstStage.createdAt || Date.now()),
+          updatedAt: new Date(firstStage.updatedAt || Date.now())
+        });
+        
+        // Use the same mapping for stages
+        adaptedStages[appId] = stages;
+      }
+    });
+  }
+  
   console.log("Timeline Debug:", {
     isLoading,
     hasProcesses,
     hasStages,
     stagesCount, 
+    adaptedProcesses: generatedProcesses.length,
     stageKeys: hasStages ? Object.keys(allStages) : [],
     allStagesData: allStages
   });
@@ -216,8 +264,8 @@ const HorizontalTimelineSection = ({
       {/* Debug panel */}
       <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800 mb-3">
         <p><strong>Debug Info:</strong> Loading: {isLoading ? 'Yes' : 'No'} | 
-          Processes: {hasProcesses ? processes.length : 0} | 
-          Stage objects: {hasStages ? Object.keys(allStages).length : 0} | 
+          Applications with interviews: {hasStages ? Object.keys(allStages).length : 0} | 
+          Generated processes: {generatedProcesses.length} |
           Total stages: {stagesCount}</p>
       </div>
       
@@ -228,8 +276,8 @@ const HorizontalTimelineSection = ({
           variant="card" 
           className="w-full p-6 rounded-lg"
         />
-      ) : !hasProcesses && !hasStages ? (
-        // Show if we have neither processes nor stages
+      ) : !hasStages || stagesCount === 0 ? (
+        // Show if we have no stages
         <div className="text-center p-8 border rounded-lg bg-muted/30">
           <h3 className="text-lg font-medium mb-2">No interview stages found</h3>
           <p className="text-muted-foreground mb-4">
@@ -237,11 +285,11 @@ const HorizontalTimelineSection = ({
           </p>
         </div>
       ) : hasStages && stagesCount > 0 ? (
-        // Show timeline if we have stages regardless of processes
+        // Show timeline if we have stages - use our adapted data
         <>
           <HorizontalTimeline 
-            processes={processes || []}
-            stages={allStages}
+            processes={generatedProcesses}
+            stages={adaptedStages}
             onStageClick={handleStageClick}
             onEditProcess={onEditProcess}
             className="w-full"
@@ -538,10 +586,18 @@ const Interview = () => {
     p.status === 'Hired'
   ) || [];
 
-  // Function to view/edit a process, passed to the HorizontalTimelineSection
+  // Function to view/edit a process (which is actually an application in our adapter)
   const handleViewProcess = (processId: number) => {
-    setSelectedProcessId(processId);
-    setActiveTab('applications'); // Switch to applications tab to show details
+    // In our adapter, processId is actually applicationId
+    const applicationId = processId;
+    
+    console.log(`View application request for process/application ID: ${applicationId}`);
+    
+    // Set the selected application ID
+    setSelectedApplicationId(applicationId);
+    
+    // Switch to applications tab to show details
+    setActiveTab('applications');
   };
   
   const renderProcessCard = (process: InterviewProcess, index: number) => {
