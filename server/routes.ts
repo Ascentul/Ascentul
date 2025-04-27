@@ -17,6 +17,7 @@ import { registerJobsAIRoutes } from "./routes/jobs-ai";
 import { registerAdzunaRoutes } from "./routes/adzuna";
 import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
+import modelsRoutes from "./routes/models";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
@@ -4572,6 +4573,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerAdzunaRoutes(apiRouter);
   registerApplicationRoutes(apiRouter, storage);
   registerApplicationInterviewRoutes(apiRouter, storage);
+  
+  // Register models configuration routes
+  apiRouter.use('/models', modelsRoutes);
   
   // Skill Stacker API routes
   app.get("/api/skill-stacker", requireAuth, async (req, res) => {

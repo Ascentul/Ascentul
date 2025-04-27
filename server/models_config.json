@@ -1,8 +1,24 @@
 {
   "models": [
-    {"id": "gpt-4o", "label": "GPT-4o (Recommended)", "active": true},
-    {"id": "o3", "label": "Advanced Reasoning (o3)", "active": true},
-    {"id": "o4-mini", "label": "Fast Responses (o4-mini)", "active": false},
-    {"id": "o4-mini-high", "label": "Detailed Coding & Visuals (o4-mini-high)", "active": true}
+    {
+      "id": "gpt-4o",
+      "label": "GPT-4o",
+      "active": true
+    },
+    {
+      "id": "gpt-4o-mini",
+      "label": "GPT-4o Mini",
+      "active": true
+    },
+    {
+      "id": "gpt-4-turbo",
+      "label": "GPT-4 Turbo",
+      "active": false
+    },
+    {
+      "id": "gpt-3.5-turbo",
+      "label": "GPT-3.5 Turbo",
+      "active": true
+    }
   ]
 }
