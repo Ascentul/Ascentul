@@ -156,9 +156,14 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <Search className="w-5 h-5" />,
       items: [
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
-        { href: '/interviews/practice', icon: <BookOpen className="w-5 h-5 mr-3" />, label: 'Interview Practice' },
         { href: '/contacts', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Ascentul CRM' },
       ]
+    },
+    {
+      id: 'interview-practice',
+      title: 'Interview Prep',
+      icon: <BookOpen className="w-5 h-5" />,
+      href: '/interviews/practice',
     },
     {
       id: 'career-growth',
