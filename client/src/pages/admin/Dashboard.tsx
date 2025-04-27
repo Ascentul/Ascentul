@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import AdminOverview from './AdminOverview';
 import SupportPage from './SupportPage';
-import AdminModelsPage from '../AdminModelsPage';
+import AdminModelsPage from './ModelsPage';
 import {
   Form,
   FormControl,
