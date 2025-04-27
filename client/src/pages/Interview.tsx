@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { loadInterviewStagesForApplication, notifyInterviewDataChanged } from '@/lib/interview-utils';
 import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ import {
   FilterX,
   Filter,
 } from 'lucide-react';
-import { loadInterviewStagesForApplication } from '@/lib/interview-utils';
+
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -67,67 +68,37 @@ const HorizontalTimelineSection = ({
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
   
-  // Fetch stages for all processes AND application interviews
+  // Fetch stages for all applications with interview data
   const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
     queryKey: ['/api/interview/stages'],
     queryFn: async () => {
-      // Create a map of process ID -> stages array
+      // Create a map of application ID -> stages array
       const stagesMap: Record<number, InterviewStage[]> = {};
       
-      // Fetch stages for each process
-      if (processes.length > 0) {
-        for (const process of processes) {
-          try {
-            // First try using the interview processes endpoint
+      console.log('Loading interview stages from localStorage...');
+      
+      // Start by loading all mock stages from localStorage
+      try {
+        // Load all interview stages from job applications (using the utility function)
+        const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        const interviewingApps = applications.filter((app: any) => 
+          app.status === 'Interviewing' || app.status === 'Interview Scheduled' || app.hasInterviews);
+        
+        console.log(`Found ${interviewingApps.length} applications with interviews to display`);
+        
+        // Include stages from applications in the timeline
+        for (const app of interviewingApps) {
+          if (app && app.id) {
             try {
-              const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
-              const stagesData = await response.json();
-              stagesMap[process.id] = stagesData;
-            } catch (firstError) {
-              // If the first endpoint fails, try the applications endpoint
-              try {
-                const appResponse = await apiRequest('GET', `/api/applications/${process.id}/stages`);
-                const appStagesData = await appResponse.json();
-                stagesMap[process.id] = appStagesData;
-              } catch (secondError) {
-                // If both API calls fail, use localStorage as a fallback
-                console.warn(`API endpoints failed for process ${process.id}, using localStorage fallback`);
-                const fallbackStages = loadInterviewStagesForApplication(process.id);
-                stagesMap[process.id] = fallbackStages || [];
-              }
-            }
-          } catch (error) {
-            console.error(`Error in stages fetch flow for process ${process.id}:`, error);
-            stagesMap[process.id] = [];
-          }
-        }
-      }
-      
-      // Load all interview stages from job applications (using the utility function)
-      const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
-      const interviewingApps = applications.filter((app: any) => app.status === 'Interviewing');
-      
-      // Include stages from applications in the timeline
-      for (const app of interviewingApps) {
-        if (app && app.id) {
-          try {
-            // Get interview stages using the utility function that checks both storage patterns
-            const appStages = loadInterviewStagesForApplication(app.id);
-            
-            if (appStages && appStages.length > 0) {
-              // Use app ID as the key if no process ID exists
-              const mappedId = app.interviewProcessId || app.id;
+              // Get interview stages using the utility function that checks both storage patterns
+              const appStages = loadInterviewStagesForApplication(app.id);
               
-              // Add the stages to the map, merging with existing stages if any
-              if (stagesMap[mappedId]) {
-                // Add company name to the stages to differentiate them
-                const taggedStages = appStages.map(stage => ({
-                  ...stage,
-                  companyName: app.company || app.companyName || 'Unknown Company',
-                  jobTitle: app.title || app.jobTitle || app.position || 'Unknown Position'
-                }));
-                stagesMap[mappedId] = [...stagesMap[mappedId], ...taggedStages];
-              } else {
+              console.log(`Application ${app.id} (${app.company || app.companyName}): found ${appStages.length} stages`);
+              
+              if (appStages && appStages.length > 0) {
+                // Use app ID as the key 
+                const mappedId = app.id;
+                
                 // Create a new entry with company name tagged
                 stagesMap[mappedId] = appStages.map(stage => ({
                   ...stage,
@@ -135,19 +106,47 @@ const HorizontalTimelineSection = ({
                   jobTitle: app.title || app.jobTitle || app.position || 'Unknown Position'
                 }));
               }
+            } catch (err) {
+              console.error('Error loading interview stages for application:', app.id, err);
             }
-          } catch (err) {
-            console.error('Error loading interview stages for application:', app.id, err);
           }
         }
+        
+        // If we have any processes available, also try to map those
+        if (processes && processes.length > 0) {
+          for (const process of processes) {
+            try {
+              // Skip if we already have stages for this process from applications
+              if (stagesMap[process.id] && stagesMap[process.id].length > 0) {
+                continue;
+              }
+              
+              // Check if there are stages for this process
+              const processStages = loadInterviewStagesForApplication(process.id);
+              
+              if (processStages && processStages.length > 0) {
+                stagesMap[process.id] = processStages.map(stage => ({
+                  ...stage,
+                  companyName: process.companyName || 'Unknown Company',
+                  jobTitle: process.position || 'Unknown Position'
+                }));
+              }
+            } catch (error) {
+              console.error(`Error loading stages for process ${process.id}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error building stages map:', error);
       }
       
       console.log('Combined timeline stages:', stagesMap);
       return stagesMap;
     },
-    enabled: true, // Always enable to load both processes and application stages
+    enabled: true, // Always enable the query
     placeholderData: {},
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000 // Refresh every 5 seconds to pick up new stages
   });
   
   // Update stage
