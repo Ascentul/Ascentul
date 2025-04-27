@@ -110,9 +110,21 @@ export function updateInterviewStage(stage: InterviewStage): InterviewStage {
   const existingStages = loadInterviewStagesForApplication(stage.applicationId);
   
   // Find and update the stage
-  const updatedStages = existingStages.map(existingStage => 
-    existingStage.id === stage.id ? { ...stage, updatedAt: new Date().toISOString() } : existingStage
-  );
+  const updatedStages = existingStages.map(existingStage => {
+    if (existingStage.id === stage.id) {
+      // Create a proper copy with updatedAt consistently handled
+      return {
+        ...stage,
+        // Store updatedAt as ISO string (consistent with localStorage format)
+        updatedAt: typeof stage.updatedAt === 'object' && stage.updatedAt instanceof Date
+          ? stage.updatedAt.toISOString() 
+          : typeof stage.updatedAt === 'string'
+            ? stage.updatedAt
+            : new Date().toISOString()
+      };
+    }
+    return existingStage;
+  });
   
   // Save updated stages
   saveInterviewStagesForApplication(stage.applicationId, updatedStages);
