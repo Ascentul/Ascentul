@@ -527,6 +527,12 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab('ai-models')}
           />
           <SidebarItem
+            icon={<Activity className="h-5 w-5" />}
+            label="OpenAI Logs"
+            active={activeTab === 'openai-logs'}
+            onClick={() => setActiveTab('openai-logs')}
+          />
+          <SidebarItem
             icon={<Settings className="h-5 w-5" />}
             label="Settings"
             active={activeTab === 'settings'}
