@@ -127,14 +127,20 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
   
   // Initialize and set up listeners
   useEffect(() => {
-    // Initial count
+    // Run initial count immediately 
     updateInterviewCount();
+    
+    // Also run a delayed update to ensure we get accurate data
+    // This helps when components mount in inconsistent order
+    const initialTimer = setTimeout(() => {
+      updateInterviewCount();
+    }, 300);
     
     // Listen for localStorage changes relevant to interviews
     const handleStorageChange = (event: StorageEvent) => {
       if (
         event.key === 'mockJobApplications' || 
-        (event.key && event.key.startsWith('mockStages_'))
+        (event.key && (event.key.startsWith('mockStages_') || event.key.startsWith('mockInterviewStages_')))
       ) {
         updateInterviewCount();
       }
@@ -181,7 +187,8 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       window.removeEventListener('applicationStatusChange', handleApplicationStatusChange as EventListener);
       window.removeEventListener('interviewStageChange', handleInterviewStageChange as EventListener);
       
-      // Clear the interval
+      // Clear the timers
+      clearTimeout(initialTimer);
       clearInterval(interval);
     };
   }, [updateInterviewCount]);
