@@ -338,19 +338,25 @@ const Interview = () => {
 
   // Check for create=true query parameter to automatically open the form
   useEffect(() => {
-    // Parse the URL to check for query parameters
-    const url = new URL(window.location.href);
-    
-    // Handle create=true parameter
-    const shouldCreate = url.searchParams.get('create');
-    if (shouldCreate === 'true') {
-      setShowCreateForm(true);
-    }
-    
-    // Handle tab parameter - for interview practice navigation from sidebar
-    const tabParam = url.searchParams.get('tab');
-    if (tabParam === 'practice') {
+    // Set active tab based on URL path or parameters
+    if (location.includes('/interviews/practice')) {
+      // Direct path to practice - used by sidebar navigation
       setActiveTab('practice');
+    } else {
+      // Parse the URL to check for query parameters
+      const url = new URL(window.location.href);
+      
+      // Handle create=true parameter
+      const shouldCreate = url.searchParams.get('create');
+      if (shouldCreate === 'true') {
+        setShowCreateForm(true);
+      }
+      
+      // Handle tab parameter as fallback
+      const tabParam = url.searchParams.get('tab');
+      if (tabParam === 'practice') {
+        setActiveTab('practice');
+      }
     }
   }, [location]);
 
