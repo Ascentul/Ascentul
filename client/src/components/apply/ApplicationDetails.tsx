@@ -669,29 +669,10 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
             </CardHeader>
             <CardContent>
               {localApplication.status === 'Interviewing' ? (
-                <div className="space-y-6">
+                <div className="space-y-3">
                   {interviewStages && interviewStages.length > 0 ? (
-                    <>
-                      {/* Timeline view of interview stages */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <GitBranch className="h-4 w-4 text-primary" />
-                          <h4 className="font-medium">Interview Timeline</h4>
-                        </div>
-                        <Card className="border border-muted">
-                          <CardContent className="pt-6">
-                            <InterviewTimeline 
-                              stages={interviewStages} 
-                              className="py-2" 
-                            />
-                          </CardContent>
-                        </Card>
-                      </div>
-                    
-                      {/* List view of interview stages */}
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Interview Details</h4>
-                        {interviewStages.map((stage) => (
+                    <div className="space-y-3">
+                      {interviewStages.map((stage) => (
                           <div key={stage.id} className="flex items-start justify-between border rounded-md p-3">
                             <div>
                               <div className="flex items-center justify-between">
@@ -769,7 +750,6 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
                           </div>
                         ))}
                       </div>
-                    </>
                   ) : (
                     <div className="text-center py-6">
                       <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
