@@ -25,7 +25,7 @@ export default function AICoach() {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'assistant', 
-      content: 'Hello! I\'m your AI Career Coach. I can help you with career advice, resume feedback, interview preparation, and more. How can I assist you today?',
+      content: 'Hello! I\'m your AI Career Coach. I can help you with:\n\n• Career planning and skill development\n• Resume and cover letter feedback\n• Interview preparation and practice\n• Job search strategies and networking advice\n• Career transitions and industry insights\n\nHow can I assist with your career goals today?',
       timestamp: new Date()
     }
   ]);
@@ -149,7 +149,7 @@ export default function AICoach() {
     // Reset the conversation
     setMessages([{ 
       role: 'assistant', 
-      content: 'Hello! I\'m your AI Career Coach. I can help you with career advice, resume feedback, interview preparation, and more. How can I assist you today?',
+      content: 'Hello! I\'m your AI Career Coach. I can help you with:\n\n• Career planning and skill development\n• Resume and cover letter feedback\n• Interview preparation and practice\n• Job search strategies and networking advice\n• Career transitions and industry insights\n\nHow can I assist with your career goals today?',
       timestamp: new Date()
     }]);
     
@@ -177,94 +177,18 @@ export default function AICoach() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* User Context Card */}
-        <div className="space-y-5">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Your Data</CardTitle>
-              <p className="text-sm text-neutral-500">AI Coach uses this data for personalized responses</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="font-medium">Work History</div>
-                  <p className="text-neutral-500">
-                    {Array.isArray(workHistory) && workHistory.length > 0 
-                      ? `${workHistory.length} job(s) tracked` 
-                      : "No work history added yet"}
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Career Goals</div>
-                  <p className="text-neutral-500">
-                    {Array.isArray(goals) && goals.length > 0 
-                      ? `${goals.length} goal(s) set` 
-                      : "No goals added yet"}
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Interview Processes</div>
-                  <p className="text-neutral-500">
-                    {Array.isArray(interviewProcesses) && interviewProcesses.length > 0 
-                      ? `${interviewProcesses.length} process(es) tracked` 
-                      : "No interviews tracked yet"}
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Personal Achievements</div>
-                  <p className="text-neutral-500">
-                    {Array.isArray(personalAchievements) && personalAchievements.length > 0 
-                      ? `${personalAchievements.length} achievement(s) added` 
-                      : "No achievements added yet"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Topics I Can Help With</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <div className="font-medium">Career Planning</div>
-                  <p className="text-neutral-500">
-                    Career path exploration, skill development, industry transitions
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Resume & Cover Letters</div>
-                  <p className="text-neutral-500">
-                    Tailoring documents, highlighting achievements, professional writing
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Interview Preparation</div>
-                  <p className="text-neutral-500">
-                    Common questions, STAR method, behavioral interviews, technical interviews
-                  </p>
-                </div>
-                <div>
-                  <div className="font-medium">Job Search Strategy</div>
-                  <p className="text-neutral-500">
-                    Finding opportunities, networking, salary negotiation, personal branding
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
+      <div className="grid grid-cols-1 gap-6">
         {/* Chat Area */}
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Career Coach</CardTitle>
+            <div className="flex items-center gap-2">
+              <Bot className="w-6 h-6 text-primary" />
+              <CardTitle className="text-xl">AI Career Coach</CardTitle>
+            </div>
+            <p className="text-sm text-neutral-500 mt-1">Ask questions about your career path, resume, interviews, or job search</p>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="h-[500px] border-y relative">
+            <div className="h-[600px] border-y relative">
               <ScrollArea className="h-full p-4">
                 <div className="space-y-4">
                   {messages.map((message, index) => (
@@ -291,18 +215,20 @@ export default function AICoach() {
           <CardFooter className="p-4">
             <div className="flex w-full gap-2">
               <Input
-                placeholder="Type your message here..."
+                placeholder="Type your career question here..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isSending}
+                className="border-primary/20 focus:border-primary rounded-lg py-6 px-4 text-base"
               />
               <Button 
                 size="icon"
                 onClick={handleSendMessage}
                 disabled={!newMessage.trim() || isSending}
+                className="h-12 w-12 rounded-full"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5" />
               </Button>
             </div>
           </CardFooter>
