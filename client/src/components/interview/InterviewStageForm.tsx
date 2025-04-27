@@ -36,6 +36,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { 
+  addInterviewStageForApplication, 
+  notifyInterviewDataChanged 
+} from '@/lib/interview-utils';
 
 // Form schema for interview stage
 const interviewStageSchema = z.object({
@@ -152,14 +156,14 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
             storedApplications[appIndex].status = 'Interviewing';
             storedApplications[appIndex].updatedAt = now;
             
-            // Store mock interview stage in both localStorage keys for compatibility
-            const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${applicationId}`) || '[]');
-            mockStages.push(mockStage);
+            // Use the new utility to save the interview stage
+            addInterviewStageForApplication(applicationId, mockStage);
             
-            // Store in both localStorage keys
-            localStorage.setItem(`mockInterviewStages_${applicationId}`, JSON.stringify(mockStages));
-            localStorage.setItem(`mockStages_${applicationId}`, JSON.stringify(mockStages));
+            // Save updated application
             localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+            
+            // Notify components that interview data has changed
+            notifyInterviewDataChanged();
             
             console.log('Saved mock interview stage in localStorage:', mockStage);
             return mockStage;
