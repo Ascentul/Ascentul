@@ -40,14 +40,24 @@ import { cn } from '@/lib/utils';
 // Form schema for interview stage
 const interviewStageSchema = z.object({
   type: z.string().min(1, "Interview type is required"),
-  scheduledDate: z.date().optional(),
+  scheduledDate: z.date({
+    required_error: "Interview date is required",
+    invalid_type_error: "Please select a valid date",
+  }),
   location: z.string().optional(),
-  interviewers: z.string().optional(),
+  interviewers: z.string().optional(), // This is a comma-separated string in the form
   notes: z.string().optional(),
   // Add these fields for TypeScript compatibility
   applicationId: z.number().optional(),
   processId: z.number().optional(),
 });
+
+// Additional type for API/localStorage submission after interviewers are parsed
+interface SubmissionData extends Omit<InterviewStageFormValues, 'interviewers'> {
+  interviewers: string[];
+  applicationId?: number;
+  processId?: number;
+}
 
 type InterviewStageFormValues = z.infer<typeof interviewStageSchema>;
 
@@ -85,13 +95,11 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
         : [];
       
       // Create properly typed data object for the stage
-      const stageData: InterviewStageFormValues & {
-        interviewers: string[];
-        applicationId?: number;
-        processId?: number;
-      } = {
+      const stageData: SubmissionData = {
         ...values,
         interviewers: interviewersArray,
+        applicationId: applicationId,
+        processId: processId
       };
       
       // Add the appropriate ID based on what's available
@@ -121,14 +129,9 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
             // Create a mock interview stage
             const now = new Date().toISOString();
             
-            // Ensure we have a scheduled date for localStorage storage
+            // We now require a scheduled date, so we can directly use it
             let scheduledDate = stageData.scheduledDate;
-            if (!scheduledDate) {
-              // Default to 7 days from now if no date provided
-              const defaultDate = new Date();
-              defaultDate.setDate(defaultDate.getDate() + 7);
-              scheduledDate = defaultDate;
-            }
+            // Note: The form validation ensures we always have a date at this point
             
             const mockStage = {
               id: Date.now(), // Use timestamp as mock ID
@@ -212,20 +215,10 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
   const onSubmit = (values: InterviewStageFormValues) => {
     console.log("Submitting new interview stage:", values);
     
-    // Ensure we have a scheduled date for the interview (required for dashboard display)
-    const updatedValues = { ...values };
-    
-    // If no date was selected, default to 7 days from now
-    if (!updatedValues.scheduledDate) {
-      console.log("No scheduled date selected, defaulting to 7 days from now");
-      const defaultDate = new Date();
-      defaultDate.setDate(defaultDate.getDate() + 7);
-      updatedValues.scheduledDate = defaultDate;
-    }
-    
+    // The date is now required in the form schema, so we don't need to set a default
     // Use the mutation to handle the interview stage creation
     // The mutation will try the API first, then fall back to localStorage if needed
-    createStageMutation.mutate(updatedValues);
+    createStageMutation.mutate(values);
   };
 
   return (
@@ -276,7 +269,7 @@ export function InterviewStageForm({ isOpen, onClose, processId, applicationId, 
               name="scheduledDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel>Date*</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
