@@ -3,6 +3,8 @@ import Sidebar from '@/components/Sidebar';
 import MobileHeader from '@/components/MobileHeader';
 import { useUser } from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
+import { ModelNotificationContainer } from '@/components/ModelNotification';
+import { useModelNotifications } from '@/hooks/use-model-notifications';
 
 interface LayoutProps {
   children: ReactNode;
@@ -11,6 +13,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, isLoading } = useUser();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  // Initialize model notifications hook
+  const { hasNewModels } = useModelNotifications();
   
   const toggleMobileSidebar = () => {
     setMobileSidebarOpen(!mobileSidebarOpen);
@@ -26,6 +30,9 @@ export default function Layout({ children }: LayoutProps) {
   
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Model notification banner */}
+      {hasNewModels && <ModelNotificationContainer />}
+      
       <MobileHeader onMenuToggle={toggleMobileSidebar} />
       
       {/* Mobile overlay backdrop - only visible when mobile sidebar is open */}

@@ -1,4 +1,9 @@
-import { OpenAIModel } from '@/types/models';
+// OpenAIModel interface defined inline to avoid import issues
+interface OpenAIModel {
+  id: string;
+  label: string;
+  active: boolean;
+}
 
 // Local storage keys
 const SEEN_MODELS_KEY = 'ascentul_seen_models';
@@ -21,8 +26,10 @@ export function getSeenModels(): string[] {
 export function markModelsSeen(modelIds: string[]): void {
   try {
     const seenModels = getSeenModels();
-    const updatedSeenModels = [...new Set([...seenModels, ...modelIds])];
-    localStorage.setItem(SEEN_MODELS_KEY, JSON.stringify(updatedSeenModels));
+    // Convert to array and back to avoid Set iteration issues
+    const combinedModels = [...seenModels, ...modelIds];
+    const uniqueModels = Array.from(new Set(combinedModels));
+    localStorage.setItem(SEEN_MODELS_KEY, JSON.stringify(uniqueModels));
   } catch (error) {
     console.error('Error saving seen models to localStorage:', error);
   }
