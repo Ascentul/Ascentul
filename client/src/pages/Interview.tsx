@@ -197,8 +197,30 @@ const HorizontalTimelineSection = ({
     }
   };
   
+  // Debug the derived states
+  const hasProcesses = Array.isArray(processes) && processes.length > 0;
+  const hasStages = allStages && Object.keys(allStages).length > 0;
+  const stagesCount = hasStages ? Object.values(allStages).flat().length : 0;
+  
+  console.log("Timeline Debug:", {
+    isLoading,
+    hasProcesses,
+    hasStages,
+    stagesCount, 
+    stageKeys: hasStages ? Object.keys(allStages) : [],
+    allStagesData: allStages
+  });
+  
   return (
     <div className="space-y-6">
+      {/* Debug panel */}
+      <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-md text-xs text-yellow-800 mb-3">
+        <p><strong>Debug Info:</strong> Loading: {isLoading ? 'Yes' : 'No'} | 
+          Processes: {hasProcesses ? processes.length : 0} | 
+          Stage objects: {hasStages ? Object.keys(allStages).length : 0} | 
+          Total stages: {stagesCount}</p>
+      </div>
+      
       {isLoading ? (
         <LoadingState 
           message="Loading interview stages..." 
@@ -206,20 +228,19 @@ const HorizontalTimelineSection = ({
           variant="card" 
           className="w-full p-6 rounded-lg"
         />
-      ) : !processes.length ? (
-        <div className="text-center p-8 border rounded-lg bg-muted/30">
-          <h3 className="text-lg font-medium mb-2">No interview processes found</h3>
-          <p className="text-muted-foreground mb-4">Create a new interview process to get started.</p>
-        </div>
-      ) : !allStages || Object.keys(allStages).length === 0 ? (
+      ) : !hasProcesses && !hasStages ? (
+        // Show if we have neither processes nor stages
         <div className="text-center p-8 border rounded-lg bg-muted/30">
           <h3 className="text-lg font-medium mb-2">No interview stages found</h3>
-          <p className="text-muted-foreground mb-4">Add interview stages to your processes to track your progress.</p>
+          <p className="text-muted-foreground mb-4">
+            Add interview stages to your applications to track your interview progress.
+          </p>
         </div>
-      ) : (
+      ) : hasStages && stagesCount > 0 ? (
+        // Show timeline if we have stages regardless of processes
         <>
           <HorizontalTimeline 
-            processes={processes}
+            processes={processes || []}
             stages={allStages}
             onStageClick={handleStageClick}
             onEditProcess={onEditProcess}
@@ -234,6 +255,14 @@ const HorizontalTimelineSection = ({
             />
           )}
         </>
+      ) : (
+        // Fallback if the other conditions don't apply
+        <div className="text-center p-8 border rounded-lg bg-muted/30">
+          <h3 className="text-lg font-medium mb-2">No interview timeline data</h3>
+          <p className="text-muted-foreground mb-4">
+            Interview data may be loading or no interviews have been added yet.
+          </p>
+        </div>
       )}
     </div>
   );
