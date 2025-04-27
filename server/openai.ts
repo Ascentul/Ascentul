@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { validateModelAndGetId, DEFAULT_MODEL } from "./utils/models-config";
 
 // Check for OpenAI API key and use mock mode if missing
 let apiKey = process.env.OPENAI_API_KEY;
@@ -104,15 +105,20 @@ export interface LinkedInProfileAnalysis {
 
 // Analyze a LinkedIn profile content to provide improvement recommendations
 export async function analyzeLinkedInProfile(
-  profileData: { url?: string; profileText?: string; targetJobTitle: string }
+  profileData: { url?: string; profileText?: string; targetJobTitle: string; selectedModel?: string }
 ): Promise<LinkedInProfileAnalysis> {
   try {
-    const { url, profileText, targetJobTitle } = profileData;
+    const { url, profileText, targetJobTitle, selectedModel } = profileData;
     
     // Determine which input to use (URL or pasted content)
     const contentSource = profileText 
       ? `LinkedIn Profile Content:\n${profileText}` 
       : `LinkedIn Profile URL: ${url}`;
+    
+    // Validate the selected model or use default
+    const validatedModel = selectedModel 
+      ? validateModelAndGetId(selectedModel) 
+      : DEFAULT_MODEL;
     
     const systemPrompt = `You are an expert LinkedIn profile optimizer and career coach with a specialty in helping professionals optimize their LinkedIn profiles for specific target jobs.
 
@@ -168,7 +174,7 @@ Your response must be in JSON format with the following structure:
 }`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: validatedModel, // Use the validated model
       messages: [{ role: "system", content: systemPrompt }],
       temperature: 0.5,
       response_format: { type: "json_object" }
@@ -288,7 +294,8 @@ export async function analyzeInterviewAnswer(
   question: string,
   answer: string,
   jobTitle?: string,
-  companyName?: string
+  companyName?: string,
+  selectedModel?: string
 ): Promise<InterviewAnswerAnalysis> {
   if (!answer || answer.trim() === "") {
     return {
@@ -332,6 +339,11 @@ Format your response as JSON with the following structure:
 Make your feedback specific to this exact answer, not generic advice. Base your analysis on interview best practices and what would impress a hiring manager.`;
 
   try {
+    // Validate the selected model or use default
+    const validatedModel = selectedModel
+      ? validateModelAndGetId(selectedModel)
+      : DEFAULT_MODEL;
+
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
       {
@@ -344,7 +356,7 @@ ${companyName ? `Company: ${companyName}` : ''}`
     ];
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: validatedModel, // Use the validated model
       messages: messages,
       response_format: { type: "json_object" }
     });
@@ -407,6 +419,7 @@ export async function getCareerAdvice(
     resumeDetails?: string;
     interviewPrep?: string;
     achievements?: any[]; // Added achievements to the type signature
+    selectedModel?: string; // Added model selection capability
   },
   conversationHistory: ChatCompletionMessageParam[] = []
 ): Promise<string> {
@@ -510,6 +523,11 @@ export async function getCareerAdvice(
   }
 
   try {
+    // Validate the selected model or use default
+    const validatedModel = userContext?.selectedModel
+      ? validateModelAndGetId(userContext.selectedModel)
+      : DEFAULT_MODEL;
+    
     // Prepare the conversation history
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
@@ -519,7 +537,7 @@ export async function getCareerAdvice(
 
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: validatedModel, // Use the validated model
       messages: messages,
       temperature: 0.7,
       max_tokens: 800,
