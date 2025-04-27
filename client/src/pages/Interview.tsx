@@ -719,20 +719,12 @@ const Interview = () => {
         </Button>
       </motion.div>
 
-      {/* Tabs navigation */}
+      {/* Header for Interview Practice page */}
       <motion.div variants={subtleUp} className="mb-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full max-w-md mx-auto">
-            <TabsTrigger value="applications" className="flex-1">
-              <Briefcase className="h-4 w-4 mr-2" />
-              Interview Practice
-            </TabsTrigger>
-            <TabsTrigger value="job_search" className="flex-1">
-              <Search className="h-4 w-4 mr-2" />
-              Find Jobs
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="w-full max-w-4xl mx-auto">
+          <h1 className="text-2xl font-semibold mb-2">Interview Practice</h1>
+          <p className="text-muted-foreground">Practice and prepare for your interviews with AI-powered assistance</p>
+        </div>
       </motion.div>
 
       {/* Job Search Tab */}
@@ -768,13 +760,7 @@ const Interview = () => {
       {activeTab !== 'job_search' && (
         <div className="space-y-6">
           <div className="space-y-4">
-            {/* Add title for Interview Practice */}
-            {activeTab === 'applications' && (
-              <motion.div variants={subtleUp}>
-                <h2 className="text-2xl font-semibold mb-2">Interview Practice</h2>
-                <p className="text-muted-foreground">Practice and prepare for your interviews with AI-powered assistance</p>
-              </motion.div>
-            )}
+            {/* Title removed since we added it at the top of the page */}
             
             {/* Search Input - Only for Applications and Practice */}
             <motion.div variants={subtleUp} className="w-full max-w-md">
