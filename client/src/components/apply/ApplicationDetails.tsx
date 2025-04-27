@@ -669,87 +669,107 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
             </CardHeader>
             <CardContent>
               {localApplication.status === 'Interviewing' ? (
-                <div className="space-y-3">
+                <div className="space-y-6">
                   {interviewStages && interviewStages.length > 0 ? (
-                    <div className="space-y-3">
-                      {interviewStages.map((stage) => (
-                        <div key={stage.id} className="flex items-start justify-between border rounded-md p-3">
-                          <div>
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium">
-                                {stage.type === 'phone_screen' ? 'Phone Screen' : 
-                                 stage.type === 'technical' ? 'Technical Interview' :
-                                 stage.type === 'behavioral' ? 'Behavioral Interview' :
-                                 stage.type === 'onsite' ? 'Onsite Interview' :
-                                 stage.type === 'panel' ? 'Panel Interview' :
-                                 stage.type === 'final' ? 'Final Round' : 
-                                 'Interview'}
-                              </h4>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 ml-2" 
-                                onClick={() => {
-                                  setCurrentStageToEdit(stage);
-                                  setShowEditStageForm(true);
-                                }}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            {stage.scheduledDate && (
-                              <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                <CalendarClock className="h-4 w-4 mr-1.5" />
-                                <span>{format(new Date(stage.scheduledDate), 'MMM d, yyyy')}</span>
-                              </div>
-                            )}
-                            {stage.location && (
-                              <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                <Briefcase className="h-4 w-4 mr-1.5" />
-                                <span>{stage.location}</span>
-                              </div>
-                            )}
-                            {stage.notes && (
-                              <div className="mt-2 text-xs text-muted-foreground">
-                                <p className="line-clamp-2">{stage.notes}</p>
-                              </div>
-                            )}
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" 
-                                className={
-                                  stage.outcome === 'passed' ? "bg-green-50 text-green-700 border-green-200" :
-                                  stage.outcome === 'failed' ? "bg-red-50 text-red-700 border-red-200" :
-                                  stage.outcome === 'scheduled' ? "bg-blue-50 text-blue-700 border-blue-200" : 
-                                  "bg-orange-50 text-orange-700 border-orange-200"
-                                }
-                                size="sm"
-                              >
-                                {stage.outcome === 'passed' ? 'Passed' :
-                                 stage.outcome === 'failed' ? 'Rejected' :
-                                 stage.outcome === 'scheduled' ? 'Scheduled' :
-                                 'Pending'}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'scheduled')}>
-                                Scheduled
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'pending')}>
-                                Pending
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'passed')}>
-                                Passed
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'failed')}>
-                                Rejected
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                    <>
+                      {/* Timeline view of interview stages */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <GitBranch className="h-4 w-4 text-primary" />
+                          <h4 className="font-medium">Interview Timeline</h4>
                         </div>
-                      ))}
-                    </div>
+                        <Card className="border border-muted">
+                          <CardContent className="pt-6">
+                            <InterviewTimeline 
+                              stages={interviewStages} 
+                              className="py-2" 
+                            />
+                          </CardContent>
+                        </Card>
+                      </div>
+                    
+                      {/* List view of interview stages */}
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Interview Details</h4>
+                        {interviewStages.map((stage) => (
+                          <div key={stage.id} className="flex items-start justify-between border rounded-md p-3">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium">
+                                  {stage.type === 'phone_screen' ? 'Phone Screen' : 
+                                   stage.type === 'technical' ? 'Technical Interview' :
+                                   stage.type === 'behavioral' ? 'Behavioral Interview' :
+                                   stage.type === 'onsite' ? 'Onsite Interview' :
+                                   stage.type === 'panel' ? 'Panel Interview' :
+                                   stage.type === 'final' ? 'Final Round' : 
+                                   'Interview'}
+                                </h4>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 ml-2" 
+                                  onClick={() => {
+                                    setCurrentStageToEdit(stage);
+                                    setShowEditStageForm(true);
+                                  }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              {stage.scheduledDate && (
+                                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                  <CalendarClock className="h-4 w-4 mr-1.5" />
+                                  <span>{format(new Date(stage.scheduledDate), 'MMM d, yyyy')}</span>
+                                </div>
+                              )}
+                              {stage.location && (
+                                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                  <Briefcase className="h-4 w-4 mr-1.5" />
+                                  <span>{stage.location}</span>
+                                </div>
+                              )}
+                              {stage.notes && (
+                                <div className="mt-2 text-xs text-muted-foreground">
+                                  <p className="line-clamp-2">{stage.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" 
+                                  className={
+                                    stage.outcome === 'passed' ? "bg-green-50 text-green-700 border-green-200" :
+                                    stage.outcome === 'failed' ? "bg-red-50 text-red-700 border-red-200" :
+                                    stage.outcome === 'scheduled' ? "bg-blue-50 text-blue-700 border-blue-200" : 
+                                    "bg-orange-50 text-orange-700 border-orange-200"
+                                  }
+                                  size="sm"
+                                >
+                                  {stage.outcome === 'passed' ? 'Passed' :
+                                   stage.outcome === 'failed' ? 'Rejected' :
+                                   stage.outcome === 'scheduled' ? 'Scheduled' :
+                                   'Pending'}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'scheduled')}>
+                                  Scheduled
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'pending')}>
+                                  Pending
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'passed')}>
+                                  Passed
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateStageOutcome(stage.id, 'failed')}>
+                                  Rejected
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center py-6">
                       <CalendarClock className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
