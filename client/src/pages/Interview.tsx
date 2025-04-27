@@ -78,11 +78,26 @@ const HorizontalTimelineSection = ({
       if (processes.length > 0) {
         for (const process of processes) {
           try {
-            const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
-            const stagesData = await response.json();
-            stagesMap[process.id] = stagesData;
+            // First try using the interview processes endpoint
+            try {
+              const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
+              const stagesData = await response.json();
+              stagesMap[process.id] = stagesData;
+            } catch (firstError) {
+              // If the first endpoint fails, try the applications endpoint
+              try {
+                const appResponse = await apiRequest('GET', `/api/applications/${process.id}/stages`);
+                const appStagesData = await appResponse.json();
+                stagesMap[process.id] = appStagesData;
+              } catch (secondError) {
+                // If both API calls fail, use localStorage as a fallback
+                console.warn(`API endpoints failed for process ${process.id}, using localStorage fallback`);
+                const fallbackStages = loadInterviewStagesForApplication(process.id);
+                stagesMap[process.id] = fallbackStages || [];
+              }
+            }
           } catch (error) {
-            console.error(`Error fetching stages for process ${process.id}:`, error);
+            console.error(`Error in stages fetch flow for process ${process.id}:`, error);
             stagesMap[process.id] = [];
           }
         }
@@ -147,9 +162,13 @@ const HorizontalTimelineSection = ({
         title: "Stage updated",
         description: "Interview stage has been updated successfully.",
       });
-      // Invalidate stages query to refetch updated data
+      // Invalidate all stage-related queries to refetch updated data
       queryClient.invalidateQueries({ queryKey: ['/api/interview/stages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      
+      // Dispatch event to notify components about interview data changes
+      notifyInterviewDataChanged();
       setIsStageDialogOpen(false);
     },
     onError: (error: Error) => {
