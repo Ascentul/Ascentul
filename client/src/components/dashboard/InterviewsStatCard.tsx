@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, Loader2 } from 'lucide-react';
 import { Link } from 'wouter';
 import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
@@ -13,8 +13,10 @@ export function InterviewsStatCard({ isLoading = false }: InterviewsStatCardProp
 
   if (isLoading) {
     return (
-      <Card className="p-5 flex justify-center items-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      <Card>
+        <CardContent className="p-4 flex justify-center items-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardContent>
       </Card>
     );
   }
