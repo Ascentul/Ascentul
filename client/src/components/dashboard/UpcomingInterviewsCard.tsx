@@ -96,13 +96,33 @@ export function UpcomingInterviewsCard() {
   // Use the UpcomingInterviewsContext hook
   const { upcomingInterviewCount, updateInterviewCount } = useUpcomingInterviews();
   
-  // Pre-load interview data immediately on component mount
+  // Pre-load interview data immediately on component mount and after applications load
   useEffect(() => {
     // Immediately dispatch an update event to force context to refresh
     window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
     // Update context data immediately
     updateInterviewCount();
+    
+    // Set a timer to refresh again shortly after mounting
+    // This helps ensure we have the most up-to-date data
+    const refreshTimer = setTimeout(() => {
+      window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+      updateInterviewCount();
+    }, 500);
+    
+    return () => {
+      clearTimeout(refreshTimer);
+    };
   }, [updateInterviewCount]);
+  
+  // Refresh when applications data changes
+  useEffect(() => {
+    if (!applications || !Array.isArray(applications)) return;
+    
+    // Update interview data when applications change
+    updateInterviewCount();
+    window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+  }, [applications, updateInterviewCount]);
   
   // Count applications with status "Interviewing" and load interview stages
   useEffect(() => {
