@@ -35,6 +35,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
 import AdminModelsPage from "@/pages/admin/ModelsPage";
+import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -362,6 +363,11 @@ function App() {
         <Route path="/admin/models">
           <AdminRoute>
             <AdminModelsPage />
+          </AdminRoute>
+        </Route>
+        <Route path="/admin/openai-logs">
+          <AdminRoute>
+            <AdminOpenAILogsPage />
           </AdminRoute>
         </Route>
         <Route path="/admin">
