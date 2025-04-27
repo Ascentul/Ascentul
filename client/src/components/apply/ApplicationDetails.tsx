@@ -32,6 +32,7 @@ import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
 import { EditInterviewStageForm } from '@/components/interview/EditInterviewStageForm';
 import { EditFollowupForm } from './EditFollowupForm';
 import type { InterviewStage, FollowupAction } from '@shared/schema';
+import { loadInterviewStagesForApplication, updateInterviewStage, notifyInterviewDataChanged } from '@/lib/interview-utils';
 
 
 interface ApplicationDetailsProps {
@@ -60,11 +61,29 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     setLocalApplication(application);
     setIsEditing(false); // Reset editing state when application changes
   }, [application]);
+  
+  // Add event listener for interview data changes
+  useEffect(() => {
+    // Function to handle interview data change event
+    const handleInterviewDataChange = () => {
+      console.log("Interview data changed event detected, refreshing data");
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/${application.id}/stages`] });
+    };
+    
+    // Add event listener
+    window.addEventListener('interviewDataChanged', handleInterviewDataChange);
+    
+    // Cleanup function to remove event listener
+    return () => {
+      window.removeEventListener('interviewDataChanged', handleInterviewDataChange);
+    };
+  }, [application.id, queryClient]);
 
   // No longer need to find or create a related interview process
   // as interview stages are now directly connected to the application
 
-  // Fetch interview stages directly for this application
+  // Fetch interview stages directly for this application using our utility function
   const { data: interviewStages } = useQuery<InterviewStage[]>({
     queryKey: [`/api/applications/${application.id}/stages`],
     queryFn: async () => {
@@ -73,15 +92,15 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         const response = await apiRequest('GET', `/api/applications/${application.id}/stages`);
         return await response.json();
       } catch (error) {
-        // If server request fails, try localStorage
+        // If server request fails, use our utility function to get from localStorage
         console.log('Server request for interview stages failed, checking localStorage');
         
-        // Check if there are mock interview stages in localStorage
-        const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${application.id}`) || '[]');
+        // Load interview stages using our centralized utility
+        const stages = loadInterviewStagesForApplication(application.id);
         
-        if (mockStages.length > 0) {
-          console.log('Using mock interview stages from localStorage:', mockStages);
-          return mockStages;
+        if (stages.length > 0) {
+          console.log('Using interview stages from localStorage via utility:', stages);
+          return stages;
         }
         
         // If no localStorage data, return empty array
@@ -90,6 +109,9 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     },
     enabled: !!application.id && localApplication.status === 'Interviewing',
     placeholderData: [],
+    // Listen for interview data changes and refetch
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Fetch follow-up actions directly for this application
@@ -218,7 +240,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     });
   };
   
-  // Function to update interview stage outcome
+  // Function to update interview stage outcome using our utility functions
   const handleUpdateStageOutcome = async (stageId: number, outcome: string) => {
     console.log(`Updating stage ${stageId} outcome to ${outcome} for application ${application.id}`);
     
@@ -236,36 +258,23 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     
     console.log("Current stage data:", stageToUpdate);
     
+    // Create an updated stage
+    const updatedStage = {
+      ...stageToUpdate,
+      outcome,
+      updatedAt: new Date().toISOString()
+    };
+    
     // We're going to try both localStorage and API updates to ensure it works
     
-    // Update in localStorage first for immediate UI feedback
+    // Update in localStorage first using our utility function
     try {
-      // Always update in localStorage as a backup - Get stages from localStorage
-      const mockStages = JSON.parse(localStorage.getItem(`mockInterviewStages_${application.id}`) || '[]');
-      console.log("Stages in localStorage before update:", mockStages);
+      // Use the updateInterviewStage utility to consistently update the stage
+      updateInterviewStage(updatedStage);
+      console.log("Updated stage using utility function:", updatedStage);
       
-      let stageIndex = mockStages.findIndex((s: any) => s.id === stageId);
-      
-      if (stageIndex === -1) {
-        // If stage doesn't exist in localStorage yet, add it
-        mockStages.push({
-          ...stageToUpdate,
-          outcome,
-          updatedAt: new Date().toISOString()
-        });
-        console.log("Adding new stage to localStorage:", mockStages[mockStages.length - 1]);
-      } else {
-        // Update existing stage
-        mockStages[stageIndex] = {
-          ...mockStages[stageIndex],
-          outcome,
-          updatedAt: new Date().toISOString()
-        };
-        console.log("Updated stage in localStorage:", mockStages[stageIndex]);
-      }
-      
-      // Save updated stages back to localStorage
-      localStorage.setItem(`mockInterviewStages_${application.id}`, JSON.stringify(mockStages));
+      // Notify components that interview data has changed
+      notifyInterviewDataChanged();
     } catch (localStorageError) {
       console.error("Error updating localStorage:", localStorageError);
     }
