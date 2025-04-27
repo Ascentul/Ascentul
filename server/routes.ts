@@ -5185,6 +5185,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
     }
   });
 
+  // Register OpenAI logs routes for admin usage
+  registerOpenAILogsRoutes(app);
+  
   const httpServer = createServer(app);
   return httpServer;
 }

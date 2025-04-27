@@ -58,6 +58,9 @@ if (!apiKey) {
   openai = new OpenAI({ apiKey });
 }
 
+// Export the OpenAI instance
+export const openaiInstance = openai;
+
 // Interface for LinkedIn profile analysis
 export interface LinkedInProfileAnalysis {
   overallScore: number;

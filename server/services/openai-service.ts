@@ -3,15 +3,13 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { validateModelAndGetId, DEFAULT_MODEL } from "../utils/models-config";
 import { logOpenAIUsage, OpenAILogEntry } from "../utils/openai-logger";
 
-// Get the OpenAI instance from the main file
-import { default as getOpenAI } from "../openai";
+// Import the OpenAI instance from the main file
+import { openaiInstance } from "../openai";
 
 /**
  * Get the OpenAI instance with logging wrapper
  */
 export function getOpenAIWithLogging() {
-  const openaiInstance = getOpenAI();
-  
   // Return a wrapped version that includes logging
   return {
     chat: {
