@@ -31,6 +31,7 @@ import {
   FilterX,
   Filter,
 } from 'lucide-react';
+import { loadInterviewStagesForApplication } from '@/lib/interview-utils';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -66,7 +67,7 @@ const HorizontalTimelineSection = ({
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
   
-  // Fetch stages for all processes
+  // Fetch stages for all processes AND application interviews
   const { data: allStages, isLoading } = useQuery<Record<number, InterviewStage[]>>({
     queryKey: ['/api/interview/stages'],
     queryFn: async () => {
@@ -79,7 +80,6 @@ const HorizontalTimelineSection = ({
           try {
             const response = await apiRequest('GET', `/api/interview/processes/${process.id}/stages`);
             const stagesData = await response.json();
-            console.log(`Fetched stages for process ${process.id}:`, stagesData);
             stagesMap[process.id] = stagesData;
           } catch (error) {
             console.error(`Error fetching stages for process ${process.id}:`, error);
@@ -88,9 +88,49 @@ const HorizontalTimelineSection = ({
         }
       }
       
+      // Load all interview stages from job applications (using the utility function)
+      const applications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      const interviewingApps = applications.filter((app: any) => app.status === 'Interviewing');
+      
+      // Include stages from applications in the timeline
+      for (const app of interviewingApps) {
+        if (app && app.id) {
+          try {
+            // Get interview stages using the utility function that checks both storage patterns
+            const appStages = loadInterviewStagesForApplication(app.id);
+            
+            if (appStages && appStages.length > 0) {
+              // Use app ID as the key if no process ID exists
+              const mappedId = app.interviewProcessId || app.id;
+              
+              // Add the stages to the map, merging with existing stages if any
+              if (stagesMap[mappedId]) {
+                // Add company name to the stages to differentiate them
+                const taggedStages = appStages.map(stage => ({
+                  ...stage,
+                  companyName: app.company || app.companyName || 'Unknown Company',
+                  jobTitle: app.title || app.jobTitle || app.position || 'Unknown Position'
+                }));
+                stagesMap[mappedId] = [...stagesMap[mappedId], ...taggedStages];
+              } else {
+                // Create a new entry with company name tagged
+                stagesMap[mappedId] = appStages.map(stage => ({
+                  ...stage,
+                  companyName: app.company || app.companyName || 'Unknown Company',
+                  jobTitle: app.title || app.jobTitle || app.position || 'Unknown Position'
+                }));
+              }
+            }
+          } catch (err) {
+            console.error('Error loading interview stages for application:', app.id, err);
+          }
+        }
+      }
+      
+      console.log('Combined timeline stages:', stagesMap);
       return stagesMap;
     },
-    enabled: processes !== undefined && processes.length > 0,
+    enabled: true, // Always enable to load both processes and application stages
     placeholderData: {},
     refetchOnWindowFocus: true
   });
