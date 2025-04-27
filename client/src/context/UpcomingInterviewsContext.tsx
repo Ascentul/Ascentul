@@ -37,55 +37,15 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
       // Count upcoming interviews from stages
       let scheduledInterviewsCount = 0;
       
-      // Check for stages with status "scheduled" or "pending" from both patterns
-      // Define a helper to check stages for a single app using a specific pattern
-      const checkAppStagesWithPattern = (app: any, keyPattern: string): number => {
-        try {
-          const stagesJson = localStorage.getItem(`${keyPattern}${app.id}`);
-          if (!stagesJson) return 0;
-          
-          const appStages = JSON.parse(stagesJson);
-          if (!Array.isArray(appStages)) return 0;
-          
-          // Count scheduled or pending stages with future dates
-          const now = new Date();
-          const scheduledStages = appStages.filter((stage: any) => {
-            // Ensure we have a valid stage with scheduledDate
-            if (!stage || !stage.scheduledDate) return false;
-            
-            // Check if it has status or outcome of 'scheduled' or 'pending'
-            const isScheduledOrPending = (
-              stage.status === 'scheduled' || 
-              stage.status === 'pending' || 
-              stage.outcome === 'scheduled' || 
-              stage.outcome === 'pending'
-            );
-            
-            // Check if the date is in the future
-            const isInFuture = new Date(stage.scheduledDate) > now;
-            
-            return isScheduledOrPending && isInFuture;
-          });
-          
-          return scheduledStages.length;
-        } catch (error) {
-          console.error(`Error counting stages for application ${app.id} with pattern ${keyPattern}:`, error);
-          return 0;
-        }
-      };
+      // Directly collect ALL interview stages from localStorage regardless of app status
+      // This is the most reliable way to count upcoming interviews
       
       // A set to track seen stage IDs and avoid double-counting
       const processedStageIds = new Set<number>();
+      const scheduledStageIds = new Set<number>();
+      const validStages: any[] = [];
       
-      // First check all interviewing applications for stages in both patterns
-      interviewingApps.forEach((app: any) => {
-        // Check both key patterns for each application
-        scheduledInterviewsCount += checkAppStagesWithPattern(app, 'mockStages_');
-        scheduledInterviewsCount += checkAppStagesWithPattern(app, 'mockInterviewStages_');
-      });
-      
-      // Also scan all localStorage keys for any interview stages regardless of application status
-      // This catches any interviews where the application status might be inconsistent
+      // Scan all localStorage for interview stages
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (!key) continue;
@@ -100,16 +60,20 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
           const stages = JSON.parse(stagesJson);
           if (!Array.isArray(stages)) continue;
           
-          // Check each stage for scheduled/pending status with future dates
+          // Check each stage
           const now = new Date();
           
           stages.forEach((stage: any) => {
-            // Skip if we've already counted this stage ID
+            // Skip if we've already processed this stage ID
             if (processedStageIds.has(stage.id)) return;
+            processedStageIds.add(stage.id);
             
             // Check if it's a valid interview with a future date
             if (!stage || !stage.scheduledDate) return;
             
+            // Consider a stage valid if it:
+            // 1. Has a status or outcome of scheduled/pending
+            // 2. Has a date in the future
             const isScheduledOrPending = (
               stage.status === 'scheduled' || 
               stage.status === 'pending' || 
@@ -120,15 +84,26 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
             const isInFuture = new Date(stage.scheduledDate) > now;
             
             if (isScheduledOrPending && isInFuture) {
-              // Count this stage and mark it as processed
-              processedStageIds.add(stage.id);
-              scheduledInterviewsCount++;
+              // Count this stage and add it to our valid stages list
+              scheduledStageIds.add(stage.id);
+              validStages.push(stage);
             }
           });
         } catch (error) {
           console.error(`Error processing stages from key ${key}:`, error);
         }
       }
+      
+      // Set the count to the number of valid unique stage IDs we found
+      scheduledInterviewsCount = scheduledStageIds.size;
+      
+      // Debug information
+      console.log(`Found ${processedStageIds.size} total stages, ${scheduledStageIds.size} are upcoming interviews`);
+      console.log("Valid upcoming interviews:", validStages.map(stage => ({
+        id: stage.id,
+        date: stage.scheduledDate,
+        status: stage.status || stage.outcome
+      })));
       
       console.log(`Local count: ${appCount} interviewing applications, ${scheduledInterviewsCount} scheduled interviews`);
       
