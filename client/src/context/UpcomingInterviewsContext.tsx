@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useCallback, useEffect, ReactNode } from 'react';
 import { apiRequest } from '@/lib/queryClient';
+import { loadInterviewStagesForApplication, getInterviewingApplications } from '@/lib/interview-utils';
 
 // Event name constants for updates
 export const INTERVIEW_COUNT_UPDATE_EVENT = 'interviewCountUpdate';
@@ -22,14 +23,14 @@ export function UpcomingInterviewsProvider({ children }: { children: ReactNode }
   // Function to count applications in interview stage and upcoming interviews
   const updateInterviewCount = useCallback(async (): Promise<number> => {
     try {
-      // First try to load from localStorage
+      // First try to load from localStorage using our utility function
       let localApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
       if (!Array.isArray(localApplications)) {
         localApplications = [];
       }
       
-      // Filter applications with status "Interviewing"
-      const interviewingApps = localApplications.filter((app: any) => app.status === 'Interviewing');
+      // Filter applications with status "Interviewing" using our utility function
+      const interviewingApps = getInterviewingApplications();
       
       // Count interviewing applications
       const appCount = interviewingApps.length;

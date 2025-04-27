@@ -262,7 +262,8 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
     const updatedStage = {
       ...stageToUpdate,
       outcome,
-      updatedAt: new Date().toISOString()
+      // Convert updatedAt to a Date object to match what the utility expects
+      updatedAt: new Date()
     };
     
     // We're going to try both localStorage and API updates to ensure it works
