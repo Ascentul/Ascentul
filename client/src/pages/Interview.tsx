@@ -338,11 +338,19 @@ const Interview = () => {
 
   // Check for create=true query parameter to automatically open the form
   useEffect(() => {
-    // Parse the URL to check for the create=true parameter
+    // Parse the URL to check for query parameters
     const url = new URL(window.location.href);
+    
+    // Handle create=true parameter
     const shouldCreate = url.searchParams.get('create');
     if (shouldCreate === 'true') {
       setShowCreateForm(true);
+    }
+    
+    // Handle tab parameter - for interview practice navigation from sidebar
+    const tabParam = url.searchParams.get('tab');
+    if (tabParam === 'practice') {
+      setActiveTab('practice');
     }
   }, [location]);
 
@@ -717,10 +725,7 @@ const Interview = () => {
               <Search className="h-4 w-4 mr-2" />
               Find Jobs
             </TabsTrigger>
-            <TabsTrigger value="practice" className="flex-1">
-              <BookOpenText className="h-4 w-4 mr-2" />
-              Practice
-            </TabsTrigger>
+            {/* Practice tab removed and moved to sidebar as a submenu under Job Search */}
           </TabsList>
         </Tabs>
       </motion.div>
