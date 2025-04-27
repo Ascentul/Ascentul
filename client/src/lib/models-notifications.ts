@@ -1,96 +1,77 @@
-// OpenAIModel interface defined inline to avoid import issues
+// Define model interface
 interface OpenAIModel {
   id: string;
   label: string;
   active: boolean;
 }
 
-// Local storage keys
-const SEEN_MODELS_KEY = 'ascentul_seen_models';
-const MODEL_NOTIFICATIONS_KEY = 'ascentul_model_notifications';
+// Store previously seen models in localStorage to track new ones
+const LOCAL_STORAGE_KEY = 'ascentul_seen_models';
 
-// Get the list of models the user has already seen
+/**
+ * Gets the list of previously seen model IDs from localStorage
+ */
 export function getSeenModels(): string[] {
   try {
-    const storedModels = localStorage.getItem(SEEN_MODELS_KEY);
-    if (storedModels) {
-      return JSON.parse(storedModels);
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
     }
   } catch (error) {
     console.error('Error retrieving seen models from localStorage:', error);
   }
+  
   return [];
 }
 
-// Mark models as seen
-export function markModelsSeen(modelIds: string[]): void {
+/**
+ * Adds new models to the seen models list in localStorage
+ */
+export function addToSeenModels(modelIds: string[]): void {
   try {
-    const seenModels = getSeenModels();
-    // Convert to array and back to avoid Set iteration issues
-    const combinedModels = [...seenModels, ...modelIds];
-    const uniqueModels = Array.from(new Set(combinedModels));
-    localStorage.setItem(SEEN_MODELS_KEY, JSON.stringify(uniqueModels));
+    const currentSeenModels = getSeenModels();
+    
+    // Create a unique array by concatenating and filtering
+    const combined = [...currentSeenModels, ...modelIds];
+    const uniqueModels = combined.filter((value, index, self) => 
+      self.indexOf(value) === index
+    );
+    
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(uniqueModels));
   } catch (error) {
-    console.error('Error saving seen models to localStorage:', error);
+    console.error('Error updating seen models in localStorage:', error);
   }
 }
 
-// Find new models that the user hasn't seen before
-export function findNewModels(models: OpenAIModel[]): OpenAIModel[] {
-  const seenModels = getSeenModels();
-  // Only return active models that haven't been seen
-  return models.filter(model => model.active && !seenModels.includes(model.id));
-}
-
-// Store notifications to be shown
-export function storeModelNotifications(notifications: { id: string, label: string }[]): void {
-  try {
-    localStorage.setItem(MODEL_NOTIFICATIONS_KEY, JSON.stringify(notifications));
-  } catch (error) {
-    console.error('Error storing model notifications to localStorage:', error);
-  }
-}
-
-// Get notifications to be shown
-export function getModelNotifications(): { id: string, label: string }[] {
-  try {
-    const notifications = localStorage.getItem(MODEL_NOTIFICATIONS_KEY);
-    if (notifications) {
-      return JSON.parse(notifications);
-    }
-  } catch (error) {
-    console.error('Error retrieving model notifications from localStorage:', error);
-  }
-  return [];
-}
-
-// Clear notifications after they've been shown
-export function clearModelNotifications(): void {
-  try {
-    localStorage.removeItem(MODEL_NOTIFICATIONS_KEY);
-  } catch (error) {
-    console.error('Error clearing model notifications from localStorage:', error);
-  }
-}
-
-// Process models into notifications and mark them as seen
+/**
+ * Processes model updates and determines which ones are new
+ */
 export function processModelUpdates(models: OpenAIModel[]): {
   hasNewModels: boolean;
   newModels: OpenAIModel[];
 } {
-  const newModels = findNewModels(models);
+  // Get only active models
+  const activeModels = models.filter(model => model.active);
+  
+  // Get previously seen model IDs
+  const seenModelIds = getSeenModels();
+  
+  // Find newly activated models (active but not previously seen)
+  const newModels = activeModels.filter(model => !seenModelIds.includes(model.id));
+  
+  // Determine if there are new models
   const hasNewModels = newModels.length > 0;
   
-  if (hasNewModels) {
-    // Store notifications to show
-    storeModelNotifications(newModels.map(model => ({ 
-      id: model.id, 
-      label: model.label 
-    })));
-    
-    // Mark these models as seen for next time
-    markModelsSeen(newModels.map(model => model.id));
-  }
-  
-  return { hasNewModels, newModels };
+  return {
+    hasNewModels,
+    newModels
+  };
+}
+
+/**
+ * Marks all the provided model IDs as seen
+ */
+export function markModelsAsSeen(models: OpenAIModel[]): void {
+  const modelIds = models.map(model => model.id);
+  addToSeenModels(modelIds);
 }

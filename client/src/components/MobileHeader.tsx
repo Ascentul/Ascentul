@@ -1,8 +1,9 @@
-import { Menu, Bell, Settings } from 'lucide-react';
+import { Menu, Settings } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/lib/useUserData';
 import ProfileImageUploader from './ProfileImageUploader';
+import { ModelNotificationIcon } from './ModelNotification';
 
 interface MobileHeaderProps {
   onMenuToggle: () => void;
@@ -27,12 +28,8 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
           <h1 className="text-lg font-bold text-primary font-poppins">Ascentul</h1>
         </div>
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" className="relative text-neutral-700 hover:text-primary">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-              3
-            </span>
-          </Button>
+          {/* Dynamic AI Model notification icon */}
+          <ModelNotificationIcon />
           <Button
             variant="ghost"
             size="icon"
