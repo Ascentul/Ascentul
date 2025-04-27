@@ -16,6 +16,7 @@ import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFo
 import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
 import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
+import { InterviewDebugTools } from '@/components/interview/InterviewDebugTools';
 
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
@@ -561,6 +562,15 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <InterviewsStatCard />
         </motion.div>
+        
+        {/* Debug section - only visible in development mode or when problems occur */}
+        {true || window.location.hostname === 'localhost' || (
+          localStorage.getItem('debugMode') === 'true')
+         ? (
+          <motion.div variants={cardAnimation} className="will-change-transform mt-4" style={{ transform: 'translateZ(0)' }}>
+            <InterviewDebugTools />
+          </motion.div>
+        ) : null}
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
