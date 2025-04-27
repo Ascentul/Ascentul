@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { processModelUpdates } from '@/lib/models-notifications';
+import { processModelUpdates, markModelsAsSeen } from '@/lib/models-notifications';
 
 // Define OpenAIModel interface inline to avoid import issues
 interface OpenAIModel {
@@ -36,8 +36,11 @@ export function useModelNotifications() {
     newModels,
     // Reset notification state
     clearNotifications: () => {
-      setHasNewModels(false);
-      setNewModels([]);
+      if (newModels.length > 0) {
+        markModelsAsSeen(newModels);
+        setHasNewModels(false);
+        setNewModels([]);
+      }
     }
   };
 }
