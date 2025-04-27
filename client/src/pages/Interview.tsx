@@ -28,6 +28,8 @@ import {
   Check,
   Plus,
   ListChecks,
+  Activity as ActivityIcon,
+  User as UserIcon,
   Search,
   BookOpenText,
   GanttChartSquare as Timeline,
@@ -718,33 +720,40 @@ const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
         className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0"
       >
         <div>
-          <h1 className="text-2xl font-bold">Application Tracker</h1>
-          <p className="text-muted-foreground">Manage your job applications from first save to final offer</p>
+          <h1 className="text-2xl font-bold">{practice ? "Interview Practice" : "Application Tracker"}</h1>
+          <p className="text-muted-foreground">
+            {practice 
+              ? "Practice your interview skills with AI-generated questions and feedback" 
+              : "Manage your job applications from first save to final offer"
+            }
+          </p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Application
+          {practice ? "New Practice Session" : "New Application"}
         </Button>
       </motion.div>
 
-      {/* Tabs navigation */}
-      <motion.div variants={subtleUp} className="mb-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full max-w-md mx-auto">
-            <TabsTrigger value="applications" className="flex-1">
-              <Briefcase className="h-4 w-4 mr-2" />
-              Interview Practice
-            </TabsTrigger>
-            <TabsTrigger value="job_search" className="flex-1">
-              <Search className="h-4 w-4 mr-2" />
-              Find Jobs
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </motion.div>
+      {/* Tabs navigation - only show in Application Tracker mode */}
+      {!practice && (
+        <motion.div variants={subtleUp} className="mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full max-w-md mx-auto">
+              <TabsTrigger value="applications" className="flex-1">
+                <Briefcase className="h-4 w-4 mr-2" />
+                Application Tracker
+              </TabsTrigger>
+              <TabsTrigger value="job_search" className="flex-1">
+                <Search className="h-4 w-4 mr-2" />
+                Find Jobs
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </motion.div>
+      )}
 
-      {/* Job Search Tab */}
-      {activeTab === 'job_search' && (
+      {/* Job Search Tab - Only shown in Application Tracker mode */}
+      {!practice && activeTab === 'job_search' && (
         <motion.div variants={fadeIn} className="container mx-auto">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
@@ -770,19 +779,134 @@ const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
         </motion.div>
       )}
 
-      {/* Timeline View has been removed */}
-
-      {/* Applications & Practice Views - Full Width */}
-      {activeTab !== 'job_search' && (
+      {/* Interview Practice View - Only shown in Practice mode */}
+      {practice && (
         <div className="space-y-6">
           <div className="space-y-4">
-            {/* Add title for Interview Practice */}
-            {activeTab === 'applications' && (
-              <motion.div variants={subtleUp}>
-                <h2 className="text-2xl font-semibold mb-2">Interview Practice</h2>
-                <p className="text-muted-foreground">Practice and prepare for your interviews with AI-powered assistance</p>
-              </motion.div>
-            )}
+            {/* Practice Mode Header Already Added */}
+            
+            {/* Search Input */}
+            <motion.div variants={subtleUp} className="w-full max-w-md">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search practices by company, position, or status..."
+                  className="w-full pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </motion.div>
+
+            {/* Interview Practice Content */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column: Interview Practice List */}
+              <div className="space-y-6">
+                {isLoadingProcesses ? (
+                  <div className="py-6">
+                    <LoadingState
+                      message="Loading practice sessions..."
+                      size="md"
+                      variant="card"
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                ) : (
+                  <motion.div variants={listContainer} initial="hidden" animate="visible" className="space-y-6">
+                    {/* Active sessions */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium flex items-center">
+                          <ActivityIcon className="h-4 w-4 mr-2" />
+                          Active Practice Sessions
+                        </h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowCreateForm(true)}
+                          className="text-xs"
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          New Practice
+                        </Button>
+                      </div>
+                      
+                      {activeProcesses.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          {activeProcesses.map((process, index) => renderProcessCard(process, index))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-6">No active practice sessions</p>
+                      )}
+                    </div>
+                    
+                    {/* Completed sessions */}
+                    {completedProcesses.length > 0 && (
+                      <div className="space-y-3 pt-2">
+                        <h3 className="font-medium flex items-center">
+                          <Check className="h-4 w-4 mr-2" />
+                          Completed Practice Sessions
+                        </h3>
+                        <div className="grid grid-cols-1 gap-3">
+                          {completedProcesses.map((process, index) => renderProcessCard(process, index))}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Right column: Selected Practice Details */}
+              <div>
+                {selectedProcess ? (
+                  <motion.div
+                    variants={fadeIn}
+                    className="w-full h-full"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <InterviewProcessDetails
+                      process={selectedProcess}
+                      onEdit={() => {}}
+                      onStart={() => {
+                        setPracticeProcessId(selectedProcess.id);
+                        setShowPracticeSession(true);
+                      }}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div variants={fadeIn} className="flex flex-col items-center justify-center h-full py-12">
+                    <div className="text-center max-w-md">
+                      <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                      <h3 className="text-xl font-medium mb-2">Select a Practice Session</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Select a practice session from the list or create a new one to get started.
+                      </p>
+                      <Button onClick={() => setShowCreateForm(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Practice Session
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Applications View - Only shown in Application Tracker mode */}
+      {!practice && activeTab === 'applications' && (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Application related titles */}
+            <motion.div variants={subtleUp}>
+              <h2 className="text-2xl font-semibold mb-2">Application Tracker</h2>
+              <p className="text-muted-foreground">Track and manage your job applications and interviews</p>
+            </motion.div>
             
             {/* Search Input - Only for Applications and Practice */}
             <motion.div variants={subtleUp} className="w-full max-w-md">
@@ -799,9 +923,8 @@ const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
             </motion.div>
 
             <div className="space-y-3">
-              {activeTab === 'applications' && (
-                <>
-                  {isLoadingApplications ? (
+              {/* Applications content */}
+              {isLoadingApplications ? (
                     <div className="py-6">
                       <LoadingState 
                         message="Loading applications..." 
@@ -999,40 +1122,54 @@ const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
                       </div>
                     </motion.div>
                   )}
-                </>
-              )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Content container for conditional rendering */}
+      <>
+      {/* Practice View - Only shown when in Application Tracker with practice tab */}
+      {!practice && activeTab === 'practice' && (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Practice related titles */}
+            <motion.div variants={subtleUp}>
+              <h2 className="text-2xl font-semibold mb-2">Interview Practice</h2>
+              <p className="text-muted-foreground">Practice for your upcoming interviews with AI-powered mock sessions</p>
+            </motion.div>
+            
+            <motion.div variants={fadeIn} className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="font-medium">Select an Application</h3>
+                <p className="text-sm text-muted-foreground">
+                  Choose a job application to practice for. We'll generate relevant interview questions based on the job description.
+                </p>
 
-              {activeTab === 'practice' && (
-                <motion.div variants={fadeIn} className="space-y-6">
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Select an Application</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose a job application to practice for. We'll generate relevant interview questions based on the job description.
-                    </p>
-
-                    {isLoadingProcesses ? (
-                      <div className="py-4">
-                        <LoadingState 
-                          message="Loading practice interviews..." 
-                          size="sm" 
-                          variant="card"
-                          mascotAction="thinking"
-                          className="w-full rounded-lg"
-                        />
-                      </div>
-                    ) : processes && processes.length > 0 ? (
-                      <motion.div 
-                        variants={listContainer} 
-                        initial="hidden" 
-                        animate="visible" 
-                        className="space-y-6 mt-4"
-                      >
-                        {/* Active processes for practice */}
-                        <div className="space-y-3">
-                          <h3 className="font-medium flex items-center text-sm">
-                            <Briefcase className="h-4 w-4 mr-2" />
-                            Active Applications
-                          </h3>
+                {isLoadingProcesses ? (
+                  <div className="py-4">
+                    <LoadingState 
+                      message="Loading practice interviews..." 
+                      size="sm" 
+                      variant="card"
+                      mascotAction="thinking"
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                ) : processes && processes.length > 0 ? (
+                  <motion.div 
+                    variants={listContainer} 
+                    initial="hidden" 
+                    animate="visible" 
+                    className="space-y-6 mt-4"
+                  >
+                    {/* Active processes for practice */}
+                    <div className="space-y-3">
+                      <h3 className="font-medium flex items-center text-sm">
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Active Applications
+                      </h3>
 
                           {activeProcesses.length > 0 ? (
                             <div className="space-y-3">
@@ -1197,6 +1334,7 @@ const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
         }}
         jobInfo={selectedJobInfo}
       />
+      </>
     </motion.div>
   );
 };
