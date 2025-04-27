@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { validateModelAndGetId, DEFAULT_MODEL } from "../utils/models-config";
 
 // Check for OpenAI API key and use mock mode if missing
 const apiKey = process.env.OPENAI_API_KEY;
@@ -74,6 +75,7 @@ export async function generateCoachingResponse(
     goals?: any[];
     interviewProcesses?: any[];
     userName?: string;
+    selectedModel?: string;
   }
 ) {
   // Prepare a full context for the AI by combining the base prompt with user-specific information
@@ -139,9 +141,14 @@ export async function generateCoachingResponse(
   ];
 
   try {
+    // Validate the selected model or use default
+    const validatedModel = userContext?.selectedModel
+      ? validateModelAndGetId(userContext.selectedModel)
+      : DEFAULT_MODEL;
+    
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: validatedModel, // Use the validated model
       messages: fullMessages,
       temperature: 0.7,
       max_tokens: 800,
@@ -166,6 +173,7 @@ export async function generateDailyAIRecommendations(
     goals?: any[];
     interviewProcesses?: any[];
     userName?: string;
+    selectedModel?: string;
   }
 ): Promise<string[]> {
   if (!userContext.userId) {
@@ -234,9 +242,14 @@ Output MUST be an array of strings in valid JSON format.
   }
 
   try {
+    // Validate the selected model or use default
+    const validatedModel = userContext?.selectedModel
+      ? validateModelAndGetId(userContext.selectedModel)
+      : DEFAULT_MODEL;
+    
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: validatedModel, // Use the validated model
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: "Generate today's personalized career recommendations based on my profile" }
