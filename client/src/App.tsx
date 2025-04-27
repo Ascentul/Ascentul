@@ -34,6 +34,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
+import AdminModelsPage from "@/pages/AdminModelsPage";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -356,6 +357,11 @@ function App() {
         <Route path="/admin/support/:id">
           <AdminRoute>
             <SupportPage />
+          </AdminRoute>
+        </Route>
+        <Route path="/admin/models">
+          <AdminRoute>
+            <AdminModelsPage />
           </AdminRoute>
         </Route>
         <Route path="/admin">
