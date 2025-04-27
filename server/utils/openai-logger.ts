@@ -1,142 +1,155 @@
-import fs from 'fs';
-import path from 'path';
+/**
+ * OpenAI Usage Logger
+ * 
+ * This utility keeps track of OpenAI API usage metrics for cost tracking and monitoring.
+ * Logs are stored in memory and can be accessed through APIs for administrator viewing.
+ */
 
-// Define the log entry structure
+// Interface for log entries
 export interface OpenAILogEntry {
-  userId: string | number;
-  timestamp: string;
-  model: string;
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-  endpoint?: string;
-  status?: 'success' | 'error';
-  error?: string;
+  userId: string | number;       // User who made the request
+  timestamp: string;             // Time of the request
+  model: string;                 // Model used for the request
+  prompt_tokens: number;         // Number of tokens in the prompt
+  completion_tokens: number;     // Number of tokens in the completion
+  total_tokens: number;          // Total tokens used
+  endpoint?: string;             // Which OpenAI endpoint was called
+  status?: 'success' | 'error';  // Request status
+  error?: string;                // Error message if applicable
 }
 
-// Constants for the log file
-const LOG_FILE_PATH = './logs/openai-usage.json';
-const LOG_DIR = './logs';
-
-// Ensure the logs directory exists
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
-}
-
-// Initialize the log file if it doesn't exist
-if (!fs.existsSync(LOG_FILE_PATH)) {
-  fs.writeFileSync(LOG_FILE_PATH, JSON.stringify({ logs: [] }));
-}
+// In-memory storage for logs
+const logs: OpenAILogEntry[] = [];
 
 /**
  * Log an OpenAI API call with usage information
  */
 export function logOpenAIUsage(logEntry: OpenAILogEntry): void {
-  try {
-    // Read the current log file
-    const logFileContent = fs.readFileSync(LOG_FILE_PATH, 'utf-8');
-    const logData = JSON.parse(logFileContent);
-    
-    // Add the new log entry
-    logData.logs.push(logEntry);
-    
-    // Write the updated logs back to the file
-    fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(logData, null, 2));
-    
-    // Also log to console for immediate visibility
-    console.log(`OpenAI API call logged: ${logEntry.model}, tokens: ${logEntry.total_tokens}`);
-  } catch (error) {
-    console.error('Error logging OpenAI usage:', error);
+  // Add log to the beginning of the array for most recent first
+  logs.unshift(logEntry);
+  
+  // Cap the log size to prevent memory issues (store last 1000 entries)
+  if (logs.length > 1000) {
+    logs.pop();
   }
+  
+  // Also log to console for debugging
+  console.log(`OpenAI API Call - User: ${logEntry.userId}, Model: ${logEntry.model}, Status: ${logEntry.status}, Tokens: ${logEntry.total_tokens}`);
 }
 
 /**
  * Get all logged OpenAI API calls
  */
 export function getOpenAILogs(): OpenAILogEntry[] {
-  try {
-    const logFileContent = fs.readFileSync(LOG_FILE_PATH, 'utf-8');
-    const logData = JSON.parse(logFileContent);
-    return logData.logs || [];
-  } catch (error) {
-    console.error('Error reading OpenAI logs:', error);
-    return [];
-  }
+  return logs;
 }
 
 /**
  * Export the logs as CSV
  */
 export function exportLogsAsCSV(): string {
-  try {
-    const logs = getOpenAILogs();
+  // Define CSV headers
+  const headers = ['userId', 'timestamp', 'model', 'prompt_tokens', 'completion_tokens', 'total_tokens', 'endpoint', 'status', 'error'];
+  
+  // Create CSV content with headers
+  let csv = headers.join(',') + '\n';
+  
+  // Add each log entry as a row
+  logs.forEach(log => {
+    const row = [
+      log.userId,
+      log.timestamp,
+      log.model,
+      log.prompt_tokens,
+      log.completion_tokens,
+      log.total_tokens,
+      log.endpoint || '',
+      log.status || '',
+      // Escape quotes in error message
+      log.error ? `"${log.error.replace(/"/g, '""')}"` : ''
+    ];
     
-    if (logs.length === 0) {
-      return 'No logs found';
-    }
-    
-    // Generate CSV header from the first log's keys
-    const headers = Object.keys(logs[0]).join(',');
-    
-    // Generate CSV rows
-    const rows = logs.map(log => {
-      return Object.values(log)
-        .map(value => {
-          // Handle strings with commas by wrapping in quotes
-          if (typeof value === 'string' && value.includes(',')) {
-            return `"${value}"`;
-          }
-          return value;
-        })
-        .join(',');
-    });
-    
-    // Combine header and rows
-    return [headers, ...rows].join('\n');
-  } catch (error) {
-    console.error('Error exporting logs as CSV:', error);
-    return 'Error generating CSV';
-  }
+    csv += row.join(',') + '\n';
+  });
+  
+  return csv;
 }
 
 /**
  * Clear all logs (mainly for testing)
  */
 export function clearLogs(): void {
-  try {
-    fs.writeFileSync(LOG_FILE_PATH, JSON.stringify({ logs: [] }));
-    console.log('OpenAI logs cleared');
-  } catch (error) {
-    console.error('Error clearing logs:', error);
-  }
+  logs.length = 0;
 }
 
 /**
  * Get usage statistics by model
  */
 export function getUsageStatsByModel(): Record<string, { 
-  calls: number; 
-  total_tokens: number;
-  prompt_tokens: number;
-  completion_tokens: number;
+  requests: number,
+  success_requests: number,
+  error_requests: number, 
+  total_tokens: number, 
+  prompt_tokens: number, 
+  completion_tokens: number,
+  estimated_cost: number // Approximate cost based on token usage
 }> {
-  const logs = getOpenAILogs();
-  const stats: Record<string, any> = {};
+  const stats: Record<string, {
+    requests: number,
+    success_requests: number,
+    error_requests: number,
+    total_tokens: number,
+    prompt_tokens: number,
+    completion_tokens: number,
+    estimated_cost: number
+  }> = {};
   
+  // Process each log entry
   logs.forEach(log => {
+    // Initialize model entry if it doesn't exist
     if (!stats[log.model]) {
       stats[log.model] = {
-        calls: 0,
+        requests: 0,
+        success_requests: 0,
+        error_requests: 0,
         total_tokens: 0,
         prompt_tokens: 0,
-        completion_tokens: 0
+        completion_tokens: 0,
+        estimated_cost: 0
       };
     }
     
-    stats[log.model].calls += 1;
-    stats[log.model].total_tokens += log.total_tokens || 0;
-    stats[log.model].prompt_tokens += log.prompt_tokens || 0;
-    stats[log.model].completion_tokens += log.completion_tokens || 0;
+    // Add stats
+    stats[log.model].requests++;
+    
+    if (log.status === 'success') {
+      stats[log.model].success_requests++;
+      stats[log.model].total_tokens += log.total_tokens;
+      stats[log.model].prompt_tokens += log.prompt_tokens;
+      stats[log.model].completion_tokens += log.completion_tokens;
+      
+      // Calculate estimated cost based on model
+      // These rates are approximate and should be updated as pricing changes
+      let costPerInputToken = 0;
+      let costPerOutputToken = 0;
+      
+      if (log.model.includes('gpt-4-turbo') || log.model.includes('gpt-4o')) {
+        costPerInputToken = 0.00001; // $0.01 per 1K input tokens
+        costPerOutputToken = 0.00003; // $0.03 per 1K output tokens
+      } else if (log.model.includes('gpt-4')) {
+        costPerInputToken = 0.00003; // $0.03 per 1K input tokens
+        costPerOutputToken = 0.00006; // $0.06 per 1K output tokens
+      } else if (log.model.includes('gpt-3.5-turbo')) {
+        costPerInputToken = 0.0000005; // $0.0005 per 1K input tokens
+        costPerOutputToken = 0.0000015; // $0.0015 per 1K output tokens
+      }
+      
+      const inputCost = log.prompt_tokens * costPerInputToken;
+      const outputCost = log.completion_tokens * costPerOutputToken;
+      stats[log.model].estimated_cost += inputCost + outputCost;
+    } else {
+      stats[log.model].error_requests++;
+    }
   });
   
   return stats;
@@ -146,24 +159,62 @@ export function getUsageStatsByModel(): Record<string, {
  * Get usage statistics by user
  */
 export function getUsageStatsByUser(): Record<string, { 
-  calls: number; 
-  total_tokens: number;
+  requests: number,
+  total_tokens: number,
+  models_used: string[],
+  estimated_cost: number
 }> {
-  const logs = getOpenAILogs();
-  const stats: Record<string, any> = {};
+  const stats: Record<string, {
+    requests: number,
+    total_tokens: number,
+    models_used: string[],
+    estimated_cost: number
+  }> = {};
   
+  // Process each log entry
   logs.forEach(log => {
     const userId = String(log.userId);
     
+    // Initialize user entry if it doesn't exist
     if (!stats[userId]) {
       stats[userId] = {
-        calls: 0,
-        total_tokens: 0
+        requests: 0,
+        total_tokens: 0,
+        models_used: [],
+        estimated_cost: 0
       };
     }
     
-    stats[userId].calls += 1;
-    stats[userId].total_tokens += log.total_tokens || 0;
+    // Add stats
+    stats[userId].requests++;
+    
+    if (log.status === 'success') {
+      stats[userId].total_tokens += log.total_tokens;
+      
+      // Add model to used models if not already there
+      if (!stats[userId].models_used.includes(log.model)) {
+        stats[userId].models_used.push(log.model);
+      }
+      
+      // Calculate estimated cost based on model
+      let costPerInputToken = 0;
+      let costPerOutputToken = 0;
+      
+      if (log.model.includes('gpt-4-turbo') || log.model.includes('gpt-4o')) {
+        costPerInputToken = 0.00001; // $0.01 per 1K input tokens
+        costPerOutputToken = 0.00003; // $0.03 per 1K output tokens
+      } else if (log.model.includes('gpt-4')) {
+        costPerInputToken = 0.00003; // $0.03 per 1K input tokens
+        costPerOutputToken = 0.00006; // $0.06 per 1K output tokens
+      } else if (log.model.includes('gpt-3.5-turbo')) {
+        costPerInputToken = 0.0000005; // $0.0005 per 1K input tokens
+        costPerOutputToken = 0.0000015; // $0.0015 per 1K output tokens
+      }
+      
+      const inputCost = log.prompt_tokens * costPerInputToken;
+      const outputCost = log.completion_tokens * costPerOutputToken;
+      stats[userId].estimated_cost += inputCost + outputCost;
+    }
   });
   
   return stats;
