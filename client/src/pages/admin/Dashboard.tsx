@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import AdminOverview from './AdminOverview';
 import SupportPage from './SupportPage';
 import AdminModelsPage from './ModelsPage';
+import OpenAILogsPage from './OpenAILogsPage';
 import {
   Form,
   FormControl,
@@ -398,6 +399,8 @@ export default function AdminDashboard() {
         return <SupportPage />;
       case 'ai-models':
         return <AdminModelsPage />;
+      case 'openai-logs':
+        return <OpenAILogsPage />;
       default:
         return <AdminOverview />;
     }
