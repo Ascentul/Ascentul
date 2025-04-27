@@ -316,7 +316,11 @@ const HorizontalTimelineSection = ({
   );
 };
 
-const Interview = () => {
+interface InterviewProps {
+  practice?: boolean;
+}
+
+const Interview: React.FC<InterviewProps> = ({ practice = false }) => {
   const [activeTab, setActiveTab] = useState('applications');
   const [selectedProcessId, setSelectedProcessId] = useState<number | null>(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
@@ -336,10 +340,14 @@ const Interview = () => {
   const { showGlobalLoading, hideGlobalLoading } = useLoading();
   const [location] = useLocation();
 
-  // Check for create=true query parameter to automatically open the form
+  // Set initial tab state based on practice prop or URL
   useEffect(() => {
-    // Set active tab based on URL path or parameters
-    if (location.includes('/interviews/practice')) {
+    // If practice prop is true, always set to practice tab
+    if (practice) {
+      setActiveTab('practice');
+    }
+    // Otherwise, check URL parameters
+    else if (location.includes('/interviews/practice')) {
       // Direct path to practice - used by sidebar navigation
       setActiveTab('practice');
     } else {
@@ -358,7 +366,7 @@ const Interview = () => {
         setActiveTab('practice');
       }
     }
-  }, [location]);
+  }, [location, practice]);
 
   // Animation variants - keeping them subtle
   const fadeIn = {
