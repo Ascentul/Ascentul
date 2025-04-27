@@ -14,6 +14,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -33,7 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
 import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
-import { Loader2, CalendarIcon, Briefcase, PlusCircle } from 'lucide-react';
+import { Loader2, CalendarIcon, Briefcase, PlusCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type JobApplication } from '@shared/schema';
 
@@ -216,6 +227,58 @@ export function EditApplicationForm({
     },
   });
 
+  // Delete application mutation
+  const deleteApplicationMutation = useMutation({
+    mutationFn: async () => {
+      // Handle local storage mock applications for demo purposes
+      const mockApps = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+      const mockAppIndex = mockApps.findIndex((app: any) => app.id === application.id);
+      
+      if (mockAppIndex !== -1) {
+        // Remove the application from localStorage
+        mockApps.splice(mockAppIndex, 1);
+        localStorage.setItem('mockJobApplications', JSON.stringify(mockApps));
+        return { success: true };
+      }
+      
+      // Otherwise, delete via API
+      try {
+        const response = await apiRequest('DELETE', `/api/applications/${application.id}`);
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting application via API:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Invalidate all relevant queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+      
+      toast({
+        title: 'Application Deleted',
+        description: 'The application has been deleted successfully.',
+      });
+      
+      // Force an immediate refresh of application data
+      queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      onClose();
+    },
+    onError: (error) => {
+      console.error('Error deleting application:', error);
+      toast({
+        title: 'Error',
+        description: `Failed to delete application: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSubmit = (values: ApplicationEditFormValues) => {
     // Ensure all field variations are set for maximum compatibility
     values.companyName = values.company;
@@ -225,6 +288,10 @@ export function EditApplicationForm({
     values.externalJobUrl = values.jobLink;
     
     updateApplicationMutation.mutate(values);
+  };
+  
+  const handleDelete = () => {
+    deleteApplicationMutation.mutate();
   };
 
   return (
@@ -433,20 +500,60 @@ export function EditApplicationForm({
                 </div>
               )}
               
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updateApplicationMutation.isPending}>
-                  {updateApplicationMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
+              <DialogFooter className="flex justify-between">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="gap-1 text-destructive border-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the application for {application.position} at {application.company}. 
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDelete}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        {deleteApplicationMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          'Delete Application'
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updateApplicationMutation.isPending}>
+                    {updateApplicationMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
