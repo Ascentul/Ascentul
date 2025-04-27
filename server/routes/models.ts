@@ -12,8 +12,8 @@ export function registerModelsRoutes(app: Express) {
       // Get models based on user role
       const models = getFilteredModels(admin);
       
-      // Return the models
-      res.status(200).json({ models });
+      // Return the models directly (not wrapped in an object)
+      res.status(200).json(models);
     } catch (error) {
       console.error('Error fetching models:', error);
       res.status(500).json({ error: 'Failed to fetch models configuration' });
