@@ -22,22 +22,15 @@ export function InterviewsStatCard({ isLoading = false }: InterviewsStatCardProp
   return (
     <Link href="/job-applications?filter=interviewing">
       <Card className="p-5 cursor-pointer hover:shadow-md transition-shadow">
-        <div className="flex justify-between items-start">
+        <div className="flex items-center gap-4">
+          <div className="bg-primary/10 p-2 rounded-full">
+            <Calendar className="h-5 w-5 text-primary" />
+          </div>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Upcoming Interviews</p>
             <h2 className="text-3xl font-bold mt-1">{upcomingInterviewCount}</h2>
           </div>
-          <div className="bg-primary/10 p-2 rounded-full">
-            <Calendar className="h-5 w-5 text-primary" />
-          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {upcomingInterviewCount === 0
-            ? 'No applications in interview stage'
-            : upcomingInterviewCount === 1
-            ? '1 application in interview stage'
-            : `${upcomingInterviewCount} applications in interview stage`}
-        </p>
       </Card>
     </Link>
   );
