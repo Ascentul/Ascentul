@@ -140,8 +140,14 @@ export function registerAICoachRoutes(app: Express) {
         content: m.message
       }));
 
-      // Generate AI response using OpenAI
-      const response = await generateCoachingResponse(conversationHistory, userContext);
+      // Get selected model from request if available
+      const selectedModel = req.body.selectedModel;
+      
+      // Generate AI response using OpenAI with model preference
+      const response = await generateCoachingResponse(conversationHistory, {
+        ...userContext,
+        selectedModel
+      });
       const aiResponse = response.content || "I'm sorry, I couldn't generate a response at this time.";
 
       // Create a new assistant message
@@ -166,7 +172,7 @@ export function registerAICoachRoutes(app: Express) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { query, conversationHistory = [] } = req.body;
+      const { query, conversationHistory = [], selectedModel } = req.body;
 
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: 'Query is required' });
@@ -184,8 +190,11 @@ export function registerAICoachRoutes(app: Express) {
           ? conversationHistory 
           : [userMessage];
       
-      // Generate AI response
-      const aiResponse = await generateCoachingResponse(formattedHistory, userContext);
+      // Generate AI response with selected model preference
+      const aiResponse = await generateCoachingResponse(formattedHistory, {
+        ...userContext,
+        selectedModel
+      });
       
       res.json({ response: aiResponse.content });
     } catch (error) {
