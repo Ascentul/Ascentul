@@ -163,10 +163,12 @@ export function UpcomingInterviewsCard() {
             }
             
             // Check status and outcome fields for 'scheduled' or 'pending'
-            // Also accept undefined or null statuses if outcome is set appropriately
+            // At least one of them needs to be 'scheduled' or 'pending'
             const isScheduledOrPending = (
-              (!stage.status || stage.status === 'scheduled' || stage.status === 'pending') &&
-              (!stage.outcome || stage.outcome === 'scheduled' || stage.outcome === 'pending')
+              stage.status === 'scheduled' || 
+              stage.status === 'pending' || 
+              stage.outcome === 'scheduled' || 
+              stage.outcome === 'pending'
             );
             
             // Check if the interview is in the future
@@ -289,7 +291,7 @@ export function UpcomingInterviewsCard() {
               <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-medium">No scheduled interviews</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                When you schedule interviews, they will appear here
+                Scheduled or pending interviews will appear here
               </p>
             </div>
           </div>
