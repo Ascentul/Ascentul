@@ -24,13 +24,16 @@ export default function AdminModelsPage() {
   const [hasChanges, setHasChanges] = useState(false);
 
   // Fetch models from API
-  const { isLoading, error } = useQuery<OpenAIModel[], Error>({
-    queryKey: ['/api/models'],
-    queryFn: getQueryFn(),
-    onSuccess: (data) => {
-      setModels(data);
-    },
+  const { data: modelsData, isLoading, error } = useQuery<OpenAIModel[], Error>({
+    queryKey: ['/api/models']
   });
+  
+  // Update models state when data is loaded
+  React.useEffect(() => {
+    if (modelsData) {
+      setModels(modelsData);
+    }
+  }, [modelsData]);
 
   // Create mutation to update models
   const updateModelsMutation = useMutation({

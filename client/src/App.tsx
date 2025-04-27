@@ -34,7 +34,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
-import AdminModelsPage from "@/pages/AdminModelsPage";
+import AdminModelsPage from "@/pages/admin/ModelsPage";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
