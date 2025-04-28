@@ -473,11 +473,7 @@ function App() {
             <CareerPathExplorer />
           </CareerRoute>
         </Route>
-        <Route path="/skill-stacker">
-          <CareerRoute>
-            <SkillStacker />
-          </CareerRoute>
-        </Route>
+        {/* Skill Stacker route removed */}
         <Route path="/projects">
           <CareerRoute>
             <Projects />
