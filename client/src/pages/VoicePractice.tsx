@@ -617,8 +617,21 @@ export default function VoicePractice() {
           // Create MediaRecorder if not already available
           if (!microphoneRef.current) {
             logVoiceEvent('MicrophoneSetup', 'Creating MediaRecorder');
+            // Try to use audio/mp3 if supported, fallback to audio/webm or audio/mp4
+            let mimeType = 'audio/webm';
+            if (MediaRecorder.isTypeSupported('audio/mp3')) {
+              mimeType = 'audio/mp3';
+            } else if (MediaRecorder.isTypeSupported('audio/mpeg')) {
+              mimeType = 'audio/mpeg';
+            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+              mimeType = 'audio/webm';
+            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+              mimeType = 'audio/mp4';
+            }
+            
+            logVoiceEvent('MicrophoneSetup', `Creating MediaRecorder with mime type: ${mimeType}`);
             const recorder = new MediaRecorder(audioStreamRef.current, {
-              mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+              mimeType: mimeType
             });
             
             // Set up event listeners
