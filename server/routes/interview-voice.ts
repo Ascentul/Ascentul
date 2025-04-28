@@ -621,12 +621,29 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     
     logRequest('transcribe', `Using file extension: ${fileExtension} based on MIME type: ${mimetype}`);
     
-    // Create a path in the uploads directory to ensure it's properly accessible
-    const uploadDir = path.join(__dirname, '../../uploads/temp');
+    // Create a path in the system temp directory which should always be writable
+    let uploadDir = path.join(process.cwd(), 'uploads', 'temp');
     
     // Create the directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    try {
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        logRequest('transcribe', `Created upload directory: ${uploadDir}`);
+      }
+    } catch (dirError) {
+      // If we can't create the directory, fall back to system temp
+      logRequest('transcribe', 'Failed to create upload directory, using system temp');
+      // /tmp should be available on both Linux and macOS
+      const systemTempDir = '/tmp';
+      if (!fs.existsSync(systemTempDir)) {
+        try {
+          fs.mkdirSync(systemTempDir, { recursive: true });
+        } catch (tmpDirError) {
+          logRequest('transcribe', 'Failed to create /tmp directory, using current directory');
+          uploadDir = '.';
+        }
+      }
+      uploadDir = systemTempDir;
     }
     
     const tempFilePath = path.join(uploadDir, `audio-${Date.now()}.${fileExtension}`);
@@ -664,18 +681,15 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
       
       logRequest('transcribe', 'Creating file read stream for OpenAI Whisper API...');
       
-      // Create a form data object for the multipart upload
-      const formData = new FormData();
-      
-      // Read the file into a Buffer and add to form
+      // NOTE: We're not using FormData directly as it's handled by the OpenAI SDK
+      // Just log the file information for debugging
       const fileBuffer = fs.readFileSync(tempFilePath);
-      const fileBlob = new Blob([fileBuffer], { type: mimetype });
       
-      // Add form fields
-      formData.append('file', fileBlob, `audio.${fileExtension}`);
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en');
-      formData.append('response_format', 'text');
+      logRequest('transcribe', 'File prepared for OpenAI API', {
+        fileSize: fileBuffer.length,
+        fileExtension,
+        mimeType: mimetype
+      });
       
       logRequest('transcribe', 'Calling OpenAI Whisper API for audio transcription...', {
         fileSize: fileBuffer.length,
