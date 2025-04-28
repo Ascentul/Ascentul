@@ -305,7 +305,7 @@ export default function VoicePractice() {
       }
         
         logVoiceEvent('ProcessAudioBlob', 'Audio encoded to base64, sending for transcription...');
-        logVoiceEvent('ProcessAudioBlob', 'Base64 data length:', base64Audio?.length || 'MISSING');
+        logVoiceEvent('ProcessAudioBlob', `Base64 data length: ${base64Audio?.length || 'MISSING'}`);
         
         if (!base64Audio) {
           toast({
@@ -349,11 +349,11 @@ export default function VoicePractice() {
           audio: base64Audio
         });
         
-        logVoiceEvent('ProcessAudioBlob', 'Transcription API response status:', response.status);
+        logVoiceEvent('ProcessAudioBlob', `Transcription API response status: ${response.status}`);
         
         if (response.ok) {
           const responseData = await response.json();
-          logVoiceEvent('ProcessAudioBlob', 'Transcription API response:', responseData);
+          logVoiceEvent('ProcessAudioBlob', 'Transcription API response', responseData);
           const { text } = responseData;
           
           if (!text || text.trim() === '') {
@@ -369,7 +369,7 @@ export default function VoicePractice() {
             return;
           }
           
-          logVoiceEvent('ProcessAudioBlob', 'Valid transcription received:', text);
+          logVoiceEvent('ProcessAudioBlob', `Valid transcription received: ${text}`);
           setTranscription(text);
           
           // Add user response to conversation
@@ -501,7 +501,7 @@ export default function VoicePractice() {
       });
     },
     onError: (error) => {
-      logVoiceEvent('GenerateQuestionError', 'Error generating question:', error);
+      logVoiceEvent('GenerateQuestionError', 'Error generating question', error);
       
       toast({
         title: "Error",
@@ -560,7 +560,7 @@ export default function VoicePractice() {
       }
     },
     onError: (error) => {
-      logVoiceEvent('AnalyzeResponseError', 'Error analyzing response:', error);
+      logVoiceEvent('AnalyzeResponseError', 'Error analyzing response', error);
       
       toast({
         title: "Error",
@@ -604,7 +604,7 @@ export default function VoicePractice() {
           
           audio.addEventListener('error', (event) => {
             const errorEvent = event as Event & { error?: DOMException };
-            logVoiceEvent('TextToSpeechPlaybackError', 'Audio playback error:', errorEvent.error);
+            logVoiceEvent('TextToSpeechPlaybackError', 'Audio playback error', errorEvent.error);
             
             // Fallback to browser's speech synthesis if audio playback fails
             if ('speechSynthesis' in window) {
@@ -624,11 +624,11 @@ export default function VoicePractice() {
           
           // Play the audio
           audio.play().catch(error => {
-            logVoiceEvent('TextToSpeechPlaybackError', 'Audio play error:', error);
+            logVoiceEvent('TextToSpeechPlaybackError', 'Audio play error', error);
             setStatus('listening');
           });
         } catch (error) {
-          logVoiceEvent('TextToSpeechPlaybackError', 'Error creating/playing audio:', error);
+          logVoiceEvent('TextToSpeechPlaybackError', 'Error creating/playing audio', error);
           
           // Fallback to status update
           setStatus('listening');
@@ -653,7 +653,7 @@ export default function VoicePractice() {
       }
     },
     onError: (error) => {
-      logVoiceEvent('TextToSpeechError', 'Text-to-speech error:', error);
+      logVoiceEvent('TextToSpeechError', 'Text-to-speech error', error);
       
       // Try to use browser's speech synthesis as fallback
       if ('speechSynthesis' in window) {
