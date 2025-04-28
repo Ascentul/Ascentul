@@ -527,8 +527,10 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     const buffer = Buffer.from(audio, 'base64');
     logRequest('transcribe', `Converted to buffer, size: ${buffer.length} bytes`);
     
-    // Create a temporary file path using a supported OpenAI format (mp3)
-    const tempFilePath = `/tmp/audio-${Date.now()}.mp3`;
+    // Create a temporary file path using a supported OpenAI format
+    // We're using .webm extension here to match what's typically recorded by the browser
+    // OpenAI Whisper API supports: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, or webm
+    const tempFilePath = `/tmp/audio-${Date.now()}.webm`;
     
     // Write the buffer to a temporary file
     try {
@@ -594,24 +596,34 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         }
       }
       
-      // Log detailed error information
-      logResponse('transcribe', 500, 'Error during transcription', transcriptionError);
+      // Log detailed error information 
+      const errorMessage = transcriptionError instanceof Error ? transcriptionError.message : String(transcriptionError);
+      logResponse('transcribe', 500, 'Error during transcription', { 
+        message: errorMessage, 
+        filePath: tempFilePath,
+        stack: transcriptionError instanceof Error ? transcriptionError.stack : undefined
+      });
       
       // Check if it's an OpenAI API error with a specific message
-      if (transcriptionError.message && transcriptionError.message.includes('API key')) {
+      if (errorMessage.includes('API key')) {
         return res.status(500).json({ 
           error: 'OpenAI API key issue. Please check server configuration.',
-          details: transcriptionError.message 
+          details: errorMessage 
         });
-      } else if (transcriptionError.message && transcriptionError.message.includes('No such file')) {
+      } else if (errorMessage.includes('No such file')) {
         return res.status(500).json({ 
           error: 'File reading error during transcription',
-          details: transcriptionError.message 
+          details: errorMessage 
+        });
+      } else if (errorMessage.includes('format') || errorMessage.includes('Content-Type')) {
+        return res.status(500).json({ 
+          error: 'Audio format error',
+          details: `The audio format is not compatible with OpenAI's Whisper API. Error: ${errorMessage}`
         });
       } else {
         return res.status(500).json({ 
           error: 'Failed to transcribe audio', 
-          details: transcriptionError.message || 'Unknown error'
+          details: errorMessage || 'Unknown error'
         });
       }
     }
