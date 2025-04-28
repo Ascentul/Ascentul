@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mic, AlertCircle } from 'lucide-react';
+import { Mic, AlertCircle, Play, Square, Volume2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 // Type definition for job applications
 interface JobApplication {
@@ -20,9 +22,15 @@ interface JobApplication {
   status?: string;
 }
 
+// Type definition for conversation messages
+interface ConversationMessage {
+  role: 'assistant' | 'user';
+  content: string;
+  timestamp: Date;
+}
+
 export default function VoicePractice() {
-  const [isRecording, setIsRecording] = useState(false);
-  const [status, setStatus] = useState('idle'); // 'idle', 'listening', 'thinking', 'speaking'
+  // State for application selection
   const [selectedApplication, setSelectedApplication] = useState<string>('');
   const [selectedJobDetails, setSelectedJobDetails] = useState<{
     title: string;
@@ -30,6 +38,21 @@ export default function VoicePractice() {
     description: string;
   } | null>(null);
 
+  // State for interview session
+  const [isInterviewActive, setIsInterviewActive] = useState(false);
+  const [status, setStatus] = useState('idle'); // 'idle', 'listening', 'thinking', 'speaking'
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcription, setTranscription] = useState('');
+  const [feedback, setFeedback] = useState<string | null>(null);
+  
+  // Conversation history
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  
+  // Refs for audio elements
+  const microphoneRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  
   // Fetch job applications from the API
   const { data: applications, isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
     queryKey: ['/api/job-applications'],
@@ -100,17 +123,277 @@ export default function VoicePractice() {
     }
   }, [selectedApplication, activeApplications]);
 
-  const startRecording = () => {
-    if (!selectedJobDetails) return;
-    setIsRecording(true);
-    setStatus('listening');
+  // Generate interview questions mutation
+  const generateQuestionMutation = useMutation({
+    mutationFn: async (params: { 
+      jobTitle: string, 
+      company: string, 
+      jobDescription: string,
+      conversation: ConversationMessage[]
+    }) => {
+      try {
+        const response = await apiRequest('POST', '/api/interview/generate-question', params);
+        if (!response.ok) throw new Error('Failed to generate question');
+        return await response.json();
+      } catch (error) {
+        console.error('Error generating question:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      // Add AI question to conversation
+      const newMessage: ConversationMessage = {
+        role: 'assistant',
+        content: data.question,
+        timestamp: new Date()
+      };
+      
+      setConversation(prev => [...prev, newMessage]);
+      
+      // Speak the question using browser's Text-to-Speech
+      speakText(data.question);
+      
+      // Update state to listening after speaking
+      setStatus('speaking');
+      
+      // After speaking finishes, enable listening mode
+      setTimeout(() => {
+        setStatus('listening');
+        startListening();
+      }, calculateSpeakingTime(data.question));
+    },
+    onError: (error) => {
+      console.error('Failed to generate interview question:', error);
+      setStatus('idle');
+      endInterview();
+    }
+  });
+
+  // Analyze user response mutation
+  const analyzeResponseMutation = useMutation({
+    mutationFn: async (params: {
+      jobTitle: string,
+      company: string,
+      jobDescription: string,
+      userResponse: string,
+      conversation: ConversationMessage[]
+    }) => {
+      try {
+        const response = await apiRequest('POST', '/api/interview/analyze-response', params);
+        if (!response.ok) throw new Error('Failed to analyze response');
+        return await response.json();
+      } catch (error) {
+        console.error('Error analyzing response:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      // If this is the end of the interview, show the feedback
+      if (data.isLastQuestion) {
+        setFeedback(data.feedback);
+        endInterview();
+        return;
+      }
+      
+      // Continue with the next question
+      generateQuestionMutation.mutate({
+        jobTitle: selectedJobDetails!.title,
+        company: selectedJobDetails!.company,
+        jobDescription: selectedJobDetails!.description,
+        conversation: conversation
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to analyze response:', error);
+      setStatus('idle');
+      endInterview();
+    }
+  });
+
+  // Calculate speaking time based on text length
+  const calculateSpeakingTime = (text: string): number => {
+    // Average speaking rate is about 150 words per minute
+    // So that's 2.5 words per second
+    const words = text.split(' ').length;
+    const seconds = words / 2.5;
+    // Add a 1-second buffer and convert to milliseconds
+    return (seconds + 1) * 1000;
   };
 
-  const stopRecording = () => {
-    setIsRecording(false);
+  // Function to speak text using the browser's Text-to-Speech API
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const speech = new SpeechSynthesisUtterance(text);
+      speech.rate = 1.0; // Normal speaking rate
+      speech.pitch = 1.0; // Normal pitch
+      speech.volume = 1.0; // Full volume
+      
+      // Use a female voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(voice => voice.name.includes('Female'));
+      if (femaleVoice) {
+        speech.voice = femaleVoice;
+      }
+      
+      window.speechSynthesis.speak(speech);
+    } else {
+      console.error('Text-to-speech not supported in this browser');
+    }
+  };
+
+  // Setup microphone access
+  const setupMicrophone = async () => {
+    try {
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      
+      // Create a MediaRecorder instance
+      const mediaRecorder = new MediaRecorder(stream);
+      microphoneRef.current = mediaRecorder;
+      
+      // Handle dataavailable event to collect audio chunks
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      // Handle recording stop event
+      mediaRecorder.onstop = async () => {
+        // Create a blob from the audio chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        audioChunksRef.current = [];
+        
+        // Convert blob to base64 for sending to backend
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64data = reader.result as string;
+          
+          // Extract only the base64 part (remove the data URL prefix)
+          const base64Audio = base64data.split(',')[1];
+          
+          // Send to backend for transcription
+          try {
+            const response = await apiRequest('POST', '/api/interview/transcribe', {
+              audio: base64Audio
+            });
+            
+            if (response.ok) {
+              const { text } = await response.json();
+              setTranscription(text);
+              
+              // Add user response to conversation
+              const newMessage: ConversationMessage = {
+                role: 'user',
+                content: text,
+                timestamp: new Date()
+              };
+              
+              setConversation(prev => [...prev, newMessage]);
+              
+              // Send for analysis
+              setStatus('thinking');
+              analyzeResponseMutation.mutate({
+                jobTitle: selectedJobDetails!.title,
+                company: selectedJobDetails!.company,
+                jobDescription: selectedJobDetails!.description,
+                userResponse: text,
+                conversation: [...conversation, newMessage]
+              });
+            } else {
+              console.error('Failed to transcribe audio');
+              setStatus('idle');
+            }
+          } catch (error) {
+            console.error('Error transcribing audio:', error);
+            setStatus('idle');
+          }
+        };
+      };
+      
+      return true;
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      return false;
+    }
+  };
+
+  // Start listening for user response
+  const startListening = () => {
+    if (!microphoneRef.current) return;
+    
+    try {
+      audioChunksRef.current = [];
+      microphoneRef.current.start();
+      setIsRecording(true);
+      setStatus('listening');
+    } catch (error) {
+      console.error('Error starting recording:', error);
+    }
+  };
+
+  // Stop listening
+  const stopListening = () => {
+    if (!microphoneRef.current || microphoneRef.current.state === 'inactive') return;
+    
+    try {
+      microphoneRef.current.stop();
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+    }
+  };
+
+  // Start the interview
+  const startInterview = async () => {
+    // Reset conversation and feedback
+    setConversation([]);
+    setFeedback(null);
+    setTranscription('');
+    
+    // Setup microphone
+    const micSetupSuccess = await setupMicrophone();
+    
+    if (!micSetupSuccess) {
+      console.error('Failed to set up microphone');
+      return;
+    }
+    
+    // Set interview as active
+    setIsInterviewActive(true);
+    setStatus('thinking');
+    
+    // Generate the first question
+    generateQuestionMutation.mutate({
+      jobTitle: selectedJobDetails!.title,
+      company: selectedJobDetails!.company,
+      jobDescription: selectedJobDetails!.description,
+      conversation: []
+    });
+  };
+
+  // End the interview
+  const endInterview = () => {
+    // Stop any ongoing recording
+    stopListening();
+    
+    // Close microphone stream
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+    }
+    
+    // Reset interview state
+    setIsInterviewActive(false);
     setStatus('idle');
-    // In a real implementation, this would trigger AI processing
-    // and then set status to 'thinking' and later 'speaking'
+    setIsRecording(false);
+    
+    // If no feedback was generated, create a simple one
+    if (!feedback && conversation.length > 0) {
+      setFeedback("Interview ended. Thank you for practicing!");
+    }
   };
 
   return (
@@ -147,6 +430,7 @@ export default function VoicePractice() {
               <Select 
                 value={selectedApplication} 
                 onValueChange={setSelectedApplication}
+                disabled={isInterviewActive}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a job to practice for" />
@@ -162,74 +446,146 @@ export default function VoicePractice() {
             )}
           </div>
 
-          <div className="flex flex-col items-center justify-center mt-6">
+          {/* Start/End Interview buttons */}
+          <div className="w-full max-w-md flex gap-4 justify-center mb-6">
             <Button
               variant="default"
               size="lg"
-              className={`w-40 h-40 rounded-full flex items-center justify-center transition-all ${
-                isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-primary/90'
-              }`}
-              onMouseDown={startRecording}
-              onMouseUp={stopRecording}
-              onTouchStart={startRecording}
-              onTouchEnd={stopRecording}
-              disabled={!selectedJobDetails || activeApplications.length === 0}
+              className="flex items-center gap-2"
+              onClick={startInterview}
+              disabled={!selectedJobDetails || isInterviewActive || activeApplications.length === 0 || generateQuestionMutation.isPending}
             >
-              <Mic className="w-16 h-16" />
+              <Play size={18} />
+              Start Interview
             </Button>
-            <p className="mt-4 text-center text-lg font-medium">
-              {!selectedJobDetails ? 'Select an application first' : (
-                <>
-                  {status === 'idle' && 'Hold to Speak'}
-                  {status === 'listening' && <span className="text-green-500">Listening...</span>}
-                  {status === 'thinking' && <span className="text-amber-500">Thinking...</span>}
-                  {status === 'speaking' && <span className="text-blue-500">Speaking...</span>}
-                </>
-              )}
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground text-center">
-              {!selectedJobDetails ? (
-                activeApplications.length === 0 ? 
-                  'Add active applications in the Application Tracker' : 
-                  'Choose a job from the dropdown above'
-              ) : (
-                <>
-                  {status === 'idle' && 'Press and hold the microphone button to start speaking'}
-                  {status === 'listening' && 'Release the button when you finish speaking'}
-                  {status === 'thinking' && 'AI is generating a response to your answer'}
-                  {status === 'speaking' && 'AI is providing feedback on your answer'}
-                </>
-              )}
-            </p>
+            <Button
+              variant="secondary"
+              size="lg"
+              className="flex items-center gap-2"
+              onClick={endInterview}
+              disabled={!isInterviewActive}
+            >
+              <Square size={18} />
+              End Interview
+            </Button>
           </div>
           
-          <div className="mt-12 w-full max-w-md">
-            <Card className="bg-muted/40">
-              <CardContent className="p-4">
-                <h3 className="font-medium mb-2">Tips:</h3>
-                <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                  <li>Speak clearly and at a moderate pace</li>
-                  <li>Select a specific job application for tailored practice</li>
-                  <li>Try different types of questions to practice your skills</li>
-                  <li>Review AI feedback to improve your interview performance</li>
-                </ul>
-              </CardContent>
-            </Card>
+          {/* Status indicator */}
+          <div className="w-full max-w-md mb-4">
+            {isInterviewActive && (
+              <div className={`p-3 rounded-md text-center ${
+                status === 'idle' ? 'bg-muted' : 
+                status === 'listening' ? 'bg-green-100 dark:bg-green-900/30' : 
+                status === 'thinking' ? 'bg-amber-100 dark:bg-amber-900/30' : 
+                status === 'speaking' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted'
+              }`}>
+                <div className="flex items-center justify-center gap-2">
+                  {status === 'idle' && <Play size={18} />}
+                  {status === 'listening' && <Mic className="animate-pulse" size={18} />}
+                  {status === 'thinking' && (
+                    <div className="animate-spin h-4 w-4 border-2 border-current rounded-full border-t-transparent" />
+                  )}
+                  {status === 'speaking' && <Volume2 className="animate-pulse" size={18} />}
+                  <span className="font-medium">
+                    {status === 'idle' && 'Ready to start'}
+                    {status === 'listening' && 'Listening to your response...'}
+                    {status === 'thinking' && 'Processing your response...'}
+                    {status === 'speaking' && 'AI is speaking...'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Microphone button (only shown during active listening) */}
+          {isInterviewActive && status === 'listening' && (
+            <div className="flex flex-col items-center justify-center mt-6 mb-6">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+                isRecording ? 'bg-red-500 animate-pulse' : 'bg-muted'
+              }`}>
+                <Mic className="w-8 h-8" />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground text-center">
+                {isRecording ? 'Recording in progress...' : 'Listening for your response'}
+              </p>
+            </div>
+          )}
+          
+          {/* Tips card (only shown when not in an interview) */}
+          {!isInterviewActive && (
+            <div className="mt-6 w-full max-w-md">
+              <Card className="bg-muted/40">
+                <CardContent className="p-4">
+                  <h3 className="font-medium mb-2">Tips:</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
+                    <li>Speak clearly and at a moderate pace</li>
+                    <li>Select a specific job application for tailored practice</li>
+                    <li>Click "Start Interview" to begin the conversation</li>
+                    <li>The AI will ask questions and listen to your responses</li>
+                    <li>Click "End Interview" to finish and get feedback</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Conversation History</CardTitle>
-          <CardDescription>
-            Your conversation with the AI interview assistant will appear here
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Conversation History</CardTitle>
+            <CardDescription>
+              Your conversation with the AI interview assistant
+            </CardDescription>
+          </div>
+          {selectedJobDetails && (
+            <Badge variant="outline" className="px-3 py-1">
+              {selectedJobDetails.title} at {selectedJobDetails.company}
+            </Badge>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="text-center py-12 text-muted-foreground">
-            Start speaking to see your conversation
-          </div>
+          {conversation.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              {isInterviewActive 
+                ? "The interview will begin momentarily..." 
+                : "Start an interview to see the conversation"}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {conversation.map((message, index) => (
+                <div 
+                  key={index}
+                  className={`flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                >
+                  <div 
+                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                      message.role === 'assistant' 
+                        ? 'bg-muted border border-border' 
+                        : 'bg-primary/10 border border-primary/20'
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Feedback section */}
+          {feedback && !isInterviewActive && (
+            <>
+              <Separator className="my-6" />
+              <div className="bg-muted/30 border rounded-lg p-4 mt-4">
+                <h3 className="font-semibold text-lg mb-2">Interview Feedback</h3>
+                <p className="text-sm whitespace-pre-line">{feedback}</p>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
