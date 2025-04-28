@@ -654,7 +654,7 @@ export default function VoicePractice() {
                     {status === 'idle' && 'Ready to start'}
                     {status === 'listening' && 'Listening to your response...'}
                     {status === 'thinking' && 'Processing your response...'}
-                    {status === 'speaking' && 'AI is speaking...'}
+                    {status === 'speaking' && 'Speaking... (OpenAI Nova Voice)'}
                   </span>
                 </div>
               </div>
