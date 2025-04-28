@@ -315,10 +315,10 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: messages,
-        temperature: 0.7, // Slight creativity for varied, natural-sounding questions
+        temperature: 0.72, // Higher creativity for more varied, natural-sounding questions
         max_tokens: 300, // Keep responses concise but allow for context
         presence_penalty: 0.4, // Reduce repetitiveness in phrasing
-        frequency_penalty: 0.3, // Encourage more diverse vocabulary
+        frequency_penalty: 0.35, // Encourage more diverse vocabulary
         stream: false // Using non-streaming for reliability in this version
       });
       
@@ -505,6 +505,9 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       
       try {
         // Generate the next AI response with enhanced human-like conversation parameters
+        // Currently OpenAI's streaming requires a different handling approach
+        // For now, we'll use non-streaming to ensure reliability, but we'll prioritize
+        // natural conversation parameters for better quality
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: interviewMessages,
@@ -920,13 +923,14 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
     try {
       logRequest('text-to-speech', `Calling OpenAI TTS API with model: tts-1-hd, voice: ${voice}`);
       
-      // Call OpenAI's TTS API with high-quality voice settings
-      logRequest('text-to-speech', `Using high-quality TTS with model: tts-1-hd, voice: ${voice || 'nova'}, speed: ${speed}`);
+      // Call OpenAI's TTS API with high-quality voice settings and optimized speed
+      const speedToUse = speed || 1.15; // Default to slightly faster than normal for more natural conversational pace
+      logRequest('text-to-speech', `Using high-quality TTS with model: tts-1-hd, voice: ${voice || 'nova'}, speed: ${speedToUse}`);
       const mp3 = await openaiInstance.audio.speech.create({
         model: 'tts-1-hd', // Always use high-definition TTS model for natural voice quality
         voice: voice || 'nova', // Default to nova voice if not specified (warm, natural female voice)
         input: text,
-        speed: speed // Use the validated speed parameter from request
+        speed: speedToUse // Use a slightly faster speed for more natural conversation
       });
       
       // Ensure we got a valid response
