@@ -60,22 +60,58 @@ export function logResponse(endpoint: string, status: number, message: string, d
 // Save audio to file for debugging
 export function saveAudioForDebugging(audio: string, endpoint: string) {
   try {
-    // Ensure audio is a base64 string
+    // Ensure audio is a string
     if (!audio || typeof audio !== 'string') {
       console.error('Invalid audio data received');
       return;
     }
     
+    // Clean the data URL prefix if present
+    let cleanedAudio = audio;
+    let fileExtension = 'webm';
+    
+    if (audio.includes('base64,')) {
+      // Extract the MIME type and base64 data
+      const matches = audio.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches && matches.length >= 3) {
+        const mimeType = matches[1];
+        cleanedAudio = matches[2];
+        
+        // Set file extension based on MIME type
+        if (mimeType.includes('mp3')) fileExtension = 'mp3';
+        else if (mimeType.includes('wav')) fileExtension = 'wav';
+        else if (mimeType.includes('ogg')) fileExtension = 'ogg';
+        else if (mimeType.includes('webm')) fileExtension = 'webm';
+        
+        console.log(`Extracted MIME type: ${mimeType} for debug audio`);
+      } else {
+        // If no proper match but there's a comma, split at the comma
+        cleanedAudio = audio.split(',')[1] || audio;
+        console.log('Could not extract MIME type for debug audio but split at comma');
+      }
+    }
+    
+    // Make sure uploads directory exists
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log(`Created uploads directory: ${uploadsDir}`);
+    }
+    
     // Create a filename with timestamp
     const timestamp = Date.now();
-    const filename = path.join(uploadsDir, `debug_${endpoint}_${timestamp}.webm`);
+    const filename = path.join(uploadsDir, `debug_${endpoint}_${timestamp}.${fileExtension}`);
     
     // Convert base64 to buffer and save
-    const buffer = Buffer.from(audio, 'base64');
-    fs.writeFileSync(filename, buffer);
-    
-    console.log(`Saved debug audio to ${filename}`);
-    return filename;
+    try {
+      const buffer = Buffer.from(cleanedAudio, 'base64');
+      fs.writeFileSync(filename, buffer);
+      
+      console.log(`Saved debug audio to ${filename}, size: ${buffer.length} bytes`);
+      return filename;
+    } catch (bufferError) {
+      console.error('Error converting debug audio to buffer:', bufferError);
+      return null;
+    }
   } catch (e) {
     console.error('Error saving audio for debugging:', e);
     return null;
