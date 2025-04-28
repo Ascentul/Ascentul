@@ -43,6 +43,9 @@ export async function generateSkillStackerPlan(
   userId: number,
   data: GeneratePlanRequest
 ): Promise<SkillStackerPlanData> {
+  let goalTitle = "Your Goal";
+  let goalDescription = "No additional context provided";
+  
   try {
     // Get goal information
     const goal = await storage.getGoal(data.goalId);
@@ -50,9 +53,12 @@ export async function generateSkillStackerPlan(
       throw new Error("Goal not found");
     }
     
+    goalTitle = goal.title;
+    goalDescription = goal.description || "No additional context provided";
+    
     if (hasMockFlag) {
       // Return mock data when no API key is set
-      return getMockSkillStackerPlan(goal.title, data.week, data.currentSkillLevel);
+      return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel);
     }
     
     // Use OpenAI to generate a skill stacker plan
@@ -83,14 +89,14 @@ export async function generateSkillStackerPlan(
         },
         {
           role: "user",
-          content: `Create a detailed skill development plan for Week ${data.week} to help me achieve my goal: "${goal.title}".
+          content: `Create a detailed skill development plan for Week ${data.week} to help me achieve my goal: "${goalTitle}".
           
           My current skill level is: ${data.currentSkillLevel}
           
-          Additional context about the goal: ${goal.description || "No additional context provided"}
+          Additional context about the goal: ${goalDescription}
           
           For Week ${data.week}, I need a plan that:
-          1. Clearly advances me toward ${goal.title}
+          1. Clearly advances me toward ${goalTitle}
           2. Builds on previous weeks' progress (if this isn't week 1)
           3. Provides concrete, measurable tasks
           4. Includes modern, relevant resources specific to each task
@@ -109,27 +115,31 @@ export async function generateSkillStackerPlan(
       throw new Error("Failed to generate skill stacker plan");
     }
     
-    const parsedResponse = JSON.parse(responseContent);
+    console.log("OpenAI Response:", responseContent);
     
-    // Transform the response to match our expected format
-    const tasks: SkillStackerTaskData[] = parsedResponse.tasks.map((task: any) => ({
-      title: task.title,
-      description: task.description,
-      type: task.type,
-      estimatedHours: Number(task.estimatedHours),
-      resources: Array.isArray(task.resources) ? task.resources : [task.resources]
-    }));
-    
-    return {
-      title: parsedResponse.title || `Week ${data.week}: ${goal.title}`,
-      description: parsedResponse.description || `Week ${data.week} skill development plan for ${goal.title}`,
-      tasks
-    };
+    try {
+      const parsedResponse = JSON.parse(responseContent);
+      
+      // Transform the response to match our expected format
+      const tasks: SkillStackerTaskData[] = parsedResponse.tasks.map((task: any) => ({
+        title: task.title,
+        description: task.description,
+        type: task.type,
+        estimatedHours: Number(task.estimatedHours),
+        resources: Array.isArray(task.resources) ? task.resources : [task.resources]
+      }));
+      
+      return {
+        title: parsedResponse.title || `Week ${data.week}: ${goalTitle}`,
+        description: parsedResponse.description || `Week ${data.week} skill development plan for ${goalTitle}`,
+        tasks
+      };
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError);
+      throw new Error("Failed to parse OpenAI response");
+    }
   } catch (error: any) {
     console.error("Error generating skill stacker plan:", error);
-    
-    // Get the goal title if possible, or use a fallback
-    const goalTitle = goal ? goal.title : "Your Goal";
     
     // If API fails, return mock data as fallback
     return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel);
