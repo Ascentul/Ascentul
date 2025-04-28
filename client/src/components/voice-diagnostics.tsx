@@ -36,12 +36,12 @@ interface DiagnosticResults {
       transcribe: {
         success: boolean;
         response?: any;
-        error?: string;
+        error: string; // Changed from error?: string to error: string
       };
       tts: {
         success: boolean;
         response?: any;
-        error?: string;
+        error: string; // Changed from error?: string to error: string
       };
     };
   };
@@ -177,7 +177,7 @@ export function VoiceDiagnostics() {
                 apiResults.transcribe = {
                   success: transcribeResponse.ok,
                   response: transcribeData,
-                  error: !transcribeResponse.ok ? `HTTP ${transcribeResponse.status}: ${transcribeResponse.statusText}` : undefined
+                  error: !transcribeResponse.ok ? `HTTP ${transcribeResponse.status}: ${transcribeResponse.statusText}` : ''
                 };
               } catch (transcribeError: any) {
                 apiResults.transcribe.error = transcribeError.message;
@@ -199,7 +199,7 @@ export function VoiceDiagnostics() {
                 apiResults.tts = {
                   success: ttsResponse.ok,
                   response: ttsData,
-                  error: !ttsResponse.ok ? `HTTP ${ttsResponse.status}: ${ttsResponse.statusText}` : undefined
+                  error: !ttsResponse.ok ? `HTTP ${ttsResponse.status}: ${ttsResponse.statusText}` : ''
                 };
               } catch (ttsError: any) {
                 apiResults.tts.error = ttsError.message;
