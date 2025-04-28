@@ -147,7 +147,7 @@ export default function VoicePractice() {
         
         // Clear audio chunks for next recording
         audioChunksRef.current = [];
-      } else if (status === 'listening' && microphoneRef.current && microphoneRef.current.state === 'inactive') {
+      } else if (status === 'listening' || status === 'thinking') {
         // If we're in listening state but have no recording or chunks, try to create a minimal recording
         console.log('No audio chunks found, creating a fallback response...');
         
@@ -156,25 +156,36 @@ export default function VoicePractice() {
         const fallbackText = "I need more time to think about this question. Can you please elaborate?";
         setTranscription(fallbackText);
         
-        // Add fallback message to conversation
+        // Add fallback message to conversation - ensure it's added to the UI immediately
         const newMessage: ConversationMessage = {
           role: 'user',
           content: fallbackText,
           timestamp: new Date()
         };
         
-        // Update conversation with the fallback message
+        // Create a new array with the fallback message to ensure state update
         const updatedConversation = [...conversation, newMessage];
+        console.log('Setting conversation with fallback message:', updatedConversation);
         setConversation(updatedConversation);
         
-        // Send for analysis
-        analyzeResponseMutation.mutate({
-          jobTitle: selectedJobDetails!.title,
-          company: selectedJobDetails!.company,
-          jobDescription: selectedJobDetails!.description,
-          userResponse: fallbackText,
-          conversation: updatedConversation
+        // Show toast notification for processing
+        toast({
+          title: "Analyzing response",
+          description: "Processing your response and preparing AI feedback...",
+          duration: 3000
         });
+        
+        // Ensure we use the updated conversation that includes the fallback message
+        console.log('Sending fallback message for analysis...', fallbackText);
+        setTimeout(() => {
+          analyzeResponseMutation.mutate({
+            jobTitle: selectedJobDetails!.title,
+            company: selectedJobDetails!.company,
+            jobDescription: selectedJobDetails!.description,
+            userResponse: fallbackText,
+            conversation: updatedConversation
+          });
+        }, 100); // Small delay to ensure state update
       }
     }
   };
@@ -496,8 +507,18 @@ export default function VoicePractice() {
       conversation: ConversationMessage[]
     }) => {
       try {
+        console.log('Sending analyze-response request with params:', {
+          jobTitle: params.jobTitle,
+          company: params.company,
+          userResponse: params.userResponse,
+          conversationLength: params.conversation.length,
+        });
+        
         const response = await apiRequest('POST', '/api/interview/analyze-response', params);
-        if (!response.ok) throw new Error('Failed to analyze response');
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          throw new Error(`Failed to analyze response: ${response.status} ${errorText}`);
+        }
         return await response.json();
       } catch (error) {
         console.error('Error analyzing response:', error);
@@ -505,9 +526,16 @@ export default function VoicePractice() {
       }
     },
     onSuccess: (data) => {
+      console.log('Analyze response success, received data:', data);
+      
       // If this is the end of the interview, show the feedback
       if (data.isLastQuestion) {
         setFeedback(data.feedback);
+        toast({
+          title: "Interview complete",
+          description: "Your interview session has ended. Check the feedback below.",
+          duration: 5000
+        });
         endInterview();
         return;
       }
@@ -523,7 +551,7 @@ export default function VoicePractice() {
           timestamp: new Date()
         };
         
-        // Log the updated conversation for debugging
+        // Create a new conversation array to ensure state update
         const updatedConversation = [...conversation, newMessage];
         console.log('CONVERSATION AFTER ADDING AI RESPONSE:', updatedConversation.map(msg => ({
           role: msg.role,
@@ -533,11 +561,24 @@ export default function VoicePractice() {
         // Update the conversation state with the AI's response
         setConversation(updatedConversation);
         
+        // Show toast notification
+        toast({
+          title: "AI response ready",
+          description: "Playing the interviewer's next question...",
+          duration: 3000
+        });
+        
         // Speak the AI's response using the TTS API
         speakText(data.aiResponse);
       } else {
         // Fallback to the old behavior - requesting a new question separately
         console.log('No AI response in data, requesting new question');
+        toast({
+          title: "Continuing interview",
+          description: "Moving to the next question...",
+          duration: 3000
+        });
+        
         console.warn('WARNING: Using old conversation flow. This should not happen with the updated API.');
         generateQuestionMutation.mutate({
           jobTitle: selectedJobDetails!.title,
@@ -549,6 +590,14 @@ export default function VoicePractice() {
     },
     onError: (error) => {
       console.error('Failed to analyze response:', error);
+      
+      toast({
+        title: "Error analyzing response",
+        description: "There was a problem processing your answer. The interview has been ended.",
+        variant: "destructive",
+        duration: 5000
+      });
+      
       setStatus('idle');
       endInterview();
     }
