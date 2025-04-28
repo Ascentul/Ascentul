@@ -600,7 +600,63 @@ export default function VoicePractice() {
       // Handle recording error event
       mediaRecorder.onerror = (event) => {
         console.error('MediaRecorder error:', event);
-        setStatus('idle');
+        
+        // Log additional information about the error
+        if (event.error) {
+          console.error('Error name:', event.error.name);
+          console.error('Error message:', event.error.message);
+        }
+        
+        // Attempt to restart microphone if it was a temporary error
+        if (event.error && (
+          event.error.name === 'NotAllowedError' ||
+          event.error.name === 'NotReadableError' ||
+          event.error.name === 'AbortError'
+        )) {
+          console.log('Attempting to recover from microphone error...');
+          
+          // Stop any ongoing recording
+          try {
+            if (mediaRecorder.state !== 'inactive') {
+              mediaRecorder.stop();
+            }
+          } catch (stopError) {
+            console.error('Error stopping recorder after error:', stopError);
+          }
+          
+          // Close the current stream
+          if (audioStreamRef.current) {
+            audioStreamRef.current.getTracks().forEach(track => track.stop());
+            audioStreamRef.current = null;
+          }
+          
+          // Try to set up microphone again
+          setTimeout(async () => {
+            console.log('Attempting to reinitialize microphone...');
+            const success = await setupMicrophone();
+            if (success) {
+              console.log('Successfully reinitialized microphone');
+              if (isInterviewActive) {
+                startListening();
+              }
+            } else {
+              console.error('Failed to reinitialize microphone');
+              setStatus('idle');
+              toast({
+                title: "Microphone Error",
+                description: "There was a problem accessing your microphone. Please check your browser permissions and try again.",
+                variant: "destructive"
+              });
+            }
+          }, 1000);
+        } else {
+          setStatus('idle');
+          toast({
+            title: "Recording Error",
+            description: "There was an error with the audio recording. Please try again.",
+            variant: "destructive"
+          });
+        }
       };
       
       return true;

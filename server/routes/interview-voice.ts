@@ -412,37 +412,93 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     
     const { audio } = validationResult.data;
     
+    // Log incoming request for debugging
+    console.log('Transcribe request received, payload size:', audio.length);
+    
     // Convert base64 to buffer
     const buffer = Buffer.from(audio, 'base64');
+    console.log('Converted to buffer, size:', buffer.length, 'bytes');
     
     // Create a temporary file path
     const tempFilePath = `/tmp/audio-${Date.now()}.webm`;
     
     // Write the buffer to a temporary file
     const fs = require('fs');
-    fs.writeFileSync(tempFilePath, buffer);
+    try {
+      fs.writeFileSync(tempFilePath, buffer);
+      console.log('Successfully wrote audio file to:', tempFilePath);
+      
+      // Verify file exists and has the right size
+      const stats = fs.statSync(tempFilePath);
+      console.log('Audio file stats:', {
+        size: stats.size,
+        created: stats.birthtime
+      });
+    } catch (fileError) {
+      console.error('Error writing audio file:', fileError);
+      return res.status(500).json({ error: 'Failed to create audio file for transcription' });
+    }
     
     try {
+      console.log('Creating file read stream for OpenAI Whisper API...');
+      const fileStream = fs.createReadStream(tempFilePath);
+      
+      // Check if the OpenAI API key is set
+      if (!process.env.OPENAI_API_KEY) {
+        console.error('OPENAI_API_KEY environment variable is not set');
+        return res.status(500).json({ error: 'OpenAI API configuration is missing' });
+      }
+      
+      console.log('Calling OpenAI Whisper API for audio transcription...');
       // Use OpenAI's Whisper API to transcribe the audio
       const transcription = await openaiInstance.audio.transcriptions.create({
-        file: fs.createReadStream(tempFilePath),
+        file: fileStream,
         model: 'whisper-1',
         language: 'en', // Specify English language
         response_format: 'text' // Ensure we get plain text back
       });
       
+      console.log('Transcription completed successfully:', {
+        textLength: transcription.text.length,
+        excerpt: transcription.text.substring(0, 50) + (transcription.text.length > 50 ? '...' : '')
+      });
+      
       // Clean up the temporary file
       fs.unlinkSync(tempFilePath);
+      console.log('Temporary file cleaned up successfully');
       
       return res.status(200).json({ text: transcription.text });
     } catch (transcriptionError) {
       // Clean up the temporary file in case of error
       if (fs.existsSync(tempFilePath)) {
-        fs.unlinkSync(tempFilePath);
+        try {
+          fs.unlinkSync(tempFilePath);
+          console.log('Temporary file cleaned up after error');
+        } catch (cleanupError) {
+          console.error('Error cleaning up temporary file:', cleanupError);
+        }
       }
       
+      // Log detailed error information
       console.error('Error during transcription:', transcriptionError);
-      return res.status(500).json({ error: 'Failed to transcribe audio' });
+      
+      // Check if it's an OpenAI API error with a specific message
+      if (transcriptionError.message && transcriptionError.message.includes('API key')) {
+        return res.status(500).json({ 
+          error: 'OpenAI API key issue. Please check server configuration.',
+          details: transcriptionError.message 
+        });
+      } else if (transcriptionError.message && transcriptionError.message.includes('No such file')) {
+        return res.status(500).json({ 
+          error: 'File reading error during transcription',
+          details: transcriptionError.message 
+        });
+      } else {
+        return res.status(500).json({ 
+          error: 'Failed to transcribe audio', 
+          details: transcriptionError.message || 'Unknown error'
+        });
+      }
     }
   } catch (error) {
     console.error('Error in transcribe endpoint:', error);
@@ -466,10 +522,25 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
     
     const { text, voice } = validationResult.data;
     
+    console.log('Text-to-speech request received, text length:', text.length);
+  
+    // Check if the OpenAI API key is set
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('OPENAI_API_KEY environment variable is not set');
+      return res.status(500).json({ error: 'OpenAI API configuration is missing' });
+    }
+    
     // Ensure uploads directory exists
     const uploadsDir = path.join(process.cwd(), 'uploads', 'audio');
     if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log('Creating uploads directory:', uploadsDir);
+      try {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        console.log('Successfully created uploads directory');
+      } catch (mkdirError) {
+        console.error('Error creating uploads directory:', mkdirError);
+        return res.status(500).json({ error: 'Failed to create audio storage directory' });
+      }
     }
     
     // Generate a unique filename
@@ -478,28 +549,67 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
     const audioPath = path.join(uploadsDir, audioFilename);
     const audioUrl = `/uploads/audio/${audioFilename}`;
     
+    console.log('Audio will be saved to:', audioPath);
+    console.log('Audio will be available at URL:', audioUrl);
+    
     try {
+      console.log('Calling OpenAI TTS API with model: tts-1-hd, voice:', voice);
+      
       // Call OpenAI's TTS API
       const mp3 = await openaiInstance.audio.speech.create({
         model: 'tts-1-hd', // Use high-definition TTS model
-        voice: voice, // 'nova' is a friendly, natural female voice
+        voice: voice, // Default is 'nova', a friendly, natural female voice
         input: text
       });
       
+      console.log('OpenAI TTS API call successful, processing response...');
+      
       // Convert response to Buffer
       const buffer = Buffer.from(await mp3.arrayBuffer());
+      console.log('Converted audio to buffer, size:', buffer.length, 'bytes');
       
       // Save audio file to disk
-      fs.writeFileSync(audioPath, buffer);
+      try {
+        fs.writeFileSync(audioPath, buffer);
+        console.log('Successfully saved audio file to disk');
+        
+        // Verify file exists and has the right size
+        const stats = fs.statSync(audioPath);
+        console.log('Audio file stats:', {
+          size: stats.size,
+          created: stats.birthtime
+        });
+      } catch (fileError) {
+        console.error('Error saving audio file to disk:', fileError);
+        return res.status(500).json({ error: 'Failed to save generated audio file' });
+      }
       
       // Return success with the URL to the audio file
       return res.status(200).json({ 
         audioUrl,
-        success: true 
+        success: true,
+        size: buffer.length
       });
     } catch (ttsError) {
       console.error('Error generating speech:', ttsError);
-      return res.status(500).json({ error: 'Failed to generate speech audio' });
+      
+      // Check if it's an OpenAI API error with a specific message
+      if (ttsError.message && ttsError.message.includes('API key')) {
+        return res.status(500).json({ 
+          error: 'OpenAI API key issue. Please check server configuration.',
+          details: ttsError.message 
+        });
+      } else if (ttsError.message && ttsError.message.includes('Rate limit')) {
+        return res.status(429).json({ 
+          error: 'OpenAI API rate limit exceeded. Please try again later.',
+          details: ttsError.message 
+        });
+      } else {
+        return res.status(500).json({ 
+          error: 'Failed to generate speech audio',
+          details: ttsError.message || 'Unknown error'
+        });
+      }
     }
   } catch (error) {
     console.error('Error in text-to-speech endpoint:', error);
