@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   useEffect(() => {
     if (location.startsWith('/interview') || location.startsWith('/apply') || location.startsWith('/contacts') || location.startsWith('/voice-practice')) {
       setActiveSection('job-search');
-    } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/skill-stacker')) {
+    } else if (location.startsWith('/goals') || location.startsWith('/career-path')) {
       setActiveSection('career-growth');
     } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
       setActiveSection('portfolio');
@@ -167,7 +167,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <LineChart className="w-5 h-5" />,
       items: [
         { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goal Tracker' },
-        { href: '/skill-stacker', icon: <ClipboardList className="w-5 h-5 mr-3" />, label: 'Skill Stacker', pro: true },
         { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
       ]
     },
