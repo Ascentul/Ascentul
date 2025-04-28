@@ -208,6 +208,12 @@ export default function SkillStacker() {
       return;
     }
 
+    console.log('Generating skill plan:', {
+      goalId: selectedGoal,
+      week: selectedWeek,
+      currentSkillLevel: selectedSkillLevel,
+    });
+
     setIsGenerating(true);
     generateMutation.mutate({
       goalId: selectedGoal,
