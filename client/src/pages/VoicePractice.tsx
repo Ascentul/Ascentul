@@ -1105,7 +1105,9 @@ export default function VoicePractice() {
                         >
                           <p className="text-sm">{message.content}</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {message.timestamp.toLocaleTimeString()}
+                            {message.timestamp instanceof Date 
+                              ? message.timestamp.toLocaleTimeString()
+                              : new Date(message.timestamp).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
