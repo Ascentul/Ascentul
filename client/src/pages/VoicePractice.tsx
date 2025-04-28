@@ -248,54 +248,59 @@ export default function VoicePractice() {
       return;
     }
     
-    // Convert blob to base64 for sending to backend
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
-    
-    // Add error handler for FileReader
-    reader.onerror = () => {
-      logVoiceEvent('ProcessAudioBlob', 'FileReader error:', reader.error);
+    try {
+      // Ensure the audio blob has the correct type
+      // If the type is empty or not supported, create a new blob with a supported MIME type
+      let processedBlob = audioBlob;
+      if (!audioBlob.type || !audioBlob.type.includes('audio/')) {
+        logVoiceEvent('ProcessAudioBlob', `Recreating blob with explicit audio MIME type, original type: ${audioBlob.type}`);
+        // Use webm as the default format as it's widely supported
+        processedBlob = new Blob([await audioBlob.arrayBuffer()], { type: 'audio/webm' });
+      }
       
-      toast({
-        title: "Error processing audio",
-        description: "Failed to process your recording. Please try again.",
-        variant: "destructive"
+      // Convert blob to base64 for sending to backend
+      const reader = new FileReader();
+      
+      // Create a promise to handle FileReader async operation
+      const readBlobAsBase64 = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error("FileReader didn't return a string"));
+          }
+        };
+        reader.onerror = () => {
+          reject(reader.error || new Error("Error reading file"));
+        };
+        reader.readAsDataURL(processedBlob);
       });
       
-      setStatus('listening');
-    };
-    
-    reader.onloadend = async () => {
-      try {
-        const base64data = reader.result as string;
-        
-        if (!base64data) {
-          logVoiceEvent('ProcessAudioBlob', 'Failed to read audio as base64');
-          setStatus('listening');
-          return;
-        }
-        
-        // Check if data is in expected format and extract only the base64 part
-        let base64Audio;
-        let mimeType = '';
-        
-        if (base64data.includes('base64,')) {
-          // Extract both MIME type and base64 data
-          const matches = base64data.match(/^data:([^;]+);base64,(.+)$/);
-          if (matches && matches.length >= 3) {
-            mimeType = matches[1];
-            base64Audio = matches[2];
-            logVoiceEvent('ProcessAudioBlob', `Extracted MIME type: ${mimeType}, sending for transcription...`);
-          } else {
-            // If no proper match found but there's a comma, split at the comma
-            base64Audio = base64data.split(',')[1];
-            logVoiceEvent('ProcessAudioBlob', 'Could not extract MIME type, but split at comma');
-          }
+      // Wait for FileReader to complete
+      const base64data = await readBlobAsBase64;
+      logVoiceEvent('ProcessAudioBlob', `Successfully read blob as base64, length: ${base64data.length}`);
+      
+      // Check if data is in expected format and extract only the base64 part
+      let base64Audio;
+      let mimeType = '';
+      
+      if (base64data.includes('base64,')) {
+        // Extract both MIME type and base64 data
+        const matches = base64data.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches && matches.length >= 3) {
+          mimeType = matches[1];
+          base64Audio = matches[2]; 
+          logVoiceEvent('ProcessAudioBlob', `Extracted MIME type: ${mimeType}, base64 length: ${base64Audio.length}`);
         } else {
-          // If no data URL prefix, use as is
-          base64Audio = base64data;
-          logVoiceEvent('ProcessAudioBlob', 'No data URL prefix found, using raw base64 data');
+          // If no proper match found but there's a comma, split at the comma
+          base64Audio = base64data.split(',')[1];
+          logVoiceEvent('ProcessAudioBlob', 'Could not extract MIME type, but split at comma');
         }
+      } else {
+        // If no data URL prefix, use as is
+        base64Audio = base64data;
+        logVoiceEvent('ProcessAudioBlob', 'No data URL prefix found, using raw base64 data');
+      }
         
         logVoiceEvent('ProcessAudioBlob', 'Audio encoded to base64, sending for transcription...');
         logVoiceEvent('ProcessAudioBlob', 'Base64 data length:', base64Audio?.length || 'MISSING');
@@ -449,7 +454,6 @@ export default function VoicePractice() {
         
         setStatus('listening');
       }
-    };
   };
   
   // Get applications from the server
