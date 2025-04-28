@@ -275,10 +275,40 @@ export default function VoicePractice() {
           return;
         }
         
-        // Extract only the base64 part (remove the data URL prefix)
-        const base64Audio = base64data.split(',')[1];
+        // Check if data is in expected format and extract only the base64 part
+        let base64Audio;
+        let mimeType = '';
+        
+        if (base64data.includes('base64,')) {
+          // Extract both MIME type and base64 data
+          const matches = base64data.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches && matches.length >= 3) {
+            mimeType = matches[1];
+            base64Audio = matches[2];
+            logVoiceEvent('ProcessAudioBlob', `Extracted MIME type: ${mimeType}, sending for transcription...`);
+          } else {
+            // If no proper match found but there's a comma, split at the comma
+            base64Audio = base64data.split(',')[1];
+            logVoiceEvent('ProcessAudioBlob', 'Could not extract MIME type, but split at comma');
+          }
+        } else {
+          // If no data URL prefix, use as is
+          base64Audio = base64data;
+          logVoiceEvent('ProcessAudioBlob', 'No data URL prefix found, using raw base64 data');
+        }
+        
         logVoiceEvent('ProcessAudioBlob', 'Audio encoded to base64, sending for transcription...');
         logVoiceEvent('ProcessAudioBlob', 'Base64 data length:', base64Audio?.length || 'MISSING');
+        
+        if (!base64Audio) {
+          toast({
+            title: "Audio processing error",
+            description: "Failed to prepare audio for transcription. Please try again.",
+            variant: "destructive"
+          });
+          setStatus('listening');
+          return;
+        }
         
         // Clear audio chunks for next recording
         audioChunksRef.current = [];
