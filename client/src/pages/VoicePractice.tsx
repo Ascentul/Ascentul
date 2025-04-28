@@ -114,6 +114,13 @@ export default function VoicePractice() {
     // Ensure we change to thinking state to indicate processing
     setStatus('thinking');
     
+    // Show toast notification to inform user
+    toast({
+      title: "Processing your response",
+      description: "Please wait while I analyze your answer...",
+      duration: 3000
+    });
+    
     if (isRecording && microphoneRef.current && microphoneRef.current.state !== 'inactive') {
       console.log('Active recording found, completing response...');
       
@@ -137,55 +144,58 @@ export default function VoicePractice() {
         
         // Process this audio blob manually since onstop won't trigger
         processAudioBlob(audioBlob);
+        
+        // Clear audio chunks for next recording
+        audioChunksRef.current = [];
       } else if (status === 'listening' && microphoneRef.current && microphoneRef.current.state === 'inactive') {
         // If we're in listening state but have no recording or chunks, try to create a minimal recording
-        console.log('No audio chunks found, attempting to force a minimal recording...');
+        console.log('No audio chunks found, creating a fallback response...');
         
-        startRecording();
+        // If we can't even get a recording started, create a fallback message
+        console.log('Creating fallback user message to continue conversation');
+        const fallbackText = "I need more time to think about this question. Can you please elaborate?";
+        setTranscription(fallbackText);
         
-        // Set a small timeout to allow recording to start before stopping
-        setTimeout(() => {
-          if (microphoneRef.current && microphoneRef.current.state === 'recording') {
-            console.log('Force stopping minimal recording after delay...');
-            microphoneRef.current.stop();
-            setIsRecording(false);
-          } else {
-            console.log('Failed to force recording - microphone state:', microphoneRef.current?.state);
-            
-            // If we can't even get a recording started, create a fallback message
-            console.log('Creating fallback user message to continue conversation');
-            const fallbackText = "I'm sorry, I didn't catch that. Could you repeat the question?";
-            setTranscription(fallbackText);
-            
-            // Add fallback message to conversation
-            const newMessage: ConversationMessage = {
-              role: 'user',
-              content: fallbackText,
-              timestamp: new Date()
-            };
-            
-            // Update conversation with the fallback message
-            const updatedConversation = [...conversation, newMessage];
-            setConversation(updatedConversation);
-            
-            // Send for analysis
-            analyzeResponseMutation.mutate({
-              jobTitle: selectedJobDetails!.title,
-              company: selectedJobDetails!.company,
-              jobDescription: selectedJobDetails!.description,
-              userResponse: fallbackText,
-              conversation: updatedConversation
-            });
-          }
-        }, 500);
+        // Add fallback message to conversation
+        const newMessage: ConversationMessage = {
+          role: 'user',
+          content: fallbackText,
+          timestamp: new Date()
+        };
+        
+        // Update conversation with the fallback message
+        const updatedConversation = [...conversation, newMessage];
+        setConversation(updatedConversation);
+        
+        // Send for analysis
+        analyzeResponseMutation.mutate({
+          jobTitle: selectedJobDetails!.title,
+          company: selectedJobDetails!.company,
+          jobDescription: selectedJobDetails!.description,
+          userResponse: fallbackText,
+          conversation: updatedConversation
+        });
       }
     }
   };
   
   // Helper function to process audio blob directly
   const processAudioBlob = async (audioBlob: Blob) => {
+    // Debug info about the audio blob
+    console.log('Processing audio blob:', {
+      size: audioBlob.size,
+      type: audioBlob.type
+    });
+    
     if (audioBlob.size === 0) {
       console.error('Audio blob is empty, creating fallback message');
+      
+      // Show toast notification with error
+      toast({
+        title: "Recording error",
+        description: "No audio was captured. Please try again or check your microphone permissions.",
+        variant: "destructive"
+      });
       
       // Create a fallback message
       const fallbackText = "I'm sorry, I didn't catch that. Could you repeat the question?";
@@ -217,27 +227,73 @@ export default function VoicePractice() {
     // Convert blob to base64 for sending to backend
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
+    
+    // Add error handler for FileReader
+    reader.onerror = () => {
+      console.error('FileReader error:', reader.error);
+      
+      toast({
+        title: "Error processing audio",
+        description: "Failed to process your recording. Please try again.",
+        variant: "destructive"
+      });
+      
+      setStatus('listening');
+    };
+    
     reader.onloadend = async () => {
-      const base64data = reader.result as string;
-      
-      // Extract only the base64 part (remove the data URL prefix)
-      const base64Audio = base64data.split(',')[1];
-      console.log('Audio encoded to base64, sending for transcription...');
-      
-      // Clear audio chunks for next recording
-      audioChunksRef.current = [];
-      
-      // Send to backend for transcription
       try {
+        const base64data = reader.result as string;
+        
+        if (!base64data) {
+          console.error('Failed to read audio as base64');
+          setStatus('listening');
+          return;
+        }
+        
+        // Extract only the base64 part (remove the data URL prefix)
+        const base64Audio = base64data.split(',')[1];
+        console.log('Audio encoded to base64, sending for transcription...');
+        console.log('Base64 data length:', base64Audio?.length || 'MISSING');
+        
+        // Clear audio chunks for next recording
+        audioChunksRef.current = [];
+        
+        // Show toast notification to indicate processing
+        toast({
+          title: "Transcribing audio",
+          description: "Converting your speech to text...",
+          duration: 3000
+        });
+        
+        // Send to backend for transcription
         console.log('Sending audio to transcription API...');
         
         const response = await apiRequest('POST', '/api/interview/transcribe', {
           audio: base64Audio
         });
         
+        console.log('Transcription API response status:', response.status);
+        
         if (response.ok) {
-          const { text } = await response.json();
-          console.log('Transcription received:', text);
+          const responseData = await response.json();
+          console.log('Transcription API response:', responseData);
+          const { text } = responseData;
+          
+          if (!text || text.trim() === '') {
+            console.warn('Empty transcription received, using fallback');
+            
+            toast({
+              title: "No speech detected",
+              description: "We couldn't detect any speech in your recording. Please try again.",
+              variant: "destructive"
+            });
+            
+            setStatus('listening');
+            return;
+          }
+          
+          console.log('Valid transcription received:', text);
           setTranscription(text);
           
           // Add user response to conversation
@@ -257,6 +313,13 @@ export default function VoicePractice() {
             content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '') // Truncate long messages for readability
           })));
           
+          // Show toast notification for analysis
+          toast({
+            title: "Processing your answer",
+            description: "Analyzing your response and preparing AI feedback...",
+            duration: 3000
+          });
+          
           // Send for analysis with the updated conversation that includes the new user message
           console.log('Sending transcription for analysis...');
           analyzeResponseMutation.mutate({
@@ -267,11 +330,34 @@ export default function VoicePractice() {
             conversation: updatedConversation
           });
         } else {
-          console.error('Failed to transcribe audio', response.status);
+          let errorMessage = 'Failed to transcribe audio';
+          try {
+            const errorData = await response.json();
+            console.error('Transcription error details:', errorData);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response:', e);
+          }
+          
+          console.error('Failed to transcribe audio:', errorMessage);
+          
+          toast({
+            title: "Transcription error",
+            description: errorMessage,
+            variant: "destructive"
+          });
+          
           setStatus('listening'); // Return to listening state to allow retry
         }
       } catch (error) {
-        console.error('Error transcribing audio:', error);
+        console.error('Error processing audio or transcribing:', error);
+        
+        toast({
+          title: "Processing error",
+          description: "An error occurred while processing your response. Please try again.",
+          variant: "destructive"
+        });
+        
         setStatus('listening'); // Return to listening state to allow retry
       }
     };
