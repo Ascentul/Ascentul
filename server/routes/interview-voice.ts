@@ -339,36 +339,48 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
           Your evaluation will be used internally to gauge the quality of responses.
           
           Base your analysis on these details about the job and candidate:
-          ${systemPrompt}`
+          ${await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription)}`
         }
       ];
       
-      // Add relevant conversation context
-      const relevantHistory = conversation.slice(-2); // Just the most recent Q&A
-      relevantHistory.forEach(message => {
-        analysisMessages.push({
+      // For regular ongoing interview, generate the next AI response directly
+      // First, prepare system message for the interview conversation
+      const interviewSystemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
+      
+      const interviewMessages = [
+        { role: 'system', content: systemPrompt }
+      ];
+      
+      // Add the full conversation history 
+      conversation.forEach(message => {
+        interviewMessages.push({
           role: message.role,
           content: message.content
         });
       });
       
-      // Add the current response
-      analysisMessages.push({
+      // Add the user's latest response (which might not be in the conversation array yet)
+      interviewMessages.push({
         role: 'user',
         content: userResponse
       });
       
-      // Call OpenAI to analyze the response (but don't show this to the user)
-      await openaiInstance.chat.completions.create({
+      // Generate the next AI response that continues the interview
+      const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: analysisMessages as any,
+        messages: interviewMessages as any,
         temperature: 0.7,
-        max_tokens: 200
+        max_tokens: 300,
+        presence_penalty: 0.6, // Encourage the AI to ask new questions
+        frequency_penalty: 0.5  // Penalize repetition
       });
       
-      // Simply return success, the frontend will request the next question
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Return the AI's next response directly
       return res.status(200).json({ 
-        isLastQuestion: false 
+        isLastQuestion: false,
+        aiResponse
       });
     }
   } catch (error) {
