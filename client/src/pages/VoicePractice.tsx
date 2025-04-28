@@ -45,9 +45,12 @@ export default function VoicePractice() {
     description: string;
   } | null>(null);
 
+  // Define possible status values as a type
+  type StatusType = 'idle' | 'listening' | 'thinking' | 'speaking';
+  
   // State for interview session
   const [isInterviewActive, setIsInterviewActive] = useState(false);
-  const [status, setStatus] = useState('idle'); // 'idle', 'listening', 'thinking', 'speaking'
+  const [status, setStatus] = useState<StatusType>('idle');
   const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -77,10 +80,10 @@ export default function VoicePractice() {
         microphoneRef.current.start(50); // Request data every 50ms for more frequent chunks
         setIsRecording(true);
       } else {
-        logVoiceEvent('StartRecording', 'Cannot start recording, state is:', microphoneRef.current.state);
+        logVoiceEvent('StartRecording', `Cannot start recording, state is: ${microphoneRef.current.state}`);
       }
     } catch (error) {
-      logVoiceEvent('StartRecordingError', 'Error starting recording:', error);
+      logVoiceEvent('StartRecordingError', 'Error starting recording', error);
     }
   };
   
@@ -98,10 +101,10 @@ export default function VoicePractice() {
         microphoneRef.current.stop();
         setIsRecording(false);
       } else {
-        logVoiceEvent('StopRecording', 'Cannot stop recording, state is:', microphoneRef.current.state);
+        logVoiceEvent('StopRecording', `Cannot stop recording, state is: ${microphoneRef.current.state}`);
       }
     } catch (error) {
-      logVoiceEvent('StopRecordingError', 'Error stopping recording:', error);
+      logVoiceEvent('StopRecordingError', 'Error stopping recording', error);
     }
   };
   
@@ -132,14 +135,13 @@ export default function VoicePractice() {
       setIsRecording(false);
       
       // The mediaRecorder.onstop event will handle processing the audio chunks
-      logVoiceEvent('CompleteResponse', 'Stopped active recording - onstop handler will process audio chunks:', 
-        audioChunksRef.current?.length || 0);
+      logVoiceEvent('CompleteResponse', `Stopped active recording - onstop handler will process audio chunks: ${audioChunksRef.current?.length || 0}`);
     } else {
       logVoiceEvent('CompleteResponse', 'No active recording found');
       
       // If we have audio chunks but recording was already stopped, process them directly
       if (audioChunksRef.current && audioChunksRef.current.length > 0) {
-        logVoiceEvent('CompleteResponse', 'Found existing audio chunks to process:', audioChunksRef.current.length);
+        logVoiceEvent('CompleteResponse', `Found existing audio chunks to process: ${audioChunksRef.current.length}`);
         
         // Create a blob from existing audio chunks - use the same type that MediaRecorder initialized with
         // Try to get the mime type from the actual recorder if available
@@ -170,7 +172,7 @@ export default function VoicePractice() {
         
         // Create a new array with the fallback message to ensure state update
         const updatedConversation = [...conversation, newMessage];
-        logVoiceEvent('CompleteResponse', 'Setting conversation with fallback message:', updatedConversation);
+        logVoiceEvent('CompleteResponse', 'Setting conversation with fallback message');
         setConversation(updatedConversation);
         
         // Show toast notification for processing
@@ -181,7 +183,7 @@ export default function VoicePractice() {
         });
         
         // Ensure we use the updated conversation that includes the fallback message
-        logVoiceEvent('CompleteResponse', 'Sending fallback message for analysis...', fallbackText);
+        logVoiceEvent('CompleteResponse', `Sending fallback message for analysis: ${fallbackText}`);
         setTimeout(() => {
           analyzeResponseMutation.mutate({
             jobTitle: selectedJobDetails!.title,
