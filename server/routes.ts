@@ -20,6 +20,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
+import projectsRouter from "./routes/projects";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
