@@ -257,13 +257,22 @@ export default function VoicePractice() {
           timestamp: new Date()
         };
         
-        setConversation(prev => [...prev, newMessage]);
+        // Log the updated conversation for debugging
+        const updatedConversation = [...conversation, newMessage];
+        console.log('CONVERSATION AFTER ADDING AI RESPONSE:', updatedConversation.map(msg => ({
+          role: msg.role,
+          content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '')
+        })));
+        
+        // Update the conversation state with the AI's response
+        setConversation(updatedConversation);
         
         // Speak the AI's response using the TTS API
         speakText(data.aiResponse);
       } else {
         // Fallback to the old behavior - requesting a new question separately
         console.log('No AI response in data, requesting new question');
+        console.warn('WARNING: Using old conversation flow. This should not happen with the updated API.');
         generateQuestionMutation.mutate({
           jobTitle: selectedJobDetails!.title,
           company: selectedJobDetails!.company,
@@ -458,16 +467,24 @@ export default function VoicePractice() {
                 timestamp: new Date()
               };
               
-              setConversation(prev => [...prev, newMessage]);
+              // Update conversation with the user's message
+              const updatedConversation = [...conversation, newMessage];
+              setConversation(updatedConversation);
               
-              // Send for analysis
+              // Debug: Log the complete conversation being sent to OpenAI
+              console.log('CONVERSATION HISTORY BEFORE ANALYSIS:', updatedConversation.map(msg => ({
+                role: msg.role,
+                content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '') // Truncate long messages for readability
+              })));
+              
+              // Send for analysis with the updated conversation that includes the new user message
               console.log('Sending transcription for analysis...');
               analyzeResponseMutation.mutate({
                 jobTitle: selectedJobDetails!.title,
                 company: selectedJobDetails!.company,
                 jobDescription: selectedJobDetails!.description,
                 userResponse: text,
-                conversation: [...conversation, newMessage]
+                conversation: updatedConversation
               });
             } else {
               console.error('Failed to transcribe audio', response.status);

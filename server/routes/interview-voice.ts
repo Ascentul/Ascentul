@@ -243,9 +243,16 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       max_tokens: 200 // Keep responses concise
     });
     
-    const question = completion.choices[0].message.content;
+    const aiResponse = completion.choices[0].message.content;
     
-    return res.status(200).json({ question });
+    // Log the generated question for debugging
+    console.log('Generated interview question:', aiResponse);
+    
+    // Return the question as aiResponse to match the analyze-response endpoint format
+    return res.status(200).json({ 
+      question: aiResponse, // Keep for backward compatibility
+      aiResponse: aiResponse // Add this field to match analyze-response format
+    });
   } catch (error) {
     console.error('Error generating interview question:', error);
     return res.status(500).json({ error: 'Failed to generate interview question' });
