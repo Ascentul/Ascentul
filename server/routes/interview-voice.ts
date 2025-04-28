@@ -7,6 +7,23 @@ import fs from 'fs';
 import path from 'path';
 import { logRequest, logResponse, saveAudioForDebugging } from '../debug-voice-practice';
 
+// Define interfaces for our data structures
+interface WorkHistoryItem {
+  company: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+interface EducationItem {
+  institution: string;
+  degree: string;
+  startDate: string;
+  endDate: string;
+  achievements: string[];
+}
+
 const router = Router();
 
 // Schema for interview question generation request
@@ -63,10 +80,10 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
     }
     
     // Try to get work history, education, and skills from storage
-    let workHistory = [];
-    let education = [];
-    let skills = [];
-    let achievements = [];
+    let workHistory: WorkHistoryItem[] = [];
+    let education: EducationItem[] = [];
+    let skills: string[] = [];
+    let achievements: string[] = [];
     
     try {
       // Here we'd fetch from actual endpoints if available
