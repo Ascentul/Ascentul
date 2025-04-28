@@ -549,16 +549,6 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
       });
     }
     
-    // Validate that audio contains valid base64 data
-    const base64Part = audio.replace(/^data:[^;]+;base64,/, '');
-    if (!/^[A-Za-z0-9+/=]+$/.test(base64Part)) {
-      logResponse('transcribe', 400, 'Invalid base64 data in audio');
-      return res.status(400).json({ 
-        error: 'Invalid audio format', 
-        details: 'The audio data is not properly encoded. Please try recording again or use a different browser.' 
-      });
-    }
-    
     // Save a copy of the audio for debugging
     const debugFilePath = saveAudioForDebugging(audio, 'transcribe');
     if (debugFilePath) {
@@ -567,7 +557,7 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     
     // Extract the actual base64 data (remove the data URL prefix if present)
     let cleanedAudio = audio;
-    let mimetype = '';
+    let mimetype = 'audio/webm'; // Default to webm if no MIME type is present
     
     if (audio.includes('base64,')) {
       // Extract the MIME type from the data URL
@@ -577,51 +567,76 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         cleanedAudio = matches[2];
         logRequest('transcribe', `Extracted MIME type: ${mimetype} from data URL`);
       } else {
-        logRequest('transcribe', 'Could not extract MIME type from data URL, using raw data');
+        // If no proper match but there's a comma, split at the comma
+        cleanedAudio = audio.split(',')[1] || audio;
+        logRequest('transcribe', 'Could not extract MIME type but split at comma');
       }
+    }
+    
+    // Validate that cleaned audio contains valid base64 data
+    if (!/^[A-Za-z0-9+/=]+$/.test(cleanedAudio)) {
+      logResponse('transcribe', 400, 'Invalid base64 data in audio');
+      return res.status(400).json({ 
+        error: 'Invalid audio format', 
+        details: 'The audio data is not properly encoded. Please try recording again or use a different browser.' 
+      });
     }
     
     // Convert base64 to buffer
     const buffer = Buffer.from(cleanedAudio, 'base64');
     logRequest('transcribe', `Converted to buffer, size: ${buffer.length} bytes`);
     
+    if (buffer.length === 0) {
+      logResponse('transcribe', 400, 'Empty buffer created from base64 data');
+      return res.status(400).json({ 
+        error: 'Empty audio content', 
+        details: 'The audio data could not be processed. Please try recording again.' 
+      });
+    }
+    
     // Create a temporary file path using a supported OpenAI format
     // OpenAI Whisper API supports: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, or webm
-    // Determine appropriate file extension based on first part of base64 content
     let fileExtension = 'webm'; // Default extension
     
-    // Try to determine file type from the extracted MIME type
+    // Map mime types to file extensions that Whisper API supports
     if (mimetype) {
       if (mimetype.includes('mp3') || mimetype.includes('mpeg')) {
         fileExtension = 'mp3';
-        logRequest('transcribe', 'Using MP3 file extension based on MIME type');
       } else if (mimetype.includes('webm')) {
         fileExtension = 'webm';
-        logRequest('transcribe', 'Using WebM file extension based on MIME type');
       } else if (mimetype.includes('wav') || mimetype.includes('x-wav')) {
         fileExtension = 'wav';
-        logRequest('transcribe', 'Using WAV file extension based on MIME type');
       } else if (mimetype.includes('mp4')) {
         fileExtension = 'mp4';
-        logRequest('transcribe', 'Using MP4 file extension based on MIME type');
       } else if (mimetype.includes('ogg')) {
         fileExtension = 'ogg';
-        logRequest('transcribe', 'Using OGG file extension based on MIME type');
-      } else {
-        logRequest('transcribe', `Unknown MIME type: ${mimetype}, using default webm extension`);
+      } else if (mimetype.includes('mpga')) {
+        fileExtension = 'mpga';
+      } else if (mimetype.includes('m4a')) {
+        fileExtension = 'm4a';
+      } else if (mimetype.includes('flac')) {
+        fileExtension = 'flac';
       }
-    } else {
-      logRequest('transcribe', 'No MIME type detected, using default webm extension');
     }
     
-    const tempFilePath = `/tmp/audio-${Date.now()}.${fileExtension}`;
+    logRequest('transcribe', `Using file extension: ${fileExtension} based on MIME type: ${mimetype}`);
+    
+    // Create a path in the uploads directory to ensure it's properly accessible
+    const uploadDir = path.join(__dirname, '../../uploads/temp');
+    
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    const tempFilePath = path.join(uploadDir, `audio-${Date.now()}.${fileExtension}`);
     
     // Write the buffer to a temporary file
     try {
       fs.writeFileSync(tempFilePath, buffer);
       logRequest('transcribe', `Successfully wrote audio file to: ${tempFilePath}`);
       
-      // Verify file exists and has the right size
+      // Verify file exists and has content
       const stats = fs.statSync(tempFilePath);
       logRequest('transcribe', 'Audio file stats', {
         size: stats.size,
@@ -632,29 +647,48 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         logResponse('transcribe', 400, 'Empty audio file', { path: tempFilePath });
         return res.status(400).json({ error: 'Empty audio file received. Please try recording again.' });
       }
-    } catch (fileError) {
+    } catch (fileError: any) {
       logResponse('transcribe', 500, 'Error writing audio file', fileError);
-      return res.status(500).json({ error: 'Failed to create audio file for transcription' });
+      return res.status(500).json({ 
+        error: 'Failed to create audio file for transcription',
+        details: fileError.message 
+      });
     }
     
     try {
-      logRequest('transcribe', 'Creating file read stream for OpenAI Whisper API...');
-      const fileStream = fs.createReadStream(tempFilePath);
-      
       // Check if the OpenAI API key is set
       if (!process.env.OPENAI_API_KEY) {
         logResponse('transcribe', 500, 'OpenAI API key missing');
         return res.status(500).json({ error: 'OpenAI API configuration is missing' });
       }
       
-      logRequest('transcribe', 'Calling OpenAI Whisper API for audio transcription...');
+      logRequest('transcribe', 'Creating file read stream for OpenAI Whisper API...');
+      
+      // Create a form data object for the multipart upload
+      const formData = new FormData();
+      
+      // Read the file into a Buffer and add to form
+      const fileBuffer = fs.readFileSync(tempFilePath);
+      const fileBlob = new Blob([fileBuffer], { type: mimetype });
+      
+      // Add form fields
+      formData.append('file', fileBlob, `audio.${fileExtension}`);
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en');
+      formData.append('response_format', 'text');
+      
+      logRequest('transcribe', 'Calling OpenAI Whisper API for audio transcription...', {
+        fileSize: fileBuffer.length,
+        fileExtension: fileExtension,
+        mimeType: mimetype
+      });
       
       // Use OpenAI's Whisper API to transcribe the audio
       const transcription = await openaiInstance.audio.transcriptions.create({
-        file: fileStream,
+        file: fs.createReadStream(tempFilePath),
         model: 'whisper-1',
-        language: 'en', // Specify English language
-        response_format: 'text' // Ensure we get plain text back
+        language: 'en',
+        response_format: 'text'
       });
       
       // Log successful transcription
@@ -665,11 +699,19 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
       });
       
       // Clean up the temporary file
-      fs.unlinkSync(tempFilePath);
-      logRequest('transcribe', 'Temporary file cleaned up successfully');
+      try {
+        fs.unlinkSync(tempFilePath);
+        logRequest('transcribe', 'Temporary file cleaned up successfully');
+      } catch (cleanupError) {
+        // Non-fatal error, just log it
+        logRequest('transcribe', 'Non-fatal error cleaning up temporary file', cleanupError);
+      }
       
       return res.status(200).json({ text: transcription.text });
-    } catch (transcriptionError) {
+    } catch (transcriptionError: any) {
+      // Log the full error for debugging
+      console.error('Whisper API Error:', transcriptionError);
+      
       // Clean up the temporary file in case of error
       if (fs.existsSync(tempFilePath)) {
         try {
@@ -680,15 +722,18 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         }
       }
       
-      // Log detailed error information 
+      // Get detailed error information from the OpenAI response
       const errorMessage = transcriptionError instanceof Error ? transcriptionError.message : String(transcriptionError);
+      const errorDetails = transcriptionError.response?.data || {};
+      
       logResponse('transcribe', 500, 'Error during transcription', { 
-        message: errorMessage, 
+        message: errorMessage,
         filePath: tempFilePath,
+        openaiDetails: errorDetails,
         stack: transcriptionError instanceof Error ? transcriptionError.stack : undefined
       });
       
-      // Check if it's an OpenAI API error with a specific message
+      // Check for specific OpenAI API errors
       if (errorMessage.includes('API key')) {
         return res.status(500).json({ 
           error: 'OpenAI API key issue. Please check server configuration.',
@@ -699,7 +744,8 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
           error: 'File reading error during transcription',
           details: errorMessage 
         });
-      } else if (errorMessage.includes('format') || errorMessage.includes('Content-Type')) {
+      } else if (errorMessage.includes('format') || errorMessage.includes('Content-Type') || 
+                errorMessage.includes('multipart/form-data')) {
         return res.status(500).json({ 
           error: 'Audio format error',
           details: `The audio format is not compatible with OpenAI's Whisper API. Error: ${errorMessage}`
@@ -712,11 +758,12 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
       } else {
         return res.status(500).json({ 
           error: 'Failed to transcribe audio', 
-          details: errorMessage || 'Unknown error'
+          details: errorMessage || 'Unknown error with OpenAI Whisper API'
         });
       }
     }
-  } catch (error) {
+  } catch (error: any) {
+    console.error('General error in transcribe endpoint:', error);
     logResponse('transcribe', 500, 'Error in transcribe endpoint', error);
     return res.status(500).json({ error: 'Failed to process audio for transcription' });
   }
