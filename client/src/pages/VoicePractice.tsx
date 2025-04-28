@@ -52,6 +52,40 @@ export default function VoicePractice() {
   const microphoneRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioStreamRef = useRef<MediaStream | null>(null);
+  const isMouseDownRef = useRef<boolean>(false);
+  
+  // Function definitions for recording audio
+  const startRecording = () => {
+    if (!isInterviewActive || status !== 'listening' || !microphoneRef.current) return;
+    
+    try {
+      isMouseDownRef.current = true;
+      audioChunksRef.current = [];
+      microphoneRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+    }
+  };
+  
+  const stopRecording = () => {
+    if (!isInterviewActive || !isRecording || !microphoneRef.current || microphoneRef.current.state === 'inactive') return;
+    
+    try {
+      isMouseDownRef.current = false;
+      microphoneRef.current.stop();
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+    }
+  };
+  
+  // Complete response without waiting for mouse up
+  const completeResponse = () => {
+    if (isRecording) {
+      stopRecording();
+    }
+  };
   
   // Fetch job applications from the API
   const { data: applications, isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
@@ -497,16 +531,35 @@ export default function VoicePractice() {
             )}
           </div>
 
-          {/* Microphone button (only shown during active listening) */}
+          {/* Microphone button and Complete Response button (only shown during active listening) */}
           {isInterviewActive && status === 'listening' && (
             <div className="flex flex-col items-center justify-center mt-6 mb-6">
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
-                isRecording ? 'bg-red-500 animate-pulse' : 'bg-muted'
-              }`}>
-                <Mic className="w-8 h-8" />
+              <div className="flex gap-4 mb-4">
+                <button
+                  className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+                    isRecording ? 'bg-red-500 animate-pulse' : 'bg-muted'
+                  }`}
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                  disabled={!selectedJobDetails}
+                >
+                  <Mic className="w-8 h-8" />
+                </button>
+                
+                <Button 
+                  variant="secondary"
+                  size="lg"
+                  onClick={completeResponse}
+                  disabled={!isRecording}
+                  className="self-center"
+                >
+                  Complete Response
+                </Button>
               </div>
               <p className="mt-2 text-sm text-muted-foreground text-center">
-                {isRecording ? 'Recording in progress...' : 'Listening for your response'}
+                {isRecording ? 'Recording in progress...' : 'Hold to speak'}
               </p>
             </div>
           )}
