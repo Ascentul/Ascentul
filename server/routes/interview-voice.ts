@@ -709,12 +709,44 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         response_format: 'text'
       });
       
-      // Log successful transcription
-      const excerpt = transcription.text.substring(0, 50) + (transcription.text.length > 50 ? '...' : '');
-      logResponse('transcribe', 200, 'Transcription completed successfully', {
-        textLength: transcription.text.length,
-        excerpt: excerpt
-      });
+      // Check if transcription and text property exist before accessing
+      if (!transcription || typeof transcription !== 'object') {
+        logResponse('transcribe', 500, 'Invalid transcription response format from OpenAI API', {
+          received: typeof transcription,
+          value: transcription
+        });
+        return res.status(500).json({ 
+          error: 'Unexpected transcription format from OpenAI API',
+          details: 'The transcription service returned an invalid response. Please try again.'
+        });
+      }
+      
+      // In cases where response_format is 'text', OpenAI may return a string directly
+      // Handle both object and string responses
+      let transcribedText = '';
+      if (typeof transcription === 'string') {
+        transcribedText = transcription;
+        logResponse('transcribe', 200, 'Transcription completed successfully (string format)', {
+          textLength: transcribedText.length
+        });
+      } else if (transcription.text) {
+        transcribedText = transcription.text;
+        // For object responses with text property
+        const excerpt = transcribedText.substring(0, 50) + (transcribedText.length > 50 ? '...' : '');
+        logResponse('transcribe', 200, 'Transcription completed successfully', {
+          textLength: transcribedText.length,
+          excerpt: excerpt
+        });
+      } else {
+        // No text property found in the object
+        logResponse('transcribe', 500, 'Missing text in transcription response', {
+          responseKeys: Object.keys(transcription)
+        });
+        return res.status(500).json({
+          error: 'Invalid transcription result',
+          details: 'The transcription service returned a response without text. Please try again.'
+        });
+      }
       
       // Clean up the temporary file
       try {
@@ -725,7 +757,7 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         logRequest('transcribe', 'Non-fatal error cleaning up temporary file', cleanupError);
       }
       
-      return res.status(200).json({ text: transcription.text });
+      return res.status(200).json({ text: transcribedText });
     } catch (transcriptionError: any) {
       // Log the full error for debugging
       console.error('Whisper API Error:', transcriptionError);
@@ -851,11 +883,37 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
         input: text
       });
       
+      // Ensure we got a valid response
+      if (!mp3) {
+        logResponse('text-to-speech', 500, 'OpenAI TTS API returned null or undefined response');
+        return res.status(500).json({ 
+          error: 'Empty response from text-to-speech API',
+          details: 'The TTS service returned an empty response. Please try again.'
+        });
+      }
+      
       logRequest('text-to-speech', 'OpenAI TTS API call successful, processing response...');
       
       // Convert response to Buffer
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      logRequest('text-to-speech', `Converted audio to buffer, size: ${buffer.length} bytes`);
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(await mp3.arrayBuffer());
+        logRequest('text-to-speech', `Converted audio to buffer, size: ${buffer.length} bytes`);
+        
+        if (buffer.length === 0) {
+          logResponse('text-to-speech', 500, 'Empty buffer created from API response');
+          return res.status(500).json({ 
+            error: 'Empty audio content',
+            details: 'The generated audio was empty. Please try again.'
+          });
+        }
+      } catch (bufferError: any) {
+        logResponse('text-to-speech', 500, 'Error processing audio response', bufferError);
+        return res.status(500).json({ 
+          error: 'Failed to process audio response',
+          details: bufferError.message || 'Unknown error processing audio data'
+        });
+      }
       
       // Save audio file to disk
       try {
