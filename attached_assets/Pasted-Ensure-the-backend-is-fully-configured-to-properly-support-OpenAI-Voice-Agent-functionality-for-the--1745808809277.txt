@@ -1,0 +1,74 @@
+Ensure the backend is fully configured to properly support OpenAI Voice Agent functionality for the Voice Interview Practice feature:
+
+Required Backend Configuration:
+Speech-to-Text API (Whisper-1):
+
+Accept incoming audio from the frontend (user recordings).
+
+Forward the audio via POST request to OpenAI’s Speech-to-Text endpoint:
+
+Endpoint: https://api.openai.com/v1/audio/transcriptions
+
+Model: "whisper-1"
+
+Language: "en"
+
+Response format: "text"
+
+Receive the transcription text and return it cleanly to the frontend.
+
+Chat Completion API (gpt-4o):
+
+After transcription, send the conversation context (system prompt, conversation history, and new user input) to the Chat Completions API:
+
+Endpoint: https://api.openai.com/v1/chat/completions
+
+Model: "gpt-4o"
+
+Temperature: 0.7
+
+Stream: true
+
+Return the AI-generated text response to the backend.
+
+Text-to-Speech API (TTS-1-HD):
+
+After receiving the text response from Chat Completions:
+
+Forward the AI response text via POST request to OpenAI’s Text-to-Speech API:
+
+Endpoint: https://api.openai.com/v1/audio/speech
+
+Model: "tts-1-hd"
+
+Voice: "nova" (or another selected natural-sounding voice)
+
+Stream or receive the audio output file.
+
+Send the audio back to the frontend for playback.
+
+Session Management:
+
+Maintain session memory:
+
+Store recent conversation history (questions and user answers) during active practice.
+
+Optionally use short-term storage (e.g., server session or temporary in-memory object) to maintain context between each microphone interaction.
+
+Ensure conversation resets cleanly when a new session starts or when the user ends the current session.
+
+Security and API Keys:
+
+Securely store OpenAI API keys (do not expose keys to the frontend).
+
+Use server-side calls to OpenAI APIs for all Whisper, Chat, and TTS endpoints.
+
+Handle errors gracefully (e.g., transcription failures, API timeouts, streaming issues).
+
+Latency and Streaming Optimization (Optional Advanced Step):
+
+If possible, stream partial transcriptions or AI responses to minimize wait time for users.
+
+Allow real-time playback without requiring full audio file download if supported.
+
+✅ Goal: Ensure seamless recording → transcription → AI reply → text-to-speech playback cycle, fully server-secured and optimized for user experience.
