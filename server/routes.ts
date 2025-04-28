@@ -4583,6 +4583,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   
   // We've already registered models routes above with registerModelsRoutes(app);
   
+  // Mount projects router
+  app.use('/api/projects', projectsRouter);
+  
   // Skill Stacker section removed
 
   // Job Listings API Routes
