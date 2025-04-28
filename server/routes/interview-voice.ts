@@ -537,8 +537,12 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     
     const { audio } = validationResult.data;
     
-    // Log incoming request for debugging
-    logRequest('transcribe', `Transcription request with payload size: ${audio.length}`);
+    // Log incoming request for debugging with a truncated preview
+    let audioPreview = '';
+    if (audio) {
+      audioPreview = audio.substring(0, 50) + (audio.length > 50 ? '...' : '');
+    }
+    logRequest('transcribe', `Transcription request with payload size: ${audio?.length || 0}`, { preview: audioPreview });
     
     // Validate audio data length and basic format
     if (!audio || audio.length < 100) {

@@ -254,55 +254,42 @@ export default function VoicePractice() {
       // Ensure the audio blob has the correct type
       // If the type is empty or not supported, create a new blob with a supported MIME type
       let processedBlob = audioBlob;
+      const mimeType = audioBlob.type || 'audio/webm';
+      
+      // Re-create the blob with explicit MIME type if needed
       if (!audioBlob.type || !audioBlob.type.includes('audio/')) {
         logVoiceEvent('ProcessAudioBlob', `Recreating blob with explicit audio MIME type, original type: ${audioBlob.type}`);
         // Use webm as the default format as it's widely supported
         processedBlob = new Blob([await audioBlob.arrayBuffer()], { type: 'audio/webm' });
+        logVoiceEvent('ProcessAudioBlob', `New blob created with type: audio/webm, size: ${processedBlob.size}`);
       }
       
-      // Convert blob to base64 for sending to backend
-      const reader = new FileReader();
-      
-      // Create a promise to handle FileReader async operation
-      const readBlobAsBase64 = new Promise<string>((resolve, reject) => {
+      // Convert blob to base64 for sending to backend using a Promise-based approach
+      const base64data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
         reader.onloadend = () => {
           if (typeof reader.result === 'string') {
+            logVoiceEvent('ProcessAudioBlob', `FileReader result length: ${reader.result.length}`);
             resolve(reader.result);
           } else {
             reject(new Error("FileReader didn't return a string"));
           }
         };
         reader.onerror = () => {
+          const errorMsg = reader.error ? reader.error.message : "Unknown file reading error";
+          logVoiceEvent('ProcessAudioBlob', `Error reading file: ${errorMsg}`);
           reject(reader.error || new Error("Error reading file"));
         };
+        
+        // Read as data URL which includes MIME type
         reader.readAsDataURL(processedBlob);
       });
       
-      // Wait for FileReader to complete
-      const base64data = await readBlobAsBase64;
       logVoiceEvent('ProcessAudioBlob', `Successfully read blob as base64, length: ${base64data.length}`);
       
-      // Check if data is in expected format and extract only the base64 part
-      let base64Audio;
-      let mimeType = '';
-      
-      if (base64data.includes('base64,')) {
-        // Extract both MIME type and base64 data
-        const matches = base64data.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches && matches.length >= 3) {
-          mimeType = matches[1];
-          base64Audio = matches[2]; 
-          logVoiceEvent('ProcessAudioBlob', `Extracted MIME type: ${mimeType}, base64 length: ${base64Audio.length}`);
-        } else {
-          // If no proper match found but there's a comma, split at the comma
-          base64Audio = base64data.split(',')[1];
-          logVoiceEvent('ProcessAudioBlob', 'Could not extract MIME type, but split at comma');
-        }
-      } else {
-        // If no data URL prefix, use as is
-        base64Audio = base64data;
-        logVoiceEvent('ProcessAudioBlob', 'No data URL prefix found, using raw base64 data');
-      }
+      // The full base64 data URL is what we'll send to the server
+      // The server will handle extracting the base64 data from the data URL
+      let base64Audio = base64data;
         
         logVoiceEvent('ProcessAudioBlob', 'Audio encoded to base64, sending for transcription...');
         logVoiceEvent('ProcessAudioBlob', `Base64 data length: ${base64Audio?.length || 'MISSING'}`);
@@ -317,11 +304,24 @@ export default function VoicePractice() {
           return;
         }
         
-        // Check for base64 validity - must be a reasonable length and match base64 pattern
-        if (base64Audio.length < 100 || !(/^[A-Za-z0-9+/=]+$/.test(base64Audio))) {
-          logVoiceEvent('ProcessAudioBlob', 'Invalid base64 data detected', { 
-            length: base64Audio.length,
-            isValidPattern: /^[A-Za-z0-9+/=]+$/.test(base64Audio)
+        // Check for base64 validity - must be a reasonable length
+        if (base64Audio.length < 100) {
+          logVoiceEvent('ProcessAudioBlob', 'Audio data too short', { 
+            length: base64Audio.length
+          });
+          toast({
+            title: "Audio too short",
+            description: "The recording was too short. Please hold the microphone button longer when speaking.",
+            variant: "destructive"
+          });
+          setStatus('listening');
+          return;
+        }
+        
+        // Check if it has the expected data URL format
+        if (!base64Audio.includes('data:audio/') && !base64Audio.includes('base64,')) {
+          logVoiceEvent('ProcessAudioBlob', 'Invalid audio data format', { 
+            preview: base64Audio.substring(0, 50) + '...'
           });
           toast({
             title: "Audio format error",
