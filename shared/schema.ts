@@ -503,6 +503,7 @@ export const projects = pgTable("projects", {
   tags: text("tags").array(),
   projectType: text("project_type").notNull().default("personal"), // personal, client, academic
   isPublic: boolean("is_public").notNull().default(false),
+  imageUrl: text("image_url"), // New field for project image
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
