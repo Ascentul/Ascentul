@@ -19,6 +19,7 @@ import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
 import { registerModelsRoutes } from "./routes/models";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
+import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
@@ -4577,6 +4578,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerAdzunaRoutes(apiRouter);
   registerApplicationRoutes(apiRouter, storage);
   registerApplicationInterviewRoutes(apiRouter, storage);
+  registerInterviewVoiceRoutes(apiRouter);
   
   // We've already registered models routes above with registerModelsRoutes(app);
   
