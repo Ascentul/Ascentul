@@ -17,7 +17,7 @@ import Projects from "@/pages/Projects";
 import CanvaEditor from "@/pages/CanvaEditor";
 import Profile from "@/pages/Profile";
 import Account from "@/pages/Account";
-import SkillStacker from "@/pages/SkillStacker";
+// SkillStacker removed
 import Apply from "@/pages/Apply";
 import CareerProfile from "@/pages/CareerProfile";
 import Contacts from "@/pages/Contacts";
