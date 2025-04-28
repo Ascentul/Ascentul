@@ -8,6 +8,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 // Type definition for job applications
 interface JobApplication {
@@ -103,36 +104,174 @@ export default function VoicePractice() {
     console.log('Complete response button clicked', {
       isRecording,
       microphoneState: microphoneRef.current?.state,
-      status
+      status,
+      audioChunks: audioChunksRef.current?.length || 0
     });
     
+    // Ensure we change to thinking state to indicate processing
+    setStatus('thinking');
+    
     if (isRecording && microphoneRef.current && microphoneRef.current.state !== 'inactive') {
-      console.log('Completing response...');
+      console.log('Active recording found, completing response...');
+      
       // Stop recording to trigger the onstop event and process the audio
       microphoneRef.current.stop();
       setIsRecording(false);
-      // Set status to thinking to show the user we're processing
-      setStatus('thinking');
-    } else {
-      console.log('Cannot complete response - recording not active');
       
-      // If we're in listening state but not recording, force start a recording
-      if (status === 'listening' && microphoneRef.current && microphoneRef.current.state === 'inactive') {
-        console.log('Attempting to force start recording...');
+      // The mediaRecorder.onstop event will handle processing the audio chunks
+      console.log('Stopped active recording - onstop handler will process audio chunks:', 
+        audioChunksRef.current?.length || 0);
+    } else {
+      console.log('No active recording found');
+      
+      // If we have audio chunks but recording was already stopped, process them directly
+      if (audioChunksRef.current && audioChunksRef.current.length > 0) {
+        console.log('Found existing audio chunks to process:', audioChunksRef.current.length);
+        
+        // Create a blob from existing audio chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log('Created audio blob from existing chunks, size:', audioBlob.size, 'bytes');
+        
+        // Process this audio blob manually since onstop won't trigger
+        processAudioBlob(audioBlob);
+      } else if (status === 'listening' && microphoneRef.current && microphoneRef.current.state === 'inactive') {
+        // If we're in listening state but have no recording or chunks, try to create a minimal recording
+        console.log('No audio chunks found, attempting to force a minimal recording...');
+        
         startRecording();
+        
         // Set a small timeout to allow recording to start before stopping
         setTimeout(() => {
           if (microphoneRef.current && microphoneRef.current.state === 'recording') {
-            console.log('Force stopping recording after delay...');
+            console.log('Force stopping minimal recording after delay...');
             microphoneRef.current.stop();
             setIsRecording(false);
-            setStatus('thinking');
           } else {
             console.log('Failed to force recording - microphone state:', microphoneRef.current?.state);
+            
+            // If we can't even get a recording started, create a fallback message
+            console.log('Creating fallback user message to continue conversation');
+            const fallbackText = "I'm sorry, I didn't catch that. Could you repeat the question?";
+            setTranscription(fallbackText);
+            
+            // Add fallback message to conversation
+            const newMessage: ConversationMessage = {
+              role: 'user',
+              content: fallbackText,
+              timestamp: new Date()
+            };
+            
+            // Update conversation with the fallback message
+            const updatedConversation = [...conversation, newMessage];
+            setConversation(updatedConversation);
+            
+            // Send for analysis
+            analyzeResponseMutation.mutate({
+              jobTitle: selectedJobDetails!.title,
+              company: selectedJobDetails!.company,
+              jobDescription: selectedJobDetails!.description,
+              userResponse: fallbackText,
+              conversation: updatedConversation
+            });
           }
         }, 500);
       }
     }
+  };
+  
+  // Helper function to process audio blob directly
+  const processAudioBlob = async (audioBlob: Blob) => {
+    if (audioBlob.size === 0) {
+      console.error('Audio blob is empty, creating fallback message');
+      
+      // Create a fallback message
+      const fallbackText = "I'm sorry, I didn't catch that. Could you repeat the question?";
+      setTranscription(fallbackText);
+      
+      // Add fallback message to conversation
+      const newMessage: ConversationMessage = {
+        role: 'user',
+        content: fallbackText,
+        timestamp: new Date()
+      };
+      
+      // Update conversation with the fallback message
+      const updatedConversation = [...conversation, newMessage];
+      setConversation(updatedConversation);
+      
+      // Send for analysis
+      analyzeResponseMutation.mutate({
+        jobTitle: selectedJobDetails!.title,
+        company: selectedJobDetails!.company,
+        jobDescription: selectedJobDetails!.description,
+        userResponse: fallbackText,
+        conversation: updatedConversation
+      });
+      
+      return;
+    }
+    
+    // Convert blob to base64 for sending to backend
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = async () => {
+      const base64data = reader.result as string;
+      
+      // Extract only the base64 part (remove the data URL prefix)
+      const base64Audio = base64data.split(',')[1];
+      console.log('Audio encoded to base64, sending for transcription...');
+      
+      // Clear audio chunks for next recording
+      audioChunksRef.current = [];
+      
+      // Send to backend for transcription
+      try {
+        console.log('Sending audio to transcription API...');
+        
+        const response = await apiRequest('POST', '/api/interview/transcribe', {
+          audio: base64Audio
+        });
+        
+        if (response.ok) {
+          const { text } = await response.json();
+          console.log('Transcription received:', text);
+          setTranscription(text);
+          
+          // Add user response to conversation
+          const newMessage: ConversationMessage = {
+            role: 'user',
+            content: text,
+            timestamp: new Date()
+          };
+          
+          // Update conversation with the user's message
+          const updatedConversation = [...conversation, newMessage];
+          setConversation(updatedConversation);
+          
+          // Debug: Log the complete conversation being sent to OpenAI
+          console.log('CONVERSATION HISTORY BEFORE ANALYSIS:', updatedConversation.map(msg => ({
+            role: msg.role,
+            content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '') // Truncate long messages for readability
+          })));
+          
+          // Send for analysis with the updated conversation that includes the new user message
+          console.log('Sending transcription for analysis...');
+          analyzeResponseMutation.mutate({
+            jobTitle: selectedJobDetails!.title,
+            company: selectedJobDetails!.company,
+            jobDescription: selectedJobDetails!.description,
+            userResponse: text,
+            conversation: updatedConversation
+          });
+        } else {
+          console.error('Failed to transcribe audio', response.status);
+          setStatus('listening'); // Return to listening state to allow retry
+        }
+      } catch (error) {
+        console.error('Error transcribing audio:', error);
+        setStatus('listening'); // Return to listening state to allow retry
+      }
+    };
   };
   
   // Fetch job applications from the API
