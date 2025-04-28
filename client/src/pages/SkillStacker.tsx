@@ -102,7 +102,12 @@ export default function SkillStacker() {
   // Fetch all skill stacker plans
   const { data: allPlans, isLoading: isLoadingPlans } = useQuery({
     queryKey: ['/api/skill-stacker'],
-    queryFn: () => apiRequest<SkillStackerPlan[]>({ url: '/api/skill-stacker' }),
+    queryFn: async () => {
+      console.log("Fetching skill stacker plans...");
+      const result = await apiRequest<SkillStackerPlan[]>({ url: '/api/skill-stacker' });
+      console.log("Received skill stacker plans:", result);
+      return result;
+    },
   });
 
   // Fetch goals for dropdown
