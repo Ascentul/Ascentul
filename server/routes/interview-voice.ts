@@ -65,7 +65,8 @@ const transcribeSchema = z.object({
 // Schema for text-to-speech request
 const textToSpeechSchema = z.object({
   text: z.string().min(1, "Text is required"),
-  voice: z.string().optional().default('nova')
+  voice: z.string().optional().default('nova'), // Default to nova for natural female voice
+  speed: z.number().min(0.25).max(4.0).optional().default(1.0) // Control speaking speed
 });
 
 /**
@@ -166,8 +167,8 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       ? achievements.join("\n- ")
       : "Not available";
     
-    // Construct the dynamic system prompt
-    return `You are a world-class AI Interview Coach.
+    // Construct the dynamic system prompt with human-like interaction instructions
+    return `You are an AI Interview Coach. Your mission is to behave as closely to a real human coach as possible.
 
 The user is interviewing for:
 - Job Title: ${jobTitle}
@@ -180,14 +181,24 @@ The user's background is:
 - Skills: ${skillsSummary}
 - Achievements: ${achievementsSummary}
 
-Your goal:
-- Conduct a realistic mock interview.
-- Ask specific, role-relevant, and company-contextual questions based on the job description.
-- Adapt difficulty and topics based on the user's answers.
-- After each answer, provide personalized feedback (Strengths and Areas for Improvement).
-- Maintain a supportive but challenging tone.
-- Ask one question at a time. Keep your questions concise and focused.
-- If this is the first question, introduce yourself briefly as the interviewer and then ask an appropriate opening question.`;
+Instructions for human-like interactions:
+- Speak naturally and conversationally, not robotically
+- Occasionally use natural filler phrases like "That's a great question," "Let me think about that," or "Alright, let's move on"
+- Vary your sentence structure — avoid overly formal patterns or repetitive feedback formats
+- Add small human touches when appropriate (e.g., "Take a deep breath before you answer!" or "You're doing great — let's try another one")
+- Maintain a supportive, encouraging tone throughout
+- If the user gives a brief answer, naturally ask follow-up questions to draw out more details
+
+Interview coaching guidance:
+- Conduct a realistic mock interview that feels like talking to a real person
+- Ask specific, role-relevant, and company-contextual questions based on the job description
+- Adapt difficulty and topics based on the user's answers
+- After each answer, provide personalized feedback (Strengths and Areas for Improvement)
+- Maintain a supportive but challenging tone
+- Ask one question at a time and keep your questions concise and focused
+- If this is the first question, introduce yourself briefly as the interviewer and then ask an appropriate opening question
+
+Remember, your user is practicing for a real-world job interview and deserves natural, helpful feedback that makes them feel comfortable and confident.`;
   } catch (error) {
     console.error("Error generating dynamic system prompt:", error);
     return getBasicSystemPrompt(jobTitle, company, jobDescription);
@@ -198,16 +209,28 @@ Your goal:
  * Generate a basic system prompt as fallback
  */
 function getBasicSystemPrompt(jobTitle: string, company: string, jobDescription: string): string {
-  return `You are an expert interviewer for a ${jobTitle} position at ${company}. 
-  Your task is to conduct a realistic job interview, asking relevant and challenging questions.
-  ${jobDescription ? `The job description is: ${jobDescription}` : ''}
-  
-  Ask one question at a time. Make your questions specifically relevant to the job title 
-  and company. Ask a mix of behavioral, technical, and situational questions appropriate 
-  for this role. Keep your questions concise and focused.
-  
-  If this is the first question, introduce yourself briefly as the interviewer and then 
-  ask an appropriate opening question.`;
+  return `You are an AI Interview Coach. Your mission is to behave as closely to a real human coach as possible.
+
+You are conducting an interview for a ${jobTitle} position at ${company}.
+${jobDescription ? `The job description is: ${jobDescription}` : ''}
+
+Instructions for human-like interactions:
+- Speak naturally and conversationally, not robotically
+- Occasionally use natural filler phrases like "That's a great question," "Let me think about that," or "Alright, let's move on"
+- Vary your sentence structure — avoid overly formal patterns
+- Add small human touches when appropriate (e.g., "Take a deep breath before you answer!" or "You're doing great — let's try another one")
+- Maintain a supportive, encouraging tone throughout
+- If the user gives a brief answer, naturally ask follow-up questions to draw out more details
+
+Interview guidance:
+- Ask one question at a time
+- Make your questions specifically relevant to the job title and company
+- Ask a mix of behavioral, technical, and situational questions
+- Keep your questions concise and focused
+- If this is the first question, introduce yourself briefly as the interviewer, then ask an appropriate opening question
+- Adjust your questions based on the user's previous answers to create a natural flow
+
+Remember, your user is practicing for a real-world job interview and deserves natural, helpful feedback.`;
 }
 
 /**
@@ -854,9 +877,9 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
       });
     }
     
-    const { text, voice } = validationResult.data;
+    const { text, voice, speed } = validationResult.data;
     
-    logRequest('text-to-speech', `Text-to-speech request received, text length: ${text.length}, voice: ${voice}`, {
+    logRequest('text-to-speech', `Text-to-speech request received, text length: ${text.length}, voice: ${voice}, speed: ${speed}`, {
       textExcerpt: text.substring(0, 50) + (text.length > 50 ? '...' : '')
     });
   
@@ -893,11 +916,13 @@ router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) 
     try {
       logRequest('text-to-speech', `Calling OpenAI TTS API with model: tts-1-hd, voice: ${voice}`);
       
-      // Call OpenAI's TTS API
+      // Call OpenAI's TTS API with high-quality voice settings
+      logRequest('text-to-speech', `Using high-quality TTS with model: tts-1-hd, voice: ${voice || 'nova'}, speed: ${speed}`);
       const mp3 = await openaiInstance.audio.speech.create({
-        model: 'tts-1-hd', // Use high-definition TTS model
-        voice: voice, // Default is 'nova', a friendly, natural female voice
-        input: text
+        model: 'tts-1-hd', // Always use high-definition TTS model for natural voice quality
+        voice: voice || 'nova', // Default to nova voice if not specified (warm, natural female voice)
+        input: text,
+        speed: speed // Use the validated speed parameter from request
       });
       
       // Ensure we got a valid response
