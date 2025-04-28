@@ -293,6 +293,13 @@ export default function SkillStacker() {
                       ))}
                     </SelectContent>
                   </Select>
+                  
+                  {/* Display goal description when selected */}
+                  {selectedGoal && goals && (
+                    <div className="text-sm text-muted-foreground mt-1 bg-muted p-2 rounded-md">
+                      <p>{goals.find(g => g.id === selectedGoal)?.description || "No description available"}</p>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid gap-2">
@@ -377,7 +384,7 @@ export default function SkillStacker() {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-xl">{plan.title}</CardTitle>
-                      <Badge variant={plan.isCompleted ? "success" : "default"}>
+                      <Badge variant={plan.isCompleted ? "secondary" : "default"} className={plan.isCompleted ? "bg-green-500 text-white hover:bg-green-600" : ""}>
                         {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
                       </Badge>
                     </div>
@@ -468,7 +475,7 @@ export default function SkillStacker() {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-xl">{plan.title}</CardTitle>
-                      <Badge variant="success">Completed</Badge>
+                      <Badge variant="secondary" className="bg-green-500 text-white hover:bg-green-600">Completed</Badge>
                     </div>
                     <CardDescription className="line-clamp-2">{plan.description}</CardDescription>
                   </CardHeader>
@@ -558,7 +565,7 @@ export default function SkillStacker() {
             <DialogHeader>
               <div className="flex justify-between items-center">
                 <DialogTitle className="text-2xl">{selectedPlan.title}</DialogTitle>
-                <Badge variant={selectedPlan.isCompleted ? "success" : "default"}>
+                <Badge variant={selectedPlan.isCompleted ? "secondary" : "default"} className={selectedPlan.isCompleted ? "bg-green-500 text-white hover:bg-green-600" : ""}>
                   {selectedPlan.status.charAt(0).toUpperCase() + selectedPlan.status.slice(1)}
                 </Badge>
               </div>

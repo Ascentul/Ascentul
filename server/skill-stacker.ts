@@ -57,24 +57,29 @@ export async function generateSkillStackerPlan(
     
     // Use OpenAI to generate a skill stacker plan
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         {
           role: "system",
-          content: `You are an expert career development assistant that creates personalized skill-building plans.
-          Your task is to create a week-by-week skill development plan to help the user reach their career goal.
-          The response should be in a structured JSON format with a weekly plan containing:
-          1. An engaging title for the week
-          2. A brief description of what will be covered
-          3. A list of tasks including:
-             - Title (brief and specific)
-             - Description (detailed explanation)
-             - Type (one of: "learning", "practice", or "project")
-             - Estimated hours to complete (realistic number)
-             - Resources (list of specific resources to help, like websites, tutorials, etc.)
+          content: `You are an expert career development coach and mentor that creates personalized skill-building plans.
+          Your task is to create a week-by-week skill development plan to help the user reach their specific career goal.
           
-          The plan should be appropriate for the user's current skill level (beginner, intermediate, or advanced)
-          and should build progressively week by week.`
+          The response should be in a structured JSON format with a weekly plan containing:
+          1. A compelling and motivational title for the week (specific to the goal and week number)
+          2. A detailed description that explains what will be covered this week and why it's important for their goal
+          3. A list of tasks with these attributes:
+             - title: Brief, action-oriented title (e.g., "Analyze...", "Build...", "Research...")
+             - description: Comprehensive explanation with clear success criteria
+             - type: Must be one of ["learning", "practice", "project"] based on what the task involves
+             - estimatedHours: Realistic time estimate (1-10 hours) considering the user's skill level
+             - resources: Array of specific, high-quality resources (URLs, book names, course names) that are directly relevant
+          
+          Ensure the plan:
+          - Matches the user's current skill level (${data.currentSkillLevel})
+          - Builds progressively (Week ${data.week} should be appropriate in a sequence)
+          - Has immediate practical value for their stated goal
+          - Includes a mix of learning, practice, and project tasks
+          - Is challenging yet achievable within one week`
         },
         {
           role: "user",
@@ -84,7 +89,14 @@ export async function generateSkillStackerPlan(
           
           Additional context about the goal: ${goal.description || "No additional context provided"}
           
-          Please include 3-5 specific tasks with appropriate resources for each task.`
+          For Week ${data.week}, I need a plan that:
+          1. Clearly advances me toward ${goal.title}
+          2. Builds on previous weeks' progress (if this isn't week 1)
+          3. Provides concrete, measurable tasks
+          4. Includes modern, relevant resources specific to each task
+          5. Balances theory and practical application
+          
+          Please include 4-5 specific tasks with appropriate resources for each task.`
         }
       ],
       temperature: 0.7,
@@ -117,7 +129,7 @@ export async function generateSkillStackerPlan(
     console.error("Error generating skill stacker plan:", error);
     
     // Get the goal title if possible, or use a fallback
-    const goalTitle = goal?.title || "Your Goal";
+    const goalTitle = goal ? goal.title : "Your Goal";
     
     // If API fails, return mock data as fallback
     return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel);
