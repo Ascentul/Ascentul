@@ -246,13 +246,31 @@ export default function VoicePractice() {
         return;
       }
       
-      // Continue with the next question
-      generateQuestionMutation.mutate({
-        jobTitle: selectedJobDetails!.title,
-        company: selectedJobDetails!.company,
-        jobDescription: selectedJobDetails!.description,
-        conversation: conversation
-      });
+      // If we get an AI response directly, add it to conversation and speak it
+      if (data.aiResponse) {
+        console.log('Received AI response directly:', data.aiResponse);
+        
+        // Add the AI's response to the conversation
+        const newMessage: ConversationMessage = {
+          role: 'assistant',
+          content: data.aiResponse,
+          timestamp: new Date()
+        };
+        
+        setConversation(prev => [...prev, newMessage]);
+        
+        // Speak the AI's response using the TTS API
+        speakText(data.aiResponse);
+      } else {
+        // Fallback to the old behavior - requesting a new question separately
+        console.log('No AI response in data, requesting new question');
+        generateQuestionMutation.mutate({
+          jobTitle: selectedJobDetails!.title,
+          company: selectedJobDetails!.company,
+          jobDescription: selectedJobDetails!.description,
+          conversation: conversation
+        });
+      }
     },
     onError: (error) => {
       console.error('Failed to analyze response:', error);
