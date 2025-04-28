@@ -709,43 +709,60 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
         response_format: 'text'
       });
       
-      // Check if transcription and text property exist before accessing
-      if (!transcription || typeof transcription !== 'object') {
-        logResponse('transcribe', 500, 'Invalid transcription response format from OpenAI API', {
-          received: typeof transcription,
-          value: transcription
-        });
-        return res.status(500).json({ 
-          error: 'Unexpected transcription format from OpenAI API',
-          details: 'The transcription service returned an invalid response. Please try again.'
-        });
-      }
-      
-      // In cases where response_format is 'text', OpenAI may return a string directly
-      // Handle both object and string responses
+      // With response_format: 'text', the API returns a direct string
       let transcribedText = '';
+      
+      // Handle both string and object responses
       if (typeof transcription === 'string') {
+        // This is the expected case with response_format: 'text'
         transcribedText = transcription;
-        logResponse('transcribe', 200, 'Transcription completed successfully (string format)', {
-          textLength: transcribedText.length
-        });
-      } else if (transcription.text) {
-        transcribedText = transcription.text;
-        // For object responses with text property
         const excerpt = transcribedText.substring(0, 50) + (transcribedText.length > 50 ? '...' : '');
-        logResponse('transcribe', 200, 'Transcription completed successfully', {
+        logResponse('transcribe', 200, 'Transcription completed successfully (string format)', {
+          textLength: transcribedText.length,
+          excerpt: excerpt
+        });
+      } else if (transcription && typeof transcription === 'object' && 'text' in transcription) {
+        // Handle object response format (for compatibility)
+        transcribedText = transcription.text;
+        const excerpt = transcribedText.substring(0, 50) + (transcribedText.length > 50 ? '...' : '');
+        logResponse('transcribe', 200, 'Transcription completed successfully (object format)', {
           textLength: transcribedText.length,
           excerpt: excerpt
         });
       } else {
-        // No text property found in the object
-        logResponse('transcribe', 500, 'Missing text in transcription response', {
-          responseKeys: Object.keys(transcription)
+        // Handle unexpected response format (neither string nor object with text property)
+        logResponse('transcribe', 500, 'Unexpected transcription format from OpenAI API', {
+          received: typeof transcription,
+          value: transcription
         });
-        return res.status(500).json({
-          error: 'Invalid transcription result',
-          details: 'The transcription service returned a response without text. Please try again.'
-        });
+        
+        // Since we got something back, try to use it anyway if it has string content
+        if (transcription) {
+          try {
+            const stringValue = String(transcription);
+            if (stringValue && stringValue.length > 0) {
+              transcribedText = stringValue;
+              logResponse('transcribe', 200, 'Recovered transcription from unexpected format', {
+                textLength: transcribedText.length
+              });
+            } else {
+              return res.status(500).json({
+                error: 'Empty transcription result',
+                details: 'The transcription service returned an empty response. Please try again.'
+              });
+            }
+          } catch (stringifyError) {
+            return res.status(500).json({
+              error: 'Invalid transcription result',
+              details: 'The transcription service returned an unexpected format. Please try again.'
+            });
+          }
+        } else {
+          return res.status(500).json({
+            error: 'Missing transcription result',
+            details: 'The transcription service returned no data. Please try again.'
+          });
+        }
       }
       
       // Clean up the temporary file
