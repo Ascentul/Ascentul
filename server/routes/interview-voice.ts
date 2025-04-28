@@ -24,6 +24,12 @@ interface EducationItem {
   achievements: string[];
 }
 
+// OpenAI message type for chat completions
+interface OpenAIMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 const router = Router();
 
 // Schema for interview question generation request
@@ -235,7 +241,7 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
     const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
     
     // Prepare conversation history for OpenAI in the expected format
-    const messages = [
+    const messages: OpenAIMessage[] = [
       {
         role: 'system',
         content: systemPrompt
@@ -285,7 +291,7 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       // Call OpenAI to generate a question
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: messages as any, // Type cast to satisfy TypeScript
+        messages: messages,
         temperature: 0.7, // Slight creativity in questions
         max_tokens: 300, // Keep responses concise but allow for context
         stream: false // Disable streaming for reliability
@@ -362,7 +368,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       logRequest('analyze-response', 'Generating comprehensive interview feedback');
       
       // Generate comprehensive feedback for the entire interview
-      const feedbackMessages = [
+      const feedbackMessages: OpenAIMessage[] = [
         {
           role: 'system',
           content: `You are an expert career coach providing feedback on a job interview for a ${jobTitle} position at ${company}.
@@ -402,7 +408,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
         // Call OpenAI to generate feedback - disable streaming for reliability
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          messages: feedbackMessages as any,
+          messages: feedbackMessages,
           temperature: 0.7,
           max_tokens: 1000, // Allow for detailed feedback
           stream: false // Disable streaming for reliability
@@ -434,7 +440,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       // First, prepare system message for the interview conversation
       const interviewSystemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
       
-      const interviewMessages = [
+      const interviewMessages: OpenAIMessage[] = [
         { role: 'system', content: interviewSystemPrompt }
       ];
       
@@ -474,7 +480,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
         // Generate the next AI response that continues the interview
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          messages: interviewMessages as any,
+          messages: interviewMessages,
           temperature: 0.7,
           max_tokens: 500,
           presence_penalty: 0.6, // Encourage the AI to ask new questions
