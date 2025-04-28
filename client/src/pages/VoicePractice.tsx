@@ -56,25 +56,43 @@ export default function VoicePractice() {
   
   // Function definitions for recording audio
   const startRecording = () => {
-    if (!isInterviewActive || status !== 'listening' || !microphoneRef.current) return;
+    if (!isInterviewActive || status !== 'listening' || !microphoneRef.current) {
+      console.log('Cannot start recording:', { isInterviewActive, status, hasMicrophone: !!microphoneRef.current });
+      return;
+    }
     
     try {
-      isMouseDownRef.current = true;
-      audioChunksRef.current = [];
-      microphoneRef.current.start();
-      setIsRecording(true);
+      // Only start if not already recording
+      if (microphoneRef.current.state === 'inactive') {
+        isMouseDownRef.current = true;
+        audioChunksRef.current = [];
+        console.log('Starting recording...');
+        microphoneRef.current.start(100); // Request data every 100ms for frequent chunks
+        setIsRecording(true);
+      } else {
+        console.log('Cannot start recording, state is:', microphoneRef.current.state);
+      }
     } catch (error) {
       console.error('Error starting recording:', error);
     }
   };
   
   const stopRecording = () => {
-    if (!isInterviewActive || !isRecording || !microphoneRef.current || microphoneRef.current.state === 'inactive') return;
+    if (!isInterviewActive || !microphoneRef.current) {
+      console.log('Cannot stop recording, no active interview or microphone');
+      return;
+    }
     
     try {
-      isMouseDownRef.current = false;
-      microphoneRef.current.stop();
-      setIsRecording(false);
+      // Only stop if currently recording
+      if (microphoneRef.current.state === 'recording') {
+        isMouseDownRef.current = false;
+        console.log('Stopping recording from mouse/touch action...');
+        microphoneRef.current.stop();
+        setIsRecording(false);
+      } else {
+        console.log('Cannot stop recording, state is:', microphoneRef.current.state);
+      }
     } catch (error) {
       console.error('Error stopping recording:', error);
     }
@@ -82,8 +100,15 @@ export default function VoicePractice() {
   
   // Complete response without waiting for mouse up
   const completeResponse = () => {
-    if (isRecording) {
-      stopRecording();
+    if (isRecording && microphoneRef.current && microphoneRef.current.state !== 'inactive') {
+      console.log('Completing response...');
+      // Stop recording to trigger the onstop event and process the audio
+      microphoneRef.current.stop();
+      setIsRecording(false);
+      // Set status to thinking to show the user we're processing
+      setStatus('thinking');
+    } else {
+      console.log('Cannot complete response - recording not active');
     }
   };
   
@@ -282,22 +307,35 @@ export default function VoicePractice() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioStreamRef.current = stream;
       
-      // Create a MediaRecorder instance
-      const mediaRecorder = new MediaRecorder(stream);
+      // Create a MediaRecorder instance with specific MIME type and bitrate
+      const options = {
+        mimeType: 'audio/webm',
+        audioBitsPerSecond: 128000
+      };
+      
+      const mediaRecorder = new MediaRecorder(stream, options);
       microphoneRef.current = mediaRecorder;
       
       // Handle dataavailable event to collect audio chunks
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        console.log('Data available event triggered', event.data.size);
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
       
       // Handle recording stop event
       mediaRecorder.onstop = async () => {
+        console.log('MediaRecorder stopped, processing audio...');
         // Create a blob from the audio chunks
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        audioChunksRef.current = [];
+        console.log('Created audio blob of size:', audioBlob.size);
+        
+        if (audioBlob.size === 0) {
+          console.error('Audio blob is empty, no data was recorded');
+          setStatus('listening');
+          return;
+        }
         
         // Convert blob to base64 for sending to backend
         const reader = new FileReader();
@@ -307,15 +345,23 @@ export default function VoicePractice() {
           
           // Extract only the base64 part (remove the data URL prefix)
           const base64Audio = base64data.split(',')[1];
+          console.log('Audio encoded to base64, sending for transcription...');
+          
+          // Clear audio chunks for next recording
+          audioChunksRef.current = [];
           
           // Send to backend for transcription
           try {
+            setStatus('thinking');
+            console.log('Sending audio to transcription API...');
+            
             const response = await apiRequest('POST', '/api/interview/transcribe', {
               audio: base64Audio
             });
             
             if (response.ok) {
               const { text } = await response.json();
+              console.log('Transcription received:', text);
               setTranscription(text);
               
               // Add user response to conversation
@@ -328,7 +374,7 @@ export default function VoicePractice() {
               setConversation(prev => [...prev, newMessage]);
               
               // Send for analysis
-              setStatus('thinking');
+              console.log('Sending transcription for analysis...');
               analyzeResponseMutation.mutate({
                 jobTitle: selectedJobDetails!.title,
                 company: selectedJobDetails!.company,
@@ -337,14 +383,27 @@ export default function VoicePractice() {
                 conversation: [...conversation, newMessage]
               });
             } else {
-              console.error('Failed to transcribe audio');
-              setStatus('idle');
+              console.error('Failed to transcribe audio', response.status);
+              setStatus('listening'); // Return to listening state to allow retry
             }
           } catch (error) {
             console.error('Error transcribing audio:', error);
-            setStatus('idle');
+            setStatus('listening'); // Return to listening state to allow retry
           }
         };
+      };
+      
+      // Handle recording start event
+      mediaRecorder.onstart = () => {
+        console.log('MediaRecorder started, recording audio...');
+        // Ensure array is empty at start
+        audioChunksRef.current = [];
+      };
+      
+      // Handle recording error event
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        setStatus('idle');
       };
       
       return true;
@@ -360,9 +419,10 @@ export default function VoicePractice() {
     
     try {
       audioChunksRef.current = [];
-      microphoneRef.current.start();
+      microphoneRef.current.start(1000); // Specify timeslice of 1 second to get data more frequently
       setIsRecording(true);
       setStatus('listening');
+      console.log('Listening for user response started');
     } catch (error) {
       console.error('Error starting recording:', error);
     }
@@ -373,6 +433,7 @@ export default function VoicePractice() {
     if (!microphoneRef.current || microphoneRef.current.state === 'inactive') return;
     
     try {
+      console.log('Stopping recording...');
       microphoneRef.current.stop();
       setIsRecording(false);
     } catch (error) {
