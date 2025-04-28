@@ -53,11 +53,11 @@ export function VoiceDiagnostics() {
   const [results, setResults] = useState<DiagnosticResults | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [apiTest, setApiTest] = useState<{
-    transcribe: { success: boolean; response?: any; error?: string };
-    tts: { success: boolean; response?: any; error?: string };
+    transcribe: { success: boolean; response?: any; error: string };
+    tts: { success: boolean; response?: any; error: string };
   }>({
-    transcribe: { success: false, response: undefined, error: undefined },
-    tts: { success: false, response: undefined, error: undefined }
+    transcribe: { success: false, response: undefined, error: '' },
+    tts: { success: false, response: undefined, error: '' }
   });
   
   // Run diagnostics on capabilities, microphone access, audio recording, and API connectivity
@@ -69,8 +69,8 @@ export function VoiceDiagnostics() {
     const diagnosticResults: DiagnosticResults = {
       tests: {
         api: {
-          transcribe: { success: false, response: undefined, error: undefined },
-          tts: { success: false, response: undefined, error: undefined }
+          transcribe: { success: false, response: undefined, error: '' },
+          tts: { success: false, response: undefined, error: '' }
         }
       }
     };
@@ -137,8 +137,8 @@ export function VoiceDiagnostics() {
         logVoiceEvent('Diagnostics', 'Testing API connectivity');
         
         const apiResults = {
-          transcribe: { success: false, response: undefined, error: undefined },
-          tts: { success: false, response: undefined, error: undefined }
+          transcribe: { success: false, response: undefined, error: '' },
+          tts: { success: false, response: undefined, error: '' }
         };
         
         try {
