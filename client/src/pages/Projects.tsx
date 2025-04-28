@@ -121,9 +121,19 @@ export default function Projects() {
               </div>
 
               <div className="flex flex-col md:flex-row md:items-start gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center">
-                  <FolderGit2 className="h-6 w-6 text-primary" />
-                </div>
+                {project.imageUrl ? (
+                  <div className="flex-shrink-0 w-28 h-28 rounded-md overflow-hidden">
+                    <img 
+                      src={project.imageUrl} 
+                      alt={project.title} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center">
+                    <FolderGit2 className="h-6 w-6 text-primary" />
+                  </div>
+                )}
 
                 <div className="flex-1">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">

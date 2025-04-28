@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { InsertProject, insertProjectSchema } from '@shared/schema';
@@ -10,12 +10,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Image, X } from 'lucide-react';
 
 interface ProjectFormProps {
   onSubmit: (data: InsertProject) => void;
@@ -23,6 +25,10 @@ interface ProjectFormProps {
 }
 
 export default function ProjectForm({ onSubmit, initialData }: ProjectFormProps) {
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    initialData?.imageUrl ? String(initialData.imageUrl) : null
+  );
+  
   const form = useForm<InsertProject>({
     resolver: zodResolver(insertProjectSchema),
     defaultValues: initialData || {
@@ -35,8 +41,28 @@ export default function ProjectForm({ onSubmit, initialData }: ProjectFormProps)
       isPublic: false,
       skillsUsed: [],
       tags: [],
+      imageUrl: '',
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Convert to base64 for storage and preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImagePreview(base64String);
+        form.setValue('imageUrl', base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setImagePreview(null);
+    form.setValue('imageUrl', '');
+  };
 
   return (
     <Form {...form}>
@@ -126,8 +152,64 @@ export default function ProjectForm({ onSubmit, initialData }: ProjectFormProps)
             <FormItem>
               <FormLabel>Project URL</FormLabel>
               <FormControl>
-                <Input placeholder="https://example.com" {...field} />
+                <Input 
+                  placeholder="https://example.com" 
+                  value={field.value || ''} 
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Image</FormLabel>
+              <div className="flex flex-col gap-4">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Project preview" className="w-full h-40 object-cover rounded-md" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                      onClick={clearImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center gap-2 text-gray-500">
+                    <Image className="h-8 w-8" />
+                    <p>Upload a project image</p>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="projectImage"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('projectImage')?.click()}
+                    >
+                      Choose Image
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <FormDescription>
+                Add an image to showcase your project. This will be displayed on your project card.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
