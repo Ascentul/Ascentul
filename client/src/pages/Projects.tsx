@@ -99,7 +99,7 @@ export default function Projects() {
         <div className="space-y-6">
           {projects.map((project) => (
             <Card key={project.id} className="p-6 relative group hover:shadow-lg transition-shadow">
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-24 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="flex space-x-1">
                   <Button
                     variant="ghost"
