@@ -311,13 +311,15 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
     });
     
     try {
-      // Call OpenAI to generate a question
+      // Call OpenAI to generate a question with optimized parameters for natural conversation
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         messages: messages,
-        temperature: 0.7, // Slight creativity in questions
+        temperature: 0.7, // Slight creativity for varied, natural-sounding questions
         max_tokens: 300, // Keep responses concise but allow for context
-        stream: false // Disable streaming for reliability
+        presence_penalty: 0.4, // Reduce repetitiveness in phrasing
+        frequency_penalty: 0.3, // Encourage more diverse vocabulary
+        stream: false // Using non-streaming for reliability in this version
       });
       
       const aiResponse = completion.choices[0].message.content;
@@ -428,13 +430,15 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       });
       
       try {
-        // Call OpenAI to generate feedback - disable streaming for reliability
+        // Call OpenAI to generate comprehensive, natural-sounding feedback
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: feedbackMessages,
-          temperature: 0.7,
+          temperature: 0.7, // Balanced creativity for natural language
           max_tokens: 1000, // Allow for detailed feedback
-          stream: false // Disable streaming for reliability
+          presence_penalty: 0.4, // Reduce repetitiveness
+          frequency_penalty: 0.3, // Encourage more diverse vocabulary and natural phrasing
+          stream: false // Using non-streaming for reliability in this version
         });
         
         const feedback = completion.choices[0].message.content;
@@ -500,15 +504,15 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       });
       
       try {
-        // Generate the next AI response that continues the interview
+        // Generate the next AI response with enhanced human-like conversation parameters
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: interviewMessages,
-          temperature: 0.7,
-          max_tokens: 500,
-          presence_penalty: 0.6, // Encourage the AI to ask new questions
-          frequency_penalty: 0.5,  // Penalize repetition
-          stream: false // Disable streaming for reliability
+          temperature: 0.75, // Slightly higher creativity for more varied, natural responses
+          max_tokens: 500, // Enough for detailed, conversational responses
+          presence_penalty: 0.6, // Strongly encourage the AI to ask new questions
+          frequency_penalty: 0.5, // Penalize repetition for natural conversation
+          stream: false // Using non-streaming for reliability in this version
         });
         
         const aiResponse = completion.choices[0].message.content;
