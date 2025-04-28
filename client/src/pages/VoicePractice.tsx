@@ -310,6 +310,21 @@ export default function VoicePractice() {
           return;
         }
         
+        // Check for base64 validity - must be a reasonable length and match base64 pattern
+        if (base64Audio.length < 100 || !(/^[A-Za-z0-9+/=]+$/.test(base64Audio))) {
+          logVoiceEvent('ProcessAudioBlob', 'Invalid base64 data detected', { 
+            length: base64Audio.length,
+            isValidPattern: /^[A-Za-z0-9+/=]+$/.test(base64Audio)
+          });
+          toast({
+            title: "Audio format error",
+            description: "The recorded audio couldn't be properly encoded. Please try again.",
+            variant: "destructive"
+          });
+          setStatus('listening');
+          return;
+        }
+        
         // Clear audio chunks for next recording
         audioChunksRef.current = [];
         
@@ -391,9 +406,14 @@ export default function VoicePractice() {
             if (errorData.error) {
               errorMessage = errorData.error;
               
-              // Add specific guidance for format errors
-              if (errorData.details && errorData.details.includes('format')) {
-                errorMessage += ' Please try again in a different browser.';
+              // Add specific guidance for common errors
+              if (errorData.details) {
+                if (errorData.details.includes('format') || errorData.details.includes('Content-Type')) {
+                  logVoiceEvent('ProcessAudioBlob', 'Format error detected in API response');
+                  errorMessage = "Audio format error. Your browser's recording format isn't compatible. Try a different browser like Chrome.";
+                } else if (errorData.details.includes('too short')) {
+                  errorMessage = "Recording too short. Please hold the microphone button longer when speaking.";
+                }
               }
             }
             
@@ -404,7 +424,10 @@ export default function VoicePractice() {
             });
           } catch (jsonError) {
             // Fallback if we can't parse JSON error response
-            logVoiceEvent('ProcessAudioBlob', 'Transcription API error:', response.status, response.statusText);
+            logVoiceEvent('ProcessAudioBlob', 'Transcription API error:', { 
+              status: response.status, 
+              statusText: response.statusText 
+            });
             
             toast({
               title: "Transcription failed",
@@ -684,16 +707,37 @@ export default function VoicePractice() {
           // Create MediaRecorder if not already available
           if (!microphoneRef.current) {
             logVoiceEvent('MicrophoneSetup', 'Creating MediaRecorder');
-            // Try to use audio/mp3 if supported, fallback to audio/webm or audio/mp4
-            let mimeType = 'audio/webm';
-            if (MediaRecorder.isTypeSupported('audio/mp3')) {
-              mimeType = 'audio/mp3';
-            } else if (MediaRecorder.isTypeSupported('audio/mpeg')) {
-              mimeType = 'audio/mpeg';
-            } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-              mimeType = 'audio/webm';
-            } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-              mimeType = 'audio/mp4';
+            // Try preferred formats first (MP3), then fall back if not supported
+            // MP3 is the most compatible with OpenAI's Whisper API
+            const preferredMimeTypes = [
+              'audio/mp3',
+              'audio/mpeg',
+              'audio/webm;codecs=opus',
+              'audio/webm',
+              'audio/ogg;codecs=opus',
+              'audio/wav',
+              'audio/mp4'
+            ];
+            
+            // Log available mime types for debugging
+            logVoiceEvent('MicrophoneSetup', 'Checking supported MIME types...');
+            let mimeType = '';
+            
+            // Find the first supported mime type from our preferred list
+            for (const type of preferredMimeTypes) {
+              if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                logVoiceEvent('MicrophoneSetup', `Found supported MIME type: ${type}`);
+                break;
+              } else {
+                logVoiceEvent('MicrophoneSetup', `MIME type not supported: ${type}`);
+              }
+            }
+            
+            // If no preferred types are supported, use browser default
+            if (!mimeType) {
+              logVoiceEvent('MicrophoneSetup', 'No preferred MIME types supported, using browser default');
+              mimeType = '';
             }
             
             logVoiceEvent('MicrophoneSetup', `Creating MediaRecorder with mime type: ${mimeType}`);
@@ -718,9 +762,33 @@ export default function VoicePractice() {
               
               // Only process chunks if we have data and aren't already processing
               if (audioChunksRef.current.length > 0 && status !== 'thinking') {
-                // Create a blob from all chunks using the same mime type as the recorder
-                const audioBlob = new Blob(audioChunksRef.current, { type: recorderMimeType });
-                logVoiceEvent('MicrophoneSetup', `Created audio blob with type: ${recorderMimeType}, size: ${audioBlob.size} bytes`);
+                // First check if we have any chunks with actual data
+                const hasData = audioChunksRef.current.some(chunk => chunk.size > 0);
+                
+                if (!hasData) {
+                  logVoiceEvent('MicrophoneSetup', 'No audio data found in chunks, skipping processing');
+                  setStatus('listening');
+                  return;
+                }
+                
+                // Use the detected MIME type from the recorder for better consistency
+                const actualMimeType = recorderMimeType || 'audio/mpeg'; // Fallback to MP3 if no MIME type detected
+                
+                // Create a blob from all chunks
+                const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
+                logVoiceEvent('MicrophoneSetup', `Created audio blob with type: ${actualMimeType}, size: ${audioBlob.size} bytes`);
+                
+                // Check if the blob size is reasonable
+                if (audioBlob.size < 100) { // Extremely small blobs likely indicate an error
+                  logVoiceEvent('MicrophoneSetup', 'Blob size too small, possibly empty recording');
+                  toast({
+                    title: "Recording too short",
+                    description: "Your recording was too short. Please hold the microphone button longer when speaking.",
+                    variant: "destructive"
+                  });
+                  setStatus('listening');
+                  return;
+                }
                 
                 // Update status and process the audio
                 setStatus('thinking');
