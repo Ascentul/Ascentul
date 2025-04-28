@@ -523,14 +523,56 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
       logRequest('transcribe', `Saved debug audio copy to: ${debugFilePath}`);
     }
     
+    // Extract the actual base64 data (remove the data URL prefix if present)
+    let cleanedAudio = audio;
+    let mimetype = '';
+    
+    if (audio.includes('base64,')) {
+      // Extract the MIME type from the data URL
+      const matches = audio.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches && matches.length >= 3) {
+        mimetype = matches[1];
+        cleanedAudio = matches[2];
+        logRequest('transcribe', `Extracted MIME type: ${mimetype} from data URL`);
+      } else {
+        logRequest('transcribe', 'Could not extract MIME type from data URL, using raw data');
+      }
+    }
+    
     // Convert base64 to buffer
-    const buffer = Buffer.from(audio, 'base64');
+    const buffer = Buffer.from(cleanedAudio, 'base64');
     logRequest('transcribe', `Converted to buffer, size: ${buffer.length} bytes`);
     
     // Create a temporary file path using a supported OpenAI format
-    // We're using .webm extension here to match what's typically recorded by the browser
     // OpenAI Whisper API supports: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, or webm
-    const tempFilePath = `/tmp/audio-${Date.now()}.webm`;
+    // Determine appropriate file extension based on first part of base64 content
+    let fileExtension = 'webm'; // Default extension
+    
+    // Try to determine file type from the extracted MIME type
+    if (mimetype) {
+      if (mimetype.includes('mp3') || mimetype.includes('mpeg')) {
+        fileExtension = 'mp3';
+        logRequest('transcribe', 'Using MP3 file extension based on MIME type');
+      } else if (mimetype.includes('webm')) {
+        fileExtension = 'webm';
+        logRequest('transcribe', 'Using WebM file extension based on MIME type');
+      } else if (mimetype.includes('wav') || mimetype.includes('x-wav')) {
+        fileExtension = 'wav';
+        logRequest('transcribe', 'Using WAV file extension based on MIME type');
+      } else if (mimetype.includes('mp4')) {
+        fileExtension = 'mp4';
+        logRequest('transcribe', 'Using MP4 file extension based on MIME type');
+      } else if (mimetype.includes('ogg')) {
+        fileExtension = 'ogg';
+        logRequest('transcribe', 'Using OGG file extension based on MIME type');
+      } else {
+        logRequest('transcribe', `Unknown MIME type: ${mimetype}, using default webm extension`);
+      }
+    } else {
+      logRequest('transcribe', 'No MIME type detected, using default webm extension');
+    }
+    
+    const tempFilePath = `/tmp/audio-${Date.now()}.${fileExtension}`;
     
     // Write the buffer to a temporary file
     try {
