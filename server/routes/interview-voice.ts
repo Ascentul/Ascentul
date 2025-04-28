@@ -348,7 +348,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       const interviewSystemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
       
       const interviewMessages = [
-        { role: 'system', content: systemPrompt }
+        { role: 'system', content: interviewSystemPrompt }
       ];
       
       // Add the full conversation history 
