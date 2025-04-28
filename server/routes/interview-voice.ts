@@ -3,6 +3,8 @@ import { requireAuth } from '../auth';
 import { openaiInstance } from '../openai';
 import { z } from 'zod';
 import { storage } from '../storage';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
@@ -34,6 +36,12 @@ const analyzeResponseSchema = z.object({
 // Schema for speech transcription request
 const transcribeSchema = z.object({
   audio: z.string()
+});
+
+// Schema for text-to-speech request
+const textToSpeechSchema = z.object({
+  text: z.string().min(1, "Text is required"),
+  voice: z.string().optional().default('nova')
 });
 
 /**
@@ -420,6 +428,63 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error in transcribe endpoint:', error);
     return res.status(500).json({ error: 'Failed to process audio for transcription' });
+  }
+});
+
+/**
+ * Convert text to speech using OpenAI's API
+ */
+router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const validationResult = textToSpeechSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data', 
+        details: validationResult.error.format() 
+      });
+    }
+    
+    const { text, voice } = validationResult.data;
+    
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'uploads', 'audio');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const audioFilename = `speech_${timestamp}.mp3`;
+    const audioPath = path.join(uploadsDir, audioFilename);
+    const audioUrl = `/uploads/audio/${audioFilename}`;
+    
+    try {
+      // Call OpenAI's TTS API
+      const mp3 = await openaiInstance.audio.speech.create({
+        model: 'tts-1-hd', // Use high-definition TTS model
+        voice: voice, // 'nova' is a friendly, natural female voice
+        input: text
+      });
+      
+      // Convert response to Buffer
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+      
+      // Save audio file to disk
+      fs.writeFileSync(audioPath, buffer);
+      
+      // Return success with the URL to the audio file
+      return res.status(200).json({ 
+        audioUrl,
+        success: true 
+      });
+    } catch (ttsError) {
+      console.error('Error generating speech:', ttsError);
+      return res.status(500).json({ error: 'Failed to generate speech audio' });
+    }
+  } catch (error) {
+    console.error('Error in text-to-speech endpoint:', error);
+    return res.status(500).json({ error: 'Failed to process text-to-speech request' });
   }
 });
 

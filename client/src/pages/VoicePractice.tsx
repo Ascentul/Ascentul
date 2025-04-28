@@ -209,17 +209,9 @@ export default function VoicePractice() {
       
       setConversation(prev => [...prev, newMessage]);
       
-      // Speak the question using browser's Text-to-Speech
+      // Speak the question using OpenAI's Text-to-Speech API
+      // This will update status to speaking and then listening via the audio events
       speakText(data.question);
-      
-      // Update state to listening after speaking
-      setStatus('speaking');
-      
-      // After speaking finishes, enable listening mode
-      setTimeout(() => {
-        setStatus('listening');
-        startListening();
-      }, calculateSpeakingTime(data.question));
     },
     onError: (error) => {
       console.error('Failed to generate interview question:', error);
@@ -279,9 +271,73 @@ export default function VoicePractice() {
     return (seconds + 1) * 1000;
   };
 
-  // Function to speak text using the browser's Text-to-Speech API
+  // Audio element reference for playing TTS responses
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Text-to-speech mutation using OpenAI's API
+  const textToSpeechMutation = useMutation({
+    mutationFn: async (params: { text: string, voice?: string }) => {
+      try {
+        const response = await apiRequest('POST', '/api/interview/text-to-speech', params);
+        if (!response.ok) throw new Error('Failed to convert text to speech');
+        return await response.json();
+      } catch (error) {
+        console.error('Error converting text to speech:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      if (data.audioUrl) {
+        // Create audio element if not already created
+        if (!audioRef.current) {
+          audioRef.current = new Audio();
+          
+          // Add event listeners to update status when audio plays/ends
+          audioRef.current.onplay = () => {
+            setStatus('speaking');
+          };
+          
+          audioRef.current.onended = () => {
+            setStatus('listening');
+            startListening();
+          };
+        }
+        
+        // Set audio source and play
+        audioRef.current.src = data.audioUrl;
+        audioRef.current.play().catch(err => {
+          console.error('Error playing audio:', err);
+          // Fallback to browser's TTS if audio fails to play
+          fallbackToBuiltInTTS(data.text || '');
+        });
+      } else {
+        console.error('No audio URL returned from TTS API');
+        fallbackToBuiltInTTS(data.text || '');
+      }
+    },
+    onError: (error, variables) => {
+      console.error('Failed to generate speech:', error);
+      // Fallback to browser's built-in TTS on API error
+      fallbackToBuiltInTTS(variables.text);
+    }
+  });
+  
+  // Function to speak text using OpenAI's text-to-speech API
   const speakText = (text: string) => {
+    // First set status to speaking to update UI
+    setStatus('speaking');
+    
+    // Call the OpenAI TTS API
+    textToSpeechMutation.mutate({ 
+      text,
+      voice: 'nova' // Friendly, natural female voice
+    });
+  };
+  
+  // Fallback to browser's built-in TTS if OpenAI API fails
+  const fallbackToBuiltInTTS = (text: string) => {
     if ('speechSynthesis' in window) {
+      console.log('Falling back to browser TTS');
       const speech = new SpeechSynthesisUtterance(text);
       speech.rate = 1.0; // Normal speaking rate
       speech.pitch = 1.0; // Normal pitch
@@ -294,9 +350,22 @@ export default function VoicePractice() {
         speech.voice = femaleVoice;
       }
       
+      // Add event handlers to update status
+      speech.onstart = () => {
+        setStatus('speaking');
+      };
+      
+      speech.onend = () => {
+        setStatus('listening');
+        startListening();
+      };
+      
       window.speechSynthesis.speak(speech);
     } else {
       console.error('Text-to-speech not supported in this browser');
+      // Move to listening state anyway to allow the interview to continue
+      setStatus('listening');
+      startListening();
     }
   };
 
