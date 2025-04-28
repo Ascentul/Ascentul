@@ -457,13 +457,13 @@ export default function VoicePractice() {
   };
   
   // Get applications from the server
-  const { data: applications = [], isLoading: isLoadingApplications } = useQuery({
+  const { data: applications = [], isLoading: isLoadingApplications } = useQuery<JobApplication[]>({
     queryKey: ['/api/job-applications'],
     staleTime: 60 * 1000, // 1 minute
   });
   
   // Filter for active applications
-  const activeApplications = (applications as JobApplication[]).filter(app => {
+  const activeApplications = applications.filter(app => {
     // Include applications with active statuses
     return ['active', 'interviewing', 'offer', 'pending', 'applied'].includes(app.status?.toLowerCase() || '');
   });
@@ -680,7 +680,7 @@ export default function VoicePractice() {
   // Update selected job details when application selection changes
   useEffect(() => {
     if (selectedApplication) {
-      const application = applications.find((app: JobApplication) => 
+      const application = applications.find(app => 
         app.id.toString() === selectedApplication
       );
       
@@ -758,14 +758,14 @@ export default function VoicePractice() {
             });
             
             recorder.addEventListener('stop', () => {
-              logVoiceEvent('MicrophoneSetup', 'MediaRecorder stopped with', audioChunksRef.current.length, 'chunks');
+              logVoiceEvent('MicrophoneSetup', `MediaRecorder stopped with ${audioChunksRef.current.length} chunks`);
               
               // Get the actual mime type from the recorder
               const recorderMimeType = recorder.mimeType;
               logVoiceEvent('MicrophoneSetup', `Recorder actual mime type: ${recorderMimeType}`);
               
               // Only process chunks if we have data and aren't already processing
-              if (audioChunksRef.current.length > 0 && status !== 'thinking') {
+              if (audioChunksRef.current.length > 0 && status === 'listening') {
                 // First check if we have any chunks with actual data
                 const hasData = audioChunksRef.current.some(chunk => chunk.size > 0);
                 
@@ -804,7 +804,7 @@ export default function VoicePractice() {
             microphoneRef.current = recorder;
           }
         } catch (error) {
-          logVoiceEvent('MicrophoneSetupError', 'Error setting up microphone:', error);
+          logVoiceEvent('MicrophoneSetupError', 'Error setting up microphone', error);
           
           toast({
             title: "Microphone Error",
