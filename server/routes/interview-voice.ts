@@ -527,8 +527,8 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     const buffer = Buffer.from(audio, 'base64');
     logRequest('transcribe', `Converted to buffer, size: ${buffer.length} bytes`);
     
-    // Create a temporary file path
-    const tempFilePath = `/tmp/audio-${Date.now()}.webm`;
+    // Create a temporary file path using a supported OpenAI format (mp3)
+    const tempFilePath = `/tmp/audio-${Date.now()}.mp3`;
     
     // Write the buffer to a temporary file
     try {
