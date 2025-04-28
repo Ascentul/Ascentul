@@ -141,9 +141,11 @@ export default function VoicePractice() {
       if (audioChunksRef.current && audioChunksRef.current.length > 0) {
         logVoiceEvent('CompleteResponse', 'Found existing audio chunks to process:', audioChunksRef.current.length);
         
-        // Create a blob from existing audio chunks
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        logVoiceEvent('CompleteResponse', 'Created audio blob from existing chunks, size:', audioBlob.size, 'bytes');
+        // Create a blob from existing audio chunks - use the same type that MediaRecorder initialized with
+        // Try to get the mime type from the actual recorder if available
+        const recorderMimeType = microphoneRef.current?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorderMimeType });
+        logVoiceEvent('CompleteResponse', `Created audio blob from existing chunks, type: ${recorderMimeType}, size: ${audioBlob.size} bytes`);
         
         // Process this audio blob manually since onstop won't trigger
         processAudioBlob(audioBlob);
@@ -195,10 +197,13 @@ export default function VoicePractice() {
   
   // Helper function to process audio blob directly
   const processAudioBlob = async (audioBlob: Blob) => {
-    // Debug info about the audio blob
+    // Detailed debug info about the audio blob
     logVoiceEvent('ProcessAudioBlob', 'Processing audio blob:', {
       size: audioBlob.size,
-      type: audioBlob.type
+      type: audioBlob.type,
+      lastModified: new Date().toISOString(),
+      chunkCount: audioChunksRef.current?.length || 0,
+      recorderType: microphoneRef.current?.mimeType || 'unknown'
     });
     
     if (audioBlob.size === 0) {
@@ -337,14 +342,41 @@ export default function VoicePractice() {
             conversation: updatedConversation
           });
         } else {
-          logVoiceEvent('ProcessAudioBlob', 'Transcription API error:', response.status, response.statusText);
-          
-          // Show error message
-          toast({
-            title: "Transcription failed",
-            description: `Failed to transcribe audio (${response.status}). Please try again.`,
-            variant: "destructive"
-          });
+          // Try to get more detailed error information
+          try {
+            const errorData = await response.json();
+            logVoiceEvent('ProcessAudioBlob', 'Transcription API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              errorDetails: errorData
+            });
+            
+            // Show more specific error message if available
+            let errorMessage = `Failed to transcribe audio (${response.status}).`;
+            if (errorData.error) {
+              errorMessage = errorData.error;
+              
+              // Add specific guidance for format errors
+              if (errorData.details && errorData.details.includes('format')) {
+                errorMessage += ' Please try again in a different browser.';
+              }
+            }
+            
+            toast({
+              title: "Transcription failed",
+              description: errorMessage,
+              variant: "destructive"
+            });
+          } catch (jsonError) {
+            // Fallback if we can't parse JSON error response
+            logVoiceEvent('ProcessAudioBlob', 'Transcription API error:', response.status, response.statusText);
+            
+            toast({
+              title: "Transcription failed",
+              description: `Failed to transcribe audio (${response.status}). Please try again.`,
+              variant: "destructive"
+            });
+          }
           
           setStatus('listening');
         }
@@ -644,10 +676,15 @@ export default function VoicePractice() {
             recorder.addEventListener('stop', () => {
               logVoiceEvent('MicrophoneSetup', 'MediaRecorder stopped with', audioChunksRef.current.length, 'chunks');
               
+              // Get the actual mime type from the recorder
+              const recorderMimeType = recorder.mimeType;
+              logVoiceEvent('MicrophoneSetup', `Recorder actual mime type: ${recorderMimeType}`);
+              
               // Only process chunks if we have data and aren't already processing
               if (audioChunksRef.current.length > 0 && status !== 'thinking') {
-                // Create a blob from all chunks
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                // Create a blob from all chunks using the same mime type as the recorder
+                const audioBlob = new Blob(audioChunksRef.current, { type: recorderMimeType });
+                logVoiceEvent('MicrophoneSetup', `Created audio blob with type: ${recorderMimeType}, size: ${audioBlob.size} bytes`);
                 
                 // Update status and process the audio
                 setStatus('thinking');
