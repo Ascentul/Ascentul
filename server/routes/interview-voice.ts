@@ -192,9 +192,13 @@ function getBasicSystemPrompt(jobTitle: string, company: string, jobDescription:
  */
 router.post('/generate-question', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Log the start of question generation
+    logRequest('generate-question', 'Generate question request received');
+    
     const validationResult = generateQuestionSchema.safeParse(req.body);
     
     if (!validationResult.success) {
+      logResponse('generate-question', 400, 'Invalid request data', validationResult.error.format());
       return res.status(400).json({ 
         error: 'Invalid request data', 
         details: validationResult.error.format() 
@@ -202,6 +206,13 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
     }
     
     const { jobTitle, company, jobDescription, conversation } = validationResult.data;
+    
+    logRequest('generate-question', 'Valid request data received', {
+      jobTitle,
+      company,
+      hasJobDescription: !!jobDescription,
+      conversationLength: conversation.length
+    });
     
     // Generate dynamic system prompt with user profile data
     const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
@@ -215,48 +226,80 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
     ];
     
     // Add conversation history
-    conversation.forEach(message => {
+    conversation.forEach((message, index) => {
       messages.push({
         role: message.role,
         content: message.content
+      });
+      
+      // Log conversation history for debugging
+      logRequest('generate-question', `Conversation message ${index}`, {
+        role: message.role,
+        contentLength: message.content.length,
+        excerpt: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
       });
     });
     
     // If this is a new conversation, add a prompt to start the interview
     if (conversation.length === 0) {
+      const startPrompt = `Start the interview for a ${jobTitle} position at ${company}.`;
       messages.push({
         role: 'user',
-        content: `Start the interview for a ${jobTitle} position at ${company}.`
+        content: startPrompt
       });
+      logRequest('generate-question', 'Starting new interview', { prompt: startPrompt });
     } else {
       // If we already have conversation, ask the AI to continue with next question
+      const continuePrompt = 'Please ask the next interview question based on our conversation so far.';
       messages.push({
         role: 'user',
-        content: 'Please ask the next interview question based on our conversation so far.'
+        content: continuePrompt
       });
+      logRequest('generate-question', 'Continuing existing interview', { prompt: continuePrompt });
     }
     
-    // Call OpenAI to generate a question
-    const completion = await openaiInstance.chat.completions.create({
-      model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-      messages: messages as any, // Type cast to satisfy TypeScript
-      temperature: 0.7, // Slight creativity in questions
-      max_tokens: 200 // Keep responses concise
+    logRequest('generate-question', 'Calling OpenAI API', {
+      model: 'gpt-4o',
+      messageCount: messages.length,
+      isNewConversation: conversation.length === 0
     });
     
-    const aiResponse = completion.choices[0].message.content;
-    
-    // Log the generated question for debugging
-    console.log('Generated interview question:', aiResponse);
-    
-    // Return the question as aiResponse to match the analyze-response endpoint format
-    return res.status(200).json({ 
-      question: aiResponse, // Keep for backward compatibility
-      aiResponse: aiResponse // Add this field to match analyze-response format
+    try {
+      // Call OpenAI to generate a question
+      const completion = await openaiInstance.chat.completions.create({
+        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: messages as any, // Type cast to satisfy TypeScript
+        temperature: 0.7, // Slight creativity in questions
+        max_tokens: 300, // Keep responses concise but allow for context
+        stream: false // Disable streaming for reliability
+      });
+      
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Log the generated question for debugging
+      logResponse('generate-question', 200, 'Successfully generated interview question', {
+        responseLength: aiResponse.length,
+        responseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
+      });
+      
+      // Return the question as aiResponse to match the analyze-response endpoint format
+      return res.status(200).json({ 
+        question: aiResponse, // Keep for backward compatibility
+        aiResponse: aiResponse // Add this field to match analyze-response format
+      });
+    } catch (openaiError: any) {
+      logResponse('generate-question', 500, 'OpenAI API error', openaiError);
+      return res.status(500).json({ 
+        error: 'Failed to generate interview question', 
+        details: openaiError.message || 'Unknown error with OpenAI API'
+      });
+    }
+  } catch (error: any) {
+    logResponse('generate-question', 500, 'Error generating interview question', error);
+    return res.status(500).json({ 
+      error: 'Failed to generate interview question',
+      details: error.message || 'Unknown error'
     });
-  } catch (error) {
-    console.error('Error generating interview question:', error);
-    return res.status(500).json({ error: 'Failed to generate interview question' });
   }
 });
 
@@ -265,9 +308,13 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
  */
 router.post('/analyze-response', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Log the start of analysis process
+    logRequest('analyze-response', 'Analyze response request received');
+    
     const validationResult = analyzeResponseSchema.safeParse(req.body);
     
     if (!validationResult.success) {
+      logResponse('analyze-response', 400, 'Invalid request data', validationResult.error.format());
       return res.status(400).json({ 
         error: 'Invalid request data', 
         details: validationResult.error.format() 
@@ -276,6 +323,15 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
     
     const { jobTitle, company, jobDescription, userResponse, conversation } = validationResult.data;
     
+    logRequest('analyze-response', 'Valid request data received', {
+      jobTitle,
+      company,
+      userResponseLength: userResponse.length,
+      conversationLength: conversation.length,
+      conversationSummary: conversation.map(msg => ({ role: msg.role, contentLength: msg.content.length })),
+      userResponseExcerpt: userResponse.substring(0, 50) + (userResponse.length > 50 ? '...' : '')
+    });
+    
     // Generate dynamic system prompt with user profile data
     const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
     
@@ -283,7 +339,11 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
     // Typically end after 5 question-answer pairs (10 messages)
     const isLastQuestion = conversation.length >= 9; // 4 questions + 5th question's answer
     
+    logRequest('analyze-response', `Processing ${isLastQuestion ? 'final feedback' : 'ongoing interview'} response`);
+    
     if (isLastQuestion) {
+      logRequest('analyze-response', 'Generating comprehensive interview feedback');
+      
       // Generate comprehensive feedback for the entire interview
       const feedbackMessages = [
         {
@@ -317,39 +377,41 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
         content: 'Please provide comprehensive feedback on my interview performance.'
       });
       
-      // Call OpenAI to generate feedback
-      const completion = await openaiInstance.chat.completions.create({
-        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: feedbackMessages as any,
-        temperature: 0.7,
-        max_tokens: 1000, // Allow for detailed feedback
-        stream: true // Enable streaming for more responsive UX
+      logRequest('analyze-response', 'Calling OpenAI API for feedback generation', {
+        messageCount: feedbackMessages.length
       });
       
-      // Process the stream and collect the complete feedback
-      let feedback = '';
-      for await (const chunk of completion) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        feedback += content;
+      try {
+        // Call OpenAI to generate feedback - disable streaming for reliability
+        const completion = await openaiInstance.chat.completions.create({
+          model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: feedbackMessages as any,
+          temperature: 0.7,
+          max_tokens: 1000, // Allow for detailed feedback
+          stream: false // Disable streaming for reliability
+        });
+        
+        const feedback = completion.choices[0].message.content;
+        
+        logResponse('analyze-response', 200, 'Successfully generated final feedback', {
+          feedbackLength: feedback.length,
+          feedbackExcerpt: feedback.substring(0, 50) + (feedback.length > 50 ? '...' : '')
+        });
+        
+        // Return feedback and indicate this was the last question
+        return res.status(200).json({ 
+          feedback, 
+          isLastQuestion: true 
+        });
+      } catch (openaiError: any) {
+        logResponse('analyze-response', 500, 'OpenAI API error during feedback generation', openaiError);
+        return res.status(500).json({ 
+          error: 'Failed to generate interview feedback', 
+          details: openaiError.message || 'Unknown error with OpenAI API'
+        });
       }
-      
-      return res.status(200).json({ 
-        feedback, 
-        isLastQuestion: true 
-      });
     } else {
-      // For ongoing interviews, provide brief feedback on the response
-      const analysisMessages = [
-        {
-          role: 'system',
-          content: `You are an expert interviewer for a ${jobTitle} position at ${company}.
-          Analyze the candidate's response briefly but do not generate any feedback text.
-          Your evaluation will be used internally to gauge the quality of responses.
-          
-          Base your analysis on these details about the job and candidate:
-          ${await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription)}`
-        }
-      ];
+      logRequest('analyze-response', 'Processing ongoing interview response');
       
       // For regular ongoing interview, generate the next AI response directly
       // First, prepare system message for the interview conversation
@@ -360,10 +422,17 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
       ];
       
       // Add the full conversation history 
-      conversation.forEach(message => {
+      conversation.forEach((message, index) => {
         interviewMessages.push({
           role: message.role,
           content: message.content
+        });
+        
+        // Log messages for debugging
+        logRequest('analyze-response', `Conversation message ${index}`, {
+          role: message.role,
+          contentLength: message.content.length,
+          excerpt: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
         });
       });
       
@@ -373,27 +442,55 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
         content: userResponse
       });
       
-      // Generate the next AI response that continues the interview
-      const completion = await openaiInstance.chat.completions.create({
-        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: interviewMessages as any,
-        temperature: 0.7,
-        max_tokens: 300,
-        presence_penalty: 0.6, // Encourage the AI to ask new questions
-        frequency_penalty: 0.5  // Penalize repetition
+      // Add a specific prompt to continue the interview with feedback and next question
+      interviewMessages.push({
+        role: 'user',
+        content: 'Please provide brief feedback on my answer, then ask your next interview question.'
       });
       
-      const aiResponse = completion.choices[0].message.content;
-      
-      // Return the AI's next response directly
-      return res.status(200).json({ 
-        isLastQuestion: false,
-        aiResponse
+      logRequest('analyze-response', 'Calling OpenAI API for next question generation', {
+        messageCount: interviewMessages.length,
+        systemPromptLength: interviewSystemPrompt.length
       });
+      
+      try {
+        // Generate the next AI response that continues the interview
+        const completion = await openaiInstance.chat.completions.create({
+          model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+          messages: interviewMessages as any,
+          temperature: 0.7,
+          max_tokens: 500,
+          presence_penalty: 0.6, // Encourage the AI to ask new questions
+          frequency_penalty: 0.5,  // Penalize repetition
+          stream: false // Disable streaming for reliability
+        });
+        
+        const aiResponse = completion.choices[0].message.content;
+        
+        logResponse('analyze-response', 200, 'Successfully generated AI response', {
+          aiResponseLength: aiResponse.length,
+          aiResponseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
+        });
+        
+        // Return the AI's next response directly
+        return res.status(200).json({ 
+          isLastQuestion: false,
+          aiResponse
+        });
+      } catch (openaiError: any) {
+        logResponse('analyze-response', 500, 'OpenAI API error during response generation', openaiError);
+        return res.status(500).json({ 
+          error: 'Failed to generate interview response', 
+          details: openaiError.message || 'Unknown error with OpenAI API'
+        });
+      }
     }
-  } catch (error) {
-    console.error('Error analyzing interview response:', error);
-    return res.status(500).json({ error: 'Failed to analyze interview response' });
+  } catch (error: any) {
+    logResponse('analyze-response', 500, 'Error analyzing interview response', error);
+    return res.status(500).json({ 
+      error: 'Failed to analyze interview response',
+      details: error.message || 'Unknown error'
+    });
   }
 });
 
