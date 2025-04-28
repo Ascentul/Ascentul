@@ -74,7 +74,7 @@ export default function VoicePractice() {
         isMouseDownRef.current = true;
         audioChunksRef.current = [];
         logVoiceEvent('StartRecording', 'Starting recording...');
-        microphoneRef.current.start(100); // Request data every 100ms for frequent chunks
+        microphoneRef.current.start(50); // Request data every 50ms for more frequent chunks
         setIsRecording(true);
       } else {
         logVoiceEvent('StartRecording', 'Cannot start recording, state is:', microphoneRef.current.state);
@@ -206,13 +206,18 @@ export default function VoicePractice() {
       recorderType: microphoneRef.current?.mimeType || 'unknown'
     });
     
-    if (audioBlob.size === 0) {
-      logVoiceEvent('ProcessAudioBlob', 'Audio blob is empty, creating fallback message');
+    // Check if the audio blob is empty or too short
+    // OpenAI requires at least 0.1 seconds of audio
+    if (audioBlob.size === 0 || audioBlob.size < 1000) { // 1KB as a minimum size threshold
+      logVoiceEvent('ProcessAudioBlob', 'Audio blob is empty or too short, creating fallback message', {
+        size: audioBlob.size,
+        type: audioBlob.type
+      });
       
       // Show toast notification with error
       toast({
-        title: "Recording error",
-        description: "No audio was captured. Please try again or check your microphone permissions.",
+        title: "Recording too short",
+        description: "Your recording was too short. Please hold the microphone button longer when speaking.",
         variant: "destructive"
       });
       
@@ -663,7 +668,8 @@ export default function VoicePractice() {
             
             logVoiceEvent('MicrophoneSetup', `Creating MediaRecorder with mime type: ${mimeType}`);
             const recorder = new MediaRecorder(audioStreamRef.current, {
-              mimeType: mimeType
+              mimeType: mimeType,
+              audioBitsPerSecond: 128000 // Higher quality audio
             });
             
             // Set up event listeners

@@ -620,6 +620,11 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
           error: 'Audio format error',
           details: `The audio format is not compatible with OpenAI's Whisper API. Error: ${errorMessage}`
         });
+      } else if (errorMessage.includes('too short') || errorMessage.includes('audio_too_short')) {
+        return res.status(500).json({ 
+          error: 'Recording too short',
+          details: 'The audio recording must be at least 0.1 seconds long. Please hold the microphone button longer when speaking.'
+        });
       } else {
         return res.status(500).json({ 
           error: 'Failed to transcribe audio', 
