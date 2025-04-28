@@ -56,8 +56,8 @@ export function VoiceDiagnostics() {
     transcribe: { success: boolean; response?: any; error?: string };
     tts: { success: boolean; response?: any; error?: string };
   }>({
-    transcribe: { success: false },
-    tts: { success: false }
+    transcribe: { success: false, response: undefined, error: undefined },
+    tts: { success: false, response: undefined, error: undefined }
   });
   
   // Run diagnostics on capabilities, microphone access, audio recording, and API connectivity
@@ -69,8 +69,8 @@ export function VoiceDiagnostics() {
     const diagnosticResults: DiagnosticResults = {
       tests: {
         api: {
-          transcribe: { success: false },
-          tts: { success: false }
+          transcribe: { success: false, response: undefined, error: undefined },
+          tts: { success: false, response: undefined, error: undefined }
         }
       }
     };
@@ -84,7 +84,7 @@ export function VoiceDiagnostics() {
         status: capabilities.hasMediaRecorder ? 'pass' : 'fail',
         hasMediaRecorder: capabilities.hasMediaRecorder,
         preferredMimeType: capabilities.preferredMimeType,
-        supportedFormats: capabilities.supportedFormats
+        supportedFormats: capabilities.supportedMimeTypes
       };
       setProgress(25);
       
@@ -95,7 +95,7 @@ export function VoiceDiagnostics() {
         diagnosticResults.tests!.microphoneAccess = {
           status: micAccess.available ? 'pass' : 'fail',
           available: micAccess.available,
-          deviceInfo: micAccess.devices,
+          deviceInfo: micAccess.deviceInfo,
           error: micAccess.error
         };
       } catch (e) {
@@ -116,7 +116,11 @@ export function VoiceDiagnostics() {
             status: captureTest.success ? 'pass' : 'fail',
             success: captureTest.success,
             error: captureTest.error,
-            recordingStats: captureTest.recordingStats
+            recordingStats: captureTest.recordingStats ? {
+              durationMs: captureTest.recordingStats.durationMs,
+              blobSize: captureTest.recordingStats.blobSize,
+              format: captureTest.recordingStats.mimeType || 'audio/webm'
+            } : undefined
           };
         } catch (e) {
           diagnosticResults.tests!.audioCapture = {
@@ -133,8 +137,8 @@ export function VoiceDiagnostics() {
         logVoiceEvent('Diagnostics', 'Testing API connectivity');
         
         const apiResults = {
-          transcribe: { success: false },
-          tts: { success: false }
+          transcribe: { success: false, response: undefined, error: undefined },
+          tts: { success: false, response: undefined, error: undefined }
         };
         
         try {
