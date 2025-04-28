@@ -236,19 +236,38 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     // Convert base64 to buffer
     const buffer = Buffer.from(audio, 'base64');
     
-    // Create a temporary file for the audio (in-memory)
-    const audioBlob = new Blob([buffer], { type: 'audio/webm' });
+    // Create a temporary file path
+    const tempFilePath = `/tmp/audio-${Date.now()}.webm`;
     
-    // Use OpenAI's Whisper API to transcribe the audio
-    const transcription = await openaiInstance.audio.transcriptions.create({
-      file: audioBlob as any,
-      model: 'whisper-1'
-    });
+    // Write the buffer to a temporary file
+    const fs = require('fs');
+    fs.writeFileSync(tempFilePath, buffer);
     
-    return res.status(200).json({ text: transcription.text });
+    try {
+      // Use OpenAI's Whisper API to transcribe the audio
+      const transcription = await openaiInstance.audio.transcriptions.create({
+        file: fs.createReadStream(tempFilePath),
+        model: 'whisper-1',
+        language: 'en', // Specify English language
+        response_format: 'text' // Ensure we get plain text back
+      });
+      
+      // Clean up the temporary file
+      fs.unlinkSync(tempFilePath);
+      
+      return res.status(200).json({ text: transcription.text });
+    } catch (transcriptionError) {
+      // Clean up the temporary file in case of error
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+      
+      console.error('Error during transcription:', transcriptionError);
+      return res.status(500).json({ error: 'Failed to transcribe audio' });
+    }
   } catch (error) {
-    console.error('Error transcribing audio:', error);
-    return res.status(500).json({ error: 'Failed to transcribe audio' });
+    console.error('Error in transcribe endpoint:', error);
+    return res.status(500).json({ error: 'Failed to process audio for transcription' });
   }
 });
 
