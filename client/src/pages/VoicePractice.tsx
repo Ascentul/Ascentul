@@ -200,18 +200,33 @@ export default function VoicePractice() {
       }
     },
     onSuccess: (data) => {
-      // Add AI question to conversation
+      // Get AI response (either from aiResponse or question field for backward compatibility)
+      const aiResponse = data.aiResponse || data.question;
+      console.log('Received initial AI question:', aiResponse);
+      
+      // Set status to speaking
+      setStatus('speaking');
+      
+      // Create the message object
       const newMessage: ConversationMessage = {
         role: 'assistant',
-        content: data.question,
+        content: aiResponse,
         timestamp: new Date()
       };
       
-      setConversation(prev => [...prev, newMessage]);
+      // Log the updated conversation for debugging
+      const updatedConversation = [...conversation, newMessage];
+      console.log('CONVERSATION AFTER ADDING INITIAL AI QUESTION:', updatedConversation.map(msg => ({
+        role: msg.role,
+        content: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : '')
+      })));
+      
+      // Update conversation with the AI's question
+      setConversation(updatedConversation);
       
       // Speak the question using OpenAI's Text-to-Speech API
       // This will update status to speaking and then listening via the audio events
-      speakText(data.question);
+      speakText(aiResponse);
     },
     onError: (error) => {
       console.error('Failed to generate interview question:', error);
