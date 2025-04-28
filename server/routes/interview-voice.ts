@@ -517,6 +517,25 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
     // Log incoming request for debugging
     logRequest('transcribe', `Transcription request with payload size: ${audio.length}`);
     
+    // Validate audio data length and basic format
+    if (!audio || audio.length < 100) {
+      logResponse('transcribe', 400, 'Audio data too small or missing', { length: audio?.length || 0 });
+      return res.status(400).json({ 
+        error: 'Audio data is too small', 
+        details: 'The recording is too short to process. Please hold the microphone button longer when speaking.' 
+      });
+    }
+    
+    // Validate that audio contains valid base64 data
+    const base64Part = audio.replace(/^data:[^;]+;base64,/, '');
+    if (!/^[A-Za-z0-9+/=]+$/.test(base64Part)) {
+      logResponse('transcribe', 400, 'Invalid base64 data in audio');
+      return res.status(400).json({ 
+        error: 'Invalid audio format', 
+        details: 'The audio data is not properly encoded. Please try recording again or use a different browser.' 
+      });
+    }
+    
     // Save a copy of the audio for debugging
     const debugFilePath = saveAudioForDebugging(audio, 'transcribe');
     if (debugFilePath) {
