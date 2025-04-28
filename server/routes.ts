@@ -4583,7 +4583,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // We've already registered models routes above with registerModelsRoutes(app);
   
   // Skill Stacker API routes
-  app.get("/api/skill-stacker", requireAuth, async (req, res) => {
+  app.get("/api/skill-stacker", requireLoginFallback, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -4656,7 +4656,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
     }
   });
   
-  app.post("/api/skill-stacker/generate", requireAuth, async (req, res) => {
+  app.post("/api/skill-stacker/generate", requireLoginFallback, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
@@ -4664,6 +4664,8 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
       }
       
       const { goalId, week, currentSkillLevel } = req.body;
+      
+      console.log("Generating skill stacker plan with data:", { goalId, week, currentSkillLevel, userId: user.id });
       
       // Validate input
       const parsedData = generatePlanRequestSchema.parse({
@@ -4704,10 +4706,12 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
         status: "active"
       });
       
+      console.log("Successfully created skill stacker plan:", plan.id);
+      
       res.status(201).json(plan);
     } catch (error) {
       console.error("Error generating skill stacker plan:", error);
-      res.status(500).json({ message: "Failed to generate skill stacker plan" });
+      res.status(500).json({ message: "Failed to generate skill stacker plan", error: error.message });
     }
   });
   
