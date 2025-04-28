@@ -31,6 +31,9 @@ interface ConversationMessage {
 }
 
 export default function VoicePractice() {
+  // Get toast utility
+  const { toast } = useToast();
+  
   // State for application selection
   const [selectedApplication, setSelectedApplication] = useState<string>('');
   const [selectedJobDetails, setSelectedJobDetails] = useState<{
