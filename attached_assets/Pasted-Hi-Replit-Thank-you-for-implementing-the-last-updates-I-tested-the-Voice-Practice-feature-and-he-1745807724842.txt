@@ -1,0 +1,91 @@
+Hi Replit,
+
+Thank you for implementing the last updates. I tested the Voice Practice feature, and here's what I’m seeing:
+
+The AI asks the first question correctly.
+
+The microphone captures my voice input.
+
+However, after I answer, the AI does not respond based on my reply, and the conversation doesn't continue properly.
+
+🛠️ Here’s what’s happening:
+It seems that while the mic is recording and Whisper is transcribing my voice, the user’s answer is not correctly being fed back into the conversation history and resubmitted to OpenAI.
+
+As a result, the AI cannot acknowledge or build on my answer — the loop breaks after the first AI message.
+
+✅ Here's the correct behavior we need:
+AI asks a question via voice.
+
+User holds mic, answers by speaking.
+
+System transcribes the user's voice → text.
+
+System appends the new transcribed user message to the conversation history with:
+
+json
+Copy
+Edit
+{
+  "role": "user",
+  "content": "Transcribed user answer here."
+}
+System sends the full conversation history (including the new user message) to OpenAI’s Chat Completions API:
+
+System prompt (background + job description)
+
+All previous user and assistant messages
+
+Latest user response
+
+AI analyzes the user's latest answer, generates the next reply.
+
+AI's text response is sent to Text-to-Speech API.
+
+AI's voice response is played back to the user.
+
+Loop continues naturally.
+
+📦 Specific Technical Checklist:
+ After each voice transcription, append the transcription to conversationHistory as a "role": "user" message.
+
+ Ensure every new API call to OpenAI includes:
+
+The system prompt
+
+The entire updated conversationHistory
+
+ Only make the API call after the user finishes answering and transcription is complete.
+
+ After getting the AI's response, append it to conversationHistory as a "role": "assistant" message.
+
+ Stream the AI’s next response via TTS and play it back.
+
+ Console.log (for temporary debugging) the conversation array right before each OpenAI call to confirm the latest user input is included.
+
+Example:
+
+javascript
+Copy
+Edit
+console.log("Conversation being sent:", conversationHistory);
+🔍 Current Suspected Issue:
+Mic is recording and transcription is happening ✅
+
+But transcription is not properly appended to the conversation memory or not being included in the next API call ❌
+
+🎯 End Goal:
+The Voice Practice feature should now behave exactly like this:
+
+AI asks → user answers → AI listens and adapts → AI asks next → user answers → repeat.
+
+True real-time conversational coaching experience.
+
+Please update the flow accordingly and let me know when it's ready — excited to continue testing once the continuous conversation is working!
+
+Thanks again for your work on this!
+
+📢 (Optional: Debug Tip)
+If helpful, you can simulate a full conversation manually first using a static conversation array, then swap it live once verified.
+
+🧠 Bonus Note:
+Once this flow is working, it will dramatically increase realism and make the Voice Interview Practice feel just like a real human mock interview.
