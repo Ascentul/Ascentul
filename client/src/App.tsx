@@ -16,7 +16,7 @@ import CareerPathExplorer from "@/pages/CareerPathExplorer";
 import Projects from "@/pages/Projects";
 import CanvaEditor from "@/pages/CanvaEditor";
 import Profile from "@/pages/Profile";
-import Account from "@/pages/Account";
+import AccountSettings from "@/pages/AccountSettings";
 // SkillStacker removed
 import Apply from "@/pages/Apply";
 import CareerProfile from "@/pages/CareerProfile";
@@ -506,7 +506,7 @@ function App() {
         </Route>
         <Route path="/account">
           <CareerRoute>
-            <Account />
+            <AccountSettings />
           </CareerRoute>
         </Route>
 
