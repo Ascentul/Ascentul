@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCareerData } from '@/hooks/use-career-data';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Download, Briefcase, GraduationCap, LucideTag, XCircle } from 'lucide-react';
+import { 
+  Loader2, 
+  Download, 
+  Briefcase, 
+  GraduationCap, 
+  LucideTag, 
+  XCircle, 
+  FileText, 
+  Award,
+  AlignJustify 
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +39,7 @@ import {
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UseFormReturn } from 'react-hook-form';
+import { queryClient } from '@/lib/queryClient';
 
 // The items we can import into a resume
 interface ImportableItem {
@@ -46,14 +57,25 @@ interface CareerDataImportProps {
 
 export function CareerDataImport({ form }: CareerDataImportProps) {
   const { toast } = useToast();
-  const { careerData, isLoading, error } = useCareerData();
+  const { careerData, isLoading, error, refetch } = useCareerData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('experience');
+  const [activeTab, setActiveTab] = useState('summary');
   
   // Track selected items in each category
   const [selectedWorkItems, setSelectedWorkItems] = useState<number[]>([]);
   const [selectedEducationItems, setSelectedEducationItems] = useState<number[]>([]);
   const [selectedSkillItems, setSelectedSkillItems] = useState<number[]>([]);
+  const [selectedCertificationItems, setSelectedCertificationItems] = useState<number[]>([]);
+  const [summarySelected, setSummarySelected] = useState(false);
+
+  // Force a refresh of career data when the dialog opens
+  useEffect(() => {
+    if (isDialogOpen) {
+      // Invalidate cache and refetch to ensure we have the latest data
+      queryClient.invalidateQueries({ queryKey: ['/api/career-data'] });
+      refetch();
+    }
+  }, [isDialogOpen, refetch]);
 
   // Format work history for display
   const workItems: ImportableItem[] = careerData?.workHistory.map(job => ({
@@ -92,6 +114,20 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
     selected: selectedSkillItems.includes(skill.id)
   })) || [];
 
+  // Format certifications for display
+  const certificationItems: ImportableItem[] = careerData?.certifications.map(cert => ({
+    id: cert.id,
+    title: cert.name,
+    subtitle: cert.issuingOrganization,
+    date: cert.issueDate 
+      ? cert.expiryDate 
+        ? `${format(new Date(cert.issueDate), 'MMM yyyy')} – ${format(new Date(cert.expiryDate), 'MMM yyyy')}`
+        : `${format(new Date(cert.issueDate), 'MMM yyyy')}${cert.noExpiration ? ' – No Expiration' : ''}`
+      : '',
+    description: cert.credentialID ? `ID: ${cert.credentialID}` : undefined,
+    selected: selectedCertificationItems.includes(cert.id)
+  })) || [];
+
   // Toggle selection of a work history item
   const toggleWorkItem = (id: number) => {
     setSelectedWorkItems(prev => 
@@ -119,13 +155,29 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
     );
   };
 
+  // Toggle selection of a certification item
+  const toggleCertificationItem = (id: number) => {
+    setSelectedCertificationItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(itemId => itemId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // Toggle selection of career summary
+  const toggleSummary = () => {
+    setSummarySelected(prev => !prev);
+  };
+
   // Import the selected items into the resume form
   const importSelectedItems = () => {
     // Check if any items are selected
     const hasSelectedItems = 
+      summarySelected ||
       selectedWorkItems.length > 0 || 
       selectedEducationItems.length > 0 || 
-      selectedSkillItems.length > 0;
+      selectedSkillItems.length > 0 ||
+      selectedCertificationItems.length > 0;
     
     // If nothing is selected, show message and keep dialog open
     if (!hasSelectedItems) {
@@ -135,6 +187,11 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         variant: 'destructive'
       });
       return;
+    }
+
+    // Import career summary
+    if (summarySelected && careerData?.careerSummary) {
+      form.setValue('content.summary', careerData.careerSummary);
     }
 
     // Import work history
@@ -151,8 +208,10 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           position: job.position,
           startDate: job.startDate ? format(new Date(job.startDate), 'yyyy-MM-dd') : '',
           endDate: job.endDate ? format(new Date(job.endDate), 'yyyy-MM-dd') : '',
-          currentJob: !job.endDate,
+          currentJob: !job.endDate || job.currentJob,
           description: job.description || '',
+          location: job.location || '',
+          achievements: job.achievements || []
         }))
       ];
 
@@ -175,6 +234,9 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           startDate: edu.startDate ? format(new Date(edu.startDate), 'yyyy-MM-dd') : '',
           endDate: edu.endDate ? format(new Date(edu.endDate), 'yyyy-MM-dd') : '',
           description: edu.description || '',
+          location: edu.location || '',
+          gpa: edu.gpa || '',
+          achievements: edu.achievements || []
         }))
       ];
 
@@ -198,6 +260,27 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
       form.setValue('content.skills', uniqueSkills);
     }
 
+    // Import certifications
+    if (selectedCertificationItems.length > 0) {
+      const currentCertifications = form.getValues('content.certifications') || [];
+      const selectedCertifications = careerData?.certifications.filter(cert => 
+        selectedCertificationItems.includes(cert.id)
+      ) || [];
+
+      const newCertifications = [
+        ...currentCertifications,
+        ...selectedCertifications.map(cert => ({
+          name: cert.name,
+          issuer: cert.issuingOrganization,
+          date: cert.issueDate ? format(new Date(cert.issueDate), 'yyyy-MM-dd') : '',
+          url: cert.credentialURL || '',
+          id: cert.credentialID || ''
+        }))
+      ];
+
+      form.setValue('content.certifications', newCertifications);
+    }
+
     // Close dialog and show success message
     setIsDialogOpen(false);
     toast({
@@ -206,9 +289,11 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
     });
 
     // Reset selections
+    setSummarySelected(false);
     setSelectedWorkItems([]);
     setSelectedEducationItems([]);
     setSelectedSkillItems([]);
+    setSelectedCertificationItems([]);
   };
 
   return (
@@ -223,7 +308,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         <DialogHeader>
           <DialogTitle>Import Your Career Data</DialogTitle>
           <DialogDescription>
-            Select items from your career profile to add to this resume. You can choose from your work experience, education, and skills.
+            Select items from your career profile to add to this resume. You can choose from your summary, work experience, education, skills, and certifications.
           </DialogDescription>
         </DialogHeader>
 
@@ -232,7 +317,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center">
               <p className="font-medium">Loading your career data...</p>
-              <p className="text-sm text-muted-foreground mt-1">We're retrieving your work history, education, and skills.</p>
+              <p className="text-sm text-muted-foreground mt-1">We're retrieving your complete career profile.</p>
             </div>
           </div>
         ) : error ? (
@@ -249,10 +334,14 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="flex flex-wrap w-full">
+              <TabsTrigger value="summary" className="flex items-center">
+                <AlignJustify className="mr-2 h-4 w-4" />
+                Summary
+              </TabsTrigger>
               <TabsTrigger value="experience" className="flex items-center">
                 <Briefcase className="mr-2 h-4 w-4" />
-                Work Experience
+                Work History
               </TabsTrigger>
               <TabsTrigger value="education" className="flex items-center">
                 <GraduationCap className="mr-2 h-4 w-4" />
@@ -262,7 +351,49 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                 <LucideTag className="mr-2 h-4 w-4" />
                 Skills
               </TabsTrigger>
+              <TabsTrigger value="certifications" className="flex items-center">
+                <Award className="mr-2 h-4 w-4" />
+                Certifications
+              </TabsTrigger>
             </TabsList>
+            
+            {/* Career Summary Tab */}
+            <TabsContent value="summary" className="max-h-[400px] overflow-y-auto">
+              {careerData?.careerSummary ? (
+                <Card 
+                  className={`mb-3 cursor-pointer border-2 transition-all ${
+                    summarySelected
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-transparent hover:border-gray-200'
+                  }`}
+                  onClick={toggleSummary}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-base">Career Summary</CardTitle>
+                        <CardDescription>Professional overview</CardDescription>
+                      </div>
+                      <Checkbox 
+                        id="summary"
+                        checked={summarySelected}
+                        onCheckedChange={() => toggleSummary()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-4 pt-0">
+                    <p className="text-sm line-clamp-4">{careerData.careerSummary}</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg">
+                  <AlignJustify className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground text-center font-medium">No career summary found</p>
+                  <p className="text-muted-foreground text-center text-sm mt-1">Add one in your Career Profile first.</p>
+                </div>
+              )}
+            </TabsContent>
             
             {/* Work Experience Tab */}
             <TabsContent value="experience" className="max-h-[400px] overflow-y-auto">
@@ -398,18 +529,72 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                 </div>
               )}
             </TabsContent>
+
+            {/* Certifications Tab */}
+            <TabsContent value="certifications" className="max-h-[400px] overflow-y-auto">
+              {certificationItems.length > 0 ? (
+                certificationItems.map(cert => (
+                  <Card 
+                    key={cert.id} 
+                    className={`mb-3 cursor-pointer border-2 transition-all ${
+                      selectedCertificationItems.includes(cert.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-transparent hover:border-gray-200'
+                    }`}
+                    onClick={() => toggleCertificationItem(cert.id)}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-base">{cert.title}</CardTitle>
+                          <CardDescription>{cert.subtitle}</CardDescription>
+                        </div>
+                        <Checkbox 
+                          id={`cert-${cert.id}`}
+                          checked={selectedCertificationItems.includes(cert.id)}
+                          onCheckedChange={() => toggleCertificationItem(cert.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </CardHeader>
+                    {(cert.description || cert.date) && (
+                      <CardContent className="pb-4 pt-0">
+                        {cert.date && <p className="text-sm text-muted-foreground mb-1">{cert.date}</p>}
+                        {cert.description && <p className="text-sm line-clamp-3">{cert.description}</p>}
+                      </CardContent>
+                    )}
+                  </Card>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg">
+                  <Award className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground text-center font-medium">No certifications found</p>
+                  <p className="text-muted-foreground text-center text-sm mt-1">Add some in your Career Profile first.</p>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         )}
 
         <DialogFooter>
           <div className="flex items-center justify-between w-full">
             <span className="text-sm text-muted-foreground">
+              {summarySelected && 'Career Summary'}
+              {summarySelected && (selectedWorkItems.length > 0 || selectedEducationItems.length > 0 || selectedSkillItems.length > 0 || selectedCertificationItems.length > 0) && ', '}
+              
               {selectedWorkItems.length > 0 && `${selectedWorkItems.length} work items`}
-              {selectedWorkItems.length > 0 && (selectedEducationItems.length > 0 || selectedSkillItems.length > 0) && ', '}
+              {selectedWorkItems.length > 0 && (selectedEducationItems.length > 0 || selectedSkillItems.length > 0 || selectedCertificationItems.length > 0) && ', '}
+              
               {selectedEducationItems.length > 0 && `${selectedEducationItems.length} education items`}
-              {selectedEducationItems.length > 0 && selectedSkillItems.length > 0 && ', '}
+              {selectedEducationItems.length > 0 && (selectedSkillItems.length > 0 || selectedCertificationItems.length > 0) && ', '}
+              
               {selectedSkillItems.length > 0 && `${selectedSkillItems.length} skills`}
-              {selectedWorkItems.length === 0 && selectedEducationItems.length === 0 && selectedSkillItems.length === 0 && 'No items selected'}
+              {selectedSkillItems.length > 0 && selectedCertificationItems.length > 0 && ', '}
+              
+              {selectedCertificationItems.length > 0 && `${selectedCertificationItems.length} certifications`}
+              
+              {!summarySelected && selectedWorkItems.length === 0 && selectedEducationItems.length === 0 && 
+               selectedSkillItems.length === 0 && selectedCertificationItems.length === 0 && 'No items selected'}
             </span>
             <div>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="mr-2">
@@ -420,9 +605,11 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                 disabled={
                   isLoading ||
                   Boolean(error) ||
-                  (selectedWorkItems.length === 0 &&
-                    selectedEducationItems.length === 0 &&
-                    selectedSkillItems.length === 0)
+                  (!summarySelected &&
+                   selectedWorkItems.length === 0 &&
+                   selectedEducationItems.length === 0 &&
+                   selectedSkillItems.length === 0 &&
+                   selectedCertificationItems.length === 0)
                 }
               >
                 Import Selected
