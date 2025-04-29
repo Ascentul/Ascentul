@@ -29,9 +29,15 @@ import {
   FileText,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  Calendar,
+  MapPin,
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -420,6 +426,100 @@ export default function AccountSettings() {
             </div>
           ) : (
             <>
+              {/* Profile Completion Progress */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground">Profile Completion</h3>
+                  {(() => {
+                    // Calculate completion percentage
+                    const sections = [
+                      !!careerData?.careerSummary,
+                      (careerData?.workHistory?.length || 0) > 0,
+                      (careerData?.educationHistory?.length || 0) > 0,
+                      (careerData?.skills?.length || 0) > 0,
+                      (careerData?.certifications?.length || 0) > 0
+                    ];
+                    const completedSections = sections.filter(Boolean).length;
+                    const percentage = Math.round((completedSections / sections.length) * 100);
+                    
+                    return (
+                      <span className="text-sm font-medium">
+                        {percentage}% ({completedSections} of {sections.length} sections)
+                      </span>
+                    );
+                  })()}
+                </div>
+                <Progress value={(() => {
+                  const sections = [
+                    !!careerData?.careerSummary,
+                    (careerData?.workHistory?.length || 0) > 0,
+                    (careerData?.educationHistory?.length || 0) > 0,
+                    (careerData?.skills?.length || 0) > 0,
+                    (careerData?.certifications?.length || 0) > 0
+                  ];
+                  const completedSections = sections.filter(Boolean).length;
+                  return (completedSections / sections.length) * 100;
+                })()} className="h-2" />
+              </div>
+              
+              {/* Career Summary Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <FileText className="mr-2 h-5 w-5" />
+                      Career Summary
+                    </CardTitle>
+                    <CardDescription>
+                      A brief overview of your professional background and goals
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setCareerSummaryModal({ 
+                      open: true, 
+                      defaultValue: careerData?.careerSummary || '' 
+                    })}
+                  >
+                    <Pencil className="mr-1 h-4 w-4" />
+                    {careerData?.careerSummary ? 'Edit' : 'Add'}
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.careerSummary ? (
+                    <div className="relative border rounded-lg p-4">
+                      <p className="whitespace-pre-wrap">{careerData.careerSummary}</p>
+                      <div className="mt-4 text-xs text-muted-foreground flex items-center">
+                        <Info className="h-3 w-3 mr-1" />
+                        Used in Resume Studio, AI Coach, and Voice Interview Practice.
+                      </div>
+                      <div className="absolute bottom-2 right-2">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg p-4 border-dashed flex flex-col items-center justify-center py-8 text-center">
+                      <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No career summary added yet</h3>
+                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                        Your career summary helps highlight your professional journey, skills, and goals.
+                        It powers your resume, AI coaching sessions, and interview practice.
+                      </p>
+                      <Button 
+                        onClick={() => setCareerSummaryModal({ open: true, defaultValue: '' })}
+                        variant="secondary"
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add Career Summary
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
               {/* Work History Section */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -474,27 +574,38 @@ export default function AccountSettings() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          <h3 className="font-semibold text-lg">{job.position}</h3>
-                          <p className="text-muted-foreground">{job.company}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <h3 className="font-semibold text-xl mb-1">{job.position}</h3>
+                          <p className="text-muted-foreground font-medium">{job.company}</p>
+                          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
                             {formatDate(job.startDate)} - {job.currentJob ? 'Present' : formatDate(job.endDate)}
-                          </p>
+                          </div>
                           {job.location && (
-                            <p className="text-sm text-muted-foreground mt-1">{job.location}</p>
+                            <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5 inline" />
+                              {job.location}
+                            </div>
                           )}
                           {job.description && (
-                            <p className="mt-2">{job.description}</p>
+                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                              <p className="text-sm whitespace-pre-wrap">{job.description}</p>
+                            </div>
                           )}
                           {job.achievements && job.achievements.length > 0 && (
-                            <div className="mt-2">
-                              <h4 className="font-medium text-sm">Key Achievements:</h4>
-                              <ul className="list-disc list-inside ml-2 mt-1 text-sm">
+                            <div className="mt-3">
+                              <h4 className="font-medium text-sm mb-1.5">Key Achievements:</h4>
+                              <ul className="list-disc list-outside ml-5 space-y-1 text-sm">
                                 {job.achievements.map((achievement, i) => (
                                   <li key={i}>{achievement}</li>
                                 ))}
                               </ul>
                             </div>
                           )}
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -563,31 +674,44 @@ export default function AccountSettings() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          <h3 className="font-semibold text-lg">{education.degree}</h3>
-                          <p className="text-md">{education.fieldOfStudy}</p>
+                          <h3 className="font-semibold text-xl mb-1">{education.degree}</h3>
+                          <p className="text-md font-medium">{education.fieldOfStudy}</p>
                           <p className="text-muted-foreground">{education.institution}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
                             {formatDate(education.startDate)} - {education.current ? 'Present' : formatDate(education.endDate)}
-                          </p>
+                          </div>
                           {education.location && (
-                            <p className="text-sm text-muted-foreground mt-1">{education.location}</p>
+                            <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5 inline" />
+                              {education.location}
+                            </div>
                           )}
                           {education.gpa && (
-                            <p className="text-sm mt-1">GPA: {education.gpa}</p>
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">GPA:</span> {education.gpa}
+                            </div>
                           )}
                           {education.description && (
-                            <p className="mt-2">{education.description}</p>
+                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                              <p className="text-sm whitespace-pre-wrap">{education.description}</p>
+                            </div>
                           )}
                           {education.achievements && education.achievements.length > 0 && (
-                            <div className="mt-2">
-                              <h4 className="font-medium text-sm">Achievements:</h4>
-                              <ul className="list-disc list-inside ml-2 mt-1 text-sm">
+                            <div className="mt-3">
+                              <h4 className="font-medium text-sm mb-1.5">Achievements:</h4>
+                              <ul className="list-disc list-outside ml-5 space-y-1 text-sm">
                                 {education.achievements.map((achievement, i) => (
                                   <li key={i}>{achievement}</li>
                                 ))}
                               </ul>
                             </div>
                           )}
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -1,0 +1,86 @@
+🎯 Objective:
+Refine the UI of the Career tab in Account Settings to improve visual hierarchy, add missing elements, and clearly communicate how each profile section powers other features (like Resume Studio and AI Coach). These updates will improve onboarding, engagement, and user clarity.
+
+✅ Tasks:
+1. Add Career Summary Section (NEW)
+Place above Work History.
+
+Title: Career Summary
+
+Field: Rich text input (max 750 characters).
+
+Buttons: Edit, Save, Cancel
+
+Optional helper text: “Used in Resume Studio, AI Coach, and Voice Interview Practice.”
+
+Sync to Supabase table (create career_summary column for each user).
+
+2. Improve Empty State UX for Skills Section
+If no skills are present:
+
+Display a helper message:
+
+“No skills added yet. Add your technical and soft skills to showcase your expertise.”
+
+Add a secondary suggestion:
+
+“Need inspiration? Use AI Coach to suggest skills based on your work history.”
+
+Provide a button: + Add Skill (already in place, just ensure it's visible on empty state).
+
+3. Add "Synced to Resume" Toggle or Badge (Optional)
+For each entry (Work History, Education, Skills):
+
+Add a small label:
+🔁 Synced to Resume (faint gray, bottom right of card)
+
+OR a toggle switch in edit mode:
+Include this in Resume Studio → true/false toggle saved to Supabase
+
+Why?
+This shows the user which data is actively used — improves trust and makes cross-feature integration clear.
+
+4. Improve Visual Hierarchy in Work History & Education Cards
+Make job titles and degree names bold and slightly larger.
+
+Consider light background shading (#f9f9f9) behind the description field for better contrast.
+
+Add icons or glyphs for location (📍) and dates (📅) for improved readability at a glance.
+
+5. Add Completion Progress Indicator (Top of Page)
+Optional but valuable:
+
+Display a horizontal progress bar at the top (beneath "Career" tab heading):
+
+Profile Completion: 60% (3 of 5 sections filled in)
+
+Sections include: Career Summary, Work History, Education, Skills, Certifications
+
+Use basic logic: if each section has ≥1 entry, mark as completed.
+
+✨ Bonus (Optional)
+Add animated toast on save:
+
+“Work history updated ✅”
+“Career summary saved ✅”
+
+📂 Data Handling Notes:
+Ensure all edits are saving to Supabase and triggering refetch() or queryClient.invalidateQueries() so updates reflect in UI.
+
+Sync logic should already exist from previous profile work.
+
+🧪 Testing
+Add/Edit/Delete items in each section.
+
+Save Career Summary and see immediate reflection in UI.
+
+See progress bar update as sections are filled in.
+
+Confirm Skills empty state shows smart suggestions when no entries exist.
+
+📈 Why This Matters:
+Increases onboarding engagement and profile completeness.
+
+Reinforces Ascentul’s promise of being a real “Career OS” by making data usage visible.
+
+Boosts user confidence and clarity ahead of resume building, AI coaching, and interview prep.
