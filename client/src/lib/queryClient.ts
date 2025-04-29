@@ -108,11 +108,13 @@ export async function apiRequest<T>(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+
+export const getQueryFn = <T>(options?: { on401?: UnauthorizedBehavior }) => {
+  // Provide default empty object when no options are passed
+  const { on401: unauthorizedBehavior = "throw" } = options || {};
+  
+  // Return the actual query function
+  return async ({ queryKey }: { queryKey: string[] }): Promise<T | null> => {
     // Create headers object
     const headers: Record<string, string> = {};
     
@@ -134,6 +136,7 @@ export const getQueryFn: <T>(options: {
     await throwIfResNotOk(res);
     return await res.json();
   };
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
