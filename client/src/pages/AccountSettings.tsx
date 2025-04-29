@@ -534,7 +534,6 @@ export default function AccountSettings() {
                     </CardDescription>
                   </div>
                   <AddSectionButton
-                    size="sm"
                     label="Add Job"
                     mode="add"
                     onClick={() => setWorkHistoryModal({ open: true, mode: 'add' })}
@@ -632,7 +631,6 @@ export default function AccountSettings() {
                     </CardDescription>
                   </div>
                   <AddSectionButton
-                    size="sm"
                     label="Add Education"
                     mode="add"
                     onClick={() => setEducationModal({ open: true, mode: 'add' })}
@@ -736,7 +734,6 @@ export default function AccountSettings() {
                     </CardDescription>
                   </div>
                   <AddSectionButton
-                    size="sm"
                     label="Add Skill"
                     mode="add"
                     onClick={() => setSkillModal({ open: true })}
@@ -812,7 +809,6 @@ export default function AccountSettings() {
                     </CardDescription>
                   </div>
                   <AddSectionButton
-                    size="sm"
                     label="Add Certification"
                     mode="add"
                     onClick={() => setCertificationModal({ open: true, mode: 'add' })}
