@@ -59,8 +59,10 @@ export type CareerData = {
 };
 
 export function useCareerData() {
-  return useQuery<CareerData>({
+  const query = useQuery<CareerData>({
     queryKey: ['/api/career-data'],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn<CareerData>(),
   });
+
+  return query;
 }
