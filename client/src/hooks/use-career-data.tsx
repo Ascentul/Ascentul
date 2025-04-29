@@ -1,40 +1,66 @@
 import { useQuery } from '@tanstack/react-query';
-import { WorkHistory, EducationHistory, Skill, Certification } from '@shared/schema';
+import { getQueryFn } from '@/lib/queryClient';
 
-export interface CareerData {
+// Types for career data
+export type WorkHistory = {
+  id: number;
+  position: string;
+  company: string;
+  startDate: Date;
+  endDate: Date | null;
+  currentJob: boolean;
+  location: string | null;
+  description: string | null;
+  achievements: string[] | null;
+  createdAt: Date;
+};
+
+export type Education = {
+  id: number;
+  institution: string;
+  degree: string;
+  fieldOfStudy: string;
+  startDate: Date;
+  endDate: Date | null;
+  current: boolean;
+  location: string | null;
+  description: string | null;
+  achievements: string[] | null;
+  gpa: string | null;
+  createdAt: Date;
+};
+
+export type Skill = {
+  id: number;
+  name: string;
+  proficiencyLevel: string | null;
+  category: string | null;
+  createdAt: Date;
+};
+
+export type Certification = {
+  id: number;
+  name: string;
+  issuingOrganization: string;
+  issueDate: Date | null;
+  expiryDate: Date | null;
+  noExpiration: boolean;
+  credentialID: string | null;
+  credentialURL: string | null;
+  createdAt: Date;
+};
+
+export type CareerData = {
   workHistory: WorkHistory[];
-  educationHistory: EducationHistory[];
+  educationHistory: Education[];
   skills: Skill[];
   certifications: Certification[];
-  careerSummary: string;
-}
+  careerSummary: string | null;
+};
 
-/**
- * A hook that fetches all career data (work history, education, skills, certifications, career summary)
- * for use in the Resume Studio Editor and Account Settings Profile
- */
 export function useCareerData() {
-  const {
-    data: careerData,
-    isLoading,
-    error,
-    refetch
-  } = useQuery<CareerData>({
+  return useQuery<CareerData>({
     queryKey: ['/api/career-data'],
-    // Uses the default query function set up for the app which handles errors and authentication
+    queryFn: getQueryFn(),
   });
-
-  return {
-    careerData,
-    isLoading,
-    error,
-    refetch,
-    
-    // Convenience getters for individual data types
-    workHistory: careerData?.workHistory || [],
-    educationHistory: careerData?.educationHistory || [],
-    skills: careerData?.skills || [],
-    certifications: careerData?.certifications || [],
-    careerSummary: careerData?.careerSummary || ''
-  };
 }
