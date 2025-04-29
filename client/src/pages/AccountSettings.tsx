@@ -384,7 +384,11 @@ export default function AccountSettings() {
                       Manage your professional work history
                     </CardDescription>
                   </div>
-                  <Button size="sm" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setWorkHistoryModal({ open: true, mode: 'add' })}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add Job
                   </Button>
@@ -395,10 +399,30 @@ export default function AccountSettings() {
                       {careerData.workHistory.map((job) => (
                         <div key={job.id} className="border rounded-lg p-4 relative">
                           <div className="absolute top-4 right-4 flex space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setWorkHistoryModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: job,
+                                id: job.id 
+                              })}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: job.id,
+                                itemType: 'Work history',
+                                endpoint: '/api/career-data/work-history'
+                              })}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -449,7 +473,11 @@ export default function AccountSettings() {
                       Manage your educational background
                     </CardDescription>
                   </div>
-                  <Button size="sm" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setEducationModal({ open: true, mode: 'add' })}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add Education
                   </Button>
@@ -460,10 +488,30 @@ export default function AccountSettings() {
                       {careerData.educationHistory.map((education) => (
                         <div key={education.id} className="border rounded-lg p-4 relative">
                           <div className="absolute top-4 right-4 flex space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setEducationModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: education,
+                                id: education.id 
+                              })}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: education.id,
+                                itemType: 'Education',
+                                endpoint: '/api/career-data/education'
+                              })}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -518,7 +566,11 @@ export default function AccountSettings() {
                       Manage your professional and technical skills
                     </CardDescription>
                   </div>
-                  <Button size="sm" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setSkillModal({ open: true })}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add Skill
                   </Button>
@@ -532,7 +584,17 @@ export default function AccountSettings() {
                           {skill.proficiencyLevel && (
                             <span className="ml-1 text-xs text-muted-foreground">({skill.proficiencyLevel})</span>
                           )}
-                          <Button variant="ghost" size="icon" className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleteConfirmation({
+                              open: true,
+                              itemId: skill.id,
+                              itemType: 'Skill',
+                              endpoint: '/api/career-data/skills'
+                            })}
+                          >
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
