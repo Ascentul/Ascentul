@@ -1,0 +1,44 @@
+🎯 GOAL:
+Allow users to access and reuse their saved Career data (Work History, Education, Skills, Certifications, Career Summary) inside Resume Studio and drag them into specific sections of the resume editor.
+
+✅ TASKS:
+
+1. 🔗 Connect Career Table to Resume Studio:
+   - Fetch user's saved data from the `Career` table in Firestore (or Supabase, depending on backend) using their authenticated ID.
+   - Load:
+     - `workHistory[]`
+     - `education[]`
+     - `skills[]`
+     - `certifications[]`
+     - `careerSummary`
+
+2. 🧩 UI Update — Add Sidebar Panel for Reusable Career Data:
+   - Add a collapsible left sidebar within the `ResumeModal` component titled: `Your Saved Career Data`
+   - Within it, organize sections:
+     - 🧾 Summary
+     - 🧠 Skills
+     - 💼 Experience
+     - 🎓 Education
+     - 📜 Certifications
+   - Display each entry as a draggable chip/card (e.g., job title, degree, skill tag).
+
+3. 🖱️ Enable Drag-and-Drop:
+   - Use `react-dnd` or similar library to allow dragging data items from the sidebar into the editable Resume Studio form.
+   - Each form section (e.g., Experience tab, Skills tab) should be a valid drop target and dynamically populate input fields upon drop.
+
+4. 📥 "Import Career Data" Button:
+   - Clicking the `Import Career Data` button should:
+     - Auto-fill all resume fields using the most recent entries in each category from the user’s career profile.
+     - Display a success toast: “Imported from Career Settings”
+
+5. 💾 Ensure Save Integrity:
+   - If a user modifies imported entries, changes should apply only to the resume instance — not overwrite their account data.
+   - Add a tooltip or icon indicating if a section was imported and later modified (e.g., “Edited after import”).
+
+6. 🧪 QA Testing:
+   - Test on all resume tabs: Personal, Summary, Skills, Experience, Education, Projects.
+   - Ensure drag → drop → save → preview functions as expected.
+   - Ensure mobile responsiveness of the drag-and-drop interface.
+
+📌 CONTEXT:
+This feature allows users to effortlessly repurpose their stored data into new resumes without duplicate typing. It accelerates resume creation while preserving Ascentul’s structured design workflow.
