@@ -127,15 +127,15 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       const serializedSkills = skills.map(item => {
         const serialized = { ...item };
         
-        // Use a safe approach that doesn't rely on instanceof
+        // Use a safer approach with strict type checking
         try {
           if (serialized.createdAt) {
-            // Check if it's a Date by seeing if it has date methods
+            // Check if it's an object that likely has Date properties
             if (typeof serialized.createdAt === 'object' && 
                 serialized.createdAt !== null && 
-                'getFullYear' in serialized.createdAt) {
-              // It's a Date object, so convert to ISO string
-              serialized.createdAt = new Date(serialized.createdAt.getTime()).toISOString();
+                typeof (serialized.createdAt as any).getTime === 'function') {
+              // It's a Date-like object, so convert to ISO string
+              serialized.createdAt = new Date((serialized.createdAt as any).getTime()).toISOString();
             }
           }
         } catch (err) {
@@ -418,11 +418,22 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
-      // Serialize dates for the response
-      const serializedSkill = {
-        ...updatedSkill,
-        createdAt: updatedSkill.createdAt instanceof Date ? updatedSkill.createdAt.toISOString() : updatedSkill.createdAt
-      };
+      // Serialize dates for the response using a safer approach
+      const serializedSkill = { ...updatedSkill };
+      
+      // Safely handle createdAt date
+      try {
+        if (updatedSkill.createdAt) {
+          if (typeof updatedSkill.createdAt === 'object' && 
+              updatedSkill.createdAt !== null &&
+              typeof (updatedSkill.createdAt as any).getTime === 'function') {
+            serializedSkill.createdAt = new Date((updatedSkill.createdAt as any).getTime()).toISOString();
+          }
+        }
+      } catch (err) {
+        console.error("Error serializing skill dates in update:", err);
+        // Keep original value if serialization fails
+      }
       
       res.status(200).json(serializedSkill);
     } catch (error) {
@@ -459,9 +470,58 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const userId = req.session.userId;
-      const certification = await storage.createCertification(userId, req.body);
       
-      res.status(201).json(certification);
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects if they exist
+      if (formData.issueDate && typeof formData.issueDate === 'string') {
+        formData.issueDate = new Date(formData.issueDate);
+      }
+      
+      if (formData.expirationDate && typeof formData.expirationDate === 'string') {
+        formData.expirationDate = new Date(formData.expirationDate);
+      }
+      
+      const certification = await storage.createCertification(userId, formData);
+      
+      // Serialize dates for the response with error handling
+      try {
+        const serializedCertification = { ...certification };
+        
+        // Safely handle createdAt date
+        if (certification.createdAt) {
+          if (typeof certification.createdAt === 'object' && 
+              certification.createdAt !== null &&
+              typeof (certification.createdAt as any).getTime === 'function') {
+            serializedCertification.createdAt = new Date((certification.createdAt as any).getTime()).toISOString();
+          }
+        }
+        
+        // Handle issueDate if it exists - using a safer type checking approach
+        if ('issueDate' in certification && certification.issueDate) {
+          if (typeof certification.issueDate === 'object' && 
+              certification.issueDate !== null &&
+              typeof (certification.issueDate as any).getTime === 'function') {
+            serializedCertification.issueDate = new Date((certification.issueDate as any).getTime()).toISOString();
+          }
+        }
+        
+        // Handle expirationDate if it exists - using a safer type checking approach
+        if ('expirationDate' in certification && certification.expirationDate) {
+          if (typeof certification.expirationDate === 'object' && 
+              certification.expirationDate !== null &&
+              typeof (certification.expirationDate as any).getTime === 'function') {
+            serializedCertification.expirationDate = new Date((certification.expirationDate as any).getTime()).toISOString();
+          }
+        }
+        
+        res.status(201).json(serializedCertification);
+      } catch (serializationError) {
+        console.error("Error serializing certification dates:", serializationError);
+        // Fallback to returning the original data if serialization fails
+        res.status(201).json(certification);
+      }
     } catch (error) {
       console.error("Error creating certification:", error);
       res.status(500).json({ message: "Error creating certification" });
@@ -475,13 +535,62 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const id = parseInt(req.params.id);
-      const updatedCertification = await storage.updateCertification(id, req.body);
+      
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects if they exist
+      if (formData.issueDate && typeof formData.issueDate === 'string') {
+        formData.issueDate = new Date(formData.issueDate);
+      }
+      
+      if (formData.expirationDate && typeof formData.expirationDate === 'string') {
+        formData.expirationDate = new Date(formData.expirationDate);
+      }
+      
+      const updatedCertification = await storage.updateCertification(id, formData);
       
       if (!updatedCertification) {
         return res.status(404).json({ message: "Certification not found" });
       }
       
-      res.status(200).json(updatedCertification);
+      // Serialize dates for the response with error handling
+      try {
+        const serializedCertification = { ...updatedCertification };
+        
+        // Safely handle createdAt date
+        if (updatedCertification.createdAt) {
+          if (typeof updatedCertification.createdAt === 'object' && 
+              updatedCertification.createdAt !== null &&
+              typeof (updatedCertification.createdAt as any).getTime === 'function') {
+            serializedCertification.createdAt = new Date((updatedCertification.createdAt as any).getTime()).toISOString();
+          }
+        }
+        
+        // Handle issueDate if it exists - using a safer type checking approach
+        if ('issueDate' in updatedCertification && updatedCertification.issueDate) {
+          if (typeof updatedCertification.issueDate === 'object' && 
+              updatedCertification.issueDate !== null &&
+              typeof (updatedCertification.issueDate as any).getTime === 'function') {
+            serializedCertification.issueDate = new Date((updatedCertification.issueDate as any).getTime()).toISOString();
+          }
+        }
+        
+        // Handle expirationDate if it exists - using a safer type checking approach
+        if ('expirationDate' in updatedCertification && updatedCertification.expirationDate) {
+          if (typeof updatedCertification.expirationDate === 'object' && 
+              updatedCertification.expirationDate !== null &&
+              typeof (updatedCertification.expirationDate as any).getTime === 'function') {
+            serializedCertification.expirationDate = new Date((updatedCertification.expirationDate as any).getTime()).toISOString();
+          }
+        }
+        
+        res.status(200).json(serializedCertification);
+      } catch (serializationError) {
+        console.error("Error serializing certification dates:", serializationError);
+        // Fallback to returning the original data if serialization fails
+        res.status(200).json(updatedCertification);
+      }
     } catch (error) {
       console.error("Error updating certification:", error);
       res.status(500).json({ message: "Error updating certification" });
