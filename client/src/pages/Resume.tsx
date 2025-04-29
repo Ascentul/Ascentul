@@ -826,134 +826,54 @@ export default function Resume() {
         </DialogContent>
       </Dialog>
 
-      {/* Resume Preview Dialog - Hidden but still needed for state management */}
-      <Dialog open={!!previewResume} onOpenChange={() => setPreviewResume(null)}>
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Resume Preview: {previewResume?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="flex justify-end mt-4 mb-2">
-            <Button 
-              onClick={() => {
-                // Create a hidden div for the resume content if previewResume exists
-                if (previewResume) {
-                  const hiddenDiv = document.createElement('div');
-                  hiddenDiv.id = `temp-preview-resume`;
-                  hiddenDiv.style.position = 'absolute';
-                  hiddenDiv.style.left = '-9999px';
-                  hiddenDiv.style.top = '-9999px';
-                  
-                  // Add resume content to the hidden div
-                  hiddenDiv.innerHTML = `
-                    <div class="bg-white p-6">
-                      <div class="mb-6 border-b pb-4">
-                        <h2 class="text-2xl font-bold text-center">
-                          ${previewResume.content.personalInfo.fullName || 'Full Name'}
-                        </h2>
-                        <div class="flex flex-wrap justify-center gap-3 mt-2 text-sm text-neutral-600">
-                          ${previewResume.content.personalInfo.email ? `<span>${previewResume.content.personalInfo.email}</span>` : ''}
-                          ${previewResume.content.personalInfo.phone ? `<span>| ${previewResume.content.personalInfo.phone}</span>` : ''}
-                          ${previewResume.content.personalInfo.location ? `<span>| ${previewResume.content.personalInfo.location}</span>` : ''}
-                        </div>
-                        <div class="flex flex-wrap justify-center gap-3 mt-1 text-sm text-primary">
-                          ${previewResume.content.personalInfo.linkedIn ? `<a href="${previewResume.content.personalInfo.linkedIn}" target="_blank" rel="noopener noreferrer">LinkedIn</a>` : ''}
-                          ${previewResume.content.personalInfo.portfolio ? `<a href="${previewResume.content.personalInfo.portfolio}" target="_blank" rel="noopener noreferrer">Portfolio</a>` : ''}
-                        </div>
-                      </div>
-                      
-                      ${previewResume.content.summary ? `
-                      <div class="mb-6">
-                        <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
-                        <p class="text-sm">${previewResume.content.summary}</p>
-                      </div>` : ''}
-                      
-                      ${previewResume.content.skills && previewResume.content.skills.length > 0 ? `
-                      <div class="mb-6">
-                        <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
-                        <div class="flex flex-wrap gap-2">
-                          ${previewResume.content.skills.map((skill: any) => 
-                            `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
-                          ).join('')}
-                        </div>
-                      </div>` : ''}
-                      
-                      ${previewResume.content.experience && previewResume.content.experience.length > 0 ? `
-                      <div class="mb-6">
-                        <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
-                        <div class="space-y-4">
-                          ${previewResume.content.experience.map((exp: any) => `
-                            <div>
-                              <div class="flex justify-between">
-                                <h4 class="font-medium">${exp.position}</h4>
-                                <div class="text-sm text-neutral-600">
-                                  ${exp.startDate} - ${exp.currentJob ? 'Present' : exp.endDate}
-                                </div>
-                              </div>
-                              <div class="text-sm font-medium text-primary">${exp.company}</div>
-                              ${exp.description ? `<p class="text-sm mt-2">${exp.description}</p>` : ''}
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>` : ''}
-                      
-                      ${previewResume.content.education && previewResume.content.education.length > 0 ? `
-                      <div class="mb-6">
-                        <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
-                        <div class="space-y-4">
-                          ${previewResume.content.education.map((edu: any) => `
-                            <div>
-                              <div class="flex justify-between">
-                                <h4 class="font-medium">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h4>
-                                <div class="text-sm text-neutral-600">
-                                  ${edu.startDate} - ${edu.endDate || 'Present'}
-                                </div>
-                              </div>
-                              <div class="text-sm font-medium text-primary">${edu.institution}</div>
-                              ${edu.description ? `<p class="text-sm mt-2">${edu.description}</p>` : ''}
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>` : ''}
-                      
-                      ${previewResume.content.projects && previewResume.content.projects.length > 0 ? `
-                      <div class="mb-6">
-                        <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
-                        <div class="space-y-4">
-                          ${previewResume.content.projects.map((project: any) => `
-                            <div>
-                              <h4 class="font-medium">
-                                ${project.name}
-                                ${project.url ? `<a href="${project.url}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary ml-2">(Link)</a>` : ''}
-                              </h4>
-                              ${project.description ? `<p class="text-sm mt-1">${project.description}</p>` : ''}
-                            </div>
-                          `).join('')}
-                        </div>
-                      </div>` : ''}
-                    </div>
-                  `;
-                  
-                  // Append the hidden div to the document
-                  document.body.appendChild(hiddenDiv);
-                  
-                  // Download the resume
-                  handleDownloadPDF(`temp-preview-resume`);
-                  
-                  // Remove the hidden div after a delay
-                  setTimeout(() => {
-                    document.body.removeChild(hiddenDiv);
-                    // Close the dialog
-                    setPreviewResume(null);
-                  }, 2000);
-                }
-              }}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download PDF
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* New Resume Preview Dialog with Live Templates */}
+      <ResumePreview
+        open={!!previewResume}
+        onOpenChange={(open) => {
+          if (!open) setPreviewResume(null);
+        }}
+        resume={previewResume}
+        onDownloadPDF={() => {
+          // Create a hidden div for the formatted resume content
+          if (previewResume) {
+            const hiddenDiv = document.createElement('div');
+            hiddenDiv.id = `temp-preview-resume`;
+            hiddenDiv.style.position = 'absolute';
+            hiddenDiv.style.left = '-9999px';
+            hiddenDiv.style.top = '-9999px';
+            
+            // Create a clone of the currently visible resume template
+            const visibleTemplate = document.querySelector('.resume-template');
+            if (visibleTemplate) {
+              const clonedTemplate = visibleTemplate.cloneNode(true) as HTMLElement;
+              
+              // Adjust styles for print
+              clonedTemplate.style.transform = 'none';
+              clonedTemplate.style.width = '100%';
+              clonedTemplate.style.maxWidth = '860px';
+              clonedTemplate.style.margin = '0 auto';
+              clonedTemplate.style.boxShadow = 'none';
+              
+              hiddenDiv.appendChild(clonedTemplate);
+              document.body.appendChild(hiddenDiv);
+              
+              // Download the resume
+              handleDownloadPDF(`temp-preview-resume`);
+              
+              // Remove the hidden div after a delay
+              setTimeout(() => {
+                document.body.removeChild(hiddenDiv);
+              }, 2000);
+            } else {
+              toast({
+                title: 'Error',
+                description: 'Could not find the resume template to download',
+                variant: 'destructive',
+              });
+            }
+          }
+        }}
+      />
 
       {/* Generated Resume Dialog */}
       <Dialog open={isGeneratedResumeOpen} onOpenChange={setIsGeneratedResumeOpen}>
