@@ -5,6 +5,7 @@ import { Project } from '@shared/schema';
 import { 
   Plus, 
   FolderGit2,
+  FolderKanban,
   Calendar,
   MapPin,
   Edit,
@@ -171,7 +172,7 @@ export default function Projects() {
           {sortedProjects.map((project) => (
             <Card 
               key={project.id} 
-              className="p-6 relative group hover:shadow-lg transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+              className="p-6 relative group hover:shadow-md md:hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
             >
               <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <Button
@@ -192,9 +193,9 @@ export default function Projects() {
                 </Button>
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-start gap-4">
+              <div className="flex flex-col md:flex-row md:items-start gap-2">
                 {project.imageUrl ? (
-                  <div className="flex-shrink-0 w-28 h-28 rounded-md overflow-hidden">
+                  <div className="flex-shrink-0 w-28 h-28 rounded-lg overflow-hidden">
                     <img 
                       src={project.imageUrl} 
                       alt={project.title} 
@@ -202,8 +203,8 @@ export default function Projects() {
                     />
                   </div>
                 ) : (
-                  <div className="flex-shrink-0 w-28 h-28 rounded-md bg-gray-100 flex items-center justify-center">
-                    <Image className="h-10 w-10 text-gray-400" />
+                  <div className="flex-shrink-0 w-28 h-28 rounded-lg bg-[#f4f4f4] border border-[#eaeaea] flex items-center justify-center">
+                    <Image className="h-10 w-10 text-gray-300" />
                   </div>
                 )}
 
@@ -291,14 +292,16 @@ export default function Projects() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-          <Image className="mx-auto h-16 w-16 text-neutral-300 mb-4" />
-          <h3 className="text-xl font-medium mb-2">No Projects Yet</h3>
-          <p className="text-neutral-500 mb-4">
-            Start by showcasing your first project!
+        <div className="text-center py-16 px-6 bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="bg-[#f4f4f4] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <FolderGit2 className="h-10 w-10 text-primary/60" />
+          </div>
+          <h3 className="text-2xl font-medium mb-3">You haven't added any projects yet</h3>
+          <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+            Click below to get started showcasing your professional work, personal projects, and achievements!
           </p>
-          <Button onClick={handleAddNew}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={handleAddNew} size="lg" className="shadow-sm hover:shadow-md transition-all">
+            <Plus className="mr-2 h-5 w-5" />
             Add First Project
           </Button>
         </div>
