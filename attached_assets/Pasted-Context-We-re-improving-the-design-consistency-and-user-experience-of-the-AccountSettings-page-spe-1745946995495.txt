@@ -1,0 +1,79 @@
+Context:
+We're improving the design consistency and user experience of the AccountSettings page, specifically the Profile tab.
+
+Task:
+
+Please update the client/src/pages/AccountSettings/Profile.tsx file (or wherever the Profile tab is defined) using the following instructions:
+
+1. Apply consistent card styling to both sections
+Wrap both Profile Information and Account Details sections in Tailwind-style cards:
+
+tsx
+Copy
+Edit
+<div className="rounded-lg bg-white shadow-sm p-6">
+  ...
+</div>
+Apply this to both main sections to match the styling used on the "Career" tab.
+
+2. Typography updates
+For section headings (Profile Information, Account Details):
+
+tsx
+Copy
+Edit
+<h2 className="text-lg font-semibold text-gray-900">Profile Information</h2>
+For sub-labels (Full Name, Email, etc.):
+
+tsx
+Copy
+Edit
+<p className="text-sm text-gray-500">Email Address</p>
+For values (alex@example.com, alex, etc.):
+
+tsx
+Copy
+Edit
+<p className="text-base text-gray-800">alex@example.com</p>
+3. Update Verified Badge styling
+Replace plain green text with a pill-style badge:
+
+tsx
+Copy
+Edit
+<span className="inline-flex items-center gap-1 text-green-700 bg-green-100 text-xs font-medium px-2 py-0.5 rounded-full">
+  ✅ Verified
+</span>
+4. Format “Account Details” as a 2-column grid
+Replace the current list layout with a structured grid:
+
+tsx
+Copy
+Edit
+<div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
+  <div>
+    <p className="text-sm text-gray-500">Username</p>
+    <p className="text-base text-gray-800">alex</p>
+  </div>
+  <div>
+    <p className="text-sm text-gray-500">Account Created</p>
+    <p className="text-base text-gray-800">March 15, 2025</p>
+  </div>
+  ...
+</div>
+5. Update “Update Profile” button style and placement
+Use your standard primary button (same as "Add Skill", etc.):
+
+tsx
+Copy
+Edit
+<Button className="ml-auto mt-4">Update Profile</Button>
+Place this button inside a flex justify-end container at the bottom of the Profile Information card.
+
+6. Final layout spacing
+Ensure:
+
+There's consistent spacing between the two cards (mt-6 or gap-6 if using a flex/stacked layout).
+
+The whole tab has a px-6 py-8 outer padding for clean whitespace.
+
