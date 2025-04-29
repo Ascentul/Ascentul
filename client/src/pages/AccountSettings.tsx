@@ -318,15 +318,13 @@ export default function AccountSettings() {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal information and how we can contact you.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="profile" className="px-6 py-8">
+          <div className="space-y-6">
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Profile Information</h2>
+                <p className="text-sm text-gray-500 mt-1">Update your personal information and how we can contact you.</p>
+              </div>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(handleProfileSubmit)} className="space-y-6">
                   <FormField
@@ -334,7 +332,7 @@ export default function AccountSettings() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Your name" {...field} />
                         </FormControl>
@@ -348,15 +346,14 @@ export default function AccountSettings() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">Email Address</FormLabel>
                         <FormControl>
                           <Input placeholder="your.email@example.com" {...field} />
                         </FormControl>
                         <FormDescription>
                           {user.emailVerified ? (
-                            <span className="text-green-600 flex items-center">
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Verified
+                            <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 text-xs font-medium px-2 py-0.5 rounded-full">
+                              ✅ Verified
                             </span>
                           ) : (
                             <Button 
@@ -381,44 +378,44 @@ export default function AccountSettings() {
                     )}
                   />
                   
-                  <Button type="submit">
-                    Update Profile
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button type="submit" className="ml-auto">
+                      Update Profile
+                    </Button>
+                  </div>
                 </form>
               </Form>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Details</CardTitle>
-              <CardDescription>
-                Other information about your account.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Username</h3>
-                <p>{user.username}</p>
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Account Details</h2>
+                <p className="text-sm text-gray-500 mt-1">Other information about your account.</p>
               </div>
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
-                <p>March 15, 2025</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
+                <div>
+                  <p className="text-sm text-gray-500">Username</p>
+                  <p className="text-base text-gray-800">{user.username}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Account Created</p>
+                  <p className="text-base text-gray-800">March 15, 2025</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">User Type</p>
+                  <p className="text-base text-gray-800 capitalize">{user.userType.replace('_', ' ')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">XP Level</p>
+                  <p className="text-base text-gray-800">{user.level} ({user.xp} XP)</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Rank</p>
+                  <p className="text-base text-gray-800">{user.rank}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">User Type</h3>
-                <p className="capitalize">{user.userType.replace('_', ' ')}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">XP Level</h3>
-                <p>{user.level} ({user.xp} XP)</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-sm text-muted-foreground">Rank</h3>
-                <p>{user.rank}</p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
         
         <TabsContent value="career" className="space-y-6">
