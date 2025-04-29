@@ -41,6 +41,7 @@ import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UseFormReturn } from 'react-hook-form';
 import { queryClient } from '@/lib/queryClient';
+// @ts-ignore - Import debug utilities (TypeScript ignore to prevent declaration file errors)
 import { debugFetchCareerData, debugCompareWorkHistorySources } from '../debugCareerData';
 
 // The items we can import into a resume
