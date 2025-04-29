@@ -62,8 +62,17 @@ export function useCareerData() {
   return useQuery<CareerData, Error, CareerData, [string]>({
     queryKey: ['/api/career-data'],
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0], {
+      // Use cache-busting URL parameter to ensure we always get fresh data
+      const timestamp = new Date().getTime();
+      const url = `${queryKey[0]}?t=${timestamp}`;
+      
+      const response = await fetch(url, {
         credentials: "include",
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       
       if (!response.ok) {
@@ -72,5 +81,10 @@ export function useCareerData() {
       
       return response.json() as Promise<CareerData>;
     },
+    // Disable automatic refetching on window focus to prevent unwanted refreshes
+    // while editing form data, but allow manual refreshes with refetch()
+    refetchOnWindowFocus: false,
+    // Shorter stale time to ensure data freshness
+    staleTime: 30 * 1000, // 30 seconds
   });
 }
