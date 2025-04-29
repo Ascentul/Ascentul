@@ -168,11 +168,11 @@ export default function Projects() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : sortedProjects && sortedProjects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-fadeIn">
+        <div className="projects-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
           {sortedProjects.map((project) => (
             <Card 
               key={project.id} 
-              className="flex flex-col overflow-hidden group project-card cursor-pointer"
+              className="flex flex-col overflow-hidden group project-card cursor-pointer animate-fadeIn opacity-0"
             >
               {/* Project Image Section */}
               <div className="relative w-full h-[200px]">
@@ -183,8 +183,9 @@ export default function Projects() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-[#f4f4f4] border-b border-[#eaeaea] flex items-center justify-center">
+                  <div className="w-full h-full bg-[#f4f4f4] border-b border-[#eaeaea] flex flex-col items-center justify-center">
                     <Image className="h-16 w-16 text-gray-200" />
+                    <p className="text-xs text-[#888] mt-2">No image uploaded yet</p>
                   </div>
                 )}
                 
@@ -257,7 +258,8 @@ export default function Projects() {
                   <div className="mb-4">
                     {project.description.length > 160 ? (
                       <>
-                        <p className={`text-neutral-700 text-sm leading-relaxed ${!expandedDescriptions[project.id] ? 'line-clamp-3' : ''}`}>
+                        <p className={`project-description text-neutral-700 text-sm leading-relaxed ${!expandedDescriptions[project.id] ? 'line-clamp-3' : ''}`}
+                           style={{maxHeight: expandedDescriptions[project.id] ? '1000px' : '4.5rem'}}>
                           {project.description}
                         </p>
                         <Button
