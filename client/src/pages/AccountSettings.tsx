@@ -925,8 +925,7 @@ export default function AccountSettings() {
                     </CardDescription>
                   </div>
                   <AddSectionButton
-                    size="sm"
-                    label="Edit"
+                    label="Edit Summary"
                     mode="edit"
                     onClick={() => setCareerSummaryModal({ 
                       open: true, 
@@ -959,7 +958,6 @@ export default function AccountSettings() {
                           open: true, 
                           defaultValue: careerData?.careerSummary || '' 
                         })}
-                        variant="secondary"
                         label="Add Career Summary"
                         mode="add"
                       />
