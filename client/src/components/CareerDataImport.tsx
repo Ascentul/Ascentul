@@ -47,8 +47,8 @@ import { debugFetchCareerData, debugCompareWorkHistorySources } from '../debugCa
 interface ImportableItem {
   id: number;
   title: string;
-  subtitle?: string;
-  description?: string;
+  subtitle?: string | null;
+  description?: string | null;
   date?: string;
   selected: boolean;
 }
@@ -72,53 +72,62 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
 
   // Force a refresh of career data when the dialog opens
   useEffect(() => {
-    if (isDialogOpen) {
-      console.log('CareerDataImport: Dialog opened, refreshing career data...');
-      
-      // Hard invalidate the cache first
-      queryClient.removeQueries({ queryKey: ['/api/career-data'] });
-      
-      // Directly perform a fetch to verify what's coming from the API
-      fetch('/api/career-data', {
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      })
-      .then(response => response.json())
-      .then(directData => {
-        console.log('DIRECT API CALL - Career data:', directData);
-        console.log('DIRECT API CALL - Work history count:', directData?.workHistory?.length || 0);
+    const refreshCareerData = async () => {
+      if (isDialogOpen) {
+        console.log('CareerDataImport: Dialog opened, refreshing career data...');
         
-        if (directData?.workHistory?.length > 0) {
-          console.log('DIRECT API CALL - First work history item:', directData.workHistory[0]);
-        } else {
-          console.log('DIRECT API CALL - No work history items found!');
-        }
-      })
-      .catch(error => console.error('DIRECT API CALL - Error:', error));
-      
-      // Then trigger a fresh refetch with cache disabled
-      refetch().then(result => {
-        if (result.isSuccess) {
-          console.log('CareerDataImport: Successfully refreshed career data via React Query', result.data);
-          console.log('RQ - Work History items:', result.data?.workHistory?.length || 0);
+        try {
+          // Hard invalidate the cache completely first
+          queryClient.removeQueries({ queryKey: ['/api/career-data'] });
           
-          if (result.data?.workHistory?.length === 0) {
-            console.log('RQ - No work history items found in API response');
-          } else {
-            console.log('RQ - Work history sample:', result.data?.workHistory?.[0]);
+          // Directly perform a fetch to verify what's coming from the API
+          console.log('Performing direct API call to fetch career data...');
+          const response = await fetch('/api/career-data', {
+            credentials: 'include',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Direct API call failed with status: ${response.status}`);
           }
           
-          // Log the formatted work items to see what's happening in the transformation
-          console.log('Formatted work items for display:', workItems);
-        } else if (result.isError) {
-          console.error('CareerDataImport: Error refreshing career data:', result.error);
+          const directData = await response.json();
+          console.log('DIRECT API CALL - Career data received:', directData);
+          console.log('DIRECT API CALL - Work history count:', directData?.workHistory?.length || 0);
+          
+          if (directData?.workHistory?.length > 0) {
+            console.log('DIRECT API CALL - First work history item:', directData.workHistory[0]);
+          } else {
+            console.log('DIRECT API CALL - No work history items found!');
+          }
+          
+          // Now perform the React Query refetch to update the UI
+          console.log('Now refetching data via React Query...');
+          const result = await refetch();
+          
+          if (result.isSuccess && result.data) {
+            console.log('RQ - Career data successfully refreshed:', result.data);
+            console.log('RQ - Work history items:', result.data.workHistory?.length || 0);
+            
+            if (result.data.workHistory?.length === 0) {
+              console.log('RQ - No work history items found in response');
+            } else {
+              console.log('RQ - Work history sample:', result.data.workHistory[0]);
+            }
+          } else if (result.isError) {
+            console.error('RQ - Error refreshing career data:', result.error);
+          }
+        } catch (error) {
+          console.error('Error during career data refresh:', error);
         }
-      });
-    }
+      }
+    };
+    
+    refreshCareerData();
   }, [isDialogOpen, refetch]);
 
   // Format work history for display
@@ -299,8 +308,8 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         ...selectedSkills.map(skill => skill.name)
       ];
 
-      // Remove duplicates
-      const uniqueSkills = [...new Set(newSkills)];
+      // Remove duplicates using a more compatible approach
+      const uniqueSkills = Array.from(new Set(newSkills));
       form.setValue('content.skills', uniqueSkills);
     }
 
