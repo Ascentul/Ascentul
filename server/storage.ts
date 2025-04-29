@@ -237,6 +237,9 @@ export interface IStorage {
   createResume(userId: number, resume: InsertResume): Promise<Resume>;
   updateResume(id: number, resumeData: Partial<Resume>): Promise<Resume | undefined>;
   deleteResume(id: number): Promise<boolean>;
+  
+  // Skills operations
+  getUserSkills(userId: number): Promise<Skill[]>;
 
   // Cover letter operations
   getCoverLetters(userId: number): Promise<CoverLetter[]>;
