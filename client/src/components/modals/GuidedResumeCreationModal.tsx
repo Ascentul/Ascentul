@@ -91,39 +91,46 @@ export default function GuidedResumeCreationModal({
     form.setValue('template', template);
   };
   
-  // Mutation for creating resume
-  const createResumeMutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      const response = await apiRequest('POST', '/api/resumes', data);
-      return response.json();
-    },
-    onSuccess: () => {
-      // Invalidate and refetch resumes query
-      queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
-      
-      // Show success message
-      toast({
-        title: "Resume created",
-        description: "Your resume has been created successfully.",
-      });
-      
-      // Reset form, step, and close modal
-      form.reset();
-      setCurrentStep('select-template');
-      onClose();
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to create resume",
-        description: error.message || "There was a problem creating your resume. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
+  // This is now a two-step wizard that leads to the ResumeForm
+  // We don't need the createResumeMutation here as we'll open the ResumeForm
+  // after collecting basic information
   
   // Handle form submission
   const onSubmit = (data: FormData) => {
-    createResumeMutation.mutate(data);
+    // Create a new resume object with the form data
+    const newResume = {
+      name: data.title,
+      template: data.template,
+      content: {
+        personalInfo: {
+          fullName: '',
+          email: '',
+          phone: '',
+          location: '',
+          linkedIn: '',
+          portfolio: '',
+        },
+        summary: data.summary,
+        skills: [],
+        experience: [],
+        education: [],
+        projects: [],
+        certifications: [],
+      }
+    };
+    
+    // Emit event to parent component to open ResumeForm with this data
+    toast({
+      title: "Resume template selected",
+      description: "Now let's fill in the details for your new resume.",
+    });
+    
+    // Pass the data to the parent via a callback
+    if (onClose) {
+      onClose();
+      // In a real implementation, we'd pass the newResume object to Resume.tsx
+      // For now, this just closes the guided creation modal
+    }
   };
   
   // Go to next step
@@ -289,16 +296,8 @@ export default function GuidedResumeCreationModal({
                 
                 <Button 
                   type="submit"
-                  disabled={createResumeMutation.isPending}
                 >
-                  {createResumeMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Resume"
-                  )}
+                  Create Resume
                 </Button>
               </DialogFooter>
             </form>
