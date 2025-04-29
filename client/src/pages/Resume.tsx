@@ -2,15 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, Sparkles } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -29,12 +21,10 @@ import ResumeAnalyzer from '@/components/ResumeAnalyzer';
 import ResumePreview from '@/components/ResumePreview';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import GuidedResumeCreationModal from '@/components/modals/GuidedResumeCreationModal';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddResumeOpen, setIsAddResumeOpen] = useState(false);
-  const [isGuidedResumeCreationOpen, setIsGuidedResumeCreationOpen] = useState(false);
   const [selectedResume, setSelectedResume] = useState<any>(null);
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
@@ -393,31 +383,15 @@ export default function Resume() {
           <p className="text-neutral-500">Create, analyze, and manage your professional resumes</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Resume
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Create Resume</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsGuidedResumeCreationOpen(true)}>
-                <Sparkles className="mr-2 h-4 w-4" /> 
-                <span>Guided Creation</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => {
-                  setSelectedResume(null);
-                  setIsAddResumeOpen(true);
-                }}
-              >
-                <FileText className="mr-2 h-4 w-4" /> 
-                <span>Standard Editor</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button 
+            onClick={() => {
+              setSelectedResume(null);
+              setIsAddResumeOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Resume
+          </Button>
         </div>
       </motion.div>
 
@@ -1160,25 +1134,6 @@ export default function Resume() {
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Guided Resume Creation Modal */}
-      <GuidedResumeCreationModal
-        isOpen={isGuidedResumeCreationOpen}
-        onClose={() => setIsGuidedResumeCreationOpen(false)}
-        onCreateResume={(resumeData) => {
-          // Set the selected resume to the data from the guided wizard
-          setSelectedResume(resumeData);
-          // Open the standard resume form
-          setIsAddResumeOpen(true);
-        }}
-      />
-      
-      {/* Standard Resume Form Modal */}
-      <ResumeForm
-        open={isAddResumeOpen}
-        onOpenChange={setIsAddResumeOpen}
-        resume={selectedResume}
-      />
     </motion.div>
   );
 }
