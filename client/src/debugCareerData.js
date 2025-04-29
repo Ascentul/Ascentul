@@ -156,12 +156,48 @@ export async function debugFetchWorkHistory() {
  */
 export async function debugCompareWorkHistorySources() {
   console.log('🔍 DEBUG: ====== START WORK HISTORY DEBUGGING ======');
+  console.log('🔍 DEBUG: Current time:', new Date().toISOString());
+  
   const careerData = await debugFetchCareerData();
   const workHistory = await debugFetchWorkHistory();
   
   console.log('🔍 DEBUG: Comparing work history sources...');
   console.log('🔍 DEBUG: Career data API work history count:', careerData?.workHistory?.length || 0);
   console.log('🔍 DEBUG: Direct work history API count:', workHistory?.length || 0);
+  
+  // Log details about React Query cache
+  console.log('🔍 DEBUG: Checking for React Query cache issues...');
+  try {
+    // Note: This won't work in production mode, as window.__REACT_QUERY_DEVTOOLS__ is only available in dev
+    if (window.__REACT_QUERY_DEVTOOLS__) {
+      const queryCache = window.__REACT_QUERY_DEVTOOLS__.devtools.instance.queryCache;
+      const queries = queryCache.getAll();
+      
+      console.log('🔍 DEBUG: Total queries in cache:', queries.length);
+      
+      // Look for career data queries
+      const careerDataQueries = queries.filter(q => 
+        q.queryKey && 
+        (Array.isArray(q.queryKey) ? 
+          q.queryKey.some(k => typeof k === 'string' && k.includes('career-data')) : 
+          typeof q.queryKey === 'string' && q.queryKey.includes('career-data')
+        )
+      );
+      
+      console.log('🔍 DEBUG: Career data related queries:', careerDataQueries.length);
+      
+      if (careerDataQueries.length > 0) {
+        careerDataQueries.forEach(q => {
+          console.log('🔍 DEBUG: Query key:', q.queryKey);
+          console.log('🔍 DEBUG: Query state:', q.state);
+        });
+      }
+    } else {
+      console.log('🔍 DEBUG: React Query DevTools not available');
+    }
+  } catch (err) {
+    console.log('🔍 DEBUG: Error inspecting React Query cache:', err.message);
+  }
   
   // Check if the arrays match in length
   if (careerData?.workHistory?.length !== workHistory?.length) {

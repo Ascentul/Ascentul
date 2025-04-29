@@ -7,12 +7,13 @@ import {
   Download, 
   Briefcase, 
   GraduationCap, 
-  LucideTag, 
+  Tag as LucideTag, 
   XCircle, 
   FileText, 
   Award,
   AlignJustify,
-  RefreshCw
+  RefreshCw,
+  Info as InfoIcon
 } from 'lucide-react';
 import {
   Dialog,
@@ -511,6 +512,9 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         // After syncing, force a refresh of the career data
         queryClient.removeQueries({ queryKey: ['/api/career-data'] });
         await refetch();
+        
+        // Also clear other related queries to ensure consistent data across the app
+        queryClient.invalidateQueries({ queryKey: ['resumes'] });
       }
       
       // Close dialog and show success message
@@ -520,6 +524,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         description: syncPromises.length > 0 
           ? 'Your selected items have been added to the resume and synchronized with your career profile.'
           : 'Your selected items have been added to the resume.',
+        variant: syncPromises.length > 0 ? 'default' : 'default',
       });
   
       // Reset selections
@@ -553,30 +558,73 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           <DialogDescription>
             Select items from your career profile to add to this resume. You can choose from your summary, work experience, education, skills, and certifications.
           </DialogDescription>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="absolute right-0 top-0"
-            onClick={() => {
-              // Force a complete refresh by completely removing the query from cache
-              queryClient.removeQueries({ queryKey: ['/api/career-data'] });
-              
-              // Run our debugging utilities
-              debugCompareWorkHistorySources();
-              
-              // Then trigger a refetch
-              refetch().then(() => {
-                toast({
-                  title: "Data refreshed",
-                  description: "Your career data has been refreshed from the server."
+          
+          {/* Data status badge */}
+          <div className="absolute right-0 top-0 flex flex-col items-end gap-2">
+            <div className="flex items-center text-xs">
+              <div className={`w-2 h-2 rounded-full mr-1 ${careerData ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <span className="text-muted-foreground">
+                {careerData ? 'Data Synced' : 'Waiting for Data'}
+              </span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                // Force a complete refresh by completely removing the query from cache
+                queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+                
+                // Run our debugging utilities
+                debugCompareWorkHistorySources();
+                
+                // Then trigger a refetch
+                refetch().then(() => {
+                  toast({
+                    title: "Data refreshed",
+                    description: "Your career data has been refreshed from the server."
+                  });
                 });
-              });
-            }}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Data
-          </Button>
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Data
+            </Button>
+          </div>
         </DialogHeader>
+        
+        {/* Data summary information */}
+        {careerData && !isLoading && !error && (
+          <div className="bg-muted/50 p-3 rounded-lg text-xs mb-4">
+            <h4 className="font-medium mb-1 flex items-center">
+              <InfoIcon className="h-3 w-3 mr-1" /> Available Career Data
+            </h4>
+            <ul className="grid grid-cols-2 gap-x-2 gap-y-1">
+              <li className="flex items-center">
+                <span className={`w-1.5 h-1.5 rounded-full mr-1 ${careerData.careerSummary ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                Career Summary: {careerData.careerSummary ? 'Available' : 'Not Set'}
+              </li>
+              <li className="flex items-center">
+                <span className={`w-1.5 h-1.5 rounded-full mr-1 ${(careerData.workHistory?.length || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                Work History: {careerData.workHistory?.length || 0} items
+              </li>
+              <li className="flex items-center">
+                <span className={`w-1.5 h-1.5 rounded-full mr-1 ${(careerData.educationHistory?.length || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                Education: {careerData.educationHistory?.length || 0} items
+              </li>
+              <li className="flex items-center">
+                <span className={`w-1.5 h-1.5 rounded-full mr-1 ${(careerData.skills?.length || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                Skills: {careerData.skills?.length || 0} items
+              </li>
+              <li className="flex items-center">
+                <span className={`w-1.5 h-1.5 rounded-full mr-1 ${(careerData.certifications?.length || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                Certifications: {careerData.certifications?.length || 0} items
+              </li>
+              <li className="flex items-center">
+                <span className="text-muted-foreground text-[10px]">Last updated: {new Date().toLocaleTimeString()}</span>
+              </li>
+            </ul>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 space-y-4">
