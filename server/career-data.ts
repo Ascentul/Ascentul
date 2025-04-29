@@ -171,6 +171,9 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       
       const userId = req.session.userId;
       
+      console.log("⭐️ POST /api/career-data/work-history - Request received for user:", userId);
+      console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
+      
       // Process dates to ensure they're Date objects
       const formData = { ...req.body };
       
@@ -183,17 +186,23 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         formData.endDate = new Date(formData.endDate);
       }
       
-      console.log("Creating work history with data:", {
+      console.log("🛠️ Creating work history with processed data:", {
         userId,
         company: formData.company,
         position: formData.position,
         startDate: formData.startDate,
         endDate: formData.endDate,
+        currentJob: formData.currentJob,
+        location: formData.location,
         startDateType: formData.startDate ? typeof formData.startDate : 'undefined',
         endDateType: formData.endDate ? typeof formData.endDate : 'undefined',
         isStartDateValid: formData.startDate instanceof Date && !isNaN(formData.startDate.getTime()),
         isEndDateValid: formData.endDate ? (formData.endDate instanceof Date && !isNaN(formData.endDate.getTime())) : true
       });
+      
+      // Check storage before creating
+      const existingItems = await storage.getWorkHistory(userId);
+      console.log(`📋 User ${userId} has ${existingItems.length} existing work history items before creation`);
       
       const workHistoryItem = await storage.createWorkHistoryItem(userId, formData);
       
@@ -205,10 +214,20 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         createdAt: workHistoryItem.createdAt instanceof Date ? workHistoryItem.createdAt.toISOString() : workHistoryItem.createdAt
       };
       
-      console.log("Work history item created successfully:", serializedItem);
+      console.log("✅ Work history item created successfully:", serializedItem);
+      
+      // Verify item was saved by retrieving again
+      const updatedItems = await storage.getWorkHistory(userId);
+      console.log(`📋 User ${userId} now has ${updatedItems.length} work history items after creation`);
+      
+      // Debug all work history items to check that the newly created item is there
+      updatedItems.forEach((item, index) => {
+        console.log(`  Item ${index + 1}: ID=${item.id}, Company=${item.company}, Position=${item.position}`);
+      });
+      
       res.status(201).json(serializedItem);
     } catch (error) {
-      console.error("Error creating work history item:", error);
+      console.error("❌ Error creating work history item:", error);
       res.status(500).json({ message: "Error creating work history item" });
     }
   });
