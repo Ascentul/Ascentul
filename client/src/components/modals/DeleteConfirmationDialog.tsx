@@ -47,11 +47,16 @@ export function DeleteConfirmationDialog({
       const response = await apiRequest('DELETE', `${endpoint}/${itemId}`);
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: `Failed to delete ${itemType.toLowerCase()}` }));
         throw new Error(errorData.error || `Failed to delete ${itemType.toLowerCase()}`);
       }
 
-      return await response.json();
+      // For successful responses, don't try to parse JSON if it's 204 No Content
+      if (response.status === 204) {
+        return { success: true };
+      }
+      
+      return await response.json().catch(() => ({ success: true }));
     },
     onSuccess: () => {
       // Show success toast
