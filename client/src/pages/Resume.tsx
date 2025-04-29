@@ -1136,6 +1136,19 @@ export default function Resume() {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Guided Resume Creation Modal */}
+      <GuidedResumeCreationModal
+        isOpen={isGuidedResumeCreationOpen}
+        onClose={() => setIsGuidedResumeCreationOpen(false)}
+      />
+      
+      {/* Standard Resume Form Modal */}
+      <ResumeForm
+        open={isAddResumeOpen}
+        onOpenChange={setIsAddResumeOpen}
+        resume={selectedResume}
+      />
     </motion.div>
   );
 }
