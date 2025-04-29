@@ -8,6 +8,47 @@ import { requireAuth } from "./auth";
  * This powers the Account Settings Profile and other components like the Resume Studio
  */
 export function registerCareerDataRoutes(app: Express, storage: IStorage) {
+  
+  // DEBUG ENDPOINT: Get work history data with detailed debugging info
+  app.get("/api/debug/work-history", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.session.userId;
+      
+      // Get the raw work history items
+      const workHistoryItems = await storage.getWorkHistory(userId);
+      
+      // Add debugging info
+      const debugItems = workHistoryItems.map(item => {
+        return {
+          ...item,
+          _debug: {
+            startDateType: item.startDate ? typeof item.startDate : "undefined",
+            endDateType: item.endDate ? typeof item.endDate : "undefined",
+            startDateIsDate: item.startDate instanceof Date,
+            endDateIsDate: item.endDate instanceof Date,
+            startDateStr: item.startDate ? item.startDate.toString() : null,
+            endDateStr: item.endDate ? item.endDate.toString() : null,
+            hasCompany: Boolean(item.company),
+            hasPosition: Boolean(item.position),
+            formatExample: item.startDate ? `${new Date(item.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : null
+          }
+        };
+      });
+      
+      console.log(`DEBUG: Found ${workHistoryItems.length} work history items for user ${userId}`);
+      res.status(200).json({
+        count: workHistoryItems.length,
+        items: debugItems
+      });
+    } catch (error) {
+      console.error("DEBUG ERROR fetching work history:", error);
+      res.status(500).json({ message: "Error fetching work history for debugging", error: String(error) });
+    }
+  });
   // Get all career data for the current user
   app.get("/api/career-data", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -30,12 +71,38 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       // Extract career summary from user profile
       const careerSummary = user?.careerSummary || "";
       
-      // Return all career data in a single response
+      // Serialize dates for work history items
+      const serializedWorkHistory = workHistory.map(item => ({
+        ...item,
+        startDate: item.startDate instanceof Date ? item.startDate.toISOString() : item.startDate,
+        endDate: item.endDate instanceof Date ? item.endDate.toISOString() : item.endDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt
+      }));
+      
+      // Serialize dates for education history items
+      const serializedEducationHistory = educationHistory.map(item => ({
+        ...item,
+        startDate: item.startDate instanceof Date ? item.startDate.toISOString() : item.startDate,
+        endDate: item.endDate instanceof Date ? item.endDate.toISOString() : item.endDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt
+      }));
+      
+      // Serialize dates for certifications
+      const serializedCertifications = certifications.map(item => ({
+        ...item,
+        issueDate: item.issueDate instanceof Date ? item.issueDate.toISOString() : item.issueDate,
+        expiryDate: item.expiryDate instanceof Date ? item.expiryDate.toISOString() : item.expiryDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt
+      }));
+      
+      // Return all career data in a single response with serialized dates
+      console.log(`Returning ${serializedWorkHistory.length} work history items, ${serializedEducationHistory.length} education items, ${skills.length} skills, and ${serializedCertifications.length} certifications`);
+      
       res.status(200).json({
-        workHistory,
-        educationHistory,
+        workHistory: serializedWorkHistory,
+        educationHistory: serializedEducationHistory,
         skills,
-        certifications,
+        certifications: serializedCertifications,
         careerSummary
       });
     } catch (error) {
@@ -52,9 +119,43 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const userId = req.session.userId;
-      const workHistoryItem = await storage.createWorkHistoryItem(userId, req.body);
       
-      res.status(201).json(workHistoryItem);
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects
+      if (formData.startDate && typeof formData.startDate === 'string') {
+        formData.startDate = new Date(formData.startDate);
+      }
+      
+      if (formData.endDate && typeof formData.endDate === 'string') {
+        formData.endDate = new Date(formData.endDate);
+      }
+      
+      console.log("Creating work history with data:", {
+        userId,
+        company: formData.company,
+        position: formData.position,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startDateType: formData.startDate ? typeof formData.startDate : 'undefined',
+        endDateType: formData.endDate ? typeof formData.endDate : 'undefined',
+        isStartDateValid: formData.startDate instanceof Date && !isNaN(formData.startDate.getTime()),
+        isEndDateValid: formData.endDate ? (formData.endDate instanceof Date && !isNaN(formData.endDate.getTime())) : true
+      });
+      
+      const workHistoryItem = await storage.createWorkHistoryItem(userId, formData);
+      
+      // Serialize dates to ISO strings in the response
+      const serializedItem = {
+        ...workHistoryItem,
+        startDate: workHistoryItem.startDate instanceof Date ? workHistoryItem.startDate.toISOString() : workHistoryItem.startDate,
+        endDate: workHistoryItem.endDate instanceof Date ? workHistoryItem.endDate.toISOString() : workHistoryItem.endDate,
+        createdAt: workHistoryItem.createdAt instanceof Date ? workHistoryItem.createdAt.toISOString() : workHistoryItem.createdAt
+      };
+      
+      console.log("Work history item created successfully:", serializedItem);
+      res.status(201).json(serializedItem);
     } catch (error) {
       console.error("Error creating work history item:", error);
       res.status(500).json({ message: "Error creating work history item" });
@@ -68,13 +169,47 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const id = parseInt(req.params.id);
-      const updatedItem = await storage.updateWorkHistoryItem(id, req.body);
+      
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects
+      if (formData.startDate && typeof formData.startDate === 'string') {
+        formData.startDate = new Date(formData.startDate);
+      }
+      
+      if (formData.endDate && typeof formData.endDate === 'string') {
+        formData.endDate = new Date(formData.endDate);
+      }
+      
+      console.log("Updating work history with data:", {
+        id,
+        company: formData.company,
+        position: formData.position,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startDateType: formData.startDate ? typeof formData.startDate : 'undefined',
+        endDateType: formData.endDate ? typeof formData.endDate : 'undefined',
+        isStartDateValid: formData.startDate instanceof Date && !isNaN(formData.startDate.getTime()),
+        isEndDateValid: formData.endDate ? (formData.endDate instanceof Date && !isNaN(formData.endDate.getTime())) : true
+      });
+      
+      const updatedItem = await storage.updateWorkHistoryItem(id, formData);
       
       if (!updatedItem) {
         return res.status(404).json({ message: "Work history item not found" });
       }
       
-      res.status(200).json(updatedItem);
+      // Serialize dates to ISO strings in the response
+      const serializedItem = {
+        ...updatedItem,
+        startDate: updatedItem.startDate instanceof Date ? updatedItem.startDate.toISOString() : updatedItem.startDate,
+        endDate: updatedItem.endDate instanceof Date ? updatedItem.endDate.toISOString() : updatedItem.endDate,
+        createdAt: updatedItem.createdAt instanceof Date ? updatedItem.createdAt.toISOString() : updatedItem.createdAt
+      };
+      
+      console.log("Work history item updated successfully:", serializedItem);
+      res.status(200).json(serializedItem);
     } catch (error) {
       console.error("Error updating work history item:", error);
       res.status(500).json({ message: "Error updating work history item" });

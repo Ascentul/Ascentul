@@ -39,6 +39,32 @@ export async function debugFetchCareerData() {
         console.log('🔍 DEBUG: Work History array is empty');
       } else {
         console.log('🔍 DEBUG: First work history item:', data.workHistory[0]);
+        
+        // Verify if dates are properly formatted for consumption by the client
+        try {
+          const item = data.workHistory[0];
+          console.log('🔍 DEBUG: startDate type:', typeof item.startDate);
+          console.log('🔍 DEBUG: endDate type:', typeof item.endDate);
+          console.log('🔍 DEBUG: createdAt type:', typeof item.createdAt);
+          
+          // Attempt to parse dates
+          if (item.startDate) {
+            const parsedStartDate = new Date(item.startDate);
+            console.log('🔍 DEBUG: Parsed startDate:', parsedStartDate, 'Valid:', !isNaN(parsedStartDate.getTime()));
+          }
+          
+          if (item.endDate) {
+            const parsedEndDate = new Date(item.endDate);
+            console.log('🔍 DEBUG: Parsed endDate:', parsedEndDate, 'Valid:', !isNaN(parsedEndDate.getTime()));
+          }
+          
+          if (item.createdAt) {
+            const parsedCreatedAt = new Date(item.createdAt);
+            console.log('🔍 DEBUG: Parsed createdAt:', parsedCreatedAt, 'Valid:', !isNaN(parsedCreatedAt.getTime()));
+          }
+        } catch (err) {
+          console.error('🔍 DEBUG: Error inspecting dates:', err);
+        }
       }
     } else {
       console.error('🔍 DEBUG: Work History is not an array or is undefined:', data.workHistory);
@@ -59,7 +85,7 @@ export async function debugFetchWorkHistory() {
   try {
     console.log('🔍 DEBUG: Directly fetching work history from API...');
     const timestamp = new Date().getTime();
-    const response = await fetch(`/api/work-history?t=${timestamp}`, {
+    const response = await fetch(`/api/career-data/work-history?t=${timestamp}`, {
       credentials: 'include',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -70,7 +96,26 @@ export async function debugFetchWorkHistory() {
 
     if (!response.ok) {
       console.error('🔍 DEBUG: Work history API error:', response.status, response.statusText);
-      return null;
+      
+      // Try the legacy endpoint if the new one fails
+      console.log('🔍 DEBUG: Trying legacy work history endpoint...');
+      const legacyResponse = await fetch(`/api/work-history?t=${timestamp}`, {
+        credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (!legacyResponse.ok) {
+        console.error('🔍 DEBUG: Legacy work history API error:', legacyResponse.status, legacyResponse.statusText);
+        return null;
+      }
+      
+      const legacyData = await legacyResponse.json();
+      console.log('🔍 DEBUG: Legacy work history API response:', legacyData);
+      return legacyData;
     }
 
     const data = await response.json();
@@ -84,6 +129,16 @@ export async function debugFetchWorkHistory() {
         console.log('🔍 DEBUG: Work history array is empty in direct API');
       } else {
         console.log('🔍 DEBUG: First work history item from direct API:', data[0]);
+        
+        // Verify date formats
+        try {
+          const item = data[0];
+          console.log('🔍 DEBUG: startDate type:', typeof item.startDate);
+          console.log('🔍 DEBUG: endDate type:', typeof item.endDate);
+          console.log('🔍 DEBUG: createdAt type:', typeof item.createdAt);
+        } catch (err) {
+          console.error('🔍 DEBUG: Error inspecting dates:', err);
+        }
       }
     } else {
       console.error('🔍 DEBUG: Work history is not an array:', data);
@@ -100,6 +155,7 @@ export async function debugFetchWorkHistory() {
  * Compares the data received from the two different API endpoints that might provide work history
  */
 export async function debugCompareWorkHistorySources() {
+  console.log('🔍 DEBUG: ====== START WORK HISTORY DEBUGGING ======');
   const careerData = await debugFetchCareerData();
   const workHistory = await debugFetchWorkHistory();
   
@@ -127,4 +183,38 @@ export async function debugCompareWorkHistorySources() {
       console.warn('🔍 DEBUG: ⚠️ Data structure mismatch between work history sources!');
     }
   }
+  
+  // Verify format in the ImportableItem transformation
+  if (careerData?.workHistory?.[0]) {
+    try {
+      const job = careerData.workHistory[0];
+      console.log('🔍 DEBUG: Attempting to format work history for display...');
+      
+      // Format startDate
+      if (job.startDate) {
+        try {
+          const startDateStr = new Date(job.startDate);
+          const formattedStartDate = startDateStr.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          console.log('🔍 DEBUG: Formatted startDate:', formattedStartDate);
+        } catch (err) {
+          console.error('🔍 DEBUG: Error formatting startDate:', err);
+        }
+      }
+      
+      // Format endDate if it exists
+      if (job.endDate) {
+        try {
+          const endDateStr = new Date(job.endDate);
+          const formattedEndDate = endDateStr.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          console.log('🔍 DEBUG: Formatted endDate:', formattedEndDate);
+        } catch (err) {
+          console.error('🔍 DEBUG: Error formatting endDate:', err);
+        }
+      }
+    } catch (error) {
+      console.error('🔍 DEBUG: Error testing ImportableItem formatting:', error);
+    }
+  }
+  
+  console.log('🔍 DEBUG: ====== END WORK HISTORY DEBUGGING ======');
 }
