@@ -86,7 +86,7 @@ export default function AccountSettings() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const updateUserSubscription = useUpdateUserSubscription();
-  const [selectedColor, setSelectedColor] = useState('#0C29AB'); // Default color from theme.json
+  // Theme color customization removed as per branding decision
   const careerQuery = useCareerData();
   const { data: careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
   
@@ -163,35 +163,7 @@ export default function AccountSettings() {
     }
   });
 
-  // Update theme mutation
-  const updateThemeMutation = useMutation({
-    mutationFn: async (themeData: { primary: string }) => {
-      const response = await apiRequest('PUT', '/api/user/theme', themeData);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update theme');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Theme Updated",
-        description: "Your theme settings have been updated.",
-      });
-      
-      // Reload the page to apply theme changes
-      window.location.reload();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Theme Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
+  // Theme customization mutation removed as per branding decision
 
   // Send verification email mutation
   const sendVerificationEmailMutation = useMutation({
@@ -257,13 +229,7 @@ export default function AccountSettings() {
     navigate('/auth');
   };
   
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedColor(e.target.value);
-  };
-  
-  const handleThemeSubmit = () => {
-    updateThemeMutation.mutate({ primary: selectedColor });
-  };
+  // Theme color customization handlers removed as per branding decision
 
   if (userLoading || !user) {
     return (
@@ -976,45 +942,29 @@ export default function AccountSettings() {
         <TabsContent value="appearance" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Theme Settings</CardTitle>
+              <CardTitle>Brand Theme</CardTitle>
               <CardDescription>
-                Customize the appearance of your application.
+                Ascentul uses a consistent visual theme to maintain brand clarity.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h3 className="font-medium mb-2">Theme Color</h3>
+                <h3 className="font-medium mb-2">Primary Theme Color</h3>
                 <div className="flex flex-col space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     <div 
                       className="w-12 h-12 rounded-md border" 
-                      style={{ backgroundColor: selectedColor }}
+                      style={{ backgroundColor: "#0c29ab" }}
                     />
-                    <input
-                      type="color"
-                      value={selectedColor}
-                      onChange={handleColorChange}
-                      className="w-full max-w-xs h-10"
-                    />
+                    <div className="text-base">
+                      Ascentul Blue (#0c29ab)
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Select a primary color to customize your experience. Changes will apply to the entire application.
+                    Ascentul uses a consistent color theme across all parts of the application to provide a unified brand experience.
                   </p>
                 </div>
               </div>
-              
-              <Button onClick={handleThemeSubmit} disabled={updateThemeMutation.isPending}>
-                {updateThemeMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    Save Theme Settings
-                  </>
-                )}
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>
