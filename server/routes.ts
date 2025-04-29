@@ -20,6 +20,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
+import { registerCareerDataRoutes } from "./career-data";
 import projectsRouter from "./routes/projects";
 import * as openai from "./openai";
 import { 
@@ -4571,6 +4572,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   
   // Register languages routes
   registerLanguagesRoutes(app, storage);
+  
+  // Register career data routes for Resume Studio Editor
+  registerCareerDataRoutes(app, storage);
   
   // Register networking contacts routes (Ascentul CRM)
   registerContactsRoutes(app, storage);
