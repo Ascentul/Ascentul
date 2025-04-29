@@ -249,131 +249,294 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
     setSummarySelected(prev => !prev);
   };
 
-  // Import the selected items into the resume form
-  const importSelectedItems = () => {
-    // Check if any items are selected
-    const hasSelectedItems = 
-      summarySelected ||
-      selectedWorkItems.length > 0 || 
-      selectedEducationItems.length > 0 || 
-      selectedSkillItems.length > 0 ||
-      selectedCertificationItems.length > 0;
-    
-    // If nothing is selected, show message and keep dialog open
-    if (!hasSelectedItems) {
+  // Import the selected items into the resume form with bidirectional sync
+  const importSelectedItems = async () => {
+    try {
+      // Check if any items are selected
+      const hasSelectedItems = 
+        summarySelected ||
+        selectedWorkItems.length > 0 || 
+        selectedEducationItems.length > 0 || 
+        selectedSkillItems.length > 0 ||
+        selectedCertificationItems.length > 0;
+      
+      // If nothing is selected, show message and keep dialog open
+      if (!hasSelectedItems) {
+        toast({
+          title: 'No items selected',
+          description: 'Please select at least one item to import.',
+          variant: 'destructive'
+        });
+        return;
+      }
+  
+      // Track all mutations we'll need to perform for bidirectional sync
+      const syncPromises = [];
+      
+      // Import career summary
+      if (summarySelected && careerData?.careerSummary) {
+        form.setValue('content.summary', careerData.careerSummary);
+      }
+  
+      // Import work history
+      if (selectedWorkItems.length > 0) {
+        const currentExperience = form.getValues('content.experience') || [];
+        const selectedJobs = careerData?.workHistory.filter(job => 
+          selectedWorkItems.includes(job.id)
+        ) || [];
+  
+        const newExperience = [
+          ...currentExperience,
+          ...selectedJobs.map(job => ({
+            company: job.company,
+            position: job.position,
+            startDate: job.startDate ? format(new Date(job.startDate), 'yyyy-MM-dd') : '',
+            endDate: job.endDate ? format(new Date(job.endDate), 'yyyy-MM-dd') : '',
+            currentJob: !job.endDate || job.currentJob,
+            description: job.description || '',
+            location: job.location || '',
+            achievements: job.achievements || []
+          }))
+        ];
+  
+        form.setValue('content.experience', newExperience);
+        
+        // For newly created items, sync them back to career storage
+        const resumeItems = form.getValues('content.experience') || [];
+        for (const item of resumeItems) {
+          // Skip items that already exist in career data
+          const existsInCareerData = careerData?.workHistory.some(
+            job => job.company === item.company && job.position === item.position
+          );
+          
+          if (!existsInCareerData && item.company && item.position) {
+            console.log('Creating new work history item from resume data:', item);
+            const startDate = item.startDate ? new Date(item.startDate) : new Date();
+            const endDate = item.currentJob ? null : (item.endDate ? new Date(item.endDate) : null);
+            
+            // Create a mutation to save this item to career data
+            syncPromises.push(
+              fetch('/api/career-data/work-history', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  company: item.company,
+                  position: item.position,
+                  startDate: startDate.toISOString(),
+                  endDate: endDate?.toISOString() || null,
+                  currentJob: item.currentJob || false,
+                  location: item.location || null,
+                  description: item.description || null,
+                  achievements: item.achievements || []
+                })
+              })
+            );
+          }
+        }
+      }
+  
+      // Import education history
+      if (selectedEducationItems.length > 0) {
+        const currentEducation = form.getValues('content.education') || [];
+        const selectedEducation = careerData?.educationHistory.filter(edu => 
+          selectedEducationItems.includes(edu.id)
+        ) || [];
+  
+        const newEducation = [
+          ...currentEducation,
+          ...selectedEducation.map(edu => ({
+            institution: edu.institution,
+            degree: edu.degree,
+            field: edu.fieldOfStudy || '',
+            startDate: edu.startDate ? format(new Date(edu.startDate), 'yyyy-MM-dd') : '',
+            endDate: edu.endDate ? format(new Date(edu.endDate), 'yyyy-MM-dd') : '',
+            description: edu.description || '',
+            location: edu.location || '',
+            gpa: edu.gpa || '',
+            achievements: edu.achievements || []
+          }))
+        ];
+  
+        form.setValue('content.education', newEducation);
+        
+        // For newly created items, sync them back to career storage
+        const resumeItems = form.getValues('content.education') || [];
+        for (const item of resumeItems) {
+          // Skip items that already exist in career data
+          const existsInCareerData = careerData?.educationHistory.some(
+            edu => edu.institution === item.institution && edu.degree === item.degree
+          );
+          
+          if (!existsInCareerData && item.institution && item.degree) {
+            console.log('Creating new education history item from resume data:', item);
+            const startDate = item.startDate ? new Date(item.startDate) : new Date();
+            const endDate = item.current ? null : (item.endDate ? new Date(item.endDate) : null);
+            
+            // Create a mutation to save this item to career data
+            syncPromises.push(
+              fetch('/api/career-data/education', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  institution: item.institution,
+                  degree: item.degree,
+                  fieldOfStudy: item.field || '',
+                  startDate: startDate.toISOString(),
+                  endDate: endDate?.toISOString() || null,
+                  current: !item.endDate || false,
+                  location: item.location || null,
+                  description: item.description || null,
+                  achievements: item.achievements || [],
+                  gpa: item.gpa || null
+                })
+              })
+            );
+          }
+        }
+      }
+  
+      // Import skills
+      if (selectedSkillItems.length > 0) {
+        const currentSkills = form.getValues('content.skills') || [];
+        const selectedSkills = careerData?.skills.filter(skill => 
+          selectedSkillItems.includes(skill.id)
+        ) || [];
+  
+        const newSkills = [
+          ...currentSkills,
+          ...selectedSkills.map(skill => skill.name)
+        ];
+  
+        // Remove duplicates using a more compatible approach
+        const uniqueSkills = Array.from(new Set(newSkills));
+        form.setValue('content.skills', uniqueSkills);
+        
+        // For newly created items, sync them back to career storage
+        const resumeSkills = form.getValues('content.skills') || [];
+        for (const skillName of resumeSkills) {
+          // Skip items that already exist in career data
+          const existsInCareerData = careerData?.skills.some(
+            skill => skill.name.toLowerCase() === skillName.toLowerCase()
+          );
+          
+          if (!existsInCareerData && skillName) {
+            console.log('Creating new skill from resume data:', skillName);
+            
+            // Create a mutation to save this item to career data
+            syncPromises.push(
+              fetch('/api/career-data/skills', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  name: skillName,
+                  proficiencyLevel: null,
+                  category: null
+                })
+              })
+            );
+          }
+        }
+      }
+  
+      // Import certifications
+      if (selectedCertificationItems.length > 0) {
+        const currentCertifications = form.getValues('content.certifications') || [];
+        const selectedCertifications = careerData?.certifications.filter(cert => 
+          selectedCertificationItems.includes(cert.id)
+        ) || [];
+  
+        const newCertifications = [
+          ...currentCertifications,
+          ...selectedCertifications.map(cert => ({
+            name: cert.name,
+            issuer: cert.issuingOrganization,
+            date: cert.issueDate ? format(new Date(cert.issueDate), 'yyyy-MM-dd') : '',
+            url: cert.credentialURL || '',
+            id: cert.credentialID || ''
+          }))
+        ];
+  
+        form.setValue('content.certifications', newCertifications);
+        
+        // For newly created items, sync them back to career storage
+        const resumeCerts = form.getValues('content.certifications') || [];
+        for (const item of resumeCerts) {
+          // Skip items that already exist in career data
+          const existsInCareerData = careerData?.certifications.some(
+            cert => cert.name === item.name && cert.issuingOrganization === item.issuer
+          );
+          
+          if (!existsInCareerData && item.name && item.issuer) {
+            console.log('Creating new certification from resume data:', item);
+            const issueDate = item.date ? new Date(item.date) : new Date();
+            
+            // Create a mutation to save this item to career data
+            syncPromises.push(
+              fetch('/api/career-data/certifications', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                  name: item.name,
+                  issuingOrganization: item.issuer,
+                  issueDate: issueDate.toISOString(),
+                  expiryDate: null,
+                  noExpiration: true,
+                  credentialID: item.id || null,
+                  credentialURL: item.url || null
+                })
+              })
+            );
+          }
+        }
+      }
+  
+      // If we have any sync operations to perform, wait for them to complete
+      if (syncPromises.length > 0) {
+        console.log(`Performing ${syncPromises.length} sync operations...`);
+        await Promise.all(syncPromises);
+        console.log('All sync operations completed successfully!');
+        
+        // After syncing, force a refresh of the career data
+        queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+        await refetch();
+      }
+      
+      // Close dialog and show success message
+      setIsDialogOpen(false);
       toast({
-        title: 'No items selected',
-        description: 'Please select at least one item to import.',
+        title: 'Career Data Imported',
+        description: syncPromises.length > 0 
+          ? 'Your selected items have been added to the resume and synchronized with your career profile.'
+          : 'Your selected items have been added to the resume.',
+      });
+  
+      // Reset selections
+      setSummarySelected(false);
+      setSelectedWorkItems([]);
+      setSelectedEducationItems([]);
+      setSelectedSkillItems([]);
+      setSelectedCertificationItems([]);
+      
+    } catch (error) {
+      console.error('Error importing career data:', error);
+      toast({
+        title: 'Import Error',
+        description: 'There was a problem importing your career data. Please try again.',
         variant: 'destructive'
       });
-      return;
     }
-
-    // Import career summary
-    if (summarySelected && careerData?.careerSummary) {
-      form.setValue('content.summary', careerData.careerSummary);
-    }
-
-    // Import work history
-    if (selectedWorkItems.length > 0) {
-      const currentExperience = form.getValues('content.experience') || [];
-      const selectedJobs = careerData?.workHistory.filter(job => 
-        selectedWorkItems.includes(job.id)
-      ) || [];
-
-      const newExperience = [
-        ...currentExperience,
-        ...selectedJobs.map(job => ({
-          company: job.company,
-          position: job.position,
-          startDate: job.startDate ? format(new Date(job.startDate), 'yyyy-MM-dd') : '',
-          endDate: job.endDate ? format(new Date(job.endDate), 'yyyy-MM-dd') : '',
-          currentJob: !job.endDate || job.currentJob,
-          description: job.description || '',
-          location: job.location || '',
-          achievements: job.achievements || []
-        }))
-      ];
-
-      form.setValue('content.experience', newExperience);
-    }
-
-    // Import education history
-    if (selectedEducationItems.length > 0) {
-      const currentEducation = form.getValues('content.education') || [];
-      const selectedEducation = careerData?.educationHistory.filter(edu => 
-        selectedEducationItems.includes(edu.id)
-      ) || [];
-
-      const newEducation = [
-        ...currentEducation,
-        ...selectedEducation.map(edu => ({
-          institution: edu.institution,
-          degree: edu.degree,
-          field: edu.fieldOfStudy || '',
-          startDate: edu.startDate ? format(new Date(edu.startDate), 'yyyy-MM-dd') : '',
-          endDate: edu.endDate ? format(new Date(edu.endDate), 'yyyy-MM-dd') : '',
-          description: edu.description || '',
-          location: edu.location || '',
-          gpa: edu.gpa || '',
-          achievements: edu.achievements || []
-        }))
-      ];
-
-      form.setValue('content.education', newEducation);
-    }
-
-    // Import skills
-    if (selectedSkillItems.length > 0) {
-      const currentSkills = form.getValues('content.skills') || [];
-      const selectedSkills = careerData?.skills.filter(skill => 
-        selectedSkillItems.includes(skill.id)
-      ) || [];
-
-      const newSkills = [
-        ...currentSkills,
-        ...selectedSkills.map(skill => skill.name)
-      ];
-
-      // Remove duplicates using a more compatible approach
-      const uniqueSkills = Array.from(new Set(newSkills));
-      form.setValue('content.skills', uniqueSkills);
-    }
-
-    // Import certifications
-    if (selectedCertificationItems.length > 0) {
-      const currentCertifications = form.getValues('content.certifications') || [];
-      const selectedCertifications = careerData?.certifications.filter(cert => 
-        selectedCertificationItems.includes(cert.id)
-      ) || [];
-
-      const newCertifications = [
-        ...currentCertifications,
-        ...selectedCertifications.map(cert => ({
-          name: cert.name,
-          issuer: cert.issuingOrganization,
-          date: cert.issueDate ? format(new Date(cert.issueDate), 'yyyy-MM-dd') : '',
-          url: cert.credentialURL || '',
-          id: cert.credentialID || ''
-        }))
-      ];
-
-      form.setValue('content.certifications', newCertifications);
-    }
-
-    // Close dialog and show success message
-    setIsDialogOpen(false);
-    toast({
-      title: 'Career Data Imported',
-      description: 'Your selected items have been added to the resume.',
-    });
-
-    // Reset selections
-    setSummarySelected(false);
-    setSelectedWorkItems([]);
-    setSelectedEducationItems([]);
-    setSelectedSkillItems([]);
-    setSelectedCertificationItems([]);
   };
 
   return (
