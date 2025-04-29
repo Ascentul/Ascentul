@@ -108,6 +108,12 @@ export interface IStorage {
   getUserCareerPaths(userId: number): Promise<CareerPath[]>;
   getCareerPath(id: number): Promise<CareerPath | undefined>;
   deleteCareerPath(id: number): Promise<boolean>;
+  
+  // Skill operations
+  createSkill(skill: InsertSkill | any): Promise<Skill>;
+  updateSkill(id: number, data: Partial<Skill>): Promise<Skill | undefined>;
+  deleteSkill(id: number): Promise<boolean>;
+  getUserSkills(userId: number): Promise<Skill[]>;
 
   // System operations
   getSystemMetrics(): Promise<{

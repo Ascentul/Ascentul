@@ -2,8 +2,26 @@ import React, { useState } from 'react';
 import { useUser, useIsSubscriptionActive, useUpdateUserSubscription } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { Loader2, CreditCard, ShieldCheck, User, LogOut, Mail, CheckCircle, Palette } from 'lucide-react';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useCareerData } from '@/hooks/use-career-data';
+import { 
+  Loader2, 
+  CreditCard, 
+  ShieldCheck, 
+  User, 
+  LogOut, 
+  Mail, 
+  CheckCircle, 
+  Palette, 
+  Briefcase,
+  GraduationCap,
+  Award,
+  BookOpen,
+  FileText,
+  Plus,
+  Pencil,
+  Trash2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -52,6 +70,7 @@ export default function AccountSettings() {
   const [, navigate] = useLocation();
   const updateUserSubscription = useUpdateUserSubscription();
   const [selectedColor, setSelectedColor] = useState('#0C29AB'); // Default color from theme.json
+  const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = useCareerData();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -225,6 +244,10 @@ export default function AccountSettings() {
             <User className="mr-2 h-4 w-4" />
             Profile
           </TabsTrigger>
+          <TabsTrigger value="career" className="flex items-center">
+            <Briefcase className="mr-2 h-4 w-4" />
+            Career
+          </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
@@ -340,6 +363,294 @@ export default function AccountSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="career" className="space-y-6">
+          {careerDataLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              {/* Work History Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <Briefcase className="mr-2 h-5 w-5" />
+                      Work History
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your professional work history
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="flex items-center">
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Job
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.workHistory?.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.workHistory.map((job) => (
+                        <div key={job.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-lg">{job.position}</h3>
+                          <p className="text-muted-foreground">{job.company}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {formatDate(job.startDate)} - {job.currentJob ? 'Present' : formatDate(job.endDate)}
+                          </p>
+                          {job.location && (
+                            <p className="text-sm text-muted-foreground mt-1">{job.location}</p>
+                          )}
+                          {job.description && (
+                            <p className="mt-2">{job.description}</p>
+                          )}
+                          {job.achievements && job.achievements.length > 0 && (
+                            <div className="mt-2">
+                              <h4 className="font-medium text-sm">Key Achievements:</h4>
+                              <ul className="list-disc list-inside ml-2 mt-1 text-sm">
+                                {job.achievements.map((achievement, i) => (
+                                  <li key={i}>{achievement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No work history added yet.</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add your professional experience to enhance your profile.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Education Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <GraduationCap className="mr-2 h-5 w-5" />
+                      Education
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your educational background
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="flex items-center">
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Education
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.educationHistory?.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.educationHistory.map((education) => (
+                        <div key={education.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-lg">{education.degree}</h3>
+                          <p className="text-md">{education.fieldOfStudy}</p>
+                          <p className="text-muted-foreground">{education.institution}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {formatDate(education.startDate)} - {education.current ? 'Present' : formatDate(education.endDate)}
+                          </p>
+                          {education.location && (
+                            <p className="text-sm text-muted-foreground mt-1">{education.location}</p>
+                          )}
+                          {education.gpa && (
+                            <p className="text-sm mt-1">GPA: {education.gpa}</p>
+                          )}
+                          {education.description && (
+                            <p className="mt-2">{education.description}</p>
+                          )}
+                          {education.achievements && education.achievements.length > 0 && (
+                            <div className="mt-2">
+                              <h4 className="font-medium text-sm">Achievements:</h4>
+                              <ul className="list-disc list-inside ml-2 mt-1 text-sm">
+                                {education.achievements.map((achievement, i) => (
+                                  <li key={i}>{achievement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No education history added yet.</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add your educational background to complete your profile.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Skills Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <Award className="mr-2 h-5 w-5" />
+                      Skills
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your professional and technical skills
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="flex items-center">
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Skill
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.skills?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {careerData.skills.map((skill) => (
+                        <div key={skill.id} className="flex items-center bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-sm">
+                          {skill.name}
+                          {skill.proficiencyLevel && (
+                            <span className="ml-1 text-xs text-muted-foreground">({skill.proficiencyLevel})</span>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No skills added yet.</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add your skills to showcase your expertise.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Certifications Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <BookOpen className="mr-2 h-5 w-5" />
+                      Certifications
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your certifications and credentials
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="flex items-center">
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Certification
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.certifications?.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.certifications.map((cert) => (
+                        <div key={cert.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-lg">{cert.name}</h3>
+                          <p className="text-muted-foreground">{cert.issuingOrganization}</p>
+                          {cert.issueDate && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Issued: {formatDate(cert.issueDate)}
+                              {cert.expiryDate && <> · Expires: {formatDate(cert.expiryDate)}</>}
+                              {!cert.expiryDate && cert.noExpiration && <> · No Expiration</>}
+                            </p>
+                          )}
+                          {cert.credentialID && (
+                            <p className="text-sm mt-1">Credential ID: {cert.credentialID}</p>
+                          )}
+                          {cert.credentialURL && (
+                            <p className="text-sm mt-1">
+                              <a 
+                                href={cert.credentialURL} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                View Credential
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No certifications added yet.</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add your professional certifications to validate your expertise.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Career Summary Section */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-xl flex items-center">
+                      <FileText className="mr-2 h-5 w-5" />
+                      Career Summary
+                    </CardTitle>
+                    <CardDescription>
+                      Update your professional summary
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" className="flex items-center">
+                    <Pencil className="mr-1 h-4 w-4" />
+                    Edit
+                  </Button>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.careerSummary ? (
+                    <div className="border rounded-lg p-4">
+                      <p>{careerData.careerSummary}</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-muted-foreground">No career summary added yet.</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Add a professional summary to introduce yourself to potential employers.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
         
         <TabsContent value="subscription" className="space-y-6">
