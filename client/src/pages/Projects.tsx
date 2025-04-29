@@ -99,22 +99,22 @@ export default function Projects() {
         <div className="space-y-6">
           {projects.map((project) => (
             <Card key={project.id} className="p-6 relative group hover:shadow-lg transition-shadow">
-              <div className="flex space-x-1 absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 bg-white shadow-sm"
+                  className="h-7 w-7 bg-white shadow-sm"
                   onClick={() => handleEdit(project)}
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-red-500 hover:text-red-600 bg-white shadow-sm"
+                  className="h-7 w-7 text-red-500 hover:text-red-600 bg-white shadow-sm"
                   onClick={() => handleDelete(project.id)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
 
@@ -136,11 +136,11 @@ export default function Projects() {
                 <div className="flex-1">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
                     <h2 className="text-xl font-semibold">{project.title}</h2>
-                    <div className="flex items-center space-x-2 mt-1 md:mt-0 mr-16">
+                    <div className="flex items-center space-x-2 mt-1 md:mt-0 mr-20 max-w-[70%]">
                       <Badge variant="outline">{project.projectType}</Badge>
-                      <div className="text-sm text-neutral-500 flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {formatDateRange(project.startDate, project.endDate)}
+                      <div className="text-sm text-neutral-500 flex items-center truncate">
+                        <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+                        <span className="truncate">{formatDateRange(project.startDate, project.endDate)}</span>
                       </div>
                     </div>
                   </div>
