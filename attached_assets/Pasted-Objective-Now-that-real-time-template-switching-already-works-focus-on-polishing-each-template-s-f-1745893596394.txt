@@ -1,0 +1,44 @@
+Objective:
+Now that real-time template switching already works, focus on polishing each template’s formatting and layout for a clean, professional, launch-ready experience.
+
+📄 Core Tasks:
+1. Polish Template Styling (Classic, Minimal, Professional, Modern)
+For each template:
+
+
+Element	Style Rules
+Name Header	Large, bold. Each template should have slightly different font sizes and spacing.
+Contact Info	Smaller font size. Use clean separators like dots (•) or pipes (
+Section Titles (Skills, Summary, Experience, Education)	Capitalized and bold for most templates. (Minimal = lowercase and lighter weight.)
+Section Spacing	Tighten vertical spacing — slightly closer sections to feel like a professional resume, not a marketing page.
+Skill Pills	Tighter spacing between pills. In Minimal template, use slightly lighter pill borders.
+Date Formatting	Change date format to Month Year:
+Example: "Dec 2023 – Present" instead of "12/05/23 - Present".	
+Borders/Dividers	- Light thin dividers between major sections in Classic and Professional.
+- Minimal = no dividers.
+- Modern = optional divider below name only.
+Bullet Styling	Keep bullets simple and clean (•). If bullets are used, ensure even alignment.
+2. Improve Print and Download Matching
+When the user downloads the resume:
+
+The PDF file must exactly match what they see in the live preview.
+
+Fonts, spacing, margins, and colors should not shift between preview and download.
+
+3. Responsiveness
+Preview should still look polished when resizing the browser window.
+
+Resume content should not break into strange lines or cause layout glitches.
+
+🛠 Deliverable:
+✅ All four templates (Classic, Minimal, Professional, Modern) are polished and professional.
+✅ Consistent WYSIWYG experience (preview = download).
+✅ Final formatting matches resume industry standards (spacing, hierarchy, readability).
+✅ Launch-ready visual quality.
+
+📈 Why This Update Matters:
+Professional polish instantly builds user trust.
+
+Templates feel "finished," ready for user download and real-world use.
+
+You eliminate churn from users feeling resumes "look weird" or "download broken."
