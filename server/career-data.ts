@@ -88,20 +88,71 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }));
       
       // Serialize dates for certifications
-      const serializedCertifications = certifications.map(item => ({
-        ...item,
-        issueDate: item.issueDate instanceof Date ? item.issueDate.toISOString() : item.issueDate,
-        expiryDate: item.expiryDate instanceof Date ? item.expiryDate.toISOString() : item.expiryDate,
-        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt
-      }));
+      const serializedCertifications = certifications.map(item => {
+        // Create a shallow copy of the item
+        const serialized = { ...item };
+        
+        // For safety, wrap date conversion in try/catch blocks
+        try {
+          // Only convert if createdAt exists and is a Date
+          if (serialized.createdAt) {
+            // Use Object.prototype.toString to check if it's a Date
+            if (Object.prototype.toString.call(serialized.createdAt) === '[object Date]') {
+              serialized.createdAt = new Date(serialized.createdAt).toISOString();
+            }
+          }
+          
+          // Check and convert issueDate if present
+          if (serialized.issueDate) {
+            if (Object.prototype.toString.call(serialized.issueDate) === '[object Date]') {
+              serialized.issueDate = new Date(serialized.issueDate).toISOString();
+            }
+          }
+          
+          // Check and convert expirationDate if present
+          if (serialized.expirationDate) {
+            if (Object.prototype.toString.call(serialized.expirationDate) === '[object Date]') {
+              serialized.expirationDate = new Date(serialized.expirationDate).toISOString();
+            }
+          }
+        } catch (err) {
+          console.error("Error serializing certification dates:", err);
+          // Leave the original values on error
+        }
+        
+        return serialized;
+      });
+      
+      // Serialize dates for skills with a more robust approach
+      const serializedSkills = skills.map(item => {
+        const serialized = { ...item };
+        
+        // Use a safe approach that doesn't rely on instanceof
+        try {
+          if (serialized.createdAt) {
+            // Check if it's a Date by seeing if it has date methods
+            if (typeof serialized.createdAt === 'object' && 
+                serialized.createdAt !== null && 
+                'getFullYear' in serialized.createdAt) {
+              // It's a Date object, so convert to ISO string
+              serialized.createdAt = new Date(serialized.createdAt.getTime()).toISOString();
+            }
+          }
+        } catch (err) {
+          console.error("Error serializing skill dates:", err);
+          // Keep original value if there's an error
+        }
+        
+        return serialized;
+      });
       
       // Return all career data in a single response with serialized dates
-      console.log(`Returning ${serializedWorkHistory.length} work history items, ${serializedEducationHistory.length} education items, ${skills.length} skills, and ${serializedCertifications.length} certifications`);
+      console.log(`Returning ${serializedWorkHistory.length} work history items, ${serializedEducationHistory.length} education items, ${serializedSkills.length} skills, and ${serializedCertifications.length} certifications`);
       
       res.status(200).json({
         workHistory: serializedWorkHistory,
         educationHistory: serializedEducationHistory,
-        skills,
+        skills: serializedSkills,
         certifications: serializedCertifications,
         careerSummary
       });
@@ -244,9 +295,30 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const userId = req.session.userId;
-      const educationItem = await storage.createEducationHistoryItem(userId, req.body);
       
-      res.status(201).json(educationItem);
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects
+      if (formData.startDate && typeof formData.startDate === 'string') {
+        formData.startDate = new Date(formData.startDate);
+      }
+      
+      if (formData.endDate && typeof formData.endDate === 'string') {
+        formData.endDate = new Date(formData.endDate);
+      }
+      
+      const educationItem = await storage.createEducationHistoryItem(userId, formData);
+      
+      // Serialize dates to ISO strings in the response
+      const serializedItem = {
+        ...educationItem,
+        startDate: educationItem.startDate instanceof Date ? educationItem.startDate.toISOString() : educationItem.startDate,
+        endDate: educationItem.endDate instanceof Date ? educationItem.endDate.toISOString() : educationItem.endDate,
+        createdAt: educationItem.createdAt instanceof Date ? educationItem.createdAt.toISOString() : educationItem.createdAt
+      };
+      
+      res.status(201).json(serializedItem);
     } catch (error) {
       console.error("Error creating education item:", error);
       res.status(500).json({ message: "Error creating education item" });
@@ -260,13 +332,34 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       }
       
       const id = parseInt(req.params.id);
-      const updatedItem = await storage.updateEducationHistoryItem(id, req.body);
+      
+      // Process dates to ensure they're Date objects
+      const formData = { ...req.body };
+      
+      // Convert string dates to Date objects
+      if (formData.startDate && typeof formData.startDate === 'string') {
+        formData.startDate = new Date(formData.startDate);
+      }
+      
+      if (formData.endDate && typeof formData.endDate === 'string') {
+        formData.endDate = new Date(formData.endDate);
+      }
+      
+      const updatedItem = await storage.updateEducationHistoryItem(id, formData);
       
       if (!updatedItem) {
         return res.status(404).json({ message: "Education item not found" });
       }
       
-      res.status(200).json(updatedItem);
+      // Serialize dates to ISO strings in the response
+      const serializedItem = {
+        ...updatedItem,
+        startDate: updatedItem.startDate instanceof Date ? updatedItem.startDate.toISOString() : updatedItem.startDate,
+        endDate: updatedItem.endDate instanceof Date ? updatedItem.endDate.toISOString() : updatedItem.endDate,
+        createdAt: updatedItem.createdAt instanceof Date ? updatedItem.createdAt.toISOString() : updatedItem.createdAt
+      };
+      
+      res.status(200).json(serializedItem);
     } catch (error) {
       console.error("Error updating education item:", error);
       res.status(500).json({ message: "Error updating education item" });
@@ -325,7 +418,13 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         return res.status(404).json({ message: "Skill not found" });
       }
       
-      res.status(200).json(updatedSkill);
+      // Serialize dates for the response
+      const serializedSkill = {
+        ...updatedSkill,
+        createdAt: updatedSkill.createdAt instanceof Date ? updatedSkill.createdAt.toISOString() : updatedSkill.createdAt
+      };
+      
+      res.status(200).json(serializedSkill);
     } catch (error) {
       console.error("Error updating skill:", error);
       res.status(500).json({ message: "Error updating skill" });
