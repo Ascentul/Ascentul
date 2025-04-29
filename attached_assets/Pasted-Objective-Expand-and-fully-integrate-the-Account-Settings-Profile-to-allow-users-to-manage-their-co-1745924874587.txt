@@ -1,0 +1,61 @@
+Objective:
+Expand and fully integrate the Account Settings Profile to allow users to manage their core career data (Work History, Education, Skills, Certifications, Career Summary) —
+and make sure this data powers all major Ascentul features (Resume Builder, AI Coach, Voice Interview Practice, Career Path Explorer).
+
+📋 Step 1: Expand Account Settings Profile Fields
+Inside Account Settings, allow users to view, add, edit, and delete the following:
+
+
+Section	Fields
+Work History	Job Title, Company, Start Date, End Date, Description
+Education	School Name, Degree, Start Date, End Date, Description
+Skills	Skill Tags (multi-entry, free-form text or dropdown select)
+Certifications	Certificate Name, Issuing Authority, Date Earned
+Career Summary	Professional Summary Text (short paragraph)
+✅ Each section should be editable individually.
+✅ Allow multiple entries where appropriate (e.g., multiple jobs, multiple degrees).
+
+📋 Step 2: Power All Features Using Profile Data
+Ensure the following modules access and pull from the updated Account Settings Profile:
+
+
+Feature	Behavior
+Resume Builder	Users can select/import Work History, Education, Skills, Certifications, and Career Summary into their resumes directly from their Profile.
+AI Coach	AI uses Work History, Education, Skills, Certifications, Career Summary context to generate personalized coaching advice. (Example: career growth plans, job search strategies.)
+Voice Interview Practice	Interview questions should dynamically reference user's Work History, Skills, Education to simulate real-world interviews. (e.g., "Tell me about your role at [Company].")
+Career Path Explorer	Suggestions and career path visualizations are personalized based on Skills, Education, Work History.
+✅ Live sync: When users update their Profile, future suggestions/coaching automatically reflect the new info.
+
+📋 Step 3: Data Sync Logic
+
+Condition	System Behavior
+User updates profile info	All new resume builds, AI coaching, and interview sessions pull updated data automatically.
+User edits info directly inside Resume Builder (manual override)	Only that resume reflects the manual edits — the master Profile remains unchanged unless explicitly updated.
+If Profile info is missing	Prompt user gently: "Complete your profile to unlock better resume building and coaching."
+✅ Profile = master data.
+✅ Resume = snapshot copies when needed.
+
+📂 Technical Notes:
+Store Profile data in structured tables in Supabase (WorkHistory, Education, Skills, Certifications, SummaryText linked to UserID).
+
+Ensure Profile schema is stable and version-controlled (to avoid future migrations).
+
+Resume Builder pulls from Profile but allows local editing without changing the Profile unless the user chooses "Update Profile" explicitly.
+
+AI modules (coach, interview, career explorer) query live Profile data at the time of session generation.
+
+🛠 Deliverables:
+✅ Expanded editable sections in Account Settings.
+✅ Resume Builder, AI Coach, Interview Practice, and Career Explorer all pull from live Profile data.
+✅ Seamless sync with user updates.
+✅ Clear fallback UX if Profile info is incomplete.
+
+📈 Why This Matters:
+🎯 Creates a true "Career OS" — user saves data once, benefits everywhere inside Ascentul.
+
+⚡ Speeds up resume building, coaching personalization, and interview preparation.
+
+🔒 Reduces user frustration (no need to retype same info multiple times).
+
+🚀 Sets up future paid personalization features (AI-powered career plans, resume auto-optimization, interview feedback, etc.).
+

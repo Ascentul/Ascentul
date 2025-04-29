@@ -1,15 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { WorkHistory, EducationHistory, Skill } from '@shared/schema';
+import { WorkHistory, EducationHistory, Skill, Certification } from '@shared/schema';
 
 export interface CareerData {
   workHistory: WorkHistory[];
   educationHistory: EducationHistory[];
   skills: Skill[];
+  certifications: Certification[];
+  careerSummary: string;
 }
 
 /**
- * A hook that fetches all career data (work history, education, skills)
- * for use in the Resume Studio Editor
+ * A hook that fetches all career data (work history, education, skills, certifications, career summary)
+ * for use in the Resume Studio Editor and Account Settings Profile
  */
 export function useCareerData() {
   const {
@@ -31,6 +33,8 @@ export function useCareerData() {
     // Convenience getters for individual data types
     workHistory: careerData?.workHistory || [],
     educationHistory: careerData?.educationHistory || [],
-    skills: careerData?.skills || []
+    skills: careerData?.skills || [],
+    certifications: careerData?.certifications || [],
+    careerSummary: careerData?.careerSummary || ''
   };
 }
