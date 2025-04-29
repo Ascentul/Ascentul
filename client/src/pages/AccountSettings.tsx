@@ -631,14 +631,12 @@ export default function AccountSettings() {
                       Manage your educational background
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    size="sm"
+                    label="Add Education"
+                    mode="add"
                     onClick={() => setEducationModal({ open: true, mode: 'add' })}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Education
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.educationHistory?.length > 0 ? (
@@ -737,14 +735,12 @@ export default function AccountSettings() {
                       Manage your professional and technical skills
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    size="sm"
+                    label="Add Skill"
+                    mode="add"
                     onClick={() => setSkillModal({ open: true })}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Skill
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.skills?.length > 0 ? (
@@ -792,13 +788,12 @@ export default function AccountSettings() {
                       <p className="text-muted-foreground text-sm italic mb-4">
                         Need inspiration? Use AI Coach to suggest skills based on your work history.
                       </p>
-                      <Button 
+                      <AddSectionButton
                         onClick={() => setSkillModal({ open: true })}
                         variant="secondary"
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add Skill
-                      </Button>
+                        label="Add Skill"
+                        mode="add"
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -816,14 +811,12 @@ export default function AccountSettings() {
                       Manage your certifications and credentials
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    size="sm"
+                    label="Add Certification"
+                    mode="add"
                     onClick={() => setCertificationModal({ open: true, mode: 'add' })}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Certification
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.certifications?.length > 0 ? (
@@ -908,13 +901,12 @@ export default function AccountSettings() {
                       <p className="text-muted-foreground text-sm italic mb-4">
                         Certifications help enhance your resume and stand out to potential employers.
                       </p>
-                      <Button 
+                      <AddSectionButton
                         onClick={() => setCertificationModal({ open: true, mode: 'add' })}
                         variant="secondary"
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add Certification
-                      </Button>
+                        label="Add Certification"
+                        mode="add"
+                      />
                     </div>
                   )}
                 </CardContent>
@@ -932,17 +924,15 @@ export default function AccountSettings() {
                       Update your professional summary
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    size="sm"
+                    label="Edit"
+                    mode="edit"
                     onClick={() => setCareerSummaryModal({ 
                       open: true, 
                       defaultValue: careerData?.careerSummary || '' 
                     })}
-                  >
-                    <Pencil className="mr-1 h-4 w-4" />
-                    Edit
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.careerSummary ? (
@@ -964,16 +954,15 @@ export default function AccountSettings() {
                       <p className="text-muted-foreground text-sm italic mb-4">
                         A good career summary highlights your experience, skills, and career goals.
                       </p>
-                      <Button 
+                      <AddSectionButton
                         onClick={() => setCareerSummaryModal({ 
                           open: true, 
                           defaultValue: careerData?.careerSummary || '' 
                         })}
                         variant="secondary"
-                      >
-                        <Pencil className="mr-1 h-4 w-4" />
-                        Add Career Summary
-                      </Button>
+                        label="Add Career Summary"
+                        mode="add"
+                      />
                     </div>
                   )}
                 </CardContent>
