@@ -1845,8 +1845,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const certifications = await storage.getCertifications(user.id);
-      res.status(200).json(certifications);
+      
+      // Ensure proper serialization and handle null values or date objects
+      const safeCertifications = certifications.map(item => ({
+        ...item,
+        issueDate: item.issueDate instanceof Date ? item.issueDate.toISOString() : item.issueDate,
+        expirationDate: item.expirationDate instanceof Date ? item.expirationDate.toISOString() : item.expirationDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+        updatedAt: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : item.updatedAt
+      }));
+      
+      res.status(200).json(safeCertifications);
     } catch (error) {
+      console.error("Error fetching certifications:", error);
       res.status(500).json({ message: "Error fetching certifications" });
     }
   });
@@ -1983,7 +1994,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const achievements = await storage.getUserPersonalAchievements(user.id);
-      res.status(200).json(achievements);
+      
+      // Ensure proper serialization and handle null values or date objects
+      const safeAchievements = achievements.map(item => ({
+        ...item,
+        date: item.date instanceof Date ? item.date.toISOString() : item.date,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+        updatedAt: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : item.updatedAt
+      }));
+      
+      res.status(200).json(safeAchievements);
     } catch (error) {
       console.error("Error fetching personal achievements:", error);
       res.status(500).json({ message: "Error fetching personal achievements" });
@@ -2094,8 +2114,17 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const resumes = await storage.getResumes(user.id);
-      res.status(200).json(resumes);
+      
+      // Ensure proper serialization and handle null values or date objects
+      const safeResumes = resumes.map(item => ({
+        ...item,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+        updatedAt: item.updatedAt instanceof Date ? item.updatedAt.toISOString() : item.updatedAt
+      }));
+      
+      res.status(200).json(safeResumes);
     } catch (error) {
+      console.error("Error fetching resumes:", error);
       res.status(500).json({ message: "Error fetching resumes" });
     }
   });
@@ -2126,8 +2155,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         return res.status(403).json({ message: "You don't have permission to access this resume" });
       }
       
-      res.status(200).json(resume);
+      // Ensure proper serialization and handle null values or date objects
+      const safeResume = {
+        ...resume,
+        createdAt: resume.createdAt instanceof Date ? resume.createdAt.toISOString() : resume.createdAt,
+        updatedAt: resume.updatedAt instanceof Date ? resume.updatedAt.toISOString() : resume.updatedAt
+      };
+      
+      res.status(200).json(safeResume);
     } catch (error) {
+      console.error("Error fetching resume:", error);
       res.status(500).json({ message: "Error fetching resume" });
     }
   });
