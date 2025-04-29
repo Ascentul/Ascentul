@@ -11,7 +11,8 @@ import {
   XCircle, 
   FileText, 
   Award,
-  AlignJustify 
+  AlignJustify,
+  RefreshCw
 } from 'lucide-react';
 import {
   Dialog,
@@ -40,6 +41,7 @@ import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UseFormReturn } from 'react-hook-form';
 import { queryClient } from '@/lib/queryClient';
+import { debugFetchCareerData, debugCompareWorkHistorySources } from '../debugCareerData';
 
 // The items we can import into a resume
 interface ImportableItem {
@@ -79,7 +81,14 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
       // Then trigger a fresh refetch with cache disabled
       refetch().then(result => {
         if (result.isSuccess) {
-          console.log('CareerDataImport: Successfully refreshed career data');
+          console.log('CareerDataImport: Successfully refreshed career data', result.data);
+          console.log('Work History items:', result.data?.workHistory?.length || 0);
+          
+          if (result.data?.workHistory?.length === 0) {
+            console.log('No work history items found in API response');
+          } else {
+            console.log('Work history sample:', result.data?.workHistory?.[0]);
+          }
         } else if (result.isError) {
           console.error('CareerDataImport: Error refreshing career data:', result.error);
         }
@@ -315,11 +324,34 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[725px]">
-        <DialogHeader>
+        <DialogHeader className="relative">
           <DialogTitle>Import Your Career Data</DialogTitle>
           <DialogDescription>
             Select items from your career profile to add to this resume. You can choose from your summary, work experience, education, skills, and certifications.
           </DialogDescription>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="absolute right-0 top-0"
+            onClick={() => {
+              // Force a complete refresh by completely removing the query from cache
+              queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+              
+              // Run our debugging utilities
+              debugCompareWorkHistorySources();
+              
+              // Then trigger a refetch
+              refetch().then(() => {
+                toast({
+                  title: "Data refreshed",
+                  description: "Your career data has been refreshed from the server."
+                });
+              });
+            }}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
         </DialogHeader>
 
         {isLoading ? (
