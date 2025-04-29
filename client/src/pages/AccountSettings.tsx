@@ -771,18 +771,12 @@ export default function AccountSettings() {
                     <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
                       <Award className="h-10 w-10 text-muted-foreground mb-3" />
                       <h3 className="font-medium mb-2">No skills added yet</h3>
-                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                      <div className="text-center text-sm text-gray-500 px-4 py-6">
                         Add your technical and soft skills to showcase your expertise.
-                      </p>
-                      <p className="text-muted-foreground text-sm italic mb-4">
-                        Need inspiration? Use AI Coach to suggest skills based on your work history.
-                      </p>
-                      <AddSectionButton
-                        onClick={() => setSkillModal({ open: true })}
-                        variant="secondary"
-                        label="Add Skill"
-                        mode="add"
-                      />
+                        <em className="block mt-1 text-gray-400 italic">
+                          Need inspiration? Use AI Coach to suggest skills based on your work history.
+                        </em>
+                      </div>
                     </div>
                   )}
                 </CardContent>
