@@ -1165,6 +1165,12 @@ export default function Resume() {
       <GuidedResumeCreationModal
         isOpen={isGuidedResumeCreationOpen}
         onClose={() => setIsGuidedResumeCreationOpen(false)}
+        onCreateResume={(resumeData) => {
+          // Set the selected resume to the data from the guided wizard
+          setSelectedResume(resumeData);
+          // Open the standard resume form
+          setIsAddResumeOpen(true);
+        }}
       />
       
       {/* Standard Resume Form Modal */}
