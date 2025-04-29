@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUser, useIsSubscriptionActive, useUpdateUserSubscription } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
@@ -86,6 +86,31 @@ export default function AccountSettings() {
   // Theme color customization removed as per branding decision
   const careerQuery = useCareerData();
   const { data: careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
+  
+  // Track the current active tab
+  const [activeTab, setActiveTab] = useState('profile');
+  
+  // Refresh career data on component mount and whenever the tab changes to "career"
+  useEffect(() => {
+    // Force a refresh of career data when the component mounts 
+    // by removing the query from cache and refetching
+    queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+    refetchCareerData().then(() => {
+      console.log('Career data refreshed on component mount');
+    });
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
+  // Refresh career data when user switches to the Career tab
+  useEffect(() => {
+    if (activeTab === 'career') {
+      console.log('Refreshing career data because Career tab is active');
+      refetchCareerData().then(() => {
+        console.log('Career data refreshed on tab change');
+      });
+    }
+  }, [activeTab, refetchCareerData]);
   
   // Modal state variables for career data forms
   const [workHistoryModal, setWorkHistoryModal] = useState<{
@@ -257,7 +282,14 @@ export default function AccountSettings() {
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
       
-      <Tabs defaultValue="profile" className="space-y-8">
+      <Tabs 
+        defaultValue="profile" 
+        className="space-y-8"
+        onValueChange={(value) => {
+          console.log(`Tab changed to: ${value}`);
+          setActiveTab(value);
+        }}
+      >
         <TabsList className="flex flex-wrap">
           <TabsTrigger value="profile" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
@@ -370,6 +402,29 @@ export default function AccountSettings() {
         </TabsContent>
         
         <TabsContent value="career" className="space-y-6">
+          <div className="flex items-center justify-end pb-0">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex items-center"
+              onClick={() => {
+                // Force a complete refresh by completely removing the query from cache
+                queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+                
+                // Then trigger a refetch
+                refetchCareerData().then(() => {
+                  toast({
+                    title: "Career data refreshed",
+                    description: "Your career data has been refreshed from the server."
+                  });
+                });
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Career Data
+            </Button>
+          </div>
+          
           {careerDataLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
