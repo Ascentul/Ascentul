@@ -1,0 +1,83 @@
+Objective:
+Enhance the Resume Studio Editor so users can quickly pull their saved career data (Work History, Education, Skills, Certifications, Career Summary) into a new or existing resume, reducing friction and speeding up resume creation.
+
+📋 Changes to Implement:
+1. Pull User's Saved Profile Data
+Pull the following from Account Settings:
+
+Work History (job titles, companies, dates, descriptions)
+
+Education (schools, degrees, dates)
+
+Skills (skills tags/keywords)
+
+Certifications (certifications name, authority, date earned)
+
+Career Summary (short professional summary or objective)
+
+✅ Pull data cleanly from the backend (Supabase or other DB) associated with the user's account.
+
+2. Insert "Add from Saved Info" Buttons Inside Resume Editor
+In the "Create Resume" and "Edit Resume" forms:
+
+
+Resume Tab	Action to Add
+Personal/Professional Summary Tab	Add "Insert Saved Career Summary" button
+Skills Tab	Add "+ Add from Saved Skills" multi-select option
+Work Experience Tab	Add "+ Add from Saved Work History" button
+Education Tab	Add "+ Add from Saved Education" button
+Certifications Tab	Add "+ Add from Saved Certifications" button
+✅ Clicking any of these buttons opens a modal or dropdown that shows the saved entries available.
+✅ Users can select one or more items to insert into the current resume they’re building.
+
+3. Editing Behavior After Inserting
+Imported fields should be fully editable immediately.
+
+Edits made inside the resume form do not update the original saved profile data.
+
+Resumes should act as independent documents once the data is pulled in.
+
+✅ No conflicts with master data.
+✅ Full flexibility for resume customization.
+
+4. Handle Edge Cases
+If no saved entries exist for a category (e.g., no saved skills yet):
+
+Show a friendly message:
+
+"No saved [Skills/Work History/Education] yet. Add your career information in Account Settings to use this feature!"
+
+(Optional) Provide a link "Go to Account Settings" to quickly add saved info.
+
+✅ Smooth fallback UX without dead ends.
+
+5. Save Behavior
+When the user clicks "Create Resume" or "Update Resume," the resume saves exactly what is shown in the editor — including any inserted saved data.
+
+The saved resume is independent of any future changes made to Account Settings.
+
+✅ Resumes are locked snapshots once saved.
+
+📂 Technical Requirements:
+Resume editor must dynamically load saved information via API or database fetch.
+
+Inserted content must fit into the existing resume JSON/data structure for consistency.
+
+Responsive layout for both desktop and mobile.
+
+🛠 Deliverables:
+✅ Saved Info Picker buttons implemented across relevant resume sections.
+✅ Modal or dropdown select UX for picking saved info.
+✅ Seamless editable insertion.
+✅ Fallback handling for users with no saved data.
+✅ Full save behavior integration.
+
+📈 Why This Feature Matters:
+Speeds up resume creation dramatically (first value moment = higher retention).
+
+Makes Ascentul feel personalized, premium, and user-centered.
+
+Sets foundation for future "Smart Resume" AI features.
+
+Increases user lock-in by tying users’ career history to your system.
+
