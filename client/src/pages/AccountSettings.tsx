@@ -405,14 +405,6 @@ export default function AccountSettings() {
                   <p className="text-sm text-gray-500">User Type</p>
                   <p className="text-base text-gray-800 capitalize">{user.userType.replace('_', ' ')}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">XP Level</p>
-                  <p className="text-base text-gray-800">{user.level} ({user.xp} XP)</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Rank</p>
-                  <p className="text-base text-gray-800">{user.rank}</p>
-                </div>
               </div>
             </div>
           </div>
