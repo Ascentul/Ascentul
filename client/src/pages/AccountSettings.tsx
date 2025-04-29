@@ -475,17 +475,14 @@ export default function AccountSettings() {
                       A brief overview of your professional background and goals
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    label={careerData?.careerSummary ? 'Edit Summary' : 'Add Summary'}
+                    mode={careerData?.careerSummary ? 'edit' : 'add'}
                     onClick={() => setCareerSummaryModal({ 
                       open: true, 
                       defaultValue: careerData?.careerSummary || '' 
                     })}
-                  >
-                    <Pencil className="mr-1 h-4 w-4" />
-                    {careerData?.careerSummary ? 'Edit' : 'Add'}
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.careerSummary ? (
@@ -509,13 +506,12 @@ export default function AccountSettings() {
                         Your career summary helps highlight your professional journey, skills, and goals.
                         It powers your resume, AI coaching sessions, and interview practice.
                       </p>
-                      <Button 
+                      <AddSectionButton
                         onClick={() => setCareerSummaryModal({ open: true, defaultValue: '' })}
                         variant="secondary"
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add Career Summary
-                      </Button>
+                        label="Add Career Summary"
+                        mode="add"
+                      />
                     </div>
                   )}
                 </CardContent>
