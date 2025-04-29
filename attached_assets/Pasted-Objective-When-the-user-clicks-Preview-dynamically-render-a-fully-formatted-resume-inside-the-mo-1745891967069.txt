@@ -1,0 +1,105 @@
+Objective:
+When the user clicks "Preview," dynamically render a fully formatted resume inside the modal, using all fields entered in the Resume Editor, styled according to the selected template, and optimized automatically by AI for clean layout and fitting.
+
+📄 Changes Required:
+1. Dynamically Render Full Resume Content
+Pull data from all the input sections:
+
+Personal Info: Full Name, Email, Phone, LinkedIn, Location, Portfolio Website
+
+Summary: Professional Summary or Objective
+
+Skills: List of key skills
+
+Experience: Job titles, companies, dates, descriptions
+
+Education: Schools, degrees, dates
+
+Projects: Project names, descriptions (if included)
+
+Structure it visually exactly like a real resume would look:
+
+yaml
+Copy
+Edit
+Name
+Location | Email | Phone | LinkedIn | Portfolio
+---
+Professional Summary
+---
+Skills
+---
+Experience
+---
+Education
+---
+Projects (optional)
+2. Apply Selected Template Styling
+Format resume dynamically based on the chosen template (Standard, Modern, etc.).
+
+Control:
+
+Font size
+
+Line spacing
+
+Section headers
+
+Margins
+
+Bullet points
+
+Different templates should have slightly different visual appearances (modern vs classic layouts).
+
+3. AI Formatting Optimizations
+Before rendering:
+
+Balance font sizes dynamically depending on content length.
+
+Adjust margins and spacing to prevent cutting off sections.
+
+Auto-wrap text where needed for clean one-page or two-page max layouts.
+
+If short content (e.g., minimal experience), rebalance to avoid awkward white space.
+
+4. Scrollable and Zoomable Modal
+If the resume height exceeds the modal viewport:
+
+Enable vertical scrolling inside the modal.
+
+Zoom controls (existing) should now actually zoom the resume content.
+
+Ensure zoom resets smoothly without breaking formatting.
+
+5. Keep Download PDF Available
+User can download the formatted resume exactly as they see it after previewing.
+
+Clicking "Download PDF" should save the current visual version.
+
+6. Add Light Loading State (Optional)
+If resume rendering takes longer than 0.5s:
+
+Show a simple spinner with text:
+
+"Loading your resume preview..."
+
+📂 Technical Notes:
+Use HTML + CSS to render the resume inside the modal for real-time viewing.
+
+Do not force users to download a PDF just to see the result.
+
+The preview should match the final download exactly (WYSIWYG principle: What You See Is What You Get).
+
+🛠 Deliverable:
+✅ Full resume preview rendered dynamically from all resume fields.
+✅ Matches selected template formatting.
+✅ AI adjusts formatting for clean, professional look.
+✅ Scrollable and zoomable inside modal.
+✅ Download PDF option available after preview.
+
+🧠 Why This Matters:
+✅ Builds immediate user trust.
+✅ Reduces friction (no guessing if resume looks good).
+✅ Matches UX expectations from top SaaS apps like Canva, Google Docs, Notion.
+✅ Supports long-term scaling to multiple templates and resume versions.
+
