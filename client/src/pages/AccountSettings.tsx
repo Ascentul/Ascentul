@@ -79,7 +79,8 @@ export default function AccountSettings() {
   const [, navigate] = useLocation();
   const updateUserSubscription = useUpdateUserSubscription();
   const [selectedColor, setSelectedColor] = useState('#0C29AB'); // Default color from theme.json
-  const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = useCareerData();
+  const careerQuery = useCareerData();
+  const { data: careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
   
   // Modal state variables for career data forms
   const [workHistoryModal, setWorkHistoryModal] = useState<{
