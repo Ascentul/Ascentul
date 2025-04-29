@@ -502,16 +502,10 @@ export default function AccountSettings() {
                     <div className="border rounded-lg p-4 border-dashed flex flex-col items-center justify-center py-8 text-center">
                       <FileText className="h-8 w-8 text-muted-foreground mb-2" />
                       <h3 className="font-medium mb-1">No career summary added yet</h3>
-                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
-                        Your career summary helps highlight your professional journey, skills, and goals.
-                        It powers your resume, AI coaching sessions, and interview practice.
+                      <p className="text-sm text-center text-gray-500 px-4 py-6">
+                        Your career summary helps highlight your professional journey, skills, and goals. 
+                        It powers your resume, AI coaching, and interview practice.
                       </p>
-                      <AddSectionButton
-                        onClick={() => setCareerSummaryModal({ open: true, defaultValue: '' })}
-                        variant="secondary"
-                        label="Add Career Summary"
-                        mode="add"
-                      />
                     </div>
                   )}
                 </CardContent>
