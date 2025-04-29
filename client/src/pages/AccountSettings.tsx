@@ -12,6 +12,7 @@ import { SkillFormModal } from '@/components/modals/SkillFormModal';
 import { CertificationFormModal } from '@/components/modals/CertificationFormModal';
 import { CareerSummaryFormModal } from '@/components/modals/CareerSummaryFormModal';
 import { DeleteConfirmationDialog } from '@/components/modals/DeleteConfirmationDialog';
+import { AddSectionButton } from '@/components/AddSectionButton';
 
 import { 
   Loader2, 
@@ -532,14 +533,12 @@ export default function AccountSettings() {
                       Manage your professional work history
                     </CardDescription>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="flex items-center"
+                  <AddSectionButton
+                    size="sm"
+                    label="Add Job"
+                    mode="add"
                     onClick={() => setWorkHistoryModal({ open: true, mode: 'add' })}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Job
-                  </Button>
+                  />
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.workHistory?.length > 0 ? (
