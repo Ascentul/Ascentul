@@ -749,35 +749,57 @@ export default function AccountSettings() {
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.skills?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {careerData.skills.map((skill) => (
-                        <div key={skill.id} className="flex items-center bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-sm">
-                          {skill.name}
-                          {skill.proficiencyLevel && (
-                            <span className="ml-1 text-xs text-muted-foreground">({skill.proficiencyLevel})</span>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive"
-                            onClick={() => setDeleteConfirmation({
-                              open: true,
-                              itemId: skill.id,
-                              itemType: 'Skill',
-                              endpoint: '/api/career-data/skills'
-                            })}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                    <div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {careerData.skills.map((skill) => (
+                          <div key={skill.id} className="flex items-center bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 text-sm">
+                            {skill.name}
+                            {skill.proficiencyLevel && (
+                              <span className="ml-1 text-xs text-muted-foreground">({skill.proficiencyLevel})</span>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: skill.id,
+                                itemType: 'Skill',
+                                endpoint: '/api/career-data/skills'
+                              })}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-6">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          <Info className="h-3 w-3 mr-1" />
+                          These skills are highlighted in your resume and used by the AI Coach.
                         </div>
-                      ))}
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                        </Badge>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No skills added yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Add your skills to showcase your expertise.
+                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
+                      <Award className="h-10 w-10 text-muted-foreground mb-3" />
+                      <h3 className="font-medium mb-2">No skills added yet</h3>
+                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                        Add your technical and soft skills to showcase your expertise.
                       </p>
+                      <p className="text-muted-foreground text-sm italic mb-4">
+                        Need inspiration? Use AI Coach to suggest skills based on your work history.
+                      </p>
+                      <Button 
+                        onClick={() => setSkillModal({ open: true })}
+                        variant="secondary"
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add Skill
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -837,39 +859,63 @@ export default function AccountSettings() {
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                          <h3 className="font-semibold text-lg">{cert.name}</h3>
-                          <p className="text-muted-foreground">{cert.issuingOrganization}</p>
+                          <h3 className="font-semibold text-xl mb-1">{cert.name}</h3>
+                          <p className="text-muted-foreground font-medium">{cert.issuingOrganization}</p>
+                          
                           {cert.issueDate && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
                               Issued: {formatDate(cert.issueDate)}
                               {cert.expiryDate && <> · Expires: {formatDate(cert.expiryDate)}</>}
                               {!cert.expiryDate && cert.noExpiration && <> · No Expiration</>}
-                            </p>
+                            </div>
                           )}
+                          
                           {cert.credentialID && (
-                            <p className="text-sm mt-1">Credential ID: {cert.credentialID}</p>
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">Credential ID:</span> {cert.credentialID}
+                            </div>
                           )}
+                          
                           {cert.credentialURL && (
-                            <p className="text-sm mt-1">
+                            <div className="mt-2">
                               <a 
                                 href={cert.credentialURL} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="text-primary hover:underline"
+                                className="text-primary hover:underline text-sm flex items-center"
                               >
+                                <Info className="h-3.5 w-3.5 mr-1.5" /> 
                                 View Credential
                               </a>
-                            </p>
+                            </div>
                           )}
+                          
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No certifications added yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Add your professional certifications to validate your expertise.
+                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
+                      <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
+                      <h3 className="font-medium mb-2">No certifications added yet</h3>
+                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                        Add your professional certifications to validate your expertise and credibility.
                       </p>
+                      <p className="text-muted-foreground text-sm italic mb-4">
+                        Certifications help enhance your resume and stand out to potential employers.
+                      </p>
+                      <Button 
+                        onClick={() => setCertificationModal({ open: true, mode: 'add' })}
+                        variant="secondary"
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add Certification
+                      </Button>
                     </div>
                   )}
                 </CardContent>
@@ -901,15 +947,34 @@ export default function AccountSettings() {
                 </CardHeader>
                 <CardContent className="pt-6">
                   {careerData?.careerSummary ? (
-                    <div className="border rounded-lg p-4">
-                      <p>{careerData.careerSummary}</p>
+                    <div className="border rounded-lg p-5 relative">
+                      <p className="whitespace-pre-wrap">{careerData.careerSummary}</p>
+                      <div className="absolute bottom-2 right-2">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                        </Badge>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No career summary added yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
+                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
+                      <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+                      <h3 className="font-medium mb-2">No career summary added yet</h3>
+                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
                         Add a professional summary to introduce yourself to potential employers.
                       </p>
+                      <p className="text-muted-foreground text-sm italic mb-4">
+                        A good career summary highlights your experience, skills, and career goals.
+                      </p>
+                      <Button 
+                        onClick={() => setCareerSummaryModal({ 
+                          open: true, 
+                          defaultValue: careerData?.careerSummary || '' 
+                        })}
+                        variant="secondary"
+                      >
+                        <Pencil className="mr-1 h-4 w-4" />
+                        Add Career Summary
+                      </Button>
                     </div>
                   )}
                 </CardContent>
