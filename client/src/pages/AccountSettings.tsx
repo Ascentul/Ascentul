@@ -498,7 +498,7 @@ export default function AccountSettings() {
                     <div className="relative border rounded-lg p-4">
                       <p className="whitespace-pre-wrap">{careerData.careerSummary}</p>
                       <div className="mt-4 text-xs text-muted-foreground flex items-center">
-                        <Info className="h-3 w-3 mr-1" />
+                        <HelpCircle className="h-3 w-3 mr-1" />
                         Used in Resume Studio, AI Coach, and Voice Interview Practice.
                       </div>
                       <div className="absolute bottom-2 right-2">
@@ -527,11 +527,11 @@ export default function AccountSettings() {
               <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
-                    <CardTitle className="text-xl flex items-center">
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
                       <Briefcase className="mr-2 h-5 w-5" />
                       Work History
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm text-gray-500">
                       Manage your professional work history
                     </CardDescription>
                   </div>
@@ -779,7 +779,7 @@ export default function AccountSettings() {
                       </div>
                       <div className="flex justify-between items-center mt-6">
                         <div className="text-xs text-muted-foreground flex items-center">
-                          <Info className="h-3 w-3 mr-1" />
+                          <HelpCircle className="h-3 w-3 mr-1" />
                           These skills are highlighted in your resume and used by the AI Coach.
                         </div>
                         <Badge variant="outline" className="text-xs text-muted-foreground">
@@ -880,7 +880,7 @@ export default function AccountSettings() {
                                 rel="noopener noreferrer"
                                 className="text-primary hover:underline text-sm flex items-center"
                               >
-                                <Info className="h-3.5 w-3.5 mr-1.5" /> 
+                                <HelpCircle className="h-3.5 w-3.5 mr-1.5" /> 
                                 View Credential
                               </a>
                             </div>
