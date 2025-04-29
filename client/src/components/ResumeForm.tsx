@@ -301,13 +301,14 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
         </div>
 
         <Tabs defaultValue="personal">
-          <TabsList className="grid grid-cols-3 md:grid-cols-6">
+          <TabsList className="grid grid-cols-3 md:grid-cols-7">
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
             <TabsTrigger value="experience">Experience</TabsTrigger>
             <TabsTrigger value="education">Education</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="template">Template</TabsTrigger>
           </TabsList>
           
           {/* Personal Info */}
