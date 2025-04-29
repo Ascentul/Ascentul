@@ -1615,8 +1615,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const workHistory = await storage.getWorkHistory(user.id);
-      res.status(200).json(workHistory);
+      
+      // Ensure proper serialization and handle null values or date objects
+      const safeWorkHistory = workHistory.map(item => ({
+        ...item,
+        startDate: item.startDate instanceof Date ? item.startDate.toISOString() : item.startDate,
+        endDate: item.endDate instanceof Date ? item.endDate.toISOString() : item.endDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+        achievements: Array.isArray(item.achievements) ? item.achievements : []
+      }));
+      
+      res.status(200).json(safeWorkHistory);
     } catch (error) {
+      console.error("Error fetching work history:", error);
       res.status(500).json({ message: "Error fetching work history" });
     }
   });
@@ -1719,8 +1730,19 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       }
       
       const educationHistory = await storage.getEducationHistory(user.id);
-      res.status(200).json(educationHistory);
+      
+      // Ensure proper serialization and handle null values or date objects
+      const safeEducationHistory = educationHistory.map(item => ({
+        ...item,
+        startDate: item.startDate instanceof Date ? item.startDate.toISOString() : item.startDate,
+        endDate: item.endDate instanceof Date ? item.endDate.toISOString() : item.endDate,
+        createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+        achievements: Array.isArray(item.achievements) ? item.achievements : []
+      }));
+      
+      res.status(200).json(safeEducationHistory);
     } catch (error) {
+      console.error("Error fetching education history:", error);
       res.status(500).json({ message: "Error fetching education history" });
     }
   });
