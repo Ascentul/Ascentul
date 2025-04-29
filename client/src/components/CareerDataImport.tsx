@@ -88,7 +88,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
     id: skill.id,
     title: skill.name,
     subtitle: skill.category,
-    description: skill.yearOfExperience ? `${skill.yearOfExperience} years experience` : undefined,
+    description: skill.proficiencyLevel ? `Proficiency: ${skill.proficiencyLevel}` : undefined,
     selected: selectedSkillItems.includes(skill.id)
   })) || [];
 
@@ -121,6 +121,22 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
 
   // Import the selected items into the resume form
   const importSelectedItems = () => {
+    // Check if any items are selected
+    const hasSelectedItems = 
+      selectedWorkItems.length > 0 || 
+      selectedEducationItems.length > 0 || 
+      selectedSkillItems.length > 0;
+    
+    // If nothing is selected, show message and keep dialog open
+    if (!hasSelectedItems) {
+      toast({
+        title: 'No items selected',
+        description: 'Please select at least one item to import.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     // Import work history
     if (selectedWorkItems.length > 0) {
       const currentExperience = form.getValues('content.experience') || [];
@@ -155,7 +171,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         ...selectedEducation.map(edu => ({
           institution: edu.institution,
           degree: edu.degree,
-          field: edu.field || '',
+          field: edu.fieldOfStudy || '',
           startDate: edu.startDate ? format(new Date(edu.startDate), 'yyyy-MM-dd') : '',
           endDate: edu.endDate ? format(new Date(edu.endDate), 'yyyy-MM-dd') : '',
           description: edu.description || '',
@@ -248,7 +264,15 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
             <TabsContent value="experience" className="max-h-[400px] overflow-y-auto">
               {workItems.length > 0 ? (
                 workItems.map(job => (
-                  <Card key={job.id} className="mb-3">
+                  <Card 
+                    key={job.id} 
+                    className={`mb-3 cursor-pointer border-2 transition-all ${
+                      selectedWorkItems.includes(job.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-transparent hover:border-gray-200'
+                    }`}
+                    onClick={() => toggleWorkItem(job.id)}
+                  >
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div>
@@ -259,13 +283,14 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                           id={`work-${job.id}`}
                           checked={selectedWorkItems.includes(job.id)}
                           onCheckedChange={() => toggleWorkItem(job.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     </CardHeader>
                     {(job.description || job.date) && (
                       <CardContent className="pb-4 pt-0">
                         {job.date && <p className="text-sm text-muted-foreground mb-1">{job.date}</p>}
-                        {job.description && <p className="text-sm">{job.description}</p>}
+                        {job.description && <p className="text-sm line-clamp-3">{job.description}</p>}
                       </CardContent>
                     )}
                   </Card>
@@ -281,7 +306,15 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
             <TabsContent value="education" className="max-h-[400px] overflow-y-auto">
               {educationItems.length > 0 ? (
                 educationItems.map(edu => (
-                  <Card key={edu.id} className="mb-3">
+                  <Card 
+                    key={edu.id} 
+                    className={`mb-3 cursor-pointer border-2 transition-all ${
+                      selectedEducationItems.includes(edu.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-transparent hover:border-gray-200'
+                    }`}
+                    onClick={() => toggleEducationItem(edu.id)}
+                  >
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div>
@@ -292,13 +325,14 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                           id={`edu-${edu.id}`}
                           checked={selectedEducationItems.includes(edu.id)}
                           onCheckedChange={() => toggleEducationItem(edu.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     </CardHeader>
                     {(edu.description || edu.date) && (
                       <CardContent className="pb-4 pt-0">
                         {edu.date && <p className="text-sm text-muted-foreground mb-1">{edu.date}</p>}
-                        {edu.description && <p className="text-sm">{edu.description}</p>}
+                        {edu.description && <p className="text-sm line-clamp-3">{edu.description}</p>}
                       </CardContent>
                     )}
                   </Card>
