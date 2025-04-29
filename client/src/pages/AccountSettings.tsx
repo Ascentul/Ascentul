@@ -515,7 +515,7 @@ export default function AccountSettings() {
                         Add a professional summary from the button above.
                       </p>
                       <p className="text-xs text-gray-400 max-w-md">
-                        <InfoIcon className="h-3 w-3 inline-block mr-1" />
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
                         This section powers AI coaching and resume suggestions.
                       </p>
                     </div>
@@ -610,10 +610,15 @@ export default function AccountSettings() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No work history added yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Add your professional experience to enhance your profile.
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <Briefcase className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No work history added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your professional experience from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Work history powers your resume and job matching algorithms.
                       </p>
                     </div>
                   )}
@@ -713,10 +718,15 @@ export default function AccountSettings() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <p className="text-muted-foreground">No education history added yet.</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Add your educational background to complete your profile.
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <GraduationCap className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No education history added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your educational background from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Education history is displayed on your resume and profile.
                       </p>
                     </div>
                   )}
@@ -778,15 +788,16 @@ export default function AccountSettings() {
                       </div>
                     </div>
                   ) : (
-                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
-                      <Award className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h3 className="font-medium mb-2">No skills added yet</h3>
-                      <div className="text-center text-sm text-gray-500 px-4 py-6">
-                        Add your technical and soft skills to showcase your expertise.
-                        <em className="block mt-1 text-gray-400 italic">
-                          Need inspiration? Use AI Coach to suggest skills based on your work history.
-                        </em>
-                      </div>
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <Award className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No skills added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your technical and soft skills from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Skills help match you with relevant job opportunities.
+                      </p>
                     </div>
                   )}
                 </CardContent>
@@ -884,15 +895,16 @@ export default function AccountSettings() {
                       ))}
                     </div>
                   ) : (
-                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
-                      <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h3 className="font-medium mb-2">No certifications added yet</h3>
-                      <div className="text-center text-sm text-gray-500 px-4 py-6">
-                        Add your professional certifications to validate your expertise and credibility.  
-                        <em className="block mt-1 text-gray-400 italic">
-                          Certifications help enhance your resume and stand out to potential employers.
-                        </em>
-                      </div>
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <BookOpen className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No certifications added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your professional certifications from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Certifications validate your expertise and enhance your resume.
+                      </p>
                     </div>
                   )}
                 </CardContent>
