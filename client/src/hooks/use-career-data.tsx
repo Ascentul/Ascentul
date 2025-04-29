@@ -59,10 +59,18 @@ export type CareerData = {
 };
 
 export function useCareerData() {
-  const query = useQuery<CareerData>({
+  return useQuery<CareerData, Error, CareerData, [string]>({
     queryKey: ['/api/career-data'],
-    queryFn: getQueryFn<CareerData>(),
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(queryKey[0], {
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching career data: ${response.status}`);
+      }
+      
+      return response.json() as Promise<CareerData>;
+    },
   });
-
-  return query;
 }
