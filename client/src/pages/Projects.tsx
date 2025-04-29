@@ -168,65 +168,73 @@ export default function Projects() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : sortedProjects && sortedProjects.length > 0 ? (
-        <div className="space-y-8 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 animate-fadeIn">
           {sortedProjects.map((project) => (
             <Card 
               key={project.id} 
-              className="p-6 relative group hover:shadow-md md:hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              className="flex flex-col overflow-hidden group project-card cursor-pointer"
             >
-              <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7 bg-white shadow-sm"
-                  onClick={() => handleEdit(project)}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-7 w-7 text-red-500 hover:text-red-600 bg-white shadow-sm"
-                  onClick={() => handleDelete(project.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-
-              <div className="flex flex-col md:flex-row md:items-start gap-2">
+              {/* Project Image Section */}
+              <div className="relative w-full h-[200px]">
                 {project.imageUrl ? (
-                  <div className="flex-shrink-0 w-28 h-28 rounded-lg overflow-hidden">
-                    <img 
-                      src={project.imageUrl} 
-                      alt={project.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <img 
+                    src={project.imageUrl} 
+                    alt={project.title} 
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="flex-shrink-0 w-28 h-28 rounded-lg bg-[#f4f4f4] border border-[#eaeaea] flex items-center justify-center">
-                    <Image className="h-10 w-10 text-gray-300" />
+                  <div className="w-full h-full bg-[#f4f4f4] border-b border-[#eaeaea] flex items-center justify-center">
+                    <Image className="h-16 w-16 text-gray-200" />
                   </div>
                 )}
+                
+                {/* Action Buttons */}
+                <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 bg-white/90 shadow-sm backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(project);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-600 bg-white/90 shadow-sm backdrop-blur-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
-                <div className="flex-1">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
-                    <h2 className="text-xl font-semibold">{project.title}</h2>
-                    <div className="flex items-center space-x-2 mt-1 md:mt-0 mr-20 max-w-[70%]">
-                      <Badge variant={getBadgeVariant(project.projectType)}>
-                        {capitalizeFirstLetter(project.projectType)}
-                      </Badge>
-                      <div className="text-sm text-neutral-500 flex items-center truncate">
-                        <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">{formatDateRange(
-                          typeof project.startDate === 'string' ? project.startDate : project.startDate.toString(), 
-                          project.endDate ? (typeof project.endDate === 'string' ? project.endDate : project.endDate.toString()) : null
-                        )}</span>
-                      </div>
-                    </div>
+              {/* Project Content Section */}
+              <div className="flex-1 p-5">
+                <h2 className="text-xl font-semibold mb-2 line-clamp-1">{project.title}</h2>
+                
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <Badge variant={getBadgeVariant(project.projectType)}>
+                    {capitalizeFirstLetter(project.projectType)}
+                  </Badge>
+                  <div className="text-sm text-neutral-500 flex items-center">
+                    <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                    <span>{formatDateRange(
+                      typeof project.startDate === 'string' ? project.startDate : project.startDate.toString(), 
+                      project.endDate ? (typeof project.endDate === 'string' ? project.endDate : project.endDate.toString()) : null
+                    )}</span>
                   </div>
+                </div>
 
-                  <div className="flex items-center text-primary font-medium mb-4">
-                    <span>{project.clientOrCompany}</span>
+                {project.clientOrCompany && (
+                  <div className="text-primary font-medium text-sm mb-3">
+                    {project.clientOrCompany}
                     {project.projectUrl && (
                       <>
                         <span className="mx-2">•</span>
@@ -234,59 +242,63 @@ export default function Projects() {
                           href={project.projectUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center text-neutral-500 hover:text-primary"
+                          className="inline-flex items-center text-neutral-500 hover:text-primary"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <LinkIcon className="h-4 w-4 mr-1" />
+                          <LinkIcon className="h-3.5 w-3.5 mr-1" />
                           View Project
                         </a>
                       </>
                     )}
                   </div>
+                )}
 
-                  {project.description && (
-                    <div className="mb-4 pb-4">
-                      {project.description.length > 200 ? (
-                        <>
-                          <p className="text-neutral-700">
-                            {expandedDescriptions[project.id] 
-                              ? project.description 
-                              : `${project.description.substring(0, 200)}...`}
-                          </p>
-                          <Button
-                            variant="link"
-                            className="px-0 h-auto text-sm font-medium text-primary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleDescriptionExpand(project.id);
-                            }}
-                          >
-                            {expandedDescriptions[project.id] ? (
-                              <span className="flex items-center">
-                                Show less <ChevronUp className="ml-1 h-3 w-3" />
-                              </span>
-                            ) : (
-                              <span className="flex items-center">
-                                Read more <ChevronDown className="ml-1 h-3 w-3" />
-                              </span>
-                            )}
-                          </Button>
-                        </>
-                      ) : (
-                        <p className="text-neutral-700">{project.description}</p>
-                      )}
-                    </div>
-                  )}
+                {project.description && (
+                  <div className="mb-4">
+                    {project.description.length > 160 ? (
+                      <>
+                        <p className={`text-neutral-700 text-sm leading-relaxed ${!expandedDescriptions[project.id] ? 'line-clamp-3' : ''}`}>
+                          {project.description}
+                        </p>
+                        <Button
+                          variant="link"
+                          className="px-0 h-auto text-xs font-medium text-primary mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDescriptionExpand(project.id);
+                          }}
+                        >
+                          {expandedDescriptions[project.id] ? (
+                            <span className="flex items-center">
+                              Show less <ChevronUp className="ml-1 h-3 w-3" />
+                            </span>
+                          ) : (
+                            <span className="flex items-center">
+                              Read more <ChevronDown className="ml-1 h-3 w-3" />
+                            </span>
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-neutral-700 text-sm leading-relaxed">{project.description}</p>
+                    )}
+                  </div>
+                )}
 
-                  {project.skillsUsed && project.skillsUsed.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {project.skillsUsed.map((skill, index) => (
-                        <Badge key={index} variant="secondary">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {project.skillsUsed && project.skillsUsed.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-auto">
+                    {project.skillsUsed.slice(0, 3).map((skill, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs px-2 py-0">
+                        {skill}
+                      </Badge>
+                    ))}
+                    {project.skillsUsed.length > 3 && (
+                      <Badge variant="outline" className="text-xs px-2 py-0">
+                        +{project.skillsUsed.length - 3} more
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           ))}

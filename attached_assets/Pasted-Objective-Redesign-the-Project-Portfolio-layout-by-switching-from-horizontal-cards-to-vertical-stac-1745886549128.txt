@@ -1,0 +1,97 @@
+Objective:
+Redesign the Project Portfolio layout by switching from horizontal cards to vertical stacked cards. Feature a larger project image at the top of each card, followed by project details underneath for a clean, modern portfolio look.
+
+Layout Changes:
+
+1. Vertical Card Structure
+Each project card should follow this vertical order:
+
+Project Image (top, full card width, larger than before)
+
+Project Title (bold, larger font)
+
+Metadata Row:
+
+Badge for Project Type ("Personal", "Professional")
+
+Date (e.g., "April 2025")
+
+Short Description (truncated after 3–4 lines)
+
+Optional "Read More" link if the description is long
+
+Component Details:
+
+Card Width:
+
+On desktop: around 300px to 350px width
+
+On mobile: full width, responsive
+
+Project Image:
+
+Full width of the card
+
+Height around 180px–220px
+
+object-fit: cover to maintain image aspect ratio and fill the container without distortion
+
+Apply border-radius: 8px 8px 0 0 to match the card
+
+Card Body (text area):
+
+Padding inside: 16px
+
+Title: bold, slightly larger than before
+
+Metadata (badge + date): smaller, light gray color
+
+Description: normal text, 3–4 lines max before truncating
+
+"Read More" link in brand color (e.g., blue)
+
+Card Shadow and Hover Effects:
+
+Add subtle box-shadow on default
+
+On hover: lift card slightly (scale(1.02)), and make shadow deeper
+
+Example:
+
+css
+Copy
+Edit
+.project-card {
+  transition: all 0.3s ease;
+}
+.project-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+Cards Grid Layout:
+
+Use a grid or flexbox layout
+
+3 cards per row on desktop, 2 on tablets, 1 on mobile
+
+Example:
+
+css
+Copy
+Edit
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+Extra Touches (Optional but Recommended):
+
+Add a slight fade-in animation on page load for the cards.
+
+Allow card click to expand full project view in a modal later (future upgrade).
+
+If no project image is uploaded, use the default placeholder, but size it the same as real images to avoid layout shifting.
+
+Deliverable:
+A Project Portfolio page with vertically stacked project cards, larger project images, and polished modern styling, fully responsive across desktop, tablet, and mobile.

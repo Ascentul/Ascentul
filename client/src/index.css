@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Project portfolio animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+/* Project card animations */
+.project-card {
+  transition: all 0.3s ease;
+}
+
+.project-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
 /* Force refresh image to prevent browser caching */
 .force-refresh-image {
   /* This will force the browser to always request the image fresh */
