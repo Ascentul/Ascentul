@@ -77,18 +77,25 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         console.log('CareerDataImport: Dialog opened, refreshing career data...');
         
         try {
-          // Hard invalidate the cache completely first
+          // First, run our comprehensive debugging function to trace the data flow
+          await debugCompareWorkHistorySources();
+          
+          // Hard invalidate the cache completely to ensure we get fresh data
           queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+          
+          // Add a timestamp to bust any potential server-side caching
+          const timestamp = new Date().getTime();
+          const cacheHeaders = {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          };
           
           // Directly perform a fetch to verify what's coming from the API
           console.log('Performing direct API call to fetch career data...');
-          const response = await fetch('/api/career-data', {
+          const response = await fetch(`/api/career-data?t=${timestamp}`, {
             credentials: 'include',
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            }
+            headers: cacheHeaders
           });
           
           if (!response.ok) {
@@ -101,11 +108,25 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           
           if (directData?.workHistory?.length > 0) {
             console.log('DIRECT API CALL - First work history item:', directData.workHistory[0]);
+            
+            // Verify all work history dates are correctly formatted
+            const sampleJob = directData.workHistory[0];
+            console.log('DIRECT API CALL - Date format verification:');
+            console.log(`  startDate (${typeof sampleJob.startDate}):`, sampleJob.startDate);
+            console.log(`  endDate (${typeof sampleJob.endDate}):`, sampleJob.endDate);
+            console.log(`  createdAt (${typeof sampleJob.createdAt}):`, sampleJob.createdAt);
+            
+            // Test parsing dates
+            if (sampleJob.startDate) {
+              const testDate = new Date(sampleJob.startDate);
+              console.log('  Parsed startDate:', testDate.toISOString());
+            }
           } else {
             console.log('DIRECT API CALL - No work history items found!');
           }
           
           // Now perform the React Query refetch to update the UI
+          // Pass the same cache-busting timestamp to the refetch function
           console.log('Now refetching data via React Query...');
           const result = await refetch();
           
@@ -123,12 +144,17 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
           }
         } catch (error) {
           console.error('Error during career data refresh:', error);
+          toast({
+            title: "Error refreshing data",
+            description: "We encountered an issue refreshing your career data. Please try again.",
+            variant: "destructive"
+          });
         }
       }
     };
     
     refreshCareerData();
-  }, [isDialogOpen, refetch]);
+  }, [isDialogOpen, refetch, toast]);
 
   // Format work history for display
   const workItems: ImportableItem[] = careerData?.workHistory.map(job => ({
