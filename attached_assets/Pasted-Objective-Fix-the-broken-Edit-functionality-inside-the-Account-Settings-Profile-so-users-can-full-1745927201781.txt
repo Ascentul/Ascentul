@@ -1,0 +1,83 @@
+Objective:
+Fix the broken "Edit" functionality inside the Account Settings Profile so users can fully edit, update, and delete their core career data:
+
+Work History
+
+Education
+
+Skills
+
+Certifications
+
+Career Summary
+
+📋 Issues to Fix:
+Edit buttons currently do not trigger any modal or inline edit view.
+
+No visible form appears when clicking Edit.
+
+No way to update or save changes once edits are made.
+
+No ability to delete entries.
+
+✅ What Needs to Be Implemented:
+1. Enable "Edit" Button Functionality
+
+Expected Behavior	Technical Requirements
+Clicking the Edit button opens an editable form for that specific data entry (Work History, Education, etc.).	Open a modal OR expand an inline edit form below the selected item.
+Pre-fill the form fields with the existing saved data.	Load current values into input fields.
+Allow users to modify fields and click "Save Changes" or "Cancel."	Two buttons inside modal or inline form.
+Save changes to Supabase immediately after clicking "Save."	Call update mutation for that object by its ID.
+2. Allow "Delete" Functionality
+
+Expected Behavior	Technical Requirements
+Clicking "Delete" prompts a confirmation modal ("Are you sure?").	Confirmation before removal to prevent accidental deletion.
+If confirmed, delete the selected item from Supabase.	Delete by object ID (WorkHistoryID, EducationID, etc.).
+Refresh list view dynamically (no page reload needed).	Frontend should reflect real-time removal.
+3. Add "Add New" Functionality if Missing
+Each section should allow adding new entries if the user has none.
+
+Example:
+
+"+ Add New Work History" → opens a blank form to add a job.
+
+✅ Keep UX consistent between "Add New" and "Edit Existing."
+
+📂 Data Handling:
+Updates should use Supabase update() function by entry ID.
+
+Deletions should use Supabase delete() by entry ID.
+
+Insertions should use Supabase insert() linked to the correct authenticated userID.
+
+✅ Changes should trigger frontend re-render without needing page refresh.
+
+🎨 UX Expectations:
+Show clear visual feedback:
+
+Loading spinner if saving takes longer than 1 second.
+
+Toast notification after successful edit or delete.
+
+Disable Save button during database transaction to prevent double-submission.
+
+🚀 Future Considerations (Optional):
+Allow users to reorder skills, work history by drag-and-drop later.
+
+Add "Copy to Resume" button (future integration with Resume Studio).
+
+🛠 Deliverables:
+✅ Edit button functional for each core section.
+✅ Pre-filled form fields when editing.
+✅ Save and update entries dynamically to Supabase.
+✅ Delete items cleanly with confirmation modal.
+✅ Frontend refreshes dynamically without full reload.
+✅ Consistent UX across Work History, Education, Skills, Certifications, Career Summary.
+
+📈 Why This Fix Matters:
+Unlocks true "Career Profile" functionality.
+
+Prepares Ascentul’s platform to power Resume Studio, AI Coach, and Career Explorer modules.
+
+Reduces user friction and increases profile completion rates.
+
