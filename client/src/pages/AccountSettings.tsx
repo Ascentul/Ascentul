@@ -22,18 +22,15 @@ import {
   LogOut, 
   Mail, 
   CheckCircle, 
-  Palette, 
   Briefcase,
   GraduationCap,
   Award,
   BookOpen,
   FileText,
-  Plus,
   Pencil,
   Trash2,
   Calendar,
   MapPin,
-  Info,
   RefreshCw,
   HelpCircle
 } from 'lucide-react';
@@ -273,10 +270,6 @@ export default function AccountSettings() {
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center">
-            <Palette className="mr-2 h-4 w-4" />
-            Appearance
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center">
             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -939,35 +932,7 @@ export default function AccountSettings() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand Theme</CardTitle>
-              <CardDescription>
-                Ascentul uses a consistent visual theme to maintain brand clarity.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-2">Primary Theme Color</h3>
-                <div className="flex flex-col space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div 
-                      className="w-12 h-12 rounded-md border" 
-                      style={{ backgroundColor: "#0c29ab" }}
-                    />
-                    <div className="text-base">
-                      Ascentul Blue (#0c29ab)
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Ascentul uses a consistent color theme across all parts of the application to provide a unified brand experience.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Appearance tab removed as per branding decision */}
         
         <TabsContent value="security" className="space-y-6">
           <Card>
