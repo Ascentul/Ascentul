@@ -34,7 +34,8 @@ import {
   Calendar,
   MapPin,
   Info,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -507,15 +508,16 @@ export default function AccountSettings() {
                       </div>
                     </div>
                   ) : (
-                    <div className="border rounded-lg p-4 border-dashed flex flex-col items-center justify-center py-8 text-center">
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
                       <FileText className="h-8 w-8 text-muted-foreground mb-2" />
                       <h3 className="font-medium mb-1">No career summary added yet</h3>
-                      <div className="text-center text-sm text-gray-500 px-4 py-6">
-                        Add a professional summary to introduce yourself to potential employers.
-                        <em className="block mt-1 text-gray-400 italic">
-                          A good career summary highlights your experience, skills, and career goals.
-                        </em>
-                      </div>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add a professional summary from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <InfoIcon className="h-3 w-3 inline-block mr-1" />
+                        This section powers AI coaching and resume suggestions.
+                      </p>
                     </div>
                   )}
                 </CardContent>
