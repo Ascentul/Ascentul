@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { PlusCircle, MinusCircle, FileText } from 'lucide-react';
+import { CareerDataImport } from '@/components/CareerDataImport';
 
 const resumeSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
@@ -298,6 +299,11 @@ export default function ResumeForm({ resume, onSuccess }: ResumeFormProps) {
               </FormItem>
             )}
           />
+        </div>
+        
+        {/* Career Data Import */}
+        <div className="mb-4">
+          <CareerDataImport form={form} />
         </div>
 
         <Tabs defaultValue="personal">
