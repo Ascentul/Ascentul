@@ -63,7 +63,7 @@ export function CareerSummaryFormModal({
   const mutation = useMutation({
     mutationFn: async (values: CareerSummaryFormValues) => {
       const response = await apiRequest('PUT', '/api/career-data/career-summary', {
-        summary: values.summary,
+        careerSummary: values.summary,
       });
 
       if (!response.ok) {
