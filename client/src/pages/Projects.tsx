@@ -10,21 +10,32 @@ import {
   Edit,
   Trash2,
   Link as LinkIcon,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Image
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isEqual, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import ProjectForm from '@/components/ProjectForm';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Projects() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<number, boolean>>({});
 
   const { data: projects = [], isLoading, refetch } = useQuery<Project[]>({
     queryKey: ['projects'],
@@ -33,9 +44,14 @@ export default function Projects() {
       if (!response.ok) throw new Error('Failed to fetch projects');
       const data = await response.json();
       return data;
-      if (!response.ok) throw new Error('Failed to fetch projects');
-      return response.json();
     },
+  });
+
+  // Sort projects based on start date
+  const sortedProjects = [...projects].sort((a, b) => {
+    const dateA = new Date(a.startDate).getTime();
+    const dateB = new Date(b.startDate).getTime();
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const deleteProjectMutation = useMutation({
@@ -69,10 +85,49 @@ export default function Projects() {
     setIsDialogOpen(true);
   };
 
+  const toggleDescriptionExpand = (projectId: number) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [projectId]: !prev[projectId]
+    }));
+  };
+
   const formatDateRange = (startDate: string, endDate?: string | null) => {
-    const start = format(new Date(startDate), 'MMM yyyy');
-    if (!endDate) return `${start} - Present`;
-    return `${start} - ${format(new Date(endDate), 'MMM yyyy')}`;
+    try {
+      const start = new Date(startDate);
+      const startMonth = format(start, 'MMMM yyyy');
+
+      if (!endDate) return `${startMonth} - Present`;
+
+      const end = new Date(endDate);
+      const endMonth = format(end, 'MMMM yyyy');
+
+      // If same month and year, just display once
+      if (format(start, 'MMMM yyyy') === format(end, 'MMMM yyyy')) {
+        return startMonth;
+      }
+
+      return `${startMonth} - ${endMonth}`;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
+  };
+
+  const getBadgeVariant = (projectType: string) => {
+    const type = projectType.toLowerCase();
+    switch (type) {
+      case 'personal':
+        return 'secondary';
+      case 'professional':
+        return 'default';
+      default:
+        return 'outline';
+    }
+  };
+
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   };
 
   return (
@@ -82,23 +137,42 @@ export default function Projects() {
           <h1 className="text-2xl font-bold font-poppins">Project Portfolio</h1>
           <p className="text-neutral-500">Showcase your professional and personal projects</p>
         </div>
-        <Button 
-          className="mt-4 md:mt-0"
-          onClick={handleAddNew}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Project
-        </Button>
+        <div className="flex items-center gap-3 mt-4 md:mt-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-1">
+                Sort: {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setSortOrder('newest')}>
+                Newest First
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortOrder('oldest')}>
+                Oldest First
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Project
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
-      ) : projects && projects.length > 0 ? (
+      ) : sortedProjects && sortedProjects.length > 0 ? (
         <div className="space-y-6">
-          {projects.map((project) => (
-            <Card key={project.id} className="p-6 relative group hover:shadow-lg transition-shadow">
+          {sortedProjects.map((project) => (
+            <Card 
+              key={project.id} 
+              className="p-6 relative group hover:shadow-lg transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+            >
               <div className="flex space-x-1 absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <Button
                   variant="outline"
@@ -128,8 +202,8 @@ export default function Projects() {
                     />
                   </div>
                 ) : (
-                  <div className="flex-shrink-0 w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center">
-                    <FolderGit2 className="h-6 w-6 text-primary" />
+                  <div className="flex-shrink-0 w-28 h-28 rounded-md bg-gray-100 flex items-center justify-center">
+                    <Image className="h-10 w-10 text-gray-400" />
                   </div>
                 )}
 
@@ -137,10 +211,15 @@ export default function Projects() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
                     <h2 className="text-xl font-semibold">{project.title}</h2>
                     <div className="flex items-center space-x-2 mt-1 md:mt-0 mr-20 max-w-[70%]">
-                      <Badge variant="outline">{project.projectType}</Badge>
+                      <Badge variant={getBadgeVariant(project.projectType)}>
+                        {capitalizeFirstLetter(project.projectType)}
+                      </Badge>
                       <div className="text-sm text-neutral-500 flex items-center truncate">
                         <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-                        <span className="truncate">{formatDateRange(project.startDate, project.endDate)}</span>
+                        <span className="truncate">{formatDateRange(
+                          typeof project.startDate === 'string' ? project.startDate : project.startDate.toString(), 
+                          project.endDate ? (typeof project.endDate === 'string' ? project.endDate : project.endDate.toString()) : null
+                        )}</span>
                       </div>
                     </div>
                   </div>
@@ -164,8 +243,36 @@ export default function Projects() {
                   </div>
 
                   {project.description && (
-                    <div className="mb-4">
-                      <p className="text-neutral-700">{project.description}</p>
+                    <div className="mb-4 pb-4">
+                      {project.description.length > 200 ? (
+                        <>
+                          <p className="text-neutral-700">
+                            {expandedDescriptions[project.id] 
+                              ? project.description 
+                              : `${project.description.substring(0, 200)}...`}
+                          </p>
+                          <Button
+                            variant="link"
+                            className="px-0 h-auto text-sm font-medium text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDescriptionExpand(project.id);
+                            }}
+                          >
+                            {expandedDescriptions[project.id] ? (
+                              <span className="flex items-center">
+                                Show less <ChevronUp className="ml-1 h-3 w-3" />
+                              </span>
+                            ) : (
+                              <span className="flex items-center">
+                                Read more <ChevronDown className="ml-1 h-3 w-3" />
+                              </span>
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <p className="text-neutral-700">{project.description}</p>
+                      )}
                     </div>
                   )}
 
@@ -185,10 +292,10 @@ export default function Projects() {
         </div>
       ) : (
         <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-          <FolderGit2 className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-          <h3 className="text-xl font-medium mb-2">No Projects Added</h3>
+          <Image className="mx-auto h-16 w-16 text-neutral-300 mb-4" />
+          <h3 className="text-xl font-medium mb-2">No Projects Yet</h3>
           <p className="text-neutral-500 mb-4">
-            Showcase your work by adding your first project
+            Start by showcasing your first project!
           </p>
           <Button onClick={handleAddNew}>
             <Plus className="mr-2 h-4 w-4" />
@@ -216,8 +323,8 @@ export default function Projects() {
                 );
                 
                 if (!response.ok) {
-                  const error = await response.json();
-                  throw new Error(error.error || 'Failed to save project');
+                  const errorData = await response.json();
+                  throw new Error(errorData.error || 'Failed to save project');
                 }
                 
                 const result = await response.json();
@@ -230,9 +337,13 @@ export default function Projects() {
                   description: `Your project has been ${editingProject ? 'updated' : 'added'} successfully`,
                 });
               } catch (error) {
+                const errorMessage = error instanceof Error 
+                  ? error.message 
+                  : 'Unknown error occurred';
+                
                 toast({
                   title: 'Error',
-                  description: `Failed to ${editingProject ? 'update' : 'add'} project: ${error.message}`,
+                  description: `Failed to ${editingProject ? 'update' : 'add'} project: ${errorMessage}`,
                   variant: 'destructive',
                 });
               }
