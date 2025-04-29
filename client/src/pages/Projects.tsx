@@ -167,7 +167,7 @@ export default function Projects() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : sortedProjects && sortedProjects.length > 0 ? (
-        <div className="space-y-6">
+        <div className="space-y-8 mt-6">
           {sortedProjects.map((project) => (
             <Card 
               key={project.id} 
