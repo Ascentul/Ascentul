@@ -847,13 +847,37 @@ export default function Resume() {
             if (visibleTemplate) {
               const clonedTemplate = visibleTemplate.cloneNode(true) as HTMLElement;
               
-              // Adjust styles for print
-              clonedTemplate.style.transform = 'none';
-              clonedTemplate.style.width = '100%';
-              clonedTemplate.style.maxWidth = '860px';
-              clonedTemplate.style.margin = '0 auto';
-              clonedTemplate.style.boxShadow = 'none';
+              // Preserve all the styles from the original template
+              const computedStyle = window.getComputedStyle(visibleTemplate);
               
+              // Create a style element to ensure all CSS is applied during PDF generation
+              const styleSheet = document.createElement('style');
+              styleSheet.textContent = `
+                #temp-preview-resume .resume-template {
+                  transform: none !important;
+                  width: 100% !important;
+                  max-width: 860px !important;
+                  margin: 0 auto !important;
+                  box-shadow: none !important;
+                  border-width: ${computedStyle.borderWidth} !important;
+                  border-style: ${computedStyle.borderStyle} !important;
+                  border-color: ${computedStyle.borderColor} !important;
+                  padding: ${computedStyle.padding} !important;
+                  background-color: white !important;
+                  color: ${computedStyle.color} !important;
+                  font-family: ${computedStyle.fontFamily} !important;
+                  line-height: ${computedStyle.lineHeight} !important;
+                  letter-spacing: ${computedStyle.letterSpacing} !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+                }
+              `;
+              
+              // Remove the transform to avoid scaling issues in PDF
+              clonedTemplate.style.transform = 'none';
+              
+              // Append both the style and template to hidden div
+              hiddenDiv.appendChild(styleSheet);
               hiddenDiv.appendChild(clonedTemplate);
               document.body.appendChild(hiddenDiv);
               

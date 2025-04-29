@@ -168,10 +168,27 @@
   letter-spacing: -0.011em;
   max-width: 100%;
   margin: 0 auto;
-  line-height: 1.5;
+  line-height: 1.4;
   font-size: 0.95rem;
+  page-break-inside: avoid;
 }
 
+/* Print-specific styles */
+@media print {
+  .resume-template {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 15px 20px !important;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Modern Template */
 .modern-template h1, 
 .modern-template h2,
 .modern-template h3 {
@@ -179,12 +196,23 @@
 }
 
 .modern-template {
-  --section-spacing: 1.5rem;
-  --item-spacing: 1rem;
+  --section-spacing: 1.25rem;
+  --item-spacing: 0.75rem;
+  line-height: 1.4;
 }
 
+.modern-template h2 {
+  margin-bottom: 0.5rem;
+}
+
+.modern-template .skill {
+  margin: 0.15rem;
+}
+
+/* Classic Template */
 .classic-template {
-  --section-spacing: 1.5rem;
+  --section-spacing: 1.25rem;
+  --item-spacing: 0.75rem;
   letter-spacing: normal;
 }
 
@@ -195,26 +223,53 @@
   letter-spacing: 0.05em;
 }
 
+.classic-template h2 {
+  border-bottom-width: 1px;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Minimal Template */
 .minimal-template {
-  --section-spacing: 1.75rem;
+  --section-spacing: 1.5rem;
+  --item-spacing: 0.75rem;
   font-weight: 300;
   letter-spacing: 0;
+  line-height: 1.4;
 }
 
 .minimal-template h1,
 .minimal-template h2,
 .minimal-template h3 {
-  font-weight: 500;
+  font-weight: 400;
 }
 
+.minimal-template h2 {
+  margin-bottom: 0.5rem;
+}
+
+.minimal-template .skill {
+  margin: 0.15rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Professional Template */
 .professional-template {
-  --section-spacing: 1.75rem;
+  --section-spacing: 1.5rem;
+  --item-spacing: 0.75rem;
   letter-spacing: 0.01em;
+  line-height: 1.4;
 }
 
 .professional-template h1,
 .professional-template h2 {
   letter-spacing: 0.03em;
+}
+
+.professional-template h2 {
+  border-bottom-width: 1px;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Print-specific styles - adjust for better PDF output */
