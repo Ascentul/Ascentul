@@ -158,6 +158,89 @@
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* Resume template styles */
+.resume-template-container {
+  transition: all 0.3s ease;
+}
+
+.resume-template {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.011em;
+  max-width: 100%;
+  margin: 0 auto;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.modern-template h1, 
+.modern-template h2,
+.modern-template h3 {
+  color: #1a1a1a;
+}
+
+.modern-template {
+  --section-spacing: 1.5rem;
+  --item-spacing: 1rem;
+}
+
+.classic-template {
+  --section-spacing: 1.5rem;
+  letter-spacing: normal;
+}
+
+.classic-template h1,
+.classic-template h2,
+.classic-template h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.minimal-template {
+  --section-spacing: 1.75rem;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+.minimal-template h1,
+.minimal-template h2,
+.minimal-template h3 {
+  font-weight: 500;
+}
+
+.professional-template {
+  --section-spacing: 1.75rem;
+  letter-spacing: 0.01em;
+}
+
+.professional-template h1,
+.professional-template h2 {
+  letter-spacing: 0.03em;
+}
+
+/* Print-specific styles - adjust for better PDF output */
+@media print {
+  .resume-template {
+    padding: 0;
+    margin: 0;
+    box-shadow: none !important;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+  }
+
+  .resume-template p,
+  .resume-template li,
+  .resume-template div {
+    page-break-inside: avoid;
+  }
+
+  .resume-template h1, 
+  .resume-template h2,
+  .resume-template h3 {
+    page-break-after: avoid;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

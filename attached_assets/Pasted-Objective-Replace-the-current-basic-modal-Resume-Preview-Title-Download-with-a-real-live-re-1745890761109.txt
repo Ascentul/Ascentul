@@ -1,0 +1,66 @@
+Objective:
+Replace the current basic modal ("Resume Preview: Title + Download") with a real, live-rendered resume preview formatted using the selected resume template, with AI-assisted formatting adjustments for clean output.
+
+📄 Changes to Implement:
+1. Replace the Current Preview Modal
+When a user clicks "Preview":
+
+Open a new modal or full-screen modal (depending on UX flow).
+
+Render the full formatted resume directly inside the modal.
+
+Apply the selected template’s styles (fonts, layout, colors, margins).
+
+2. Auto-Format Resume Content Using AI Rules
+Before rendering, clean and format the user’s resume data dynamically:
+
+Ensure proper line breaks between sections.
+
+Auto-fit resume to 1–2 pages if possible (adjust font size/margins slightly if needed).
+
+Ensure no broken layouts (like dangling bullet points, cutoff headers, or giant gaps).
+
+Handle long or short sections gracefully (dynamic spacing).
+
+3. Include "Download PDF" Inside the Preview
+Keep the "Download PDF" button inside the new preview modal.
+
+Placement:
+
+Top right corner, secondary button style (smaller than primary preview content).
+
+4. Add Loading State (If Needed)
+If rendering takes longer than 500ms:
+
+Show a simple loading spinner or animation.
+
+Example text:
+
+"Preparing your preview..."
+
+5. Frontend Requirements:
+Responsive preview (looks good on desktop and tablet).
+
+Allow scrolling inside the modal if the resume is longer than 1 page.
+
+Close button ("X") in top right to return to Resume Studio.
+
+📂 Additional Notes:
+If possible, generate the preview using HTML/CSS templates — avoid relying solely on PDFs for previewing.
+
+Optional: Lazy-load large sections (work history, skills, etc.) if resume is huge.
+
+🛠 Deliverable:
+A fully functional live preview of the resume.
+
+Resume is properly formatted inside the selected template.
+
+User can visually confirm resume looks correct before downloading.
+
+"Download PDF" button remains available after preview.
+
+🎯 After This Update:
+✅ Resume Studio will feel trustworthy, modern, and professional.
+✅ UX will match user expectations from tools like Notion, Canva, and Google Docs.
+✅ No surprises or friction when users are creating or downloading resumes.
+
