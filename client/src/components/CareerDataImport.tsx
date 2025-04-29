@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useCareerData } from '@/hooks/use-career-data';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Download, Briefcase, GraduationCap, LucideTag } from 'lucide-react';
+import { Loader2, Download, Briefcase, GraduationCap, LucideTag, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -228,16 +228,20 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
         </DialogHeader>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading your career data...</span>
+          <div className="flex flex-col items-center justify-center py-12 px-4 space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <div className="text-center">
+              <p className="font-medium">Loading your career data...</p>
+              <p className="text-sm text-muted-foreground mt-1">We're retrieving your work history, education, and skills.</p>
+            </div>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-destructive">Error loading career data. Please try again later.</p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-destructive/30 rounded-lg text-center">
+            <XCircle className="h-12 w-12 text-destructive mb-2 opacity-80" />
+            <p className="text-destructive font-medium">Error loading career data</p>
+            <p className="text-muted-foreground text-sm mt-1 mb-4">We couldn't retrieve your career data. Please try again later.</p>
             <Button 
               variant="outline"
-              className="mt-4"
               onClick={() => setIsDialogOpen(false)}
             >
               Close
@@ -296,8 +300,10 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                   </Card>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No work experience found. Add some in your Career Profile first.</p>
+                <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg">
+                  <Briefcase className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground text-center font-medium">No work experience found</p>
+                  <p className="text-muted-foreground text-center text-sm mt-1">Add some in your Career Profile first.</p>
                 </div>
               )}
             </TabsContent>
@@ -338,8 +344,10 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                   </Card>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No education history found. Add some in your Career Profile first.</p>
+                <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg">
+                  <GraduationCap className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground text-center font-medium">No education history found</p>
+                  <p className="text-muted-foreground text-center text-sm mt-1">Add some in your Career Profile first.</p>
                 </div>
               )}
             </TabsContent>
@@ -349,7 +357,15 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
               {skillItems.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {skillItems.map(skill => (
-                    <Card key={skill.id} className="mb-2">
+                    <Card 
+                      key={skill.id} 
+                      className={`mb-2 cursor-pointer border-2 transition-all ${
+                        selectedSkillItems.includes(skill.id) 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-transparent hover:border-gray-200'
+                      }`}
+                      onClick={() => toggleSkillItem(skill.id)}
+                    >
                       <CardHeader className="py-3">
                         <div className="flex justify-between items-center">
                           <div>
@@ -362,6 +378,7 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                             id={`skill-${skill.id}`}
                             checked={selectedSkillItems.includes(skill.id)}
                             onCheckedChange={() => toggleSkillItem(skill.id)}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </div>
                       </CardHeader>
@@ -374,8 +391,10 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No skills found. Add some in your Career Profile first.</p>
+                <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed rounded-lg">
+                  <LucideTag className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                  <p className="text-muted-foreground text-center font-medium">No skills found</p>
+                  <p className="text-muted-foreground text-center text-sm mt-1">Add some in your Career Profile first.</p>
                 </div>
               )}
             </TabsContent>
