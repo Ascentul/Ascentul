@@ -85,7 +85,7 @@ export default function AccountSettings() {
   const updateUserSubscription = useUpdateUserSubscription();
   // Theme color customization removed as per branding decision
   const careerQuery = useCareerData();
-  const { data: careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
+  const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
   
   // Track the current active tab
   const [activeTab, setActiveTab] = useState('profile');
@@ -545,7 +545,7 @@ export default function AccountSettings() {
                   />
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {careerData?.workHistory?.length > 0 ? (
+                  {careerData && careerData.workHistory && careerData.workHistory.length > 0 ? (
                     <div className="space-y-5">
                       {careerData.workHistory.map((job) => (
                         <div key={job.id} className="border rounded-lg p-4 relative">
@@ -647,7 +647,7 @@ export default function AccountSettings() {
                   />
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {careerData?.educationHistory?.length > 0 ? (
+                  {careerData && careerData.educationHistory && careerData.educationHistory.length > 0 ? (
                     <div className="space-y-5">
                       {careerData.educationHistory.map((education) => (
                         <div key={education.id} className="border rounded-lg p-4 relative">
@@ -755,7 +755,7 @@ export default function AccountSettings() {
                   />
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {careerData?.skills?.length > 0 ? (
+                  {careerData && careerData.skills && careerData.skills.length > 0 ? (
                     <div>
                       <div className="flex flex-wrap gap-2 mb-4">
                         {careerData.skills.map((skill) => (
@@ -825,7 +825,7 @@ export default function AccountSettings() {
                   />
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {careerData?.certifications?.length > 0 ? (
+                  {careerData && careerData.certifications && careerData.certifications.length > 0 ? (
                     <div className="space-y-5">
                       {careerData.certifications.map((cert) => (
                         <div key={cert.id} className="border rounded-lg p-4 relative">
