@@ -1,0 +1,76 @@
+🧠 Prompt for Replit Dev — Final Polish for Account Settings > Career Tab
+
+Please apply the following improvements to the AccountSettings.tsx component and associated styles to finalize the Career tab UI:
+
+✅ 1. Remove Duplicate Career Summary Section
+Issue: There are currently two "Career Summary" sections displayed.
+
+Fix:
+
+Remove the bottom duplicate (the second Career Summary block at the end of the page).
+
+Keep only the top Career Summary section, which includes the + Add Summary button in the top right.
+
+💅 2. Add Consistent Section Spacing & Borders
+Apply consistent top and bottom margin between each major section (Career Summary, Work History, Education, Skills, Certifications).
+
+Suggested utility: className="my-6" or mb-6 mt-6
+
+Optional: Add a light border or shadow to visually separate sections
+
+Example: className="border border-gray-200 rounded-md p-4 shadow-sm"
+
+📊 3. Improve Profile Completion Feedback
+Enhance the progress bar to show visual progression:
+
+tsx
+Copy
+Edit
+<div className="w-full h-2 rounded-full bg-gray-200 mt-2">
+  <div
+    className="h-2 bg-indigo-600 rounded-full transition-all duration-300"
+    style={{ width: `${completionPercentage}%` }}
+  />
+</div>
+<p className="text-xs text-gray-500 mt-1">
+  Complete your profile to unlock better AI recommendations
+</p>
+Replace the current static 20% label with this component using the actual completion percentage.
+
+🔠 4. Standardize Typography Across Sections
+Ensure each section title uses:
+
+tsx
+Copy
+Edit
+className="text-lg font-semibold mb-1"
+Ensure section subtitles/descriptions use:
+
+tsx
+Copy
+Edit
+className="text-sm text-gray-500"
+🧼 5. Remove Redundant Inner CTA Buttons
+For all sections (Career Summary, Certifications, Skills, etc.):
+
+Remove the large blue CTA buttons inside the empty-state boxes, such as:
+
+"Add Career Summary"
+
+"Add Certification"
+
+"Add Skill"
+
+The top-right “+ Add” buttons are sufficient and cleaner UX.
+
+✅ Completion Checklist
+ Only one Career Summary section remains
+
+ Section spacing is consistent
+
+ Profile completion bar is dynamic and styled
+
+ Headers and descriptions are aligned in font size & weight
+
+ No inner blue buttons inside empty-state cards
+

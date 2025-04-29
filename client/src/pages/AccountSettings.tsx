@@ -428,9 +428,9 @@ export default function AccountSettings() {
           ) : (
             <>
               {/* Profile Completion Progress */}
-              <div className="mb-4">
+              <div className="mb-6 border border-gray-200 rounded-md p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Profile Completion</h3>
+                  <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
                   {(() => {
                     // Calculate completion percentage
                     const sections = [
@@ -450,28 +450,36 @@ export default function AccountSettings() {
                     );
                   })()}
                 </div>
-                <Progress value={(() => {
-                  const sections = [
-                    !!careerData?.careerSummary,
-                    (careerData?.workHistory?.length || 0) > 0,
-                    (careerData?.educationHistory?.length || 0) > 0,
-                    (careerData?.skills?.length || 0) > 0,
-                    (careerData?.certifications?.length || 0) > 0
-                  ];
-                  const completedSections = sections.filter(Boolean).length;
-                  return (completedSections / sections.length) * 100;
-                })()} className="h-2" />
+                <div className="w-full h-2 rounded-full bg-gray-200 mt-2">
+                  <div
+                    className="h-2 bg-indigo-600 rounded-full transition-all duration-300"
+                    style={{ width: `${(() => {
+                      const sections = [
+                        !!careerData?.careerSummary,
+                        (careerData?.workHistory?.length || 0) > 0,
+                        (careerData?.educationHistory?.length || 0) > 0,
+                        (careerData?.skills?.length || 0) > 0,
+                        (careerData?.certifications?.length || 0) > 0
+                      ];
+                      const completedSections = sections.filter(Boolean).length;
+                      return (completedSections / sections.length) * 100;
+                    })()}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Complete your profile to unlock better AI recommendations
+                </p>
               </div>
               
               {/* Career Summary Section */}
-              <Card>
+              <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
-                    <CardTitle className="text-xl flex items-center">
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
                       <FileText className="mr-2 h-5 w-5" />
                       Career Summary
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm text-gray-500">
                       A brief overview of your professional background and goals
                     </CardDescription>
                   </div>
@@ -514,7 +522,7 @@ export default function AccountSettings() {
               </Card>
               
               {/* Work History Section */}
-              <Card>
+              <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
                     <CardTitle className="text-xl flex items-center">
@@ -611,14 +619,14 @@ export default function AccountSettings() {
               </Card>
               
               {/* Education Section */}
-              <Card>
+              <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
-                    <CardTitle className="text-xl flex items-center">
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
                       <GraduationCap className="mr-2 h-5 w-5" />
                       Education
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm text-gray-500">
                       Manage your educational background
                     </CardDescription>
                   </div>
@@ -714,14 +722,14 @@ export default function AccountSettings() {
               </Card>
               
               {/* Skills Section */}
-              <Card>
+              <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
-                    <CardTitle className="text-xl flex items-center">
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
                       <Award className="mr-2 h-5 w-5" />
                       Skills
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm text-gray-500">
                       Manage your professional and technical skills
                     </CardDescription>
                   </div>
@@ -783,14 +791,14 @@ export default function AccountSettings() {
               </Card>
               
               {/* Certifications Section */}
-              <Card>
+              <Card className="border border-gray-200 shadow-sm my-6">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div>
-                    <CardTitle className="text-xl flex items-center">
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
                       <BookOpen className="mr-2 h-5 w-5" />
                       Certifications
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-sm text-gray-500">
                       Manage your certifications and credentials
                     </CardDescription>
                   </div>
@@ -888,51 +896,7 @@ export default function AccountSettings() {
                 </CardContent>
               </Card>
               
-              {/* Career Summary Section */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div>
-                    <CardTitle className="text-xl flex items-center">
-                      <FileText className="mr-2 h-5 w-5" />
-                      Career Summary
-                    </CardTitle>
-                    <CardDescription>
-                      Update your professional summary
-                    </CardDescription>
-                  </div>
-                  <AddSectionButton
-                    label="Edit Summary"
-                    mode="edit"
-                    onClick={() => setCareerSummaryModal({ 
-                      open: true, 
-                      defaultValue: careerData?.careerSummary || '' 
-                    })}
-                  />
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {careerData?.careerSummary ? (
-                    <div className="border rounded-lg p-5 relative">
-                      <p className="whitespace-pre-wrap">{careerData.careerSummary}</p>
-                      <div className="absolute bottom-2 right-2">
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
-                        </Badge>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
-                      <FileText className="h-10 w-10 text-muted-foreground mb-3" />
-                      <h3 className="font-medium mb-2">No career summary added yet</h3>
-                      <div className="text-center text-sm text-gray-500 px-4 py-6">
-                        Add a professional summary to introduce yourself to potential employers.
-                        <em className="block mt-1 text-gray-400 italic">
-                          A good career summary highlights your experience, skills, and career goals.
-                        </em>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
             </>
           )}
         </TabsContent>
