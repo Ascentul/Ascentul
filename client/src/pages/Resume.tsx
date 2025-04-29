@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import ResumeForm from '@/components/ResumeForm';
 import ResumeAnalyzer from '@/components/ResumeAnalyzer';
+import ResumePreview from '@/components/ResumePreview';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 
