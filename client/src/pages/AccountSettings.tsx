@@ -502,10 +502,12 @@ export default function AccountSettings() {
                     <div className="border rounded-lg p-4 border-dashed flex flex-col items-center justify-center py-8 text-center">
                       <FileText className="h-8 w-8 text-muted-foreground mb-2" />
                       <h3 className="font-medium mb-1">No career summary added yet</h3>
-                      <p className="text-sm text-center text-gray-500 px-4 py-6">
-                        Your career summary helps highlight your professional journey, skills, and goals. 
-                        It powers your resume, AI coaching, and interview practice.
-                      </p>
+                      <div className="text-center text-sm text-gray-500 px-4 py-6">
+                        Add a professional summary to introduce yourself to potential employers.
+                        <em className="block mt-1 text-gray-400 italic">
+                          A good career summary highlights your experience, skills, and career goals.
+                        </em>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -881,18 +883,12 @@ export default function AccountSettings() {
                     <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
                       <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
                       <h3 className="font-medium mb-2">No certifications added yet</h3>
-                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
-                        Add your professional certifications to validate your expertise and credibility.
-                      </p>
-                      <p className="text-muted-foreground text-sm italic mb-4">
-                        Certifications help enhance your resume and stand out to potential employers.
-                      </p>
-                      <AddSectionButton
-                        onClick={() => setCertificationModal({ open: true, mode: 'add' })}
-                        variant="secondary"
-                        label="Add Certification"
-                        mode="add"
-                      />
+                      <div className="text-center text-sm text-gray-500 px-4 py-6">
+                        Add your professional certifications to validate your expertise and credibility.  
+                        <em className="block mt-1 text-gray-400 italic">
+                          Certifications help enhance your resume and stand out to potential employers.
+                        </em>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -933,20 +929,12 @@ export default function AccountSettings() {
                     <div className="border rounded-lg p-6 border-dashed flex flex-col items-center justify-center py-8 text-center">
                       <FileText className="h-10 w-10 text-muted-foreground mb-3" />
                       <h3 className="font-medium mb-2">No career summary added yet</h3>
-                      <p className="text-muted-foreground text-sm mb-3 max-w-md">
+                      <div className="text-center text-sm text-gray-500 px-4 py-6">
                         Add a professional summary to introduce yourself to potential employers.
-                      </p>
-                      <p className="text-muted-foreground text-sm italic mb-4">
-                        A good career summary highlights your experience, skills, and career goals.
-                      </p>
-                      <AddSectionButton
-                        onClick={() => setCareerSummaryModal({ 
-                          open: true, 
-                          defaultValue: careerData?.careerSummary || '' 
-                        })}
-                        label="Add Career Summary"
-                        mode="add"
-                      />
+                        <em className="block mt-1 text-gray-400 italic">
+                          A good career summary highlights your experience, skills, and career goals.
+                        </em>
+                      </div>
                     </div>
                   )}
                 </CardContent>
