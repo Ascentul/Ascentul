@@ -71,9 +71,19 @@ export function CareerDataImport({ form }: CareerDataImportProps) {
   // Force a refresh of career data when the dialog opens
   useEffect(() => {
     if (isDialogOpen) {
-      // Invalidate cache and refetch to ensure we have the latest data
-      queryClient.invalidateQueries({ queryKey: ['/api/career-data'] });
-      refetch();
+      console.log('CareerDataImport: Dialog opened, refreshing career data...');
+      
+      // Hard invalidate the cache first
+      queryClient.removeQueries({ queryKey: ['/api/career-data'] });
+      
+      // Then trigger a fresh refetch with cache disabled
+      refetch().then(result => {
+        if (result.isSuccess) {
+          console.log('CareerDataImport: Successfully refreshed career data');
+        } else if (result.isError) {
+          console.error('CareerDataImport: Error refreshing career data:', result.error);
+        }
+      });
     }
   }, [isDialogOpen, refetch]);
 
