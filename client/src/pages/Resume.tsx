@@ -21,10 +21,12 @@ import ResumeAnalyzer from '@/components/ResumeAnalyzer';
 import ResumePreview from '@/components/ResumePreview';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import GuidedResumeCreationModal from '@/components/modals/GuidedResumeCreationModal';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddResumeOpen, setIsAddResumeOpen] = useState(false);
+  const [isGuidedResumeCreationOpen, setIsGuidedResumeCreationOpen] = useState(false);
   const [selectedResume, setSelectedResume] = useState<any>(null);
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
