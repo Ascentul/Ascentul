@@ -4,6 +4,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useCareerData } from '@/hooks/use-career-data';
+
+// Import the form modals
+import { WorkHistoryFormModal } from '@/components/modals/WorkHistoryFormModal';
+import { EducationFormModal } from '@/components/modals/EducationFormModal';
+import { SkillFormModal } from '@/components/modals/SkillFormModal';
+import { CertificationFormModal } from '@/components/modals/CertificationFormModal';
+import { CareerSummaryFormModal } from '@/components/modals/CareerSummaryFormModal';
+import { DeleteConfirmationDialog } from '@/components/modals/DeleteConfirmationDialog';
+
 import { 
   Loader2, 
   CreditCard, 
@@ -71,6 +80,44 @@ export default function AccountSettings() {
   const updateUserSubscription = useUpdateUserSubscription();
   const [selectedColor, setSelectedColor] = useState('#0C29AB'); // Default color from theme.json
   const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = useCareerData();
+  
+  // Modal state variables for career data forms
+  const [workHistoryModal, setWorkHistoryModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [educationModal, setEducationModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [skillModal, setSkillModal] = useState<{
+    open: boolean;
+  }>({ open: false });
+  
+  const [certificationModal, setCertificationModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [careerSummaryModal, setCareerSummaryModal] = useState<{
+    open: boolean;
+    defaultValue: string;
+  }>({ open: false, defaultValue: '' });
+  
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    open: boolean;
+    itemId: number;
+    itemType: string;
+    endpoint: string;
+  }>({ open: false, itemId: 0, itemType: '', endpoint: '' });
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -623,7 +670,11 @@ export default function AccountSettings() {
                       Manage your certifications and credentials
                     </CardDescription>
                   </div>
-                  <Button size="sm" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setCertificationModal({ open: true, mode: 'add' })}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add Certification
                   </Button>
@@ -634,10 +685,30 @@ export default function AccountSettings() {
                       {careerData.certifications.map((cert) => (
                         <div key={cert.id} className="border rounded-lg p-4 relative">
                           <div className="absolute top-4 right-4 flex space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setCertificationModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: cert,
+                                id: cert.id 
+                              })}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: cert.id,
+                                itemType: 'Certification',
+                                endpoint: '/api/career-data/certifications'
+                              })}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -691,7 +762,14 @@ export default function AccountSettings() {
                       Update your professional summary
                     </CardDescription>
                   </div>
-                  <Button size="sm" className="flex items-center">
+                  <Button 
+                    size="sm" 
+                    className="flex items-center"
+                    onClick={() => setCareerSummaryModal({ 
+                      open: true, 
+                      defaultValue: careerData?.careerSummary || '' 
+                    })}
+                  >
                     <Pencil className="mr-1 h-4 w-4" />
                     Edit
                   </Button>
@@ -892,6 +970,94 @@ export default function AccountSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Career Data Form Modals */}
+      <WorkHistoryFormModal 
+        open={workHistoryModal.open} 
+        onOpenChange={(open) => setWorkHistoryModal({ ...workHistoryModal, open })}
+        mode={workHistoryModal.mode}
+        defaultValues={workHistoryModal.data}
+        workHistoryId={workHistoryModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Work history ${workHistoryModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your work history has been ${workHistoryModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <EducationFormModal 
+        open={educationModal.open} 
+        onOpenChange={(open) => setEducationModal({ ...educationModal, open })}
+        mode={educationModal.mode}
+        defaultValues={educationModal.data}
+        educationId={educationModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Education ${educationModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your education has been ${educationModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <SkillFormModal 
+        open={skillModal.open} 
+        onOpenChange={(open) => setSkillModal({ ...skillModal, open })}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: "Skill added successfully",
+            description: "Your skill has been added to your profile.",
+          });
+        }}
+      />
+      
+      <CertificationFormModal 
+        open={certificationModal.open} 
+        onOpenChange={(open) => setCertificationModal({ ...certificationModal, open })}
+        mode={certificationModal.mode}
+        defaultValues={certificationModal.data}
+        certificationId={certificationModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Certification ${certificationModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your certification has been ${certificationModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <CareerSummaryFormModal 
+        open={careerSummaryModal.open} 
+        onOpenChange={(open) => setCareerSummaryModal({ ...careerSummaryModal, open })}
+        defaultValue={careerSummaryModal.defaultValue}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: "Career summary updated successfully",
+            description: "Your career summary has been updated.",
+          });
+        }}
+      />
+      
+      <DeleteConfirmationDialog 
+        open={deleteConfirmation.open}
+        onOpenChange={(open) => setDeleteConfirmation({ ...deleteConfirmation, open })}
+        title={`Delete ${deleteConfirmation.itemType}`}
+        description={`Are you sure you want to delete this ${deleteConfirmation.itemType.toLowerCase()}? This action cannot be undone.`}
+        endpoint={deleteConfirmation.endpoint}
+        itemId={deleteConfirmation.itemId}
+        itemType={deleteConfirmation.itemType}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `${deleteConfirmation.itemType} deleted`,
+            description: `The ${deleteConfirmation.itemType.toLowerCase()} has been removed from your profile.`,
+          });
+        }}
+      />
     </div>
   );
 }
