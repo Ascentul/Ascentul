@@ -396,7 +396,9 @@ export default function Resume() {
 
       <Tabs defaultValue="resumes">
         <TabsList className="mb-4">
-          <TabsTrigger value="resumes">My Resumes</TabsTrigger>
+          <TabsTrigger value="resumes">
+            My Resumes {resumes && resumes.length > 0 && `(${resumes.length})`}
+          </TabsTrigger>
           <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
           <TabsTrigger value="analyze">Analyze Resume</TabsTrigger>
         </TabsList>
@@ -497,7 +499,7 @@ export default function Resume() {
             </div>
           ) : resumes && resumes.length > 0 ? (
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 will-change-opacity"
+              className="resumes-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 will-change-opacity"
               variants={staggeredContainer}
               style={{ backfaceVisibility: 'hidden' }}
             >
@@ -507,7 +509,7 @@ export default function Resume() {
                   variants={cardAnimation}
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}>
-                  <Card className="overflow-hidden">
+                  <Card className="overflow-hidden resume-card">
                     <CardContent className="p-0">
                       <div className="bg-primary/5 p-6 flex items-center">
                         <FileText className="h-10 w-10 text-primary mr-4" />
@@ -687,21 +689,25 @@ export default function Resume() {
             </motion.div>
           ) : (
             <motion.div 
-              className="text-center py-12 bg-white rounded-lg shadow-sm"
+              className="text-center py-16 px-6 bg-white rounded-lg shadow-sm border border-gray-100"
               variants={fadeIn}
             >
-              <FileText className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-              <h3 className="text-xl font-medium mb-2">No Resumes Created Yet</h3>
-              <p className="text-neutral-500 mb-4">
-                Start by creating your first professional resume
+              <div className="bg-[#f4f4f4] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FileText className="h-10 w-10 text-primary/60" />
+              </div>
+              <h3 className="text-2xl font-medium mb-3">You haven't created any resumes yet</h3>
+              <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+                Create your first professional resume to showcase your skills and experience to potential employers.
               </p>
-              <Button
+              <Button 
                 onClick={() => {
                   setSelectedResume(null);
                   setIsAddResumeOpen(true);
                 }}
+                size="lg" 
+                className="shadow-sm hover:shadow-md transition-all"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-5 w-5" />
                 Create First Resume
               </Button>
             </motion.div>

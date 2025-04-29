@@ -48,6 +48,47 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* Resume card animations */
+.resume-card {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.resume-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered fade-in for resumes */
+.resumes-grid > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.resumes-grid > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.resumes-grid > *:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.resumes-grid > *:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.resumes-grid > *:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.resumes-grid > *:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
 /* Project description animations */
 .project-description {
   overflow: hidden;
