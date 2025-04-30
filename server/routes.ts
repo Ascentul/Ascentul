@@ -2678,7 +2678,7 @@ Based on your profile and the job you're targeting, I recommend highlighting:
             }
             
             // 3. Get skills
-            const skillEntries = await storage.getSkills(req.session.userId);
+            const skillEntries = await storage.getUserSkills(req.session.userId);
             if (skillEntries && skillEntries.length > 0) {
               formattedSkills = skillEntries.map((skill: any) => skill.name);
             }
@@ -2696,8 +2696,8 @@ Based on your profile and the job you're targeting, I recommend highlighting:
               }).join('\n---\n\n');
             }
             
-            // 5. Get career summary
-            const userData = await storage.getCareerData(req.session.userId);
+            // 5. Get career summary from user profile
+            const userData = await storage.getUser(req.session.userId);
             if (userData && userData.careerSummary) {
               careerSummary = userData.careerSummary;
             }
@@ -2707,10 +2707,10 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           }
         }
         
-        // Build career data object
+        // Build career data object with only stored data
         const careerData = {
           careerSummary: careerSummary,
-          workHistory: userExperience ? `${userExperience}\n\n${formattedWorkHistory}` : formattedWorkHistory,
+          workHistory: formattedWorkHistory,
           education: formattedEducation,
           skills: formattedSkills,
           certifications: formattedCertifications
