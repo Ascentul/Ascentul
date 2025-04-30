@@ -1,538 +1,249 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardDescription,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import React, { useState, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Alert, 
-  AlertDescription, 
-  AlertTitle 
-} from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Upload, 
-  FileText, 
-  Loader2, 
-  CheckCircle2, 
-  ChevronRight,
-  BarChart,
-  LucideCheck,
-  AlertCircle,
-  XCircle,
-} from 'lucide-react';
-
-const resumeAnalysisSchema = z.object({
-  resumeText: z.string().min(50, {
-    message: 'Resume text must be at least 50 characters',
-  }),
-  jobDescription: z.string().min(50, {
-    message: 'Job description must be at least 50 characters',
-  }),
-});
-
-interface ResumeAnalysisResult {
-  overallScore: number;
-  strengths: string[];
-  weaknesses: string[];
-  missingKeywords: string[];
-  improvementSuggestions: string[];
-  technicalSkillAssessment: string[];
-  softSkillAssessment: string[];
-  formattingFeedback: string[];
-  keywordMatchScore: number;
-  relevanceScore: number;
-}
+import { FileText, Upload, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ResumeAnalyzerProps {
-  onAnalysisComplete?: (result: ResumeAnalysisResult, resumeText: string, jobDescription: string) => void;
+  onExtractComplete: (text: string) => void;
+  onAnalyzeComplete?: (results: any) => void;
 }
 
-export default function ResumeAnalyzer({ onAnalysisComplete }: ResumeAnalyzerProps) {
+const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
+  onExtractComplete,
+  onAnalyzeComplete,
+}) => {
+  const [activeTab, setActiveTab] = useState<string>('upload');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [extracting, setExtracting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resumeText, setResumeText] = useState<string>('');
+  const [textareaPlaceholder, setTextareaPlaceholder] = useState<string>(
+    'After uploading your resume, extracted text will appear here. You can also paste resume text directly.'
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('upload');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileUploading, setFileUploading] = useState(false);
-  const [extractedText, setExtractedText] = useState('');
-  const [resumeContent, setResumeContent] = useState('');
-  const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null);
 
-  const form = useForm<z.infer<typeof resumeAnalysisSchema>>({
-    resolver: zodResolver(resumeAnalysisSchema),
-    defaultValues: {
-      resumeText: '',
-      jobDescription: '',
-    },
-  });
-
-  // Mutation for analyzing resume
-  const analyzeResumeMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof resumeAnalysisSchema>) => {
-      const response = await apiRequest<ResumeAnalysisResult>({
-        url: '/api/resumes/analyze', 
-        method: 'POST',
-        data: values
-      });
-      return response;
-    },
-    onSuccess: (data) => {
-      setAnalysis(data);
-      setActiveTab('results');
-      toast({
-        title: 'Analysis Complete',
-        description: 'Your resume has been analyzed against the job description.',
-      });
-      
-      // Call the callback if provided
-      if (onAnalysisComplete) {
-        onAnalysisComplete(data, form.getValues('resumeText'), form.getValues('jobDescription'));
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: 'Analysis Failed',
-        description: error instanceof Error ? error.message : 'Failed to analyze resume',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Handle file upload and extract text from the file
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
-    setUploadedFile(file);
-    setFileUploading(true);
-
-    try {
-      // Make sure we handle only PDF files
-      if (file.type !== 'application/pdf') {
-        toast({
-          title: "Invalid file type",
-          description: "Please upload a PDF file for text extraction.",
-          variant: "destructive",
-        });
-        setFileUploading(false);
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        if (event.target) {
-          const fileDataUrl = event.target.result as string;
-
-          // Upload the file to the server
-          const uploadResponse = await apiRequest<{ success: boolean; filePath?: string }>({
-            url: '/api/resumes/upload',
-            method: 'POST',
-            data: { fileDataUrl }
-          });
-
-          if (uploadResponse.success && uploadResponse.filePath) {
-            try {
-              // Extract text from the uploaded PDF file
-              const extractResponse = await apiRequest<{ 
-                success: boolean; 
-                text: string;
-                pages?: { processed: number; total: number };
-                message?: string;
-              }>({
-                url: '/api/resumes/extract-text',
-                method: 'POST',
-                data: { filePath: uploadResponse.filePath }
-              });
-              
-              if (extractResponse.success) {
-                // Set the extracted text
-                setExtractedText(extractResponse.text);
-                setResumeContent(extractResponse.text);
-                
-                let toastMessage = "Text extracted successfully from your resume.";
-                if (extractResponse.pages && extractResponse.pages.total > extractResponse.pages.processed) {
-                  toastMessage += ` (Note: Only the first ${extractResponse.pages.processed} of ${extractResponse.pages.total} pages were processed.)`;
-                }
-                
-                toast({
-                  title: "Text extraction complete",
-                  description: toastMessage,
-                });
-              } else {
-                // Fallback in case of extraction failure
-                setExtractedText(`We couldn't automatically extract text from your PDF. 
-                
-Please copy and paste your resume content into the text area below for analysis.`);
-                
-                toast({
-                  title: "Text extraction failed",
-                  description: "Please manually enter your resume text.",
-                  variant: "destructive",
-                });
-              }
-            } catch (error) {
-              console.error("Error extracting text:", error);
-              setExtractedText(`Error extracting text from PDF. 
-              
-Please copy and paste your resume content into the text area below for analysis.`);
-              
-              toast({
-                title: "Text extraction error",
-                description: "Please manually enter your resume text.",
-                variant: "destructive",
-              });
-            }
-            
-            setActiveTab("extract");
-          }
-        }
-        setFileUploading(false);
-      };
-      reader.onerror = () => {
-        toast({
-          title: "File reading failed",
-          description: "There was an error reading your file. Please try again.",
-          variant: "destructive",
-        });
-        setFileUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: "There was an error uploading your file. Please try again.",
-        variant: "destructive",
-      });
-      setFileUploading(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    setError(null);
+    
+    if (!selectedFile) {
+      return;
     }
+    
+    // Check file type - only allow PDF, DOC, DOCX
+    const fileType = selectedFile.type;
+    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (!validTypes.includes(fileType)) {
+      setError('Please select a PDF, DOC, or DOCX file.');
+      return;
+    }
+    
+    // Check file size (limit to 5MB)
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB.');
+      return;
+    }
+    
+    setFile(selectedFile);
   };
 
-  // Handle form submission
-  const onSubmit = (values: z.infer<typeof resumeAnalysisSchema>) => {
-    analyzeResumeMutation.mutate(values);
-  };
-
-  // Handle analysis from extracted text
-  const handleAnalyzeExtracted = () => {
-    if (!resumeContent) {
-      toast({
-        title: "Missing resume content",
-        description: "Please enter your resume content for analysis.",
-        variant: "destructive",
-      });
+  const uploadAndExtractText = async () => {
+    if (!file) {
+      setError('Please select a file first.');
       return;
     }
 
-    form.setValue("resumeText", resumeContent);
-    setActiveTab("analyze");
+    try {
+      setUploading(true);
+      setError(null);
+      
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload the file
+      const uploadResponse = await fetch('/api/resumes/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('File upload failed. Please try again.');
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success || !uploadResult.filePath) {
+        throw new Error('File upload failed. Please try again.');
+      }
+      
+      setUploading(false);
+      setExtracting(true);
+      
+      // Now extract text from the uploaded file
+      const extractResponse = await apiRequest('POST', '/api/resumes/extract-text', {
+        filePath: uploadResult.filePath
+      });
+      
+      const extractResult = await extractResponse.json();
+      
+      if (!extractResult.success) {
+        throw new Error('Text extraction failed. Please try manually entering your resume text.');
+      }
+      
+      setResumeText(extractResult.text);
+      setExtracting(false);
+      
+      toast({
+        title: 'Success!',
+        description: 'Text extracted successfully.',
+        variant: 'default',
+      });
+      
+      // Call the completion handler
+      onExtractComplete(extractResult.text);
+      
+    } catch (error) {
+      setUploading(false);
+      setExtracting(false);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      // If extraction fails, suggest manual text entry
+      setTextareaPlaceholder('Extraction failed. Please paste your resume text here manually.');
+    }
+  };
+
+  const handleManualTextUpdate = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setResumeText(e.target.value);
+  };
+
+  const handleContinue = () => {
+    if (!resumeText.trim()) {
+      setError('Please enter some resume text before continuing.');
+      return;
+    }
+    
+    // Call the completion handler with the text
+    onExtractComplete(resumeText);
+  };
+
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setFile(null);
+    setError(null);
   };
 
   return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-4">
-          <TabsTrigger value="upload">Upload Resume</TabsTrigger>
-          <TabsTrigger value="extract">Extract Text</TabsTrigger>
-          <TabsTrigger value="analyze">Analyze</TabsTrigger>
-          <TabsTrigger value="results" disabled={!analysis}>Results</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="upload" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upload Your Resume</CardTitle>
-              <CardDescription>
-                Upload your resume in PDF or Word format to analyze it against a job description.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4 flex text-sm leading-6 text-gray-600">
-                  <label
-                    htmlFor="file-upload"
-                    className="relative cursor-pointer rounded-md bg-white font-semibold text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 hover:text-primary/80"
-                  >
-                    <span>Upload a file</span>
-                    <Input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileUpload}
-                      disabled={fileUploading}
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs leading-5 text-gray-600">PDF or Word up to 10MB</p>
-              </div>
-
-              {fileUploading && (
-                <div className="flex flex-col items-center justify-center mt-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="mt-2 text-sm text-gray-500">Uploading file...</p>
-                </div>
-              )}
-
-              {uploadedFile && !fileUploading && (
-                <div className="flex items-center space-x-2 bg-primary/10 p-4 rounded-md">
-                  <FileText className="h-6 w-6 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{uploadedFile.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {Math.round(uploadedFile.size / 1024)} KB
-                    </p>
-                  </div>
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button 
-                type="button" 
-                className="ml-auto"
-                disabled={!uploadedFile || fileUploading}
-                onClick={() => setActiveTab("extract")}
-              >
-                Continue <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="extract" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Extract and Edit Resume Text</CardTitle>
-              <CardDescription>
-                Review or edit the extracted text before analysis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Resume Text Extraction</AlertTitle>
-                <AlertDescription>
-                  In a production environment, we would automatically extract text from your resume.
-                  For now, please review, edit, or paste your resume content below.
-                </AlertDescription>
-              </Alert>
-              
-              <Textarea 
-                placeholder="Paste or edit your resume text here..." 
-                className="min-h-[300px]"
-                value={resumeContent || extractedText}
-                onChange={(e) => setResumeContent(e.target.value)}
+    <Card className="w-full">
+      <CardContent className="pt-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <Upload size={16} />
+              <span>Upload Resume</span>
+            </TabsTrigger>
+            <TabsTrigger value="paste" className="flex items-center gap-2">
+              <FileText size={16} />
+              <span>Paste Text</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="space-y-4 mt-4">
+            <div className="flex flex-col items-center p-6 border-2 border-dashed rounded-md border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".pdf,.doc,.docx"
               />
-            </CardContent>
-            <CardFooter className="flex justify-between">
               <Button 
                 variant="outline" 
-                type="button"
-                onClick={() => setActiveTab("upload")}
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-2"
+                disabled={uploading || extracting}
               >
-                Back
+                Select File
               </Button>
-              <Button 
-                type="button"
-                onClick={handleAnalyzeExtracted}
-                disabled={!resumeContent && !extractedText}
-              >
-                Continue <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="analyze" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analyze Your Resume</CardTitle>
-              <CardDescription>
-                Enter a job description to analyze your resume against it.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="resumeText"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Resume Text</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Paste your resume text here..." 
-                            className="min-h-[200px]"
-                            {...field}
-                            defaultValue={resumeContent || field.value}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="jobDescription"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Job Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Paste the job description here..." 
-                            className="min-h-[200px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-between">
-                    <Button 
-                      variant="outline" 
-                      type="button"
-                      onClick={() => setActiveTab("extract")}
-                    >
-                      Back
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={analyzeResumeMutation.isPending}
-                    >
-                      {analyzeResumeMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          Upload & Analyze
-                          <BarChart className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="results" className="mt-6">
-          {analysis && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resume Analysis Results</CardTitle>
-                  <CardDescription>
-                    Here's how your resume compares to the job description.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <p className="text-sm font-medium">Overall Match</p>
-                      <p className="text-sm font-medium">{analysis.overallScore}%</p>
-                    </div>
-                    <Progress value={analysis.overallScore} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <p className="text-sm font-medium">Keyword Match</p>
-                      <p className="text-sm font-medium">{analysis.keywordMatchScore}%</p>
-                    </div>
-                    <Progress value={analysis.keywordMatchScore} className="h-2" />
-                  </div>
-
-                  {/* Strengths */}
-                  <div>
-                    <h3 className="text-base font-medium mb-2">Strengths</h3>
-                    <ul className="space-y-1">
-                      {analysis.strengths.map((strength, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <LucideCheck className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{strength}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Weaknesses */}
-                  <div>
-                    <h3 className="text-base font-medium mb-2">Areas for Improvement</h3>
-                    <ul className="space-y-1">
-                      {analysis.weaknesses.map((weakness, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <XCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{weakness}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Missing Keywords */}
-                  {analysis.missingKeywords && analysis.missingKeywords.length > 0 && (
-                    <div>
-                      <h3 className="text-base font-medium mb-2">Missing Keywords</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {analysis.missingKeywords.map((keyword, index) => (
-                          <span key={index} className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Improvement Suggestions */}
-                  <div>
-                    <h3 className="text-base font-medium mb-2">Improvement Suggestions</h3>
-                    <ul className="space-y-1">
-                      {analysis.improvementSuggestions.map((suggestion, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{suggestion}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {file ? file.name : 'PDF, DOC or DOCX files, up to 5MB'}
+              </p>
+              {file && (
+                <div className="mt-2 flex gap-2">
+                  <Button 
+                    onClick={uploadAndExtractText}
+                    disabled={uploading || extracting}
+                    className="flex items-center gap-2"
+                  >
+                    {(uploading || extracting) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {uploading ? 'Uploading...' : extracting ? 'Extracting...' : 'Extract Text'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={resetFileInput}
+                    disabled={uploading || extracting}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+            
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="paste" className="space-y-4 mt-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              Paste your resume text below:
+            </p>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="mt-6">
+          <Textarea
+            value={resumeText}
+            onChange={handleManualTextUpdate}
+            placeholder={textareaPlaceholder}
+            className="h-[300px] font-mono text-sm"
+          />
+        </div>
+        
+        <div className="mt-4 flex justify-end">
+          <Button 
+            onClick={handleContinue}
+            disabled={uploading || extracting || !resumeText.trim()}
+            className="flex items-center gap-2"
+          >
+            <CheckCircle className="h-4 w-4" />
+            Continue
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default ResumeAnalyzer;

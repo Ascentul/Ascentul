@@ -37,6 +37,10 @@ export default function Resume() {
   const [optimizedCareerData, setOptimizedCareerData] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [shouldUpdateProfile, setShouldUpdateProfile] = useState(true);
+  const [extractedResumeText, setExtractedResumeText] = useState<string>('');
+  const [isExtractionComplete, setIsExtractionComplete] = useState<boolean>(false);
+  const [extractionJobDescription, setExtractionJobDescription] = useState<string>('');
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   // Always make design studio accessible without a toggle
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -211,6 +215,83 @@ export default function Resume() {
       });
     },
   });
+  
+  // Process extracted resume text
+  const analyzeExtractedTextMutation = useMutation({
+    mutationFn: async () => {
+      if (!extractedResumeText || !extractionJobDescription) {
+        throw new Error("Missing required data for analysis");
+      }
+
+      setIsAnalyzing(true);
+      
+      const res = await apiRequest('POST', '/api/resumes/analyze', {
+        resumeText: extractedResumeText,
+        jobDescription: extractionJobDescription
+      });
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setIsAnalyzing(false);
+      
+      // Show the success toast
+      toast({
+        title: 'Analysis Complete',
+        description: 'Your resume has been analyzed successfully',
+      });
+      
+      // Set the job description for the entire component so it can be used elsewhere
+      setJobDescription(extractionJobDescription);
+      
+      // Generate suggestions based on the extracted and analyzed text
+      setUserWorkHistory(extractedResumeText);
+      getSuggestionsMutation.mutate();
+    },
+    onError: (error) => {
+      setIsAnalyzing(false);
+      toast({
+        title: 'Analysis Error',
+        description: `Failed to analyze resume: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Handle text extraction completion from ResumeAnalyzer
+  const handleExtractComplete = (text: string) => {
+    setExtractedResumeText(text);
+    setIsExtractionComplete(true);
+    
+    toast({
+      title: 'Text Extraction Complete',
+      description: 'Please provide a job description and click Continue to analyze the resume',
+    });
+  };
+  
+  // Handle the continue button after extraction
+  const handleAnalyzeExtractedText = () => {
+    if (!extractedResumeText.trim()) {
+      toast({
+        title: 'Missing Resume Text',
+        description: 'Please upload or paste your resume text first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!extractionJobDescription.trim()) {
+      toast({
+        title: 'Missing Job Description',
+        description: 'Please provide a job description to compare against your resume',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Analyze the extracted text
+    analyzeExtractedTextMutation.mutate();
+  };
   
   // Update career data with optimized content
   const updateCareerDataMutation = useMutation({
@@ -596,28 +677,76 @@ export default function Resume() {
               </CardContent>
             </Card>
             
-            <ResumeAnalyzer 
-              onAnalysisComplete={(result, resumeText, jobDescription) => {
-                // When analysis is complete, we can offer to create a new resume
-                // based on the analysis results
-                toast({
-                  title: "Analysis Complete",
-                  description: "Would you like to create or update a resume based on this analysis?",
-                  action: (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        // Create a new resume with the analyzed content
-                        const newResume = {
-                          name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
-                          template: 'modern',
-                          content: {
-                            personalInfo: {
-                              fullName: '',
-                              email: '',
-                              phone: '',
-                              location: '',
+            {/* First step: Extract text from resume */}
+            {!isExtractionComplete ? (
+              <ResumeAnalyzer 
+                onExtractComplete={handleExtractComplete}
+              />
+            ) : (
+              /* Second step: Enter job description and analyze */
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle>Resume Analysis - Step 2</CardTitle>
+                  <CardDescription>
+                    Enter the job description you want to match your resume against.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label htmlFor="jobDescription" className="block text-sm font-medium text-neutral-600 mb-1">
+                      Job Description
+                    </label>
+                    <Textarea
+                      id="jobDescription"
+                      placeholder="Paste the job description here to compare with your resume..."
+                      className="h-[150px] resize-y"
+                      value={extractionJobDescription}
+                      onChange={(e) => setExtractionJobDescription(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="pt-2">
+                    <label className="block text-sm font-medium text-neutral-600 mb-1">
+                      Extracted Resume Text
+                    </label>
+                    <Textarea
+                      placeholder="Your extracted resume text..."
+                      className="h-[150px] resize-y font-mono text-sm"
+                      value={extractedResumeText}
+                      onChange={(e) => setExtractedResumeText(e.target.value)}
+                      readOnly
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="justify-between">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setIsExtractionComplete(false);
+                      setExtractedResumeText('');
+                    }}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={handleAnalyzeExtractedText}
+                    disabled={isAnalyzing || !extractionJobDescription.trim() || !extractedResumeText.trim()}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Analyze Resume
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
                               linkedIn: '',
                               portfolio: '',
                             },
