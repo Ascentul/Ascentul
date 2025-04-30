@@ -7,7 +7,7 @@ import { requireAuth } from './auth';
  */
 export function registerPdfExtractRoutes(app: any) {
   // Resume text extraction endpoint with PDF parsing capability
-  app.post("/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
     try {
       // Import the PDF extractor module
       const { extractTextFromPdf } = await import('./pdf-extractor');
