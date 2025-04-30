@@ -1,33 +1,41 @@
-import { Request, Response } from 'express';
+import { Request, Response, Router } from 'express';
 import { requireAuth } from './auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+
+// Create necessary directories
+const ensureDirectoriesExist = () => {
+  // Create uploads directory if it doesn't exist
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  // Create resumes subdirectory if it doesn't exist
+  const resumesDir = path.join(uploadDir, 'resumes');
+  if (!fs.existsSync(resumesDir)) {
+    fs.mkdirSync(resumesDir, { recursive: true });
+  }
+  
+  return resumesDir;
+};
+
+// Ensure directories exist at startup
+const resumesDir = ensureDirectoriesExist();
 
 // Set up multer storage for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    // Create resumes subdirectory if it doesn't exist
-    const resumesDir = path.join(uploadDir, 'resumes');
-    if (!fs.existsSync(resumesDir)) {
-      fs.mkdirSync(resumesDir, { recursive: true });
-    }
-    
-    // Store files in the resumes directory
     cb(null, resumesDir);
   },
   filename: function (req, file, cb) {
-    // Generate a unique filename with timestamp and user ID if available
+    // Generate a unique filename with UUID and user ID if available
     const userId = req.user?.id || 'unknown';
-    const timestamp = Date.now();
+    const uniqueId = uuidv4().substring(0, 8);
     const ext = path.extname(file.originalname);
-    cb(null, `resume_${userId}_${timestamp}${ext}`);
+    cb(null, `resume_${userId}_${uniqueId}${ext}`);
   }
 });
 
@@ -38,17 +46,19 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: function (req, file, cb) {
-    // Check accepted file types
-    const fileTypes = /pdf|doc|docx/;
-    const mimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document/;
+    // Check accepted file types - only PDF for now for reliability
+    const fileTypes = /pdf/;
+    const mimeTypes = /application\/pdf/;
     
     const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = mimeTypes.test(file.mimetype);
     
+    console.log(`File upload check: ${file.originalname}, mimetype: ${file.mimetype}, extension: ${path.extname(file.originalname)}`);
+    
     if (extname && mimetype) {
       return cb(null, true);
     } else {
-      cb(new Error('Error: Invalid file format! Only PDF, DOC, or DOCX files are allowed.'));
+      cb(new Error('Invalid file format! Only PDF files are allowed for reliable text extraction.'));
     }
   }
 });
@@ -57,72 +67,102 @@ const upload = multer({
  * Registers the updated resume-extract text endpoint with PDF parsing capabilities
  * @param app Express application or router
  */
-export function registerPdfExtractRoutes(app: any) {
-  // Resume file upload endpoint
-  app.post("/api/resumes/upload", requireAuth, (req: Request, res: Response) => {
-    // Log the authentication state to debug
-    console.log(`Upload request from user ID: ${req.user?.id}`);
-    
-    // Create uploads directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    // Also ensure the resumes subdirectory exists
-    const resumesDir = path.join(uploadDir, 'resumes');
-    if (!fs.existsSync(resumesDir)) {
-      fs.mkdirSync(resumesDir, { recursive: true });
-    }
-    
-    // Log more details about the request
-    console.log("Upload request headers:", req.headers);
-    console.log("Request content type:", req.headers['content-type']);
+export function registerPdfExtractRoutes(app: Router | Express) {
+  // Simple test endpoint to verify the route works
+  app.get("/api/resumes/test", (req: Request, res: Response) => {
+    res.json({ message: "PDF extraction route is working properly" });
+  });
+  
+  // Direct file submission endpoint - processes file immediately
+  app.post("/api/resumes/extract", requireAuth, (req: Request, res: Response) => {
+    console.log("Starting direct PDF extraction process");
+    console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
     
     if (!req.headers['content-type']?.includes('multipart/form-data')) {
-      console.error("Invalid content type for file upload");
+      console.error("Invalid content type for direct file extraction");
       return res.status(400).json({
         success: false,
-        message: "Invalid content type. File uploads require multipart/form-data."
+        message: "Invalid content type. Direct extraction requires multipart/form-data."
       });
     }
     
-    // Handle file upload with multer
-    upload.single('file')(req, res, function (err) {
+    // Handle the file upload with multer
+    const uploadHandler = upload.single('file');
+    
+    uploadHandler(req, res, async function(err) {
       if (err) {
-        console.error("File upload error:", err);
-        // If it's a multer error, send a more specific message
-        if (err.code === 'LIMIT_FILE_SIZE') {
-          return res.status(400).json({
-            success: false,
-            message: "File is too large. Maximum size is 5MB.",
-          });
-        } else if (err.message && err.message.includes('Invalid file format')) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid file format. Only PDF, DOC, or DOCX files are allowed.",
-          });
-        } else {
-          return res.status(400).json({ 
-            success: false, 
-            message: err.message || "Error uploading file",
-          });
-        }
+        console.error("File upload error during direct extraction:", err);
+        return res.status(400).json({
+          success: false,
+          message: err.message || "Error uploading file for extraction"
+        });
       }
       
       // Check if file was provided
       if (!req.file) {
-        console.error("No file data provided in the request");
-        console.log("Request body:", req.body);
-        console.log("Request files:", req.files);
-        
-        return res.status(400).json({ 
-          success: false, 
-          message: "No file data provided. Make sure you're using the 'file' field name when uploading.",
+        console.error("No file provided for direct extraction");
+        return res.status(400).json({
+          success: false,
+          message: "No file provided for extraction"
         });
       }
       
-      console.log(`File uploaded successfully: ${req.file.originalname} (${req.file.size} bytes)`);
+      console.log(`File received for direct extraction: ${req.file.originalname} (${req.file.size} bytes)`);
+      
+      try {
+        // Import the PDF extractor module
+        const { extractTextFromPdf } = await import('./pdf-extractor');
+        
+        // Extract text from the uploaded file
+        const filePath = req.file.path;
+        const { text, pages } = await extractTextFromPdf(filePath);
+        
+        console.log(`Successfully extracted text from ${req.file.originalname}: ${text.substring(0, 100)}...`);
+        
+        // Return the extracted text and file info
+        return res.json({
+          success: true,
+          text: text,
+          fileName: req.file.originalname,
+          pages: pages,
+          message: "Text successfully extracted from PDF"
+        });
+      } catch (extractError) {
+        console.error("Error extracting text:", extractError);
+        return res.status(500).json({
+          success: false,
+          message: "Error extracting text from the PDF",
+          error: extractError instanceof Error ? extractError.message : 'Unknown error'
+        });
+      }
+    });
+  });
+
+  // Legacy endpoints for backward compatibility
+  // Resume file upload endpoint 
+  app.post("/api/resumes/upload", requireAuth, (req: Request, res: Response) => {
+    console.log(`Legacy upload endpoint called by user ID: ${req.user?.id}`);
+    
+    // Handle file upload with multer
+    upload.single('file')(req, res, function (err) {
+      if (err) {
+        console.error("Legacy file upload error:", err);
+        return res.status(400).json({ 
+          success: false, 
+          message: err.message || "Error uploading file",
+        });
+      }
+      
+      // Check if file was provided
+      if (!req.file) {
+        console.error("No file data provided in the legacy upload request");
+        return res.status(400).json({ 
+          success: false, 
+          message: "No file data provided. Make sure you're selecting a file and using the 'file' field name.",
+        });
+      }
+      
+      console.log(`Legacy file upload successful: ${req.file.originalname} (${req.file.size} bytes)`);
       
       // File uploaded successfully, return the path
       return res.json({
@@ -135,14 +175,17 @@ export function registerPdfExtractRoutes(app: any) {
       });
     });
   });
-  // Resume text extraction endpoint with PDF parsing capability
+  
+  // Legacy text extraction endpoint  
   app.post("/api/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
     try {
+      console.log("Legacy extract-text endpoint called");
       // Import the PDF extractor module
       const { extractTextFromPdf } = await import('./pdf-extractor');
       
       // Check if we're receiving a file path or direct text
       const { filePath, text } = req.body;
+      console.log(`Extract text request with filePath: ${filePath ? 'yes' : 'no'}, text: ${text ? 'yes' : 'no'}`);
       
       // If direct text is provided, return it as is
       if (text) {
