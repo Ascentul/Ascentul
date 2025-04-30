@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -11,16 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ResumeForm from '@/components/ResumeForm';
 import ResumeAnalyzer from '@/components/ResumeAnalyzer';
 import ResumePreview from '@/components/ResumePreview';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { useCareerData } from '@/hooks/use-career-data';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,6 +33,10 @@ export default function Resume() {
   const [previewResume, setPreviewResume] = useState<any>(null);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [isGeneratedResumeOpen, setIsGeneratedResumeOpen] = useState(false);
+  const [isOptimizeDialogOpen, setIsOptimizeDialogOpen] = useState(false);
+  const [optimizedCareerData, setOptimizedCareerData] = useState<any>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [shouldUpdateProfile, setShouldUpdateProfile] = useState(true);
   // Always make design studio accessible without a toggle
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -46,7 +54,10 @@ export default function Resume() {
   const [userWorkHistory, setUserWorkHistory] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Fetch user's work history with authentication
+  // Get user's career data
+  const { careerData, isLoading: isCareerDataLoading, refetch: refetchCareerData } = useCareerData();
+
+  // Fetch user's work history with authentication (keeping this for backward compatibility)
   const { data: workHistoryData = [] } = useQuery<any[]>({
     queryKey: ['/api/work-history'],
     placeholderData: [],
@@ -158,6 +169,89 @@ export default function Resume() {
       });
     },
   });
+  
+  // Optimize career data based on job description
+  const optimizeCareerDataMutation = useMutation({
+    mutationFn: async () => {
+      if (!careerData) {
+        throw new Error("No career data available. Please add work history in your profile first.");
+      }
+      
+      setIsOptimizing(true);
+      const res = await apiRequest('POST', '/api/career-data/optimize', {
+        jobDescription,
+        careerData
+      });
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setIsOptimizing(false);
+      setOptimizedCareerData(data);
+      setIsOptimizeDialogOpen(true);
+      
+      toast({
+        title: 'Optimization Complete',
+        description: 'Your career data has been optimized for this job description',
+      });
+    },
+    onError: (error) => {
+      setIsOptimizing(false);
+      toast({
+        title: 'Optimization Error',
+        description: `Failed to optimize career data: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Update career data with optimized content
+  const updateCareerDataMutation = useMutation({
+    mutationFn: async () => {
+      if (!optimizedCareerData) {
+        throw new Error("No optimized data available");
+      }
+      
+      // Update career summary
+      const summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
+        summary: optimizedCareerData.careerSummary
+      });
+      
+      // Update each work history item
+      const workHistoryPromises = optimizedCareerData.workHistory.map((item: any) => {
+        return apiRequest('PUT', `/api/career-data/work-history/${item.id}`, {
+          description: item.description,
+          achievements: item.achievements
+        });
+      });
+      
+      // Update skills (this would need to be implemented on the backend)
+      const skillsPromise = Promise.resolve(); // Placeholder for now
+      
+      // Wait for all updates to complete
+      return Promise.all([summaryPromise, ...workHistoryPromises, skillsPromise]);
+    },
+    onSuccess: () => {
+      // Refresh career data
+      refetchCareerData();
+      
+      // Close the optimize dialog
+      setIsOptimizeDialogOpen(false);
+      
+      // Show success message
+      toast({
+        title: 'Profile Updated',
+        description: 'Your career profile has been updated with the optimized data',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Update Error',
+        description: `Failed to update profile: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
 
   const filteredResumes = () => {
     if (!resumes) return [];
@@ -213,7 +307,7 @@ export default function Resume() {
     }
   };
 
-  // Function to generate a full resume
+  // Function to generate a full resume with optimization options
   const generateFullResume = () => {
     if (!jobDescription) {
       toast({
@@ -224,9 +318,25 @@ export default function Resume() {
       return;
     }
 
-    // Check if we have work history data available in the database
-    if (Array.isArray(workHistoryData) && workHistoryData.length > 0) {
-      // Format work history data for AI processing
+    // Check if we have work history data available - prefer careerData over workHistoryData
+    const hasWorkHistory = (careerData && careerData.workHistory && careerData.workHistory.length > 0) ||
+                           (Array.isArray(workHistoryData) && workHistoryData.length > 0);
+    
+    if (!hasWorkHistory) {
+      toast({
+        title: 'Missing Work History',
+        description: 'Please add some work history entries in your profile first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // If we have career data from the hook, use it for optimization
+    if (careerData && careerData.workHistory && careerData.workHistory.length > 0) {
+      // First, try to optimize the career data
+      optimizeCareerDataMutation.mutate();
+    } else {
+      // Fallback to the old implementation if career data isn't available
       const formattedWorkHistory = workHistoryData.map((job: any) => {
         const duration = job.currentJob 
           ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
@@ -244,14 +354,38 @@ export default function Resume() {
 
       // Call the API with the job description and formatted work history
       generateResumeMutation.mutate();
-    } else {
-      // No work history available
+    }
+  };
+  
+  // Function to optimize career data and then generate resume
+  const optimizeAndGenerateResume = () => {
+    if (!optimizedCareerData) {
       toast({
-        title: 'Missing Work History',
-        description: 'Please add some work history entries in your profile first',
+        title: 'Error',
+        description: 'No optimized data available',
         variant: 'destructive',
       });
+      return;
     }
+    
+    // Format optimized work history data for AI processing
+    const formattedWorkHistory = optimizedCareerData.workHistory.map((job: any) => {
+      return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}\n`;
+    }).join('\n---\n\n');
+    
+    // Set the formatted work history to use in the API call
+    setUserWorkHistory(formattedWorkHistory);
+    
+    // Add the optimized career summary at the beginning if available
+    if (optimizedCareerData.careerSummary) {
+      setUserWorkHistory(`Career Summary:\n${optimizedCareerData.careerSummary}\n\n${formattedWorkHistory}`);
+    }
+    
+    // Close the optimization dialog
+    setIsOptimizeDialogOpen(false);
+    
+    // Call the API with the job description and formatted work history
+    generateResumeMutation.mutate();
   };
 
   // Animation variants - optimized for performance
@@ -1132,6 +1266,146 @@ export default function Resume() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Career Optimization Dialog */}
+      <Dialog open={isOptimizeDialogOpen} onOpenChange={setIsOptimizeDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Optimize Your Career Profile</DialogTitle>
+            <DialogDescription>
+              AI has analyzed your career data and the job description to create an optimized version that highlights your most relevant skills and experiences.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isOptimizing ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+              <p className="mt-4 text-center text-neutral-600">
+                Optimizing your career data based on the job description...
+              </p>
+            </div>
+          ) : optimizedCareerData ? (
+            <div className="space-y-4 my-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Career Summary</h3>
+                <div className="bg-neutral-50 p-3 rounded-md">
+                  <p>{optimizedCareerData.careerSummary}</p>
+                </div>
+                {optimizedCareerData.explanations?.summary && (
+                  <Alert>
+                    <AlertTitle>How this was improved</AlertTitle>
+                    <AlertDescription className="text-sm text-neutral-600">
+                      {optimizedCareerData.explanations.summary}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Work History</h3>
+                {optimizedCareerData.workHistory?.map((item: any) => (
+                  <div key={item.id} className="border rounded-md p-3">
+                    <div className="font-medium">{item.company} - {item.position}</div>
+                    <div className="text-sm text-neutral-600 mt-1">{item.description}</div>
+                    
+                    {item.achievements && item.achievements.length > 0 && (
+                      <div className="mt-2">
+                        <div className="font-medium text-sm">Key Achievements:</div>
+                        <ul className="list-disc list-inside text-sm text-neutral-600">
+                          {item.achievements.map((achievement: string, i: number) => (
+                            <li key={i}>{achievement}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {optimizedCareerData.explanations?.workHistory && (
+                  <Alert>
+                    <AlertTitle>How work history was enhanced</AlertTitle>
+                    <AlertDescription className="text-sm text-neutral-600">
+                      {optimizedCareerData.explanations.workHistory}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+              
+              {optimizedCareerData.skills && optimizedCareerData.skills.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Highlighted Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {optimizedCareerData.skills.map((skill: string, i: number) => (
+                      <div key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                        {skill}
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {optimizedCareerData.explanations?.skills && (
+                    <Alert>
+                      <AlertTitle>Skill Recommendations</AlertTitle>
+                      <AlertDescription className="text-sm text-neutral-600">
+                        {optimizedCareerData.explanations.skills}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-neutral-600">No optimized data available</p>
+            </div>
+          )}
+          
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Switch
+                  checked={shouldUpdateProfile}
+                  onCheckedChange={setShouldUpdateProfile}
+                />
+                <span>Update my profile with these optimized details</span>
+              </label>
+            </div>
+            <p className="text-xs text-neutral-500">
+              When enabled, your profile in Account Settings will be updated with these optimized descriptions and skills.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setIsOptimizeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <div className="flex gap-2">
+              {shouldUpdateProfile ? (
+                <Button 
+                  onClick={() => {
+                    updateCareerDataMutation.mutate();
+                    optimizeAndGenerateResume();
+                  }}
+                  disabled={updateCareerDataMutation.isPending}
+                >
+                  {updateCareerDataMutation.isPending ? (
+                    <>Updating profile</>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" /> 
+                      Save to Profile & Generate
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button onClick={optimizeAndGenerateResume}>
+                  <ArrowRight className="mr-2 h-4 w-4" /> 
+                  Generate Resume Only
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </motion.div>
