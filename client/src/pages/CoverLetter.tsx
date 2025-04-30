@@ -230,8 +230,7 @@ export default function CoverLetter() {
         setCompanyName('');
         setJobDescription('');
         
-        // Switch to the main tab to show saved letters
-        setActiveTab('main');
+        // Redirect to main tab would go here if needed
       })
       .catch((error) => {
         toast({
@@ -684,30 +683,40 @@ export default function CoverLetter() {
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            <Card>
+            <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Upload & Analyze Cover Letter</h3>
-                <p className="text-neutral-500 mb-4">
-                  Get AI-powered insights on how well your cover letter aligns with a specific job.
+                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+                  <FileUp className="h-5 w-5 mr-2" />
+                  Upload & Analyze Cover Letter
+                </h3>
+                <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
+                  Get AI-powered insights on how well your cover letter aligns with a specific job description. 
+                  Our AI will analyze and provide suggestions to improve your application.
                 </p>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Job Description</Label>
+                    <Label className="text-sm font-medium flex items-center">
+                      <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
+                    </Label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={analyzeJobDescription}
                       onChange={(e) => setAnalyzeJobDescription(e.target.value)}
-                      className="min-h-[120px]"
+                      className="min-h-[120px] border-slate-200"
+                      id="jobDescription"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Your Cover Letter</Label>
+                    <Label className="text-sm font-medium flex items-center">
+                      <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
+                    </Label>
                     <Textarea
                       placeholder="Paste your cover letter text here..."
                       value={analyzeCoverLetterText}
                       onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
-                      className="min-h-[200px]"
+                      className="min-h-[200px] border-slate-200"
+                      id="coverLetterInput"
                     />
                   </div>
                   
@@ -715,6 +724,7 @@ export default function CoverLetter() {
                     className="w-full" 
                     onClick={handleAnalyzeCoverLetter}
                     disabled={analyzeCoverLetterMutation.isPending}
+                    id="analyzeBtn"
                   >
                     {analyzeCoverLetterMutation.isPending ? (
                       <>
@@ -732,40 +742,49 @@ export default function CoverLetter() {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Analysis Results</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header">
+                  <BarChart4 className="h-5 w-5 mr-2" />
+                  📊 AI Analysis Results
+                </h3>
                 {!analysisResult ? (
-                  <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-                    <Sparkles className="h-12 w-12 text-neutral-300 mb-2" />
-                    <p className="text-neutral-500">
+                  <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
+                    <Sparkles className="h-12 w-12 text-neutral-300 mb-3" />
+                    <p className="text-neutral-500 max-w-xs">
                       Submit your cover letter and job description to see AI-powered analysis and suggestions.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box" 
+                           title="Overall score reflecting the quality of your cover letter">
                         <span className="text-xl font-bold">{Math.round(analysisResult.overallScore)}</span>
                         <span className="text-xs text-neutral-500">Overall</span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                           title="How well your letter aligns with the job requirements">
                         <span className="text-xl font-bold">{Math.round(analysisResult.alignment)}</span>
                         <span className="text-xs text-neutral-500">Alignment</span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                           title="How persuasive and compelling your letter is">
                         <span className="text-xl font-bold">{Math.round(analysisResult.persuasiveness)}</span>
                         <span className="text-xs text-neutral-500">Persuasive</span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                           title="Clarity and readability of your writing">
                         <span className="text-xl font-bold">{Math.round(analysisResult.clarity)}</span>
                         <span className="text-xs text-neutral-500">Clarity</span>
                       </div>
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Strengths</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                      <h4 className="text-sm font-medium mb-2 flex items-center">
+                        <span className="text-emerald-500 mr-1">✓</span> Strengths
+                      </h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-2 rounded-md border border-emerald-100/50" id="strengthsList">
                         {analysisResult.strengths.map((strength: string, index: number) => (
                           <li key={index} className="text-neutral-700">{strength}</li>
                         ))}
@@ -773,8 +792,10 @@ export default function CoverLetter() {
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Areas to Improve</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                      <h4 className="text-sm font-medium mb-2 flex items-center">
+                        <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
+                      </h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-2 rounded-md border border-amber-100/50" id="areasToImproveList">
                         {analysisResult.weaknesses.map((weakness: string, index: number) => (
                           <li key={index} className="text-neutral-700">{weakness}</li>
                         ))}
@@ -782,29 +803,62 @@ export default function CoverLetter() {
                     </div>
                     
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Improvement Suggestions</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                      <h4 className="text-sm font-medium mb-2 flex items-center">
+                        <span className="text-blue-500 mr-1">💡</span> Suggestions
+                      </h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-2 rounded-md border border-blue-100/50" id="suggestionsList">
                         {analysisResult.improvementSuggestions.map((suggestion: string, index: number) => (
                           <li key={index} className="text-neutral-700">{suggestion}</li>
                         ))}
                       </ul>
                     </div>
                     
-                    <div className="pt-2">
-                      <h4 className="text-sm font-medium mb-2">Optimized Cover Letter</h4>
-                      <div className="bg-primary/5 p-3 rounded-lg max-h-[300px] overflow-y-auto">
+                    <div className="pt-3">
+                      <h4 className="text-sm font-medium mb-2 flex items-center">
+                        <span className="text-primary mr-1">📝</span> Optimized Cover Letter
+                      </h4>
+                      <div className="bg-primary/5 p-4 rounded-lg max-h-[300px] overflow-y-auto border border-primary/10" id="optimizedCoverLetter">
                         <p className="whitespace-pre-line text-sm">
                           {analysisResult.optimizedCoverLetter}
                         </p>
                       </div>
-                      <Button 
-                        className="w-full mt-2" 
-                        variant="outline"
-                        onClick={handleSaveOptimizedCoverLetter}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Save Optimized Version
-                      </Button>
+                      <div className="flex gap-2 mt-3">
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(analysisResult.optimizedCoverLetter);
+                            toast({
+                              title: "Copied to clipboard",
+                              description: "Optimized cover letter copied to clipboard",
+                            });
+                          }}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </Button>
+                        <Button 
+                          className="flex-1" 
+                          variant="outline"
+                          onClick={() => {
+                            setAnalyzeCoverLetterText(analysisResult.optimizedCoverLetter);
+                            toast({
+                              title: "Replaced original",
+                              description: "Optimized version now in editor",
+                            });
+                          }}
+                        >
+                          <FileUp className="mr-2 h-4 w-4" />
+                          Replace Original
+                        </Button>
+                        <Button 
+                          className="flex-1" 
+                          onClick={handleSaveOptimizedCoverLetter}
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Save
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
