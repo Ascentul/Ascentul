@@ -535,13 +535,34 @@ export default function CoverLetter() {
                       minHeight: '170px', 
                       borderRadius: '12px',
                       padding: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      height: '100%',
+                      overflow: 'hidden'
                     }}
                   >
                     <CardContent className="p-0 flex-grow-0 flex flex-col">
-                      <div className="bg-[#f4f6ff] px-6 py-4 flex items-start h-[96px] card-header" style={{ marginBottom: 0, borderBottom: 'none' }}>
-                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
+                      <div className="bg-[#f4f6ff] px-4 py-4 card-header" 
+                           style={{ 
+                             marginBottom: 0, 
+                             borderBottom: 'none',
+                             padding: '16px',
+                             display: 'flex',
+                             flexDirection: 'column',
+                             justifyContent: 'center',
+                             gap: '6px',
+                             minHeight: 'auto',
+                             overflow: 'hidden'
+                           }}>
+                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0 float-left" />
                         <div className="flex flex-col w-full pr-6">
-                            <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4] mb-1">{letter.name}</h3>
+                            <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1"
+                                style={{ 
+                                  whiteSpace: 'normal',
+                                  overflowWrap: 'break-word',
+                                  wordBreak: 'break-word' 
+                                }}>{letter.name}</h3>
                             <p className="text-[13px] text-gray-600 m-0 mb-1">
                               {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
                             </p>
