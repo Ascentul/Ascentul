@@ -98,21 +98,21 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
           if (serialized.createdAt) {
             // Use Object.prototype.toString to check if it's a Date
             if (Object.prototype.toString.call(serialized.createdAt) === '[object Date]') {
-              serialized.createdAt = new Date(serialized.createdAt).toISOString();
+              serialized.createdAt = serialized.createdAt.toISOString();
             }
           }
           
           // Check and convert issueDate if present
           if (serialized.issueDate) {
             if (Object.prototype.toString.call(serialized.issueDate) === '[object Date]') {
-              serialized.issueDate = new Date(serialized.issueDate).toISOString();
+              serialized.issueDate = serialized.issueDate.toISOString();
             }
           }
           
           // Check and convert expirationDate if present
           if (serialized.expirationDate) {
             if (Object.prototype.toString.call(serialized.expirationDate) === '[object Date]') {
-              serialized.expirationDate = new Date(serialized.expirationDate).toISOString();
+              serialized.expirationDate = serialized.expirationDate.toISOString();
             }
           }
         } catch (err) {
