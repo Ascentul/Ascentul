@@ -107,7 +107,7 @@ export default function CoverLetter() {
 
   const generateCoverLetterMutation = useMutation({
     mutationFn: async () => {
-      const skillsArray = userSkills.split(',').map(skill => skill.trim());
+      const skillsArray = userSkills ? userSkills.split(',').map(skill => skill.trim()) : [];
       const res = await apiRequest('POST', '/api/cover-letters/generate', {
         jobTitle,
         companyName,
@@ -136,12 +136,13 @@ export default function CoverLetter() {
   
   const generateSuggestionsMutation = useMutation({
     mutationFn: async () => {
-      const skillsArray = userSkills.split(',').map(skill => skill.trim());
+      // For suggestions, only the job description is required
+      const skillsArray = userSkills ? userSkills.split(',').map(skill => skill.trim()) : [];
       const res = await apiRequest('POST', '/api/cover-letters/generate', {
-        jobTitle,
-        companyName,
+        jobTitle: jobTitle || 'Not specified',
+        companyName: companyName || 'Not specified',
         jobDescription,
-        userExperience,
+        userExperience: userExperience || '', 
         userSkills: skillsArray,
         type: 'suggestions'
       });
@@ -275,10 +276,10 @@ export default function CoverLetter() {
   };
   
   const generateSuggestions = () => {
-    if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+    if (!jobDescription) {
       toast({
         title: 'Missing Information',
-        description: 'Please fill out all fields to generate suggestions',
+        description: 'Please provide a job description to generate suggestions',
         variant: 'destructive',
       });
       return;
