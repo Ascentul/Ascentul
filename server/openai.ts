@@ -680,6 +680,73 @@ Be specific, actionable, and constructive. Focus on substance over style, and em
   }
 }
 
+// Analyze a cover letter against a job description
+export async function analyzeCoverLetter(
+  coverLetter: string,
+  jobDescription: string
+): Promise<{
+  overallScore: number;
+  alignment: number;
+  persuasiveness: number;
+  clarity: number;
+  strengths: string[];
+  weaknesses: string[];
+  improvementSuggestions: string[];
+  optimizedCoverLetter: string;
+}> {
+  try {
+    const prompt = `As a professional cover letter coach, analyze the following cover letter in relation to the job description provided. Offer actionable feedback and an optimized version.
+
+Job Description:
+${jobDescription}
+
+Cover Letter:
+${coverLetter}
+
+Provide your analysis in JSON format with the following fields:
+1. overallScore: A number from 0-100 representing how effective the cover letter is overall
+2. alignment: A number from 0-100 representing how well the letter aligns with the job requirements
+3. persuasiveness: A number from 0-100 representing how persuasively the letter makes the case for hiring the candidate
+4. clarity: A number from 0-100 representing how clear and well-structured the letter is
+5. strengths: An array of 3-5 specific strengths of this cover letter
+6. weaknesses: An array of 2-4 weaknesses or missed opportunities in this cover letter
+7. improvementSuggestions: An array of 4-6 actionable suggestions to improve the cover letter
+8. optimizedCoverLetter: A complete rewritten version of the cover letter that addresses all the weaknesses while maintaining the applicant's truthful experience and using their tone of voice
+
+Be specific, actionable, and honest in your assessment. Focus on content, relevance, and persuasiveness rather than just format.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const parsedResponse = JSON.parse(content);
+    
+    // Ensure all required fields are present
+    return {
+      overallScore: parsedResponse.overallScore || 0,
+      alignment: parsedResponse.alignment || 0,
+      persuasiveness: parsedResponse.persuasiveness || 0,
+      clarity: parsedResponse.clarity || 0,
+      strengths: parsedResponse.strengths || [],
+      weaknesses: parsedResponse.weaknesses || [],
+      improvementSuggestions: parsedResponse.improvementSuggestions || [],
+      optimizedCoverLetter: parsedResponse.optimizedCoverLetter || coverLetter
+    };
+  } catch (error: any) {
+    console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      throw new Error("There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.");
+    }
+    
+    throw new Error("An error occurred while analyzing the cover letter. Please try again later.");
+  }
+}
+
 // Generate a complete resume tailored to a specific job description
 export async function generateFullResume(
   workHistory: string, 
