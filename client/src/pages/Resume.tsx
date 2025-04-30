@@ -177,10 +177,17 @@ export default function Resume() {
         throw new Error("No career data available. Please add work history in your profile first.");
       }
       
+      // Format the career data to match the requirements of the API
+      const formattedCareerData = {
+        workHistory: careerData.workHistory || [],
+        skills: (careerData.skills || []).map((skill: any) => skill.name || skill),
+        careerSummary: careerData.careerSummary || ''
+      };
+      
       setIsOptimizing(true);
       const res = await apiRequest('POST', '/api/career-data/optimize', {
         jobDescription,
-        careerData
+        careerData: formattedCareerData
       });
       
       return res.json();
@@ -212,21 +219,57 @@ export default function Resume() {
         throw new Error("No optimized data available");
       }
       
-      // Update career summary
-      const summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
-        summary: optimizedCareerData.careerSummary
-      });
-      
-      // Update each work history item
-      const workHistoryPromises = optimizedCareerData.workHistory.map((item: any) => {
-        return apiRequest('PUT', `/api/career-data/work-history/${item.id}`, {
-          description: item.description,
-          achievements: item.achievements
+      // Update career summary if provided
+      let summaryPromise = Promise.resolve();
+      if (optimizedCareerData.careerSummary) {
+        summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
+          summary: optimizedCareerData.careerSummary
         });
-      });
+      }
       
-      // Update skills (this would need to be implemented on the backend)
-      const skillsPromise = Promise.resolve(); // Placeholder for now
+      // Update each work history item if provided
+      const workHistoryPromises = [];
+      if (optimizedCareerData.workHistory && optimizedCareerData.workHistory.length > 0) {
+        for (const item of optimizedCareerData.workHistory) {
+          if (item.id) {
+            workHistoryPromises.push(
+              apiRequest('PUT', `/api/career-data/work-history/${item.id}`, {
+                description: item.description,
+                achievements: item.achievements
+              })
+            );
+          }
+        }
+      }
+      
+      // Add new skills if provided
+      let skillsPromise = Promise.resolve();
+      if (optimizedCareerData.skills && optimizedCareerData.skills.length > 0) {
+        // Get current skills to avoid duplicates
+        const currentSkillsResponse = await apiRequest('GET', '/api/career-data', {});
+        const currentSkillsData = await currentSkillsResponse.json();
+        const currentSkillNames = new Set(
+          (currentSkillsData.skills || []).map((s: any) => s.name.toLowerCase())
+        );
+        
+        // Add new skills that don't already exist
+        const newSkillPromises = [];
+        for (const skill of optimizedCareerData.skills) {
+          if (typeof skill === 'string' && !currentSkillNames.has(skill.toLowerCase())) {
+            newSkillPromises.push(
+              apiRequest('POST', '/api/career-data/skills', {
+                name: skill,
+                proficiencyLevel: 'Intermediate',
+                category: null
+              })
+            );
+          }
+        }
+        
+        if (newSkillPromises.length > 0) {
+          skillsPromise = Promise.all(newSkillPromises);
+        }
+      }
       
       // Wait for all updates to complete
       return Promise.all([summaryPromise, ...workHistoryPromises, skillsPromise]);
