@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Upload, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
 
 interface ResumeAnalyzerProps {
   onExtractComplete: (text: string) => void;
@@ -27,6 +26,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     'After uploading your resume, extracted text will appear here. You can also paste resume text directly.'
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,12 +37,11 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       return;
     }
     
-    // Check file type - only allow PDF, DOC, DOCX
+    // Check file type - only allow PDF for now
     const fileType = selectedFile.type;
-    const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     
-    if (!validTypes.includes(fileType)) {
-      setError('Please select a PDF, DOC, or DOCX file.');
+    if (fileType !== 'application/pdf') {
+      setError('Currently, we only support PDF files for reliable text extraction.');
       return;
     }
     
@@ -55,121 +54,150 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     setFile(selectedFile);
   };
 
-  const uploadAndExtractText = async () => {
+  const processFile = async () => {
     if (!file) {
-      setError('Please select a file first.');
+      setError('Please select a PDF file first.');
       return;
     }
 
     try {
       setUploading(true);
+      setExtracting(true); // We're doing upload and extract in one step now
       setError(null);
-      
-      console.log("Starting file upload for:", file.name);
-      
-      // Create form data for file upload
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Log the FormData to confirm it contains the file
-      console.log(`FormData created with file: ${file.name}, size: ${file.size}, type: ${file.type}`);
-      
-      // Using XMLHttpRequest instead of fetch for better debugging
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/resumes/upload', true);
-      xhr.withCredentials = true; // Important for cookies/auth
-      
-      // Set up event handlers
-      xhr.onload = async function() {
-        if (xhr.status === 200) {
-          try {
-            const uploadResult = JSON.parse(xhr.responseText);
-            console.log("Upload success:", uploadResult);
-            
-            if (!uploadResult.success || !uploadResult.filePath) {
-              throw new Error('Invalid response from server.');
-            }
-            
-            setUploading(false);
-            setExtracting(true);
-            
-            // Now extract text from the uploaded file
-            const extractResponse = await fetch('/api/resumes/extract-text', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ filePath: uploadResult.filePath }),
-              credentials: 'include',
-            });
-            
-            if (!extractResponse.ok) {
-              const errorText = await extractResponse.text();
-              console.error("Extract error:", errorText);
-              throw new Error('Text extraction failed. Please try manually entering your resume text.');
-            }
-            
-            const extractResult = await extractResponse.json();
-            
-            if (!extractResult.success) {
-              throw new Error('Text extraction failed. Please try manually entering your resume text.');
-            }
-            
-            setResumeText(extractResult.text);
-            setExtracting(false);
-            
-            toast({
-              title: 'Success!',
-              description: 'Text extracted successfully.',
-              variant: 'default',
-            });
-            
-            // Call the completion handler
-            onExtractComplete(extractResult.text);
-          } catch (error) {
-            handleUploadError(error);
-          }
-        } else {
-          console.error("Upload failed with status:", xhr.status);
-          console.error("Response:", xhr.responseText);
-          handleUploadError(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
-        }
-      };
-      
-      xhr.onerror = function() {
-        console.error("Network error during upload");
-        handleUploadError(new Error('Network error during upload. Please check your connection and try again.'));
-      };
-      
-      xhr.upload.onprogress = function(event) {
-        if (event.lengthComputable) {
-          const percentComplete = (event.loaded / event.total) * 100;
-          console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
-        }
-      };
-      
-      // Send the request
-      xhr.send(formData);
+
+      // Method 1: Use direct extraction endpoint (new approach)
+      await extractTextWithDirectEndpoint();
       
     } catch (error) {
-      handleUploadError(error);
+      console.error("Main extraction process failed:", error);
+      
+      // If the new method fails, try the legacy approach
+      try {
+        console.log("Trying legacy extraction method as fallback");
+        await legacyExtractProcess();
+      } catch (legacyError) {
+        handleProcessError(legacyError);
+      }
     }
   };
+
+  // New method: Upload and extract in a single step
+  const extractTextWithDirectEndpoint = async () => {
+    console.log("Using direct extraction endpoint for file:", file?.name);
+    
+    const formData = new FormData();
+    formData.append('file', file as File);
+    
+    // Send form data to the extraction endpoint
+    const response = await fetch('/api/resumes/extract', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include', // Include cookies for authentication
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Direct extraction failed:", errorText);
+      throw new Error(`Extraction failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success || !result.text) {
+      throw new Error("Server could not extract text from the file");
+    }
+    
+    handleExtractSuccess(result.text);
+  };
   
-  const handleUploadError = (error: unknown) => {
+  // Legacy method: Upload first, then extract
+  const legacyExtractProcess = async () => {
+    console.log("Using legacy two-step process for file:", file?.name);
+    
+    // Create form data for file upload
+    const formData = new FormData();
+    formData.append('file', file as File);
+    
+    // Step 1: Upload the file
+    const uploadResponse = await fetch('/api/resumes/upload', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+    
+    if (!uploadResponse.ok) {
+      const errorBody = await uploadResponse.text();
+      console.error("Legacy upload error:", errorBody);
+      throw new Error(`Upload failed: ${uploadResponse.status}`);
+    }
+    
+    const uploadResult = await uploadResponse.json();
+    
+    if (!uploadResult.success || !uploadResult.filePath) {
+      throw new Error('Invalid upload response from server');
+    }
+    
+    console.log("Legacy upload successful, proceeding to extraction");
+    
+    // Step 2: Extract text from the uploaded file
+    const extractResponse = await fetch('/api/resumes/extract-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath: uploadResult.filePath }),
+      credentials: 'include'
+    });
+    
+    if (!extractResponse.ok) {
+      const errorText = await extractResponse.text();
+      console.error("Legacy extraction error:", errorText);
+      throw new Error('Text extraction failed');
+    }
+    
+    const extractResult = await extractResponse.json();
+    
+    if (!extractResult.success || !extractResult.text) {
+      throw new Error('Invalid extraction response from server');
+    }
+    
+    handleExtractSuccess(extractResult.text);
+  };
+  
+  // Handle successful extraction
+  const handleExtractSuccess = (text: string) => {
+    setResumeText(text);
     setUploading(false);
     setExtracting(false);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    
+    toast({
+      title: 'Success!',
+      description: 'Text extracted successfully from PDF',
+      variant: 'default',
+    });
+    
+    // Call the completion handler
+    onExtractComplete(text);
+  };
+  
+  // Handle errors during the extraction process
+  const handleProcessError = (error: unknown) => {
+    setUploading(false);
+    setExtracting(false);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'An unknown error occurred during file processing';
+    
+    console.error("Final error during file processing:", errorMessage);
     setError(errorMessage);
     
     toast({
       title: 'Error',
-      description: errorMessage,
+      description: 'Failed to extract text. Please try manually pasting your resume text.',
       variant: 'destructive',
     });
     
     // If extraction fails, suggest manual text entry
     setTextareaPlaceholder('Extraction failed. Please paste your resume text here manually.');
+    setActiveTab('paste');
   };
 
   const handleManualTextUpdate = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -210,29 +238,32 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           </TabsList>
           
           <TabsContent value="upload" className="space-y-4 mt-4">
-            <div className="flex flex-col items-center p-6 border-2 border-dashed rounded-md border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+            <form ref={formRef} className="flex flex-col items-center p-6 border-2 border-dashed rounded-md border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf"
+                name="file"
               />
               <Button 
+                type="button"
                 variant="outline" 
                 onClick={() => fileInputRef.current?.click()}
                 className="mb-2"
                 disabled={uploading || extracting}
               >
-                Select File
+                Select PDF File
               </Button>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {file ? file.name : 'PDF, DOC or DOCX files, up to 5MB'}
+                {file ? file.name : 'PDF files only, up to 5MB'}
               </p>
               {file && (
                 <div className="mt-2 flex gap-2">
                   <Button 
-                    onClick={uploadAndExtractText}
+                    type="button"
+                    onClick={processFile}
                     disabled={uploading || extracting}
                     className="flex items-center gap-2"
                   >
@@ -240,6 +271,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                     {uploading ? 'Uploading...' : extracting ? 'Extracting...' : 'Extract Text'}
                   </Button>
                   <Button 
+                    type="button"
                     variant="outline" 
                     onClick={resetFileInput}
                     disabled={uploading || extracting}
@@ -248,7 +280,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                   </Button>
                 </div>
               )}
-            </div>
+            </form>
             
             {error && (
               <Alert variant="destructive">
