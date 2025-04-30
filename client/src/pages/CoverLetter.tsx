@@ -542,20 +542,17 @@ export default function CoverLetter() {
                       overflow: 'hidden'
                     }}
                   >
-                    <CardContent className="p-0 flex-grow-0 flex flex-col">
+                    <div className="flex flex-col flex-grow-0" style={{ position: 'relative' }}>
                       <div className="bg-[#f4f6ff] px-4 py-4 card-header" 
                            style={{ 
-                             marginBottom: 0, 
-                             borderBottom: 'none',
                              padding: '16px',
                              display: 'flex',
-                             flexDirection: 'column',
-                             justifyContent: 'center',
-                             gap: '6px',
-                             minHeight: 'auto',
-                             overflow: 'hidden'
+                             borderBottomLeftRadius: 0,
+                             borderBottomRightRadius: 0,
+                             overflow: 'hidden',
+                             height: '96px'
                            }}>
-                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0 float-left" />
+                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
                         <div className="flex flex-col w-full pr-6">
                             <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1"
                                 style={{ 
@@ -571,8 +568,14 @@ export default function CoverLetter() {
                             </p>
                         </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="py-[10px] px-6 flex justify-between mt-auto card-footer border-t border-slate-200" style={{ marginTop: 0, paddingTop: '12px' }}>
+                    </div>
+                    <CardFooter className="py-[10px] px-6 flex justify-between card-footer border-t border-slate-200" 
+                              style={{ 
+                                marginTop: 0, 
+                                paddingTop: '12px', 
+                                borderTopLeftRadius: 0, 
+                                borderTopRightRadius: 0 
+                              }}>
                       <Button 
                         variant="outline" 
                         size="sm"
