@@ -18,6 +18,7 @@ import { registerAdzunaRoutes } from "./routes/adzuna";
 import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
 import { registerModelsRoutes } from "./routes/models";
+import { registerPdfExtractRoutes } from "./routes-pdf";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
 import { registerCareerDataRoutes } from "./career-data";

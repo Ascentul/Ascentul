@@ -6,8 +6,8 @@ import { GlobalWorkerOptions } from 'pdfjs-dist';
 // Initialize PDF.js worker
 async function initializeWorker() {
   try {
-    const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
-    GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    // Set the worker source to a string path instead of importing the module
+    GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
   } catch (error) {
     console.error('Error initializing PDF.js worker:', error);
     throw new Error('Failed to initialize PDF worker');

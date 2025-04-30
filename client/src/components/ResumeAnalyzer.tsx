@@ -119,7 +119,7 @@ export default function ResumeAnalyzer({ onAnalysisComplete }: ResumeAnalyzerPro
     },
   });
 
-  // Handle file upload
+  // Handle file upload and extract text from the file
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -129,29 +129,81 @@ export default function ResumeAnalyzer({ onAnalysisComplete }: ResumeAnalyzerPro
     setFileUploading(true);
 
     try {
+      // Make sure we handle only PDF files
+      if (file.type !== 'application/pdf') {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF file for text extraction.",
+          variant: "destructive",
+        });
+        setFileUploading(false);
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = async (event) => {
         if (event.target) {
           const fileDataUrl = event.target.result as string;
 
           // Upload the file to the server
-          const uploadResponse = await apiRequest<{ success: boolean; url?: string }>({
+          const uploadResponse = await apiRequest<{ success: boolean; filePath?: string }>({
             url: '/api/resumes/upload',
             method: 'POST',
             data: { fileDataUrl }
           });
 
-          if (uploadResponse.success) {
-            // For now, we'll simulate text extraction
-            // In a real app, we'd use the server to extract text from the PDF or Word document
-            setExtractedText(`Sample resume text extracted from ${file.name}. 
-            
-In a production environment, we would parse the actual text content from your resume file. For now, please copy and paste your resume content into the text area below for analysis.`);
-            
-            toast({
-              title: "File uploaded successfully",
-              description: "Please review or edit the extracted text before analysis.",
-            });
+          if (uploadResponse.success && uploadResponse.filePath) {
+            try {
+              // Extract text from the uploaded PDF file
+              const extractResponse = await apiRequest<{ 
+                success: boolean; 
+                text: string;
+                pages?: { processed: number; total: number };
+                message?: string;
+              }>({
+                url: '/api/resumes/extract-text',
+                method: 'POST',
+                data: { filePath: uploadResponse.filePath }
+              });
+              
+              if (extractResponse.success) {
+                // Set the extracted text
+                setExtractedText(extractResponse.text);
+                setResumeContent(extractResponse.text);
+                
+                let toastMessage = "Text extracted successfully from your resume.";
+                if (extractResponse.pages && extractResponse.pages.total > extractResponse.pages.processed) {
+                  toastMessage += ` (Note: Only the first ${extractResponse.pages.processed} of ${extractResponse.pages.total} pages were processed.)`;
+                }
+                
+                toast({
+                  title: "Text extraction complete",
+                  description: toastMessage,
+                });
+              } else {
+                // Fallback in case of extraction failure
+                setExtractedText(`We couldn't automatically extract text from your PDF. 
+                
+Please copy and paste your resume content into the text area below for analysis.`);
+                
+                toast({
+                  title: "Text extraction failed",
+                  description: "Please manually enter your resume text.",
+                  variant: "destructive",
+                });
+              }
+            } catch (error) {
+              console.error("Error extracting text:", error);
+              setExtractedText(`Error extracting text from PDF. 
+              
+Please copy and paste your resume content into the text area below for analysis.`);
+              
+              toast({
+                title: "Text extraction error",
+                description: "Please manually enter your resume text.",
+                variant: "destructive",
+              });
+            }
             
             setActiveTab("extract");
           }
@@ -168,6 +220,7 @@ In a production environment, we would parse the actual text content from your re
       };
       reader.readAsDataURL(file);
     } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload failed",
         description: "There was an error uploading your file. Please try again.",
