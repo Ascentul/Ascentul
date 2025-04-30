@@ -340,7 +340,7 @@ export default function CoverLetter() {
       });
   };
   
-  // Function to download cover letter as PDF
+  // Function to download cover letter as PDF with improved formatting
   const handleDownloadPDF = (elementId: string) => {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -358,53 +358,64 @@ export default function CoverLetter() {
     
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
-    clonedElement.style.padding = '20px';
-    clonedElement.style.border = 'none';
     
-    // Create the print window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+    // Apply enhanced inline formatting for better PDF appearance
+    clonedElement.style.whiteSpace = 'pre-wrap';
+    clonedElement.style.lineHeight = '1.6';
+    clonedElement.style.fontFamily = 'Georgia, serif';
+    clonedElement.style.fontSize = '12pt';
+    clonedElement.style.padding = '20px';
+    clonedElement.style.color = '#000000';
+    clonedElement.style.border = 'none';
+    clonedElement.style.maxWidth = '800px';
+    clonedElement.style.margin = '0 auto';
+    
+    // PDF export options
+    const opt = {
+      margin: 0.75,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    // Show toast to indicate processing
+    toast({
+      title: 'Preparing PDF',
+      description: 'Your cover letter is being generated...',
+    });
+    
+    // Generate and download PDF using html2pdf
+    import('html2pdf.js').then((html2pdfModule) => {
+      const html2pdf = html2pdfModule.default;
+      
+      html2pdf()
+        .set(opt)
+        .from(clonedElement)
+        .save()
+        .then(() => {
+          toast({
+            title: 'Success',
+            description: 'Cover letter PDF downloaded successfully',
+          });
+        })
+        .catch((error: any) => {
+          console.error('PDF generation error:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to generate PDF. Please try again.',
+            variant: 'destructive',
+          });
+        });
+    }).catch((error) => {
+      console.error('Error loading html2pdf module:', error);
       toast({
         title: 'Error',
-        description: 'Unable to open print window. Please check your popup settings.',
+        description: 'Could not load PDF generation module. Please try again.',
         variant: 'destructive',
       });
-      return;
-    }
-    
-    // Setup the print document
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${filename}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-            .cover-letter-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h2 { margin-top: 0; }
-            p { margin: 0 0 8px; line-height: 1.5; }
-            @media print {
-              body { padding: 0; margin: 0; }
-              .cover-letter-container { width: 100%; max-width: none; padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="cover-letter-container">
-            ${clonedElement.outerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 200);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
+    });
   };
 
   // Animation variants - optimized for performance
