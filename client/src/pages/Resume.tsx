@@ -220,7 +220,7 @@ export default function Resume() {
       }
       
       // Update career summary if provided
-      let summaryPromise = Promise.resolve();
+      let summaryPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.careerSummary) {
         summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
           summary: optimizedCareerData.careerSummary
@@ -243,7 +243,7 @@ export default function Resume() {
       }
       
       // Add new skills if provided
-      let skillsPromise = Promise.resolve();
+      let skillsPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.skills && optimizedCareerData.skills.length > 0) {
         // Get current skills to avoid duplicates
         const currentSkillsResponse = await apiRequest('GET', '/api/career-data', {});
