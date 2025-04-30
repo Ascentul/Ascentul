@@ -900,7 +900,7 @@ export default function Resume() {
           >
             <Card>
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Get AI-Powered Resume Suggestions</h3>
+                <h3 className="text-lg font-semibold mb-4">Optimize Your Resume with AI</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
@@ -921,18 +921,18 @@ export default function Resume() {
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       className="w-full" 
-                      onClick={generateSuggestions}
-                      disabled={getSuggestionsMutation.isPending}
-                    >
-                      {getSuggestionsMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
-                    </Button>
-                    <Button 
-                      className="w-full"
-                      variant="outline"
                       onClick={generateFullResume}
                       disabled={generateResumeMutation?.isPending}
                     >
                       {generateResumeMutation?.isPending ? 'Creating...' : 'Generate Resume'}
+                    </Button>
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={generateSuggestions}
+                      disabled={getSuggestionsMutation.isPending}
+                    >
+                      {getSuggestionsMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
                     </Button>
                   </div>
                 </div>
