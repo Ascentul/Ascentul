@@ -554,20 +554,20 @@ export default function CoverLetter() {
                     }}
                   >
                     <CardContent className="p-0 flex-grow-0 flex flex-col">
-                      <div className="bg-[#f4f6ff] px-4 py-4 card-header" 
+                      <div className="bg-[#f4f6ff] card-header" 
                            style={{ 
                              marginBottom: 0, 
                              borderBottom: 'none',
                              padding: '16px',
                              display: 'flex',
-                             flexDirection: 'column',
-                             justifyContent: 'center',
-                             gap: '6px',
+                             flexDirection: 'row',
+                             alignItems: 'flex-start',
+                             gap: '12px',
                              minHeight: 'auto',
                              overflow: 'hidden'
                            }}>
-                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0 float-left" />
-                        <div className="flex flex-col w-full pr-6">
+                        <Mail className="h-10 w-10 text-primary flex-shrink-0" />
+                        <div className="flex flex-col w-full">
                             <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1"
                                 style={{ 
                                   whiteSpace: 'normal',
@@ -633,13 +633,13 @@ export default function CoverLetter() {
                             
                             // Add cover letter content to the hidden div
                             hiddenDiv.innerHTML = `
-                              <div class="bg-white p-6">
+                              <div class="bg-white p-6" style="font-family: Georgia, serif; line-height: 1.6; font-size: 12pt; color: #333333; max-width: 800px; margin: 0 auto;">
                                 <!-- Header with contact info -->
                                 <div class="mb-6">
-                                  <h2 class="text-xl font-bold">
+                                  <h2 style="font-size: 18pt; font-weight: bold; margin-bottom: 8px;">
                                     ${letter.content.header.fullName}
                                   </h2>
-                                  <div class="text-sm text-neutral-600">
+                                  <div style="font-size: 11pt; color: #555555;">
                                     ${letter.content.header.location ? `<div>${letter.content.header.location}</div>` : ''}
                                     ${letter.content.header.phone ? `<div>${letter.content.header.phone}</div>` : ''}
                                     ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
@@ -647,12 +647,12 @@ export default function CoverLetter() {
                                 </div>
                                 
                                 <!-- Date -->
-                                <div class="mb-6">
+                                <div style="margin-bottom: 20px;">
                                   <p>${letter.content.header.date}</p>
                                 </div>
                                 
                                 <!-- Recipient -->
-                                <div class="mb-6">
+                                <div style="margin-bottom: 20px;">
                                   ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
                                   ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
                                   ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
@@ -660,19 +660,19 @@ export default function CoverLetter() {
                                 </div>
                                 
                                 <!-- Greeting -->
-                                <div class="mb-6">
+                                <div style="margin-bottom: 20px;">
                                   <p>Dear ${letter.content.recipient.name || "Hiring Manager"},</p>
                                 </div>
                                 
                                 <!-- Body -->
-                                <div class="mb-6 whitespace-pre-line">
+                                <div style="margin-bottom: 20px; white-space: pre-wrap; text-align: justify; line-height: 1.8; font-family: Georgia, serif;">
                                   ${letter.content.body}
                                 </div>
                                 
                                 <!-- Closing -->
                                 <div>
                                   <p>${letter.content.closing || "Sincerely,"}</p>
-                                  <p class="mt-6">${letter.content.header.fullName}</p>
+                                  <p style="margin-top: 30px;">${letter.content.header.fullName}</p>
                                 </div>
                               </div>
                             `;
@@ -1200,7 +1200,13 @@ export default function CoverLetter() {
               <DialogTitle>{previewLetter.name}</DialogTitle>
             </DialogHeader>
             
-            <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview">
+            <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview" style={{ 
+              fontFamily: 'Georgia, serif',
+              lineHeight: '1.6',
+              fontSize: '14px',
+              color: '#333',
+              backgroundColor: 'white'
+            }}>
               {/* Header with contact info */}
               <div className="mb-6">
                 <h2 className="text-xl font-bold">
@@ -1246,7 +1252,11 @@ export default function CoverLetter() {
               </div>
               
               {/* Body */}
-              <div className="mb-6 whitespace-pre-line">
+              <div className="mb-6" style={{ 
+                whiteSpace: 'pre-wrap',
+                textAlign: 'justify',
+                lineHeight: '1.8'
+              }}>
                 {previewLetter.content.body}
               </div>
               
