@@ -5100,6 +5100,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Register OpenAI logs routes for admin usage
   registerOpenAILogsRoutes(apiRouter);
   
+  // Register PDF extraction routes for resume handling
+  registerPdfExtractRoutes(apiRouter);
+  
   const httpServer = createServer(app);
   return httpServer;
 }
