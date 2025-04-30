@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Mail, Download, Copy, Trash2, Edit, FileText } from 'lucide-react';
+import { Plus, Mail, Download, Copy, Trash2, Edit, FileText, Sparkles, BarChart4 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import {
@@ -37,6 +37,11 @@ export default function CoverLetter() {
   const [userExperience, setUserExperience] = useState('');
   const [userSkills, setUserSkills] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
+  
+  // Analysis form fields
+  const [analyzeJobDescription, setAnalyzeJobDescription] = useState('');
+  const [analyzeCoverLetterText, setAnalyzeCoverLetterText] = useState('');
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const deleteCoverLetterMutation = useMutation({
     mutationFn: async (letterId: number) => {
@@ -109,6 +114,35 @@ export default function CoverLetter() {
       toast({
         title: 'Error',
         description: `Failed to generate cover letter: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  const analyzeCoverLetterMutation = useMutation({
+    mutationFn: async () => {
+      if (!analyzeJobDescription || !analyzeCoverLetterText) {
+        throw new Error("Both job description and cover letter are required");
+      }
+      
+      const res = await apiRequest('POST', '/api/cover-letters/analyze', {
+        coverLetter: analyzeCoverLetterText,
+        jobDescription: analyzeJobDescription,
+      });
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setAnalysisResult(data);
+      toast({
+        title: 'Analysis Complete',
+        description: 'Your cover letter has been analyzed successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Analysis Failed',
+        description: `Error analyzing cover letter: ${error.message}`,
         variant: 'destructive',
       });
     },
@@ -194,6 +228,66 @@ export default function CoverLetter() {
     }
     
     generateCoverLetterMutation.mutate();
+  };
+  
+  const handleAnalyzeCoverLetter = () => {
+    if (!analyzeJobDescription || !analyzeCoverLetterText) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please provide both a job description and cover letter to analyze',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    analyzeCoverLetterMutation.mutate();
+  };
+  
+  const handleSaveOptimizedCoverLetter = () => {
+    if (!analysisResult?.optimizedCoverLetter) return;
+    
+    // Create a new letter with the optimized content
+    const newLetter = {
+      name: `Optimized Cover Letter ${new Date().toLocaleDateString()}`,
+      template: 'standard',
+      content: {
+        header: {
+          fullName: '',
+          email: '',
+          phone: '',
+          location: '',
+          date: new Date().toLocaleDateString(),
+        },
+        recipient: {
+          name: '',
+          company: '',
+          position: 'Hiring Manager',
+          address: '',
+        },
+        body: analysisResult.optimizedCoverLetter,
+        closing: 'Sincerely,',
+      }
+    };
+    
+    // Create a new cover letter with the mutation
+    apiRequest('POST', '/api/cover-letters', newLetter)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
+        toast({
+          title: 'Optimized Cover Letter Saved',
+          description: 'Your optimized cover letter has been saved',
+        });
+        setAnalysisResult(null);
+        setAnalyzeJobDescription('');
+        setAnalyzeCoverLetterText('');
+      })
+      .catch((error) => {
+        toast({
+          title: 'Error',
+          description: `Failed to save optimized cover letter: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
   };
   
   // Function to download cover letter as PDF

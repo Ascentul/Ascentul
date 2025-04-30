@@ -2588,6 +2588,28 @@ Based on your profile and the job you're targeting, I recommend highlighting:
     }
   });
   
+  // Cover letter analysis endpoint
+  apiRouter.post("/cover-letters/analyze", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { coverLetter, jobDescription } = req.body;
+      
+      if (!coverLetter || !jobDescription) {
+        return res.status(400).json({ 
+          message: "Both cover letter text and job description are required" 
+        });
+      }
+      
+      const analysis = await openai.analyzeCoverLetter(coverLetter, jobDescription);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Error analyzing cover letter:", error);
+      res.status(500).json({ 
+        message: "Error analyzing cover letter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+  
   apiRouter.post("/cover-letters/generate", async (req: Request, res: Response) => {
     try {
       const { jobTitle, companyName, jobDescription, userExperience, userSkills } = req.body;
