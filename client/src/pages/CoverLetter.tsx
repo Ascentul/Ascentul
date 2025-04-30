@@ -851,6 +851,34 @@ export default function CoverLetter() {
                       <Button 
                         className="w-full" 
                         onClick={() => {
+                          if (!jobDescription) {
+                            toast({
+                              title: 'Missing Information',
+                              description: 'Please provide a job description to generate suggestions',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          generateSuggestionsMutation.mutate();
+                        }}
+                        disabled={generateSuggestionsMutation.isPending}
+                        variant="outline"
+                      >
+                        {generateSuggestionsMutation.isPending ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                            Getting suggestions...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Get Suggestions
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => {
                           if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
                             toast({
                               title: 'Missing Information',
@@ -872,34 +900,6 @@ export default function CoverLetter() {
                           <>
                             <Mail className="mr-2 h-4 w-4" />
                             Generate Cover Letter
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        className="w-full" 
-                        onClick={() => {
-                          if (!jobDescription) {
-                            toast({
-                              title: 'Missing Information',
-                              description: 'Please provide a job description to generate suggestions',
-                              variant: 'destructive',
-                            });
-                            return;
-                          }
-                          generateSuggestionsMutation.mutate();
-                        }}
-                        disabled={generateSuggestionsMutation.isPending}
-                      >
-                        {generateSuggestionsMutation.isPending ? (
-                          <>
-                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                            Loading suggestions...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Get Suggestions
                           </>
                         )}
                       </Button>
