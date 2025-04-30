@@ -111,12 +111,12 @@ export function registerPdfExtractRoutes(app: Router) {
       console.log(`File received for direct extraction: ${req.file.originalname} (${req.file.size} bytes)`);
       
       try {
-        // Import the PDF extractor module
-        const { extractTextFromPdf } = await import('./pdf-extractor');
+        // Import the simple PDF extractor module
+        const { simplePdfExtract } = await import('./simple-pdf');
         
         // Extract text from the uploaded file
         const filePath = req.file.path;
-        const { text, pages } = await extractTextFromPdf(filePath);
+        const { text, pages } = await simplePdfExtract(filePath);
         
         console.log(`Successfully extracted text from ${req.file.originalname}: ${text.substring(0, 100)}...`);
         
@@ -181,8 +181,8 @@ export function registerPdfExtractRoutes(app: Router) {
   app.post("/api/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
     try {
       console.log("Legacy extract-text endpoint called");
-      // Import the PDF extractor module
-      const { extractTextFromPdf } = await import('./pdf-extractor');
+      // Import the simple PDF extractor module
+      const { simplePdfExtract } = await import('./simple-pdf');
       
       // Check if we're receiving a file path or direct text
       const { filePath, text } = req.body;
@@ -204,7 +204,7 @@ export function registerPdfExtractRoutes(app: Router) {
       
       try {
         // Extract text from the PDF file
-        const { text: extractedText, pages } = await extractTextFromPdf(filePath);
+        const { text: extractedText, pages } = await simplePdfExtract(filePath);
         
         // Return the extracted text
         return res.json({ 

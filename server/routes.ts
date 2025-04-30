@@ -22,9 +22,9 @@ import { registerPdfExtractRoutes } from "./routes-pdf";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
 import { registerCareerDataRoutes } from "./career-data";
-import { registerPdfDebugRoutes } from "./routes/pdf-debug";
 import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
+import pdfTestRouter from "./routes/pdf-test";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
@@ -4743,8 +4743,8 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Mount projects router
   app.use('/api/projects', projectsRouter);
   
-  // Register our PDF debug routes
-  registerPdfDebugRoutes(apiRouter);
+  // Register our PDF test router
+  app.use(pdfTestRouter);
   
   // Skill Stacker section removed
 
