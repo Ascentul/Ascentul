@@ -298,6 +298,16 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           </TabsContent>
         </Tabs>
         
+        <Alert className="my-4 bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-700">Two-Step Process</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            1. Extract text from your resume (this step)
+            <br />
+            2. In the next step, you'll need to provide a job description to analyze your resume against
+          </AlertDescription>
+        </Alert>
+
         <div className="mt-6">
           <Textarea
             value={resumeText}
@@ -314,7 +324,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
             className="flex items-center gap-2"
           >
             <CheckCircle className="h-4 w-4" />
-            Continue
+            Continue to Job Description
           </Button>
         </div>
       </CardContent>
