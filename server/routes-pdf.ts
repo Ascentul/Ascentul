@@ -75,22 +75,50 @@ export function registerPdfExtractRoutes(app: any) {
       fs.mkdirSync(resumesDir, { recursive: true });
     }
     
+    // Log more details about the request
+    console.log("Upload request headers:", req.headers);
+    console.log("Request content type:", req.headers['content-type']);
+    
+    if (!req.headers['content-type']?.includes('multipart/form-data')) {
+      console.error("Invalid content type for file upload");
+      return res.status(400).json({
+        success: false,
+        message: "Invalid content type. File uploads require multipart/form-data."
+      });
+    }
+    
     // Handle file upload with multer
     upload.single('file')(req, res, function (err) {
       if (err) {
         console.error("File upload error:", err);
-        return res.status(400).json({ 
-          success: false, 
-          message: err.message || "Error uploading file",
-        });
+        // If it's a multer error, send a more specific message
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: "File is too large. Maximum size is 5MB.",
+          });
+        } else if (err.message && err.message.includes('Invalid file format')) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid file format. Only PDF, DOC, or DOCX files are allowed.",
+          });
+        } else {
+          return res.status(400).json({ 
+            success: false, 
+            message: err.message || "Error uploading file",
+          });
+        }
       }
       
       // Check if file was provided
       if (!req.file) {
         console.error("No file data provided in the request");
+        console.log("Request body:", req.body);
+        console.log("Request files:", req.files);
+        
         return res.status(400).json({ 
           success: false, 
-          message: "No file data provided",
+          message: "No file data provided. Make sure you're using the 'file' field name when uploading.",
         });
       }
       
