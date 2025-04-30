@@ -72,18 +72,44 @@ export default function Resume() {
   // Fetch suggestions
   const getSuggestionsMutation = useMutation({
     mutationFn: async () => {
+      console.log("Sending suggestion request with:", {
+        jobDescriptionLength: jobDescription?.length || 0,
+        workHistoryLength: userWorkHistory?.length || 0
+      });
+      
       const res = await apiRequest('POST', '/api/resumes/suggestions', {
         jobDescription,
         workHistory: userWorkHistory,
       });
-      return res.json();
+      
+      const responseData = await res.json();
+      console.log("Received suggestions response:", responseData);
+      return responseData;
     },
     onSuccess: (data) => {
       toast({
         title: 'Suggestions Generated',
         description: 'AI-powered suggestions for your resume are ready',
       });
+      
+      // Store the suggestions data and make it visible
       setShowSuggestions(true);
+      
+      // Log the received data for debugging
+      console.log("Displaying suggestions:", data);
+      
+      // If analysis completed successfully, switch to the suggestions tab
+      const tabsElement = document.querySelector("[role='tablist']");
+      if (tabsElement) {
+        // Find the suggestions tab and click it
+        const suggestionsTab = Array.from(tabsElement.children).find(
+          (tab) => tab.textContent?.includes('Optimize with AI')
+        ) as HTMLElement;
+        
+        if (suggestionsTab) {
+          suggestionsTab.click();
+        }
+      }
     },
     onError: (error) => {
       toast({
@@ -298,14 +324,19 @@ export default function Resume() {
       return;
     }
     
+    console.log("Beginning analysis process with:", {
+      resumeTextLength: extractedResumeText.length,
+      jobDescriptionLength: extractionJobDescription.length,
+      resumeTextExcerpt: extractedResumeText.substring(0, 50) + "...",
+      jobDescriptionExcerpt: extractionJobDescription.substring(0, 50) + "..."
+    });
+    
+    // Clear previous suggestions to ensure clean state
+    setShowSuggestions(false);
+    
     // This uses the mutation to analyze the extracted text
     // Call the mutation without parameters as they are used from component state
     analyzeExtractedTextMutation.mutate();
-
-    console.log("Analysis started with:", {
-      resumeTextLength: extractedResumeText.length,
-      jobDescriptionLength: extractionJobDescription.length
-    });
   };
   
   // Update career data with optimized content
@@ -1087,7 +1118,19 @@ export default function Resume() {
               <CardContent className="pt-6">
                 <h3 className="text-lg font-semibold mb-4">Suggestions</h3>
 
-                {showSuggestions && getSuggestionsMutation.data ? (
+                {getSuggestionsMutation.isPending && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Loader2 className="h-12 w-12 text-primary/60 animate-spin mb-4" />
+                    <p className="text-neutral-600 font-medium">
+                      AI is analyzing your resume...
+                    </p>
+                    <p className="text-neutral-500 text-sm mt-1">
+                      This may take a moment while we generate personalized suggestions.
+                    </p>
+                  </div>
+                )}
+
+                {!getSuggestionsMutation.isPending && showSuggestions && getSuggestionsMutation.data ? (
                   <motion.div 
                     className="space-y-6 will-change-opacity"
                     initial={{ opacity: 0 }}
@@ -1098,33 +1141,69 @@ export default function Resume() {
                     <div className="space-y-2">
                       <h4 className="font-medium">Improvement Suggestions</h4>
                       <ul className="list-disc pl-5 space-y-2">
-                        {getSuggestionsMutation.data.suggestions.map((suggestion: any, index: number) => (
-                          <li key={index} className="text-sm">{suggestion}</li>
-                        ))}
+                        {getSuggestionsMutation.data.suggestions && 
+                          getSuggestionsMutation.data.suggestions.length > 0 ? (
+                          getSuggestionsMutation.data.suggestions.map((suggestion: any, index: number) => (
+                            <li key={index} className="text-sm">{suggestion}</li>
+                          ))
+                        ) : (
+                          <li className="text-sm text-neutral-500">No specific improvement suggestions.</li>
+                        )}
                       </ul>
                     </div>
 
                     <div className="space-y-2">
                       <h4 className="font-medium">Keywords to Include</h4>
                       <div className="flex flex-wrap gap-2">
-                        {getSuggestionsMutation.data.keywords.map((keyword: any, index: number) => (
-                          <span 
-                            key={index}
-                            className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
+                        {getSuggestionsMutation.data.keywords && 
+                          getSuggestionsMutation.data.keywords.length > 0 ? (
+                          getSuggestionsMutation.data.keywords.map((keyword: any, index: number) => (
+                            <span 
+                              key={index}
+                              className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                            >
+                              {keyword}
+                            </span>
+                          ))
+                        ) : (
+                          <p className="text-sm text-neutral-500">No specific keywords to include.</p>
+                        )}
                       </div>
                     </div>
+                    
+                    {/* If there's a data structure issue, show it as a fallback */}
+                    {(!getSuggestionsMutation.data.suggestions || !getSuggestionsMutation.data.keywords) && (
+                      <Alert className="bg-amber-50 border-amber-200">
+                        <AlertCircle className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-700">Response Data Structure</AlertTitle>
+                        <AlertDescription className="text-amber-700">
+                          <p className="mb-2">Raw response data for debugging:</p>
+                          <pre className="whitespace-pre-wrap text-xs bg-white p-2 rounded border border-amber-200">
+                            {JSON.stringify(getSuggestionsMutation.data, null, 2)}
+                          </pre>
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </motion.div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FileText className="h-12 w-12 text-neutral-300 mb-4" />
-                    <p className="text-neutral-500">
-                      Fill out the form and generate suggestions to make your resume stand out
-                    </p>
-                  </div>
+                  !getSuggestionsMutation.isPending && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <FileText className="h-12 w-12 text-neutral-300 mb-4" />
+                      <p className="text-neutral-500">
+                        Fill out the form and generate suggestions to make your resume stand out
+                      </p>
+                    </div>
+                  )
+                )}
+                
+                {getSuggestionsMutation.isError && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {getSuggestionsMutation.error.message || "Failed to generate suggestions. Please try again."}
+                    </AlertDescription>
+                  </Alert>
                 )}
               </CardContent>
             </Card>
