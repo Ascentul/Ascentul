@@ -1,11 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-// Import the node build - this is critical for Node.js environment
-// @ts-ignore - Ignore TypeScript errors for the legacy build import
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-// Tell pdfjs not to use or look for a worker - we're in Node.js not a browser
-pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+import pdfParse from 'pdf-parse';
 
 /**
  * Extract text from a PDF file
@@ -36,50 +31,33 @@ export async function extractTextFromPdf(
       throw new Error('Only PDF files are supported for text extraction');
     }
     
-    // Read the file as a binary buffer
-    const fileBuffer = new Uint8Array(fs.readFileSync(fullPath));
+    // Read the file buffer
+    const dataBuffer = fs.readFileSync(fullPath);
+    console.log(`Read PDF file: ${fullPath} (${dataBuffer.length} bytes)`);
     
-    // Load the PDF document using the legacy Node.js compatible build
-    const pdfDocument = await pdfjsLib.getDocument({
-      data: fileBuffer,
-      // Disable worker to ensure compatibility with Node.js
-      // This is critical for server-side PDF processing
-      disableWorker: true
-    }).promise;
+    // Parse the PDF using pdf-parse
+    const options = {
+      // Limit page rendering if specified
+      max: maxPages
+    };
     
-    console.log(`PDF loaded successfully with ${pdfDocument.numPages} pages`);
+    const result = await pdfParse(dataBuffer, options);
     
-    // Extract text from each page
-    let extractedText = '';
-    const numPages = pdfDocument.numPages;
+    console.log(`PDF processed successfully with ${result.numpages} pages`);
     
-    // Limit to a reasonable number of pages to prevent issues with very large documents
-    const pagesToProcess = Math.min(numPages, maxPages);
-    
-    for (let i = 1; i <= pagesToProcess; i++) {
-      const page = await pdfDocument.getPage(i);
-      const textContent = await page.getTextContent();
-      
-      // Join all text items with spaces
-      const pageText = textContent.items
-        .filter((item: any) => item.str !== undefined && item.str !== null)
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      extractedText += pageText + '\n\n';
-      console.log(`Processed page ${i}/${pagesToProcess}`);
-    }
+    // Format the extracted text
+    let extractedText = result.text;
     
     // Add notice if we limited the number of pages
-    if (numPages > pagesToProcess) {
-      extractedText += `\n\n[Note: Only the first ${pagesToProcess} pages were processed. The document has ${numPages} pages in total.]`;
+    if (result.numpages > maxPages) {
+      extractedText += `\n\n[Note: Only the first ${maxPages} pages were processed. The document has ${result.numpages} pages in total.]`;
     }
     
     return {
       text: extractedText,
       pages: {
-        processed: pagesToProcess,
-        total: numPages
+        processed: Math.min(result.numpages, maxPages),
+        total: result.numpages
       }
     };
   } catch (error) {
