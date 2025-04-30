@@ -1,0 +1,51 @@
+ Replit Prompt: Update AI Resume Suggestions Section
+
+Please make the following updates to the Resume Studio > Optimize with AI tab:
+
+1. 🔁 Swap Button Order & Styling:
+Move the “Generate Resume” button to the left side, and give it primary (blue) styling.
+
+Move the “Generate Suggestions” button to the right side, and give it secondary (white) styling.
+
+2. ✏️ Update the H1:
+Change the current heading "Get AI-Powered Resume Suggestions" to:
+→ "Optimize Your Resume with AI"
+(This aligns with the new button priority and gives clearer context.)
+
+3. 🧪 Confirm Button Functionality:
+Ensure the “Generate Resume” button still generates a fully optimized resume using the job description and user’s career data.
+
+Ensure the “Generate Suggestions” button still shows tailored advice and keywords based on the job description.
+
+Let me know once this is applied — I’ll help you iterate on the next step.
+
+
+
+
+
+
+
+You said:
+Now the same styling you just added to the project portfolio cards, I want you to do the same for the Cover letter cards
+
+
+ChatGPT said:
+Here’s your Replit prompt to apply consistent styling to the Cover Letter cards, matching the style used for the Project Portfolio cards:
+
+🛠 Replit Prompt: Match Cover Letter Card Styling to Project Portfolio Cards
+
+Please update the UI for all Cover Letter cards to match the same styling used on the Project Portfolio cards, including:
+
+✅ 1. Card Shadow & Floating Effect:
+Apply the hover elevation effect used in the Project Portfolio cards (light box-shadow or "lift" effect on hover).
+
+Ensure the transition is smooth and matches the animation timing used in the Project Portfolio.
+
+✅ 2. Hover Styling:
+Apply the same hover outline, background tint, or highlight behavior as Project Portfolio cards receive on hover.
+
+✅ 3. Border Radius & Padding:
+Match the border-radius and padding exactly so all cards across the platform feel visually unified.
+
+✅ 4. Mobile & Responsive Behavior:
+Confirm that this updated styling is responsive and mobile-friendly, just like it is on the Project Portfolio cards.
