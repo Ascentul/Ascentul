@@ -298,8 +298,14 @@ export default function Resume() {
       return;
     }
     
-    // Analyze the extracted text
+    // This uses the mutation to analyze the extracted text
+    // Call the mutation without parameters as they are used from component state
     analyzeExtractedTextMutation.mutate();
+
+    console.log("Analysis started with:", {
+      resumeTextLength: extractedResumeText.length,
+      jobDescriptionLength: extractionJobDescription.length
+    });
   };
   
   // Update career data with optimized content
