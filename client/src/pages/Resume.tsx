@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useCareerData } from '@/hooks/use-career-data';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
+import ResumeAnalysisResults, { ResumeAnalysisResult } from '@/components/ResumeAnalysisResults';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,6 +43,7 @@ export default function Resume() {
   const [isExtractionComplete, setIsExtractionComplete] = useState<boolean>(false);
   const [extractionJobDescription, setExtractionJobDescription] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [analysisResults, setAnalysisResults] = useState<ResumeAnalysisResult | null>(null);
   // Always make design studio accessible without a toggle
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -259,8 +261,14 @@ export default function Resume() {
       
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: ResumeAnalysisResult) => {
       setIsAnalyzing(false);
+      
+      // Store the analysis results
+      setAnalysisResults({
+        ...data,
+        timestamp: new Date().toISOString() // Add timestamp for "Analyzed X time ago" display
+      });
       
       // Show the success toast
       toast({
