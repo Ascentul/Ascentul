@@ -878,10 +878,10 @@ export default function CoverLetter() {
                         variant="outline"
                         className="w-full" 
                         onClick={() => {
-                          if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+                          if (!jobDescription) {
                             toast({
                               title: 'Missing Information',
-                              description: 'Please fill out all fields to generate suggestions',
+                              description: 'Please provide a job description to generate suggestions',
                               variant: 'destructive',
                             });
                             return;
