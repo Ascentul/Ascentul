@@ -1066,7 +1066,10 @@ export default function CoverLetter() {
             <Card className={generatedContent ? 'block' : 'hidden'}>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">📄 Draft Preview</h3>
+                  <h3 className="text-lg font-semibold mb-0 text-primary/90 flex items-center" id="draftPreviewHeader">
+                    <FileText className="h-5 w-5 mr-2" />
+                    Draft Preview
+                  </h3>
                   <Button
                     variant="outline"
                     size="sm"
