@@ -530,7 +530,7 @@ export default function CoverLetter() {
                   style={{ transform: 'translateZ(0)' }}
                 >
                   <Card 
-                    className="overflow-hidden group hover:shadow-lg transition-all duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white p-0" 
+                    className="overflow-hidden group hover:shadow-lg transition-all duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white p-0 cursor-pointer" 
                     style={{ 
                       minHeight: '170px', 
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',

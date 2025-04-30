@@ -39,37 +39,21 @@
 }
 
 /* Project card animations */
-.project-card {
+.project-card, .cover-letter-card, .resume-card {
   transition: all 0.3s ease;
 }
 
-.project-card:hover {
+.project-card:hover, .cover-letter-card:hover, .resume-card:hover {
   transform: scale(1.02);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* Cover letter card animations */
-.cover-letter-card {
-  transition: all 0.3s ease;
-}
-
-.cover-letter-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 /* Resume card animations */
 .resume-card {
-  transition: all 0.3s ease;
   opacity: 0;
   transform: translateY(20px);
   animation: fadeInUp 0.6s ease forwards;
-}
-
-.resume-card:hover {
-  transform: scale(1.02);
-  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
 }
 
 @keyframes fadeInUp {
