@@ -747,28 +747,6 @@ export default function Resume() {
                 </CardFooter>
               </Card>
             )}
-                              linkedIn: '',
-                              portfolio: '',
-                            },
-                            summary: '',
-                            skills: result.missingKeywords || [],
-                            experience: [],
-                            education: [],
-                            projects: []
-                          }
-                        };
-                        
-                        // Set selected resume to this new one and open the edit dialog
-                        setSelectedResume(newResume);
-                        setIsAddResumeOpen(true);
-                      }}
-                    >
-                      Create Resume
-                    </Button>
-                  ),
-                });
-              }} 
-            />
           </motion.div>
         </TabsContent>
 
