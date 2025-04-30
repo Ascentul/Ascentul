@@ -12,13 +12,22 @@ const storage = multer.diskStorage({
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
-    cb(null, uploadDir);
+    
+    // Create resumes subdirectory if it doesn't exist
+    const resumesDir = path.join(uploadDir, 'resumes');
+    if (!fs.existsSync(resumesDir)) {
+      fs.mkdirSync(resumesDir, { recursive: true });
+    }
+    
+    // Store files in the resumes directory
+    cb(null, resumesDir);
   },
   filename: function (req, file, cb) {
-    // Generate a unique filename with timestamp and original extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    // Generate a unique filename with timestamp and user ID if available
+    const userId = req.user?.id || 'unknown';
+    const timestamp = Date.now();
     const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    cb(null, `resume_${userId}_${timestamp}${ext}`);
   }
 });
 
@@ -51,6 +60,21 @@ const upload = multer({
 export function registerPdfExtractRoutes(app: any) {
   // Resume file upload endpoint
   app.post("/api/resumes/upload", requireAuth, (req: Request, res: Response) => {
+    // Log the authentication state to debug
+    console.log(`Upload request from user ID: ${req.user?.id}`);
+    
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    // Also ensure the resumes subdirectory exists
+    const resumesDir = path.join(uploadDir, 'resumes');
+    if (!fs.existsSync(resumesDir)) {
+      fs.mkdirSync(resumesDir, { recursive: true });
+    }
+    
     // Handle file upload with multer
     upload.single('file')(req, res, function (err) {
       if (err) {
@@ -63,11 +87,14 @@ export function registerPdfExtractRoutes(app: any) {
       
       // Check if file was provided
       if (!req.file) {
+        console.error("No file data provided in the request");
         return res.status(400).json({ 
           success: false, 
           message: "No file data provided",
         });
       }
+      
+      console.log(`File uploaded successfully: ${req.file.originalname} (${req.file.size} bytes)`);
       
       // File uploaded successfully, return the path
       return res.json({

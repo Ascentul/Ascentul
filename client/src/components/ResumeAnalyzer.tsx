@@ -69,13 +69,16 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       const formData = new FormData();
       formData.append('file', file);
       
-      // Upload the file
+      // Upload the file using credentials to ensure cookies are sent
       const uploadResponse = await fetch('/api/resumes/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include' // Important! This ensures cookies are sent with the request
       });
       
       if (!uploadResponse.ok) {
+        const errorBody = await uploadResponse.text();
+        console.error("Upload error response:", errorBody);
         throw new Error('File upload failed. Please try again.');
       }
       
