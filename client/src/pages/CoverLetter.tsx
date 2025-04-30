@@ -532,26 +532,27 @@ export default function CoverLetter() {
                   <Card 
                     className="overflow-hidden group hover:shadow-lg transition-all duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white" 
                     style={{ 
-                      minHeight: '280px', 
-                      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)',
+                      minHeight: '220px', 
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
                       borderRadius: '12px',
                     }}
                   >
                     <CardContent className="p-0 flex-grow">
-                      <div className="bg-[#f4f6ff] p-4 flex items-start h-[100px] card-header">
+                      <div className="bg-[#f4f6ff] px-4 py-3 flex items-start h-[96px] card-header">
                         <Mail className="h-10 w-10 text-primary mr-4 flex-shrink-0" />
-                        <div>
-                          <h3 className="font-semibold text-base line-clamp-2 m-0 mb-1 text-gray-900 leading-[1.4]">{letter.name}</h3>
-                          <p className="text-sm text-gray-600 m-0">
+                        <div className="flex flex-col gap-[4px]">
+                          <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4]">{letter.name}</h3>
+                          <p className="text-[13px] text-gray-600 m-0">
                             {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
                           </p>
-                          <p className="text-xs text-gray-500 mt-1 m-0">
+                          <p className="text-xs text-gray-500 m-0">
                             Last updated: {new Date(letter.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
+                      <div className="p-3 card-body"></div>
                     </CardContent>
-                    <CardFooter className="p-3 flex justify-between mt-auto card-footer border-t border-slate-100">
+                    <CardFooter className="py-[10px] px-4 flex justify-between mt-auto card-footer border-t border-slate-200">
                       <Button 
                         variant="outline" 
                         size="sm"
