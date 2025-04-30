@@ -114,6 +114,7 @@ export default function CoverLetter() {
         jobDescription,
         userExperience,
         userSkills: skillsArray,
+        type: 'complete'
       });
       return res.json();
     },
@@ -128,6 +129,35 @@ export default function CoverLetter() {
       toast({
         title: 'Error',
         description: `Failed to generate cover letter: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  const generateSuggestionsMutation = useMutation({
+    mutationFn: async () => {
+      const skillsArray = userSkills.split(',').map(skill => skill.trim());
+      const res = await apiRequest('POST', '/api/cover-letters/generate', {
+        jobTitle,
+        companyName,
+        jobDescription,
+        userExperience,
+        userSkills: skillsArray,
+        type: 'suggestions'
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Suggestions Generated',
+        description: 'Writing suggestions for your cover letter have been generated',
+      });
+      setGeneratedContent(data.suggestions || data.content);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: `Failed to generate suggestions: ${error.message}`,
         variant: 'destructive',
       });
     },
@@ -242,6 +272,19 @@ export default function CoverLetter() {
     }
     
     generateCoverLetterMutation.mutate();
+  };
+  
+  const generateSuggestions = () => {
+    if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill out all fields to generate suggestions',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    generateSuggestionsMutation.mutate();
   };
   
   const handleAnalyzeCoverLetter = () => {
@@ -802,42 +845,47 @@ export default function CoverLetter() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline"
-                      className="w-full" 
-                      onClick={generateCoverLetter}
-                      disabled={generateCoverLetterMutation.isPending}
-                    >
-                      {generateCoverLetterMutation.isPending ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Generate Suggestions
-                        </>
-                      )}
-                    </Button>
-                    <Button 
-                      className="w-full" 
-                      onClick={generateCoverLetter}
-                      disabled={generateCoverLetterMutation.isPending}
-                    >
-                      {generateCoverLetterMutation.isPending ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Generate Cover Letter
-                        </>
-                      )}
-                    </Button>
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Button 
+                        className="w-full" 
+                        onClick={generateCoverLetter}
+                        disabled={generateCoverLetterMutation.isPending}
+                      >
+                        {generateCoverLetterMutation.isPending ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Generate Cover Letter
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="w-full" 
+                        onClick={generateSuggestions}
+                        disabled={generateSuggestionsMutation.isPending}
+                      >
+                        {generateSuggestionsMutation.isPending ? (
+                          <>
+                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                            Loading suggestions...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Get Suggestions
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Generate a full cover letter or just get writing suggestions — your call.
+                    </p>
                   </div>
                 </div>
               </CardContent>
