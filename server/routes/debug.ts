@@ -90,4 +90,59 @@ router.post("/upload", (req: Request, res: Response) => {
   });
 });
 
+// Special test endpoint for PDF text extraction (no auth required)
+router.post("/extract-pdf", (req: Request, res: Response) => {
+  console.log("Debug PDF extraction endpoint called");
+  
+  upload(req, res, async function(err) {
+    if (err) {
+      console.error("Debug PDF extraction error:", err);
+      return res.status(400).json({ 
+        success: false, 
+        message: err.message || "Upload failed"
+      });
+    }
+    
+    // Check if file was uploaded
+    if (!req.file) {
+      console.error("Debug PDF extraction - no file received");
+      return res.status(400).json({ 
+        success: false, 
+        message: "No file provided"
+      });
+    }
+    
+    console.log(`PDF file received for extraction: ${req.file.originalname} (${req.file.size} bytes)`);
+    
+    try {
+      // Import the PDF extractor module
+      const { extractTextFromPdf } = await import('../pdf-extractor');
+      
+      // Extract text from the uploaded file
+      const filePath = req.file.path;
+      console.log(`Starting text extraction from ${filePath}`);
+      
+      const { text, pages } = await extractTextFromPdf(filePath);
+      
+      console.log(`Successfully extracted text from PDF (${pages.processed}/${pages.total} pages)`);
+      
+      // Return the extracted text and file info
+      return res.json({
+        success: true,
+        text: text,
+        fileName: req.file.originalname,
+        pages: pages,
+        message: "Text successfully extracted from PDF"
+      });
+    } catch (extractError) {
+      console.error("Error extracting text:", extractError);
+      return res.status(500).json({
+        success: false,
+        message: "Error extracting text from the PDF",
+        error: extractError instanceof Error ? extractError.message : 'Unknown error'
+      });
+    }
+  });
+});
+
 export default router;
