@@ -25,6 +25,7 @@ import ResumePreview from '@/components/ResumePreview';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { useCareerData } from '@/hooks/use-career-data';
+import JobDescriptionInput from '@/components/JobDescriptionInput';
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -745,33 +746,14 @@ export default function Resume() {
                   </Alert>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <label htmlFor="jobDescription" className="block text-sm font-medium text-neutral-600 mb-1">
-                      Job Description <span className="text-red-500">*</span>
-                    </label>
-                    <div className="text-xs text-neutral-500 mb-1">
-                      For best results, include a complete job posting with responsibilities, requirements, and qualifications.
-                    </div>
-                    <Textarea
-                      id="jobDescription"
-                      placeholder="Paste the job description here to compare with your resume..."
-                      className="h-[150px] resize-y border-2 border-primary/20 focus:border-primary/40"
-                      value={extractionJobDescription}
-                      onChange={(e) => setExtractionJobDescription(e.target.value)}
-                    />
-                    {!extractionJobDescription.trim() && (
-                      <p className="text-sm text-amber-600 mt-1 flex items-center">
-                        <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                        A job description is required for resume analysis
-                      </p>
-                    )}
-                    {extractionJobDescription.trim() && extractionJobDescription.trim().length < 50 && (
-                      <p className="text-sm text-amber-600 mt-1 flex items-center">
-                        <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                        Job description is too short. Please provide more details for better analysis.
-                      </p>
-                    )}
-                  </div>
+                  {/* Use the new JobDescriptionInput component */}
+                  <JobDescriptionInput
+                    value={extractionJobDescription}
+                    onChange={setExtractionJobDescription}
+                    className="h-[150px]"
+                    minLength={100}
+                    isAnalyzing={isAnalyzing}
+                  />
                   
                   <div className="pt-2">
                     <label className="block text-sm font-medium text-neutral-600 mb-1">
