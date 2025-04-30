@@ -2620,40 +2620,9 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           return res.status(400).json({ message: "Job description is required for suggestions" });
         }
       } else {
-        // For full generation, all fields are required
-        if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
-          return res.status(400).json({ message: "Missing required fields" });
-        }
-      }
-      
-      // Automatically include user's work history if they're logged in
-      let enrichedExperience = userExperience || '';
-      
-      if (req.session.userId) {
-        try {
-          // Fetch the user's work history
-          const workHistoryEntries = await storage.getWorkHistory(req.session.userId);
-          
-          if (workHistoryEntries && workHistoryEntries.length > 0) {
-            // Format work history for AI processing
-            const formattedWorkHistory = workHistoryEntries.map((job: any) => {
-              const duration = job.currentJob 
-                ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
-                : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
-              
-              const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
-                ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
-                : '';
-              
-              return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
-            }).join('\n---\n\n');
-            
-            // Add the work history to the user experience without showing it to the user
-            enrichedExperience = `${userExperience}\n\nAdditional Work History:\n${formattedWorkHistory}`;
-          }
-        } catch (historyError) {
-          console.error("Error fetching work history:", historyError);
-          // Continue with original user experience if there's an error fetching history
+        // For full generation, job description is required
+        if (!jobDescription) {
+          return res.status(400).json({ message: "Job description is required" });
         }
       }
       
@@ -2664,24 +2633,101 @@ Based on your profile and the job you're targeting, I recommend highlighting:
           jobTitle || 'Unspecified Position',
           companyName || 'Unspecified Company',
           jobDescription,
-          enrichedExperience,
+          userExperience || '',
           userSkills || ''
         );
         
         res.status(200).json({ suggestions });
       } else {
-        // Generate full cover letter
+        // Set up default/empty values
+        let formattedWorkHistory = "No work history available";
+        let formattedEducation = "No education history available";
+        let formattedSkills = userSkills || [];
+        let careerSummary = null;
+        let formattedCertifications = "No certifications available";
+        
+        // If user is logged in, fetch their career data from the database
+        if (req.session.userId) {
+          try {
+            // 1. Get work history
+            const workHistoryEntries = await storage.getWorkHistory(req.session.userId);
+            if (workHistoryEntries && workHistoryEntries.length > 0) {
+              formattedWorkHistory = workHistoryEntries.map((job: any) => {
+                const duration = job.currentJob 
+                  ? `${new Date(job.startDate).toLocaleDateString()} - Present` 
+                  : `${new Date(job.startDate).toLocaleDateString()} - ${job.endDate ? new Date(job.endDate).toLocaleDateString() : 'N/A'}`;
+                
+                const achievements = job.achievements && Array.isArray(job.achievements) && job.achievements.length > 0
+                  ? `\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}`
+                  : '';
+                
+                return `Position: ${job.position}\nCompany: ${job.company}\nDuration: ${duration}\nLocation: ${job.location || 'N/A'}\nDescription: ${job.description || 'N/A'}${achievements}\n`;
+              }).join('\n---\n\n');
+            }
+            
+            // 2. Get education history
+            const educationEntries = await storage.getEducationHistory(req.session.userId);
+            if (educationEntries && educationEntries.length > 0) {
+              formattedEducation = educationEntries.map((edu: any) => {
+                const duration = edu.current 
+                  ? `${new Date(edu.startDate).toLocaleDateString()} - Present` 
+                  : `${new Date(edu.startDate).toLocaleDateString()} - ${edu.endDate ? new Date(edu.endDate).toLocaleDateString() : 'N/A'}`;
+                
+                return `Institution: ${edu.institution}\nDegree: ${edu.degree}\nField of Study: ${edu.fieldOfStudy}\nDuration: ${duration}\n${edu.gpa ? `GPA: ${edu.gpa}\n` : ''}${edu.description ? `Description: ${edu.description}` : ''}`;
+              }).join('\n---\n\n');
+            }
+            
+            // 3. Get skills
+            const skillEntries = await storage.getSkills(req.session.userId);
+            if (skillEntries && skillEntries.length > 0) {
+              formattedSkills = skillEntries.map((skill: any) => skill.name);
+            }
+            
+            // 4. Get certifications
+            const certEntries = await storage.getCertifications(req.session.userId);
+            if (certEntries && certEntries.length > 0) {
+              formattedCertifications = certEntries.map((cert: any) => {
+                const issueDate = cert.issueDate ? new Date(cert.issueDate).toLocaleDateString() : 'N/A';
+                const expiryDate = cert.noExpiration 
+                  ? 'No Expiration' 
+                  : (cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString() : 'N/A');
+                
+                return `Name: ${cert.name}\nIssuing Organization: ${cert.issuingOrganization}\nIssued: ${issueDate}\nExpiry: ${expiryDate}`;
+              }).join('\n---\n\n');
+            }
+            
+            // 5. Get career summary
+            const userData = await storage.getCareerData(req.session.userId);
+            if (userData && userData.careerSummary) {
+              careerSummary = userData.careerSummary;
+            }
+          } catch (error) {
+            console.error("Error fetching career data:", error);
+            // Continue with default values if there's an error fetching data
+          }
+        }
+        
+        // Build career data object
+        const careerData = {
+          careerSummary: careerSummary,
+          workHistory: userExperience ? `${userExperience}\n\n${formattedWorkHistory}` : formattedWorkHistory,
+          education: formattedEducation,
+          skills: formattedSkills,
+          certifications: formattedCertifications
+        };
+        
+        // Generate full cover letter with comprehensive career data
         const coverLetter = await generateCoverLetter(
-          jobTitle,
-          companyName,
+          jobTitle || '',
+          companyName || '',
           jobDescription,
-          enrichedExperience,
-          userSkills
+          careerData
         );
         
         res.status(200).json({ content: coverLetter });
       }
     } catch (error) {
+      console.error("Error generating cover letter:", error);
       res.status(500).json({ message: "Error generating cover letter" });
     }
   });
