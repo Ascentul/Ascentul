@@ -359,7 +359,7 @@ In a production environment, we would parse the actual text content from your re
                         </>
                       ) : (
                         <>
-                          Analyze Resume
+                          Upload & Analyze
                           <BarChart className="ml-2 h-4 w-4" />
                         </>
                       )}
