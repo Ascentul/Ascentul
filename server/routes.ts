@@ -4736,9 +4736,6 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerApplicationInterviewRoutes(apiRouter, storage);
   registerInterviewVoiceRoutes(apiRouter);
   
-  // Register PDF text extraction routes
-  registerPdfExtractRoutes(apiRouter);
-  
   // We've already registered models routes above with registerModelsRoutes(app);
   
   // Mount projects router
