@@ -48,8 +48,6 @@ export default function CoverLetter() {
   const [jobTitle, setJobTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-  const [userExperience, setUserExperience] = useState('');
-  const [userSkills, setUserSkills] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
   
   // Analysis form fields
@@ -107,13 +105,10 @@ export default function CoverLetter() {
 
   const generateCoverLetterMutation = useMutation({
     mutationFn: async () => {
-      const skillsArray = userSkills ? userSkills.split(',').map(skill => skill.trim()) : [];
       const res = await apiRequest('POST', '/api/cover-letters/generate', {
         jobTitle,
         companyName,
         jobDescription,
-        userExperience,
-        userSkills: skillsArray,
         type: 'complete'
       });
       return res.json();
@@ -137,13 +132,10 @@ export default function CoverLetter() {
   const generateSuggestionsMutation = useMutation({
     mutationFn: async () => {
       // For suggestions, only the job description is required
-      const skillsArray = userSkills ? userSkills.split(',').map(skill => skill.trim()) : [];
       const res = await apiRequest('POST', '/api/cover-letters/generate', {
         jobTitle: jobTitle || 'Not specified',
         companyName: companyName || 'Not specified',
         jobDescription,
-        userExperience: userExperience || '', 
-        userSkills: skillsArray,
         type: 'suggestions'
       });
       return res.json();
@@ -237,8 +229,6 @@ export default function CoverLetter() {
         setJobTitle('');
         setCompanyName('');
         setJobDescription('');
-        setUserExperience('');
-        setUserSkills('');
       })
       .catch((error) => {
         toast({
@@ -263,10 +253,10 @@ export default function CoverLetter() {
   };
 
   const generateCoverLetter = () => {
-    if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+    if (!jobDescription) {
       toast({
         title: 'Missing Information',
-        description: 'Please fill out all fields to generate a cover letter',
+        description: 'Please provide a job description to generate a cover letter',
         variant: 'destructive',
       });
       return;
@@ -831,7 +821,7 @@ export default function CoverLetter() {
                 <h3 className="text-lg font-semibold mb-4">Optimize Your Cover Letter with AI</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Job Description</Label>
+                    <Label className="text-sm font-medium">Job Description <span className="text-red-500">*</span></Label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={jobDescription}
@@ -839,10 +829,29 @@ export default function CoverLetter() {
                       className="min-h-[150px]"
                     />
                   </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Job Title <span className="text-neutral-400">(optional)</span></Label>
+                      <Input
+                        placeholder="e.g., Software Engineer"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Company Name <span className="text-neutral-400">(optional)</span></Label>
+                      <Input
+                        placeholder="e.g., ABC Company"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
                   <div className="pt-2">
                     <p className="text-sm text-neutral-500 mb-4">
-                      Your work history will be automatically used from your profile to generate relevant suggestions.
+                      Your career data (work history, education, skills) will be automatically used from your profile to create a tailored cover letter.
                     </p>
                   </div>
 
@@ -879,23 +888,16 @@ export default function CoverLetter() {
                       <Button 
                         className="w-full" 
                         onClick={() => {
-                          // Check for missing fields and create a list of them
-                          const missingFields = [];
-                          if (!jobTitle) missingFields.push('Job Title');
-                          if (!companyName) missingFields.push('Company Name');
-                          if (!jobDescription) missingFields.push('Job Description');
-                          if (!userExperience) missingFields.push('Your Experience');
-                          if (!userSkills) missingFields.push('Your Skills');
-                          
-                          if (missingFields.length > 0) {
-                            const missingFieldsList = missingFields.join(', ');
+                          if (!jobDescription) {
                             toast({
                               title: 'Missing Information',
-                              description: `Please fill out: ${missingFieldsList}`,
+                              description: 'Please provide a job description to generate a cover letter',
                               variant: 'destructive',
                             });
                             return;
                           }
+                          
+                          // Optional fields can be added if available
                           generateCoverLetterMutation.mutate();
                         }}
                         disabled={generateCoverLetterMutation.isPending}
