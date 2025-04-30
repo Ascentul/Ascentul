@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {

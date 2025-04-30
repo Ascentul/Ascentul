@@ -1,11 +1,85 @@
 import { Request, Response } from 'express';
 import { requireAuth } from './auth';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Set up multer storage for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename with timestamp and original extension
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// Set up file upload middleware
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Check accepted file types
+    const fileTypes = /pdf|doc|docx/;
+    const mimeTypes = /application\/pdf|application\/msword|application\/vnd.openxmlformats-officedocument.wordprocessingml.document/;
+    
+    const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = mimeTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Error: Invalid file format! Only PDF, DOC, or DOCX files are allowed.'));
+    }
+  }
+});
 
 /**
  * Registers the updated resume-extract text endpoint with PDF parsing capabilities
  * @param app Express application or router
  */
 export function registerPdfExtractRoutes(app: any) {
+  // Resume file upload endpoint
+  app.post("/api/resumes/upload", requireAuth, (req: Request, res: Response) => {
+    // Handle file upload with multer
+    upload.single('file')(req, res, function (err) {
+      if (err) {
+        console.error("File upload error:", err);
+        return res.status(400).json({ 
+          success: false, 
+          message: err.message || "Error uploading file",
+        });
+      }
+      
+      // Check if file was provided
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "No file data provided",
+        });
+      }
+      
+      // File uploaded successfully, return the path
+      return res.json({
+        success: true,
+        message: "File uploaded successfully",
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        fileType: req.file.mimetype
+      });
+    });
+  });
   // Resume text extraction endpoint with PDF parsing capability
   app.post("/api/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
     try {
