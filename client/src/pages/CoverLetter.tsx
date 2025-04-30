@@ -854,7 +854,7 @@ export default function CoverLetter() {
                           if (!jobDescription) {
                             toast({
                               title: 'Missing Information',
-                              description: 'Please provide a job description to generate suggestions',
+                              description: 'Please fill out the Job Description field to generate suggestions',
                               variant: 'destructive',
                             });
                             return;
@@ -879,10 +879,19 @@ export default function CoverLetter() {
                       <Button 
                         className="w-full" 
                         onClick={() => {
-                          if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+                          // Check for missing fields and create a list of them
+                          const missingFields = [];
+                          if (!jobTitle) missingFields.push('Job Title');
+                          if (!companyName) missingFields.push('Company Name');
+                          if (!jobDescription) missingFields.push('Job Description');
+                          if (!userExperience) missingFields.push('Your Experience');
+                          if (!userSkills) missingFields.push('Your Skills');
+                          
+                          if (missingFields.length > 0) {
+                            const missingFieldsList = missingFields.join(', ');
                             toast({
                               title: 'Missing Information',
-                              description: 'Please fill out all fields to generate a cover letter',
+                              description: `Please fill out: ${missingFieldsList}`,
                               variant: 'destructive',
                             });
                             return;
