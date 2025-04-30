@@ -550,7 +550,6 @@ export default function CoverLetter() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex-grow"></div>
                     </CardContent>
                     <CardFooter className="py-[10px] px-6 flex justify-between mt-auto card-footer border-t border-slate-200">
                       <Button 

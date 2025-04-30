@@ -48,6 +48,16 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* Cover letter card animations */
+.cover-letter-card {
+  transition: all 0.3s ease;
+}
+
+.cover-letter-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
 /* Resume card animations */
 .resume-card {
   transition: all 0.3s ease;
