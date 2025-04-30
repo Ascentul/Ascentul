@@ -847,8 +847,12 @@ export async function generateCoverLetterSuggestions(
 ): Promise<string> {
   try {
     // This function generates writing suggestions rather than a full cover letter
-    const prompt = `I need writing suggestions and key points for a cover letter for a ${jobTitle} position at ${companyName}.
+    const prompt = `You are an expert AI career assistant helping job seekers create high-scoring cover letters.
 
+I need targeted suggestions for a cover letter that would score 80+ on alignment, persuasiveness, clarity, and overall impact for the following position:
+
+Job Title: ${jobTitle}
+Company: ${companyName}
 Job Description:
 ${jobDescription}
 
@@ -856,13 +860,30 @@ ${userExperience ? `My Relevant Experience:\n${userExperience}` : ''}
 
 ${userSkills ? `My Skills:\n${userSkills}` : ''}
 
-Instead of writing a complete cover letter, please give me:
-1. A strong opening paragraph suggestion
-2. 4-5 key points to highlight based on the job description
-3. Specific phrases that would resonate with the hiring manager
-4. A suggested closing paragraph
+Instead of writing a complete cover letter, please provide high-quality suggestions that focus on specific components:
 
-Focus on helping me write an effective cover letter by providing these structured suggestions.`;
+1. OPENING PARAGRAPH:
+   - Provide a strong, attention-grabbing opening that mentions the exact position
+   - Include a compelling value proposition statement
+   - Balance enthusiasm with professionalism 
+
+2. KEY ACCOMPLISHMENTS TO HIGHLIGHT (4-5):
+   - Extract specific keywords/requirements from the job description
+   - For each accomplishment, suggest a quantifiable achievement format (metrics, percentages, results)
+   - Frame each as a problem-solution-outcome structure when possible
+
+3. PERSUASIVE LANGUAGE:
+   - Provide 5-7 impactful phrases that demonstrate alignment with the job requirements
+   - Include industry-specific terminology from the job description
+   - Suggest language that shows understanding of the company's challenges/needs
+
+4. EFFECTIVE CLOSING:
+   - Create a confident call-to-action
+   - Suggest a closing that reinforces value and enthusiasm without generic phrasing
+   - Include a professional sign-off
+
+Ensure all suggestions focus on clarity (short, direct sentences), alignment with the job, persuasiveness through concrete examples, and strong overall impact. Avoid generic statements like "I'm a hard worker" or "I'm passionate about success."
+`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -897,26 +918,55 @@ export async function generateCoverLetter(
 ): Promise<string> {
   try {
     const prompt = `
-You're an expert career coach helping users write high-impact cover letters.
+You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
 
-Use the following job description to tailor a personalized, one-page cover letter:
+Generate a one-page cover letter for the following role:
+Job Title: ${jobTitle || 'The position described in the job description'}
+Company: ${companyName || 'The hiring company'}
+Job Description:
 ---
 ${jobDescription}
 ---
 
-Incorporate the user's career background and highlight their relevant experience:
+User Career Background:
 Career Summary: ${careerData.careerSummary || 'Not provided'}
 Work History: ${careerData.workHistory}
 Education: ${careerData.education || 'Not provided'}
 Skills: ${careerData.skills?.join(', ') || 'Not provided'}
 Certifications: ${careerData.certifications || 'Not provided'}
 
-Your goal:
-- Address the company directly (${companyName ? `to ${companyName}` : 'without using a name if not provided'}).
-- Keep it concise and clear (1 page max).
-- Tailor the language and tone to the job description.
-- Highlight alignment between the user's experience and the ${jobTitle || 'target'} role.
-- Do not include generic or filler text.
+🎯 Your goal is to generate a cover letter that would score 80 or higher on these categories:
+
+1. **Alignment** – Clearly match the role and mention job-specific keywords from the job description. Extract 3-5 key skills/technologies from the job posting and incorporate them naturally. Position the candidate as an ideal fit.
+
+2. **Persuasiveness** – Convey confidence and motivation through:
+   - Quantifiable achievements with metrics (%, $, time saved)
+   - Problem-solution narratives showing value
+   - Concrete examples of applying skills in similar contexts
+   - A clear value proposition for the employer
+
+3. **Clarity** – Create a crystal-clear document with:
+   - Short, readable sentences (15-20 words max)
+   - Strong action verbs at the start of bullet points
+   - Logical paragraph structure with clean transitions
+   - No complex jargon or unnecessarily verbose language
+
+4. **Overall Impact** – Structure for maximum effectiveness:
+   - Strong opening that states the position and shows enthusiasm
+   - Middle paragraphs with specific accomplishments matching job requirements
+   - Professional closing that drives action
+   - Appropriate formal tone without being stiff or robotic
+
+DO NOT:
+- Use generic phrases like "I'm a hard worker" or "I'm passionate about success"
+- Include lengthy or irrelevant personal information
+- Create a wall of text or dense paragraphs
+- Use clichés, redundant phrases, or overly formal language
+- Merely restate resume information without adding context or value
+
+Instead, show clear alignment and value through action-based language, tangible results, and relevant outcomes that directly connect to the job requirements.
+
+Keep the tone professional, conversational, and human. Limit to 1 page maximum.
 `;
 
     const response = await openai.chat.completions.create({
