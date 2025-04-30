@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save, Loader2 } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -282,8 +282,17 @@ export default function Resume() {
     
     if (!extractionJobDescription.trim()) {
       toast({
-        title: 'Missing Job Description',
-        description: 'Please provide a job description to compare against your resume',
+        title: 'Job Description Required',
+        description: 'Please paste a job description to compare against your resume. This is required for analysis.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (extractionJobDescription.trim().length < 50) {
+      toast({
+        title: 'Job Description Too Short',
+        description: 'Please provide a more detailed job description for better analysis results.',
         variant: 'destructive',
       });
       return;
@@ -688,21 +697,34 @@ export default function Resume() {
                 <CardHeader>
                   <CardTitle>Resume Analysis - Step 2</CardTitle>
                   <CardDescription>
-                    Enter the job description you want to match your resume against.
+                    Enter the job description you want to match your resume against. Both your resume text and a job description are required for the analysis.
                   </CardDescription>
+                  <Alert className="mt-2 bg-amber-50 border-amber-200">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-600">Important</AlertTitle>
+                    <AlertDescription className="text-amber-700">
+                      To perform the analysis, you must provide a job description to compare against your resume text.
+                    </AlertDescription>
+                  </Alert>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <label htmlFor="jobDescription" className="block text-sm font-medium text-neutral-600 mb-1">
-                      Job Description
+                      Job Description <span className="text-red-500">*</span>
                     </label>
                     <Textarea
                       id="jobDescription"
                       placeholder="Paste the job description here to compare with your resume..."
-                      className="h-[150px] resize-y"
+                      className="h-[150px] resize-y border-2 border-primary/20 focus:border-primary/40"
                       value={extractionJobDescription}
                       onChange={(e) => setExtractionJobDescription(e.target.value)}
                     />
+                    {!extractionJobDescription.trim() && (
+                      <p className="text-sm text-amber-600 mt-1 flex items-center">
+                        <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                        A job description is required for resume analysis
+                      </p>
+                    )}
                   </div>
                   
                   <div className="pt-2">
