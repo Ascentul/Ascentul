@@ -6,8 +6,17 @@ import { GlobalWorkerOptions } from 'pdfjs-dist';
 // Initialize PDF.js worker
 async function initializeWorker() {
   try {
-    // Set the worker source to a string path instead of importing the module
-    GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+    // Use a reliable path for the PDF.js worker
+    // First, try to use a local file if available
+    const workerPath = path.join(process.cwd(), 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.js');
+    
+    if (fs.existsSync(workerPath)) {
+      GlobalWorkerOptions.workerSrc = workerPath;
+    } else {
+      // Fallback to the CDN version
+      GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+      console.log(`Using CDN worker: ${GlobalWorkerOptions.workerSrc}`);
+    }
   } catch (error) {
     console.error('Error initializing PDF.js worker:', error);
     throw new Error('Failed to initialize PDF worker');
