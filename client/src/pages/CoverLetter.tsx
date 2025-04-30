@@ -538,14 +538,16 @@ export default function CoverLetter() {
                     }}
                   >
                     <CardContent className="p-0 flex-grow-0 flex flex-col">
-                      <div className="bg-[#f4f6ff] px-6 py-4 flex items-start h-[96px] card-header" style={{ marginBottom: 0, paddingBottom: '16px', borderBottom: 'none' }}>
+                      <div className="bg-[#f4f6ff] px-6 pt-4 pb-5 flex items-start h-[96px] card-header" style={{ marginBottom: 0, borderBottom: 'none' }}>
                         <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
-                        <div className="flex flex-col gap-[4px] w-full pr-6">
-                          <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4]">{letter.name}</h3>
-                          <p className="text-[13px] text-gray-600 m-0">
-                            {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
-                          </p>
-                          <p className="text-xs text-gray-500 m-0">
+                        <div className="flex flex-col gap-[4px] w-full pr-6 h-full justify-between">
+                          <div>
+                            <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4] mb-1">{letter.name}</h3>
+                            <p className="text-[13px] text-gray-600 m-0">
+                              {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-auto mb-0">
                             Last updated: {new Date(letter.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
