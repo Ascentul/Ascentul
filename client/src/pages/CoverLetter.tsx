@@ -380,6 +380,7 @@ export default function CoverLetter() {
         <TabsList className="mb-4">
           <TabsTrigger value="letters">My Cover Letters</TabsTrigger>
           <TabsTrigger value="generator">AI Generator</TabsTrigger>
+          <TabsTrigger value="analyze">Analyze</TabsTrigger>
         </TabsList>
         
         <TabsContent value="letters" className="space-y-6">
@@ -563,6 +564,137 @@ export default function CoverLetter() {
               </Button>
             </div>
           )}
+        </TabsContent>
+        
+        <TabsContent value="analyze" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-4">Analyze Your Cover Letter</h3>
+                <p className="text-neutral-500 mb-4">
+                  Get AI-powered feedback on your cover letter and suggestions to improve it for a specific job.
+                </p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Job Description</label>
+                    <Textarea
+                      placeholder="Paste the job description here..."
+                      value={analyzeJobDescription}
+                      onChange={(e) => setAnalyzeJobDescription(e.target.value)}
+                      className="min-h-[120px]"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Your Cover Letter</label>
+                    <Textarea
+                      placeholder="Paste your cover letter text here..."
+                      value={analyzeCoverLetterText}
+                      onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
+                      className="min-h-[200px]"
+                    />
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    onClick={handleAnalyzeCoverLetter}
+                    disabled={analyzeCoverLetterMutation.isPending}
+                  >
+                    {analyzeCoverLetterMutation.isPending ? (
+                      <>
+                        <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <BarChart4 className="mr-2 h-4 w-4" />
+                        Analyze Cover Letter
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-4">Analysis Results</h3>
+                {!analysisResult ? (
+                  <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                    <Sparkles className="h-12 w-12 text-neutral-300 mb-2" />
+                    <p className="text-neutral-500">
+                      Submit your cover letter and job description to see AI-powered analysis and suggestions.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                        <span className="text-xl font-bold">{Math.round(analysisResult.overallScore)}</span>
+                        <span className="text-xs text-neutral-500">Overall</span>
+                      </div>
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                        <span className="text-xl font-bold">{Math.round(analysisResult.alignment)}</span>
+                        <span className="text-xs text-neutral-500">Alignment</span>
+                      </div>
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                        <span className="text-xl font-bold">{Math.round(analysisResult.persuasiveness)}</span>
+                        <span className="text-xs text-neutral-500">Persuasive</span>
+                      </div>
+                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg">
+                        <span className="text-xl font-bold">{Math.round(analysisResult.clarity)}</span>
+                        <span className="text-xs text-neutral-500">Clarity</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Strengths</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {analysisResult.strengths.map((strength, index) => (
+                          <li key={index} className="text-neutral-700">{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Areas to Improve</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {analysisResult.weaknesses.map((weakness, index) => (
+                          <li key={index} className="text-neutral-700">{weakness}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Improvement Suggestions</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {analysisResult.improvementSuggestions.map((suggestion, index) => (
+                          <li key={index} className="text-neutral-700">{suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <h4 className="text-sm font-medium mb-2">Optimized Cover Letter</h4>
+                      <div className="bg-primary/5 p-3 rounded-lg max-h-[300px] overflow-y-auto">
+                        <p className="whitespace-pre-line text-sm">
+                          {analysisResult.optimizedCoverLetter}
+                        </p>
+                      </div>
+                      <Button 
+                        className="w-full mt-2" 
+                        variant="outline"
+                        onClick={handleSaveOptimizedCoverLetter}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Save Optimized Version
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
         <TabsContent value="generator">
