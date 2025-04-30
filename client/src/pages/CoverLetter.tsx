@@ -543,9 +543,8 @@ export default function CoverLetter() {
                     }}
                   >
                     <div className="flex flex-col flex-grow-0" style={{ position: 'relative' }}>
-                      <div className="bg-[#f4f6ff] px-4 py-4 card-header" 
+                      <div className="bg-[#f4f6ff] p-4 pb-2 card-header" 
                            style={{ 
-                             padding: '16px',
                              display: 'flex',
                              borderBottomLeftRadius: 0,
                              borderBottomRightRadius: 0,
@@ -569,10 +568,9 @@ export default function CoverLetter() {
                         </div>
                       </div>
                     </div>
-                    <CardFooter className="py-[10px] px-6 flex justify-between card-footer border-t border-slate-200" 
+                    <CardFooter className="px-4 pt-2 pb-4 flex justify-between card-footer border-t border-slate-200" 
                               style={{ 
                                 marginTop: 0, 
-                                paddingTop: '12px', 
                                 borderTopLeftRadius: 0, 
                                 borderTopRightRadius: 0 
                               }}>
