@@ -529,12 +529,19 @@ export default function CoverLetter() {
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}
                 >
-                  <Card className="overflow-hidden group hover:shadow-md transition-shadow duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white" style={{ minHeight: '260px', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.04)' }}>
+                  <Card 
+                    className="overflow-hidden group hover:shadow-lg transition-all duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white" 
+                    style={{ 
+                      minHeight: '280px', 
+                      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.05)',
+                      borderRadius: '12px',
+                    }}
+                  >
                     <CardContent className="p-0 flex-grow">
                       <div className="bg-[#f4f6ff] p-4 flex items-start h-[100px] card-header">
                         <Mail className="h-10 w-10 text-primary mr-4 flex-shrink-0" />
                         <div>
-                          <h3 className="font-semibold text-base line-clamp-2 m-0 mb-1 text-gray-900 leading-tight">{letter.name}</h3>
+                          <h3 className="font-semibold text-base line-clamp-2 m-0 mb-1 text-gray-900 leading-[1.4]">{letter.name}</h3>
                           <p className="text-sm text-gray-600 m-0">
                             {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
                           </p>
@@ -544,7 +551,7 @@ export default function CoverLetter() {
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="p-3 flex justify-between mt-auto card-footer">
+                    <CardFooter className="p-3 flex justify-between mt-auto card-footer border-t border-slate-100">
                       <Button 
                         variant="outline" 
                         size="sm"
