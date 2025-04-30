@@ -540,7 +540,7 @@ export default function CoverLetter() {
                     <CardContent className="p-0 flex-grow flex flex-col">
                       <div className="bg-[#f4f6ff] px-6 py-4 flex items-start h-[96px] card-header">
                         <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
-                        <div className="flex flex-col gap-[4px] w-full pr-3">
+                        <div className="flex flex-col gap-[4px] w-full pr-4">
                           <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4]">{letter.name}</h3>
                           <p className="text-[13px] text-gray-600 m-0">
                             {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
@@ -552,7 +552,7 @@ export default function CoverLetter() {
                       </div>
                       <div className="flex-grow"></div>
                     </CardContent>
-                    <CardFooter className="py-[10px] px-6 flex justify-between card-footer border-t border-slate-200">
+                    <CardFooter className="py-[10px] px-6 flex justify-between mt-auto card-footer border-t border-slate-200">
                       <Button 
                         variant="outline" 
                         size="sm"
