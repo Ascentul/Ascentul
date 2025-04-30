@@ -684,7 +684,8 @@ Be specific, actionable, and constructive. Focus on substance over style, and em
 export async function generateFullResume(
   workHistory: string, 
   jobDescription: string, 
-  userData?: any
+  userData?: any,
+  originalWorkHistoryItems?: any[]
 ): Promise<any> {
   try {
     const userInfo = userData ? `
@@ -695,7 +696,31 @@ Phone: ${userData.phone || 'N/A'}
 Location: ${userData.location || 'N/A'}
 ` : '';
 
-    const prompt = `You are an expert resume writer and career counselor. Create a complete, professional resume tailored to the job description, using only the candidate's actual work history to avoid fabrication. The resume should strategically frame the candidate's experience to best match the job requirements.
+    // Build a more detailed prompt if we have original work history items to optimize
+    const promptForOptimization = originalWorkHistoryItems && originalWorkHistoryItems.length > 0 ? `
+Additionally, I need you to optimize the user's career data to better match this job description while maintaining absolute truthfulness.
+Provide an additional field in your response:
+6. optimizedCareerData: An object containing:
+   - careerSummary: An improved professional summary that can be saved to the user's profile
+   - workHistory: An array of optimized work history entries with these fields:
+     * id: (must match the ID from the original items below)
+     * description: Enhanced job description highlighting relevant achievements and responsibilities
+     * achievements: Array of quantifiable achievements aligned with the job description
+   - skills: An array of skills extracted from the work history and job description that would strengthen the user's profile
+
+Here are the original work history items with their IDs that need optimizing:
+${JSON.stringify(originalWorkHistoryItems, null, 2)}
+
+IMPORTANT RULES FOR OPTIMIZATION:
+- Do NOT invent new work experiences, positions, or companies
+- Do NOT invent qualifications the person doesn't have
+- DO enhance existing content to better showcase relevant skills and experiences
+- DO maintain the original IDs for all work history items
+- DO include both current and enhanced skills relevant to the job
+- ONLY include truthful information based on the user's existing career data
+` : '';
+
+    const prompt = `You are an expert resume writer and career coach. Create a complete, professional resume tailored to the job description, using only the candidate's actual work history to avoid fabrication. The resume should strategically frame the candidate's experience to best match the job requirements.
 
 ${userInfo}
 
@@ -718,6 +743,7 @@ Provide your response in JSON format with these fields:
    - description (an improved bullet-point style description that highlights relevant achievements)
    - achievements (an array of 2-3 specific, quantifiable achievements from each position)
 5. education: An array of education objects (if found in the work history)
+${promptForOptimization}
 
 Important: Use ONLY information provided in the work history. Do not invent or fabricate any details. Format dates consistently. The description and achievements for each position should be tailored to emphasize aspects that align with the job description.`;
 
@@ -926,6 +952,94 @@ export async function generateRoleInsights(
     console.error("Error generating role insights:", error);
     const errorMessage = error && error.message ? error.message : "Unknown error";
     throw new Error("Failed to generate role insights: " + errorMessage);
+  }
+}
+
+// Optimize career data based on job description
+export async function optimizeCareerData(
+  careerData: any,
+  jobDescription: string
+): Promise<any> {
+  try {
+    // Convert career data to a structured format for the AI
+    const workHistoryText = careerData.workHistory && careerData.workHistory.length > 0
+      ? careerData.workHistory.map((item: any) => {
+        const endDate = item.currentJob ? 'Present' : (item.endDate ? new Date(item.endDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A');
+        return `Company: ${item.company}
+Position: ${item.position}
+Duration: ${new Date(item.startDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} - ${endDate}
+Description: ${item.description || 'No description provided'}
+Achievements: ${item.achievements ? item.achievements.join('; ') : 'None listed'}
+ID: ${item.id}`;
+      }).join('\n\n')
+      : 'No work history provided';
+
+    const skillsText = careerData.skills && careerData.skills.length > 0
+      ? careerData.skills.map((skill: any) => skill.name).join(', ')
+      : 'No skills provided';
+    
+    const prompt = `You are an expert career coach specializing in resume optimization. Based on the user's existing career data and the job description, provide optimized career data that truthfully enhances their profile WITHOUT inventing new experiences or qualifications.
+
+User's Current Work History:
+${workHistoryText}
+
+User's Current Skills:
+${skillsText}
+
+User's Current Career Summary:
+${careerData.careerSummary || 'No career summary provided'}
+
+Job Description:
+${jobDescription}
+
+Create optimized career data that highlights relevant experiences and skills for this specific job opportunity. Your response should be in JSON format with the following structure:
+
+{
+  "careerSummary": "An improved career summary that emphasizes relevant experience for this job",
+  "workHistory": [
+    {
+      "id": 1, // Keep the original ID from the input data
+      "description": "Enhanced job description highlighting relevant achievements and responsibilities",
+      "achievements": ["Achievement 1", "Achievement 2", "Achievement 3"]
+    },
+    // Include all work history items from the original data, with improved descriptions and achievements
+  ],
+  "skills": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5", "Skill 6", "Skill 7", "Skill 8", "Skill 9", "Skill 10"],
+  "explanations": {
+    "summary": "Brief explanation of how the summary was improved",
+    "workHistory": "Brief explanation of how work history was enhanced",
+    "skills": "Brief explanation of skill recommendations"
+  }
+}
+
+IMPORTANT RULES:
+1. Do NOT invent new work experiences, positions, or companies
+2. Do NOT invent qualifications the person doesn't have
+3. DO enhance existing content to better showcase relevant skills and experiences
+4. DO maintain the original IDs for all work history items
+5. DO include both current and enhanced skills relevant to the job
+6. ONLY include truthful information based on the user's existing career data`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 3000,
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const parsedResponse = JSON.parse(content);
+    
+    return parsedResponse;
+  } catch (error: any) {
+    console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      throw new Error("There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.");
+    }
+    
+    throw new Error("An error occurred while optimizing career data. Please try again later.");
   }
 }
 
