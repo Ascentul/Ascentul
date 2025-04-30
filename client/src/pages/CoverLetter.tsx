@@ -537,9 +537,9 @@ export default function CoverLetter() {
                       borderRadius: '12px',
                     }}
                   >
-                    <CardContent className="p-0 flex-grow">
-                      <div className="bg-[#f4f6ff] px-4 py-3 flex items-start h-[96px] card-header">
-                        <Mail className="h-10 w-10 text-primary mr-4 flex-shrink-0" />
+                    <CardContent className="p-0 flex-grow flex flex-col">
+                      <div className="bg-[#f4f6ff] px-6 py-4 flex items-start h-[96px] card-header">
+                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
                         <div className="flex flex-col gap-[4px]">
                           <h3 className="font-semibold text-[15px] line-clamp-2 m-0 text-gray-900 leading-[1.4]">{letter.name}</h3>
                           <p className="text-[13px] text-gray-600 m-0">
@@ -550,9 +550,9 @@ export default function CoverLetter() {
                           </p>
                         </div>
                       </div>
-                      <div className="p-3 card-body"></div>
+                      <div className="flex-grow"></div>
                     </CardContent>
-                    <CardFooter className="py-[10px] px-4 flex justify-between mt-auto card-footer border-t border-slate-200">
+                    <CardFooter className="py-[10px] px-6 flex justify-between card-footer border-t border-slate-200">
                       <Button 
                         variant="outline" 
                         size="sm"
