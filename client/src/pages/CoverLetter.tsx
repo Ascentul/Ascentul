@@ -744,9 +744,9 @@ export default function CoverLetter() {
             
             <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header">
+                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
                   <BarChart4 className="h-5 w-5 mr-2" />
-                  📊 AI Analysis Results
+                  AI Analysis Results
                 </h3>
                 {!analysisResult ? (
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
@@ -758,25 +758,81 @@ export default function CoverLetter() {
                 ) : (
                   <div className="space-y-5">
                     <div className="grid grid-cols-4 gap-3">
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box" 
+                      {/* Score cards are styled with dynamic classes based on score */}
+                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                        Math.round(analysisResult.overallScore) < 60 
+                          ? 'bg-red-50/70 border-red-100' 
+                          : Math.round(analysisResult.overallScore) < 80 
+                            ? 'bg-amber-50/70 border-amber-100' 
+                            : 'bg-emerald-50/70 border-emerald-100'
+                      }`}
                            title="Overall score reflecting the quality of your cover letter">
                         <span className="text-xl font-bold">{Math.round(analysisResult.overallScore)}</span>
                         <span className="text-xs text-neutral-500">Overall</span>
+                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                          {Math.round(analysisResult.overallScore) < 60 
+                            ? 'Needs Work' 
+                            : Math.round(analysisResult.overallScore) < 80 
+                              ? 'Good'
+                              : 'Excellent'}
+                        </span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                      
+                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                        Math.round(analysisResult.alignment) < 60 
+                          ? 'bg-red-50/70 border-red-100' 
+                          : Math.round(analysisResult.alignment) < 80 
+                            ? 'bg-amber-50/70 border-amber-100' 
+                            : 'bg-emerald-50/70 border-emerald-100'
+                      }`}
                            title="How well your letter aligns with the job requirements">
                         <span className="text-xl font-bold">{Math.round(analysisResult.alignment)}</span>
                         <span className="text-xs text-neutral-500">Alignment</span>
+                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                          {Math.round(analysisResult.alignment) < 60 
+                            ? 'Misaligned' 
+                            : Math.round(analysisResult.alignment) < 80 
+                              ? 'Aligned'
+                              : 'Perfect Match'}
+                        </span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                      
+                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                        Math.round(analysisResult.persuasiveness) < 60 
+                          ? 'bg-red-50/70 border-red-100' 
+                          : Math.round(analysisResult.persuasiveness) < 80 
+                            ? 'bg-amber-50/70 border-amber-100' 
+                            : 'bg-emerald-50/70 border-emerald-100'
+                      }`}
                            title="How persuasive and compelling your letter is">
                         <span className="text-xl font-bold">{Math.round(analysisResult.persuasiveness)}</span>
                         <span className="text-xs text-neutral-500">Persuasive</span>
+                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                          {Math.round(analysisResult.persuasiveness) < 60 
+                            ? 'Basic' 
+                            : Math.round(analysisResult.persuasiveness) < 80 
+                              ? 'Convincing'
+                              : 'Compelling'}
+                        </span>
                       </div>
-                      <div className="flex flex-col items-center p-3 bg-primary/5 rounded-lg border border-primary/10 score-box"
+                      
+                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                        Math.round(analysisResult.clarity) < 60 
+                          ? 'bg-red-50/70 border-red-100' 
+                          : Math.round(analysisResult.clarity) < 80 
+                            ? 'bg-amber-50/70 border-amber-100' 
+                            : 'bg-emerald-50/70 border-emerald-100'
+                      }`}
                            title="Clarity and readability of your writing">
                         <span className="text-xl font-bold">{Math.round(analysisResult.clarity)}</span>
                         <span className="text-xs text-neutral-500">Clarity</span>
+                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                          {Math.round(analysisResult.clarity) < 60 
+                            ? 'Unclear' 
+                            : Math.round(analysisResult.clarity) < 80 
+                              ? 'Clear'
+                              : 'Crystal Clear'}
+                        </span>
                       </div>
                     </div>
                     
@@ -813,51 +869,77 @@ export default function CoverLetter() {
                       </ul>
                     </div>
                     
-                    <div className="pt-3">
-                      <h4 className="text-sm font-medium mb-2 flex items-center">
-                        <span className="text-primary mr-1">📝</span> Optimized Cover Letter
-                      </h4>
-                      <div className="bg-primary/5 p-4 rounded-lg max-h-[300px] overflow-y-auto border border-primary/10" id="optimizedCoverLetter">
-                        <p className="whitespace-pre-line text-sm">
-                          {analysisResult.optimizedCoverLetter}
-                        </p>
+                    <div className="pt-3" id="optimizedCoverLetterSection">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-sm font-medium flex items-center">
+                          <span className="text-primary mr-1">📝</span> Optimized Cover Letter
+                        </h4>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 px-2 text-xs" 
+                          onClick={() => {
+                            const optimizedSection = document.getElementById('optimizedCoverLetterContent');
+                            const toggleButton = document.getElementById('toggleOptimizedBtn');
+                            if (optimizedSection && toggleButton) {
+                              const isHidden = optimizedSection.classList.contains('hidden');
+                              if (isHidden) {
+                                optimizedSection.classList.remove('hidden');
+                                toggleButton.innerHTML = '<span class="mr-1">✕</span> Hide';
+                              } else {
+                                optimizedSection.classList.add('hidden');
+                                toggleButton.innerHTML = '<span class="mr-1">👁️</span> Show';
+                              }
+                            }
+                          }}
+                          id="toggleOptimizedBtn"
+                        >
+                          <span className="mr-1">✕</span> Hide
+                        </Button>
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        <Button 
-                          className="flex-1" 
-                          variant="outline"
-                          onClick={() => {
-                            navigator.clipboard.writeText(analysisResult.optimizedCoverLetter);
-                            toast({
-                              title: "Copied to clipboard",
-                              description: "Optimized cover letter copied to clipboard",
-                            });
-                          }}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy
-                        </Button>
-                        <Button 
-                          className="flex-1" 
-                          variant="outline"
-                          onClick={() => {
-                            setAnalyzeCoverLetterText(analysisResult.optimizedCoverLetter);
-                            toast({
-                              title: "Replaced original",
-                              description: "Optimized version now in editor",
-                            });
-                          }}
-                        >
-                          <FileUp className="mr-2 h-4 w-4" />
-                          Replace Original
-                        </Button>
-                        <Button 
-                          className="flex-1" 
-                          onClick={handleSaveOptimizedCoverLetter}
-                        >
-                          <FileText className="mr-2 h-4 w-4" />
-                          Save
-                        </Button>
+                      <div id="optimizedCoverLetterContent">
+                        <div className="bg-primary/5 p-4 rounded-lg max-h-[300px] overflow-y-auto border border-primary/10" id="optimizedCoverLetter">
+                          <p className="whitespace-pre-line text-sm">
+                            {analysisResult.optimizedCoverLetter}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <Button 
+                            className="flex-1" 
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(analysisResult.optimizedCoverLetter);
+                              toast({
+                                title: "Copied to clipboard",
+                                description: "Optimized cover letter copied to clipboard",
+                              });
+                            }}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy
+                          </Button>
+                          <Button 
+                            className="flex-1" 
+                            variant="outline"
+                            onClick={() => {
+                              setAnalyzeCoverLetterText(analysisResult.optimizedCoverLetter);
+                              toast({
+                                title: "Replaced original",
+                                description: "Optimized version now in editor",
+                              });
+                            }}
+                          >
+                            <FileUp className="mr-2 h-4 w-4" />
+                            Replace Original
+                          </Button>
+                          <Button 
+                            className="flex-1" 
+                            onClick={handleSaveOptimizedCoverLetter}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Save
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
