@@ -532,12 +532,12 @@ export default function CoverLetter() {
                   <Card 
                     className="overflow-hidden group hover:shadow-lg transition-all duration-200 flex flex-col cover-letter-card border border-slate-200 bg-white" 
                     style={{ 
-                      minHeight: '220px', 
+                      minHeight: '170px', 
                       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
                       borderRadius: '12px',
                     }}
                   >
-                    <CardContent className="p-0 flex-grow flex flex-col">
+                    <CardContent className="p-0 flex-grow-0 flex flex-col">
                       <div className="bg-[#f4f6ff] px-6 py-4 flex items-start h-[96px] card-header">
                         <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
                         <div className="flex flex-col gap-[4px] w-full pr-4">
