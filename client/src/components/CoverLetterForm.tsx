@@ -70,9 +70,13 @@ type CoverLetterFormValues = z.infer<typeof coverLetterSchema>;
 interface CoverLetterFormProps {
   coverLetter?: any;
   onSuccess?: () => void;
+  onSubmit?: (data: any) => Promise<void>;
+  initialData?: any;
 }
 
-export default function CoverLetterForm({ coverLetter, onSuccess }: CoverLetterFormProps) {
+export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, initialData }: CoverLetterFormProps) {
+  // Use initialData as fallback if provided instead of coverLetter
+  const letterData = coverLetter || initialData;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,13 +150,21 @@ export default function CoverLetterForm({ coverLetter, onSuccess }: CoverLetterF
     },
   });
 
-  const onSubmit = async (data: CoverLetterFormValues) => {
+  const handleFormSubmit = async (data: CoverLetterFormValues) => {
     setIsSubmitting(true);
     try {
-      if (coverLetter?.id) {
-        await updateCoverLetterMutation.mutateAsync(data);
-      } else {
-        await createCoverLetterMutation.mutateAsync(data);
+      // If parent component provided onSubmit callback, use that
+      if (onSubmit) {
+        await onSubmit(data);
+        if (onSuccess) onSuccess();
+      } 
+      // Otherwise use our internal mutation
+      else {
+        if (letterData?.id) {
+          await updateCoverLetterMutation.mutateAsync(data);
+        } else {
+          await createCoverLetterMutation.mutateAsync(data);
+        }
       }
     } finally {
       setIsSubmitting(false);
