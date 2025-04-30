@@ -1148,7 +1148,10 @@ export default function CoverLetter() {
             <DialogTitle>{selectedLetter ? 'Edit Cover Letter' : 'Create Cover Letter'}</DialogTitle>
           </DialogHeader>
           <CoverLetterForm 
-            initialData={selectedLetter}
+            coverLetter={selectedLetter}
+            onSuccess={() => {
+              setIsAddLetterOpen(false);
+            }}
             onSubmit={async (data) => {
               try {
                 const response = await fetch(
