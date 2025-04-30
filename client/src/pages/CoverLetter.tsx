@@ -2,9 +2,22 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, Mail, Download, Copy, Trash2, Edit, FileText, Sparkles, BarChart4 } from 'lucide-react';
+import { 
+  Plus, 
+  Mail, 
+  Download, 
+  Copy, 
+  Trash2, 
+  Edit, 
+  FileText, 
+  Sparkles, 
+  BarChart4, 
+  UploadCloud, 
+  FileUp
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
