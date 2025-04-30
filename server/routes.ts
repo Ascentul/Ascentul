@@ -5101,6 +5101,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Register PDF extraction routes for resume handling
   registerPdfExtractRoutes(apiRouter);
   
+  // Register debugging routes for file upload testing
+  app.use('/debug', debugRouter);
+  
   const httpServer = createServer(app);
   return httpServer;
 }

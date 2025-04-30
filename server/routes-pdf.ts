@@ -1,4 +1,5 @@
 import { Request, Response, Router } from 'express';
+import type { Express } from 'express';
 import { requireAuth } from './auth';
 import multer from 'multer';
 import path from 'path';
@@ -67,7 +68,7 @@ const upload = multer({
  * Registers the updated resume-extract text endpoint with PDF parsing capabilities
  * @param app Express application or router
  */
-export function registerPdfExtractRoutes(app: Router | Express) {
+export function registerPdfExtractRoutes(app: Router) {
   // Simple test endpoint to verify the route works
   app.get("/api/resumes/test", (req: Request, res: Response) => {
     res.json({ message: "PDF extraction route is working properly" });
