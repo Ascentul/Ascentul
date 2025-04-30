@@ -849,7 +849,17 @@ export default function CoverLetter() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Button 
                         className="w-full" 
-                        onClick={generateCoverLetter}
+                        onClick={() => {
+                          if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+                            toast({
+                              title: 'Missing Information',
+                              description: 'Please fill out all fields to generate a cover letter',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          generateCoverLetterMutation.mutate();
+                        }}
                         disabled={generateCoverLetterMutation.isPending}
                       >
                         {generateCoverLetterMutation.isPending ? (
@@ -867,7 +877,17 @@ export default function CoverLetter() {
                       <Button 
                         variant="outline"
                         className="w-full" 
-                        onClick={generateSuggestions}
+                        onClick={() => {
+                          if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+                            toast({
+                              title: 'Missing Information',
+                              description: 'Please fill out all fields to generate suggestions',
+                              variant: 'destructive',
+                            });
+                            return;
+                          }
+                          generateSuggestionsMutation.mutate();
+                        }}
                         disabled={generateSuggestionsMutation.isPending}
                       >
                         {generateSuggestionsMutation.isPending ? (
