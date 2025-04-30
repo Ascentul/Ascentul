@@ -1,27 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import * as pdfjs from 'pdfjs-dist';
-import { GlobalWorkerOptions } from 'pdfjs-dist';
+// Import the node build - this is critical for Node.js environment
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 
-// Initialize PDF.js worker
-async function initializeWorker() {
-  try {
-    // Use a reliable path for the PDF.js worker
-    // First, try to use a local file if available
-    const workerPath = path.join(process.cwd(), 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.js');
-    
-    if (fs.existsSync(workerPath)) {
-      GlobalWorkerOptions.workerSrc = workerPath;
-    } else {
-      // Fallback to the CDN version
-      GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-      console.log(`Using CDN worker: ${GlobalWorkerOptions.workerSrc}`);
-    }
-  } catch (error) {
-    console.error('Error initializing PDF.js worker:', error);
-    throw new Error('Failed to initialize PDF worker');
-  }
-}
+// Tell pdfjs not to use or look for a worker - we're in Node.js not a browser
+pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 
 /**
  * Extract text from a PDF file
@@ -34,9 +17,6 @@ export async function extractTextFromPdf(
   maxPages: number = 20
 ): Promise<{ text: string; pages: { processed: number; total: number } }> {
   try {
-    // Initialize the worker if needed
-    await initializeWorker();
-    
     // Normalize the file path (remove leading slash if present)
     const normalizedPath = filePath.replace(/^\//, '');
     
@@ -55,12 +35,18 @@ export async function extractTextFromPdf(
       throw new Error('Only PDF files are supported for text extraction');
     }
     
-    // Read the file
-    const fileBuffer = fs.readFileSync(fullPath);
+    // Read the file as a binary buffer
+    const fileBuffer = new Uint8Array(fs.readFileSync(fullPath));
     
-    // Load the PDF document
-    const loadingTask = pdfjs.getDocument({ data: fileBuffer });
-    const pdfDocument = await loadingTask.promise;
+    // Load the PDF document using the legacy Node.js compatible build
+    const pdfDocument = await pdfjsLib.getDocument({
+      data: fileBuffer,
+      // Disable worker to ensure compatibility with Node.js
+      // This is critical for server-side PDF processing
+      disableWorker: true
+    }).promise;
+    
+    console.log(`PDF loaded successfully with ${pdfDocument.numPages} pages`);
     
     // Extract text from each page
     let extractedText = '';
@@ -72,13 +58,18 @@ export async function extractTextFromPdf(
     for (let i = 1; i <= pagesToProcess; i++) {
       const page = await pdfDocument.getPage(i);
       const textContent = await page.getTextContent();
+      
+      // Join all text items with spaces
       const pageText = textContent.items
+        .filter((item: any) => item.str !== undefined && item.str !== null)
         .map((item: any) => item.str)
         .join(' ');
       
       extractedText += pageText + '\n\n';
+      console.log(`Processed page ${i}/${pagesToProcess}`);
     }
     
+    // Add notice if we limited the number of pages
     if (numPages > pagesToProcess) {
       extractedText += `\n\n[Note: Only the first ${pagesToProcess} pages were processed. The document has ${numPages} pages in total.]`;
     }
