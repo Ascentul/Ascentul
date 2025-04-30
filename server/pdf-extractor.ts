@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import pdfParse from 'pdf-parse';
+import * as pdfjs from 'pdfjs-dist';
 
 /**
  * Extract text from a PDF file
@@ -31,33 +31,42 @@ export async function extractTextFromPdf(
       throw new Error('Only PDF files are supported for text extraction');
     }
     
-    // Read the file buffer
-    const dataBuffer = fs.readFileSync(fullPath);
-    console.log(`Read PDF file: ${fullPath} (${dataBuffer.length} bytes)`);
-    
-    // Parse the PDF using pdf-parse
-    const options = {
-      // Limit page rendering if specified
-      max: maxPages
-    };
-    
-    const result = await pdfParse(dataBuffer, options);
-    
-    console.log(`PDF processed successfully with ${result.numpages} pages`);
-    
-    // Format the extracted text
-    let extractedText = result.text;
+    // Read the file as a Uint8Array
+    const fileBuffer = new Uint8Array(fs.readFileSync(fullPath));
+    console.log(`Read PDF file: ${fullPath} (${fileBuffer.length} bytes)`);
+
+    // Get PDF document from data
+    const pdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
+    const numPages = pdf.numPages;
+    console.log(`PDF has ${numPages} pages`);
+
+    // Process pages (limit to maxPages)
+    const pagesToProcess = Math.min(numPages, maxPages);
+    let extractedText = '';
+
+    for (let i = 1; i <= pagesToProcess; i++) {
+      console.log(`Processing page ${i}/${pagesToProcess}`);
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      
+      // Extract text items
+      const pageText = content.items
+        .map((item: any) => item.str)
+        .join(' ');
+      
+      extractedText += pageText + '\n\n';
+    }
     
     // Add notice if we limited the number of pages
-    if (result.numpages > maxPages) {
-      extractedText += `\n\n[Note: Only the first ${maxPages} pages were processed. The document has ${result.numpages} pages in total.]`;
+    if (numPages > maxPages) {
+      extractedText += `\n\n[Note: Only the first ${maxPages} pages were processed. The document has ${numPages} pages in total.]`;
     }
     
     return {
       text: extractedText,
       pages: {
-        processed: Math.min(result.numpages, maxPages),
-        total: result.numpages
+        processed: pagesToProcess,
+        total: numPages
       }
     };
   } catch (error) {
