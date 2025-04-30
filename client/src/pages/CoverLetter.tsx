@@ -539,7 +539,8 @@ export default function CoverLetter() {
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       height: '100%',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      maxWidth: '100%'
                     }}
                   >
                     <div className="flex flex-col flex-grow-0" style={{ position: 'relative' }}>
@@ -548,16 +549,20 @@ export default function CoverLetter() {
                              display: 'flex',
                              borderBottomLeftRadius: 0,
                              borderBottomRightRadius: 0,
-                             overflow: 'hidden',
-                             height: '96px'
+                             overflow: 'visible',
+                             minHeight: '96px'
                            }}>
                         <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
-                        <div className="flex flex-col w-full pr-6">
-                            <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1"
+                        <div className="flex flex-col w-full pr-2">
+                            <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1 break-words"
                                 style={{ 
                                   whiteSpace: 'normal',
                                   overflowWrap: 'break-word',
-                                  wordBreak: 'break-word' 
+                                  wordBreak: 'break-word',
+                                  hyphens: 'auto',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: '2',
+                                  WebkitBoxOrient: 'vertical'
                                 }}>{letter.name}</h3>
                             <p className="text-[13px] text-gray-600 m-0 mb-1">
                               {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
