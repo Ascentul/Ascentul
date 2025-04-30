@@ -712,6 +712,9 @@ export default function Resume() {
                     <label htmlFor="jobDescription" className="block text-sm font-medium text-neutral-600 mb-1">
                       Job Description <span className="text-red-500">*</span>
                     </label>
+                    <div className="text-xs text-neutral-500 mb-1">
+                      For best results, include a complete job posting with responsibilities, requirements, and qualifications.
+                    </div>
                     <Textarea
                       id="jobDescription"
                       placeholder="Paste the job description here to compare with your resume..."
@@ -723,6 +726,12 @@ export default function Resume() {
                       <p className="text-sm text-amber-600 mt-1 flex items-center">
                         <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
                         A job description is required for resume analysis
+                      </p>
+                    )}
+                    {extractionJobDescription.trim() && extractionJobDescription.trim().length < 50 && (
+                      <p className="text-sm text-amber-600 mt-1 flex items-center">
+                        <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                        Job description is too short. Please provide more details for better analysis.
                       </p>
                     )}
                   </div>
