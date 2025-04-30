@@ -47,7 +47,7 @@ import {
   insertApplicationWizardStepSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
@@ -2612,14 +2612,22 @@ Based on your profile and the job you're targeting, I recommend highlighting:
   
   apiRouter.post("/cover-letters/generate", async (req: Request, res: Response) => {
     try {
-      const { jobTitle, companyName, jobDescription, userExperience, userSkills } = req.body;
+      const { jobTitle, companyName, jobDescription, userExperience, userSkills, type } = req.body;
       
-      if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
-        return res.status(400).json({ message: "Missing required fields" });
+      // If type is suggestions, only job description is mandatory
+      if (type === 'suggestions') {
+        if (!jobDescription) {
+          return res.status(400).json({ message: "Job description is required for suggestions" });
+        }
+      } else {
+        // For full generation, all fields are required
+        if (!jobTitle || !companyName || !jobDescription || !userExperience || !userSkills) {
+          return res.status(400).json({ message: "Missing required fields" });
+        }
       }
       
       // Automatically include user's work history if they're logged in
-      let enrichedExperience = userExperience;
+      let enrichedExperience = userExperience || '';
       
       if (req.session.userId) {
         try {
@@ -2649,15 +2657,30 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         }
       }
       
-      const coverLetter = await generateCoverLetter(
-        jobTitle,
-        companyName,
-        jobDescription,
-        enrichedExperience,
-        userSkills
-      );
-      
-      res.status(200).json({ content: coverLetter });
+      // Different response for suggestions vs. full cover letter
+      if (type === 'suggestions') {
+        // For suggestions, we'll generate writing suggestions instead of a full letter
+        const suggestions = await generateCoverLetterSuggestions(
+          jobTitle || 'Unspecified Position',
+          companyName || 'Unspecified Company',
+          jobDescription,
+          enrichedExperience,
+          userSkills || ''
+        );
+        
+        res.status(200).json({ suggestions });
+      } else {
+        // Generate full cover letter
+        const coverLetter = await generateCoverLetter(
+          jobTitle,
+          companyName,
+          jobDescription,
+          enrichedExperience,
+          userSkills
+        );
+        
+        res.status(200).json({ content: coverLetter });
+      }
     } catch (error) {
       res.status(500).json({ message: "Error generating cover letter" });
     }

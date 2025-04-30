@@ -837,7 +837,52 @@ Important: Use ONLY information provided in the work history. Do not invent or f
   }
 }
 
-// Generate cover letter
+// Generate cover letter suggestions for the "Get Suggestions" functionality
+export async function generateCoverLetterSuggestions(
+  jobTitle: string, 
+  companyName: string, 
+  jobDescription: string, 
+  userExperience: string,
+  userSkills: string
+): Promise<string> {
+  try {
+    // This function generates writing suggestions rather than a full cover letter
+    const prompt = `I need writing suggestions and key points for a cover letter for a ${jobTitle} position at ${companyName}.
+
+Job Description:
+${jobDescription}
+
+${userExperience ? `My Relevant Experience:\n${userExperience}` : ''}
+
+${userSkills ? `My Skills:\n${userSkills}` : ''}
+
+Instead of writing a complete cover letter, please give me:
+1. A strong opening paragraph suggestion
+2. 4-5 key points to highlight based on the job description
+3. Specific phrases that would resonate with the hiring manager
+4. A suggested closing paragraph
+
+Focus on helping me write an effective cover letter by providing these structured suggestions.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return response.choices[0].message.content || "Unable to generate cover letter suggestions at this time.";
+  } catch (error: any) {
+    console.error("OpenAI API error:", error);
+    
+    // Check for API key issues
+    if (error.message && (error.message.includes("API key") || error.status === 401)) {
+      return "There's an issue with the AI service configuration. Please contact the administrator to set up a valid API key.";
+    }
+    
+    return "Unable to generate cover letter suggestions at this time. Please try again later.";
+  }
+}
+
+// Generate full cover letter
 export async function generateCoverLetter(
   jobTitle: string, 
   companyName: string, 
