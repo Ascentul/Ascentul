@@ -23,6 +23,7 @@ import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
 import { registerCareerDataRoutes } from "./career-data";
 import projectsRouter from "./routes/projects";
+import debugRouter from "./routes/debug";
 import * as openai from "./openai";
 import { 
   insertUserSchema, 
