@@ -518,8 +518,9 @@ export default function CoverLetter() {
             </div>
           ) : coverLetters && coverLetters.length > 0 ? (
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 cover-letter-grid"
               variants={staggeredContainer}
+              style={{ alignItems: 'stretch' }}
             >
               {filteredLetters().map((letter: any, i: number) => (
                 <motion.div 
@@ -528,12 +529,12 @@ export default function CoverLetter() {
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}
                 >
-                  <Card className="overflow-hidden group hover:shadow-md transition-shadow duration-200">
-                    <CardContent className="p-0">
-                      <div className="bg-primary/5 p-6 flex items-center">
-                        <Mail className="h-10 w-10 text-primary mr-4" />
+                  <Card className="overflow-hidden group hover:shadow-md transition-shadow duration-200 flex flex-col cover-letter-card" style={{ minHeight: '240px' }}>
+                    <CardContent className="p-0 flex-grow">
+                      <div className="bg-primary/5 p-6 flex items-start h-full">
+                        <Mail className="h-10 w-10 text-primary mr-4 flex-shrink-0" />
                         <div>
-                          <h3 className="font-medium">{letter.name}</h3>
+                          <h3 className="font-medium line-clamp-2">{letter.name}</h3>
                           <p className="text-sm text-neutral-500">
                             {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
                           </p>
@@ -543,7 +544,7 @@ export default function CoverLetter() {
                         </div>
                       </div>
                     </CardContent>
-                    <CardFooter className="p-4 flex justify-between">
+                    <CardFooter className="p-4 flex justify-between mt-auto">
                       <Button 
                         variant="outline" 
                         size="sm"
