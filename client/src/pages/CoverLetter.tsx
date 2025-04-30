@@ -439,11 +439,13 @@ export default function CoverLetter() {
         </Button>
       </motion.div>
       
-      <Tabs defaultValue="letters">
+      <Tabs defaultValue="letters" className="space-y-4">
         <TabsList className="mb-4">
-          <TabsTrigger value="letters">My Cover Letters</TabsTrigger>
-          <TabsTrigger value="generator">AI Generator</TabsTrigger>
-          <TabsTrigger value="analyze">Analyze</TabsTrigger>
+          <TabsTrigger value="letters">
+            My Cover Letters {coverLetters && coverLetters.length > 0 && `(${coverLetters.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
+          <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
         </TabsList>
         
         <TabsContent value="letters" className="space-y-6">
@@ -640,16 +642,20 @@ export default function CoverLetter() {
         </TabsContent>
         
         <TabsContent value="analyze" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div 
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform"
+            variants={subtleUp}
+            style={{ transform: 'translateZ(0)' }}
+          >
             <Card>
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Analyze Your Cover Letter</h3>
+                <h3 className="text-lg font-semibold mb-4">Upload & Analyze Cover Letter</h3>
                 <p className="text-neutral-500 mb-4">
-                  Get AI-powered feedback on your cover letter and suggestions to improve it for a specific job.
+                  Get AI-powered insights on how well your cover letter aligns with a specific job.
                 </p>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Job Description</label>
+                    <Label className="text-sm font-medium">Job Description</Label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={analyzeJobDescription}
@@ -659,7 +665,7 @@ export default function CoverLetter() {
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Cover Letter</label>
+                    <Label className="text-sm font-medium">Your Cover Letter</Label>
                     <Textarea
                       placeholder="Paste your cover letter text here..."
                       value={analyzeCoverLetterText}
@@ -767,107 +773,116 @@ export default function CoverLetter() {
                 )}
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </TabsContent>
         
-        <TabsContent value="generator">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="suggestions">
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
+            variants={subtleUp}
+            style={{ transform: 'translateZ(0)' }}
+          >
             <Card>
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Generate a Cover Letter with AI</h3>
+                <h3 className="text-lg font-semibold mb-4">Optimize Your Cover Letter with AI</h3>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Job Title</label>
-                      <Input
-                        placeholder="e.g., Software Engineer"
-                        value={jobTitle}
-                        onChange={(e) => setJobTitle(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Company Name</label>
-                      <Input
-                        placeholder="e.g., Acme Inc."
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Job Description</label>
+                    <Label className="text-sm font-medium">Job Description</Label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
-                      className="min-h-[100px]"
+                      className="min-h-[150px]"
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Relevant Experience</label>
-                    <Textarea
-                      placeholder="Briefly describe your relevant experience for this position..."
-                      value={userExperience}
-                      onChange={(e) => setUserExperience(e.target.value)}
-                      className="min-h-[100px]"
-                    />
+
+                  <div className="pt-2">
+                    <p className="text-sm text-neutral-500 mb-4">
+                      Your work history will be automatically used from your profile to generate relevant suggestions.
+                    </p>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Your Skills (comma separated)</label>
-                    <Input
-                      placeholder="e.g., JavaScript, React, Project Management"
-                      value={userSkills}
-                      onChange={(e) => setUserSkills(e.target.value)}
-                    />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline"
+                      className="w-full" 
+                      onClick={generateCoverLetter}
+                      disabled={generateCoverLetterMutation.isPending}
+                    >
+                      {generateCoverLetterMutation.isPending ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate Suggestions
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      onClick={generateCoverLetter}
+                      disabled={generateCoverLetterMutation.isPending}
+                    >
+                      {generateCoverLetterMutation.isPending ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Generate Cover Letter
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  
-                  <Button 
-                    className="w-full" 
-                    onClick={generateCoverLetter}
-                    disabled={generateCoverLetterMutation.isPending}
-                  >
-                    {generateCoverLetterMutation.isPending ? 'Generating...' : 'Generate Cover Letter'}
-                  </Button>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className={generatedContent ? 'block' : 'hidden'}>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Generated Cover Letter</h3>
-                  {generatedContent && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleSaveGenerated}
-                    >
-                      Save to Library
-                    </Button>
-                  )}
+                  <h3 className="text-lg font-semibold">Your Generated Cover Letter</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Create a dummy element to copy the text
+                      const dummy = document.createElement('textarea');
+                      dummy.value = generatedContent;
+                      document.body.appendChild(dummy);
+                      dummy.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(dummy);
+                      
+                      // Show toast
+                      toast({
+                        title: 'Copied!',
+                        description: 'Cover letter content copied to clipboard',
+                      });
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
                 </div>
-                
-                {generatedContent ? (
-                  <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-sm">
-                      {generatedContent}
-                    </pre>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FileText className="h-12 w-12 text-neutral-300 mb-4" />
-                    <p className="text-neutral-500">
-                      Fill out the form and generate a professional cover letter
-                    </p>
-                  </div>
-                )}
+                <div className="border rounded-md p-4 mb-4 max-h-[400px] overflow-y-auto whitespace-pre-line bg-gray-50">
+                  {generatedContent || 'Your generated cover letter will appear here.'}
+                </div>
+                <Button 
+                  onClick={handleSaveGenerated} 
+                  className="w-full"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Save as Cover Letter
+                </Button>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </TabsContent>
       </Tabs>
       
