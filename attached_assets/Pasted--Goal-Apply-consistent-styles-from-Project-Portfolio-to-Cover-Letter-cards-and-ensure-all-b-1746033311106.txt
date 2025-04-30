@@ -1,0 +1,55 @@
+// 🎯 Goal: Apply consistent styles from Project Portfolio to Cover Letter cards
+// and ensure all blue title sections have equal height across all cards
+
+const coverLetterCards = document.querySelectorAll('.cover-letter-card'); // Adjust selector to match your app
+
+coverLetterCards.forEach(card => {
+  // General styling to match Project Portfolio
+  card.style.border = '1px solid #e5e7eb';
+  card.style.borderRadius = '12px';
+  card.style.overflow = 'hidden';
+  card.style.backgroundColor = '#ffffff';
+  card.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.04)';
+  card.style.display = 'flex';
+  card.style.flexDirection = 'column';
+  card.style.justifyContent = 'space-between';
+  card.style.minHeight = '260px';
+});
+
+// 🔵 1. Style the blue title section uniformly
+const cardHeaders = document.querySelectorAll('.cover-letter-card .card-header'); // Adjust selector
+cardHeaders.forEach(header => {
+  header.style.backgroundColor = '#f4f6ff';
+  header.style.padding = '16px';
+  header.style.minHeight = '100px'; // Force equal height
+  header.style.display = 'flex';
+  header.style.flexDirection = 'column';
+  header.style.justifyContent = 'center';
+});
+
+// 📝 2. Style the title text
+const titles = document.querySelectorAll('.cover-letter-card .card-header h3'); // Adjust selector
+titles.forEach(title => {
+  title.style.fontSize = '16px';
+  title.style.fontWeight = '600';
+  title.style.margin = '0 0 4px 0';
+  title.style.color = '#111827';
+  title.style.lineHeight = '1.4';
+});
+
+// 🧾 3. Style the subtitle/metadata
+const subtitles = document.querySelectorAll('.cover-letter-card .card-header p'); // Adjust selector
+subtitles.forEach(p => {
+  p.style.fontSize = '13px';
+  p.style.color = '#6b7280';
+  p.style.margin = '0';
+});
+
+// 🛠️ 4. Optional: Align card footer buttons like Project Portfolio
+const cardFooters = document.querySelectorAll('.cover-letter-card .card-footer'); // Adjust if needed
+cardFooters.forEach(footer => {
+  footer.style.display = 'flex';
+  footer.style.justifyContent = 'space-between';
+  footer.style.padding = '12px 16px';
+  footer.style.alignItems = 'center';
+});
