@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 // Import the node build - this is critical for Node.js environment
 // @ts-ignore - Ignore TypeScript errors for the legacy build import
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 // Tell pdfjs not to use or look for a worker - we're in Node.js not a browser
 pdfjsLib.GlobalWorkerOptions.workerSrc = '';
