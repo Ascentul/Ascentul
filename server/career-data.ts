@@ -658,4 +658,120 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       res.status(500).json({ message: "Error updating career summary" });
     }
   });
+
+  // Optimize Career Data endpoint (updates multiple career data elements based on AI analysis)
+  app.post("/api/career-data/optimize", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.session.userId;
+      const { optimizedData, jobDescription } = req.body;
+      
+      if (!optimizedData) {
+        return res.status(400).json({ message: "Optimized data is required" });
+      }
+
+      console.log(`Optimizing career data for user ${userId} based on job description`);
+      
+      // Track what was updated for response
+      const updates = {
+        workHistory: [] as any[],
+        skills: [] as any[],
+        careerSummary: null as string | null
+      };
+
+      // Update career summary if provided
+      if (optimizedData.careerSummary) {
+        console.log("Updating career summary with AI-optimized version");
+        const updatedUser = await storage.updateUser(userId, { 
+          careerSummary: optimizedData.careerSummary 
+        });
+        
+        if (updatedUser) {
+          updates.careerSummary = updatedUser.careerSummary;
+        }
+      }
+      
+      // Update work history items if provided
+      if (optimizedData.workHistory && optimizedData.workHistory.length > 0) {
+        console.log(`Processing ${optimizedData.workHistory.length} work history updates`);
+        
+        for (const item of optimizedData.workHistory) {
+          if (item.id) {
+            // Update existing item
+            const formData = { ...item };
+            
+            // Convert string dates to Date objects
+            if (formData.startDate && typeof formData.startDate === 'string') {
+              formData.startDate = new Date(formData.startDate);
+            }
+            
+            if (formData.endDate && typeof formData.endDate === 'string') {
+              formData.endDate = new Date(formData.endDate);
+            }
+            
+            const updatedItem = await storage.updateWorkHistoryItem(item.id, formData);
+            
+            if (updatedItem) {
+              // Serialize dates for the response
+              const serializedItem = {
+                ...updatedItem,
+                startDate: updatedItem.startDate instanceof Date ? updatedItem.startDate.toISOString() : updatedItem.startDate,
+                endDate: updatedItem.endDate instanceof Date ? updatedItem.endDate.toISOString() : updatedItem.endDate,
+                createdAt: updatedItem.createdAt instanceof Date ? updatedItem.createdAt.toISOString() : updatedItem.createdAt
+              };
+              
+              updates.workHistory.push(serializedItem);
+            }
+          }
+        }
+      }
+      
+      // Update or add skills if provided
+      if (optimizedData.skills && optimizedData.skills.length > 0) {
+        console.log(`Processing ${optimizedData.skills.length} skill updates`);
+        
+        // Get existing skills
+        const existingSkills = await storage.getUserSkills(userId);
+        const existingSkillNames = existingSkills.map(skill => skill.name.toLowerCase());
+        
+        for (const skill of optimizedData.skills) {
+          // Check if skill already exists (case insensitive)
+          const existingSkill = existingSkills.find(
+            s => s.name.toLowerCase() === skill.toLowerCase()
+          );
+          
+          if (existingSkill) {
+            // Skill already exists, no need to add it again
+            updates.skills.push(existingSkill);
+          } else {
+            // Add new skill
+            const newSkill = await storage.createSkill(userId, {
+              name: skill,
+              proficiencyLevel: "Intermediate", // Default value
+              category: null
+            });
+            
+            if (newSkill) {
+              updates.skills.push(newSkill);
+            }
+          }
+        }
+      }
+      
+      console.log("Career data optimization complete");
+      res.status(200).json({
+        message: "Career data optimized successfully",
+        updates
+      });
+    } catch (error) {
+      console.error("Error optimizing career data:", error);
+      res.status(500).json({ 
+        message: "Error optimizing career data",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
 }
