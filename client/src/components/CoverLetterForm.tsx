@@ -82,9 +82,9 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const defaultValues: CoverLetterFormValues = {
-    name: coverLetter?.name || '',
-    template: coverLetter?.template || 'standard',
-    content: coverLetter?.content || {
+    name: letterData?.name || '',
+    template: letterData?.template || 'standard',
+    content: letterData?.content || {
       header: {
         fullName: '',
         email: '',
@@ -131,7 +131,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
 
   const updateCoverLetterMutation = useMutation({
     mutationFn: async (data: CoverLetterFormValues) => {
-      return apiRequest('PUT', `/api/cover-letters/${coverLetter?.id}`, data);
+      return apiRequest('PUT', `/api/cover-letters/${letterData?.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
@@ -173,7 +173,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -416,7 +416,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : coverLetter ? 'Update Cover Letter' : 'Create Cover Letter'}
+            {isSubmitting ? 'Saving...' : letterData?.id ? 'Update Cover Letter' : 'Create Cover Letter'}
           </Button>
         </div>
       </form>
