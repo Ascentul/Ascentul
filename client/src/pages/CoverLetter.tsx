@@ -340,7 +340,7 @@ export default function CoverLetter() {
       });
   };
   
-  // Function to download cover letter as PDF with improved formatting
+  // Function to download cover letter as PDF
   const handleDownloadPDF = (elementId: string) => {
     const element = document.getElementById(elementId);
     if (!element) {
@@ -358,64 +358,53 @@ export default function CoverLetter() {
     
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
-    
-    // Apply enhanced inline formatting for better PDF appearance
-    clonedElement.style.whiteSpace = 'pre-wrap';
-    clonedElement.style.lineHeight = '1.6';
-    clonedElement.style.fontFamily = 'Georgia, serif';
-    clonedElement.style.fontSize = '12pt';
     clonedElement.style.padding = '20px';
-    clonedElement.style.color = '#000000';
     clonedElement.style.border = 'none';
-    clonedElement.style.maxWidth = '800px';
-    clonedElement.style.margin = '0 auto';
     
-    // PDF export options
-    const opt = {
-      margin: 0.75,
-      filename: filename,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    
-    // Show toast to indicate processing
-    toast({
-      title: 'Preparing PDF',
-      description: 'Your cover letter is being generated...',
-    });
-    
-    // Generate and download PDF using html2pdf
-    import('html2pdf.js').then((html2pdfModule) => {
-      const html2pdf = html2pdfModule.default;
-      
-      html2pdf()
-        .set(opt)
-        .from(clonedElement)
-        .save()
-        .then(() => {
-          toast({
-            title: 'Success',
-            description: 'Cover letter PDF downloaded successfully',
-          });
-        })
-        .catch((error: any) => {
-          console.error('PDF generation error:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to generate PDF. Please try again.',
-            variant: 'destructive',
-          });
-        });
-    }).catch((error) => {
-      console.error('Error loading html2pdf module:', error);
+    // Create the print window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
       toast({
         title: 'Error',
-        description: 'Could not load PDF generation module. Please try again.',
+        description: 'Unable to open print window. Please check your popup settings.',
         variant: 'destructive',
       });
-    });
+      return;
+    }
+    
+    // Setup the print document
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${filename}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            .cover-letter-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h2 { margin-top: 0; }
+            p { margin: 0 0 8px; line-height: 1.5; }
+            @media print {
+              body { padding: 0; margin: 0; }
+              .cover-letter-container { width: 100%; max-width: none; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="cover-letter-container">
+            ${clonedElement.outerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                window.close();
+              }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
   };
 
   // Animation variants - optimized for performance
@@ -554,20 +543,20 @@ export default function CoverLetter() {
                     }}
                   >
                     <CardContent className="p-0 flex-grow-0 flex flex-col">
-                      <div className="bg-[#f4f6ff] card-header" 
+                      <div className="bg-[#f4f6ff] px-4 py-4 card-header" 
                            style={{ 
                              marginBottom: 0, 
                              borderBottom: 'none',
                              padding: '16px',
                              display: 'flex',
-                             flexDirection: 'row',
-                             alignItems: 'flex-start',
-                             gap: '12px',
+                             flexDirection: 'column',
+                             justifyContent: 'center',
+                             gap: '6px',
                              minHeight: 'auto',
                              overflow: 'hidden'
                            }}>
-                        <Mail className="h-10 w-10 text-primary flex-shrink-0" />
-                        <div className="flex flex-col w-full">
+                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0 float-left" />
+                        <div className="flex flex-col w-full pr-6">
                             <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1"
                                 style={{ 
                                   whiteSpace: 'normal',
@@ -633,13 +622,13 @@ export default function CoverLetter() {
                             
                             // Add cover letter content to the hidden div
                             hiddenDiv.innerHTML = `
-                              <div class="bg-white p-6" style="font-family: Georgia, serif; line-height: 1.6; font-size: 12pt; color: #333333; max-width: 800px; margin: 0 auto;">
+                              <div class="bg-white p-6">
                                 <!-- Header with contact info -->
                                 <div class="mb-6">
-                                  <h2 style="font-size: 18pt; font-weight: bold; margin-bottom: 8px;">
+                                  <h2 class="text-xl font-bold">
                                     ${letter.content.header.fullName}
                                   </h2>
-                                  <div style="font-size: 11pt; color: #555555;">
+                                  <div class="text-sm text-neutral-600">
                                     ${letter.content.header.location ? `<div>${letter.content.header.location}</div>` : ''}
                                     ${letter.content.header.phone ? `<div>${letter.content.header.phone}</div>` : ''}
                                     ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
@@ -647,12 +636,12 @@ export default function CoverLetter() {
                                 </div>
                                 
                                 <!-- Date -->
-                                <div style="margin-bottom: 20px;">
+                                <div class="mb-6">
                                   <p>${letter.content.header.date}</p>
                                 </div>
                                 
                                 <!-- Recipient -->
-                                <div style="margin-bottom: 20px;">
+                                <div class="mb-6">
                                   ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
                                   ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
                                   ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
@@ -660,19 +649,19 @@ export default function CoverLetter() {
                                 </div>
                                 
                                 <!-- Greeting -->
-                                <div style="margin-bottom: 20px;">
+                                <div class="mb-6">
                                   <p>Dear ${letter.content.recipient.name || "Hiring Manager"},</p>
                                 </div>
                                 
                                 <!-- Body -->
-                                <div style="margin-bottom: 20px; white-space: pre-wrap; text-align: justify; line-height: 1.8; font-family: Georgia, serif;">
+                                <div class="mb-6 whitespace-pre-line">
                                   ${letter.content.body}
                                 </div>
                                 
                                 <!-- Closing -->
                                 <div>
                                   <p>${letter.content.closing || "Sincerely,"}</p>
-                                  <p style="margin-top: 30px;">${letter.content.header.fullName}</p>
+                                  <p class="mt-6">${letter.content.header.fullName}</p>
                                 </div>
                               </div>
                             `;
@@ -1200,13 +1189,7 @@ export default function CoverLetter() {
               <DialogTitle>{previewLetter.name}</DialogTitle>
             </DialogHeader>
             
-            <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview" style={{ 
-              fontFamily: 'Georgia, serif',
-              lineHeight: '1.6',
-              fontSize: '14px',
-              color: '#333',
-              backgroundColor: 'white'
-            }}>
+            <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview">
               {/* Header with contact info */}
               <div className="mb-6">
                 <h2 className="text-xl font-bold">
@@ -1252,11 +1235,7 @@ export default function CoverLetter() {
               </div>
               
               {/* Body */}
-              <div className="mb-6" style={{ 
-                whiteSpace: 'pre-wrap',
-                textAlign: 'justify',
-                lineHeight: '1.8'
-              }}>
+              <div className="mb-6 whitespace-pre-line">
                 {previewLetter.content.body}
               </div>
               
