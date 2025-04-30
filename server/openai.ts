@@ -887,25 +887,37 @@ export async function generateCoverLetter(
   jobTitle: string, 
   companyName: string, 
   jobDescription: string, 
-  userExperience: string,
-  userSkills: string[]
+  careerData: {
+    careerSummary: string | null;
+    workHistory: string;
+    education: string;
+    skills: string[];
+    certifications: string;
+  }
 ): Promise<string> {
   try {
-    // Note: userExperience may contain additional work history data added by the server
-    // but the user doesn't need to know this - the AI will seamlessly incorporate it
-    
-    const prompt = `Write a professional cover letter for a ${jobTitle} position at ${companyName}. 
+    const prompt = `
+You're an expert career coach helping users write high-impact cover letters.
 
-Job Description:
+Use the following job description to tailor a personalized, one-page cover letter:
+---
 ${jobDescription}
+---
 
-My Relevant Experience:
-${userExperience}
+Incorporate the user's career background and highlight their relevant experience:
+Career Summary: ${careerData.careerSummary || 'Not provided'}
+Work History: ${careerData.workHistory}
+Education: ${careerData.education || 'Not provided'}
+Skills: ${careerData.skills?.join(', ') || 'Not provided'}
+Certifications: ${careerData.certifications || 'Not provided'}
 
-My Skills:
-${userSkills.join(", ")}
-
-The cover letter should be professional, concise, and highlight how my experience and skills match the job requirements. Focus on specific achievements and how they relate to this position. If the experience section mentions "Additional Work History", use those details to enrich the letter, but don't explicitly mention them as separate work history items - integrate them naturally.`;
+Your goal:
+- Address the company directly (${companyName ? `to ${companyName}` : 'without using a name if not provided'}).
+- Keep it concise and clear (1 page max).
+- Tailor the language and tone to the job description.
+- Highlight alignment between the user's experience and the ${jobTitle || 'target'} role.
+- Do not include generic or filler text.
+`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
