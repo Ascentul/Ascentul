@@ -52,19 +52,24 @@ const upload = multer({
   }
 });
 
+// Import our TypeScript PDF utility
+import { extractTextFromPdf } from '../pdf-util';
+
 // Separated PDF extraction function with robust error handling
 async function extractText(filePath: string): Promise<string> {
   try {
-    console.log(`Starting simple text extraction from ${filePath}`);
+    console.log(`Starting PDF text extraction from ${filePath}`);
     
-    // Read file as buffer
-    const fileBuffer = fs.readFileSync(filePath);
+    // Use our TypeScript PDF utility
+    const result = await extractTextFromPdf(filePath, 10); // Limit to 10 pages for quicker debugging
     
-    // Simple extraction for debugging
-    // Only checks if file exists and is readable
-    return `[Debug] Successfully read file: ${path.basename(filePath)}\nSize: ${fileBuffer.length} bytes`;
+    // Return formatted text with page info
+    return `Successfully extracted text from ${path.basename(filePath)}\n` + 
+           `Pages: ${result.pages.processed}/${result.pages.total}\n\n` +
+           `Text Preview (first 500 chars):\n${result.text.substring(0, 500)}...`;
+    
   } catch (error) {
-    console.error('Error in simplified text extraction:', error);
+    console.error('Error in PDF text extraction:', error);
     return `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
   }
 }
