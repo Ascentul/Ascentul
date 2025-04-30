@@ -65,70 +65,111 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       setUploading(true);
       setError(null);
       
+      console.log("Starting file upload for:", file.name);
+      
       // Create form data for file upload
       const formData = new FormData();
       formData.append('file', file);
       
-      // Upload the file using credentials to ensure cookies are sent
-      const uploadResponse = await fetch('/api/resumes/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include' // Important! This ensures cookies are sent with the request
-      });
+      // Log the FormData to confirm it contains the file
+      console.log(`FormData created with file: ${file.name}, size: ${file.size}, type: ${file.type}`);
       
-      if (!uploadResponse.ok) {
-        const errorBody = await uploadResponse.text();
-        console.error("Upload error response:", errorBody);
-        throw new Error('File upload failed. Please try again.');
-      }
+      // Using XMLHttpRequest instead of fetch for better debugging
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/resumes/upload', true);
+      xhr.withCredentials = true; // Important for cookies/auth
       
-      const uploadResult = await uploadResponse.json();
+      // Set up event handlers
+      xhr.onload = async function() {
+        if (xhr.status === 200) {
+          try {
+            const uploadResult = JSON.parse(xhr.responseText);
+            console.log("Upload success:", uploadResult);
+            
+            if (!uploadResult.success || !uploadResult.filePath) {
+              throw new Error('Invalid response from server.');
+            }
+            
+            setUploading(false);
+            setExtracting(true);
+            
+            // Now extract text from the uploaded file
+            const extractResponse = await fetch('/api/resumes/extract-text', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ filePath: uploadResult.filePath }),
+              credentials: 'include',
+            });
+            
+            if (!extractResponse.ok) {
+              const errorText = await extractResponse.text();
+              console.error("Extract error:", errorText);
+              throw new Error('Text extraction failed. Please try manually entering your resume text.');
+            }
+            
+            const extractResult = await extractResponse.json();
+            
+            if (!extractResult.success) {
+              throw new Error('Text extraction failed. Please try manually entering your resume text.');
+            }
+            
+            setResumeText(extractResult.text);
+            setExtracting(false);
+            
+            toast({
+              title: 'Success!',
+              description: 'Text extracted successfully.',
+              variant: 'default',
+            });
+            
+            // Call the completion handler
+            onExtractComplete(extractResult.text);
+          } catch (error) {
+            handleUploadError(error);
+          }
+        } else {
+          console.error("Upload failed with status:", xhr.status);
+          console.error("Response:", xhr.responseText);
+          handleUploadError(new Error(`Upload failed with status ${xhr.status}: ${xhr.responseText}`));
+        }
+      };
       
-      if (!uploadResult.success || !uploadResult.filePath) {
-        throw new Error('File upload failed. Please try again.');
-      }
+      xhr.onerror = function() {
+        console.error("Network error during upload");
+        handleUploadError(new Error('Network error during upload. Please check your connection and try again.'));
+      };
       
-      setUploading(false);
-      setExtracting(true);
+      xhr.upload.onprogress = function(event) {
+        if (event.lengthComputable) {
+          const percentComplete = (event.loaded / event.total) * 100;
+          console.log(`Upload progress: ${percentComplete.toFixed(2)}%`);
+        }
+      };
       
-      // Now extract text from the uploaded file
-      const extractResponse = await apiRequest('POST', '/api/resumes/extract-text', {
-        filePath: uploadResult.filePath
-      });
-      
-      const extractResult = await extractResponse.json();
-      
-      if (!extractResult.success) {
-        throw new Error('Text extraction failed. Please try manually entering your resume text.');
-      }
-      
-      setResumeText(extractResult.text);
-      setExtracting(false);
-      
-      toast({
-        title: 'Success!',
-        description: 'Text extracted successfully.',
-        variant: 'default',
-      });
-      
-      // Call the completion handler
-      onExtractComplete(extractResult.text);
+      // Send the request
+      xhr.send(formData);
       
     } catch (error) {
-      setUploading(false);
-      setExtracting(false);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      setError(errorMessage);
-      
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      
-      // If extraction fails, suggest manual text entry
-      setTextareaPlaceholder('Extraction failed. Please paste your resume text here manually.');
+      handleUploadError(error);
     }
+  };
+  
+  const handleUploadError = (error: unknown) => {
+    setUploading(false);
+    setExtracting(false);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    setError(errorMessage);
+    
+    toast({
+      title: 'Error',
+      description: errorMessage,
+      variant: 'destructive',
+    });
+    
+    // If extraction fails, suggest manual text entry
+    setTextareaPlaceholder('Extraction failed. Please paste your resume text here manually.');
   };
 
   const handleManualTextUpdate = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
