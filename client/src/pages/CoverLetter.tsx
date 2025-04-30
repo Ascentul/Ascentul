@@ -222,18 +222,21 @@ export default function CoverLetter() {
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
         toast({
-          title: 'Cover Letter Saved',
-          description: 'Your generated cover letter has been saved',
+          title: '✅ Cover letter saved',
+          description: "Your cover letter has been saved to 'My Cover Letters'",
         });
         setGeneratedContent('');
         setJobTitle('');
         setCompanyName('');
         setJobDescription('');
+        
+        // Switch to the main tab to show saved letters
+        setActiveTab('main');
       })
       .catch((error) => {
         toast({
-          title: 'Error',
-          description: `Failed to save cover letter: ${error.message}`,
+          title: 'Error saving cover letter',
+          description: error.message || 'An unexpected error occurred',
           variant: 'destructive',
         });
       });
@@ -851,12 +854,12 @@ export default function CoverLetter() {
 
                   <div className="pt-2">
                     <p className="text-sm text-neutral-500 mb-4">
-                      Your career data (work history, education, skills) will be automatically used from your profile to create a tailored cover letter.
+                      We've pulled your resume details (experience, education, skills) to tailor this cover letter for you.
                     </p>
                   </div>
 
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Button 
                         className="w-full" 
                         onClick={() => {
@@ -901,6 +904,7 @@ export default function CoverLetter() {
                           generateCoverLetterMutation.mutate();
                         }}
                         disabled={generateCoverLetterMutation.isPending}
+                        variant="default"
                       >
                         {generateCoverLetterMutation.isPending ? (
                           <>
@@ -926,7 +930,7 @@ export default function CoverLetter() {
             <Card className={generatedContent ? 'block' : 'hidden'}>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Your Generated Cover Letter</h3>
+                  <h3 className="text-lg font-semibold">📄 Draft Preview</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -950,7 +954,7 @@ export default function CoverLetter() {
                     Copy
                   </Button>
                 </div>
-                <div className="border rounded-md p-4 mb-4 max-h-[400px] overflow-y-auto whitespace-pre-line bg-gray-50">
+                <div className="border rounded-md p-5 mb-4 max-h-[400px] overflow-y-auto whitespace-pre-line bg-slate-50 shadow-sm" style={{ lineHeight: "1.6" }}>
                   {generatedContent || 'Your generated cover letter will appear here.'}
                 </div>
                 <Button 
