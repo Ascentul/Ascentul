@@ -98,21 +98,24 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
           if (serialized.createdAt) {
             // Use Object.prototype.toString to check if it's a Date
             if (Object.prototype.toString.call(serialized.createdAt) === '[object Date]') {
-              serialized.createdAt = serialized.createdAt.toISOString();
+              const dateObj = serialized.createdAt;
+              serialized.createdAt = dateObj.toISOString ? dateObj.toISOString() : new Date(dateObj).toISOString();
             }
           }
           
           // Check and convert issueDate if present
           if (serialized.issueDate) {
             if (Object.prototype.toString.call(serialized.issueDate) === '[object Date]') {
-              serialized.issueDate = serialized.issueDate.toISOString();
+              const issueDateObj = serialized.issueDate;
+              serialized.issueDate = issueDateObj.toISOString ? issueDateObj.toISOString() : new Date(issueDateObj).toISOString();
             }
           }
           
           // Check and convert expirationDate if present
           if (serialized.expirationDate) {
             if (Object.prototype.toString.call(serialized.expirationDate) === '[object Date]') {
-              serialized.expirationDate = serialized.expirationDate.toISOString();
+              const expDateObj = serialized.expirationDate;
+              serialized.expirationDate = expDateObj.toISOString ? expDateObj.toISOString() : new Date(expDateObj).toISOString();
             }
           }
         } catch (err) {
@@ -135,7 +138,9 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
                 serialized.createdAt !== null && 
                 typeof (serialized.createdAt as any).getTime === 'function') {
               // It's a Date-like object, so convert to ISO string
-              serialized.createdAt = new Date((serialized.createdAt as any).getTime()).toISOString();
+              const createdAtTime = (serialized.createdAt as any).getTime();
+              // Convert to string directly - don't try to assign string to Date type
+              (serialized as any).createdAt = new Date(createdAtTime).toISOString();
             }
           }
         } catch (err) {
