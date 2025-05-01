@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Upload, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { FileUp, UploadCloud, AlertCircle, Loader2, BarChart4 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import JobDescriptionInput from '@/components/JobDescriptionInput';
 
 interface ResumeAnalyzerProps {
   onExtractComplete: (text: string) => void;
@@ -16,17 +17,12 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   onExtractComplete,
   onAnalyzeComplete,
 }) => {
-  const [activeTab, setActiveTab] = useState<string>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
   const [extracting, setExtracting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState<string>('');
-  const [textareaPlaceholder, setTextareaPlaceholder] = useState<string>(
-    'After uploading your resume, extracted text will appear here. You can also paste resume text directly.'
-  );
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,27 +187,9 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     
     toast({
       title: 'Error',
-      description: 'Failed to extract text. Please try manually pasting your resume text.',
+      description: 'Failed to extract text. Please try again or contact support.',
       variant: 'destructive',
     });
-    
-    // If extraction fails, suggest manual text entry
-    setTextareaPlaceholder('Extraction failed. Please paste your resume text here manually.');
-    setActiveTab('paste');
-  };
-
-  const handleManualTextUpdate = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setResumeText(e.target.value);
-  };
-
-  const handleContinue = () => {
-    if (!resumeText.trim()) {
-      setError('Please enter some resume text before continuing.');
-      return;
-    }
-    
-    // Call the completion handler with the text
-    onExtractComplete(resumeText);
   };
 
   const resetFileInput = () => {
@@ -223,22 +201,24 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="overflow-hidden border-slate-200">
       <CardContent className="pt-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upload" className="flex items-center gap-2">
-              <Upload size={16} />
-              <span>Upload Resume</span>
-            </TabsTrigger>
-            <TabsTrigger value="paste" className="flex items-center gap-2">
-              <FileText size={16} />
-              <span>Paste Text</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload" className="space-y-4 mt-4">
-            <form ref={formRef} className="flex flex-col items-center p-6 border-2 border-dashed rounded-md border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800">
+        <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+          <FileUp className="h-5 w-5 mr-2" />
+          Upload & Analyze Resume
+        </h3>
+        <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
+          Upload your resume and the job description you want to target. Our AI will analyze how well your resume matches 
+          the job requirements and provide tailored improvement suggestions.
+        </p>
+        
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center">
+              <span className="text-primary mr-1">1.</span> Upload Resume <span className="text-red-500 ml-1">*</span>
+            </Label>
+            
+            <div className="border-2 border-dashed rounded-md border-gray-200 p-4 bg-gray-50 flex flex-col items-center justify-center">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -246,86 +226,76 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                 className="hidden"
                 accept=".pdf"
                 name="file"
+                id="resumeUpload"
               />
-              <Button 
-                type="button"
-                variant="outline" 
-                onClick={() => fileInputRef.current?.click()}
-                className="mb-2"
-                disabled={uploading || extracting}
-              >
-                Select PDF File
-              </Button>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {file ? file.name : 'PDF files only, up to 5MB'}
-              </p>
-              {file && (
-                <div className="mt-2 flex gap-2">
+              
+              {!file ? (
+                <div className="text-center py-4">
+                  <UploadCloud className="h-10 w-10 mx-auto text-neutral-300 mb-2" />
+                  <p className="text-neutral-600 mb-2">Drop your resume PDF here or</p>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-1"
+                    disabled={uploading || extracting}
+                    size="sm"
+                  >
+                    Browse Files
+                  </Button>
+                  <p className="text-xs text-neutral-500 mt-2">PDF files only, up to 5MB</p>
+                </div>
+              ) : (
+                <div className="w-full">
+                  <div className="flex items-center justify-between bg-white p-2 rounded border border-neutral-200 mb-3">
+                    <div className="flex items-center">
+                      <div className="bg-primary/10 p-2 rounded">
+                        <FileUp className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="ml-2 text-sm truncate max-w-[200px]">{file.name}</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={resetFileInput}
+                      disabled={uploading || extracting}
+                      className="h-8 text-neutral-500"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  
                   <Button 
                     type="button"
                     onClick={processFile}
                     disabled={uploading || extracting}
-                    className="flex items-center gap-2"
+                    className="w-full"
+                    size="sm"
                   >
-                    {(uploading || extracting) && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {uploading ? 'Uploading...' : extracting ? 'Extracting...' : 'Extract Text'}
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    onClick={resetFileInput}
-                    disabled={uploading || extracting}
-                  >
-                    Reset
+                    {(uploading || extracting) ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {uploading ? 'Uploading...' : 'Extracting Text...'}
+                      </>
+                    ) : (
+                      'Process Resume'
+                    )}
                   </Button>
                 </div>
               )}
-            </form>
+            </div>
             
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mt-2">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-          </TabsContent>
+          </div>
           
-          <TabsContent value="paste" className="space-y-4 mt-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Paste your resume text below:
-            </p>
-          </TabsContent>
-        </Tabs>
-        
-        <Alert className="my-4 bg-blue-50 border-blue-200">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-700">Two-Step Process</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            1. Extract text from your resume (this step)
-            <br />
-            2. In the next step, you'll need to provide a job description to analyze your resume against
-          </AlertDescription>
-        </Alert>
-
-        <div className="mt-6">
-          <Textarea
-            value={resumeText}
-            onChange={handleManualTextUpdate}
-            placeholder={textareaPlaceholder}
-            className="h-[300px] font-mono text-sm"
-          />
-        </div>
-        
-        <div className="mt-4 flex justify-end">
-          <Button 
-            onClick={handleContinue}
-            disabled={uploading || extracting || !resumeText.trim()}
-            className="flex items-center gap-2"
-          >
-            <CheckCircle className="h-4 w-4" />
-            Continue to Job Description
-          </Button>
+          {/* The textarea for the resume text is hidden from the user */}
+          <input type="hidden" id="extractedResumeText" value={resumeText} />
         </div>
       </CardContent>
     </Card>
