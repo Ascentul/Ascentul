@@ -746,14 +746,7 @@ export default function Resume() {
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            <Card className="p-4 mb-4">
-              <CardContent className="p-2">
-                <h3 className="text-lg font-semibold mb-2">Resume Analysis Tool</h3>
-                <p className="text-neutral-600 text-sm">
-                  Upload your resume and analyze it against specific job descriptions. Get detailed feedback on how well your resume matches the job requirements and suggestions for improvement.
-                </p>
-              </CardContent>
-            </Card>
+            
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column: Resume upload and job description */}
