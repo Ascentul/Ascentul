@@ -294,24 +294,36 @@ export default function CoverLetter() {
     });
     return filteredLines.join('\n').trim();
   };
-
-  // Helper function to handle PDF download from preview dialog
+  
+  // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
-    if (!previewLetter) {
-      toast({
-        title: 'Error',
-        description: 'No cover letter available to download',
-        variant: 'destructive',
-      });
+    // For preview letter case
+    if (elementId.startsWith('previewLetter-') && previewLetter) {
+      const filename = `${previewLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      exportPDF(elementId, filename);
       return;
     }
     
-    // Generate a proper filename with date included
-    const filename = `${previewLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    // For generated content case
+    if (elementId === 'generatedContent') {
+      const filename = `Generated_Cover_Letter_${new Date().toISOString().split('T')[0]}.pdf`;
+      exportPDF(elementId, filename);
+      return;
+    }
     
-    // Call the export PDF function
+    // For optimized content case
+    if (elementId === 'optimizedCoverLetterContent') {
+      const filename = `Optimized_Cover_Letter_${new Date().toISOString().split('T')[0]}.pdf`;
+      exportPDF(elementId, filename);
+      return;
+    }
+    
+    // Default case - just use the element ID as part of filename
+    const filename = `${elementId.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
     exportPDF(elementId, filename);
   };
+
+
 
 
   // Helper function to replace placeholder tags with user information
@@ -1156,7 +1168,7 @@ export default function CoverLetter() {
                       <Button 
                         variant="outline"
                         className="col-span-1"
-                        onClick={() => exportPDF("generatedContent", `Cover_Letter_${companyName ? `for_${companyName.replace(/\s+/g, '_')}` : 'Export'}.pdf`)}
+                        onClick={() => handleDownloadPDF("generatedContent")}
                         disabled={!generatedContent}
                       >
                         <Download className="mr-2 h-4 w-4" />
