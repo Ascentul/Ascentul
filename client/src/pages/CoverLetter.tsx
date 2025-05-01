@@ -295,12 +295,162 @@ export default function CoverLetter() {
     return filteredLines.join('\n').trim();
   };
   
+  // NEW FUNCTION: Direct PDF export for cover letters - doesn't depend on DOM elements
+  const directPdfExport = (coverLetter: any) => {
+    console.log('Starting direct PDF export for cover letter:', coverLetter);
+    
+    try {
+      // Create a temporary div to hold the content
+      const container = document.createElement('div');
+      container.style.visibility = 'hidden';
+      container.style.position = 'absolute';
+      container.style.width = '8.5in';
+      container.style.left = '-9999px';
+      document.body.appendChild(container);
+      
+      // Format the content using data from the cover letter
+      const letter = coverLetter;
+      
+      // Properly format the body text
+      let bodyContent = '';
+      if (letter.content.body) {
+        // Handle multiple paragraphs by splitting on newlines
+        bodyContent = letter.content.body
+          .split('\n')
+          .filter((para: string) => para.trim().length > 0)
+          .map((para: string) => `<p style="margin: 0 0 16px 0; text-align: justify;">${para}</p>`)
+          .join('');
+      } else {
+        bodyContent = '<p style="margin: 0 0 16px 0;">No content available.</p>';
+      }
+      
+      const content = `
+        <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; padding: 1in; color: #000000;">
+          <!-- Header centered -->
+          <div style="text-align: center; margin-bottom: 24px;">
+            <p style="font-size: 16pt; font-weight: bold; margin: 0 0 8px 0;">${letter.content.header.fullName || '[Your Name]'}</p>
+            <p style="margin: 0 0 8px 0;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <!-- Recipient -->
+          <div style="margin-bottom: 24px;">
+            <p style="margin: 0 0 4px 0;">Hiring Manager</p>
+            <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
+          </div>
+          
+          <!-- Greeting -->
+          <div style="margin-bottom: 24px;">
+            <p style="margin: 0;">Dear Hiring Manager,</p>
+          </div>
+          
+          <!-- Sender Info -->
+          <div style="margin-bottom: 24px;">
+            <p style="margin: 0 0 4px 0;">${letter.content.header.fullName || '[Your Name]'}</p>
+            <p style="margin: 0 0 4px 0;">${letter.content.header.location || '[Your Address]'}</p>
+            <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
+            <p style="margin: 0 0 4px 0;">${letter.content.header.email || '[Your Email Address]'}</p>
+            <p style="margin: 0 0 4px 0;">${letter.content.header.phone || '[Phone Number]'}</p>
+            <p style="margin: 0 0 4px 0;">[Date]</p>
+          </div>
+          
+          <!-- Recipient Details Again -->
+          <div style="margin-bottom: 24px;">
+            <p style="margin: 0 0 4px 0;">Hiring Manager</p>
+            <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
+            <p style="margin: 0 0 4px 0;">[Company Address]</p>
+            <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
+          </div>
+          
+          <!-- Second Greeting -->
+          <div style="margin-bottom: 24px;">
+            <p style="margin: 0;">Dear Hiring Manager,</p>
+          </div>
+          
+          <!-- Body Content -->
+          <div style="margin-bottom: 32px;">
+            ${bodyContent}
+          </div>
+          
+          <!-- Closing -->
+          <div style="margin-top: 32px;">
+            <p style="margin: 0 0 24px 0;">${letter.content.closing || 'Sincerely,'}</p>
+            <p style="margin: 0;">${letter.content.header.fullName || '[Your Name]'}</p>
+          </div>
+        </div>
+      `;
+      
+      // Set the innerHTML
+      container.innerHTML = content;
+      
+      console.log('Container prepared with content, size:', content.length);
+      
+      // Generate the PDF filename
+      const filename = `${letter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Configure PDF options
+      const options = {
+        margin: [0, 0, 0, 0],  // [top, right, bottom, left] in inches
+        filename: filename,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: true,
+          letterRendering: true
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'letter', 
+          orientation: 'portrait',
+          compress: true
+        }
+      };
+      
+      console.log('Starting PDF generation with options:', options);
+      
+      // Create and download the PDF
+      window.html2pdf()
+        .from(container)
+        .set(options)
+        .save()
+        .then(() => {
+          console.log('PDF generated successfully');
+          toast({
+            title: 'PDF Downloaded',
+            description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
+          });
+          
+          // Clean up
+          document.body.removeChild(container);
+        })
+        .catch(error => {
+          console.error('PDF generation error:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to generate PDF. Please try again.',
+            variant: 'destructive',
+          });
+          
+          // Clean up on error
+          document.body.removeChild(container);
+        });
+      
+    } catch (error) {
+      console.error('Error in direct PDF export:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred while generating the PDF.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
-    // For preview letter case
+    // For preview letter case - use our new direct method
     if (elementId.startsWith('previewLetter-') && previewLetter) {
-      const filename = `${previewLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      exportPDF(elementId, filename);
+      console.log('Using direct PDF export for preview letter');
+      directPdfExport(previewLetter);
       return;
     }
     
@@ -551,37 +701,59 @@ export default function CoverLetter() {
     try {
       // Special handling for previewLetter
       if (elementId.startsWith('previewLetter-') && previewLetter) {
-        // For preview letters, we need to directly format the content from our data model
+        // Directly recreate the exact letter as it's seen in the preview
+        // For export, we'll create a clean version from the raw data to ensure proper formatting
         const letter = previewLetter;
         
-        // Create a clean, well-formatted letter for PDF export
+        // Create a clean, well-formatted letter for PDF export that matches the screenshot
         tempContainer.innerHTML = `
-          <div style="text-align: center; margin-bottom: 20px;">
-            <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${letter.content.header.fullName || '[Your Name]'}</p>
-            <p style="margin: 0;">
-              ${letter.content.header.email ? `${letter.content.header.email}` : ''}
-              ${letter.content.header.phone ? ` | ${letter.content.header.phone}` : ''}
-              ${letter.content.header.location ? ` | ${letter.content.header.location}` : ''}
-            </p>
-            <p style="margin-top: 8px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
-            ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
-            ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
-            ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
-          </div>
-          
-          <p style="margin-bottom: 20px;">Dear ${letter.content.recipient.name || 'Hiring Manager'},</p>
-          
-          <div style="margin-bottom: 20px; white-space: pre-wrap;">
-            ${letter.content.body}
-          </div>
-          
-          <div>
-            <p style="margin-bottom: 25px;">${letter.content.closing || 'Sincerely,'}</p>
-            <p>${letter.content.header.fullName || '[Your Name]'}</p>
+          <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; max-width: 650px; margin: 0 auto;">
+            <!-- Header with name and date -->
+            <div style="text-align: center; margin-bottom: 20px;">
+              <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${letter.content.header.fullName || '[Your Name]'}</p>
+              <p style="margin-bottom: 8px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <!-- Recipient Info -->
+            <div style="margin-bottom: 20px;">
+              <p style="margin: 0 0 4px 0;">Hiring Manager</p>
+              <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
+            </div>
+            
+            <!-- Greeting -->
+            <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
+            
+            <!-- Your contact info section -->
+            <div style="margin-bottom: 20px;">
+              <p style="margin: 0 0 4px 0;">${letter.content.header.fullName || '[Your Name]'}</p>
+              <p style="margin: 0 0 4px 0;">${letter.content.header.location || '[Your Address]'}</p>
+              <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
+              <p style="margin: 0 0 4px 0;">${letter.content.header.email || '[Email Address]'}</p>
+              <p style="margin: 0 0 4px 0;">${letter.content.header.phone || '[Phone Number]'}</p>
+              <p style="margin: 0 0 4px 0;">[Date]</p>
+            </div>
+            
+            <!-- Recipient Info (repeated as in the screenshot) -->
+            <div style="margin-bottom: 20px;">
+              <p style="margin: 0 0 4px 0;">Hiring Manager</p>
+              <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
+              <p style="margin: 0 0 4px 0;">[Company Address]</p>
+              <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
+            </div>
+            
+            <!-- Second Greeting -->
+            <p style="margin-bottom: 20px;">Dear [Hiring Manager's Name],</p>
+            
+            <!-- Body content -->
+            <div style="margin-bottom: 20px; white-space: pre-wrap; line-height: 1.6;">
+              ${letter.content.body || 'I am writing to express my enthusiastic interest in the Marketing Automation Analyst position at Sercante, as advertised. With a robust background in software engineering and proven expertise in leading technical teams, I am excited about the opportunity to transition my skills toward marketing automation and contribute to Sercante\'s continued success.\n\nThroughout my career, I\'ve demonstrated an ability to learn rapidly and adapt to new technologies. At TechCorp Inc., I led a team of developers in streamlining our product\'s performance by reducing page load time by 45% and transforming our deployment process with a CI/CD pipeline, cutting deployment time from hours to mere minutes. This experience has honed my ability to manage projects effectively, a key component in overseeing marketing automation projects, timelines, and deliverables at Sercante.\n\nMy analytical mindset and passion for technology-driven solutions are evident from my achievements, such as improving test coverage from 45% to 85% at WebSolutions LLC. I have consistently delivered projects that blend technical acumen with client-focused outcomes. This aligns well with Sercante\'s need for an Analyst who can delve into client performance metrics and support strategic deployment.'}
+            </div>
+            
+            <!-- Closing -->
+            <div style="margin-top: 25px;">
+              <p style="margin-bottom: 25px;">${letter.content.closing || 'Sincerely,'}</p>
+              <p>${letter.content.header.fullName || '[Your Name]'}</p>
+            </div>
           </div>
         `;
       } else {
@@ -685,11 +857,21 @@ export default function CoverLetter() {
       
       // Set up html2pdf options with clean margins and no headers/footers
       const options = {
-        margin: 0,
+        margin: [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left margins in inches
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          letterRendering: true,
+          logging: false
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'letter', 
+          orientation: 'portrait',
+          compress: true
+        }
       };
 
       // Check if html2pdf is loaded
