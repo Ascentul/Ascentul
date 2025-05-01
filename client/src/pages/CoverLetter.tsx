@@ -549,64 +549,110 @@ export default function CoverLetter() {
     document.body.appendChild(tempContainer);
 
     try {
-      // Get content from the element
-      const originalContent = element.innerHTML;
-      
-      // Extract and format content properly for the PDF
-      let contentToFormat = originalContent;
-      
-      // If this is from an AI-generated section, format it more carefully
-      if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
-        // Clean and process the content to ensure proper formatting
-        contentToFormat = cleanAIOutput(contentToFormat);
+      // Special handling for previewLetter
+      if (elementId.startsWith('previewLetter-') && previewLetter) {
+        // For preview letters, we need to directly format the content from our data model
+        const letter = previewLetter;
         
-        // Apply user data where available
-        contentToFormat = replaceUserPlaceholders(contentToFormat);
-        
-        // Convert plain text to structured paragraphs if needed
-        if (!contentToFormat.includes('<p>')) {
-          contentToFormat = contentToFormat
-            .split('\n\n')
-            .filter(para => para.trim().length > 0)
-            .map(para => `<p>${para.trim()}</p>`)
-            .join('');
-        }
-      }
-      
-      // Create proper structure for a cover letter
-      const currentDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      // Add header, greeting, and closing if they don't exist
-      if (!contentToFormat.includes('<p>[Your Name]</p>')) {
-        const userName = user?.name || '[Your Name]';
-        const userEmail = user?.email || '[Email Address]';
-        const userPhone = '[Phone Number]'; // Default since we may not have phone
-        const userLocation = user?.location || '[Your Address]';
-        const recipientCompany = companyName || '[Company Name]';
-        
-        // Create structured cover letter format
+        // Create a clean, well-formatted letter for PDF export
         tempContainer.innerHTML = `
-          <p>${userName}</p>
-          <p>${userEmail}</p>
-          <p>${userPhone}</p>
-          <p>${userLocation}</p>
-          <p>${currentDate}</p>
+          <div style="text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${letter.content.header.fullName || '[Your Name]'}</p>
+            <p style="margin: 0;">
+              ${letter.content.header.email ? `${letter.content.header.email}` : ''}
+              ${letter.content.header.phone ? ` | ${letter.content.header.phone}` : ''}
+              ${letter.content.header.location ? ` | ${letter.content.header.location}` : ''}
+            </p>
+            <p style="margin-top: 8px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
+          </div>
           
-          <p>Hiring Manager<br>${recipientCompany}</p>
+          <div style="margin-bottom: 20px;">
+            ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
+            ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
+            ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
+            ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
+          </div>
           
-          <p>Dear Hiring Manager,</p>
+          <p style="margin-bottom: 20px;">Dear ${letter.content.recipient.name || 'Hiring Manager'},</p>
           
-          ${contentToFormat}
+          <div style="margin-bottom: 20px; white-space: pre-wrap;">
+            ${letter.content.body}
+          </div>
           
-          <p>Sincerely,<br>${userName}</p>
+          <div>
+            <p style="margin-bottom: 25px;">${letter.content.closing || 'Sincerely,'}</p>
+            <p>${letter.content.header.fullName || '[Your Name]'}</p>
+          </div>
         `;
       } else {
-        // Content already has structure, just use it
-        tempContainer.innerHTML = contentToFormat;
+        // Get content from the element
+        const originalContent = element.innerHTML;
+        
+        // Extract and format content properly for the PDF
+        let contentToFormat = originalContent;
+        
+        // If this is from an AI-generated section, format it more carefully
+        if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
+          // Clean and process the content to ensure proper formatting
+          contentToFormat = cleanAIOutput(contentToFormat);
+          
+          // Apply user data where available
+          contentToFormat = replaceUserPlaceholders(contentToFormat);
+          
+          // Convert plain text to structured paragraphs if needed
+          if (!contentToFormat.includes('<p>')) {
+            contentToFormat = contentToFormat
+              .split('\n\n')
+              .filter(para => para.trim().length > 0)
+              .map(para => `<p>${para.trim()}</p>`)
+              .join('');
+          }
+          
+          // Create proper structure for a cover letter
+          const currentDate = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          
+          const userName = user?.name || '[Your Name]';
+          const userEmail = user?.email || '[Email Address]';
+          const userPhone = '[Phone Number]'; // Default since we may not have phone
+          const userLocation = user?.location || '[Your Address]';
+          const recipientCompany = companyName || '[Company Name]';
+          
+          // Create structured cover letter format
+          tempContainer.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+              <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${userName}</p>
+              <p style="margin: 0;">${userEmail} | ${userPhone} | ${userLocation}</p>
+              <p style="margin-top: 8px;">${currentDate}</p>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <p>Hiring Manager</p>
+              <p>${recipientCompany}</p>
+            </div>
+            
+            <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
+            
+            <div style="margin-bottom: 20px;">
+              ${contentToFormat}
+            </div>
+            
+            <div>
+              <p style="margin-bottom: 25px;">Sincerely,</p>
+              <p>${userName}</p>
+            </div>
+          `;
+        } else {
+          // Content already has structure, just use it with additional styling
+          tempContainer.innerHTML = `
+            <div class="cover-letter-formatted">
+              ${contentToFormat}
+            </div>
+          `;
+        }
       }
       
       // Apply PDF-specific CSS to the document
@@ -618,9 +664,15 @@ export default function CoverLetter() {
           line-height: 1.6;
           color: #000;
           padding: 40px;
+          max-width: 8.5in;
+          margin: 0 auto;
         }
         
         .pdf-body p {
+          margin-bottom: 12px;
+        }
+        
+        .cover-letter-formatted p {
           margin-bottom: 12px;
         }
         
