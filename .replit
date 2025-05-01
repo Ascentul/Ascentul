@@ -10,14 +10,6 @@ deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
 [workflows]
 runButton = "Start Dev Server"
 
@@ -43,7 +35,7 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000  # ✅ Replit will wait for your app to respond on this port
+waitForPort = 3000  # ✅ Replit will wait for your app to respond on this port
 
 [[workflows.workflow]]
 name = "Start Dev Server"
@@ -53,3 +45,7 @@ mode = "parallel"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[ports]]
+localPort = 3000
+externalPort = 80

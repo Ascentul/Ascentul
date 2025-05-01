@@ -98,7 +98,7 @@ app.use((req, res, next) => {
 
   // For Replit, we need to detect the correct port
   // Replit sets various environment variables we can use
-  const PORT = process.env.PORT || 8080; // Use port 8080 as an alternative
+  const PORT = process.env.PORT || 3000; // Use port 3000 as default for Replit compatibility
   const HOST = "0.0.0.0"; // Always bind to all network interfaces for Replit
   
   console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`);
