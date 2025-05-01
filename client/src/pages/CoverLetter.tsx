@@ -295,6 +295,25 @@ export default function CoverLetter() {
     return filteredLines.join('\n').trim();
   };
 
+  // Helper function to handle PDF download from preview dialog
+  const handleDownloadPDF = (elementId: string) => {
+    if (!previewLetter) {
+      toast({
+        title: 'Error',
+        description: 'No cover letter available to download',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Generate a proper filename with date included
+    const filename = `${previewLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    // Call the export PDF function
+    exportPDF(elementId, filename);
+  };
+
+
   // Helper function to replace placeholder tags with user information
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
@@ -496,27 +515,7 @@ export default function CoverLetter() {
       });
   };
 
-  // Function to download cover letter as PDF
-  const handleDownloadPDF = (elementId: string) => {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      toast({
-        title: 'Error',
-        description: 'Could not find the cover letter content to download',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Create a filename based on cover letter name or default
-    const coverLetterName = previewLetter?.name || 'cover-letter';
-    const filename = `${coverLetterName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-
-    // Clone the element to modify it for PDF generation
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-    clonedElement.style.padding = '20px';
-    clonedElement.style.border = 'none';
-  };
+  // This was removed to eliminate duplication (function is defined above)
   
   // Export cover letter as PDF using html2pdf.js
   const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
