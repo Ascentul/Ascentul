@@ -1,0 +1,92 @@
+Replit Prompt: Fix Cover Letter PDF Export with Working Mechanism
+Objective:
+Ensure the Download PDF button reliably exports the full, styled cover letter content. The export should match the on-screen preview, with correct spacing, layout, and formatting. This prompt uses the same successful HTML export mechanism, avoiding blank PDFs and layout issues.
+
+📂 Files to Update:
+1. utils/exportPDF.ts
+Create or update the utility function for exporting:
+
+ts
+Copy
+Edit
+// utils/exportPDF.ts
+import html2pdf from 'html2pdf.js';
+
+export function exportCoverLetterToPDF() {
+  const target = document.getElementById("pdf-export-wrapper");
+
+  if (!target || target.innerText.trim() === "") {
+    alert("❌ No content to export. Please generate a cover letter first.");
+    return;
+  }
+
+  const clone = target.cloneNode(true) as HTMLElement;
+  clone.style.position = "absolute";
+  clone.style.left = "-9999px";
+  clone.style.top = "0";
+  document.body.appendChild(clone);
+
+  html2pdf()
+    .set({
+      margin: [1, 1],
+      filename: "cover-letter.pdf",
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+    })
+    .from(clone)
+    .save()
+    .then(() => {
+      document.body.removeChild(clone);
+      alert("✅ Cover letter downloaded.");
+    })
+    .catch((err) => {
+      document.body.removeChild(clone);
+      alert("❌ Export failed. Check formatting.");
+      console.error(err);
+    });
+}
+2. Component Update (e.g., CoverLetterPreview.tsx)
+Wrap the exported content with a persistent container:
+
+tsx
+Copy
+Edit
+// In your render:
+<div id="pdf-export-wrapper" className="pdf-body">
+  <div dangerouslySetInnerHTML={{ __html: savedCoverLetterHTML }} />
+</div>
+Make sure savedCoverLetterHTML is raw HTML with paragraph tags (<p>), not just text with \n.
+
+3. PDF Styling (e.g., globals.css or module)
+css
+Copy
+Edit
+.pdf-body {
+  font-family: 'Arial', sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #000;
+  padding: 1.5in 1in;
+  width: 100%;
+  max-width: 8.5in;
+  background: white;
+}
+4. Button
+Connect the utility to your button:
+
+tsx
+Copy
+Edit
+import { exportCoverLetterToPDF } from "@/utils/exportPDF";
+
+<button onClick={exportCoverLetterToPDF} className="btn btn-primary">
+  Download PDF
+</button>
+✅ Result:
+✅ No blank PDFs
+
+✅ Uses proven export method from working version
+
+✅ Matches on-screen formatting
+
+✅ Button triggers download only if content is present
