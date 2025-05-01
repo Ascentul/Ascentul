@@ -27,6 +27,7 @@ import { motion } from 'framer-motion';
 import { useCareerData } from '@/hooks/use-career-data';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
 import ResumeAnalysisResults, { ResumeAnalysisResult } from '@/components/ResumeAnalysisResults';
+import { exportResumeToPDF } from '@/utils/exportPDF';
 
 // Animation constants
 const subtleUp = {
@@ -633,6 +634,8 @@ export default function Resume() {
 
   // Function to download resume as PDF
   const handleDownloadPDF = (elementId: string) => {
+    console.log(`Initiating PDF download for resume with element ID: ${elementId}`);
+    
     const element = document.getElementById(elementId);
     if (!element) {
       toast({
@@ -640,67 +643,31 @@ export default function Resume() {
         description: 'Could not find the resume content to download',
         variant: 'destructive',
       });
+      console.error(`Element with ID ${elementId} not found`);
       return;
     }
 
     // Create a filename based on resume name or default
     const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
-    const filename = `${resumeName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-
-    // Clone the element to modify it for PDF generation
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-    clonedElement.style.padding = '20px';
-    clonedElement.style.border = 'none';
-
-    // Create the print window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+    
+    try {
+      // Use our improved jsPDF-based export function
+      exportResumeToPDF(elementId, resumeName);
+      
+      console.log(`Resume PDF successfully generated with name: ${resumeName}`);
+      
       toast({
-        title: 'Error',
-        description: 'Unable to open print window. Please check your popup settings.',
+        title: 'Resume Downloaded',
+        description: 'Your resume has been exported as a PDF successfully.',
+      });
+    } catch (error) {
+      console.error('Error during resume PDF export:', error);
+      toast({
+        title: 'Export Error',
+        description: 'There was a problem creating your resume PDF. Please try again.',
         variant: 'destructive',
       });
-      return;
     }
-
-    // Setup the print document
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${filename}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-            .resume-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h2, h3, h4 { margin-top: 0; }
-            p { margin: 0 0 8px; }
-            .section { margin-bottom: 16px; }
-            .skills { display: flex; flex-wrap: wrap; gap: 6px; }
-            .skill-tag { background-color: #f1f5ff; color: #0C29AB; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
-            .header { margin-bottom: 24px; text-align: center; }
-            .header h2 { margin-bottom: 8px; }
-            @media print {
-              body { padding: 0; margin: 0; }
-              .resume-container { width: 100%; max-width: none; padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="resume-container">
-            ${clonedElement.outerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 200);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
   };
 
   return (
