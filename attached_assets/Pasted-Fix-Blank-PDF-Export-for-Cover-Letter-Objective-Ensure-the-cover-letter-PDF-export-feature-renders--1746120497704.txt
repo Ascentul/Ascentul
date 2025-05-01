@@ -1,0 +1,84 @@
+Fix Blank PDF Export for Cover Letter
+Objective: Ensure the cover letter PDF export feature renders the actual formatted content into a styled, exportable PDF file using html2pdf.js.
+
+Tasks to implement:
+
+Wrap the cover letter preview content in a dedicated export wrapper:
+
+tsx
+Copy
+Edit
+{/* Inside your component (e.g., CoverLetterPreview.tsx) */}
+<div id="pdf-export-wrapper" className="pdf-body">
+  <div dangerouslySetInnerHTML={{ __html: savedCoverLetterHTML }} />
+</div>
+savedCoverLetterHTML should already include <p> tags and line breaks.
+
+Create or update utils/exportPDF.ts:
+
+ts
+Copy
+Edit
+// utils/exportPDF.ts
+import html2pdf from 'html2pdf.js';
+
+export function exportCoverLetterToPDF() {
+  const target = document.getElementById("pdf-export-wrapper");
+
+  if (!target || target.innerText.trim() === "") {
+    alert("❌ No content to export. Please generate a cover letter first.");
+    return;
+  }
+
+  const clone = target.cloneNode(true) as HTMLElement;
+  clone.style.position = "absolute";
+  clone.style.left = "-9999px";
+  clone.style.top = "0";
+  clone.style.display = "block";
+  document.body.appendChild(clone);
+
+  html2pdf()
+    .set({
+      margin: 0.5,
+      filename: "cover-letter.pdf",
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    })
+    .from(clone)
+    .save()
+    .then(() => document.body.removeChild(clone))
+    .catch((err) => {
+      console.error("PDF Export Error", err);
+      document.body.removeChild(clone);
+    });
+}
+Add clean PDF formatting styles:
+
+In your global CSS (e.g. globals.css) or in the component’s module CSS:
+
+css
+Copy
+Edit
+.pdf-body {
+  font-family: 'Arial', sans-serif;
+  font-size: 12pt;
+  color: #000;
+  padding: 1in;
+  max-width: 8.5in;
+  line-height: 1.6;
+}
+
+.pdf-body p {
+  margin: 0 0 12px 0;
+}
+Ensure the download button uses the export function:
+
+tsx
+Copy
+Edit
+import { exportCoverLetterToPDF } from "@/utils/exportPDF";
+
+<Button onClick={exportCoverLetterToPDF}>
+  Download PDF
+</Button>
+✅ After this update, clicking the button will consistently export a formatted, readable cover letter PDF from the preview content. Make sure savedCoverLetterHTML contains rendered HTML and not just raw plain text.
