@@ -1,6 +1,11 @@
-import html2pdf from 'html2pdf.js';
+// We don't need to import html2pdf.js as it's loaded globally via script tag
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
 
-export function exportCoverLetterToPDF(coverLetter: any) {
+export function exportCoverLetterToPDF(coverLetter: any): void {
   // Create a temporary div for PDF export with professional styling
   const container = document.createElement('div');
   container.id = 'coverLetterPreview';
@@ -65,7 +70,7 @@ export function exportCoverLetterToPDF(coverLetter: any) {
   const filename = `${letter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
   
   // Export the PDF
-  html2pdf().set({
+  window.html2pdf().set({
     margin: 0,
     filename: filename,
     image: { type: "jpeg", quality: 0.98 },
@@ -78,7 +83,7 @@ export function exportCoverLetterToPDF(coverLetter: any) {
     document.body.removeChild(container);
     alert("✅ Your cover letter has been downloaded.");
   })
-  .catch((err) => {
+  .catch((err: unknown) => {
     document.body.removeChild(container);
     console.error("PDF export failed", err);
     alert("❌ Failed to export PDF. Please try again.");
