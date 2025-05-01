@@ -799,10 +799,15 @@ export default function Resume() {
               ) : (
                 <Card className="overflow-hidden border-slate-200">
                   <CardContent className="pt-6">
-                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
-                      <FileText className="h-5 w-5 mr-2" />
-                      How It Works
+                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
                     </h3>
+                    
+                    <p className="text-neutral-600 mb-4 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
+                      Upload your resume and provide a job description to get AI-powered analysis on how well your resume 
+                      matches the position requirements.
+                    </p>
 
                     <div className="space-y-3">
                       <div className="flex items-start">
