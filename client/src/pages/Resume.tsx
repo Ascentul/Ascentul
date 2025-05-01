@@ -923,127 +923,31 @@ export default function Resume() {
                           size="sm"
                           className="h-8 flex items-center gap-1 text-xs"
                           onClick={async () => {
-                            // Create a hidden div for the resume content using a modern template
-                            const hiddenDiv = document.createElement('div');
-                            hiddenDiv.id = `temp-resume-${resume.id}`;
-                            hiddenDiv.className = 'resume-template resume-export-container';
-                            hiddenDiv.style.position = 'absolute';
-                            hiddenDiv.style.left = '-9999px';
-                            hiddenDiv.style.top = '-9999px';
+                            // Set the preview resume to trigger rendering of the template
+                            setPreviewResume(resume);
                             
-                            // Use a clean, modern template structure with better typography and spacing
-                            hiddenDiv.innerHTML = `
-                              <div class="bg-white p-8 max-w-[8.5in] mx-auto resume-content">
-                                <!-- Header -->
-                                <header class="mb-6 pb-4 border-b border-neutral-200">
-                                  <h1 class="text-2xl font-bold text-center text-neutral-900">
-                                    ${resume.content.personalInfo.fullName || 'Full Name'}
-                                  </h1>
-                                  <div class="flex flex-wrap justify-center gap-x-4 mt-2 text-sm text-neutral-600">
-                                    ${resume.content.personalInfo.email ? `<span>${resume.content.personalInfo.email}</span>` : ''}
-                                    ${resume.content.personalInfo.phone ? `<span>${resume.content.personalInfo.phone}</span>` : ''}
-                                    ${resume.content.personalInfo.location ? `<span>${resume.content.personalInfo.location}</span>` : ''}
-                                  </div>
-                                </header>
-
-                                <!-- Summary Section -->
-                                ${resume.content.summary ? `
-                                <section class="mb-6 resume-section">
-                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Professional Summary</h2>
-                                  <p class="text-sm leading-relaxed">${resume.content.summary}</p>
-                                </section>` : ''}
-
-                                <!-- Skills Section -->
-                                ${resume.content.skills && resume.content.skills.length > 0 ? `
-                                <section class="mb-6 resume-section">
-                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Skills</h2>
-                                  <div class="flex flex-wrap gap-2">
-                                    ${resume.content.skills.map((skill: string) => 
-                                      `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
-                                    ).join('')}
-                                  </div>
-                                </section>` : ''}
-
-                                <!-- Experience Section -->
-                                ${resume.content.experience && resume.content.experience.length > 0 ? `
-                                <section class="mb-6 resume-section">
-                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Experience</h2>
-                                  <div class="space-y-4">
-                                    ${resume.content.experience.map((exp: any) => `
-                                      <div class="job-item">
-                                        <div class="flex justify-between items-baseline">
-                                          <h3 class="font-medium text-neutral-900">${exp.position}</h3>
-                                          <div class="text-sm text-neutral-600">
-                                            ${exp.startDate} - ${exp.currentJob ? 'Present' : exp.endDate}
-                                          </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-primary mb-1">${exp.company}</div>
-                                        ${exp.description ? `<p class="text-sm mt-1 leading-relaxed">${exp.description}</p>` : ''}
-                                      </div>
-                                    `).join('')}
-                                  </div>
-                                </section>` : ''}
-
-                                <!-- Education Section -->
-                                ${resume.content.education && resume.content.education.length > 0 ? `
-                                <section class="mb-6 resume-section">
-                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Education</h2>
-                                  <div class="space-y-4">
-                                    ${resume.content.education.map((edu: any) => `
-                                      <div class="education-item">
-                                        <div class="flex justify-between items-baseline">
-                                          <h3 class="font-medium text-neutral-900">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h3>
-                                          <div class="text-sm text-neutral-600">
-                                            ${edu.startDate} - ${edu.endDate || 'Present'}
-                                          </div>
-                                        </div>
-                                        <div class="text-sm font-medium text-primary mb-1">${edu.institution}</div>
-                                        ${edu.description ? `<p class="text-sm mt-1 leading-relaxed">${edu.description}</p>` : ''}
-                                      </div>
-                                    `).join('')}
-                                  </div>
-                                </section>` : ''}
-
-                                <!-- Projects Section -->
-                                ${resume.content.projects && resume.content.projects.length > 0 ? `
-                                <section class="mb-6 resume-section">
-                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Projects</h2>
-                                  <div class="space-y-4">
-                                    ${resume.content.projects.map((project: any) => `
-                                      <div class="project-item">
-                                        <h3 class="font-medium text-neutral-900 flex items-center">
-                                          ${project.name}
-                                          ${project.url ? `
-                                            <a 
-                                              href="${project.url}" 
-                                              target="_blank" 
-                                              rel="noopener noreferrer"
-                                              class="text-sm text-primary ml-2"
-                                            >
-                                              (Link)
-                                            </a>
-                                          ` : ''}
-                                        </h3>
-                                        ${project.description ? `<p class="text-sm mt-1 leading-relaxed">${project.description}</p>` : ''}
-                                      </div>
-                                    `).join('')}
-                                  </div>
-                                </section>` : ''}
-                              </div>
-                            `;
-
-                            // Append the hidden div to the document
-                            document.body.appendChild(hiddenDiv);
-
-                            try {
-                              // Use our centralized export utility
-                              await exportResumeToPDF(hiddenDiv, {
-                                filename: `${resume.name}_${new Date().toISOString().split('T')[0]}.pdf`,
-                              });
-                            } finally {
-                              // Always remove the hidden div when done
-                              document.body.removeChild(hiddenDiv);
-                            }
+                            // Allow time for the preview to render (it starts hidden)
+                            setTimeout(async () => {
+                              // Now generate the PDF from the template
+                              const resumeElement = document.querySelector('.resume-template');
+                              if (resumeElement) {
+                                try {
+                                  // Use our centralized export utility
+                                  await exportResumeToPDF(resumeElement as HTMLElement, {
+                                    filename: `${resume.name}_${new Date().toISOString().split('T')[0]}.pdf`,
+                                  });
+                                } finally {
+                                  // Clear the preview resume state
+                                  setPreviewResume(null);
+                                }
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: "Could not find resume template to export",
+                                  variant: "destructive"
+                                });
+                              }
+                            }, 100);
                           }}
                           title="Download resume as PDF"
                         >
