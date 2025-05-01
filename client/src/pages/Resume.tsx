@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, RefreshCw, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, ArrowLeft, RefreshCw, Save, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -737,6 +737,61 @@ export default function Resume() {
               <ResumeAnalyzer 
                 onExtractComplete={handleExtractComplete}
               />
+            ) : analysisResults ? (
+              /* Third step: Show analysis results */
+              <div className="space-y-6">
+                <Card className="w-full">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Analysis Results</CardTitle>
+                      <CardDescription>
+                        Here's how your resume matches the job description
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setAnalysisResults(null);
+                      }}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Job Description
+                    </Button>
+                  </CardHeader>
+                </Card>
+                
+                {/* Display analysis results */}
+                <ResumeAnalysisResults results={analysisResults} />
+                
+                {/* Action buttons for the results */}
+                <div className="flex items-center justify-between pt-4">
+                  <div>
+                    {analysisResults.timestamp && (
+                      <p className="text-sm text-neutral-500">
+                        Last analyzed {new Date(analysisResults.timestamp).toLocaleTimeString()} on {new Date(analysisResults.timestamp).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsExtractionComplete(false);
+                        setExtractedResumeText('');
+                        setAnalysisResults(null);
+                      }}
+                    >
+                      Start Over
+                    </Button>
+                    <Button
+                      onClick={generateSuggestions}
+                    >
+                      Generate Resume Suggestions
+                    </Button>
+                  </div>
+                </div>
+              </div>
             ) : (
               /* Second step: Enter job description and analyze */
               <Card className="w-full">
