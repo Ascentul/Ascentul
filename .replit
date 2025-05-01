@@ -43,7 +43,7 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
+waitForPort = 5000  # ✅ This matches your Express server
 
 [[workflows.workflow]]
 name = "Start Dev Server"
