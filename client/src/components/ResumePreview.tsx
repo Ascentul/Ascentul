@@ -26,6 +26,15 @@ import {
 import ResumeTemplate from './ResumeTemplates';
 import type { ResumeTemplateStyle } from './ResumeTemplates';
 import { Loader2 } from 'lucide-react';
+import { exportResumeToPDF } from '@/utils/exportPDF';
+import { useToast } from '@/hooks/use-toast';
+
+// Add html2pdf type for TypeScript
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
 
 interface ResumePreviewProps {
   open: boolean;
@@ -43,6 +52,7 @@ export default function ResumePreview({
   const [isLoading, setIsLoading] = useState(false);
   const [templateStyle, setTemplateStyle] = useState<ResumeTemplateStyle>('modern');
   const [zoomLevel, setZoomLevel] = useState(1);
+  const { toast } = useToast();
   
   const handleZoomIn = () => {
     setZoomLevel(Math.min(zoomLevel + 0.1, 1.5));
@@ -61,11 +71,54 @@ export default function ResumePreview({
   };
   
   const handleDownload = () => {
-    setIsLoading(true);
-    onDownloadPDF();
-    setTimeout(() => {
+    try {
+      setIsLoading(true);
+      
+      // Create a unique ID for the template being displayed
+      const templateId = `resume-preview-${Date.now()}`;
+      
+      // Get reference to the current template in the DOM
+      const templateElement = document.querySelector('.resume-template');
+      if (!templateElement) {
+        toast({
+          title: "Error",
+          description: "Could not find resume template to export",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Clone the template to ensure we don't modify the displayed one
+      const clonedTemplate = templateElement.cloneNode(true) as HTMLElement;
+      clonedTemplate.id = templateId;
+      
+      // Create a container for the cloned template
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.appendChild(clonedTemplate);
+      document.body.appendChild(container);
+      
+      // Use the exportResumeToPDF function
+      exportResumeToPDF(templateId, resume?.name || 'Resume');
+      
+      // Clean up the temporary element
+      setTimeout(() => {
+        document.body.removeChild(container);
+        setIsLoading(false);
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error exporting resume to PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export resume. Please try again.",
+        variant: "destructive"
+      });
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   return (
