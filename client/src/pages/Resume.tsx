@@ -923,31 +923,37 @@ export default function Resume() {
                           size="sm"
                           className="h-8 flex items-center gap-1 text-xs"
                           onClick={async () => {
-                            // Set the preview resume to trigger rendering of the template
-                            setPreviewResume(resume);
-                            
-                            // Allow time for the preview to render (it starts hidden)
-                            setTimeout(async () => {
-                              // Now generate the PDF from the template
+                            try {
+                              // Set the preview resume to trigger rendering
+                              setPreviewResume(resume);
+                              
+                              // Allow template to render
+                              await new Promise(resolve => setTimeout(resolve, 100));
+                              
                               const resumeElement = document.querySelector('.resume-template');
-                              if (resumeElement) {
-                                try {
-                                  // Use our centralized export utility
-                                  await exportResumeToPDF(resumeElement as HTMLElement, {
-                                    filename: `${resume.name}_${new Date().toISOString().split('T')[0]}.pdf`,
-                                  });
-                                } finally {
-                                  // Clear the preview resume state
-                                  setPreviewResume(null);
-                                }
-                              } else {
-                                toast({
-                                  title: "Error",
-                                  description: "Could not find resume template to export",
-                                  variant: "destructive"
-                                });
+                              if (!resumeElement) {
+                                throw new Error("Could not find resume template");
                               }
-                            }, 100);
+
+                              const success = await exportResumeToPDF(resumeElement as HTMLElement, {
+                                filename: `${resume.name}_${new Date().toISOString().split('T')[0]}.pdf`,
+                                showToast: true // Enable success/error toasts
+                              });
+
+                              if (!success) {
+                                console.error("PDF export failed");
+                              }
+                            } catch (error) {
+                              console.error("Error during PDF export:", error);
+                              toast({
+                                title: "Export Failed",
+                                description: "Could not generate PDF. Please try again.",
+                                variant: "destructive"
+                              });
+                            } finally {
+                              // Always clear preview state
+                              setPreviewResume(null);
+                            }
                           }}
                           title="Download resume as PDF"
                         >
