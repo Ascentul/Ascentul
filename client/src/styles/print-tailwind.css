@@ -1,0 +1,93 @@
+/* print-tailwind.css - Special styling for PDF exports */
+
+/* Print media query for PDF exports */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Hide all elements except the resume */
+  body > *:not(.resume-export-container) {
+    display: none !important;
+  }
+  
+  /* Page break controls */
+  .page-break {
+    page-break-after: always;
+  }
+  
+  /* Remove backgrounds and shadows for print */
+  .resume-template {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* Remove transitions and animations */
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Resume PDF export specific styles */
+.resume-export-container {
+  width: 8.5in;
+  background: white;
+  color: black;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.resume-export-container .resume-template {
+  padding: 1in 1.25in 1in 1in; /* Standard resume margins */
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Center content properly */
+.resume-export-container h1,
+.resume-export-container h2,
+.resume-export-container h3 {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.resume-export-container .contact-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Prevent page breaks inside critical elements */
+.resume-export-container .job-item,
+.resume-export-container .education-item,
+.resume-export-container .certification-item,
+.resume-export-container section,
+.resume-export-container .section {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+/* Prevent page breaks mid-list */
+.resume-export-container ul,
+.resume-export-container li,
+.resume-export-container .achievements {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* Keep headers with their content */
+.resume-export-container .resume-section-header {
+  page-break-after: avoid;
+}
+
+/* Fix colors for printing */
+.resume-export-container * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}

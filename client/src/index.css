@@ -1,3 +1,6 @@
+/* Import special PDF export styles */
+@import './styles/print-tailwind.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,6 +38,20 @@
   padding: 1in;
   margin: 0 auto;
   line-height: 1.6;
+}
+
+/* Resume PDF Export Specific */
+.resume-export-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  background-color: white;
+  display: block;
+  z-index: -1000;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Project portfolio animations */
