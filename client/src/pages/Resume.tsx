@@ -650,17 +650,91 @@ export default function Resume() {
 
     // Create a filename based on resume name or default
     const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
+    const filename = `${resumeName}_${new Date().toISOString().split('T')[0]}.pdf`;
     
     try {
-      // Use our improved jsPDF-based export function
-      exportResumeToPDF(elementId, resumeName);
+      // Clone the element to ensure we don't modify the displayed one
+      const clonedElement = element.cloneNode(true) as HTMLElement;
+      const tempId = `temp-export-${Date.now()}`;
+      clonedElement.id = tempId;
       
-      console.log(`Resume PDF successfully generated with name: ${resumeName}`);
+      // Create styles for proper PDF rendering
+      const style = document.createElement('style');
+      style.textContent = `
+        #${tempId} {
+          width: 8.5in !important;
+          height: auto !important;
+          padding: 0.5in !important;
+          background-color: white !important;
+          color: black !important;
+          font-family: Arial, sans-serif !important;
+          overflow: visible !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+        
+        #${tempId} * {
+          visibility: visible !important;
+          color-adjust: exact !important;
+          -webkit-print-color-adjust: exact !important;
+          overflow: visible !important;
+        }
+        
+        #${tempId} section, #${tempId} .section, #${tempId} .job-item {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+      `;
       
-      toast({
-        title: 'Resume Downloaded',
-        description: 'Your resume has been exported as a PDF successfully.',
-      });
+      // Create a temporary container for the export
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.appendChild(style);
+      container.appendChild(clonedElement);
+      document.body.appendChild(container);
+      
+      // Use html2pdf with proper pagination settings
+      window.html2pdf()
+        .set({
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: filename,
+          image: { type: 'jpeg', quality: 1.0 },
+          html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            letterRendering: true 
+          },
+          jsPDF: { 
+            unit: 'in', 
+            format: 'letter', 
+            orientation: 'portrait'
+          },
+          pagebreak: { 
+            mode: ['avoid-all', 'css', 'legacy'],
+            avoid: ['.job-item', '.section', 'h2', 'h3', 'li']
+          }
+        })
+        .from(clonedElement)
+        .save()
+        .then(() => {
+          console.log(`Resume PDF successfully generated with name: ${filename}`);
+          toast({
+            title: 'Resume Downloaded',
+            description: 'Your resume has been exported as a PDF successfully.',
+          });
+          document.body.removeChild(container);
+        })
+        .catch((error: any) => {
+          console.error('Error during resume PDF export:', error);
+          toast({
+            title: 'Export Error',
+            description: 'There was a problem creating your resume PDF. Please try again.',
+            variant: 'destructive',
+          });
+          document.body.removeChild(container);
+        });
     } catch (error) {
       console.error('Error during resume PDF export:', error);
       toast({

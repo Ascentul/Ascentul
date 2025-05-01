@@ -96,6 +96,7 @@ export default function ResumePreview({
       // Make sure all styles are preserved for correct PDF rendering
       const style = document.createElement('style');
       style.textContent = `
+        /* Base template styles */
         #${templateId} {
           width: 8.5in !important;
           height: auto !important;
@@ -111,25 +112,61 @@ export default function ResumePreview({
           display: block !important;
           opacity: 1 !important;
           visibility: visible !important;
+          overflow: visible !important;
         }
         
+        /* Ensure all elements are visible */
         #${templateId} * {
           visibility: visible !important;
           color-adjust: exact !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           position: relative !important;
+          overflow: visible !important;
         }
         
+        /* Heading styles */
         #${templateId} h1, #${templateId} h2, #${templateId} h3 {
           color: inherit !important;
           margin-top: 0.5em !important;
           margin-bottom: 0.5em !important;
         }
         
-        #${templateId} section, #${templateId} .section {
+        /* Page break controls */
+        #${templateId} .resume-header,
+        #${templateId} .contact-info,
+        #${templateId} .resume-section-header {
+          page-break-after: avoid !important;
+        }
+        
+        #${templateId} .job-item,
+        #${templateId} .education-item,
+        #${templateId} .certification-item,
+        #${templateId} section, 
+        #${templateId} .section {
           margin-bottom: 1em !important;
           page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        
+        /* Force page breaks before major sections */
+        #${templateId} .experience-section,
+        #${templateId} .education-section,
+        #${templateId} .skills-section,
+        #${templateId} .certifications-section {
+          page-break-before: auto !important;
+        }
+        
+        /* Ensure list items don't break across pages */
+        #${templateId} li {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        
+        /* Ensure achievement bullets stay with their parent */
+        #${templateId} .achievements {
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
         }
       `;
       
@@ -158,12 +195,35 @@ export default function ResumePreview({
                 letterRendering: true,
                 scrollX: 0,
                 scrollY: 0,
+                windowWidth: 850, // Ensure enough width for content
+                onclone: (clonedDoc: Document) => {
+                  // Ensure content is fully visible to the renderer
+                  const clonedElement = clonedDoc.getElementById(templateId);
+                  if (clonedElement) {
+                    clonedElement.style.height = 'auto';
+                    clonedElement.style.overflow = 'visible';
+                  }
+                }
               },
               jsPDF: { 
                 unit: 'in', 
                 format: 'letter', 
                 orientation: 'portrait',
                 compress: true
+              },
+              // Enable pagination with smart page breaks
+              pagebreak: { 
+                mode: ['avoid-all', 'css', 'legacy'],
+                before: ['.page-break-before'],
+                after: ['.page-break-after'],
+                avoid: [
+                  '.job-item', 
+                  '.education-item', 
+                  '.resume-section-header',
+                  '.achievements',
+                  'h1', 'h2', 'h3', 
+                  'li'
+                ]
               }
             })
             .from(clonedTemplate)
