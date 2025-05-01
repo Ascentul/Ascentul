@@ -106,7 +106,11 @@ export default function ResumePreview({
           box-sizing: border-box !important;
           transform: none !important;
           max-width: 100% !important;
-          padding: 0.5in !important;
+          margin: 0 auto !important; /* Center the content */
+          padding-top: 1in !important;
+          padding-bottom: 1in !important;
+          padding-right: 1in !important;
+          padding-left: 1.25in !important; /* Left margin 1.25 inches */
           box-shadow: none !important;
           border: none !important;
           display: block !important;
@@ -115,7 +119,7 @@ export default function ResumePreview({
           overflow: visible !important;
         }
         
-        /* Ensure all elements are visible */
+        /* Ensure all elements are visible and preserve layout */
         #${templateId} * {
           visibility: visible !important;
           color-adjust: exact !important;
@@ -123,6 +127,13 @@ export default function ResumePreview({
           print-color-adjust: exact !important;
           position: relative !important;
           overflow: visible !important;
+        }
+        
+        /* Preserve original resume layout */
+        #${templateId} .resume-template {
+          text-align: left !important;
+          width: 100% !important;
+          max-width: 100% !important;
         }
         
         /* Heading styles */
@@ -149,6 +160,22 @@ export default function ResumePreview({
           break-inside: avoid !important;
         }
         
+        /* Preserve original content width */
+        #${templateId} .content-container {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+        
+        /* Main sections layout */
+        #${templateId} .professional-summary,
+        #${templateId} .skills-section,
+        #${templateId} .experience-section,
+        #${templateId} .education-section {
+          width: 100% !important;
+          max-width: 100% !important;
+          margin-bottom: 1.5em !important;
+        }
+        
         /* Force page breaks before major sections */
         #${templateId} .experience-section,
         #${templateId} .education-section,
@@ -161,12 +188,20 @@ export default function ResumePreview({
         #${templateId} li {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
+          margin-bottom: 0.15em !important;
         }
         
         /* Ensure achievement bullets stay with their parent */
         #${templateId} .achievements {
           page-break-inside: avoid !important;
           break-inside: avoid !important;
+        }
+        
+        /* Maintain skill tags formatting */
+        #${templateId} .skill-tag {
+          display: inline-block !important;
+          margin-right: 0.5em !important;
+          margin-bottom: 0.5em !important;
         }
       `;
       
@@ -186,7 +221,8 @@ export default function ResumePreview({
           
           window.html2pdf()
             .set({
-              margin: [0.5, 0.5, 0.5, 0.5],
+              // Set zero margins since we're handling them in CSS
+              margin: 0,
               filename: filename,
               image: { type: 'jpeg', quality: 1.0 },
               html2canvas: { 
@@ -202,6 +238,14 @@ export default function ResumePreview({
                   if (clonedElement) {
                     clonedElement.style.height = 'auto';
                     clonedElement.style.overflow = 'visible';
+                    clonedElement.style.margin = '0 auto'; // Center content
+                    
+                    // Ensure the template is centered on the page
+                    const templateElements = clonedDoc.querySelectorAll(`#${templateId} .resume-template`);
+                    templateElements.forEach(el => {
+                      (el as HTMLElement).style.margin = '0 auto';
+                      (el as HTMLElement).style.width = '100%';
+                    });
                   }
                 }
               },
