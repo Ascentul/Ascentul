@@ -86,10 +86,7 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
       )}
       
       {!isAnalyzing && jobDescQuality === 'empty' && required && (
-        <p className="text-sm text-amber-600 flex items-center">
-          <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-          A job description is required for resume analysis
-        </p>
+        <div className="h-4"></div>
       )}
       
       {!isAnalyzing && jobDescQuality === 'poor' && (
