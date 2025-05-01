@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { exportCoverLetterToPDF } from '@/utils/exportPDF';
 
 // Add html2pdf type for TypeScript
 declare global {
@@ -298,9 +299,6 @@ export default function CoverLetter() {
   // This function has been moved to a utility file, we're keeping it here for backwards compatibility
   // with other parts of the code
   const directPdfExport = (coverLetter: any) => {
-    // Use our new standalone export function
-    const { exportCoverLetterToPDF } = require('@/utils/exportPDF');
-    
     // Call the utility directly
     exportCoverLetterToPDF(coverLetter);
     
@@ -543,9 +541,6 @@ export default function CoverLetter() {
 
   // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
-    // Import our simplified export utility
-    const { exportCoverLetterToPDF } = require('@/utils/exportPDF');
-    
     // For preview letter case - use our new direct method
     if (elementId.startsWith('previewLetter-') && previewLetter) {
       console.log('Using simplified PDF export for preview letter');
