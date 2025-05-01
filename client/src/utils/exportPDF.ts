@@ -1,5 +1,6 @@
-// We don't need to import html2pdf.js as it's loaded globally via script tag
-// @ts-nocheck - Disable TypeScript checking for this file due to external library typings
+import { jsPDF } from 'jspdf';
+
+// For backward compatibility with existing code
 declare global {
   interface Window {
     html2pdf: any;
@@ -7,83 +8,88 @@ declare global {
 }
 
 /**
- * Export the cover letter content as a PDF
- * This approach directly captures the rendered content for export
+ * Export the cover letter content as a PDF using pure jsPDF
+ * This approach works directly with the letter data rather than DOM elements
  */
 export function exportCoverLetterToPDF(): void {
-  // Find the PDF export content container
-  const content = document.getElementById("pdf-export-content");
+  try {
+    // Get direct reference to the global preview letter data
+    // We need to use the window.coverLetter to access this data
+    const previewLetterEl = document.getElementById("pdf-export-content");
+    if (!previewLetterEl) {
+      alert("❌ Could not find cover letter content. Please try again.");
+      return;
+    }
+    
+    // Extract text directly from the DOM structure
+    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap");
+    const letterBody = letterBodyElement?.textContent || "";
+    
+    // Get name and other details
+    const fullNameElement = previewLetterEl.querySelector("h2");
+    const fullName = fullNameElement?.textContent || "Your Name";
+    
+    // Basic validation
+    if (!letterBody || letterBody.trim() === "") {
+      console.error("Letter body is empty");
+      alert("❌ Letter body is empty. Cannot export.");
+      return;
+    }
 
-  if (!content || content.innerText.trim() === "") {
-    alert("Cover letter content is empty.");
-    return;
-  }
-
-  // Extract just the letter body text
-  const bodyContent = content.querySelector(".whitespace-pre-wrap");
-  
-  if (!bodyContent || bodyContent.textContent.trim() === "") {
-    alert("Letter body content is empty.");
-    return;
-  }
-  
-  // Create a plain text container for the PDF
-  const container = document.createElement('div');
-  container.style.position = "absolute";
-  container.style.top = "-9999px";
-  container.style.padding = "1in";
-  container.style.fontFamily = "Arial, sans-serif";
-  container.style.fontSize = "12pt";
-  container.style.lineHeight = "1.5";
-  container.style.color = "#000";
-  container.style.width = "8.5in";
-  container.style.backgroundColor = "#fff";
-  
-  // Extract the plain text
-  const letterBodyText = bodyContent.textContent || "";
-  
-  // Create a simple plain text container with just the letter body
-  container.innerHTML = `
-    <div style="white-space: pre-wrap; text-align: left;">
-      ${letterBodyText}
-    </div>
-  `;
-  
-  document.body.appendChild(container);
-
-  // Generate filename from date
-  const filename = `cover-letter-body-${new Date().toISOString().split('T')[0]}.pdf`;
-
-  console.log("Exporting letter body as PDF:", letterBodyText.substring(0, 100) + "...");
-
-  // Configure PDF export options for plain text format
-  window.html2pdf()
-    .set({
-      filename: filename,
-      margin: 0.75,
-      jsPDF: { 
-        unit: "in", 
-        format: "letter", 
-        orientation: "portrait" 
-      },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true,
-        letterRendering: true,
-        allowTaint: true
-      }
-    })
-    .from(container)
-    .save()
-    .then(() => {
-      document.body.removeChild(container);
-      alert("✅ Your letter body has been downloaded as PDF.");
-    })
-    .catch((err: any) => {
-      console.error("PDF export failed", err);
-      document.body.removeChild(container);
-      alert("❌ Failed to export PDF. Please try again.");
+    console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
+    
+    // Create new PDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'letter'
     });
+    
+    // Set font
+    doc.setFont("helvetica");
+    doc.setFontSize(12);
+    
+    // Define margins (1 inch = 25.4mm)
+    const margin = 25.4; 
+    
+    // Get page dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Calculate text width (accounting for margins)
+    const textWidth = pageWidth - (margin * 2);
+    
+    // Add title at the top
+    doc.setFontSize(16);
+    doc.text(`Cover Letter: ${fullName}`, margin, margin);
+    
+    // Add a separator line
+    doc.setLineWidth(0.5);
+    doc.line(margin, margin + 5, pageWidth - margin, margin + 5);
+    
+    // Reset font size for body
+    doc.setFontSize(12);
+    
+    // Split text to fit within page width and respect line breaks
+    const bodyLines = doc.splitTextToSize(letterBody, textWidth);
+    
+    // Add content with proper spacing
+    doc.text(bodyLines, margin, margin + 15);
+    
+    // Generate a filename
+    const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    // Save the PDF
+    doc.save(filename);
+    
+    // Show success message
+    alert("✅ Your cover letter has been downloaded successfully.");
+    console.log("PDF export successful");
+    
+  } catch (error) {
+    console.error("Error creating PDF:", error);
+    alert("❌ Failed to export PDF. An unexpected error occurred.");
+  }
 }
 
 /**
