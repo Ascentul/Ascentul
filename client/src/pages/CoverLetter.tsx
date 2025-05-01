@@ -44,6 +44,7 @@ export default function CoverLetter() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [copySuccess, setCopySuccess] = useState(false);
+  const [optimizedCopySuccess, setOptimizedCopySuccess] = useState(false);
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
 
   // Fetch user's cover letters
@@ -393,6 +394,46 @@ export default function CoverLetter() {
     }
 
     analyzeCoverLetterMutation.mutate();
+  };
+
+  // Function to copy optimized cover letter content to clipboard
+  const handleCopyOptimizedCoverLetter = () => {
+    if (!analysisResult?.optimizedCoverLetter) {
+      toast({
+        title: 'Nothing to copy',
+        description: 'No optimized cover letter content available',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Process content: replace user placeholders
+    const processedContent = replaceUserPlaceholders(analysisResult.optimizedCoverLetter);
+    
+    navigator.clipboard.writeText(processedContent)
+      .then(() => {
+        setOptimizedCopySuccess(true);
+        toast({
+          title: '✅ Copied to clipboard',
+          description: 'The optimized cover letter has been copied',
+        });
+        // Reset copy success after 3 seconds
+        setTimeout(() => setOptimizedCopySuccess(false), 3000);
+      })
+      .catch((error) => {
+        toast({
+          title: 'Copy failed',
+          description: 'Failed to copy content to clipboard',
+          variant: 'destructive',
+        });
+        console.error('Copy failed:', error);
+      });
+      
+    // Create an element to scroll to the optimized content to provide feedback
+    const contentElement = document.getElementById('optimizedCoverLetterContent');
+    if (contentElement) {
+      contentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   const handleSaveOptimizedCoverLetter = () => {
@@ -1315,7 +1356,7 @@ export default function CoverLetter() {
                       </ul>
                     </div>
 
-                    <div className="pt-3" id="optimizedCoverLetterSection">
+                    <div className="pt-3 pb-2" id="optimizedCoverLetterSection">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="text-sm font-medium flex items-center">
                           <span className="text-primary mr-1">📝</span> Optimized Cover Letter
@@ -1342,14 +1383,61 @@ export default function CoverLetter() {
                           Hide
                         </Button>
                       </div>
-                      <div className="p-3 bg-white/60 rounded-md border border-primary/20 text-sm whitespace-pre-wrap" id="optimizedCoverLetterContent">
-                        {analysisResult.optimizedCoverLetter}
+                      
+                      {/* Styled content box with scrollable area */}
+                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2">
+                        <div 
+                          className="p-4 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
+                          id="optimizedCoverLetterContent"
+                        >
+                          {analysisResult.optimizedCoverLetter}
+                        </div>
                       </div>
-                      <div className="flex justify-end mt-3">
+                      
+                      {/* Button Bar */}
+                      <div className="flex flex-wrap gap-2 justify-end items-center mt-2">
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAnalysisResult({
+                              ...analysisResult,
+                              optimizedCoverLetter: ''
+                            });
+                          }}
+                          title="Reset optimized content"
+                          className="bg-white"
+                        >
+                          <RefreshCw className="mr-2 h-3 w-3" />
+                          Reset
+                        </Button>
+                        
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCopyOptimizedCoverLetter}
+                          title="Copy optimized content to clipboard"
+                          className={`relative ${optimizedCopySuccess ? 'bg-green-50' : 'bg-white'}`}
+                          disabled={!analysisResult.optimizedCoverLetter}
+                        >
+                          {optimizedCopySuccess ? (
+                            <>
+                              <CheckCircle className="mr-2 h-3 w-3 text-green-500" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="mr-2 h-3 w-3" />
+                              Copy
+                            </>
+                          )}
+                        </Button>
+                        
                         <Button 
                           size="sm" 
                           onClick={handleSaveOptimizedCoverLetter}
                           title="Save this optimized version as a new cover letter"
+                          disabled={!analysisResult.optimizedCoverLetter}
                         >
                           <UploadCloud className="mr-2 h-3 w-3" />
                           Save Optimized Version
