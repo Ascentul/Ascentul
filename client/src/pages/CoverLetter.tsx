@@ -38,7 +38,7 @@ import { motion } from 'framer-motion';
 export default function CoverLetter() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddLetterOpen, setIsAddLetterOpen] = useState(false);
-  const [selectedLetter, setSelectedLetter] = useState<any>(null);
+  const [selectedCoverLetter, setSelectedCoverLetter] = useState<any>(null);
   const [previewLetter, setPreviewLetter] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -83,16 +83,16 @@ export default function CoverLetter() {
   });
 
   const duplicateCoverLetterMutation = useMutation({
-    mutationFn: async (letter: any) => {
-      const newLetter = {
-        ...letter,
-        name: `${letter.name} (Copy)`,
+    mutationFn: async (coverLetter: any) => {
+      const newCoverLetter = {
+        ...coverLetter,
+        name: `${coverLetter.name} (Copy)`,
       };
-      delete newLetter.id;
-      delete newLetter.createdAt;
-      delete newLetter.updatedAt;
+      delete newCoverLetter.id;
+      delete newCoverLetter.createdAt;
+      delete newCoverLetter.updatedAt;
 
-      return apiRequest('POST', '/api/cover-letters', newLetter);
+      return apiRequest('POST', '/api/cover-letters', newCoverLetter);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
@@ -192,17 +192,17 @@ export default function CoverLetter() {
     },
   });
 
-  const handleDeleteLetter = (letterId: number) => {
+  const handleDeleteLetter = (coverLetterId: number) => {
     if (confirm('Are you sure you want to delete this cover letter?')) {
-      deleteCoverLetterMutation.mutate(letterId);
+      deleteCoverLetterMutation.mutate(coverLetterId);
     }
   };
 
   const handleSaveGenerated = () => {
     if (!generatedContent) return;
 
-    // Create a new letter with the generated content
-    const newLetter = {
+    // Create a new cover letter with the generated content
+    const newCoverLetter = {
       name: `${jobTitle} at ${companyName}`,
       template: 'standard',
       content: {
@@ -225,7 +225,7 @@ export default function CoverLetter() {
     };
 
     // Create a new cover letter with the mutation
-    apiRequest('POST', '/api/cover-letters', newLetter)
+    apiRequest('POST', '/api/cover-letters', newCoverLetter)
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
         toast({
@@ -398,8 +398,8 @@ export default function CoverLetter() {
   const handleSaveOptimizedCoverLetter = () => {
     if (!analysisResult?.optimizedCoverLetter) return;
 
-    // Create a new letter with the optimized content
-    const newLetter = {
+    // Create a new cover letter with the optimized content
+    const newCoverLetter = {
       name: `Optimized Cover Letter ${new Date().toLocaleDateString()}`,
       template: 'standard',
       content: {
@@ -422,7 +422,7 @@ export default function CoverLetter() {
     };
 
     // Create a new cover letter with the mutation
-    apiRequest('POST', '/api/cover-letters', newLetter)
+    apiRequest('POST', '/api/cover-letters', newCoverLetter)
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
         toast({
@@ -454,9 +454,9 @@ export default function CoverLetter() {
       return;
     }
 
-    // Create a filename based on letter name or default
-    const letterName = previewLetter?.name || 'cover-letter';
-    const filename = `${letterName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    // Create a filename based on cover letter name or default
+    const coverLetterName = previewLetter?.name || 'cover-letter';
+    const filename = `${coverLetterName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
 
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
@@ -568,7 +568,7 @@ export default function CoverLetter() {
         <Button 
           className="mt-4 md:mt-0"
           onClick={() => {
-            setSelectedLetter(null);
+            setSelectedCoverLetter(null);
             setIsAddLetterOpen(true);
           }}
         >
@@ -666,7 +666,7 @@ export default function CoverLetter() {
                           size="icon" 
                           className="h-8 w-8"
                           onClick={() => {
-                            setSelectedLetter(coverLetter);
+                            setSelectedCoverLetter(coverLetter);
                             setIsAddLetterOpen(true);
                           }}
                         >
@@ -718,7 +718,7 @@ export default function CoverLetter() {
               </p>
               <Button 
                 onClick={() => {
-                  setSelectedLetter(null);
+                  setSelectedCoverLetter(null);
                   setIsAddLetterOpen(true);
                 }}
                 size="lg" 
