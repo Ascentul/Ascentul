@@ -58,10 +58,6 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
         </span>
       </div>
       
-      <div className="text-xs text-neutral-500 mb-1">
-        For best results, include a complete job posting with responsibilities, requirements, and qualifications.
-      </div>
-      
       <Textarea
         id={id}
         placeholder="Paste the job description here to compare with your resume..."
