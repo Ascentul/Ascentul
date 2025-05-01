@@ -244,15 +244,7 @@ export default function ResumePreview({
             </div>
             
             <div className="flex space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handlePrint}
-                className="h-8"
-              >
-                <Printer className="h-4 w-4 mr-1" />
-                Print
-              </Button>
+              
               <Button 
                 variant="default" 
                 size="sm" 
