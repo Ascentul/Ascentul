@@ -295,17 +295,122 @@ export default function CoverLetter() {
     return filteredLines.join('\n').trim();
   };
   
-  // NEW FUNCTION: Direct PDF export for cover letters - doesn't depend on DOM elements
+  // Improved PDF export that captures visible content reliably
   const directPdfExport = (coverLetter: any) => {
     console.log('Starting direct PDF export for cover letter:', coverLetter);
     
     try {
-      // Create a temporary div to hold the content
+      // First, try to get the existing visible preview element
+      const visiblePreview = document.getElementById(`previewLetter-${coverLetter.id}-content`);
+      
+      if (visiblePreview) {
+        console.log('Found visible preview element, using it for PDF export');
+        
+        // Create a clone of the visible element to avoid modifying the original
+        const clone = visiblePreview.cloneNode(true) as HTMLElement;
+        clone.id = 'coverLetterPreview';
+        clone.className = 'pdf-body';
+        
+        // Apply PDF-specific styling to the clone
+        clone.style.fontFamily = 'Arial, sans-serif';
+        clone.style.fontSize = '12pt';
+        clone.style.lineHeight = '1.6';
+        clone.style.color = '#000';
+        clone.style.padding = '40px';
+        clone.style.maxWidth = '8.5in';
+        clone.style.margin = '0 auto';
+        
+        // Position off-screen but keep visible
+        clone.style.position = 'fixed';
+        clone.style.top = '0';
+        clone.style.left = '-9999px';
+        clone.style.width = '8.5in';
+        clone.style.height = 'auto';
+        clone.style.zIndex = '-1000';
+        
+        // Append to body
+        document.body.appendChild(clone);
+        
+        // Generate the PDF filename
+        const filename = `${coverLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        // Set up PDF export options
+        const options = {
+          margin: [0.5, 0.5, 0.5, 0.5],  // [top, right, bottom, left] in inches
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            letterRendering: true,
+            logging: false
+          },
+          jsPDF: { 
+            unit: 'in', 
+            format: 'letter', 
+            orientation: 'portrait'
+          }
+        };
+        
+        console.log('Using visible preview element for PDF export');
+        
+        // Use setTimeout to ensure DOM is fully rendered before capture
+        setTimeout(() => {
+          window.html2pdf()
+            .from(clone)
+            .set(options)
+            .save()
+            .then(() => {
+              console.log('PDF generated successfully from visible preview');
+              toast({
+                title: 'PDF Downloaded',
+                description: `Your cover letter "${coverLetter.name}" has been saved as a PDF.`,
+              });
+              
+              // Clean up
+              document.body.removeChild(clone);
+            })
+            .catch((error: any) => {
+              console.error('PDF generation error:', error);
+              toast({
+                title: 'Error',
+                description: 'Failed to generate PDF. Please try again.',
+                variant: 'destructive',
+              });
+              
+              // Clean up on error
+              if (document.body.contains(clone)) {
+                document.body.removeChild(clone);
+              }
+            });
+        }, 300); // Add delay to ensure rendering is complete
+        
+        return; // Exit early since we're using the visible preview
+      }
+      
+      // Fallback: If no visible preview element found, create one from scratch
+      console.log('No visible preview found, creating a new element from data');
+      
+      // Create a temporary div with proper ID for PDF export
       const container = document.createElement('div');
-      container.style.visibility = 'hidden';
-      container.style.position = 'absolute';
-      container.style.width = '8.5in';
+      container.id = 'coverLetterPreview';
+      container.className = 'pdf-body';
+      container.style.fontFamily = 'Arial, sans-serif';
+      container.style.fontSize = '12pt';
+      container.style.lineHeight = '1.6';
+      container.style.color = '#000';
+      container.style.padding = '40px';
+      container.style.maxWidth = '8.5in';
+      container.style.margin = '0 auto';
+      
+      // Position off-screen but keep visible for html2pdf
+      container.style.position = 'fixed';
+      container.style.top = '0';
       container.style.left = '-9999px';
+      container.style.width = '8.5in';
+      container.style.height = 'auto';
+      container.style.zIndex = '-1000';
+      
       document.body.appendChild(container);
       
       // Format the content using data from the cover letter
@@ -325,7 +430,7 @@ export default function CoverLetter() {
       }
       
       const content = `
-        <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; padding: 1in; color: #000000;">
+        <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5; color: #000000;">
           <!-- Header centered -->
           <div style="text-align: center; margin-bottom: 24px;">
             <p style="font-size: 16pt; font-weight: bold; margin: 0 0 8px 0;">${letter.content.header.fullName || '[Your Name]'}</p>
@@ -389,51 +494,55 @@ export default function CoverLetter() {
       
       // Configure PDF options
       const options = {
-        margin: [0, 0, 0, 0],  // [top, right, bottom, left] in inches
+        margin: [0.5, 0.5, 0.5, 0.5],  // small margins for readability
         filename: filename,
-        image: { type: 'jpeg', quality: 1 },
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          logging: true,
+          logging: false,
           letterRendering: true
         },
         jsPDF: { 
           unit: 'in', 
           format: 'letter', 
-          orientation: 'portrait',
-          compress: true
+          orientation: 'portrait'
         }
       };
       
       console.log('Starting PDF generation with options:', options);
       
-      // Create and download the PDF
-      window.html2pdf()
-        .from(container)
-        .set(options)
-        .save()
-        .then(() => {
-          console.log('PDF generated successfully');
-          toast({
-            title: 'PDF Downloaded',
-            description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
+      // Add delay to ensure DOM rendering is complete
+      setTimeout(() => {
+        // Create and download the PDF
+        window.html2pdf()
+          .from(container)
+          .set(options)
+          .save()
+          .then(() => {
+            console.log('PDF generated successfully from created element');
+            toast({
+              title: 'PDF Downloaded',
+              description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
+            });
+            
+            // Clean up
+            document.body.removeChild(container);
+          })
+          .catch((error: any) => {
+            console.error('PDF generation error:', error);
+            toast({
+              title: 'Error',
+              description: 'Failed to generate PDF. Please try again.',
+              variant: 'destructive',
+            });
+            
+            // Clean up on error
+            if (document.body.contains(container)) {
+              document.body.removeChild(container);
+            }
           });
-          
-          // Clean up
-          document.body.removeChild(container);
-        })
-        .catch(error => {
-          console.error('PDF generation error:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to generate PDF. Please try again.',
-            variant: 'destructive',
-          });
-          
-          // Clean up on error
-          document.body.removeChild(container);
-        });
+      }, 300);
       
     } catch (error) {
       console.error('Error in direct PDF export:', error);
