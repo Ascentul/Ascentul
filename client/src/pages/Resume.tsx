@@ -919,9 +919,9 @@ export default function Resume() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-primary hover:text-primary/80"
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 flex items-center gap-1 text-xs"
                           onClick={async () => {
                             // Create a hidden div for the resume content using a modern template
                             const hiddenDiv = document.createElement('div');
@@ -1045,8 +1045,10 @@ export default function Resume() {
                               document.body.removeChild(hiddenDiv);
                             }
                           }}
+                          title="Download resume as PDF"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3.5 w-3.5" />
+                          <span>PDF</span>
                         </Button>
                       </div>
                     </CardFooter>
