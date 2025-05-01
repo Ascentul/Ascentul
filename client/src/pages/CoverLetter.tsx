@@ -17,7 +17,8 @@ import {
   FileUp,
   Loader2,
   ArrowLeft,
-  CheckCircle
+  CheckCircle,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -670,11 +671,14 @@ export default function CoverLetter() {
                   key={coverLetter.id}
                   variants={cardAnimation}
                   className="will-change-transform"
-                  style={{ transform: 'translateZ(0)' }}
+                  style={{ 
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden' 
+                  }}
                 >
-                  <Card className="overflow-hidden h-full flex flex-col cover-letter-card">
+                  <Card className="overflow-hidden h-full flex flex-col cover-letter-card min-h-[180px] transition-shadow duration-300 hover:shadow-md">
                     <CardContent className="p-0 flex-1">
-                      <div className="bg-primary/5 p-6 flex items-center justify-between mb-2">
+                      <div className="bg-primary/5 pt-5 pb-4 px-6 flex items-center justify-between">
                         <div className="flex items-center">
                           <Mail className="h-10 w-10 text-primary mr-4" />
                           <div>
@@ -682,16 +686,13 @@ export default function CoverLetter() {
                             <p className="text-xs text-neutral-500 mt-1">
                               Created: {new Date(coverLetter.createdAt).toLocaleDateString()}
                             </p>
+                            <p className="text-xs text-neutral-400 mt-1">
+                              Last updated: {new Date(coverLetter.updatedAt || coverLetter.createdAt).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       </div>
-                      <div className="p-5 text-sm text-neutral-600 line-clamp-3">
-                        {coverLetter.content.body.length > 150 ? (
-                          <>{coverLetter.content.body.substring(0, 150)}...</>
-                        ) : (
-                          <>{coverLetter.content.body}</>
-                        )}
-                      </div>
+                      {/* Preview text removed for cleaner UI */}
                     </CardContent>
                     <CardFooter className="p-4 flex justify-between border-t bg-white mt-auto">
                       <Button 
