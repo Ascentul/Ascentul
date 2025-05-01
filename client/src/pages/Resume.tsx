@@ -27,7 +27,7 @@ import { motion } from 'framer-motion';
 import { useCareerData } from '@/hooks/use-career-data';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
 import ResumeAnalysisResults, { ResumeAnalysisResult } from '@/components/ResumeAnalysisResults';
-import { exportResumeToPDF } from '@/utils/exportPDF';
+import { exportResumeToPDF } from '@/utils/resumeExport';
 
 // Animation constants
 const subtleUp = {
@@ -633,8 +633,8 @@ export default function Resume() {
     }
   };
 
-  // Function to download resume as PDF
-  const handleDownloadPDF = (elementId: string) => {
+  // Function to download resume as PDF using our centralized utility
+  const handleDownloadPDF = async (elementId: string) => {
     console.log(`Initiating PDF download for resume with element ID: ${elementId}`);
     
     const element = document.getElementById(elementId);
@@ -653,88 +653,17 @@ export default function Resume() {
     const filename = `${resumeName}_${new Date().toISOString().split('T')[0]}.pdf`;
     
     try {
-      // Clone the element to ensure we don't modify the displayed one
-      const clonedElement = element.cloneNode(true) as HTMLElement;
-      const tempId = `temp-export-${Date.now()}`;
-      clonedElement.id = tempId;
+      // Use our centralized export utility
+      const success = await exportResumeToPDF(element, { 
+        filename,
+        showToast: true // Show success/error toasts from the utility
+      });
       
-      // Create styles for proper PDF rendering
-      const style = document.createElement('style');
-      style.textContent = `
-        #${tempId} {
-          width: 8.5in !important;
-          height: auto !important;
-          padding: 0.5in !important;
-          background-color: white !important;
-          color: black !important;
-          font-family: Arial, sans-serif !important;
-          overflow: visible !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
-        
-        #${tempId} * {
-          visibility: visible !important;
-          color-adjust: exact !important;
-          -webkit-print-color-adjust: exact !important;
-          overflow: visible !important;
-        }
-        
-        #${tempId} section, #${tempId} .section, #${tempId} .job-item {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-        }
-      `;
-      
-      // Create a temporary container for the export
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.appendChild(style);
-      container.appendChild(clonedElement);
-      document.body.appendChild(container);
-      
-      // Use html2pdf with proper pagination settings
-      window.html2pdf()
-        .set({
-          margin: [0.5, 0.5, 0.5, 0.5],
-          filename: filename,
-          image: { type: 'jpeg', quality: 1.0 },
-          html2canvas: { 
-            scale: 2,
-            useCORS: true,
-            letterRendering: true 
-          },
-          jsPDF: { 
-            unit: 'in', 
-            format: 'letter', 
-            orientation: 'portrait'
-          },
-          pagebreak: { 
-            mode: ['avoid-all', 'css', 'legacy'],
-            avoid: ['.job-item', '.section', 'h2', 'h3', 'li']
-          }
-        })
-        .from(clonedElement)
-        .save()
-        .then(() => {
-          console.log(`Resume PDF successfully generated with name: ${filename}`);
-          toast({
-            title: 'Resume Downloaded',
-            description: 'Your resume has been exported as a PDF successfully.',
-          });
-          document.body.removeChild(container);
-        })
-        .catch((error: any) => {
-          console.error('Error during resume PDF export:', error);
-          toast({
-            title: 'Export Error',
-            description: 'There was a problem creating your resume PDF. Please try again.',
-            variant: 'destructive',
-          });
-          document.body.removeChild(container);
-        });
+      if (success) {
+        console.log(`Resume PDF successfully generated with name: ${filename}`);
+      } else {
+        console.error('Failed to generate resume PDF');
+      }
     } catch (error) {
       console.error('Error during resume PDF export:', error);
       toast({
@@ -993,89 +922,96 @@ export default function Resume() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-primary hover:text-primary/80"
-                          onClick={() => {
-                            // Create a hidden div for the resume content
+                          onClick={async () => {
+                            // Create a hidden div for the resume content using a modern template
                             const hiddenDiv = document.createElement('div');
                             hiddenDiv.id = `temp-resume-${resume.id}`;
+                            hiddenDiv.className = 'resume-template resume-export-container';
                             hiddenDiv.style.position = 'absolute';
                             hiddenDiv.style.left = '-9999px';
                             hiddenDiv.style.top = '-9999px';
-
-                            // Add resume content to the hidden div
+                            
+                            // Use a clean, modern template structure with better typography and spacing
                             hiddenDiv.innerHTML = `
-                              <div class="bg-white p-6">
-                                <div class="mb-6 border-b pb-4">
-                                  <h2 class="text-2xl font-bold text-center">
+                              <div class="bg-white p-8 max-w-[8.5in] mx-auto resume-content">
+                                <!-- Header -->
+                                <header class="mb-6 pb-4 border-b border-neutral-200">
+                                  <h1 class="text-2xl font-bold text-center text-neutral-900">
                                     ${resume.content.personalInfo.fullName || 'Full Name'}
-                                  </h2>
-                                  <div class="flex flex-wrap justify-center gap-3 mt-2 text-sm text-neutral-600">
+                                  </h1>
+                                  <div class="flex flex-wrap justify-center gap-x-4 mt-2 text-sm text-neutral-600">
                                     ${resume.content.personalInfo.email ? `<span>${resume.content.personalInfo.email}</span>` : ''}
-                                    ${resume.content.personalInfo.phone ? `<span>| ${resume.content.personalInfo.phone}</span>` : ''}
-                                    ${resume.content.personalInfo.location ? `<span>| ${resume.content.personalInfo.location}</span>` : ''}
+                                    ${resume.content.personalInfo.phone ? `<span>${resume.content.personalInfo.phone}</span>` : ''}
+                                    ${resume.content.personalInfo.location ? `<span>${resume.content.personalInfo.location}</span>` : ''}
                                   </div>
-                                </div>
+                                </header>
 
+                                <!-- Summary Section -->
                                 ${resume.content.summary ? `
-                                <div class="mb-6">
-                                  <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
-                                  <p class="text-sm">${resume.content.summary}</p>
-                                </div>` : ''}
+                                <section class="mb-6 resume-section">
+                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Professional Summary</h2>
+                                  <p class="text-sm leading-relaxed">${resume.content.summary}</p>
+                                </section>` : ''}
 
+                                <!-- Skills Section -->
                                 ${resume.content.skills && resume.content.skills.length > 0 ? `
-                                <div class="mb-6">
-                                  <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
+                                <section class="mb-6 resume-section">
+                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Skills</h2>
                                   <div class="flex flex-wrap gap-2">
                                     ${resume.content.skills.map((skill: string) => 
                                       `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
                                     ).join('')}
                                   </div>
-                                </div>` : ''}
+                                </section>` : ''}
 
+                                <!-- Experience Section -->
                                 ${resume.content.experience && resume.content.experience.length > 0 ? `
-                                <div class="mb-6">
-                                  <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
+                                <section class="mb-6 resume-section">
+                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Experience</h2>
                                   <div class="space-y-4">
                                     ${resume.content.experience.map((exp: any) => `
-                                      <div>
-                                        <div class="flex justify-between">
-                                          <h4 class="font-medium">${exp.position}</h4>
+                                      <div class="job-item">
+                                        <div class="flex justify-between items-baseline">
+                                          <h3 class="font-medium text-neutral-900">${exp.position}</h3>
                                           <div class="text-sm text-neutral-600">
                                             ${exp.startDate} - ${exp.currentJob ? 'Present' : exp.endDate}
                                           </div>
                                         </div>
-                                        <div class="text-sm font-medium text-primary">${exp.company}</div>
-                                        ${exp.description ? `<p class="text-sm mt-2">${exp.description}</p>` : ''}
+                                        <div class="text-sm font-medium text-primary mb-1">${exp.company}</div>
+                                        ${exp.description ? `<p class="text-sm mt-1 leading-relaxed">${exp.description}</p>` : ''}
                                       </div>
                                     `).join('')}
                                   </div>
-                                </div>` : ''}
+                                </section>` : ''}
 
+                                <!-- Education Section -->
                                 ${resume.content.education && resume.content.education.length > 0 ? `
-                                <div class="mb-6">
-                                  <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
+                                <section class="mb-6 resume-section">
+                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Education</h2>
                                   <div class="space-y-4">
                                     ${resume.content.education.map((edu: any) => `
-                                      <div>
-                                        <div class="flex justify-between">
-                                          <h4 class="font-medium">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h4>
+                                      <div class="education-item">
+                                        <div class="flex justify-between items-baseline">
+                                          <h3 class="font-medium text-neutral-900">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h3>
                                           <div class="text-sm text-neutral-600">
                                             ${edu.startDate} - ${edu.endDate || 'Present'}
                                           </div>
                                         </div>
-                                        <div class="text-sm font-medium text-primary">${edu.institution}</div>
-                                        ${edu.description ? `<p class="text-sm mt-2">${edu.description}</p>` : ''}
+                                        <div class="text-sm font-medium text-primary mb-1">${edu.institution}</div>
+                                        ${edu.description ? `<p class="text-sm mt-1 leading-relaxed">${edu.description}</p>` : ''}
                                       </div>
                                     `).join('')}
                                   </div>
-                                </div>` : ''}
+                                </section>` : ''}
 
+                                <!-- Projects Section -->
                                 ${resume.content.projects && resume.content.projects.length > 0 ? `
-                                <div class="mb-6">
-                                  <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
+                                <section class="mb-6 resume-section">
+                                  <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Projects</h2>
                                   <div class="space-y-4">
                                     ${resume.content.projects.map((project: any) => `
-                                      <div>
-                                        <h4 class="font-medium">
+                                      <div class="project-item">
+                                        <h3 class="font-medium text-neutral-900 flex items-center">
                                           ${project.name}
                                           ${project.url ? `
                                             <a 
@@ -1087,25 +1023,27 @@ export default function Resume() {
                                               (Link)
                                             </a>
                                           ` : ''}
-                                        </h4>
-                                        ${project.description ? `<p class="text-sm mt-1">${project.description}</p>` : ''}
+                                        </h3>
+                                        ${project.description ? `<p class="text-sm mt-1 leading-relaxed">${project.description}</p>` : ''}
                                       </div>
                                     `).join('')}
                                   </div>
-                                </div>` : ''}
+                                </section>` : ''}
                               </div>
                             `;
 
                             // Append the hidden div to the document
                             document.body.appendChild(hiddenDiv);
 
-                            // Download the resume
-                            handleDownloadPDF(`temp-resume-${resume.id}`);
-
-                            // Remove the hidden div after a delay
-                            setTimeout(() => {
+                            try {
+                              // Use our centralized export utility
+                              await exportResumeToPDF(hiddenDiv, {
+                                filename: `${resume.name}_${new Date().toISOString().split('T')[0]}.pdf`,
+                              });
+                            } finally {
+                              // Always remove the hidden div when done
                               document.body.removeChild(hiddenDiv);
-                            }, 2000);
+                            }
                           }}
                         >
                           <Download className="h-4 w-4" />
