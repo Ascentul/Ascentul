@@ -433,6 +433,11 @@ function App() {
             <CoverLetter />
           </CareerRoute>
         </Route>
+        <Route path="/cover-letters">
+          <CareerRoute>
+            <CoverLetter />
+          </CareerRoute>
+        </Route>
         <Route path="/apply">
           <CareerRoute>
             <Apply />

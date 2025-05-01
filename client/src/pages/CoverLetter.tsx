@@ -604,42 +604,30 @@ export default function CoverLetter() {
               ))}
             </motion.div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center max-w-xl mx-auto">
-              <div className="w-16 h-16 mb-6 rounded-full bg-slate-100 flex items-center justify-center">
-                <svg
-                  className="h-8 w-8 text-primary/70"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                  <line x1="10" y1="9" x2="8" y2="9" />
-                </svg>
+            <motion.div 
+              className="text-center py-16 px-6 bg-white rounded-lg shadow-sm border border-gray-100"
+              variants={fadeIn}
+            >
+              <div className="bg-[#f4f4f4] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FileText className="h-10 w-10 text-primary/60" />
               </div>
-              <h2 className="text-2xl font-bold mb-3">You haven't created any cover letters yet</h2>
-              <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                Create your first professional cover letter to showcase your qualifications 
+              <h3 className="text-2xl font-medium mb-3">You haven't created any cover letters yet</h3>
+              <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+                Create your first professional cover letter to showcase your qualifications
                 and experience to potential employers.
               </p>
-              <Button
-                className="h-12 px-6 text-base"
-                size="lg"
+              <Button 
                 onClick={() => {
                   setSelectedLetter(null);
                   setIsAddLetterOpen(true);
                 }}
+                size="lg" 
+                className="shadow-sm hover:shadow-md transition-all"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Create First Cover Letter
               </Button>
-            </div>
+            </motion.div>
           )}
         </TabsContent>
 
