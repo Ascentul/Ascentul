@@ -1261,90 +1261,91 @@ export default function Resume() {
           </DialogHeader>
 
           {generatedResume && (
-            <div id="generated-resume" className="bg-white p-6 border rounded-md">
-              <div className="mb-6 border-b pb-4">
-                <h2 className="text-2xl font-bold text-center">
-                  {generatedResume.personalInfo?.fullName || 'Your Name'}
-                </h2>
-                <div className="flex flex-wrap justify-center gap-3 mt-2 text-sm text-neutral-600">
-                  {generatedResume.personalInfo?.email && (
-                    <span>{generatedResume.personalInfo.email}</span>
-                  )}
-                  {generatedResume.personalInfo?.phone && (
-                    <span>| {generatedResume.personalInfo.phone}</span>
-                  )}
-                  {generatedResume.personalInfo?.location && (
-                    <span>| {generatedResume.personalInfo.location}</span>
-                  )}
-                </div>
+            <div id="generated-resume" className="resume-template resume-export-container">
+              <div className="bg-white p-8 max-w-[8.5in] mx-auto resume-content">
+                {/* Header */}
+                <header className="mb-6 pb-4 border-b border-neutral-200">
+                  <h1 className="text-2xl font-bold text-center text-neutral-900">
+                    {generatedResume.personalInfo?.fullName || 'Your Name'}
+                  </h1>
+                  <div className="flex flex-wrap justify-center gap-x-4 mt-2 text-sm text-neutral-600">
+                    {generatedResume.personalInfo?.email && <span>{generatedResume.personalInfo.email}</span>}
+                    {generatedResume.personalInfo?.phone && <span>{generatedResume.personalInfo.phone}</span>}
+                    {generatedResume.personalInfo?.location && <span>{generatedResume.personalInfo.location}</span>}
+                  </div>
+                </header>
+
+                {/* Summary Section */}
+                {generatedResume.summary && (
+                  <section className="mb-6 resume-section">
+                    <h2 className="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Professional Summary</h2>
+                    <p className="text-sm leading-relaxed">{generatedResume.summary}</p>
+                  </section>
+                )}
+
+                {/* Skills Section */}
+                {generatedResume.skills && generatedResume.skills.length > 0 && (
+                  <section className="mb-6 resume-section">
+                    <h2 className="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Skills</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {generatedResume.skills.map((skill: string, index: number) => (
+                        <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Experience Section */}
+                {generatedResume.experience && generatedResume.experience.length > 0 && (
+                  <section className="mb-6 resume-section">
+                    <h2 className="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Experience</h2>
+                    <div className="space-y-4">
+                      {generatedResume.experience.map((exp: any, index: number) => (
+                        <div key={index} className="job-item">
+                          <div className="flex justify-between items-baseline">
+                            <h3 className="font-medium text-neutral-900">{exp.position}</h3>
+                            <div className="text-sm text-neutral-600">
+                              {exp.startDate} - {exp.currentJob ? 'Present' : exp.endDate}
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium text-primary mb-1">{exp.company}</div>
+                          {exp.description && <p className="text-sm mt-1 leading-relaxed">{exp.description}</p>}
+                          {exp.achievements && exp.achievements.length > 0 && (
+                            <ul className="list-disc pl-5 mt-2 space-y-1 achievements">
+                              {exp.achievements.map((achievement: string, idx: number) => (
+                                <li key={idx} className="text-sm">{achievement}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Education Section */}
+                {generatedResume.education && generatedResume.education.length > 0 && (
+                  <section className="mb-6 resume-section">
+                    <h2 className="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Education</h2>
+                    <div className="space-y-4">
+                      {generatedResume.education.map((edu: any, index: number) => (
+                        <div key={index} className="education-item">
+                          <div className="flex justify-between items-baseline">
+                            <h3 className="font-medium text-neutral-900">{edu.degree}{edu.field ? ` in ${edu.field}` : ''}</h3>
+                            <div className="text-sm text-neutral-600">
+                              {edu.startDate} - {edu.endDate || 'Present'}
+                            </div>
+                          </div>
+                          <div className="text-sm font-medium text-primary mb-1">{edu.institution}</div>
+                          {edu.description && <p className="text-sm mt-1 leading-relaxed">{edu.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
-
-              {generatedResume.summary && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
-                  <p className="text-sm">{generatedResume.summary}</p>
-                </div>
-              )}
-
-              {generatedResume.skills && generatedResume.skills.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {generatedResume.skills.map((skill: string, index: number) => (
-                      <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded text-sm">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {generatedResume.experience && generatedResume.experience.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
-                  <div className="space-y-4">
-                    {generatedResume.experience.map((exp: any, index: number) => (
-                      <div key={index}>
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">{exp.position}</h4>
-                          <div className="text-sm text-neutral-600">
-                            {exp.startDate} - {exp.currentJob ? 'Present' : exp.endDate}
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium text-primary">{exp.company}</div>
-                        {exp.description && <p className="text-sm mt-2">{exp.description}</p>}
-                        {exp.achievements && exp.achievements.length > 0 && (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {exp.achievements.map((achievement: string, idx: number) => (
-                              <li key={idx} className="text-sm">{achievement}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {generatedResume.education && generatedResume.education.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
-                  <div className="space-y-4">
-                    {generatedResume.education.map((edu: any, index: number) => (
-                      <div key={index}>
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">{edu.degree}{edu.field ? ` in ${edu.field}` : ''}</h4>
-                          <div className="text-sm text-neutral-600">
-                            {edu.startDate} - {edu.endDate || 'Present'}
-                          </div>
-                        </div>
-                        <div className="text-sm font-medium text-primary">{edu.institution}</div>
-                        {edu.description && <p className="text-sm mt-2">{edu.description}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
