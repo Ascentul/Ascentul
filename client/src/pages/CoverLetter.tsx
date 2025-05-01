@@ -261,31 +261,79 @@ export default function CoverLetter() {
     return coverLetters;
   };
 
+  // Helper function to clean AI output by removing meta commentary
+  const cleanAIOutput = (text: string): string => {
+    // Check for separator like "---" and cut content after it
+    const cutoff = text.indexOf('---');
+    if (cutoff !== -1) return text.slice(0, cutoff).trim();
+
+    // Filter out lines with common AI meta-commentary
+    const lines = text.split('\n');
+    const filteredLines = lines.filter(line => {
+      const lowerLine = line.toLowerCase();
+      return !lowerLine.startsWith('this cover letter') &&
+             !lowerLine.startsWith('overall') &&
+             !lowerLine.startsWith('the above text') &&
+             !lowerLine.includes('demonstrates your qualifications') &&
+             !lowerLine.includes('effectively showcases') &&
+             !lowerLine.includes('feel free to customize');
+    });
+    return filteredLines.join('\n').trim();
+  };
+
   // Helper function to replace placeholder tags with user information
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
     
+    // Validate field length for proper fallbacks
+    const nameToDisplay = user.name && user.name.length >= 2 ? user.name : '[Your Name]';
+    const emailToDisplay = user.email && user.email.length >= 5 ? user.email : '[Email Address]';
+    // We'll use a default value since phone may not be in the user object
+    const phoneToDisplay = '[Phone Number]';
+    const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
+    
     return text
-      .replace(/\[Your Name\]/g, user.name || '[Your Name]')
-      .replace(/\[your name\]/g, user.name || '[your name]')
-      .replace(/\[YOUR NAME\]/g, user.name || '[YOUR NAME]')
-      .replace(/\[Your Email\]/g, user.email || '[Your Email]')
-      .replace(/\[your email\]/g, user.email || '[your email]')
-      .replace(/\[YOUR EMAIL\]/g, user.email || '[YOUR EMAIL]')
-      .replace(/\[Your Location\]/g, user.location || '[Your Location]')
-      .replace(/\[your location\]/g, user.location || '[your location]')
-      .replace(/\[YOUR LOCATION\]/g, user.location || '[YOUR LOCATION]');
+      // Name replacements
+      .replace(/\[Your Name\]/g, nameToDisplay)
+      .replace(/\[your name\]/g, nameToDisplay.toLowerCase())
+      .replace(/\[YOUR NAME\]/g, nameToDisplay.toUpperCase())
+      
+      // Email replacements
+      .replace(/\[Your Email\]/g, emailToDisplay)
+      .replace(/\[your email\]/g, emailToDisplay.toLowerCase())
+      .replace(/\[YOUR EMAIL\]/g, emailToDisplay.toUpperCase())
+      .replace(/\[Email Address\]/g, emailToDisplay)
+      .replace(/\[email address\]/g, emailToDisplay.toLowerCase())
+      .replace(/\[EMAIL ADDRESS\]/g, emailToDisplay.toUpperCase())
+      
+      // Phone replacements
+      .replace(/\[Your Phone\]/g, phoneToDisplay)
+      .replace(/\[your phone\]/g, phoneToDisplay.toLowerCase())
+      .replace(/\[YOUR PHONE\]/g, phoneToDisplay.toUpperCase())
+      .replace(/\[Phone Number\]/g, phoneToDisplay)
+      .replace(/\[phone number\]/g, phoneToDisplay.toLowerCase())
+      .replace(/\[PHONE NUMBER\]/g, phoneToDisplay.toUpperCase())
+      
+      // Location/Address replacements
+      .replace(/\[Your Location\]/g, locationToDisplay)
+      .replace(/\[your location\]/g, locationToDisplay.toLowerCase())
+      .replace(/\[YOUR LOCATION\]/g, locationToDisplay.toUpperCase())
+      .replace(/\[Your Address\]/g, locationToDisplay)
+      .replace(/\[your address\]/g, locationToDisplay.toLowerCase())
+      .replace(/\[YOUR ADDRESS\]/g, locationToDisplay.toUpperCase());
   };
 
   // Function to copy content to clipboard
   const handleCopyToClipboard = () => {
-    const processedContent = replaceUserPlaceholders(generatedContent);
+    // Process content: clean AI commentary and replace user placeholders
+    const processedContent = replaceUserPlaceholders(cleanAIOutput(generatedContent));
+    
     navigator.clipboard.writeText(processedContent)
       .then(() => {
         setCopySuccess(true);
         toast({
-          title: 'Content copied',
-          description: 'The cover letter has been copied to your clipboard',
+          title: '✅ Copied to clipboard',
+          description: 'The cover letter content has been copied',
         });
         // Reset copy success after 3 seconds
         setTimeout(() => setCopySuccess(false), 3000);
@@ -298,6 +346,12 @@ export default function CoverLetter() {
         });
         console.error('Copy failed:', error);
       });
+      
+    // Create an element to scroll to the generated content to provide feedback
+    const contentElement = document.getElementById('generatedContent');
+    if (contentElement) {
+      contentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   const generateCoverLetter = () => {
@@ -867,16 +921,20 @@ export default function CoverLetter() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <div className="relative">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <div 
                         className="p-4 bg-primary/5 rounded-lg border border-primary/10 whitespace-pre-wrap min-h-[200px] max-h-[400px] overflow-y-auto" 
                         id="generatedContent"
                       >
-                        {/* Process the content to replace placeholders with user data if available */}
+                        {/* Process the content to replace placeholders with user data if available and clean AI commentary */}
                         {user ? (
-                          <>{replaceUserPlaceholders(generatedContent)}</>
+                          <>{replaceUserPlaceholders(cleanAIOutput(generatedContent))}</>
                         ) : (
-                          <>{generatedContent.split(/(\[.*?\])/).map((part, index) => {
+                          <>{cleanAIOutput(generatedContent).split(/(\[.*?\])/).map((part, index) => {
                             // Check if this part is a placeholder (surrounded by brackets)
                             const isPlaceholder = /^\[.*\]$/.test(part);
                             return isPlaceholder ? (
@@ -889,27 +947,13 @@ export default function CoverLetter() {
                           })}</>
                         )}
                       </div>
-                      
-                      {/* Copy button in the corner */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 p-1 h-8 w-8 rounded-full bg-white shadow-sm"
-                        onClick={handleCopyToClipboard}
-                        title="Copy to clipboard"
-                      >
-                        {copySuccess ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                    </motion.div>
                     
-                    {/* Fixed button bar at the bottom */}
-                    <div className="flex justify-between sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
+                    {/* Fixed button bar at the bottom with 3 buttons: Reset, Copy, Save */}
+                    <div className="grid grid-cols-3 gap-2 sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
                       <Button 
                         variant="outline" 
+                        className="col-span-1"
                         onClick={() => {
                           setGeneratedContent('');
                           setGenerationTimestamp(null);
@@ -918,9 +962,32 @@ export default function CoverLetter() {
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Reset
                       </Button>
-                      <Button onClick={handleSaveGenerated} disabled={!generatedContent}>
+                      
+                      <Button 
+                        variant="outline"
+                        className="col-span-1"
+                        onClick={handleCopyToClipboard}
+                      >
+                        {copySuccess ? (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleSaveGenerated} 
+                        disabled={!generatedContent}
+                        className="col-span-1"
+                      >
                         <UploadCloud className="mr-2 h-4 w-4" />
-                        Save as Cover Letter
+                        Save Letter
                       </Button>
                     </div>
                   </div>
