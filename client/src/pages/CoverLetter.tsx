@@ -937,8 +937,8 @@ export default function CoverLetter() {
                       ) : (
                         <>
                           <BarChart4 className="h-4 w-4 mr-2" />
-                          {!analyzeJobDescription.trim() ? "Add Job Description" : 
-                           !analyzeCoverLetterText.trim() ? "Add Cover Letter" : 
+                          {!analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() ? 
+                           "Analyze Cover Letter" : 
                            "Analyze Cover Letter"}
                         </>
                       )}
@@ -952,10 +952,16 @@ export default function CoverLetter() {
             {analysisResult ? (
               <Card className="overflow-hidden border-slate-200">
                 <CardContent className="pt-6">
-                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                    <BarChart4 className="h-5 w-5 mr-2" />
-                    AI Analysis Results
-                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
+                    </h3>
+                    <span className="text-xs text-neutral-500 flex items-center">
+                      <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                      Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  </div>
                   <div className="space-y-5">
                     <div className="grid grid-cols-4 gap-3">
                       {/* Score cards are styled with dynamic classes based on score */}
@@ -1116,10 +1122,12 @@ export default function CoverLetter() {
             ) : analyzeCoverLetterMutation.isPending ? (
               <Card className="overflow-hidden border-slate-200">
                 <CardContent className="pt-6">
-                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                    <BarChart4 className="h-5 w-5 mr-2" />
-                    AI Analysis Results
-                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
+                    </h3>
+                  </div>
                   
                   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                     <div className="w-16 h-16 mb-6 flex items-center justify-center">
@@ -1131,7 +1139,7 @@ export default function CoverLetter() {
                     </p>
                     
                     <p className="text-neutral-500 mb-6">
-                      This may take a few seconds.
+                      This will take just a few seconds.
                     </p>
                   </div>
                 </CardContent>
