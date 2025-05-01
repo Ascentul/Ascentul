@@ -98,7 +98,7 @@ app.use((req, res, next) => {
 
   // For Replit, we need to detect the correct port
   // Replit sets various environment variables we can use
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 8080; // Use port 8080 as an alternative
   const HOST = "0.0.0.0"; // Always bind to all network interfaces for Replit
   
   console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`);
@@ -140,26 +140,9 @@ app.use((req, res, next) => {
       
       if (err.code === 'EADDRINUSE') {
         console.error(`Port ${PORT} is already in use. Try stopping other servers.`);
-        
-        // Try alternative port in development
-        if (process.env.NODE_ENV !== 'production') {
-          const ALT_PORT = 5000;
-          console.log(`⚠️ Attempting to use alternative port ${ALT_PORT}...`);
-          
-          server.listen({
-            port: ALT_PORT,
-            host: HOST,
-          }, () => {
-            console.log(`✅ SERVER STARTED SUCCESSFULLY on alternative port: http://${HOST}:${ALT_PORT}`);
-            log(`✅ Server running at http://${HOST}:${ALT_PORT}`);
-            log(`🌐 You can access the app at http://localhost:${ALT_PORT}`);
-          }).on('error', (altErr) => {
-            console.error('❌ ALTERNATIVE PORT FAILED:', altErr.message);
-            process.exit(1);
-          });
-          
-          return; // Don't exit if trying alternative port
-        }
+        console.error('❌ PORT conflict detected. Exiting.'); 
+        // For Replit compatibility, we need a clean server restart
+        process.exit(1); // Force exit to restart the process
       }
       
       process.exit(1); // Force exit on error

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Switch, Route, useLocation, Link } from "wouter";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
@@ -181,6 +181,21 @@ function App() {
   const isSignInRoute = location === "/sign-in";
   const isSignUpRoute = location === "/sign-up";
   const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
+  
+  // Load the html2pdf.js library for PDF exports
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+    script.defer = true;
+    document.body.appendChild(script);
+    
+    return () => {
+      // Clean up the script when component unmounts
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
 
   // Always show public pages at public routes, regardless of authentication
   const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test"].includes(location);

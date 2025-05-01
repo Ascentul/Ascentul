@@ -40,17 +40,18 @@ export function PublicLayout({ children }: PublicLayoutProps) {
             
             <nav className="hidden md:flex ml-10 space-x-1">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href} onClick={() => window.scrollTo(0, 0)}>
-                  <a
-                    className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      location === item.href
-                        ? "text-primary bg-primary/5"
-                        : "text-foreground/80 hover:text-primary hover:bg-primary/5"
-                    )}
-                  >
-                    {item.label}
-                  </a>
+                <Link 
+                  key={item.href} 
+                  href={item.href} 
+                  onClick={() => window.scrollTo(0, 0)}
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    location === item.href
+                      ? "text-primary bg-primary/5"
+                      : "text-foreground/80 hover:text-primary hover:bg-primary/5"
+                  )}
+                >
+                  {item.label}
                 </Link>
               ))}
             </nav>
@@ -90,21 +91,21 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           <div className="md:hidden py-2 px-4 border-t border-border">
             <nav className="flex flex-col space-y-3 pb-3">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <a
-                    className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium",
-                      location === item.href
-                        ? "text-primary bg-primary/5"
-                        : "text-foreground/80 hover:text-primary"
-                    )}
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      window.scrollTo(0, 0);
-                    }}
-                  >
-                    {item.label}
-                  </a>
+                <Link 
+                  key={item.href} 
+                  href={item.href}
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium",
+                    location === item.href
+                      ? "text-primary bg-primary/5"
+                      : "text-foreground/80 hover:text-primary"
+                  )}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    window.scrollTo(0, 0);
+                  }}
+                >
+                  {item.label}
                 </Link>
               ))}
             </nav>
@@ -168,13 +169,21 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <h3 className="font-medium mb-4">Product</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/solutions" onClick={() => window.scrollTo(0, 0)}>
-                    <a className="text-sm text-muted-foreground hover:text-primary">Solutions</a>
+                  <Link 
+                    href="/solutions" 
+                    onClick={() => window.scrollTo(0, 0)}
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Solutions
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" onClick={() => window.scrollTo(0, 0)}>
-                    <a className="text-sm text-muted-foreground hover:text-primary">Pricing</a>
+                  <Link 
+                    href="/pricing" 
+                    onClick={() => window.scrollTo(0, 0)}
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Pricing
                   </Link>
                 </li>
                 <li>
@@ -187,8 +196,12 @@ export function PublicLayout({ children }: PublicLayoutProps) {
               <h3 className="font-medium mb-4">Company</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/who-we-serve" onClick={() => window.scrollTo(0, 0)}>
-                    <a className="text-sm text-muted-foreground hover:text-primary">Who We Serve</a>
+                  <Link 
+                    href="/who-we-serve" 
+                    onClick={() => window.scrollTo(0, 0)}
+                    className="text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Who We Serve
                   </Link>
                 </li>
                 <li>
