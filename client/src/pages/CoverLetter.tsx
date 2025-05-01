@@ -295,8 +295,17 @@ export default function CoverLetter() {
     return filteredLines.join('\n').trim();
   };
   
-  // Fixed PDF export that directly builds a PDF from text content without relying on HTML/CSS rendering
+  // This function has been moved to a utility file, we're keeping it here for backwards compatibility
+  // with other parts of the code
   const directPdfExport = (coverLetter: any) => {
+    // Use our new standalone export function
+    const { exportCoverLetterToPDF } = require('@/utils/exportPDF');
+    
+    // Call the utility directly
+    exportCoverLetterToPDF(coverLetter);
+    
+    // The original implementation has been replaced by the utility, 
+    // but we're keeping this function as a wrapper for existing calls
     console.log('Starting improved PDF export for cover letter:', coverLetter);
     
     try {
@@ -534,10 +543,13 @@ export default function CoverLetter() {
 
   // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
+    // Import our simplified export utility
+    const { exportCoverLetterToPDF } = require('@/utils/exportPDF');
+    
     // For preview letter case - use our new direct method
     if (elementId.startsWith('previewLetter-') && previewLetter) {
-      console.log('Using direct PDF export for preview letter');
-      directPdfExport(previewLetter);
+      console.log('Using simplified PDF export for preview letter');
+      exportCoverLetterToPDF(previewLetter);
       return;
     }
     
