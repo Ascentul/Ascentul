@@ -93,22 +93,108 @@ export default function ResumePreview({
       const clonedTemplate = templateElement.cloneNode(true) as HTMLElement;
       clonedTemplate.id = templateId;
       
+      // Make sure all styles are preserved for correct PDF rendering
+      const style = document.createElement('style');
+      style.textContent = `
+        #${templateId} {
+          width: 8.5in !important;
+          height: auto !important;
+          background-color: white !important;
+          color: black !important;
+          font-family: Arial, sans-serif !important;
+          box-sizing: border-box !important;
+          transform: none !important;
+          max-width: 100% !important;
+          padding: 0.5in !important;
+          box-shadow: none !important;
+          border: none !important;
+          display: block !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+        
+        #${templateId} * {
+          visibility: visible !important;
+          color-adjust: exact !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          position: relative !important;
+        }
+        
+        #${templateId} h1, #${templateId} h2, #${templateId} h3 {
+          color: inherit !important;
+          margin-top: 0.5em !important;
+          margin-bottom: 0.5em !important;
+        }
+        
+        #${templateId} section, #${templateId} .section {
+          margin-bottom: 1em !important;
+          page-break-inside: avoid !important;
+        }
+      `;
+      
       // Create a container for the cloned template
       const container = document.createElement('div');
       container.style.position = 'absolute';
       container.style.left = '-9999px';
       container.style.top = '0';
+      container.appendChild(style);
       container.appendChild(clonedTemplate);
       document.body.appendChild(container);
       
-      // Use the exportResumeToPDF function
-      exportResumeToPDF(templateId, resume?.name || 'Resume');
-      
-      // Clean up the temporary element
+      // Use html2pdf for a more direct HTML-to-PDF conversion
       setTimeout(() => {
-        document.body.removeChild(container);
-        setIsLoading(false);
-      }, 1000);
+        try {
+          const filename = `${resume?.name || 'Resume'}_${new Date().toISOString().split('T')[0]}.pdf`;
+          
+          window.html2pdf()
+            .set({
+              margin: [0.5, 0.5, 0.5, 0.5],
+              filename: filename,
+              image: { type: 'jpeg', quality: 1.0 },
+              html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                letterRendering: true,
+                scrollX: 0,
+                scrollY: 0,
+              },
+              jsPDF: { 
+                unit: 'in', 
+                format: 'letter', 
+                orientation: 'portrait',
+                compress: true
+              }
+            })
+            .from(clonedTemplate)
+            .save()
+            .then(() => {
+              // Success message
+              toast({
+                title: "Success",
+                description: "Your resume has been downloaded as a PDF",
+              });
+              
+              // Cleanup
+              document.body.removeChild(container);
+              setIsLoading(false);
+            })
+            .catch((err: any) => {
+              console.error("PDF generation error:", err);
+              toast({
+                title: "Error",
+                description: "PDF generation failed. Try again.",
+                variant: "destructive"
+              });
+              document.body.removeChild(container);
+              setIsLoading(false);
+            });
+        } catch (innerError) {
+          console.error("Error in html2pdf process:", innerError);
+          document.body.removeChild(container);
+          setIsLoading(false);
+        }
+      }, 500); // Short delay to ensure DOM is ready
       
     } catch (error) {
       console.error("Error exporting resume to PDF:", error);
