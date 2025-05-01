@@ -5108,6 +5108,33 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Register debugging routes for file upload testing
   app.use('/debug', debugRouter);
   
+  // Add a simple health check endpoint
+  app.get('/api/health', (req, res) => {
+    console.log('Health check endpoint hit');
+    return res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      replId: process.env.REPL_ID || 'unknown'
+    });
+  });
+  
+  // Add a root route handler for API that provides information
+  app.get('/api', (req, res) => {
+    console.log('Root API endpoint hit');
+    return res.status(200).json({ 
+      message: 'Ascentul API is running',
+      routes: [
+        '/api/health',
+        '/api/career-data',
+        '/api/cover-letters',
+        '/api/resumes',
+        '/api/jobs'
+      ]
+    });
+  });
+  
   const httpServer = createServer(app);
+  console.log('HTTP server created for the API and frontend');
   return httpServer;
 }

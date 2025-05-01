@@ -96,14 +96,76 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 3000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = process.env.PORT || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`Server running at http://0.0.0.0:${port}`);
-  });
+  // For Replit, we need to detect the correct port
+  // Replit sets various environment variables we can use
+  const PORT = process.env.PORT || 3000;
+  const HOST = "0.0.0.0"; // Always bind to all network interfaces for Replit
+  
+  console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`);
+  console.log(`✨ Environment: NODE_ENV=${process.env.NODE_ENV || 'development'}`);
+  console.log(`✨ REPL_ID=${process.env.REPL_ID || 'not set'}, REPL_SLUG=${process.env.REPL_SLUG || 'not set'}`);
+  
+  try {
+    server.listen({
+      port: PORT,
+      host: HOST,
+    }, () => {
+      const serverUrl = `http://${HOST}:${PORT}`;
+      console.log(`✅ SERVER STARTED SUCCESSFULLY: ${serverUrl}`);
+      log(`✅ Server running at ${serverUrl}`);
+      
+      // On Replit, show the public URL
+      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        console.log(`🔗 Public URL: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      } else {
+        log(`🌐 You can access the app at http://localhost:${PORT}`);
+      }
+      
+      // Output info about available routes to help with debugging
+      console.log("\n📡 API ROUTES AVAILABLE:");
+      console.log("- /api                    (API info)");
+      console.log("- /api/health             (Server health check)");
+      console.log("- /api/career-data        (Career profile data)");
+      console.log("- /api/cover-letters      (Cover letter management)");
+      console.log("- /api/resumes            (Resume management)");
+      console.log("- /api/jobs               (Job listings)");
+      
+      // Check if frontend dev server is correctly set up
+      console.log("\n🔍 Server configuration:");
+      console.log(`- Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`- Using Vite dev server: ${app.get("env") === "development" ? "Yes" : "No"}`);
+      console.log(`- Static files path: ${app.get("env") !== "development" ? path.resolve(__dirname, "public") : "Using Vite"}`);
+    }).on('error', (err: NodeJS.ErrnoException) => {
+      console.error('❌ SERVER ERROR:', err.message);
+      
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Try stopping other servers.`);
+        
+        // Try alternative port in development
+        if (process.env.NODE_ENV !== 'production') {
+          const ALT_PORT = 5000;
+          console.log(`⚠️ Attempting to use alternative port ${ALT_PORT}...`);
+          
+          server.listen({
+            port: ALT_PORT,
+            host: HOST,
+          }, () => {
+            console.log(`✅ SERVER STARTED SUCCESSFULLY on alternative port: http://${HOST}:${ALT_PORT}`);
+            log(`✅ Server running at http://${HOST}:${ALT_PORT}`);
+            log(`🌐 You can access the app at http://localhost:${ALT_PORT}`);
+          }).on('error', (altErr) => {
+            console.error('❌ ALTERNATIVE PORT FAILED:', altErr.message);
+            process.exit(1);
+          });
+          
+          return; // Don't exit if trying alternative port
+        }
+      }
+      
+      process.exit(1); // Force exit on error
+    });
+  } catch (err) {
+    console.error('❌ CRITICAL SERVER ERROR:', (err as Error).message);
+    process.exit(1); // Force exit on error
+  }
 })();
