@@ -13,7 +13,9 @@ import {
   Sparkles, 
   BarChart4, 
   UploadCloud, 
-  FileUp
+  FileUp,
+  Loader2,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -242,7 +244,7 @@ export default function CoverLetter() {
   };
 
   const filteredLetters = () => {
-    if (!coverLetters) return [];
+    if (!coverLetters || !Array.isArray(coverLetters)) return [];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -478,7 +480,7 @@ export default function CoverLetter() {
       <Tabs defaultValue="letters" className="space-y-4">
         <TabsList className="mb-4">
           <TabsTrigger value="letters">
-            My Cover Letters {coverLetters && coverLetters.length > 0 && `(${coverLetters.length})`}
+            My Cover Letters {Array.isArray(coverLetters) && coverLetters.length > 0 && `(${coverLetters.length})`}
           </TabsTrigger>
           <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
           <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
@@ -516,7 +518,7 @@ export default function CoverLetter() {
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
-          ) : coverLetters && coverLetters.length > 0 ? (
+          ) : Array.isArray(coverLetters) && coverLetters.length > 0 ? (
             <motion.div 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 cover-letter-grid"
               variants={staggeredContainer}
@@ -529,56 +531,28 @@ export default function CoverLetter() {
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}
                 >
-                  <Card 
-                    className="overflow-hidden group flex flex-col cover-letter-card border border-slate-200 bg-white p-0 cursor-pointer" 
-                    style={{ 
-                      minHeight: '170px', 
-                      borderRadius: '12px',
-                      padding: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      height: '100%',
-                      overflow: 'hidden',
-                      maxWidth: '100%'
-                    }}
-                  >
-                    <div className="flex flex-col flex-grow-0" style={{ position: 'relative' }}>
-                      <div className="bg-[#f4f6ff] p-4 pb-2 card-header" 
-                           style={{ 
-                             display: 'flex',
-                             borderBottomLeftRadius: 0,
-                             borderBottomRightRadius: 0,
-                             overflow: 'visible',
-                             minHeight: '96px'
-                           }}>
-                        <Mail className="h-10 w-10 text-primary mr-5 flex-shrink-0" />
-                        <div className="flex flex-col w-full pr-2">
-                            <h3 className="font-semibold text-[16px] m-0 text-gray-900 leading-[1.4] mb-1 break-words"
-                                style={{ 
-                                  whiteSpace: 'normal',
-                                  overflowWrap: 'break-word',
-                                  wordBreak: 'break-word',
-                                  hyphens: 'auto',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: '2',
-                                  WebkitBoxOrient: 'vertical'
-                                }}>{letter.name}</h3>
-                            <p className="text-[13px] text-gray-600 m-0 mb-1">
-                              {letter.template.charAt(0).toUpperCase() + letter.template.slice(1)} Template
+                  <Card className="overflow-hidden h-full flex flex-col cover-letter-card">
+                    <CardContent className="p-0 flex-1">
+                      <div className="bg-primary/5 p-6 flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <Mail className="h-10 w-10 text-primary mr-4" />
+                          <div>
+                            <h3 className="font-medium">{letter.name}</h3>
+                            <p className="text-xs text-neutral-500 mt-1">
+                              Created: {new Date(letter.createdAt).toLocaleDateString()}
                             </p>
-                            <p className="text-xs text-gray-500 m-0 mt-auto">
-                              Last updated: {new Date(letter.updatedAt).toLocaleDateString()}
-                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <CardFooter className="px-4 pt-2 pb-4 flex justify-between card-footer border-t border-slate-200" 
-                              style={{ 
-                                marginTop: 0, 
-                                borderTopLeftRadius: 0, 
-                                borderTopRightRadius: 0 
-                              }}>
+                      <div className="p-5 text-sm text-neutral-600 line-clamp-3">
+                        {letter.content.body.length > 150 ? (
+                          <>{letter.content.body.substring(0, 150)}...</>
+                        ) : (
+                          <>{letter.content.body}</>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="p-4 flex justify-between border-t bg-white mt-auto">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -618,71 +592,8 @@ export default function CoverLetter() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-primary hover:text-primary/80"
-                          onClick={() => {
-                            // Create a hidden div for the cover letter content
-                            const hiddenDiv = document.createElement('div');
-                            hiddenDiv.id = `temp-letter-${letter.id}`;
-                            hiddenDiv.style.position = 'absolute';
-                            hiddenDiv.style.left = '-9999px';
-                            hiddenDiv.style.top = '-9999px';
-
-                            // Add cover letter content to the hidden div
-                            hiddenDiv.innerHTML = `
-                              <div class="bg-white p-6">
-                                <!-- Header with contact info -->
-                                <div class="mb-6">
-                                  <h2 class="text-xl font-bold">
-                                    ${letter.content.header.fullName}
-                                  </h2>
-                                  <div class="text-sm text-neutral-600">
-                                    ${letter.content.header.location ? `<div>${letter.content.header.location}</div>` : ''}
-                                    ${letter.content.header.phone ? `<div>${letter.content.header.phone}</div>` : ''}
-                                    ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
-                                  </div>
-                                </div>
-
-                                <!-- Date -->
-                                <div class="mb-6">
-                                  <p>${letter.content.header.date}</p>
-                                </div>
-
-                                <!-- Recipient -->
-                                <div class="mb-6">
-                                  ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
-                                  ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
-                                  ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
-                                  ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
-                                </div>
-
-                                <!-- Greeting -->
-                                <div class="mb-6">
-                                  <p>Dear ${letter.content.recipient.name || "Hiring Manager"},</p>
-                                </div>
-
-                                <!-- Body -->
-                                <div class="mb-6 whitespace-pre-line">
-                                  ${letter.content.body}
-                                </div>
-
-                                <!-- Closing -->
-                                <div>
-                                  <p>${letter.content.closing || "Sincerely,"}</p>
-                                  <p class="mt-6">${letter.content.header.fullName}</p>
-                                </div>
-                              </div>
-                            `;
-
-                            // Append the hidden div to the document
-                            document.body.appendChild(hiddenDiv);
-
-                            // Download the cover letter
-                            handleDownloadPDF(`temp-letter-${letter.id}`);
-
-                            // Remove the hidden div after a delay
-                            setTimeout(() => {
-                              document.body.removeChild(hiddenDiv);
-                            }, 2000);
-                          }}
+                          onClick={() => handleDownloadPDF(`previewLetter-${letter.id}`)}
+                          title="Download as PDF"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -693,11 +604,34 @@ export default function CoverLetter() {
               ))}
             </motion.div>
           ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-              <Mail className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
-              <h3 className="text-xl font-medium mb-2">No Cover Letters Created Yet</h3>
-              <p className="text-neutral-500 mb-4">
-                Start by creating your first professional cover letter
+            <div className="flex flex-col items-center justify-center p-6 text-center bg-muted/10 rounded-lg border border-dashed border-muted">
+              <div className="w-12 h-12 mb-4 text-muted">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <path d="M16 2v4" />
+                  <path d="M8 2v4" />
+                  <path d="M3 10h18" />
+                  <path d="M8 14h.01" />
+                  <path d="M12 14h.01" />
+                  <path d="M16 14h.01" />
+                  <path d="M8 18h.01" />
+                  <path d="M12 18h.01" />
+                  <path d="M16 18h.01" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium">No cover letters yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                You haven't created any cover letters. Get started by creating a new one.
               </p>
               <Button
                 onClick={() => {
@@ -706,87 +640,337 @@ export default function CoverLetter() {
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Create First Cover Letter
+                Create Cover Letter
               </Button>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="analyze" className="space-y-6">
+        <TabsContent value="suggestions" className="space-y-6">
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform"
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
+            {/* Input form */}
             <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
                 <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
                   <FileUp className="h-5 w-5 mr-2" />
-                  Upload & Analyze Cover Letter
+                  Generate Cover Letter Content
                 </h3>
                 <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Job Title</Label>
+                      <Input
+                        placeholder="e.g. Marketing Manager"
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Company Name</Label>
+                      <Input
+                        placeholder="e.g. Acme Inc."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center">
-                      <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
-                    </Label>
+                    <Label>Job Description <span className="text-red-500">*</span></Label>
                     <Textarea
                       placeholder="Paste the job description here..."
-                      value={analyzeJobDescription}
-                      onChange={(e) => setAnalyzeJobDescription(e.target.value)}
-                      className="min-h-[120px] border-slate-200"
-                      id="jobDescription"
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      className="min-h-[200px]"
                     />
+                    <p className="text-xs text-neutral-500">This is required for AI to generate tailored content.</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center">
-                      <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
-                    </Label>
-                    <Textarea
-                      placeholder="Paste your cover letter text here..."
-                      value={analyzeCoverLetterText}
-                      onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
-                      className="min-h-[200px] border-slate-200"
-                      id="coverLetterInput"
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button 
+                      className="w-full"
+                      onClick={generateCoverLetter}
+                      disabled={generateCoverLetterMutation.isPending}
+                    >
+                      {generateCoverLetterMutation.isPending ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Generate Full Letter
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="w-full"
+                      onClick={generateSuggestions}
+                      disabled={generateSuggestionsMutation.isPending}
+                    >
+                      {generateSuggestionsMutation.isPending ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Get Suggestions
+                        </>
+                      )}
+                    </Button>
                   </div>
-
-                  <Button 
-                    className="w-full" 
-                    onClick={handleAnalyzeCoverLetter}
-                    disabled={analyzeCoverLetterMutation.isPending}
-                    id="analyzeBtn"
-                  >
-                    {analyzeCoverLetterMutation.isPending ? (
-                      <>
-                        <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <BarChart4 className="mr-2 h-4 w-4" />
-                        Analyze Cover Letter
-                      </>
-                    )}
-                  </Button>
                 </div>
               </CardContent>
             </Card>
 
+            {/* Results */}
             <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                  <BarChart4 className="h-5 w-5 mr-2" />
-                  AI Analysis Results
+                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  AI-Generated Content
                 </h3>
-                {!analysisResult ? (
+                
+                {!generatedContent ? (
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
                     <Sparkles className="h-12 w-12 text-neutral-300 mb-3" />
                     <p className="text-neutral-500 max-w-xs">
-                      Submit your cover letter and job description to see AI-powered analysis and suggestions.
+                      Provide job details and click 'Generate' to create a tailored cover letter, or get writing suggestions.
                     </p>
                   </div>
                 ) : (
+                  <div className="space-y-5">
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 whitespace-pre-wrap" id="generatedContent">
+                      {generatedContent}
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setGeneratedContent('')}
+                      >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Reset
+                      </Button>
+                      <Button onClick={handleSaveGenerated} disabled={!generatedContent}>
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Save as Cover Letter
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="analyze" className="space-y-6">
+          <motion.div 
+            className="flex flex-col lg:flex-row gap-6 [&>*]:flex-1 will-change-opacity will-change-transform"
+            variants={subtleUp}
+            style={{ transform: 'translateZ(0)' }}
+          >
+            {/* Left column: Cover letter upload and job description */}
+            <Card className="overflow-hidden border-slate-200">
+              <CardContent className="pt-6">
+                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+                  <FileUp className="h-5 w-5 mr-2" />
+                  Analyze Your Cover Letter
+                </h3>
+                <div className="space-y-6">
+                  {/* Job Description input */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
+                      </div>
+                      {analyzeJobDescription.trim().length > 100 && (
+                        <span className="text-green-600 text-xs font-medium flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3 w-3 mr-1"
+                          >
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                          </svg>
+                          Complete
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAnalyzeJobDescription("We're hiring a marketing associate with strong writing and cross-functional collaboration skills. The ideal candidate has experience creating compelling content, managing social media campaigns, and analyzing performance metrics. You'll work with our creative team to develop marketing materials that align with our brand voice and drive customer engagement.")}
+                        className="h-6 text-xs text-primary"
+                      >
+                        Paste Example
+                      </Button>
+                    </Label>
+                    <Textarea
+                      placeholder="We're hiring a marketing associate with strong writing and cross-functional collaboration skills..."
+                      value={analyzeJobDescription}
+                      onChange={(e) => setAnalyzeJobDescription(e.target.value)}
+                      className={`min-h-[150px] resize-y border-2 ${
+                        analyzeJobDescription.trim().length > 100 ? 'border-green-200 focus:border-green-300' : 
+                        analyzeJobDescription.trim().length > 50 ? 'border-amber-200 focus:border-amber-300' : 
+                        analyzeJobDescription.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
+                        'border-primary/20 focus:border-primary/40'
+                      }`}
+                      id="jobDescription"
+                      disabled={analyzeCoverLetterMutation.isPending}
+                    />
+                    {analyzeJobDescription.trim().length > 0 && analyzeJobDescription.trim().length < 50 && (
+                      <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>
+                          <div className="font-medium mb-1">Job Description Too Short</div>
+                          <div className="text-xs">
+                            Please provide a more detailed job description (at least 50 characters) for accurate analysis.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cover Letter textarea */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
+                      </div>
+                      {analyzeCoverLetterText.trim().length > 200 && (
+                        <span className="text-green-600 text-xs font-medium flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3 w-3 mr-1"
+                          >
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                          </svg>
+                          Complete
+                        </span>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAnalyzeCoverLetterText("Dear Hiring Manager,\n\nI'm writing to apply for the Marketing Associate position at your company. With my background in content creation and digital marketing, I believe I would be a valuable addition to your team. I have experience managing social media campaigns, creating engaging content, and analyzing performance metrics to optimize marketing strategies.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my skills align with your needs.\n\nSincerely,\n[Your Name]")}
+                        className="h-6 text-xs text-primary"
+                      >
+                        Paste Example
+                      </Button>
+                    </Label>
+                    <Textarea
+                      placeholder="Dear [Hiring Manager], I'm writing to apply for the Marketing Associate position..."
+                      value={analyzeCoverLetterText}
+                      onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
+                      className={`min-h-[200px] resize-y border-2 ${
+                        analyzeCoverLetterText.trim().length > 200 ? 'border-green-200 focus:border-green-300' : 
+                        analyzeCoverLetterText.trim().length > 100 ? 'border-amber-200 focus:border-amber-300' : 
+                        analyzeCoverLetterText.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
+                        'border-primary/20 focus:border-primary/40'
+                      }`}
+                      id="coverLetterInput"
+                      disabled={analyzeCoverLetterMutation.isPending}
+                    />
+                    {analyzeCoverLetterText.trim().length > 0 && analyzeCoverLetterText.trim().length < 100 && (
+                      <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>
+                          <div className="font-medium mb-1">Cover Letter Too Short</div>
+                          <div className="text-xs">
+                            Please provide a more complete cover letter (at least 100 characters) for meaningful analysis.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Analyze button with tooltip */}
+                  <div className="relative">
+                    <Button 
+                      className="w-full relative transition-all duration-300" 
+                      onClick={handleAnalyzeCoverLetter}
+                      disabled={analyzeCoverLetterMutation.isPending || !analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() || 
+                               analyzeJobDescription.trim().length < 50 || analyzeCoverLetterText.trim().length < 100}
+                      variant={analyzeCoverLetterMutation.isPending ? "outline" : "default"}
+                      id="analyzeBtn"
+                      title="AI will assess how well your cover letter aligns with the job description and offer suggestions to improve clarity, tone, and relevance."
+                    >
+                      {analyzeCoverLetterMutation.isPending ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Analyzing Cover Letter...
+                        </>
+                      ) : (
+                        <>
+                          <BarChart4 className="h-4 w-4 mr-2" />
+                          {!analyzeJobDescription.trim() ? "Add Job Description" : 
+                           !analyzeCoverLetterText.trim() ? "Add Cover Letter" : 
+                           "Analyze Cover Letter"}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right column: Analysis results or loading state or instructions */}
+            {analysisResult ? (
+              <Card className="overflow-hidden border-slate-200">
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                    <BarChart4 className="h-5 w-5 mr-2" />
+                    AI Analysis Results
+                  </h3>
                   <div className="space-y-5">
                     <div className="grid grid-cols-4 gap-3">
                       {/* Score cards are styled with dynamic classes based on score */}
@@ -913,363 +1097,163 @@ export default function CoverLetter() {
                             const optimizedSection = document.getElementById('optimizedCoverLetterContent');
                             const toggleButton = document.getElementById('toggleOptimizedBtn');
                             if (optimizedSection && toggleButton) {
-                              const isHidden = optimizedSection.classList.contains('hidden');
-                              if (isHidden) {
+                              if (optimizedSection.classList.contains('hidden')) {
                                 optimizedSection.classList.remove('hidden');
-                                toggleButton.innerHTML = '<span class="mr-1">✕</span> Hide';
+                                toggleButton.textContent = 'Hide';
                               } else {
                                 optimizedSection.classList.add('hidden');
-                                toggleButton.innerHTML = '<span class="mr-1">👁️</span> Show';
+                                toggleButton.textContent = 'Show';
                               }
                             }
                           }}
                           id="toggleOptimizedBtn"
                         >
-                          <span className="mr-1">✕</span> Hide
+                          Hide
                         </Button>
                       </div>
-                      <div id="optimizedCoverLetterContent">
-                        <div className="bg-primary/5 p-4 rounded-lg max-h-[300px] overflow-y-auto border border-primary/10" id="optimizedCoverLetter">
-                          <p className="whitespace-pre-line text-sm">
-                            {analysisResult.optimizedCoverLetter}
-                          </p>
-                        </div>
-                        <div className="flex gap-2 mt-3">
-                          <Button 
-                            className="flex-1" 
-                            variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(analysisResult.optimizedCoverLetter);
-                              toast({
-                                title: "Copied to clipboard",
-                                description: "Optimized cover letter copied to clipboard",
-                              });
-                            }}
-                          >
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy
-                          </Button>
-                          <Button 
-                            className="flex-1" 
-                            variant="outline"
-                            onClick={() => {
-                              setAnalyzeCoverLetterText(analysisResult.optimizedCoverLetter);
-                              toast({
-                                title: "Replaced original",
-                                description: "Optimized version now in editor",
-                              });
-                            }}
-                          >
-                            <FileUp className="mr-2 h-4 w-4" />
-                            Replace Original
-                          </Button>
-                          <Button 
-                            className="flex-1" 
-                            onClick={handleSaveOptimizedCoverLetter}
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Save
-                          </Button>
-                        </div>
+                      <div className="p-3 bg-white/60 rounded-md border border-primary/20 text-sm whitespace-pre-wrap" id="optimizedCoverLetterContent">
+                        {analysisResult.optimizedCoverLetter}
+                      </div>
+                      <div className="flex justify-end mt-3">
+                        <Button 
+                          size="sm" 
+                          onClick={handleSaveOptimizedCoverLetter}
+                          title="Save this optimized version as a new cover letter"
+                        >
+                          <UploadCloud className="mr-2 h-3 w-3" />
+                          Save Optimized Version
+                        </Button>
                       </div>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-
-        <TabsContent value="suggestions">
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
-            variants={subtleUp}
-            style={{ transform: 'translateZ(0)' }}
-          >
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Optimize Your Cover Letter with AI</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Job Description <span className="text-red-500">*</span></Label>
-                    <Textarea
-                      placeholder="Paste the job description here..."
-                      value={jobDescription}
-                      onChange={(e) => setJobDescription(e.target.value)}
-                      className="min-h-[150px]"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Job Title <span className="text-neutral-400">(optional)</span></Label>
-                      <Input
-                        placeholder="e.g., Software Engineer"
-                        value={jobTitle}
-                        onChange={(e) => setJobTitle(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Company Name <span className="text-neutral-400">(optional)</span></Label>
-                      <Input
-                        placeholder="e.g., ABC Company"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <p className="text-sm text-neutral-500 mb-4">
-                      We've pulled your resume details (experience, education, skills) to tailor this cover letter for you.
-                    </p>
-                  </div>
-
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Button 
-                        className="w-full" 
-                        onClick={() => {
-                          if (!jobDescription) {
-                            toast({
-                              title: 'Missing Information',
-                              description: 'Please fill out the Job Description field to generate suggestions',
-                              variant: 'destructive',
-                            });
-                            return;
-                          }
-                          generateSuggestionsMutation.mutate();
-                        }}
-                        disabled={generateSuggestionsMutation.isPending}
-                        variant="outline"
-                      >
-                        {generateSuggestionsMutation.isPending ? (
-                          <>
-                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                            Getting suggestions...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="mr-2 h-4 w-4" />
-                            Get Suggestions
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        className="w-full" 
-                        onClick={() => {
-                          if (!jobDescription) {
-                            toast({
-                              title: 'Missing Information',
-                              description: 'Please provide a job description to generate a cover letter',
-                              variant: 'destructive',
-                            });
-                            return;
-                          }
-
-                          // Optional fields can be added if available
-                          generateCoverLetterMutation.mutate();
-                        }}
-                        disabled={generateCoverLetterMutation.isPending}
-                        variant="default"
-                      >
-                        {generateCoverLetterMutation.isPending ? (
-                          <>
-                            <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Generate Cover Letter
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Generate a full cover letter or just get writing suggestions — your call.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className={generatedContent ? 'block' : 'hidden'}>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold mb-0 text-primary/90 flex items-center" id="draftPreviewHeader">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Draft Preview
+                </CardContent>
+              </Card>
+            ) : analyzeCoverLetterMutation.isPending ? (
+              <Card className="overflow-hidden border-slate-200">
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                    <BarChart4 className="h-5 w-5 mr-2" />
+                    AI Analysis Results
                   </h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Create a dummy element to copy the text
-                      const dummy = document.createElement('textarea');
-                      dummy.value = generatedContent;
-                      document.body.appendChild(dummy);
-                      dummy.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(dummy);
-
-                      // Show toast
-                      toast({
-                        title: 'Copied!',
-                        description: 'Cover letter content copied to clipboard',
-                      });
-                    }}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy
-                  </Button>
-                </div>
-                <div className="border rounded-md p-5 mb-4 max-h-[400px] overflow-y-auto whitespace-pre-line bg-slate-50 shadow-sm" style={{ lineHeight: "1.6" }}>
-                  {generatedContent || 'Your generated cover letter will appear here.'}
-                </div>
-                <Button 
-                  onClick={handleSaveGenerated} 
-                  className="w-full"
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Save as Cover Letter
-                </Button>
-              </CardContent>
-            </Card>
+                  
+                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                    <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                    
+                    <p className="text-neutral-600 text-lg mb-2">
+                      Analyzing your cover letter...
+                    </p>
+                    
+                    <p className="text-neutral-500 mb-6">
+                      This may take a few seconds.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="overflow-hidden border-slate-200">
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                    <BarChart4 className="h-5 w-5 mr-2" />
+                    AI Analysis Results
+                  </h3>
+                  
+                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                    <div className="w-16 h-16 mb-6 text-neutral-200">
+                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    
+                    <p className="text-neutral-600 text-lg mb-2">
+                      Submit your cover letter and job description
+                    </p>
+                    
+                    <p className="text-neutral-500 mb-6">
+                      to see AI-powered analysis and suggestions.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Cover Letter Dialog */}
+      {/* Cover letter creation/edit dialog */}
       <Dialog open={isAddLetterOpen} onOpenChange={setIsAddLetterOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedLetter ? 'Edit Cover Letter' : 'Create Cover Letter'}</DialogTitle>
+            <DialogTitle>
+              {selectedLetter ? 'Edit Cover Letter' : 'Create New Cover Letter'}
+            </DialogTitle>
           </DialogHeader>
-          <CoverLetterForm 
-            coverLetter={selectedLetter}
-            onSuccess={() => {
-              setIsAddLetterOpen(false);
-            }}
-            onSubmit={async (data) => {
-              try {
-                const response = await fetch(
-                  selectedLetter ? `/api/cover-letters/${selectedLetter.id}` : '/api/cover-letters',
-                  {
-                    method: selectedLetter ? 'PUT' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                  }
-                );
-
-                if (!response.ok) {
-                  const errorData = await response.json();
-                  throw new Error(errorData.error || 'Failed to save cover letter');
-                }
-
-                await queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
-                setIsAddLetterOpen(false);
-
-                toast({
-                  title: `Cover Letter ${selectedLetter ? 'Updated' : 'Created'}`,
-                  description: `Your cover letter has been ${selectedLetter ? 'updated' : 'created'} successfully`,
-                });
-              } catch (error: any) {
-                toast({
-                  title: 'Error',
-                  description: `Failed to ${selectedLetter ? 'update' : 'create'} cover letter: ${error.message}`,
-                  variant: 'destructive',
-                });
-              }
-            }}
+          <CoverLetterForm
+            letter={selectedLetter}
+            onClose={() => setIsAddLetterOpen(false)}
           />
         </DialogContent>
       </Dialog>
 
-      {/* Preview Cover Letter Dialog */}
+      {/* Preview dialog */}
       {previewLetter && (
         <Dialog open={!!previewLetter} onOpenChange={() => setPreviewLetter(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{previewLetter.name}</DialogTitle>
+              <DialogTitle className="flex justify-between items-center">
+                <span>{previewLetter.name}</span>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleDownloadPDF(`previewLetter-${previewLetter.id}`)}
+                  title="Download as PDF"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
             </DialogHeader>
-
-            <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview">
+            <div 
+              className="space-y-6 p-4 bg-white" 
+              id={`previewLetter-${previewLetter.id}`}
+            >
               {/* Header with contact info */}
-              <div className="mb-6">
-                <h2 className="text-xl font-bold">
-                  {previewLetter.content.header.fullName || '[Your Full Name]'}
-                </h2>
-                <div className="text-sm text-neutral-600">
-                  {previewLetter.content.header.location && (
-                    <div>{previewLetter.content.header.location}</div>
-                  )}
-                  {previewLetter.content.header.phone && (
-                    <div>{previewLetter.content.header.phone}</div>
-                  )}
-                  {previewLetter.content.header.email && (
-                    <div>{previewLetter.content.header.email}</div>
-                  )}
+              <div className="text-center">
+                <h2 className="text-xl font-bold">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
+                <div className="text-sm space-x-2 text-neutral-600 mt-1 flex justify-center flex-wrap">
+                  {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
+                  {previewLetter.content.header.phone && <><span>|</span><span>{previewLetter.content.header.phone}</span></>}
+                  {previewLetter.content.header.location && <><span>|</span><span>{previewLetter.content.header.location}</span></>}
+                </div>
+                <div className="text-sm text-neutral-500 mt-1">
+                  {previewLetter.content.header.date || new Date().toLocaleDateString()}
                 </div>
               </div>
 
-              {/* Date */}
-              <div className="mb-6">
-                <p>{previewLetter.content.header.date || new Date().toLocaleDateString()}</p>
-              </div>
-
-              {/* Recipient */}
-              <div className="mb-6">
-                {previewLetter.content.recipient.name && (
-                  <p>{previewLetter.content.recipient.name}</p>
-                )}
-                {previewLetter.content.recipient.position && (
-                  <p>{previewLetter.content.recipient.position}</p>
-                )}
-                {previewLetter.content.recipient.company && (
-                  <p>{previewLetter.content.recipient.company}</p>
-                )}
-                {previewLetter.content.recipient.address && (
-                  <p>{previewLetter.content.recipient.address}</p>
-                )}
+              {/* Recipient Info */}
+              <div className="space-y-1">
+                {previewLetter.content.recipient.name && <p>{previewLetter.content.recipient.name}</p>}
+                {previewLetter.content.recipient.position && <p>{previewLetter.content.recipient.position}</p>}
+                {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
+                {previewLetter.content.recipient.address && <p>{previewLetter.content.recipient.address}</p>}
               </div>
 
               {/* Greeting */}
-              <div className="mb-6">
-                <p>Dear {previewLetter.content.recipient.name || "Hiring Manager"},</p>
-              </div>
+              <p>Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
 
-              {/* Body */}
-              <div className="mb-6 whitespace-pre-line">
+              {/* Body content */}
+              <div className="whitespace-pre-wrap">
                 {previewLetter.content.body}
               </div>
 
               {/* Closing */}
-              <div>
-                <p>{previewLetter.content.closing || "Sincerely,"}</p>
-                <p className="mt-6">{previewLetter.content.header.fullName || '[Your Name]'}</p>
+              <div className="space-y-4">
+                <p>{previewLetter.content.closing || 'Sincerely,'}</p>
+                <p>{previewLetter.content.header.fullName || '[Your Name]'}</p>
               </div>
-            </div>
-
-            <div className="flex justify-end mt-4">
-              <Button 
-                variant="outline" 
-                className="mr-2"
-                onClick={() => {
-                  setSelectedLetter(previewLetter);
-                  setPreviewLetter(null);
-                  setIsAddLetterOpen(true);
-                }}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button
-                onClick={() => handleDownloadPDF('cover-letter-preview')}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download PDF
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
