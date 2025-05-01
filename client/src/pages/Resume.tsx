@@ -68,6 +68,7 @@ export default function Resume() {
   const [extractionJobDescription, setExtractionJobDescription] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisResults, setAnalysisResults] = useState<ResumeAnalysisResult | null>(null);
+  const [isSavingResume, setIsSavingResume] = useState<boolean>(false);
   // Always make design studio accessible without a toggle
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1507,29 +1508,66 @@ export default function Resume() {
                 <Download className="mr-2 h-4 w-4" />
                 Download PDF
               </Button>
-              <Button onClick={() => {
-                // Set up a new resume using the generated content
-                const newResume = {
-                  name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
-                  template: 'modern',
-                  content: {
-                    personalInfo: generatedResume.personalInfo || {},
-                    summary: generatedResume.summary || '',
-                    skills: generatedResume.skills || [],
-                    experience: generatedResume.experience || [],
-                    education: generatedResume.education || [],
-                    projects: []
-                  }
-                };
+              <Button 
+                onClick={() => {
+                  // Set up a new resume using the generated content
+                  const newResume = {
+                    name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
+                    template: 'modern',
+                    content: {
+                      personalInfo: generatedResume.personalInfo || {},
+                      summary: generatedResume.summary || '',
+                      skills: generatedResume.skills || [],
+                      experience: generatedResume.experience || [],
+                      education: generatedResume.education || [],
+                      projects: []
+                    }
+                  };
 
-                // Close this dialog
-                setIsGeneratedResumeOpen(false);
+                  // Show saving state
+                  setIsSavingResume(true);
 
-                // Set selected resume to this new one and open the edit dialog
-                setSelectedResume(newResume);
-                setIsAddResumeOpen(true);
-              }}>
-                Save as Resume
+                  // Save the resume directly using the API
+                  apiRequest('POST', '/api/resumes', newResume)
+                    .then(() => {
+                      // Invalidate the resumes query to refresh the list
+                      queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+                      
+                      toast({
+                        title: 'Resume Saved',
+                        description: 'Your resume has been saved to My Resumes',
+                      });
+                      
+                      // Reset loading state and close the dialog
+                      setIsSavingResume(false);
+                      setIsGeneratedResumeOpen(false);
+                    })
+                    .catch((error) => {
+                      // Reset loading state
+                      setIsSavingResume(false);
+                      
+                      toast({
+                        title: 'Error',
+                        description: `Failed to save resume: ${error.message}`,
+                        variant: 'destructive',
+                      });
+                    });
+                }}
+                disabled={isSavingResume}
+              >
+                {isSavingResume ? (
+                  <>
+                    <span className="animate-spin mr-2">
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                    </span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save to My Resumes
+                  </>
+                )}
               </Button>
             </div>
           </div>
