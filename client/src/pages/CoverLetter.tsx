@@ -254,7 +254,7 @@ export default function CoverLetter() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return coverLetters.filter(
-        (letter: any) => letter.name.toLowerCase().includes(query)
+        (coverLetter: any) => coverLetter.name.toLowerCase().includes(query)
       );
     }
 
@@ -656,7 +656,7 @@ export default function CoverLetter() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setPreviewLetter(letter)}
+                        onClick={() => setPreviewLetter(coverLetter)}
                       >
                         Preview
                       </Button>
@@ -666,7 +666,7 @@ export default function CoverLetter() {
                           size="icon" 
                           className="h-8 w-8"
                           onClick={() => {
-                            setSelectedLetter(letter);
+                            setSelectedLetter(coverLetter);
                             setIsAddLetterOpen(true);
                           }}
                         >
@@ -676,7 +676,7 @@ export default function CoverLetter() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8"
-                          onClick={() => duplicateCoverLetterMutation.mutate(letter)}
+                          onClick={() => duplicateCoverLetterMutation.mutate(coverLetter)}
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -684,7 +684,7 @@ export default function CoverLetter() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteLetter(letter.id)}
+                          onClick={() => handleDeleteLetter(coverLetter.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -692,7 +692,7 @@ export default function CoverLetter() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-primary hover:text-primary/80"
-                          onClick={() => handleDownloadPDF(`previewLetter-${letter.id}`)}
+                          onClick={() => handleDownloadPDF(`previewLetter-${coverLetter.id}`)}
                           title="Download as PDF"
                         >
                           <Download className="h-4 w-4" />
