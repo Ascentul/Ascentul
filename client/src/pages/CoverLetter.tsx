@@ -530,90 +530,156 @@ export default function CoverLetter() {
       return;
     }
 
-    // Clone the element to modify it for PDF generation
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-    clonedElement.style.padding = '20px';
-    clonedElement.style.border = 'none';
+    // Create a temporary container for our formatted cover letter
+    const tempContainer = document.createElement('div');
+    tempContainer.id = 'coverLetterPreview';
+    tempContainer.className = 'pdf-body';
+    tempContainer.style.display = 'none';
+    document.body.appendChild(tempContainer);
 
-    // Set up html2pdf options
-    const options = {
-      margin: 0.5,
-      filename: filename,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all"] }
-    };
+    try {
+      // Get content from the element
+      const originalContent = element.innerHTML;
+      
+      // Extract and format content properly for the PDF
+      let contentToFormat = originalContent;
+      
+      // If this is from an AI-generated section, format it more carefully
+      if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
+        // Clean and process the content to ensure proper formatting
+        contentToFormat = cleanAIOutput(contentToFormat);
+        
+        // Apply user data where available
+        contentToFormat = replaceUserPlaceholders(contentToFormat);
+        
+        // Convert plain text to structured paragraphs if needed
+        if (!contentToFormat.includes('<p>')) {
+          contentToFormat = contentToFormat
+            .split('\n\n')
+            .filter(para => para.trim().length > 0)
+            .map(para => `<p>${para.trim()}</p>`)
+            .join('');
+        }
+      }
+      
+      // Create proper structure for a cover letter
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // Add header, greeting, and closing if they don't exist
+      if (!contentToFormat.includes('<p>[Your Name]</p>')) {
+        const userName = user?.name || '[Your Name]';
+        const userEmail = user?.email || '[Email Address]';
+        const userPhone = '[Phone Number]'; // Default since we may not have phone
+        const userLocation = user?.location || '[Your Address]';
+        const recipientCompany = companyName || '[Company Name]';
+        
+        // Create structured cover letter format
+        tempContainer.innerHTML = `
+          <p>${userName}</p>
+          <p>${userEmail}</p>
+          <p>${userPhone}</p>
+          <p>${userLocation}</p>
+          <p>${currentDate}</p>
+          
+          <p>Hiring Manager<br>${recipientCompany}</p>
+          
+          <p>Dear Hiring Manager,</p>
+          
+          ${contentToFormat}
+          
+          <p>Sincerely,<br>${userName}</p>
+        `;
+      } else {
+        // Content already has structure, just use it
+        tempContainer.innerHTML = contentToFormat;
+      }
+      
+      // Apply PDF-specific CSS to the document
+      const pdfStyles = document.createElement('style');
+      pdfStyles.textContent = `
+        .pdf-body {
+          font-family: Arial, sans-serif;
+          font-size: 12pt;
+          line-height: 1.6;
+          color: #000;
+          padding: 40px;
+        }
+        
+        .pdf-body p {
+          margin-bottom: 12px;
+        }
+        
+        .placeholder {
+          color: #aaa;
+          font-style: italic;
+        }
+      `;
+      document.head.appendChild(pdfStyles);
+      
+      // Set up html2pdf options with clean margins and no headers/footers
+      const options = {
+        margin: 0,
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
 
-    // Check if html2pdf is loaded
-    if (typeof window.html2pdf === 'undefined') {
+      // Check if html2pdf is loaded
+      if (typeof window.html2pdf === 'undefined') {
+        toast({
+          title: 'PDF Library Not Loaded',
+          description: 'Please wait a moment and try again as the PDF export library is still loading.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Generate and save the PDF
+      window.html2pdf()
+        .set(options)
+        .from(tempContainer)
+        .save()
+        .then(() => {
+          toast({
+            title: 'PDF Downloaded',
+            description: 'Your cover letter has been downloaded as a PDF.',
+          });
+        })
+        .catch((error: any) => {
+          console.error('PDF generation error:', error);
+          toast({
+            title: 'PDF Generation Failed',
+            description: 'There was an error generating the PDF. Please try again.',
+            variant: 'destructive',
+          });
+        })
+        .finally(() => {
+          // Clean up temporary elements
+          if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+          }
+          if (document.head.contains(pdfStyles)) {
+            document.head.removeChild(pdfStyles);
+          }
+        });
+    } catch (error) {
+      console.error('Error preparing PDF content:', error);
       toast({
-        title: 'PDF Library Not Loaded',
-        description: 'Please wait a moment and try again as the PDF export library is still loading.',
+        title: 'Error Preparing PDF',
+        description: 'There was a problem formatting your cover letter for PDF export.',
         variant: 'destructive',
       });
-      return;
+      
+      // Clean up on error
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
     }
-
-    // Generate and save the PDF
-    window.html2pdf().set(options).from(element).save().then(() => {
-      toast({
-        title: 'PDF Downloaded',
-        description: 'Your cover letter has been downloaded as a PDF.',
-      });
-    }).catch((error: any) => {
-      console.error('PDF generation error:', error);
-      toast({
-        title: 'PDF Generation Failed',
-        description: 'There was an error generating the PDF. Please try again.',
-        variant: 'destructive',
-      });
-    });
-
-    // Create the print window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: 'Error',
-        description: 'Unable to open print window. Please check your popup settings.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Setup the print document
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>${filename}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-            .cover-letter-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
-            h2 { margin-top: 0; }
-            p { margin: 0 0 8px; line-height: 1.5; }
-            @media print {
-              body { padding: 0; margin: 0; }
-              .cover-letter-container { width: 100%; max-width: none; padding: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="cover-letter-container">
-            ${clonedElement.outerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-                window.close();
-              }, 200);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
   };
 
   // Animation variants - optimized for performance
