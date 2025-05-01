@@ -50,7 +50,7 @@ export default function ResumePreview({
   onDownloadPDF 
 }: ResumePreviewProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [templateStyle, setTemplateStyle] = useState<ResumeTemplateStyle>('modern');
+  const [templateStyle, setTemplateStyle] = useState<ResumeTemplateStyle>('professional');
   const [zoomLevel, setZoomLevel] = useState(1);
   const { toast } = useToast();
   
