@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { FileUp, UploadCloud, AlertCircle, Loader2, BarChart4 } from 'lucide-react';
+import { FileUp, UploadCloud, AlertCircle, Loader2, BarChart4, Sparkles } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
@@ -11,11 +11,19 @@ import JobDescriptionInput from '@/components/JobDescriptionInput';
 interface ResumeAnalyzerProps {
   onExtractComplete: (text: string) => void;
   onAnalyzeComplete?: (results: any) => void;
+  jobDescription: string;
+  setJobDescription: (text: string) => void;
+  isAnalyzing: boolean;
+  onAnalyze: () => void;
 }
 
 const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   onExtractComplete,
   onAnalyzeComplete,
+  jobDescription,
+  setJobDescription,
+  isAnalyzing,
+  onAnalyze
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
@@ -212,7 +220,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           the job requirements and provide tailored improvement suggestions.
         </p>
         
-        <div className="space-y-5">
+        <div className="space-y-6">
+          {/* Step 1: Upload Resume */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center">
               <span className="text-primary mr-1">1.</span> Upload Resume <span className="text-red-500 ml-1">*</span>
@@ -293,6 +302,41 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
               </Alert>
             )}
           </div>
+          
+          {/* Step 2: Enter Job Description */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center">
+              <span className="text-primary mr-1">2.</span> Job Description <span className="text-red-500 ml-1">*</span>
+            </Label>
+            
+            <JobDescriptionInput
+              value={jobDescription}
+              onChange={setJobDescription}
+              className="min-h-[150px] border-slate-200"
+              minLength={100}
+              isAnalyzing={isAnalyzing}
+            />
+          </div>
+          
+          {/* Analyze Button */}
+          <Button 
+            className="w-full" 
+            onClick={onAnalyze}
+            disabled={isAnalyzing || !resumeText || !jobDescription.trim()}
+            id="analyzeBtn"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing Resume...
+              </>
+            ) : (
+              <>
+                <BarChart4 className="h-4 w-4 mr-2" />
+                Analyze Resume
+              </>
+            )}
+          </Button>
           
           {/* The textarea for the resume text is hidden from the user */}
           <input type="hidden" id="extractedResumeText" value={resumeText} />
