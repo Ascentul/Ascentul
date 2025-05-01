@@ -545,11 +545,36 @@ export default function CoverLetter() {
 
   // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
-    // For preview letter case - use our new direct method
-    if (elementId.startsWith('previewLetter-') && previewLetter) {
-      console.log('Using simplified PDF export for preview letter');
-      exportCoverLetterToPDF();
-      return;
+    console.log(`Handling PDF download for: ${elementId}`);
+    
+    // For cover letter card buttons - extract the letter ID and use it for direct export
+    if (elementId.startsWith('previewLetter-')) {
+      const letterId = parseInt(elementId.replace('previewLetter-', ''), 10);
+      console.log(`Looking for cover letter with ID: ${letterId}`);
+      
+      // Find the letter in the cover letters array
+      const letterToExport = coverLetters.find((letter: any) => letter.id === letterId);
+      
+      if (letterToExport) {
+        console.log('Found letter to export, setting as preview letter');
+        // Set the preview letter so our export function can access it
+        setPreviewLetter(letterToExport);
+        
+        // Use setTimeout to ensure state is updated before exporting
+        setTimeout(() => {
+          console.log('Exporting preview letter to PDF');
+          exportCoverLetterToPDF();
+        }, 50);
+        return;
+      } else {
+        // If letter not found, show a toast
+        toast({
+          title: 'Error',
+          description: `Could not find cover letter with ID ${letterId}`,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
     
     // For generated content case
