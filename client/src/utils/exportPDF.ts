@@ -8,106 +8,54 @@ declare global {
 
 /**
  * Export the cover letter content as a PDF
- * This approach directly creates and formats the content for export
+ * This approach directly captures the rendered content for export
  */
 export function exportCoverLetterToPDF(): void {
-  // Create a container with all the content directly
-  const container = document.createElement('div');
-  container.style.padding = "1in";
-  container.style.fontFamily = "Arial, sans-serif";
-  container.style.fontSize = "12pt";
-  container.style.lineHeight = "1.6";
-  container.style.color = "#000";
-  container.style.backgroundColor = "#fff";
-  container.style.width = "8.5in";
-  container.style.minHeight = "11in";
-  container.style.position = "absolute";
-  container.style.left = "-9999px";
-  container.style.top = "0";
-  
-  // Get source content
-  const source = document.getElementById("pdf-export-content");
-  
-  if (!source) {
-    alert("❌ Could not find cover letter content.");
+  const content = document.getElementById("pdf-export-content");
+
+  if (!content || content.innerText.trim() === "") {
+    alert("Cover letter content is empty.");
     return;
   }
 
-  // Extract the plain text from the elements
-  const fullName = source.querySelector("h2")?.textContent || "Your Name";
-  const contactInfo = Array.from(source.querySelectorAll('.text-sm span'))
-    .map(span => span.textContent)
-    .filter(text => text && text.trim().length > 0)
-    .join(' | ');
-  const date = source.querySelector('.text-neutral-500')?.textContent || new Date().toLocaleDateString();
-  
-  // For recipient and body content
-  const recipientLines = Array.from(source.querySelectorAll('.space-y-1 p')).map(p => p.textContent);
-  const greeting = source.querySelector("p:not(.text-sm):not(.text-xs):not(.text-neutral-500)")?.textContent || "Dear Hiring Manager,";
-  
-  // Get the body content
-  const bodyText = source.querySelector('.whitespace-pre-wrap')?.textContent || "";
-  
-  // Get the closing
-  const closingElements = Array.from(source.querySelectorAll('.space-y-4 p'));
-  const closing = closingElements[0]?.textContent || "Sincerely,";
-  const signature = closingElements[1]?.textContent || fullName;
-  
-  // Format the content as plain HTML
-  container.innerHTML = `
-    <div style="text-align: center; margin-bottom: 24px;">
-      <div style="font-size: 18pt; font-weight: bold; margin-bottom: 8px;">${fullName}</div>
-      <div style="margin-bottom: 4px;">${contactInfo}</div>
-      <div>${date}</div>
-    </div>
-    
-    <div style="margin-bottom: 24px;">
-      ${recipientLines.map(line => `<div>${line || ''}</div>`).join('')}
-    </div>
-    
-    <div style="margin-bottom: 16px;">${greeting}</div>
-    
-    <div style="text-align: justify; margin-bottom: 24px; white-space: pre-wrap">
-      ${bodyText}
-    </div>
-    
-    <div style="margin-top: 24px;">
-      <div style="margin-bottom: 48px;">${closing}</div>
-      <div>${signature}</div>
-    </div>
-  `;
-  
-  // Append to body temporarily
-  document.body.appendChild(container);
-  
-  // Export as PDF
-  console.log("Exporting PDF with content:", container.innerText);
-  
+  // Clone the element to avoid disturbing the page layout
+  const clone = content.cloneNode(true) as HTMLElement;
+  clone.style.position = "absolute";
+  clone.style.top = "-9999px";
+  clone.classList.add("prose", "max-w-screen-md", "mx-auto", "px-4", "py-8", "text-black", "bg-white");
+  document.body.appendChild(clone);
+
+  // Generate filename from date
+  const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
+
+  console.log("Exporting PDF from content:", clone.innerText.substring(0, 100) + "...");
+
+  // Configure PDF export options for better quality and formatting
   window.html2pdf()
     .set({
-      margin: 0,
-      filename: "cover-letter.pdf",
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true,
-        logging: true,
-        letterRendering: true 
-      },
+      filename: filename,
+      margin: 0.75,
       jsPDF: { 
         unit: "in", 
         format: "letter", 
         orientation: "portrait" 
+      },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        letterRendering: true,
+        allowTaint: true
       }
     })
-    .from(container)
+    .from(clone)
     .save()
     .then(() => {
-      document.body.removeChild(container);
+      document.body.removeChild(clone);
       alert("✅ Your cover letter has been downloaded.");
     })
     .catch((err: any) => {
       console.error("PDF export failed", err);
-      document.body.removeChild(container);
+      document.body.removeChild(clone);
       alert("❌ Failed to export PDF. Please try again.");
     });
 }
