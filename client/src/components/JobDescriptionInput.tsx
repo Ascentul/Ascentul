@@ -49,13 +49,6 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
     <div className="space-y-2">
       <div className="flex justify-between items-center">
         
-        <span className={`text-xs ${jobDescQuality === 'good' ? 'text-green-600' : 'text-neutral-500'}`}>
-          {charCount} characters {
-            jobDescQuality === 'good' ? '✓' : 
-            jobDescQuality === 'fair' ? `(min ${minLength} recommended)` : 
-            ''
-          }
-        </span>
       </div>
       
       <Textarea
