@@ -93,12 +93,29 @@ export default function ResumePreview({
       const clonedTemplate = templateElement.cloneNode(true) as HTMLElement;
       clonedTemplate.id = templateId;
       
+      // Create a special wrapper for PDF export
+      const wrapper = document.createElement('div');
+      wrapper.className = 'resume-pdf';
+      
       // Make sure all styles are preserved for correct PDF rendering
       const style = document.createElement('style');
       style.textContent = `
+        /* PDF container with specific dimensions and margins */
+        .resume-pdf {
+          width: 800px !important;
+          margin: 0 auto !important;
+          padding: 40px !important;
+          font-family: 'Arial', sans-serif !important;
+          font-size: 11pt !important;
+          line-height: 1.5 !important;
+          color: #000 !important;
+          background-color: white !important;
+          box-sizing: border-box !important;
+        }
+        
         /* Base template styles */
         #${templateId} {
-          width: 8.5in !important;
+          width: 100% !important;
           height: auto !important;
           background-color: white !important;
           color: black !important;
@@ -107,10 +124,7 @@ export default function ResumePreview({
           transform: none !important;
           max-width: 100% !important;
           margin: 0 auto !important; /* Center the content */
-          padding-top: 1in !important;
-          padding-bottom: 1in !important;
-          padding-right: 1in !important;
-          padding-left: 1.25in !important; /* Left margin 1.25 inches */
+          padding: 0 !important; /* No padding in the inner content */
           box-shadow: none !important;
           border: none !important;
           display: block !important;
@@ -120,7 +134,7 @@ export default function ResumePreview({
         }
         
         /* Ensure all elements are visible and preserve layout */
-        #${templateId} * {
+        .resume-pdf *, #${templateId} * {
           visibility: visible !important;
           color-adjust: exact !important;
           -webkit-print-color-adjust: exact !important;
@@ -129,89 +143,80 @@ export default function ResumePreview({
           overflow: visible !important;
         }
         
-        /* Preserve original resume layout */
-        #${templateId} .resume-template {
-          text-align: left !important;
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-        
-        /* Heading styles */
+        /* Center all headings */
+        .resume-pdf h1, .resume-pdf h2, .resume-pdf h3,
         #${templateId} h1, #${templateId} h2, #${templateId} h3 {
+          text-align: center !important;
+          margin-bottom: 12px !important;
           color: inherit !important;
-          margin-top: 0.5em !important;
-          margin-bottom: 0.5em !important;
         }
         
         /* Page break controls */
+        .resume-pdf section, #${templateId} section {
+          page-break-inside: avoid !important;
+          margin-bottom: 20px !important;
+        }
+        
+        /* Paragraph spacing */
+        .resume-pdf p, #${templateId} p {
+          margin: 0 0 12px !important;
+        }
+        
+        /* Specific section styling */
+        .resume-pdf .contact-info, #${templateId} .contact-info {
+          text-align: center !important;
+          margin-bottom: 20px !important;
+        }
+        
+        /* Page break controls for sections */
+        .resume-pdf .resume-header,
+        .resume-pdf .contact-info,
+        .resume-pdf .resume-section-header,
         #${templateId} .resume-header,
         #${templateId} .contact-info,
         #${templateId} .resume-section-header {
           page-break-after: avoid !important;
         }
         
+        .resume-pdf .job-item,
+        .resume-pdf .education-item,
+        .resume-pdf .certification-item,
+        .resume-pdf section, 
+        .resume-pdf .section,
         #${templateId} .job-item,
         #${templateId} .education-item,
         #${templateId} .certification-item,
         #${templateId} section, 
         #${templateId} .section {
-          margin-bottom: 1em !important;
+          margin-bottom: 16px !important;
           page-break-inside: avoid !important;
           break-inside: avoid !important;
         }
         
-        /* Preserve original content width */
-        #${templateId} .content-container {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-        
-        /* Main sections layout */
-        #${templateId} .professional-summary,
-        #${templateId} .skills-section,
-        #${templateId} .experience-section,
-        #${templateId} .education-section {
-          width: 100% !important;
-          max-width: 100% !important;
-          margin-bottom: 1.5em !important;
-        }
-        
-        /* Force page breaks before major sections */
-        #${templateId} .experience-section,
-        #${templateId} .education-section,
-        #${templateId} .skills-section,
-        #${templateId} .certifications-section {
-          page-break-before: auto !important;
-        }
-        
-        /* Ensure list items don't break across pages */
-        #${templateId} li {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-          margin-bottom: 0.15em !important;
-        }
-        
-        /* Ensure achievement bullets stay with their parent */
-        #${templateId} .achievements {
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
-        }
-        
-        /* Maintain skill tags formatting */
-        #${templateId} .skill-tag {
-          display: inline-block !important;
-          margin-right: 0.5em !important;
-          margin-bottom: 0.5em !important;
+        /* Print media query */
+        @media print {
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          .resume-pdf {
+            margin: auto !important;
+            page-break-after: always !important;
+          }
         }
       `;
       
-      // Create a container for the cloned template
+      // Create a wrapper for the template with proper centering and margins
+      wrapper.appendChild(clonedTemplate);
+      
+      // Create a container to hold everything for PDF generation
       const container = document.createElement('div');
       container.style.position = 'absolute';
       container.style.left = '-9999px';
       container.style.top = '0';
       container.appendChild(style);
-      container.appendChild(clonedTemplate);
+      container.appendChild(wrapper);
       document.body.appendChild(container);
       
       // Use html2pdf for a more direct HTML-to-PDF conversion
@@ -233,20 +238,40 @@ export default function ResumePreview({
                 scrollY: 0,
                 windowWidth: 850, // Ensure enough width for content
                 onclone: (clonedDoc: Document) => {
-                  // Ensure content is fully visible to the renderer
-                  const clonedElement = clonedDoc.getElementById(templateId);
-                  if (clonedElement) {
-                    clonedElement.style.height = 'auto';
-                    clonedElement.style.overflow = 'visible';
-                    clonedElement.style.margin = '0 auto'; // Center content
+                  // Find the resume-pdf container in the cloned document
+                  const resumePdfElements = clonedDoc.querySelectorAll('.resume-pdf');
+                  resumePdfElements.forEach(container => {
+                    const el = container as HTMLElement;
+                    // Ensure the container is properly styled
+                    el.style.width = '800px';
+                    el.style.margin = '0 auto';
+                    el.style.padding = '40px';
+                    el.style.fontFamily = 'Arial, sans-serif';
+                    el.style.fontSize = '11pt';
+                    el.style.lineHeight = '1.5';
+                    el.style.boxSizing = 'border-box';
                     
-                    // Ensure the template is centered on the page
-                    const templateElements = clonedDoc.querySelectorAll(`#${templateId} .resume-template`);
-                    templateElements.forEach(el => {
-                      (el as HTMLElement).style.margin = '0 auto';
-                      (el as HTMLElement).style.width = '100%';
-                    });
-                  }
+                    // Apply print-friendly styles to the template inside
+                    const templateEl = el.querySelector(`#${templateId}`);
+                    if (templateEl) {
+                      (templateEl as HTMLElement).style.margin = '0 auto';
+                      (templateEl as HTMLElement).style.width = '100%';
+                      
+                      // Center text elements
+                      const headings = templateEl.querySelectorAll('h1, h2, h3');
+                      headings.forEach(heading => {
+                        (heading as HTMLElement).style.textAlign = 'center';
+                        (heading as HTMLElement).style.marginBottom = '12px';
+                      });
+                      
+                      // Ensure contact info is centered
+                      const contactInfo = templateEl.querySelector('.contact-info');
+                      if (contactInfo) {
+                        (contactInfo as HTMLElement).style.textAlign = 'center';
+                        (contactInfo as HTMLElement).style.marginBottom = '20px';
+                      }
+                    }
+                  });
                 }
               },
               jsPDF: { 
@@ -270,7 +295,7 @@ export default function ResumePreview({
                 ]
               }
             })
-            .from(clonedTemplate)
+            .from(wrapper)
             .save()
             .then(() => {
               // Success message
