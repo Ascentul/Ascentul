@@ -42,6 +42,9 @@ export default function CoverLetter() {
   const [previewLetter, setPreviewLetter] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
 
   // Fetch user's cover letters
   const { data: coverLetters = [], isLoading } = useQuery({
@@ -258,6 +261,45 @@ export default function CoverLetter() {
     return coverLetters;
   };
 
+  // Helper function to replace placeholder tags with user information
+  const replaceUserPlaceholders = (text: string): string => {
+    if (!user) return text;
+    
+    return text
+      .replace(/\[Your Name\]/g, user.name || '[Your Name]')
+      .replace(/\[your name\]/g, user.name || '[your name]')
+      .replace(/\[YOUR NAME\]/g, user.name || '[YOUR NAME]')
+      .replace(/\[Your Email\]/g, user.email || '[Your Email]')
+      .replace(/\[your email\]/g, user.email || '[your email]')
+      .replace(/\[YOUR EMAIL\]/g, user.email || '[YOUR EMAIL]')
+      .replace(/\[Your Location\]/g, user.location || '[Your Location]')
+      .replace(/\[your location\]/g, user.location || '[your location]')
+      .replace(/\[YOUR LOCATION\]/g, user.location || '[YOUR LOCATION]');
+  };
+
+  // Function to copy content to clipboard
+  const handleCopyToClipboard = () => {
+    const processedContent = replaceUserPlaceholders(generatedContent);
+    navigator.clipboard.writeText(processedContent)
+      .then(() => {
+        setCopySuccess(true);
+        toast({
+          title: 'Content copied',
+          description: 'The cover letter has been copied to your clipboard',
+        });
+        // Reset copy success after 3 seconds
+        setTimeout(() => setCopySuccess(false), 3000);
+      })
+      .catch((error) => {
+        toast({
+          title: 'Copy failed',
+          description: 'Failed to copy content to clipboard',
+          variant: 'destructive',
+        });
+        console.error('Copy failed:', error);
+      });
+  };
+
   const generateCoverLetter = () => {
     if (!jobDescription) {
       toast({
@@ -269,6 +311,7 @@ export default function CoverLetter() {
     }
 
     generateCoverLetterMutation.mutate();
+    setGenerationTimestamp(new Date());
   };
 
   const generateSuggestions = () => {
@@ -282,6 +325,7 @@ export default function CoverLetter() {
     }
 
     generateSuggestionsMutation.mutate();
+    setGenerationTimestamp(new Date());
   };
 
   const handleAnalyzeCoverLetter = () => {
@@ -647,71 +691,150 @@ export default function CoverLetter() {
                   Generate Cover Letter Content
                 </h3>
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Responsive grid for inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Job Title</Label>
-                      <Input
-                        placeholder="e.g. Marketing Manager"
+                      <Label htmlFor="jobTitleSuggestions" className="flex items-center">
+                        <span className="text-primary mr-1">1.</span> Job Title
+                      </Label>
+                      <Input 
+                        id="jobTitleSuggestions"
+                        placeholder="Marketing Manager" 
                         value={jobTitle}
                         onChange={(e) => setJobTitle(e.target.value)}
+                        disabled={generateCoverLetterMutation.isPending || generateSuggestionsMutation.isPending}
+                        className="border-2 border-primary/20 focus:border-primary/40"
                       />
+                      {jobTitle && (
+                        <p className="text-xs text-green-600 flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Added
+                        </p>
+                      )}
                     </div>
+                    
                     <div className="space-y-2">
-                      <Label>Company Name</Label>
-                      <Input
-                        placeholder="e.g. Acme Inc."
+                      <Label htmlFor="companyNameSuggestions" className="flex items-center">
+                        <span className="text-primary mr-1">2.</span> Company Name
+                      </Label>
+                      <Input 
+                        id="companyNameSuggestions" 
+                        placeholder="XYZ Corporation" 
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
+                        disabled={generateCoverLetterMutation.isPending || generateSuggestionsMutation.isPending}
+                        className="border-2 border-primary/20 focus:border-primary/40"
                       />
+                      {companyName && (
+                        <p className="text-xs text-green-600 flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Added
+                        </p>
+                      )}
                     </div>
                   </div>
-
+                  
                   <div className="space-y-2">
-                    <Label>Job Description <span className="text-red-500">*</span></Label>
-                    <Textarea
+                    <Label htmlFor="jobDescriptionSuggestions" className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-primary mr-1">3.</span> Job Description <span className="text-red-500 ml-1">*</span>
+                      </div>
+                      {jobDescription.trim().length > 100 && (
+                        <span className="text-green-600 text-xs font-medium flex items-center">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Complete
+                        </span>
+                      )}
+                    </Label>
+                    <Textarea 
+                      id="jobDescriptionSuggestions" 
                       placeholder="Paste the job description here..."
+                      className={`min-h-[180px] resize-y border-2 ${
+                        jobDescription.trim().length > 100 ? 'border-green-200 focus:border-green-300' : 
+                        jobDescription.trim().length > 50 ? 'border-amber-200 focus:border-amber-300' : 
+                        jobDescription.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
+                        'border-primary/20 focus:border-primary/40'
+                      }`}
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
-                      className="min-h-[200px]"
+                      disabled={generateCoverLetterMutation.isPending || generateSuggestionsMutation.isPending}
                     />
-                    <p className="text-xs text-neutral-500">This is required for AI to generate tailored content.</p>
+                    {jobDescription.trim().length > 0 && jobDescription.trim().length < 50 && (
+                      <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>
+                          <div className="font-medium mb-1">Job Description Too Short</div>
+                          <div className="text-xs">
+                            Please provide a more detailed job description for better results. AI works best with comprehensive details.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {jobDescription.trim().length >= 50 && jobDescription.trim().length <= 100 && (
+                      <div className="p-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-md flex items-start">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <div>
+                          <div className="font-medium mb-1">More Details Recommended</div>
+                          <div className="text-xs">
+                            Consider adding more details from the job posting to generate more targeted content.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
                     <Button 
-                      className="w-full"
                       onClick={generateCoverLetter}
-                      disabled={generateCoverLetterMutation.isPending}
+                      disabled={!jobDescription || generateCoverLetterMutation.isPending || generateSuggestionsMutation.isPending}
+                      className="w-full sm:w-auto"
                     >
                       {generateCoverLetterMutation.isPending ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                          Generating...
-                        </>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <FileText className="mr-2 h-4 w-4" />
-                          Generate Full Letter
-                        </>
+                        <FileText className="mr-2 h-4 w-4" />
                       )}
+                      Generate Full Letter
                     </Button>
+                    
                     <Button 
-                      variant="outline"
-                      className="w-full"
                       onClick={generateSuggestions}
-                      disabled={generateSuggestionsMutation.isPending}
+                      disabled={!jobDescription || generateSuggestionsMutation.isPending || generateCoverLetterMutation.isPending}
+                      variant="outline"
+                      className="w-full sm:w-auto"
                     >
                       {generateSuggestionsMutation.isPending ? (
-                        <>
-                          <span className="mr-2 h-4 w-4 animate-spin">⟳</span>
-                          Generating...
-                        </>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <Sparkles className="mr-2 h-4 w-4" />
-                          Get Suggestions
-                        </>
+                        <Sparkles className="mr-2 h-4 w-4" />
                       )}
+                      Get Suggestions
                     </Button>
                   </div>
                 </div>
@@ -721,10 +844,19 @@ export default function CoverLetter() {
             {/* Results */}
             <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  AI-Generated Content
-                </h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xl font-semibold text-primary/90 flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    AI-Generated Content
+                  </h3>
+                  
+                  {generationTimestamp && (
+                    <span className="text-xs text-neutral-500 flex items-center">
+                      <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                      Generated {generationTimestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                  )}
+                </div>
                 
                 {!generatedContent ? (
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
@@ -735,14 +867,53 @@ export default function CoverLetter() {
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 whitespace-pre-wrap" id="generatedContent">
-                      {generatedContent}
+                    <div className="relative">
+                      <div 
+                        className="p-4 bg-primary/5 rounded-lg border border-primary/10 whitespace-pre-wrap min-h-[200px] max-h-[400px] overflow-y-auto" 
+                        id="generatedContent"
+                      >
+                        {/* Process the content to replace placeholders with user data if available */}
+                        {user ? (
+                          <>{replaceUserPlaceholders(generatedContent)}</>
+                        ) : (
+                          <>{generatedContent.split(/(\[.*?\])/).map((part, index) => {
+                            // Check if this part is a placeholder (surrounded by brackets)
+                            const isPlaceholder = /^\[.*\]$/.test(part);
+                            return isPlaceholder ? (
+                              <span key={index} className="text-neutral-400" title="Fill in your personal details in your profile">
+                                {part}
+                              </span>
+                            ) : (
+                              <span key={index}>{part}</span>
+                            );
+                          })}</>
+                        )}
+                      </div>
+                      
+                      {/* Copy button in the corner */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 p-1 h-8 w-8 rounded-full bg-white shadow-sm"
+                        onClick={handleCopyToClipboard}
+                        title="Copy to clipboard"
+                      >
+                        {copySuccess ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                     
-                    <div className="flex justify-between">
+                    {/* Fixed button bar at the bottom */}
+                    <div className="flex justify-between sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
                       <Button 
                         variant="outline" 
-                        onClick={() => setGeneratedContent('')}
+                        onClick={() => {
+                          setGeneratedContent('');
+                          setGenerationTimestamp(null);
+                        }}
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Reset
