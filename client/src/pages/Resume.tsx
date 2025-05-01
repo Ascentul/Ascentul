@@ -1271,13 +1271,12 @@ export default function Resume() {
                 onClick={async () => {
                   if (generatedResume) {
                     try {
-                      // Pass the generatedResume data object directly to exportResumeToPDF
                       // Create a proper Resume object from the generatedResume data
                       const resumeData = {
                         id: 0,
                         userId: 0,
                         name: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}`,
-                        template: 'modern',
+                        template: 'professional', // Use the professional template to match the screenshot
                         content: {
                           personalInfo: generatedResume.personalInfo || {},
                           summary: generatedResume.summary || '',
@@ -1290,123 +1289,31 @@ export default function Resume() {
                         createdAt: new Date().toISOString()
                       };
 
-                      // Ensure the visible resume div is in the right format for cloning
-                      const visibleDiv = document.getElementById('generated-resume');
-                      if (visibleDiv) {
-                        // Make sure it has the right classes for proper export formatting
-                        if (!visibleDiv.classList.contains('resume-template')) {
-                          visibleDiv.classList.add('resume-template');
+                      // Set the preview resume to trigger rendering of the template
+                      setPreviewResume(resumeData);
+                      
+                      // Allow time for the preview to render
+                      setTimeout(async () => {
+                        // Now generate the PDF from the rendered template
+                        const resumeElement = document.querySelector('.resume-template');
+                        if (resumeElement) {
+                          try {
+                            // Use our centralized export utility with the rendered template
+                            await exportResumeToPDF(resumeElement as HTMLElement, {
+                              filename: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}.pdf`,
+                            });
+                          } finally {
+                            // Clear the preview resume state
+                            setPreviewResume(null);
+                          }
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Could not find resume template to export",
+                            variant: "destructive"
+                          });
                         }
-                      }
-                      
-                      // Use the utility function - try passing the Resume object as the source
-                      const success = await exportResumeToPDF(resumeData, {
-                        filename: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}.pdf`,
-                        showToast: true,
-                      });
-                      
-                      if (!success) {
-                        // Fallback for direct export from the DOM element
-                        console.log("Falling back to direct DOM export method");
-                        
-                        // Create a hidden div with proper classes and styling for export
-                        const hiddenDiv = document.createElement('div');
-                        hiddenDiv.id = 'temp-generated-resume';
-                        hiddenDiv.className = 'resume-template';
-                        
-                        // Use exactly the same HTML template structure as the working resume exports
-                        hiddenDiv.innerHTML = `
-                          <div class="bg-white p-8 max-w-[8.5in] mx-auto resume-content">
-                            <!-- Header -->
-                            <header class="mb-6 pb-4 border-b border-neutral-200">
-                              <h1 class="text-2xl font-bold text-center text-neutral-900">
-                                ${generatedResume.personalInfo?.fullName || 'Your Name'}
-                              </h1>
-                              <div class="flex flex-wrap justify-center gap-x-4 mt-2 text-sm text-neutral-600">
-                                ${generatedResume.personalInfo?.email ? `<span>${generatedResume.personalInfo.email}</span>` : ''}
-                                ${generatedResume.personalInfo?.phone ? `<span>${generatedResume.personalInfo.phone}</span>` : ''}
-                                ${generatedResume.personalInfo?.location ? `<span>${generatedResume.personalInfo.location}</span>` : ''}
-                              </div>
-                            </header>
-
-                            <!-- Summary Section -->
-                            ${generatedResume.summary ? `
-                            <section class="mb-6 resume-section">
-                              <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Professional Summary</h2>
-                              <p class="text-sm leading-relaxed">${generatedResume.summary}</p>
-                            </section>` : ''}
-
-                            <!-- Skills Section -->
-                            ${generatedResume.skills && generatedResume.skills.length > 0 ? `
-                            <section class="mb-6 resume-section">
-                              <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Skills</h2>
-                              <div class="flex flex-wrap gap-2">
-                                ${generatedResume.skills.map((skill: string) => 
-                                  `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
-                                ).join('')}
-                              </div>
-                            </section>` : ''}
-
-                            <!-- Experience Section -->
-                            ${generatedResume.experience && generatedResume.experience.length > 0 ? `
-                            <section class="mb-6 resume-section">
-                              <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Experience</h2>
-                              <div class="space-y-4">
-                                ${generatedResume.experience.map((exp: any) => `
-                                  <div class="job-item">
-                                    <div class="flex justify-between items-baseline">
-                                      <h3 class="font-medium text-neutral-900">${exp.position}</h3>
-                                      <div class="text-sm text-neutral-600">
-                                        ${exp.startDate} - ${exp.currentJob ? 'Present' : exp.endDate}
-                                      </div>
-                                    </div>
-                                    <div class="text-sm font-medium text-primary mb-1">${exp.company}</div>
-                                    ${exp.description ? `<p class="text-sm mt-1 leading-relaxed">${exp.description}</p>` : ''}
-                                    ${exp.achievements && exp.achievements.length > 0 ? `
-                                      <ul class="list-disc pl-5 mt-2 space-y-1 achievements">
-                                        ${exp.achievements.map((achievement: string) => `
-                                          <li class="text-sm">${achievement}</li>
-                                        `).join('')}
-                                      </ul>
-                                    ` : ''}
-                                  </div>
-                                `).join('')}
-                              </div>
-                            </section>` : ''}
-
-                            <!-- Education Section -->
-                            ${generatedResume.education && generatedResume.education.length > 0 ? `
-                            <section class="mb-6 resume-section">
-                              <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Education</h2>
-                              <div class="space-y-4">
-                                ${generatedResume.education.map((edu: any) => `
-                                  <div class="education-item">
-                                    <div class="flex justify-between items-baseline">
-                                      <h3 class="font-medium text-neutral-900">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h3>
-                                      <div class="text-sm text-neutral-600">
-                                        ${edu.startDate} - ${edu.endDate || 'Present'}
-                                      </div>
-                                    </div>
-                                    <div class="text-sm font-medium text-primary mb-1">${edu.institution}</div>
-                                    ${edu.description ? `<p class="text-sm mt-1 leading-relaxed">${edu.description}</p>` : ''}
-                                  </div>
-                                `).join('')}
-                              </div>
-                            </section>` : ''}
-                          </div>
-                        `;
-                        
-                        // Add to document
-                        document.body.appendChild(hiddenDiv);
-                        
-                        // Use the export utility with the hidden div
-                        await exportResumeToPDF(hiddenDiv, {
-                          filename: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}.pdf`,
-                        });
-                        
-                        // Clean up
-                        document.body.removeChild(hiddenDiv);
-                      }
+                      }, 100);
                     } catch (err: any) {
                       console.error("Error during PDF export:", err);
                       toast({
