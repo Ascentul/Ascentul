@@ -15,7 +15,8 @@ import {
   UploadCloud, 
   FileUp,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -799,7 +800,7 @@ export default function CoverLetter() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setAnalyzeJobDescription("We're hiring a marketing associate with strong writing and cross-functional collaboration skills. The ideal candidate has experience creating compelling content, managing social media campaigns, and analyzing performance metrics. You'll work with our creative team to develop marketing materials that align with our brand voice and drive customer engagement.")}
-                        className="h-6 text-xs text-primary"
+                        className="h-6 text-xs text-primary ml-auto"
                       >
                         Paste Example
                       </Button>
@@ -871,7 +872,7 @@ export default function CoverLetter() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setAnalyzeCoverLetterText("Dear Hiring Manager,\n\nI'm writing to apply for the Marketing Associate position at your company. With my background in content creation and digital marketing, I believe I would be a valuable addition to your team. I have experience managing social media campaigns, creating engaging content, and analyzing performance metrics to optimize marketing strategies.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my skills align with your needs.\n\nSincerely,\n[Your Name]")}
-                        className="h-6 text-xs text-primary"
+                        className="h-6 text-xs text-primary ml-auto"
                       >
                         Paste Example
                       </Button>
@@ -963,7 +964,7 @@ export default function CoverLetter() {
                     </span>
                   </div>
                   <div className="space-y-5">
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {/* Score cards are styled with dynamic classes based on score */}
                       <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
                         Math.round(analysisResult.overallScore) < 60 
@@ -1147,10 +1148,12 @@ export default function CoverLetter() {
             ) : (
               <Card className="overflow-hidden border-slate-200">
                 <CardContent className="pt-6">
-                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                    <BarChart4 className="h-5 w-5 mr-2" />
-                    AI Analysis Results
-                  </h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
+                    </h3>
+                  </div>
                   
                   <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                     <div className="w-16 h-16 mb-6 text-neutral-200">
