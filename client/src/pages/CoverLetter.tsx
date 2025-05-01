@@ -1409,7 +1409,7 @@ export default function CoverLetter() {
                           title="Reset optimized content"
                           className="bg-white"
                         >
-                          <RefreshCw className="mr-2 h-3 w-3" />
+                          <ArrowLeft className="mr-2 h-3 w-3" />
                           Reset
                         </Button>
                         
