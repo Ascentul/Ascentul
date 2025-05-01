@@ -1424,11 +1424,11 @@ export default function CoverLetter() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedLetter ? 'Edit Cover Letter' : 'Create New Cover Letter'}
+              {selectedCoverLetter ? 'Edit Cover Letter' : 'Create New Cover Letter'}
             </DialogTitle>
           </DialogHeader>
           <CoverLetterForm
-            coverLetter={selectedLetter}
+            coverLetter={selectedCoverLetter}
             onSuccess={() => setIsAddLetterOpen(false)}
           />
         </DialogContent>
