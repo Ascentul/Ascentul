@@ -739,33 +739,16 @@ export default function Resume() {
               />
             ) : analysisResults ? (
               /* Third step: Show analysis results */
-              <div className="space-y-6">
-                <Card className="w-full">
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Analysis Results</CardTitle>
-                      <CardDescription>
-                        Here's how your resume matches the job description
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        setAnalysisResults(null);
-                      }}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back to Job Description
-                    </Button>
-                  </CardHeader>
-                </Card>
-                
+              <motion.div 
+                className="grid grid-cols-1 gap-6 will-change-opacity will-change-transform"
+                variants={subtleUp}
+                style={{ transform: 'translateZ(0)' }}
+              >
                 {/* Display analysis results */}
                 <ResumeAnalysisResults results={analysisResults} />
                 
                 {/* Action buttons for the results */}
-                <div className="flex items-center justify-between pt-4">
+                <div className="flex items-center justify-between pt-2">
                   <div>
                     {analysisResults.timestamp && (
                       <p className="text-sm text-neutral-500">
@@ -777,88 +760,100 @@ export default function Resume() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setIsExtractionComplete(false);
-                        setExtractedResumeText('');
                         setAnalysisResults(null);
                       }}
                     >
-                      Start Over
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Job Description
                     </Button>
                     <Button
                       onClick={generateSuggestions}
                     >
+                      <Sparkles className="h-4 w-4 mr-2" />
                       Generate Resume Suggestions
                     </Button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ) : (
               /* Second step: Enter job description and analyze */
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle>Resume Analysis - Step 2</CardTitle>
-                  <CardDescription>
-                    Enter the job description you want to match your resume against. Both your resume text and a job description are required for the analysis.
-                  </CardDescription>
-                  <Alert className="mt-2 bg-amber-50 border-amber-200">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertTitle className="text-amber-600">Important</AlertTitle>
-                    <AlertDescription className="text-amber-700">
-                      To perform the analysis, you must provide a job description to compare against your resume text.
-                    </AlertDescription>
-                  </Alert>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Use the new JobDescriptionInput component */}
-                  <JobDescriptionInput
-                    value={extractionJobDescription}
-                    onChange={setExtractionJobDescription}
-                    className="h-[150px]"
-                    minLength={100}
-                    isAnalyzing={isAnalyzing}
-                  />
-                  
-                  <div className="pt-2">
-                    <label className="block text-sm font-medium text-neutral-600 mb-1">
-                      Extracted Resume Text
-                    </label>
-                    <Textarea
-                      placeholder="Your extracted resume text..."
-                      className="h-[150px] resize-y font-mono text-sm"
-                      value={extractedResumeText}
-                      onChange={(e) => setExtractedResumeText(e.target.value)}
-                      readOnly
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="justify-between">
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setIsExtractionComplete(false);
-                      setExtractedResumeText('');
-                    }}
-                  >
-                    Back
-                  </Button>
-                  <Button 
-                    onClick={handleAnalyzeExtractedText}
-                    disabled={isAnalyzing || !extractionJobDescription.trim() || !extractedResumeText.trim()}
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <ArrowRight className="h-4 w-4 mr-2" />
-                        Analyze Resume
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
+              <motion.div 
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform"
+                variants={subtleUp}
+                style={{ transform: 'translateZ(0)' }}
+              >
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+                      <FileUp className="h-5 w-5 mr-2" />
+                      Job Description
+                    </h3>
+                    <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
+                      Enter the job description you want to match your resume against. A more detailed job description 
+                      will result in more accurate analysis of your resume.
+                    </p>
+                    
+                    <div className="space-y-5">
+                      {/* Use the JobDescriptionInput component */}
+                      <JobDescriptionInput
+                        value={extractionJobDescription}
+                        onChange={setExtractionJobDescription}
+                        className="min-h-[200px] border-slate-200"
+                        minLength={100}
+                        isAnalyzing={isAnalyzing}
+                      />
+                      
+                      <Button 
+                        className="w-full" 
+                        onClick={handleAnalyzeExtractedText}
+                        disabled={isAnalyzing || !extractionJobDescription.trim() || !extractedResumeText.trim()}
+                        id="analyzeBtn"
+                      >
+                        {isAnalyzing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <BarChart4 className="h-4 w-4 mr-2" />
+                            Analyze Resume
+                          </>
+                        )}
+                      </Button>
+                      
+                      <div className="flex justify-center">
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsExtractionComplete(false);
+                            setExtractedResumeText('');
+                          }}
+                          className="text-neutral-500"
+                        >
+                          &larr; Back to Upload Resume
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
+                    </h3>
+                    <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
+                      <Sparkles className="h-12 w-12 text-neutral-300 mb-3" />
+                      <p className="text-neutral-500 max-w-xs">
+                        Enter a job description and click "Analyze Resume" to see AI-powered analysis and suggestions for improvement.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
           </motion.div>
         </TabsContent>
