@@ -804,57 +804,23 @@ export default function Resume() {
                       AI Analysis Results
                     </h3>
                     
-                    <p className="text-neutral-600 mb-4 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
-                      Upload your resume and provide a job description to get AI-powered analysis on how well your resume 
-                      matches the position requirements.
-                    </p>
-
-                    <div className="space-y-3">
-                      <div className="flex items-start">
-                        <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
-                          <span className="text-xs font-medium text-primary">1</span>
-                        </div>
-                        <p className="text-sm text-neutral-700">
-                          Upload your resume PDF (5MB max)
-                        </p>
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="w-16 h-16 mb-6 text-neutral-200">
+                        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
-
-                      <div className="flex items-start">
-                        <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
-                          <span className="text-xs font-medium text-primary">2</span>
-                        </div>
-                        <p className="text-sm text-neutral-700">
-                          Enter the job description you're targeting
-                        </p>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
-                          <span className="text-xs font-medium text-primary">3</span>
-                        </div>
-                        <p className="text-sm text-neutral-700">
-                          Click "Analyze Resume" to get detailed feedback on:
-                        </p>
-                      </div>
-
-                      <ul className="pl-10 space-y-2">
-                        <li className="text-sm text-neutral-700 flex items-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary/60 mr-2"></div>
-                          Match score with position requirements
-                        </li>
-                        <li className="text-sm text-neutral-700 flex items-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary/60 mr-2"></div>
-                          Key strengths and weaknesses
-                        </li>
-                        <li className="text-sm text-neutral-700 flex items-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary/60 mr-2"></div>
-                          Targeted improvement suggestions
-                        </li>
-                        <li className="text-sm text-neutral-700 flex items-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-primary/60 mr-2"></div>
-                          AI-optimized skills and experience formatting
-                        </li>
-                      </ul>
+                      
+                      <p className="text-neutral-600 text-lg mb-2">
+                        Submit your resume and job description
+                      </p>
+                      
+                      <p className="text-neutral-500 mb-6">
+                        to see AI-powered analysis and suggestions.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
