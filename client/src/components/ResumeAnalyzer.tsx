@@ -3,9 +3,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { FileUp, UploadCloud, AlertCircle, Loader2, BarChart4, Sparkles } from 'lucide-react';
+import { 
+  FileUp, UploadCloud, AlertCircle, Loader2, BarChart4, 
+  Sparkles, CheckCircle2, Trash2, Info, FileText
+} from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
 
 interface ResumeAnalyzerProps {
@@ -217,6 +221,28 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     setResumeText('');
   };
 
+  const loadExampleJobDescription = () => {
+    setJobDescription(
+      "We're hiring a Salesforce Data Architect to lead integrations and mentor technical teams. The ideal candidate has 5+ years experience with Salesforce, strong API development skills, and can design scalable data models. You'll work with cross-functional teams to implement complex integration solutions, optimize data flows, and ensure security compliance. Required skills: Salesforce certification, SQL, REST APIs, data migration, and excellent communication skills."
+    );
+  };
+
+  // Determine if analyze button should be enabled
+  const canAnalyze = !isAnalyzing && resumeText && jobDescription.trim();
+
+  // Button text changes based on state
+  const getButtonText = () => {
+    if (isAnalyzing) {
+      return "Analyzing...";
+    } else if (hasExtractedText && !jobDescription.trim()) {
+      return "Add Job Description";
+    } else if (!hasExtractedText) {
+      return "Upload Resume First";
+    } else {
+      return "Analyze Resume";
+    }
+  };
+
   return (
     <Card className="overflow-hidden border-slate-200">
       <CardContent className="pt-6">
@@ -225,12 +251,19 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           Analyze Your Resume
         </h3>
         
-        
         <div className="space-y-6">
           {/* Upload Resume */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center">
-              <span className="text-primary mr-1">1.</span> Upload Resume <span className="text-red-500 ml-1">*</span>
+            <Label className="text-sm font-medium flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-primary mr-1">1.</span> Upload Resume <span className="text-red-500 ml-1">*</span>
+              </div>
+              {hasExtractedText && (
+                <span className="text-green-600 text-xs font-medium flex items-center">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Resume uploaded
+                </span>
+              )}
             </Label>
             
             <div className="border-2 border-dashed rounded-md border-gray-200 p-4 bg-gray-50 flex flex-col items-center justify-center">
@@ -264,20 +297,33 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                 <div className="w-full">
                   <div className="flex items-center justify-between bg-white p-2 rounded border border-neutral-200 mb-3">
                     <div className="flex items-center">
-                      <div className="bg-primary/10 p-2 rounded">
-                        <FileUp className="h-4 w-4 text-primary" />
+                      <div className={`${hasExtractedText ? 'bg-green-100' : 'bg-primary/10'} p-2 rounded`}>
+                        {hasExtractedText ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-primary" />
+                        )}
                       </div>
                       <span className="ml-2 text-sm truncate max-w-[200px]">{file.name}</span>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={resetFileInput}
-                      disabled={uploading || extracting}
-                      className="h-8 text-neutral-500"
-                    >
-                      Remove
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={resetFileInput}
+                            disabled={uploading || extracting}
+                            className="h-8 w-8 text-neutral-500 hover:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Remove file</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   
                   {(!hasExtractedText && !(uploading || extracting)) && (
@@ -302,9 +348,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                   {hasExtractedText && (
                     <div className="bg-green-50 text-green-700 p-2 text-sm rounded flex items-center">
                       <div className="bg-green-100 p-1 rounded-full mr-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
                       </div>
                       Resume processed successfully
                     </div>
@@ -324,8 +368,18 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           
           {/* Enter Job Description */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center">
-              <span className="text-primary mr-1">2.</span> Job Description <span className="text-red-500 ml-1">*</span>
+            <Label className="text-sm font-medium flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-primary mr-1">2.</span> Job Description <span className="text-red-500 ml-1">*</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadExampleJobDescription}
+                className="h-6 text-xs text-primary"
+              >
+                Paste Example
+              </Button>
             </Label>
             
             <JobDescriptionInput
@@ -334,28 +388,41 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
               className="min-h-[150px] border-slate-200"
               minLength={100}
               isAnalyzing={isAnalyzing}
+              placeholder="We're hiring a Salesforce Data Architect to lead integrations and mentor technical teams..."
             />
           </div>
           
           {/* Analyze Button */}
-          <Button 
-            className="w-full" 
-            onClick={onAnalyze}
-            disabled={isAnalyzing || !resumeText || !jobDescription.trim()}
-            id="analyzeBtn"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Analyzing Resume...
-              </>
-            ) : (
-              <>
-                <BarChart4 className="h-4 w-4 mr-2" />
-                Analyze Resume
-              </>
-            )}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-full">
+                  <Button 
+                    className="w-full relative transition-all duration-300" 
+                    onClick={onAnalyze}
+                    disabled={!canAnalyze}
+                    id="analyzeBtn"
+                    variant={isAnalyzing ? "outline" : "default"}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing Resume...
+                      </>
+                    ) : (
+                      <>
+                        <BarChart4 className="h-4 w-4 mr-2" />
+                        {getButtonText()}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                <p>AI will compare your resume against the job description to identify strengths, gaps, and suggestions.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           
           {/* The textarea for the resume text is hidden from the user */}
           <input type="hidden" id="extractedResumeText" value={resumeText} />
