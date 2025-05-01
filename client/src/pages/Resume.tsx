@@ -102,12 +102,12 @@ export default function Resume() {
         jobDescriptionLength: jobDescription?.length || 0,
         workHistoryLength: userWorkHistory?.length || 0
       });
-      
+
       const res = await apiRequest('POST', '/api/resumes/suggestions', {
         jobDescription,
         workHistory: userWorkHistory,
       });
-      
+
       const responseData = await res.json();
       console.log("Received suggestions response:", responseData);
       return responseData;
@@ -117,13 +117,13 @@ export default function Resume() {
         title: 'Suggestions Generated',
         description: 'AI-powered suggestions for your resume are ready',
       });
-      
+
       // Store the suggestions data and make it visible
       setShowSuggestions(true);
-      
+
       // Log the received data for debugging
       console.log("Displaying suggestions:", data);
-      
+
       // If analysis completed successfully, switch to the suggestions tab
       const tabsElement = document.querySelector("[role='tablist']");
       if (tabsElement) {
@@ -131,7 +131,7 @@ export default function Resume() {
         const suggestionsTab = Array.from(tabsElement.children).find(
           (tab) => tab.textContent?.includes('Optimize with AI')
         ) as HTMLElement;
-        
+
         if (suggestionsTab) {
           suggestionsTab.click();
         }
@@ -225,34 +225,34 @@ export default function Resume() {
       });
     },
   });
-  
+
   // Optimize career data based on job description
   const optimizeCareerDataMutation = useMutation({
     mutationFn: async () => {
       if (!careerData) {
         throw new Error("No career data available. Please add work history in your profile first.");
       }
-      
+
       // Format the career data to match the requirements of the API
       const formattedCareerData = {
         workHistory: careerData.workHistory || [],
         skills: (careerData.skills || []).map((skill: any) => skill.name || skill),
         careerSummary: careerData.careerSummary || ''
       };
-      
+
       setIsOptimizing(true);
       const res = await apiRequest('POST', '/api/career-data/optimize', {
         jobDescription,
         careerData: formattedCareerData
       });
-      
+
       return res.json();
     },
     onSuccess: (data) => {
       setIsOptimizing(false);
       setOptimizedCareerData(data);
       setIsOptimizeDialogOpen(true);
-      
+
       toast({
         title: 'Optimization Complete',
         description: 'Your career data has been optimized for this job description',
@@ -267,7 +267,7 @@ export default function Resume() {
       });
     },
   });
-  
+
   // Process extracted resume text
   const analyzeExtractedTextMutation = useMutation({
     mutationFn: async () => {
@@ -276,32 +276,32 @@ export default function Resume() {
       }
 
       setIsAnalyzing(true);
-      
+
       const res = await apiRequest('POST', '/api/resumes/analyze', {
         resumeText: extractedResumeText,
         jobDescription: extractionJobDescription
       });
-      
+
       return res.json();
     },
     onSuccess: (data: ResumeAnalysisResult) => {
       setIsAnalyzing(false);
-      
+
       // Store the analysis results
       setAnalysisResults({
         ...data,
         timestamp: new Date().toISOString() // Add timestamp for "Analyzed X time ago" display
       });
-      
+
       // Show the success toast
       toast({
         title: 'Analysis Complete',
         description: 'Your resume has been analyzed successfully',
       });
-      
+
       // Set the job description for the entire component so it can be used elsewhere
       setJobDescription(extractionJobDescription);
-      
+
       // Generate suggestions based on the extracted and analyzed text
       setUserWorkHistory(extractedResumeText);
       getSuggestionsMutation.mutate();
@@ -315,18 +315,18 @@ export default function Resume() {
       });
     },
   });
-  
+
   // Handle text extraction completion from ResumeAnalyzer
   const handleExtractComplete = (text: string) => {
     setExtractedResumeText(text);
     setIsExtractionComplete(true);
-    
+
     toast({
       title: 'Text Extraction Complete',
       description: 'Please provide a job description and click Continue to analyze the resume',
     });
   };
-  
+
   // Handle the continue button after extraction
   const handleAnalyzeExtractedText = () => {
     if (!extractedResumeText.trim()) {
@@ -337,7 +337,7 @@ export default function Resume() {
       });
       return;
     }
-    
+
     if (!extractionJobDescription.trim()) {
       toast({
         title: 'Job Description Required',
@@ -346,7 +346,7 @@ export default function Resume() {
       });
       return;
     }
-    
+
     if (extractionJobDescription.trim().length < 50) {
       toast({
         title: 'Job Description Too Short',
@@ -355,29 +355,29 @@ export default function Resume() {
       });
       return;
     }
-    
+
     console.log("Beginning analysis process with:", {
       resumeTextLength: extractedResumeText.length,
       jobDescriptionLength: extractionJobDescription.length,
       resumeTextExcerpt: extractedResumeText.substring(0, 50) + "...",
       jobDescriptionExcerpt: extractionJobDescription.substring(0, 50) + "..."
     });
-    
+
     // Clear previous suggestions to ensure clean state
     setShowSuggestions(false);
-    
+
     // This uses the mutation to analyze the extracted text
     // Call the mutation without parameters as they are used from component state
     analyzeExtractedTextMutation.mutate();
   };
-  
+
   // Update career data with optimized content
   const updateCareerDataMutation = useMutation({
     mutationFn: async () => {
       if (!optimizedCareerData) {
         throw new Error("No optimized data available");
       }
-      
+
       // Update career summary if provided
       let summaryPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.careerSummary) {
@@ -385,7 +385,7 @@ export default function Resume() {
           summary: optimizedCareerData.careerSummary
         });
       }
-      
+
       // Update each work history item if provided
       const workHistoryPromises = [];
       if (optimizedCareerData.workHistory && optimizedCareerData.workHistory.length > 0) {
@@ -400,7 +400,7 @@ export default function Resume() {
           }
         }
       }
-      
+
       // Add new skills if provided
       let skillsPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.skills && optimizedCareerData.skills.length > 0) {
@@ -410,7 +410,7 @@ export default function Resume() {
         const currentSkillNames = new Set(
           (currentSkillsData.skills || []).map((s: any) => s.name.toLowerCase())
         );
-        
+
         // Add new skills that don't already exist
         const newSkillPromises = [];
         for (const skill of optimizedCareerData.skills) {
@@ -424,22 +424,22 @@ export default function Resume() {
             );
           }
         }
-        
+
         if (newSkillPromises.length > 0) {
           skillsPromise = Promise.all(newSkillPromises);
         }
       }
-      
+
       // Wait for all updates to complete
       return Promise.all([summaryPromise, ...workHistoryPromises, skillsPromise]);
     },
     onSuccess: () => {
       // Refresh career data
       refetchCareerData();
-      
+
       // Close the optimize dialog
       setIsOptimizeDialogOpen(false);
-      
+
       // Show success message
       toast({
         title: 'Profile Updated',
@@ -523,7 +523,7 @@ export default function Resume() {
     // Check if we have work history data available - prefer careerData over workHistoryData
     const hasWorkHistory = (careerData && careerData.workHistory && careerData.workHistory.length > 0) ||
                            (Array.isArray(workHistoryData) && workHistoryData.length > 0);
-    
+
     if (!hasWorkHistory) {
       toast({
         title: 'Missing Work History',
@@ -558,7 +558,7 @@ export default function Resume() {
       generateResumeMutation.mutate();
     }
   };
-  
+
   // Function to optimize career data and then generate resume
   const optimizeAndGenerateResume = () => {
     if (!optimizedCareerData) {
@@ -569,23 +569,23 @@ export default function Resume() {
       });
       return;
     }
-    
+
     // Format optimized work history data for AI processing
     const formattedWorkHistory = optimizedCareerData.workHistory.map((job: any) => {
       return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}\n`;
     }).join('\n---\n\n');
-    
+
     // Set the formatted work history to use in the API call
     setUserWorkHistory(formattedWorkHistory);
-    
+
     // Add the optimized career summary at the beginning if available
     if (optimizedCareerData.careerSummary) {
       setUserWorkHistory(`Career Summary:\n${optimizedCareerData.careerSummary}\n\n${formattedWorkHistory}`);
     }
-    
+
     // Close the optimization dialog
     setIsOptimizeDialogOpen(false);
-    
+
     // Call the API with the job description and formatted work history
     generateResumeMutation.mutate();
   };
@@ -630,7 +630,7 @@ export default function Resume() {
       }
     }
   };
-  
+
   // Function to download resume as PDF
   const handleDownloadPDF = (elementId: string) => {
     const element = document.getElementById(elementId);
@@ -642,16 +642,16 @@ export default function Resume() {
       });
       return;
     }
-    
+
     // Create a filename based on resume name or default
     const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
     const filename = `${resumeName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-    
+
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
     clonedElement.style.padding = '20px';
     clonedElement.style.border = 'none';
-    
+
     // Create the print window
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -662,7 +662,7 @@ export default function Resume() {
       });
       return;
     }
-    
+
     // Setup the print document
     printWindow.document.write(`
       <html>
@@ -699,7 +699,7 @@ export default function Resume() {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
   };
 
@@ -739,7 +739,7 @@ export default function Resume() {
           <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
           <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
         </TabsList>
-        
+
         {/* Add ResumeAnalyzer to "analyze" tab */}
         <TabsContent value="analyze" className="space-y-6">
           <motion.div
@@ -754,7 +754,7 @@ export default function Resume() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left column: Resume upload and job description */}
               <ResumeAnalyzer 
@@ -764,7 +764,7 @@ export default function Resume() {
                 isAnalyzing={isAnalyzing}
                 onAnalyze={handleAnalyzeExtractedText}
               />
-              
+
               {/* Right column: Analysis results or instructions */}
               {analysisResults ? (
                 <motion.div 
@@ -774,7 +774,7 @@ export default function Resume() {
                 >
                   {/* Display analysis results */}
                   <ResumeAnalysisResults results={analysisResults} />
-                  
+
                   {/* Action buttons */}
                   <div className="flex items-center justify-between pt-2">
                     <div>
@@ -810,11 +810,7 @@ export default function Resume() {
                       <FileText className="h-5 w-5 mr-2" />
                       How It Works
                     </h3>
-                    <p className="text-neutral-600 mb-4 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
-                      Upload your resume and provide a job description to get AI-powered analysis on how well your resume 
-                      matches the position requirements.
-                    </p>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-start">
                         <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
@@ -824,7 +820,7 @@ export default function Resume() {
                           Upload your resume PDF (5MB max)
                         </p>
                       </div>
-                      
+
                       <div className="flex items-start">
                         <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
                           <span className="text-xs font-medium text-primary">2</span>
@@ -833,7 +829,7 @@ export default function Resume() {
                           Enter the job description you're targeting
                         </p>
                       </div>
-                      
+
                       <div className="flex items-start">
                         <div className="bg-primary/10 p-1 rounded-full mt-0.5 mr-3">
                           <span className="text-xs font-medium text-primary">3</span>
@@ -842,7 +838,7 @@ export default function Resume() {
                           Click "Analyze Resume" to get detailed feedback on:
                         </p>
                       </div>
-                      
+
                       <ul className="pl-10 space-y-2">
                         <li className="text-sm text-neutral-700 flex items-center">
                           <div className="h-1.5 w-1.5 rounded-full bg-primary/60 mr-2"></div>
@@ -975,7 +971,7 @@ export default function Resume() {
                             hiddenDiv.style.position = 'absolute';
                             hiddenDiv.style.left = '-9999px';
                             hiddenDiv.style.top = '-9999px';
-                            
+
                             // Add resume content to the hidden div
                             hiddenDiv.innerHTML = `
                               <div class="bg-white p-6">
@@ -989,13 +985,13 @@ export default function Resume() {
                                     ${resume.content.personalInfo.location ? `<span>| ${resume.content.personalInfo.location}</span>` : ''}
                                   </div>
                                 </div>
-                                
+
                                 ${resume.content.summary ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                                   <p class="text-sm">${resume.content.summary}</p>
                                 </div>` : ''}
-                                
+
                                 ${resume.content.skills && resume.content.skills.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -1005,7 +1001,7 @@ export default function Resume() {
                                     ).join('')}
                                   </div>
                                 </div>` : ''}
-                                
+
                                 ${resume.content.experience && resume.content.experience.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -1024,7 +1020,7 @@ export default function Resume() {
                                     `).join('')}
                                   </div>
                                 </div>` : ''}
-                                
+
                                 ${resume.content.education && resume.content.education.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -1043,7 +1039,7 @@ export default function Resume() {
                                     `).join('')}
                                   </div>
                                 </div>` : ''}
-                                
+
                                 ${resume.content.projects && resume.content.projects.length > 0 ? `
                                 <div class="mb-6">
                                   <h3 class="text-lg font-semibold border-b pb-1 mb-3">Projects</h3>
@@ -1070,13 +1066,13 @@ export default function Resume() {
                                 </div>` : ''}
                               </div>
                             `;
-                            
+
                             // Append the hidden div to the document
                             document.body.appendChild(hiddenDiv);
-                            
+
                             // Download the resume
                             handleDownloadPDF(`temp-resume-${resume.id}`);
-                            
+
                             // Remove the hidden div after a delay
                             setTimeout(() => {
                               document.body.removeChild(hiddenDiv);
@@ -1221,7 +1217,7 @@ export default function Resume() {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* If there's a data structure issue, show it as a fallback */}
                     {(!getSuggestionsMutation.data.suggestions || !getSuggestionsMutation.data.keywords) && (
                       <Alert className="bg-amber-50 border-amber-200">
@@ -1246,7 +1242,7 @@ export default function Resume() {
                     </div>
                   )
                 )}
-                
+
                 {getSuggestionsMutation.isError && (
                   <Alert variant="destructive" className="mt-4">
                     <AlertCircle className="h-4 w-4" />
@@ -1292,15 +1288,15 @@ export default function Resume() {
             hiddenDiv.style.position = 'absolute';
             hiddenDiv.style.left = '-9999px';
             hiddenDiv.style.top = '-9999px';
-            
+
             // Create a clone of the currently visible resume template
             const visibleTemplate = document.querySelector('.resume-template');
             if (visibleTemplate) {
               const clonedTemplate = visibleTemplate.cloneNode(true) as HTMLElement;
-              
+
               // Preserve all the styles from the original template
               const computedStyle = window.getComputedStyle(visibleTemplate);
-              
+
               // Create a style element to ensure all CSS is applied during PDF generation
               const styleSheet = document.createElement('style');
               styleSheet.textContent = `
@@ -1323,18 +1319,18 @@ export default function Resume() {
                   print-color-adjust: exact !important;
                 }
               `;
-              
+
               // Remove the transform to avoid scaling issues in PDF
               clonedTemplate.style.transform = 'none';
-              
+
               // Append both the style and template to hidden div
               hiddenDiv.appendChild(styleSheet);
               hiddenDiv.appendChild(clonedTemplate);
               document.body.appendChild(hiddenDiv);
-              
+
               // Download the resume
               handleDownloadPDF(`temp-preview-resume`);
-              
+
               // Remove the hidden div after a delay
               setTimeout(() => {
                 document.body.removeChild(hiddenDiv);
@@ -1463,7 +1459,7 @@ export default function Resume() {
                     hiddenDiv.style.position = 'absolute';
                     hiddenDiv.style.left = '-9999px';
                     hiddenDiv.style.top = '-9999px';
-                    
+
                     // Add resume content to the hidden div
                     hiddenDiv.innerHTML = `
                       <div class="bg-white p-6">
@@ -1477,13 +1473,13 @@ export default function Resume() {
                             ${generatedResume.personalInfo?.location ? `<span>| ${generatedResume.personalInfo.location}</span>` : ''}
                           </div>
                         </div>
-                        
+
                         ${generatedResume.summary ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
                           <p class="text-sm">${generatedResume.summary}</p>
                         </div>` : ''}
-                        
+
                         ${generatedResume.skills && generatedResume.skills.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
@@ -1493,7 +1489,7 @@ export default function Resume() {
                             ).join('')}
                           </div>
                         </div>` : ''}
-                        
+
                         ${generatedResume.experience && generatedResume.experience.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
@@ -1519,7 +1515,7 @@ export default function Resume() {
                             `).join('')}
                           </div>
                         </div>` : ''}
-                        
+
                         ${generatedResume.education && generatedResume.education.length > 0 ? `
                         <div class="mb-6">
                           <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
@@ -1540,13 +1536,13 @@ export default function Resume() {
                         </div>` : ''}
                       </div>
                     `;
-                    
+
                     // Append the hidden div to the document
                     document.body.appendChild(hiddenDiv);
-                    
+
                     // Download the resume
                     handleDownloadPDF(`temp-generated-resume`);
-                    
+
                     // Remove the hidden div after a delay
                     setTimeout(() => {
                       document.body.removeChild(hiddenDiv);
@@ -1595,7 +1591,7 @@ export default function Resume() {
               AI has analyzed your career data and the job description to create an optimized version that highlights your most relevant skills and experiences.
             </DialogDescription>
           </DialogHeader>
-          
+
           {isOptimizing ? (
             <div className="flex flex-col items-center justify-center py-10">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -1619,14 +1615,14 @@ export default function Resume() {
                   </Alert>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Work History</h3>
                 {optimizedCareerData.workHistory?.map((item: any) => (
                   <div key={item.id} className="border rounded-md p-3">
                     <div className="font-medium">{item.company} - {item.position}</div>
                     <div className="text-sm text-neutral-600 mt-1">{item.description}</div>
-                    
+
                     {item.achievements && item.achievements.length > 0 && (
                       <div className="mt-2">
                         <div className="font-medium text-sm">Key Achievements:</div>
@@ -1639,7 +1635,7 @@ export default function Resume() {
                     )}
                   </div>
                 ))}
-                
+
                 {optimizedCareerData.explanations?.workHistory && (
                   <Alert>
                     <AlertTitle>How work history was enhanced</AlertTitle>
@@ -1649,7 +1645,7 @@ export default function Resume() {
                   </Alert>
                 )}
               </div>
-              
+
               {optimizedCareerData.skills && optimizedCareerData.skills.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Highlighted Skills</h3>
@@ -1660,7 +1656,7 @@ export default function Resume() {
                       </div>
                     ))}
                   </div>
-                  
+
                   {optimizedCareerData.explanations?.skills && (
                     <Alert>
                       <AlertTitle>Skill Recommendations</AlertTitle>
@@ -1677,7 +1673,7 @@ export default function Resume() {
               <p className="text-neutral-600">No optimized data available</p>
             </div>
           )}
-          
+
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium flex items-center gap-2">
@@ -1692,7 +1688,7 @@ export default function Resume() {
               When enabled, your profile in Account Settings will be updated with these optimized descriptions and skills.
             </p>
           </div>
-          
+
           <DialogFooter className="flex justify-between">
             <Button variant="outline" onClick={() => setIsOptimizeDialogOpen(false)}>
               Cancel
