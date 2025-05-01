@@ -624,9 +624,9 @@ export default function CoverLetter() {
               variants={staggeredContainer}
               style={{ alignItems: 'stretch' }}
             >
-              {filteredLetters().map((letter: any, i: number) => (
+              {filteredLetters().map((coverLetter: any, i: number) => (
                 <motion.div 
-                  key={letter.id}
+                  key={coverLetter.id}
                   variants={cardAnimation}
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}
@@ -637,18 +637,18 @@ export default function CoverLetter() {
                         <div className="flex items-center">
                           <Mail className="h-10 w-10 text-primary mr-4" />
                           <div>
-                            <h3 className="font-medium">{letter.name}</h3>
+                            <h3 className="font-medium">{coverLetter.name}</h3>
                             <p className="text-xs text-neutral-500 mt-1">
-                              Created: {new Date(letter.createdAt).toLocaleDateString()}
+                              Created: {new Date(coverLetter.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                       </div>
                       <div className="p-5 text-sm text-neutral-600 line-clamp-3">
-                        {letter.content.body.length > 150 ? (
-                          <>{letter.content.body.substring(0, 150)}...</>
+                        {coverLetter.content.body.length > 150 ? (
+                          <>{coverLetter.content.body.substring(0, 150)}...</>
                         ) : (
-                          <>{letter.content.body}</>
+                          <>{coverLetter.content.body}</>
                         )}
                       </div>
                     </CardContent>
