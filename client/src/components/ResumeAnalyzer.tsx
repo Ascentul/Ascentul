@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   const [extracting, setExtracting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState<string>('');
+  const [hasExtractedText, setHasExtractedText] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -56,6 +57,11 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
     
     setFile(selectedFile);
+    
+    // Auto-process when a file is selected
+    setTimeout(() => {
+      processFile();
+    }, 100);
   };
 
   const processFile = async () => {
@@ -171,10 +177,11 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     setResumeText(text);
     setUploading(false);
     setExtracting(false);
+    setHasExtractedText(true);
     
     toast({
-      title: 'Success!',
-      description: 'Text extracted successfully from PDF',
+      title: 'Resume Uploaded!',
+      description: 'Text extracted successfully. You can now add a job description.',
       variant: 'default',
     });
     
@@ -206,6 +213,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
     setFile(null);
     setError(null);
+    setHasExtractedText(false);
+    setResumeText('');
   };
 
   return (
@@ -213,15 +222,15 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       <CardContent className="pt-6">
         <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
           <FileUp className="h-5 w-5 mr-2" />
-          Upload & Analyze Resume
+          Analyze Your Resume
         </h3>
         <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
-          Upload your resume and the job description you want to target. Our AI will analyze how well your resume matches 
-          the job requirements and provide tailored improvement suggestions.
+          Upload your resume and enter a job description to analyze. Our AI will assess how well your resume 
+          matches the job requirements and provide targeted suggestions.
         </p>
         
         <div className="space-y-6">
-          {/* Step 1: Upload Resume */}
+          {/* Upload Resume */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center">
               <span className="text-primary mr-1">1.</span> Upload Resume <span className="text-red-500 ml-1">*</span>
@@ -274,22 +283,35 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                     </Button>
                   </div>
                   
-                  <Button 
-                    type="button"
-                    onClick={processFile}
-                    disabled={uploading || extracting}
-                    className="w-full"
-                    size="sm"
-                  >
-                    {(uploading || extracting) ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {uploading ? 'Uploading...' : 'Extracting Text...'}
-                      </>
-                    ) : (
-                      'Process Resume'
-                    )}
-                  </Button>
+                  {(!hasExtractedText && !(uploading || extracting)) && (
+                    <Button 
+                      type="button"
+                      onClick={processFile}
+                      disabled={uploading || extracting}
+                      className="w-full"
+                      size="sm"
+                    >
+                      Process Resume
+                    </Button>
+                  )}
+                  
+                  {(uploading || extracting) && (
+                    <div className="flex items-center justify-center py-2">
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <span className="text-sm">{uploading ? 'Uploading...' : 'Extracting Text...'}</span>
+                    </div>
+                  )}
+                  
+                  {hasExtractedText && (
+                    <div className="bg-green-50 text-green-700 p-2 text-sm rounded flex items-center">
+                      <div className="bg-green-100 p-1 rounded-full mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      Resume processed successfully
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -303,7 +325,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
             )}
           </div>
           
-          {/* Step 2: Enter Job Description */}
+          {/* Enter Job Description */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center">
               <span className="text-primary mr-1">2.</span> Job Description <span className="text-red-500 ml-1">*</span>
