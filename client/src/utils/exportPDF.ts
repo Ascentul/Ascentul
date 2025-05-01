@@ -93,6 +93,207 @@ export function exportCoverLetterToPDF(): void {
 }
 
 /**
+ * Export a resume as a PDF using jsPDF
+ * This function extracts relevant data from the resume template DOM element
+ * and creates a well-formatted PDF document
+ * 
+ * @param elementId The ID of the element containing the resume to export
+ * @param resumeName The name of the resume to use in the PDF title and filename
+ */
+export function exportResumeToPDF(elementId: string, resumeName: string = "Resume"): void {
+  try {
+    console.log(`Exporting resume with ID: ${elementId}, name: ${resumeName}`);
+    
+    // Get the element containing the resume data
+    const resumeElement = document.getElementById(elementId);
+    if (!resumeElement) {
+      alert("❌ Could not find resume content. Please try again.");
+      console.error(`Element with ID ${elementId} not found`);
+      return;
+    }
+    
+    // Extract sections from the resume template
+    const nameElement = resumeElement.querySelector("h1, h2") || resumeElement.querySelector(".resume-name");
+    const fullName = nameElement?.textContent?.trim() || resumeName || "Resume";
+    
+    // Extract contact information (may be in different formats depending on template)
+    const contactInfo = resumeElement.querySelector(".contact-info, .personal-info")?.textContent?.trim() || "";
+    
+    // Extract sections (summary, experience, education, skills)
+    const summary = resumeElement.querySelector(".summary-section, .professional-summary")?.textContent?.trim() || "";
+    
+    // Try to find the skills section which might be represented as tags or plain text
+    let skills = "";
+    const skillsSection = resumeElement.querySelector(".skills-section");
+    if (skillsSection) {
+      // Look for individual skill tags first
+      const skillTags = Array.from(skillsSection.querySelectorAll(".skill-tag, .skill"));
+      if (skillTags.length > 0) {
+        skills = skillTags.map(tag => tag.textContent?.trim()).filter(Boolean).join(", ");
+      } else {
+        // Fall back to full text content of the skills section
+        skills = skillsSection.textContent?.trim() || "";
+      }
+    }
+    
+    // Get experience items (may be multiple)
+    const experienceItems: string[] = [];
+    resumeElement.querySelectorAll(".experience-item, .work-item").forEach(item => {
+      experienceItems.push(item.textContent?.trim() || "");
+    });
+    
+    // Get education items (may be multiple)
+    const educationItems: string[] = [];
+    resumeElement.querySelectorAll(".education-item, .edu-item").forEach(item => {
+      educationItems.push(item.textContent?.trim() || "");
+    });
+    
+    console.log("Creating PDF with resume data:", { 
+      name: fullName, 
+      contactSummary: contactInfo.substring(0, 30) + "...",
+      sections: {
+        summary: summary ? "Present" : "Not found",
+        skills: skills ? "Present" : "Not found",
+        experience: `${experienceItems.length} items`,
+        education: `${educationItems.length} items`
+      }
+    });
+    
+    // Create new PDF document
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'letter'
+    });
+    
+    // Set font
+    doc.setFont("helvetica");
+    
+    // Define margins (1 inch = 25.4mm)
+    const margin = 20; 
+    
+    // Get page dimensions
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Calculate text width (accounting for margins)
+    const textWidth = pageWidth - (margin * 2);
+    
+    // Add title/name at the top
+    doc.setFontSize(18);
+    doc.text(fullName, pageWidth / 2, margin, { align: 'center' });
+    
+    // Add contact info
+    let currentY = margin + 8;
+    if (contactInfo) {
+      doc.setFontSize(10);
+      doc.text(contactInfo, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 8;
+    }
+    
+    // Add a separator line
+    doc.setLineWidth(0.5);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 5;
+    
+    // Add summary if available
+    if (summary) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Professional Summary", margin, currentY);
+      currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const summaryLines = doc.splitTextToSize(summary, textWidth);
+      doc.text(summaryLines, margin, currentY);
+      currentY += doc.getTextDimensions(summaryLines).h + 5;
+    }
+    
+    // Add skills if available
+    if (skills) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Skills", margin, currentY);
+      currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const skillsLines = doc.splitTextToSize(skills, textWidth);
+      doc.text(skillsLines, margin, currentY);
+      currentY += doc.getTextDimensions(skillsLines).h + 5;
+    }
+    
+    // Add experience section if available
+    if (experienceItems.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Experience", margin, currentY);
+      currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      
+      for (const item of experienceItems) {
+        // Check if we need to add a new page
+        if (currentY > pageHeight - 25) {
+          doc.addPage();
+          currentY = margin;
+        }
+        
+        const itemLines = doc.splitTextToSize(item, textWidth);
+        doc.text(itemLines, margin, currentY);
+        currentY += doc.getTextDimensions(itemLines).h + 5;
+      }
+    }
+    
+    // Add education section if available
+    if (educationItems.length > 0) {
+      // Check if we need to add a new page
+      if (currentY > pageHeight - 40) {
+        doc.addPage();
+        currentY = margin;
+      }
+      
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Education", margin, currentY);
+      currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      
+      for (const item of educationItems) {
+        // Check if we need to add a new page
+        if (currentY > pageHeight - 25) {
+          doc.addPage();
+          currentY = margin;
+        }
+        
+        const itemLines = doc.splitTextToSize(item, textWidth);
+        doc.text(itemLines, margin, currentY);
+        currentY += doc.getTextDimensions(itemLines).h + 5;
+      }
+    }
+    
+    // Generate a clean filename
+    const cleanName = resumeName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `resume_${cleanName}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    // Save the PDF
+    doc.save(filename);
+    
+    // Show success message
+    alert("✅ Your resume has been downloaded successfully.");
+    console.log("Resume PDF export successful");
+    
+  } catch (error) {
+    console.error("Error creating resume PDF:", error);
+    alert("❌ Failed to export resume as PDF. An unexpected error occurred.");
+  }
+}
+
+/**
  * Export a specific element as a PDF
  * Legacy function maintained for backward compatibility
  * @param elementId The ID of the element to export
