@@ -48,9 +48,7 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <label htmlFor={id} className="block text-sm font-medium text-neutral-600">
-          Job Description {required && <span className="text-red-500">*</span>}
-        </label>
+        
         <span className={`text-xs ${jobDescQuality === 'good' ? 'text-green-600' : 'text-neutral-500'}`}>
           {charCount} characters {
             jobDescQuality === 'good' ? '✓' : 
