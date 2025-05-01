@@ -26,7 +26,7 @@ import {
 import ResumeTemplate from './ResumeTemplates';
 import type { ResumeTemplateStyle } from './ResumeTemplates';
 import { Loader2 } from 'lucide-react';
-import { exportResumeToPDF } from '@/utils/exportPDF';
+import { exportResumeToPDF } from '@/utils/resumeExport';
 import { useToast } from '@/hooks/use-toast';
 
 // Add html2pdf type for TypeScript
@@ -70,7 +70,7 @@ export default function ResumePreview({
     window.print();
   };
   
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
       setIsLoading(true);
       
@@ -86,96 +86,32 @@ export default function ResumePreview({
         return;
       }
       
-      // Create a container with special export styling class
-      const exportContainer = document.createElement('div');
-      exportContainer.className = 'resume-export-container';
-      
-      // Clone the resume preview - this ensures we don't modify the visible element
-      const clonedPreview = resumePreviewElement.cloneNode(true) as HTMLElement;
-      
-      // Remove any transform or scale that might be applied from the zoom controls
-      clonedPreview.style.transform = 'none';
-      clonedPreview.style.scale = '1';
-      
       // Generate the filename
       const filename = `${resume?.name || 'Resume'}_${new Date().toISOString().split('T')[0]}.pdf`;
       
-      // Add the cloned preview to our export container
-      exportContainer.appendChild(clonedPreview);
-      
-      // Add the container to the DOM (required for html2canvas to work)
-      document.body.appendChild(exportContainer);
-      
-      // Short delay to ensure DOM is ready before capturing
-      setTimeout(() => {
-        try {
-          // Configure html2pdf for high-quality output
-          window.html2pdf()
-            .set({
-              margin: 0, // No margins, handled in CSS
-              filename: filename,
-              image: { 
-                type: 'jpeg', 
-                quality: 0.98 // High quality image
-              },
-              html2canvas: { 
-                scale: 2, // Double resolution for sharp text
-                useCORS: true, // Allow cross-origin images
-                letterRendering: true, // Better text rendering
-                scrollX: 0, // Prevent scroll offsets
-                scrollY: 0,
-                logging: false, // Disable console logs
-                windowWidth: document.documentElement.clientWidth // Use full width
-              },
-              jsPDF: { 
-                unit: 'in', 
-                format: 'letter', // Standard US letter size
-                orientation: 'portrait',
-                compress: true // Smaller file size
-              },
-              // Intelligently handle page breaks
-              pagebreak: { 
-                mode: ['avoid-all', 'css', 'legacy'],
-                avoid: [
-                  '.job-item', 
-                  '.education-item', 
-                  '.resume-section-header',
-                  '.achievements',
-                  'h1', 'h2', 'h3', 
-                  'li'
-                ]
-              }
-            })
-            .from(clonedPreview)
-            .save()
-            .then(() => {
-              // Success notification
-              toast({
-                title: "Success",
-                description: "Your resume has been downloaded as a PDF",
-              });
-              
-              // Clean up the DOM
-              document.body.removeChild(exportContainer);
-              setIsLoading(false);
-            })
-            .catch((err: any) => {
-              console.error("PDF generation error:", err);
-              toast({
-                title: "Error",
-                description: "PDF generation failed. Try again.",
-                variant: "destructive"
-              });
-              // Clean up even on error
-              document.body.removeChild(exportContainer);
-              setIsLoading(false);
-            });
-        } catch (innerError) {
-          console.error("Error in html2pdf process:", innerError);
-          document.body.removeChild(exportContainer);
-          setIsLoading(false);
+      // Use our centralized export utility
+      const success = await exportResumeToPDF(
+        resumePreviewElement as HTMLElement, 
+        { 
+          filename,
+          showToast: false // We'll handle toasts ourselves for better loading state
         }
-      }, 100); // Ensure DOM is updated before capture
+      );
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Your resume has been downloaded as a PDF",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "PDF generation failed. Try again.",
+          variant: "destructive"
+        });
+      }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error("Error exporting resume to PDF:", error);
       toast({
