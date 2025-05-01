@@ -1,0 +1,69 @@
+ Prompt: Export Cover Letter Preview as PDF (No Backend, No Port Changes)
+🛠 Objective: Allow users to download the rendered cover letter exactly as it appears in the preview — including all formatting and layout — using the html2pdf.js library. This should work fully on the frontend and require no backend or port updates.
+
+✅ Implementation Tasks
+1. Wrap the Cover Letter in a PDF Export Container
+Ensure the rendered cover letter is wrapped in a container with the ID pdf-content:
+
+jsx
+Copy
+Edit
+<div id="pdf-content" className="pdf-body">
+  {/* Rendered cover letter content goes here */}
+  {savedCoverLetter}
+</div>
+2. Load html2pdf.js in the App
+✅ In React: Add this to a useEffect() in your top-level component (e.g. App.tsx):
+
+tsx
+Copy
+Edit
+useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+  script.defer = true;
+  document.body.appendChild(script);
+}, []);
+✅ In plain HTML/JS: Add directly in the HTML <head>:
+
+html
+Copy
+Edit
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+3. Create the PDF Export Function
+Add this function to your component or JS file:
+
+js
+Copy
+Edit
+function exportPDF() {
+  const element = document.getElementById("pdf-content");
+
+  const options = {
+    margin: 0.5,
+    filename: "cover-letter.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    pagebreak: { mode: ["avoid-all"] }
+  };
+
+  html2pdf().set(options).from(element).save();
+}
+4. Add a Download Button
+Hook up a button to trigger the export:
+
+jsx
+Copy
+Edit
+<button onClick={exportPDF} className="btn-primary">
+  Download PDF
+</button>
+✅ Use Tailwind or your styling system for appearance.
+
+✅ Result
+Exports the exact preview layout — no formatting changes needed
+
+Runs entirely in the browser
+
+⚠️ No port changes, no server-side logic

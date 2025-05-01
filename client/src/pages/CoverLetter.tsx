@@ -3,9 +3,16 @@ import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+
+// Add html2pdf type for TypeScript
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
 import { 
   Plus, 
-  Mail, 
+  Mail,
   Download, 
   Copy, 
   Trash2, 
@@ -509,6 +516,59 @@ export default function CoverLetter() {
     const clonedElement = element.cloneNode(true) as HTMLElement;
     clonedElement.style.padding = '20px';
     clonedElement.style.border = 'none';
+  };
+  
+  // Export cover letter as PDF using html2pdf.js
+  const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      toast({
+        title: 'Error',
+        description: 'Could not find the cover letter content to download',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Clone the element to modify it for PDF generation
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    clonedElement.style.padding = '20px';
+    clonedElement.style.border = 'none';
+
+    // Set up html2pdf options
+    const options = {
+      margin: 0.5,
+      filename: filename,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all"] }
+    };
+
+    // Check if html2pdf is loaded
+    if (typeof window.html2pdf === 'undefined') {
+      toast({
+        title: 'PDF Library Not Loaded',
+        description: 'Please wait a moment and try again as the PDF export library is still loading.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Generate and save the PDF
+    window.html2pdf().set(options).from(element).save().then(() => {
+      toast({
+        title: 'PDF Downloaded',
+        description: 'Your cover letter has been downloaded as a PDF.',
+      });
+    }).catch((error: any) => {
+      console.error('PDF generation error:', error);
+      toast({
+        title: 'PDF Generation Failed',
+        description: 'There was an error generating the PDF. Please try again.',
+        variant: 'destructive',
+      });
+    });
 
     // Create the print window
     const printWindow = window.open('', '_blank');
@@ -996,8 +1056,8 @@ export default function CoverLetter() {
                       </div>
                     </motion.div>
                     
-                    {/* Fixed button bar at the bottom with 3 buttons: Reset, Copy, Save */}
-                    <div className="grid grid-cols-3 gap-2 sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
+                    {/* Fixed button bar at the bottom with 4 buttons: Reset, Copy, Export PDF, Save */}
+                    <div className="grid grid-cols-4 gap-2 sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
                       <Button 
                         variant="outline" 
                         className="col-span-1"
@@ -1026,6 +1086,16 @@ export default function CoverLetter() {
                             Copy
                           </>
                         )}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        className="col-span-1"
+                        onClick={() => exportPDF("generatedContent", `Cover_Letter_${companyName ? `for_${companyName.replace(/\s+/g, '_')}` : 'Export'}.pdf`)}
+                        disabled={!generatedContent}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export PDF
                       </Button>
                       
                       <Button 
@@ -1462,6 +1532,17 @@ export default function CoverLetter() {
                           </Button>
                           
                           <Button 
+                            size="sm"
+                            variant="outline"
+                            onClick={() => exportPDF("optimizedCoverLetterContent", "Optimized_Cover_Letter.pdf")}
+                            title="Export optimized content as PDF"
+                            disabled={!analysisResult.optimizedCoverLetter}
+                          >
+                            <Download className="mr-2 h-3 w-3" />
+                            Export PDF
+                          </Button>
+                          
+                          <Button 
                             size="sm" 
                             onClick={handleSaveOptimizedCoverLetter}
                             title="Save this optimized version as a new cover letter"
@@ -1471,6 +1552,7 @@ export default function CoverLetter() {
                             Save Optimized Version
                           </Button>
                         </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
