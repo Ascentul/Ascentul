@@ -11,6 +11,7 @@ declare global {
  * This approach directly captures the rendered content for export
  */
 export function exportCoverLetterToPDF(): void {
+  // Find the PDF export content container
   const content = document.getElementById("pdf-export-content");
 
   if (!content || content.innerText.trim() === "") {
@@ -18,19 +19,44 @@ export function exportCoverLetterToPDF(): void {
     return;
   }
 
-  // Clone the element to avoid disturbing the page layout
-  const clone = content.cloneNode(true) as HTMLElement;
-  clone.style.position = "absolute";
-  clone.style.top = "-9999px";
-  clone.classList.add("prose", "max-w-screen-md", "mx-auto", "px-4", "py-8", "text-black", "bg-white");
-  document.body.appendChild(clone);
+  // Extract just the letter body text
+  const bodyContent = content.querySelector(".whitespace-pre-wrap");
+  
+  if (!bodyContent || bodyContent.textContent.trim() === "") {
+    alert("Letter body content is empty.");
+    return;
+  }
+  
+  // Create a plain text container for the PDF
+  const container = document.createElement('div');
+  container.style.position = "absolute";
+  container.style.top = "-9999px";
+  container.style.padding = "1in";
+  container.style.fontFamily = "Arial, sans-serif";
+  container.style.fontSize = "12pt";
+  container.style.lineHeight = "1.5";
+  container.style.color = "#000";
+  container.style.width = "8.5in";
+  container.style.backgroundColor = "#fff";
+  
+  // Extract the plain text
+  const letterBodyText = bodyContent.textContent || "";
+  
+  // Create a simple plain text container with just the letter body
+  container.innerHTML = `
+    <div style="white-space: pre-wrap; text-align: left;">
+      ${letterBodyText}
+    </div>
+  `;
+  
+  document.body.appendChild(container);
 
   // Generate filename from date
-  const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `cover-letter-body-${new Date().toISOString().split('T')[0]}.pdf`;
 
-  console.log("Exporting PDF from content:", clone.innerText.substring(0, 100) + "...");
+  console.log("Exporting letter body as PDF:", letterBodyText.substring(0, 100) + "...");
 
-  // Configure PDF export options for better quality and formatting
+  // Configure PDF export options for plain text format
   window.html2pdf()
     .set({
       filename: filename,
@@ -47,15 +73,15 @@ export function exportCoverLetterToPDF(): void {
         allowTaint: true
       }
     })
-    .from(clone)
+    .from(container)
     .save()
     .then(() => {
-      document.body.removeChild(clone);
-      alert("✅ Your cover letter has been downloaded.");
+      document.body.removeChild(container);
+      alert("✅ Your letter body has been downloaded as PDF.");
     })
     .catch((err: any) => {
       console.error("PDF export failed", err);
-      document.body.removeChild(clone);
+      document.body.removeChild(container);
       alert("❌ Failed to export PDF. Please try again.");
     });
 }

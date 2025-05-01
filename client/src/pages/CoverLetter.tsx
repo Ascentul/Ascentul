@@ -1950,12 +1950,14 @@ export default function CoverLetter() {
               <DialogTitle className="flex justify-between items-center">
                 <span>{previewLetter.name}</span>
                 <Button 
-                  variant="ghost" 
-                  size="icon"
+                  variant="outline" 
+                  size="sm"
                   onClick={() => exportCoverLetterToPDF()}
-                  title="Download as PDF"
+                  title="Download letter body text as PDF"
+                  className="flex items-center gap-2 text-xs"
                 >
-                  <Download className="h-4 w-4" />
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Download Body</span>
                 </Button>
               </DialogTitle>
             </DialogHeader>
