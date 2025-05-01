@@ -224,10 +224,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           <FileUp className="h-5 w-5 mr-2" />
           Analyze Your Resume
         </h3>
-        <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
-          Upload your resume and enter a job description to analyze. Our AI will assess how well your resume 
-          matches the job requirements and provide targeted suggestions.
-        </p>
+        
         
         <div className="space-y-6">
           {/* Upload Resume */}
