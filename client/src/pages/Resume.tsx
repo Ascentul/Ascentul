@@ -1355,61 +1355,66 @@ export default function Resume() {
             <div className="flex gap-2">
               <Button 
                 variant="outline"
-                onClick={() => {
+                onClick={async () => {
                   // Create a hidden div for the generated resume content if it exists
                   if (generatedResume) {
                     const hiddenDiv = document.createElement('div');
                     hiddenDiv.id = `temp-generated-resume`;
+                    hiddenDiv.className = 'resume-template resume-export-container';
                     hiddenDiv.style.position = 'absolute';
                     hiddenDiv.style.left = '-9999px';
                     hiddenDiv.style.top = '-9999px';
 
-                    // Add resume content to the hidden div
+                    // Add resume content using the improved template structure
                     hiddenDiv.innerHTML = `
-                      <div class="bg-white p-6">
-                        <div class="mb-6 border-b pb-4">
-                          <h2 class="text-2xl font-bold text-center">
+                      <div class="bg-white p-8 max-w-[8.5in] mx-auto resume-content">
+                        <!-- Header -->
+                        <header class="mb-6 pb-4 border-b border-neutral-200">
+                          <h1 class="text-2xl font-bold text-center text-neutral-900">
                             ${generatedResume.personalInfo?.fullName || 'Your Name'}
-                          </h2>
-                          <div class="flex flex-wrap justify-center gap-3 mt-2 text-sm text-neutral-600">
+                          </h1>
+                          <div class="flex flex-wrap justify-center gap-x-4 mt-2 text-sm text-neutral-600">
                             ${generatedResume.personalInfo?.email ? `<span>${generatedResume.personalInfo.email}</span>` : ''}
-                            ${generatedResume.personalInfo?.phone ? `<span>| ${generatedResume.personalInfo.phone}</span>` : ''}
-                            ${generatedResume.personalInfo?.location ? `<span>| ${generatedResume.personalInfo.location}</span>` : ''}
+                            ${generatedResume.personalInfo?.phone ? `<span>${generatedResume.personalInfo.phone}</span>` : ''}
+                            ${generatedResume.personalInfo?.location ? `<span>${generatedResume.personalInfo.location}</span>` : ''}
                           </div>
-                        </div>
+                        </header>
 
+                        <!-- Summary Section -->
                         ${generatedResume.summary ? `
-                        <div class="mb-6">
-                          <h3 class="text-lg font-semibold border-b pb-1 mb-2">Professional Summary</h3>
-                          <p class="text-sm">${generatedResume.summary}</p>
-                        </div>` : ''}
+                        <section class="mb-6 resume-section">
+                          <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Professional Summary</h2>
+                          <p class="text-sm leading-relaxed">${generatedResume.summary}</p>
+                        </section>` : ''}
 
+                        <!-- Skills Section -->
                         ${generatedResume.skills && generatedResume.skills.length > 0 ? `
-                        <div class="mb-6">
-                          <h3 class="text-lg font-semibold border-b pb-1 mb-2">Skills</h3>
+                        <section class="mb-6 resume-section">
+                          <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Skills</h2>
                           <div class="flex flex-wrap gap-2">
                             ${generatedResume.skills.map((skill: string) => 
                               `<span class="bg-primary/10 text-primary px-2 py-1 rounded text-sm">${skill}</span>`
                             ).join('')}
                           </div>
-                        </div>` : ''}
+                        </section>` : ''}
 
+                        <!-- Experience Section -->
                         ${generatedResume.experience && generatedResume.experience.length > 0 ? `
-                        <div class="mb-6">
-                          <h3 class="text-lg font-semibold border-b pb-1 mb-3">Experience</h3>
+                        <section class="mb-6 resume-section">
+                          <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Experience</h2>
                           <div class="space-y-4">
                             ${generatedResume.experience.map((exp: any) => `
-                              <div>
-                                <div class="flex justify-between">
-                                  <h4 class="font-medium">${exp.position}</h4>
+                              <div class="job-item">
+                                <div class="flex justify-between items-baseline">
+                                  <h3 class="font-medium text-neutral-900">${exp.position}</h3>
                                   <div class="text-sm text-neutral-600">
                                     ${exp.startDate} - ${exp.currentJob ? 'Present' : exp.endDate}
                                   </div>
                                 </div>
-                                <div class="text-sm font-medium text-primary">${exp.company}</div>
-                                ${exp.description ? `<p class="text-sm mt-2">${exp.description}</p>` : ''}
+                                <div class="text-sm font-medium text-primary mb-1">${exp.company}</div>
+                                ${exp.description ? `<p class="text-sm mt-1 leading-relaxed">${exp.description}</p>` : ''}
                                 ${exp.achievements && exp.achievements.length > 0 ? `
-                                  <ul class="list-disc pl-5 mt-2 space-y-1">
+                                  <ul class="list-disc pl-5 mt-2 space-y-1 achievements">
                                     ${exp.achievements.map((achievement: string) => `
                                       <li class="text-sm">${achievement}</li>
                                     `).join('')}
@@ -1418,39 +1423,42 @@ export default function Resume() {
                               </div>
                             `).join('')}
                           </div>
-                        </div>` : ''}
+                        </section>` : ''}
 
+                        <!-- Education Section -->
                         ${generatedResume.education && generatedResume.education.length > 0 ? `
-                        <div class="mb-6">
-                          <h3 class="text-lg font-semibold border-b pb-1 mb-3">Education</h3>
+                        <section class="mb-6 resume-section">
+                          <h2 class="text-lg font-semibold border-b pb-1 mb-3 resume-section-header">Education</h2>
                           <div class="space-y-4">
                             ${generatedResume.education.map((edu: any) => `
-                              <div>
-                                <div class="flex justify-between">
-                                  <h4 class="font-medium">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h4>
+                              <div class="education-item">
+                                <div class="flex justify-between items-baseline">
+                                  <h3 class="font-medium text-neutral-900">${edu.degree}${edu.field ? ` in ${edu.field}` : ''}</h3>
                                   <div class="text-sm text-neutral-600">
                                     ${edu.startDate} - ${edu.endDate || 'Present'}
                                   </div>
                                 </div>
-                                <div class="text-sm font-medium text-primary">${edu.institution}</div>
-                                ${edu.description ? `<p class="text-sm mt-2">${edu.description}</p>` : ''}
+                                <div class="text-sm font-medium text-primary mb-1">${edu.institution}</div>
+                                ${edu.description ? `<p class="text-sm mt-1 leading-relaxed">${edu.description}</p>` : ''}
                               </div>
                             `).join('')}
                           </div>
-                        </div>` : ''}
+                        </section>` : ''}
                       </div>
                     `;
 
                     // Append the hidden div to the document
                     document.body.appendChild(hiddenDiv);
 
-                    // Download the resume
-                    handleDownloadPDF(`temp-generated-resume`);
-
-                    // Remove the hidden div after a delay
-                    setTimeout(() => {
+                    try {
+                      // Use the centralized export utility
+                      await exportResumeToPDF(hiddenDiv, {
+                        filename: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}.pdf`,
+                      });
+                    } finally {
+                      // Always remove the hidden div when done
                       document.body.removeChild(hiddenDiv);
-                    }, 2000);
+                    }
                   }
                 }}
               >
