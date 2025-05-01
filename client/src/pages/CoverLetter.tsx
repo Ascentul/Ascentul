@@ -544,7 +544,7 @@ export default function CoverLetter() {
     // For preview letter case - use our new direct method
     if (elementId.startsWith('previewLetter-') && previewLetter) {
       console.log('Using simplified PDF export for preview letter');
-      exportCoverLetterToPDF(previewLetter);
+      exportCoverLetterToPDF();
       return;
     }
     
@@ -781,7 +781,7 @@ export default function CoverLetter() {
       // Special handling for previewLetter with direct data
       if (elementId.startsWith('previewLetter-') && previewLetter) {
         // Use our dedicated function for cover letter objects
-        exportCoverLetterToPDF(previewLetter);
+        exportCoverLetterToPDF();
         return;
       }
       
@@ -1949,7 +1949,7 @@ export default function CoverLetter() {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => handleDownloadPDF(`previewLetter-${previewLetter.id}`)}
+                  onClick={() => exportCoverLetterToPDF()}
                   title="Download as PDF"
                 >
                   <Download className="h-4 w-4" />
@@ -1958,7 +1958,7 @@ export default function CoverLetter() {
             </DialogHeader>
             <div 
               className="space-y-6 p-4 bg-white" 
-              id={`previewLetter-${previewLetter.id}`}
+              id="pdf-export-content"
             >
               {/* Header with contact info */}
               <div className="text-center">
