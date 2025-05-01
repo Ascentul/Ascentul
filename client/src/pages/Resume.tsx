@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, ArrowLeft, RefreshCw, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, FileText, Download, Copy, Trash2, Edit, Palette, FileUp, ArrowRight, ArrowLeft, RefreshCw, Save, Loader2, AlertCircle, BarChart4, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -27,6 +27,29 @@ import { motion } from 'framer-motion';
 import { useCareerData } from '@/hooks/use-career-data';
 import JobDescriptionInput from '@/components/JobDescriptionInput';
 import ResumeAnalysisResults, { ResumeAnalysisResult } from '@/components/ResumeAnalysisResults';
+
+// Animation constants
+const subtleUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
+const staggeredContainer = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+  }
+};
+
+const cardAnimation = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+};
 
 export default function Resume() {
   const [searchQuery, setSearchQuery] = useState('');
