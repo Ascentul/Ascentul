@@ -49,7 +49,7 @@ export default function CoverLetter() {
   const [companyName, setCompanyName] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
-  
+
   // Analysis form fields
   const [analyzeJobDescription, setAnalyzeJobDescription] = useState('');
   const [analyzeCoverLetterText, setAnalyzeCoverLetterText] = useState('');
@@ -84,7 +84,7 @@ export default function CoverLetter() {
       delete newLetter.id;
       delete newLetter.createdAt;
       delete newLetter.updatedAt;
-      
+
       return apiRequest('POST', '/api/cover-letters', newLetter);
     },
     onSuccess: () => {
@@ -128,7 +128,7 @@ export default function CoverLetter() {
       });
     },
   });
-  
+
   const generateSuggestionsMutation = useMutation({
     mutationFn: async () => {
       // For suggestions, only the job description is required
@@ -155,18 +155,18 @@ export default function CoverLetter() {
       });
     },
   });
-  
+
   const analyzeCoverLetterMutation = useMutation({
     mutationFn: async () => {
       if (!analyzeJobDescription || !analyzeCoverLetterText) {
         throw new Error("Both job description and cover letter are required");
       }
-      
+
       const res = await apiRequest('POST', '/api/cover-letters/analyze', {
         coverLetter: analyzeCoverLetterText,
         jobDescription: analyzeJobDescription,
       });
-      
+
       return res.json();
     },
     onSuccess: (data) => {
@@ -193,7 +193,7 @@ export default function CoverLetter() {
 
   const handleSaveGenerated = () => {
     if (!generatedContent) return;
-    
+
     // Create a new letter with the generated content
     const newLetter = {
       name: `${jobTitle} at ${companyName}`,
@@ -216,7 +216,7 @@ export default function CoverLetter() {
         closing: 'Sincerely,',
       }
     };
-    
+
     // Create a new cover letter with the mutation
     apiRequest('POST', '/api/cover-letters', newLetter)
       .then(() => {
@@ -229,7 +229,7 @@ export default function CoverLetter() {
         setJobTitle('');
         setCompanyName('');
         setJobDescription('');
-        
+
         // Redirect to main tab would go here if needed
       })
       .catch((error) => {
@@ -243,14 +243,14 @@ export default function CoverLetter() {
 
   const filteredLetters = () => {
     if (!coverLetters) return [];
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return coverLetters.filter(
         (letter: any) => letter.name.toLowerCase().includes(query)
       );
     }
-    
+
     return coverLetters;
   };
 
@@ -263,10 +263,10 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     generateCoverLetterMutation.mutate();
   };
-  
+
   const generateSuggestions = () => {
     if (!jobDescription) {
       toast({
@@ -276,10 +276,10 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     generateSuggestionsMutation.mutate();
   };
-  
+
   const handleAnalyzeCoverLetter = () => {
     if (!analyzeJobDescription || !analyzeCoverLetterText) {
       toast({
@@ -289,13 +289,13 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     analyzeCoverLetterMutation.mutate();
   };
-  
+
   const handleSaveOptimizedCoverLetter = () => {
     if (!analysisResult?.optimizedCoverLetter) return;
-    
+
     // Create a new letter with the optimized content
     const newLetter = {
       name: `Optimized Cover Letter ${new Date().toLocaleDateString()}`,
@@ -318,7 +318,7 @@ export default function CoverLetter() {
         closing: 'Sincerely,',
       }
     };
-    
+
     // Create a new cover letter with the mutation
     apiRequest('POST', '/api/cover-letters', newLetter)
       .then(() => {
@@ -339,7 +339,7 @@ export default function CoverLetter() {
         });
       });
   };
-  
+
   // Function to download cover letter as PDF
   const handleDownloadPDF = (elementId: string) => {
     const element = document.getElementById(elementId);
@@ -351,16 +351,16 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     // Create a filename based on letter name or default
     const letterName = previewLetter?.name || 'cover-letter';
     const filename = `${letterName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
-    
+
     // Clone the element to modify it for PDF generation
     const clonedElement = element.cloneNode(true) as HTMLElement;
     clonedElement.style.padding = '20px';
     clonedElement.style.border = 'none';
-    
+
     // Create the print window
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -371,7 +371,7 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     // Setup the print document
     printWindow.document.write(`
       <html>
@@ -403,7 +403,7 @@ export default function CoverLetter() {
         </body>
       </html>
     `);
-    
+
     printWindow.document.close();
   };
 
@@ -474,7 +474,7 @@ export default function CoverLetter() {
           New Cover Letter
         </Button>
       </motion.div>
-      
+
       <Tabs defaultValue="letters" className="space-y-4">
         <TabsList className="mb-4">
           <TabsTrigger value="letters">
@@ -483,7 +483,7 @@ export default function CoverLetter() {
           <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
           <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="letters" className="space-y-6">
           {/* Search */}
           <div className="relative max-w-md">
@@ -510,7 +510,7 @@ export default function CoverLetter() {
               </svg>
             </div>
           </div>
-          
+
           {/* Cover Letters Grid */}
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
@@ -625,7 +625,7 @@ export default function CoverLetter() {
                             hiddenDiv.style.position = 'absolute';
                             hiddenDiv.style.left = '-9999px';
                             hiddenDiv.style.top = '-9999px';
-                            
+
                             // Add cover letter content to the hidden div
                             hiddenDiv.innerHTML = `
                               <div class="bg-white p-6">
@@ -640,12 +640,12 @@ export default function CoverLetter() {
                                     ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
                                   </div>
                                 </div>
-                                
+
                                 <!-- Date -->
                                 <div class="mb-6">
                                   <p>${letter.content.header.date}</p>
                                 </div>
-                                
+
                                 <!-- Recipient -->
                                 <div class="mb-6">
                                   ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
@@ -653,17 +653,17 @@ export default function CoverLetter() {
                                   ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
                                   ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
                                 </div>
-                                
+
                                 <!-- Greeting -->
                                 <div class="mb-6">
                                   <p>Dear ${letter.content.recipient.name || "Hiring Manager"},</p>
                                 </div>
-                                
+
                                 <!-- Body -->
                                 <div class="mb-6 whitespace-pre-line">
                                   ${letter.content.body}
                                 </div>
-                                
+
                                 <!-- Closing -->
                                 <div>
                                   <p>${letter.content.closing || "Sincerely,"}</p>
@@ -671,13 +671,13 @@ export default function CoverLetter() {
                                 </div>
                               </div>
                             `;
-                            
+
                             // Append the hidden div to the document
                             document.body.appendChild(hiddenDiv);
-                            
+
                             // Download the cover letter
                             handleDownloadPDF(`temp-letter-${letter.id}`);
-                            
+
                             // Remove the hidden div after a delay
                             setTimeout(() => {
                               document.body.removeChild(hiddenDiv);
@@ -711,7 +711,7 @@ export default function CoverLetter() {
             </div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="analyze" className="space-y-6">
           <motion.div 
             className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform"
@@ -724,10 +724,6 @@ export default function CoverLetter() {
                   <FileUp className="h-5 w-5 mr-2" />
                   Upload & Analyze Cover Letter
                 </h3>
-                <p className="text-neutral-600 mb-5 text-sm leading-relaxed border-l-4 border-primary/20 pl-3 py-1 bg-primary/5 rounded-sm">
-                  Get AI-powered insights on how well your cover letter aligns with a specific job description. 
-                  Our AI will analyze and provide suggestions to improve your application.
-                </p>
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium flex items-center">
@@ -741,7 +737,7 @@ export default function CoverLetter() {
                       id="jobDescription"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium flex items-center">
                       <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
@@ -754,7 +750,7 @@ export default function CoverLetter() {
                       id="coverLetterInput"
                     />
                   </div>
-                  
+
                   <Button 
                     className="w-full" 
                     onClick={handleAnalyzeCoverLetter}
@@ -776,7 +772,7 @@ export default function CoverLetter() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="overflow-hidden border-slate-200">
               <CardContent className="pt-6">
                 <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
@@ -812,7 +808,7 @@ export default function CoverLetter() {
                               : 'Excellent'}
                         </span>
                       </div>
-                      
+
                       <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
                         Math.round(analysisResult.alignment) < 60 
                           ? 'bg-red-50/70 border-red-100' 
@@ -831,7 +827,7 @@ export default function CoverLetter() {
                               : 'Perfect Match'}
                         </span>
                       </div>
-                      
+
                       <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
                         Math.round(analysisResult.persuasiveness) < 60 
                           ? 'bg-red-50/70 border-red-100' 
@@ -850,7 +846,7 @@ export default function CoverLetter() {
                               : 'Compelling'}
                         </span>
                       </div>
-                      
+
                       <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
                         Math.round(analysisResult.clarity) < 60 
                           ? 'bg-red-50/70 border-red-100' 
@@ -870,7 +866,7 @@ export default function CoverLetter() {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center">
                         <span className="text-emerald-500 mr-1">✓</span> Strengths
@@ -881,7 +877,7 @@ export default function CoverLetter() {
                         ))}
                       </ul>
                     </div>
-                    
+
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center">
                         <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
@@ -892,7 +888,7 @@ export default function CoverLetter() {
                         ))}
                       </ul>
                     </div>
-                    
+
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center">
                         <span className="text-blue-500 mr-1">💡</span> Suggestions
@@ -903,7 +899,7 @@ export default function CoverLetter() {
                         ))}
                       </ul>
                     </div>
-                    
+
                     <div className="pt-3" id="optimizedCoverLetterSection">
                       <div className="flex justify-between items-center mb-2">
                         <h4 className="text-sm font-medium flex items-center">
@@ -983,7 +979,7 @@ export default function CoverLetter() {
             </Card>
           </motion.div>
         </TabsContent>
-        
+
         <TabsContent value="suggestions">
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
@@ -1003,7 +999,7 @@ export default function CoverLetter() {
                       className="min-h-[150px]"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Job Title <span className="text-neutral-400">(optional)</span></Label>
@@ -1070,7 +1066,7 @@ export default function CoverLetter() {
                             });
                             return;
                           }
-                          
+
                           // Optional fields can be added if available
                           generateCoverLetterMutation.mutate();
                         }}
@@ -1097,7 +1093,7 @@ export default function CoverLetter() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className={generatedContent ? 'block' : 'hidden'}>
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center mb-4">
@@ -1116,7 +1112,7 @@ export default function CoverLetter() {
                       dummy.select();
                       document.execCommand('copy');
                       document.body.removeChild(dummy);
-                      
+
                       // Show toast
                       toast({
                         title: 'Copied!',
@@ -1143,7 +1139,7 @@ export default function CoverLetter() {
           </motion.div>
         </TabsContent>
       </Tabs>
-      
+
       {/* Add/Edit Cover Letter Dialog */}
       <Dialog open={isAddLetterOpen} onOpenChange={setIsAddLetterOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -1165,15 +1161,15 @@ export default function CoverLetter() {
                     body: JSON.stringify(data),
                   }
                 );
-                
+
                 if (!response.ok) {
                   const errorData = await response.json();
                   throw new Error(errorData.error || 'Failed to save cover letter');
                 }
-                
+
                 await queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
                 setIsAddLetterOpen(false);
-                
+
                 toast({
                   title: `Cover Letter ${selectedLetter ? 'Updated' : 'Created'}`,
                   description: `Your cover letter has been ${selectedLetter ? 'updated' : 'created'} successfully`,
@@ -1189,7 +1185,7 @@ export default function CoverLetter() {
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Preview Cover Letter Dialog */}
       {previewLetter && (
         <Dialog open={!!previewLetter} onOpenChange={() => setPreviewLetter(null)}>
@@ -1197,7 +1193,7 @@ export default function CoverLetter() {
             <DialogHeader>
               <DialogTitle>{previewLetter.name}</DialogTitle>
             </DialogHeader>
-            
+
             <div className="mt-4 border rounded-lg p-6" id="cover-letter-preview">
               {/* Header with contact info */}
               <div className="mb-6">
@@ -1216,12 +1212,12 @@ export default function CoverLetter() {
                   )}
                 </div>
               </div>
-              
+
               {/* Date */}
               <div className="mb-6">
                 <p>{previewLetter.content.header.date || new Date().toLocaleDateString()}</p>
               </div>
-              
+
               {/* Recipient */}
               <div className="mb-6">
                 {previewLetter.content.recipient.name && (
@@ -1237,24 +1233,24 @@ export default function CoverLetter() {
                   <p>{previewLetter.content.recipient.address}</p>
                 )}
               </div>
-              
+
               {/* Greeting */}
               <div className="mb-6">
                 <p>Dear {previewLetter.content.recipient.name || "Hiring Manager"},</p>
               </div>
-              
+
               {/* Body */}
               <div className="mb-6 whitespace-pre-line">
                 {previewLetter.content.body}
               </div>
-              
+
               {/* Closing */}
               <div>
                 <p>{previewLetter.content.closing || "Sincerely,"}</p>
                 <p className="mt-6">{previewLetter.content.header.fullName || '[Your Name]'}</p>
               </div>
             </div>
-            
+
             <div className="flex justify-end mt-4">
               <Button 
                 variant="outline" 
