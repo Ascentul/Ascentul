@@ -297,210 +297,238 @@ export default function CoverLetter() {
   
   // Fixed PDF export that directly builds a PDF from text content without relying on HTML/CSS rendering
   const directPdfExport = (coverLetter: any) => {
-    console.log('Starting simplified PDF export for cover letter:', coverLetter);
+    console.log('Starting improved PDF export for cover letter:', coverLetter);
     
     try {
-      // Generate the PDF filename
-      const filename = `${coverLetter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      // Create a temporary div for PDF export with professional styling
+      const container = document.createElement('div');
+      container.id = 'coverLetterPreview';
+      container.className = 'pdf-export';
       
-      // Get a direct reference to the jsPDF library if we need to build the PDF directly
-      const { jsPDF } = window.html2pdf().worker;
+      // Apply professional PDF styling
+      container.style.width = '8.5in';
+      container.style.minHeight = '11in';
+      container.style.padding = '1in';
+      container.style.fontFamily = 'Georgia, serif';
+      container.style.fontSize = '12pt';
+      container.style.lineHeight = '1.6';
+      container.style.color = '#000';
+      container.style.backgroundColor = 'white';
+      container.style.boxSizing = 'border-box';
       
-      // Create a new PDF document
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt',
-        format: 'letter'
-      });
+      // Create inner container for proper alignment
+      const innerContainer = document.createElement('div');
+      innerContainer.className = 'pdf-inner';
+      innerContainer.style.maxWidth = '6.5in';
+      innerContainer.style.margin = '0 auto';
+      innerContainer.style.textAlign = 'left';
       
-      // Set up basic configurations
-      doc.setFont('Helvetica');
-      doc.setFontSize(12);
+      // Get letter data
+      const letter = coverLetter;
       
-      // Define page dimensions
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 72; // 1 inch margins in points
-      const textWidth = pageWidth - (margin * 2);
-      
-      // Define starting positions
-      let y = margin;
-      const x = margin;
-      
-      // Header section - centered
-      doc.setFontSize(16);
-      doc.setFont('Helvetica', 'bold');
-      
-      // Full name
-      const fullName = coverLetter.content.header.fullName || '[Your Name]';
-      const fullNameWidth = doc.getStringUnitWidth(fullName) * 16 * doc.internal.scaleFactor / 72;
-      doc.text(fullName, (pageWidth - fullNameWidth) / 2, y);
-      y += 24;
-      
-      // Date
-      doc.setFontSize(12);
-      doc.setFont('Helvetica', 'normal');
-      const date = coverLetter.content.header.date || new Date().toLocaleDateString();
-      const dateWidth = doc.getStringUnitWidth(date) * 12 * doc.internal.scaleFactor / 72;
-      doc.text(date, (pageWidth - dateWidth) / 2, y);
-      y += 40;
-      
-      // Recipient section
-      doc.text('Hiring Manager', x, y);
-      y += 20;
-      doc.text(coverLetter.content.recipient.company || 'Company Name', x, y);
-      y += 40;
-      
-      // Greeting
-      doc.text('Dear Hiring Manager,', x, y);
-      y += 40;
-      
-      // Body content
-      if (coverLetter.content.body) {
-        // Process the body text by splitting into paragraphs
-        const paragraphs = coverLetter.content.body.split('\n')
-          .filter((para: string) => para.trim().length > 0);
-        
-        // Add each paragraph with spacing
-        for (const paragraph of paragraphs) {
-          // Word wrapping with split text function
-          const splitText = doc.splitTextToSize(paragraph, textWidth);
-          doc.text(splitText, x, y);
-          y += 20 * splitText.length; // Add spacing based on number of wrapped lines
-          y += 20; // Space between paragraphs
-        }
+      // Process body content
+      let bodyContent = '';
+      if (letter.content.body) {
+        bodyContent = letter.content.body
+          .split('\n')
+          .filter((para: string) => para.trim().length > 0)
+          .map((para: string) => `<p style="margin-bottom: 12px;">${para}</p>`)
+          .join('');
       } else {
-        doc.text('No content available.', x, y);
-        y += 20;
+        bodyContent = '<p style="margin-bottom: 12px;">No content available.</p>';
       }
       
-      // Add closing
-      y += 20;
-      doc.text(coverLetter.content.closing || 'Sincerely,', x, y);
-      y += 40;
-      doc.text(coverLetter.content.header.fullName || '[Your Name]', x, y);
-      
-      // Save the PDF
-      doc.save(filename);
-      
-      // Show success notification
-      toast({
-        title: 'PDF Downloaded',
-        description: `Your cover letter "${coverLetter.name}" has been saved as a PDF.`,
-      });
-      
-    } catch (error) {
-      console.error('Error in direct PDF export:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred while generating the PDF. Using fallback method...',
-        variant: 'destructive',
-      });
-      
-      try {
-        // FALLBACK METHOD: Create a basic HTML document then convert it
-        const container = document.createElement('div');
-        container.style.width = '8.5in';
-        container.style.paddingLeft = '1in';
-        container.style.paddingRight = '1in';
-        container.style.paddingTop = '1in';
-        container.style.paddingBottom = '1in';
-        document.body.appendChild(container);
+      // Create professional letter content with proper formatting
+      innerContainer.innerHTML = `
+        <div style="text-align: center; margin-bottom: 36px;">
+          <h1 style="font-size: 16pt; font-weight: bold; margin-bottom: 8px; font-family: Georgia, serif;">${letter.content.header.fullName || '[Your Name]'}</h1>
+          <p style="margin-bottom: 12px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
+        </div>
         
-        // Get content from the cover letter
-        const letter = coverLetter;
+        <div style="margin-bottom: 24px;">
+          <p style="margin-bottom: 4px;">Hiring Manager</p>
+          <p style="margin-bottom: 4px;">${letter.content.recipient.company || 'Company Name'}</p>
+        </div>
         
-        // Ensure body content is formatted properly
-        let bodyText = '';
-        if (letter.content.body) {
-          bodyText = letter.content.body.split('\n')
-            .filter((para: string) => para.trim().length > 0)
-            .map((para: string) => `<p>${para}</p>`)
-            .join('');
-        } else {
-          bodyText = '<p>No content available.</p>';
-        }
+        <p style="margin-bottom: 24px;">Dear Hiring Manager,</p>
         
-        // Create simple HTML content
-        container.innerHTML = `
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="font-size: 18px; margin-bottom: 5px;">${letter.content.header.fullName || '[Your Name]'}</h1>
-            <p>${letter.content.header.date || new Date().toLocaleDateString()}</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <p>Hiring Manager</p>
-            <p>${letter.content.recipient.company || 'Company Name'}</p>
-          </div>
-          
-          <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
-          
-          <div style="margin-bottom: 20px;">
-            ${bodyText}
-          </div>
-          
-          <p style="margin-bottom: 20px;">${letter.content.closing || 'Sincerely,'}</p>
+        <div style="margin-bottom: 24px; text-align: justify;">
+          ${bodyContent}
+        </div>
+        
+        <div style="margin-top: 36px;">
+          <p style="margin-bottom: 24px;">${letter.content.closing || 'Sincerely,'}</p>
           <p>${letter.content.header.fullName || '[Your Name]'}</p>
-        `;
-        
-        // Generate the PDF filename
-        const filename = `${letter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-        
-        // Configure PDF options
-        const options = {
-          margin: [36, 36, 36, 36],  // 0.5 inch margins in points
-          filename: filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { 
-            scale: 2,
-            useCORS: true,
-            logging: true,
-            letterRendering: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
-          },
-          jsPDF: { 
-            unit: 'pt', 
-            format: 'letter', 
-            orientation: 'portrait',
-            compress: true
-          }
-        };
-        
-        console.log('Trying fallback PDF generation method');
-        
-        // Create and download the PDF with a delay to ensure content is rendered
-        setTimeout(() => {
-          window.html2pdf()
-            .from(container)
-            .set(options)
-            .save()
-            .then(() => {
-              console.log('Fallback PDF method successful');
+        </div>
+      `;
+      
+      // Append the inner container to the main container
+      container.appendChild(innerContainer);
+      
+      // Attach to document but position off-screen
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '-9999px';
+      container.style.zIndex = '-1000';
+      document.body.appendChild(container);
+      
+      // Generate filename from letter name
+      const filename = `${letter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Configure PDF export options for better quality and formatting
+      const options = {
+        margin: 0, // No margins since we've already applied them in the container
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          letterRendering: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'letter', 
+          orientation: 'portrait',
+          compress: true
+        }
+      };
+      
+      console.log('Generating PDF with professional styling');
+      
+      // Add delay to ensure DOM rendering is complete
+      setTimeout(() => {
+        window.html2pdf()
+          .from(container)
+          .set(options)
+          .save()
+          .then(() => {
+            console.log('PDF generated successfully with professional styling');
+            toast({
+              title: 'PDF Downloaded',
+              description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
+            });
+            
+            // Clean up
+            document.body.removeChild(container);
+          })
+          .catch((err: any) => {
+            console.error('Professional PDF generation failed:', err);
+            toast({
+              title: 'Error',
+              description: 'PDF generation failed. Trying alternative method...',
+              variant: 'destructive',
+            });
+            
+            // Clean up
+            document.body.removeChild(container);
+            
+            // Fall back to direct jsPDF generation if HTML method fails
+            try {
+              // Get a direct reference to the jsPDF library
+              const { jsPDF } = window.html2pdf().worker;
+              
+              // Create a new PDF document
+              const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'pt',
+                format: 'letter'
+              });
+              
+              // Set up basic configurations
+              doc.setFont('Georgia');
+              doc.setFontSize(12);
+              
+              // Define page dimensions
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const pageHeight = doc.internal.pageSize.getHeight();
+              const margin = 72; // 1 inch margins in points
+              const textWidth = pageWidth - (margin * 2);
+              
+              // Define starting positions
+              let y = margin;
+              const x = margin;
+              
+              // Header section - centered
+              doc.setFontSize(16);
+              doc.setFont('Georgia', 'bold');
+              
+              // Full name
+              const fullName = letter.content.header.fullName || '[Your Name]';
+              const fullNameWidth = doc.getStringUnitWidth(fullName) * 16 * doc.internal.scaleFactor / 72;
+              doc.text(fullName, (pageWidth - fullNameWidth) / 2, y);
+              y += 24;
+              
+              // Date
+              doc.setFontSize(12);
+              doc.setFont('Georgia', 'normal');
+              const date = letter.content.header.date || new Date().toLocaleDateString();
+              const dateWidth = doc.getStringUnitWidth(date) * 12 * doc.internal.scaleFactor / 72;
+              doc.text(date, (pageWidth - dateWidth) / 2, y);
+              y += 40;
+              
+              // Recipient section
+              doc.text('Hiring Manager', x, y);
+              y += 20;
+              doc.text(letter.content.recipient.company || 'Company Name', x, y);
+              y += 40;
+              
+              // Greeting
+              doc.text('Dear Hiring Manager,', x, y);
+              y += 40;
+              
+              // Body content
+              if (letter.content.body) {
+                // Process the body text by splitting into paragraphs
+                const paragraphs = letter.content.body.split('\n')
+                  .filter((para: string) => para.trim().length > 0);
+                
+                // Add each paragraph with spacing
+                for (const paragraph of paragraphs) {
+                  // Word wrapping with split text function
+                  const splitText = doc.splitTextToSize(paragraph, textWidth);
+                  doc.text(splitText, x, y);
+                  y += 20 * splitText.length; // Add spacing based on number of wrapped lines
+                  y += 20; // Space between paragraphs
+                }
+              } else {
+                doc.text('No content available.', x, y);
+                y += 20;
+              }
+              
+              // Add closing
+              y += 20;
+              doc.text(letter.content.closing || 'Sincerely,', x, y);
+              y += 40;
+              doc.text(letter.content.header.fullName || '[Your Name]', x, y);
+              
+              // Save the PDF
+              doc.save(filename);
+              
+              // Show success notification
               toast({
                 title: 'PDF Downloaded',
                 description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
               });
-              document.body.removeChild(container);
-            })
-            .catch((err: any) => {
-              console.error('Fallback PDF method also failed:', err);
+            } catch (finalError) {
+              console.error('All PDF generation methods failed:', finalError);
               toast({
                 title: 'Error',
-                description: 'PDF generation failed. Please try again or contact support.',
+                description: 'All PDF generation methods failed. Please try again later.',
                 variant: 'destructive',
               });
-              document.body.removeChild(container);
-            });
-        }, 500);
-      } catch (fallbackError) {
-        console.error('Fallback method also failed:', fallbackError);
-        toast({
-          title: 'Error',
-          description: 'All PDF generation methods failed. Please try again or contact support.',
-          variant: 'destructive',
-        });
-      }
+            }
+          });
+      }, 500); // Increased delay to ensure rendering
+    } catch (error) {
+      console.error('Error in PDF export setup:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred while preparing the PDF.',
+        variant: 'destructive',
+      });
     }
   };
 
