@@ -773,251 +773,154 @@ export default function CoverLetter() {
 
   // This was removed to eliminate duplication (function is defined above)
   
-  // Export cover letter as PDF using html2pdf.js
+  // Import our utility functions for PDF export
+  // We're using the utility from exportPDF.ts
+
+  // Export cover letter as PDF using the utility functions
   const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
-    const element = document.getElementById(elementId);
-    if (!element) {
-      toast({
-        title: 'Error',
-        description: 'Could not find the cover letter content to download',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Create a temporary container for our formatted cover letter
-    const tempContainer = document.createElement('div');
-    tempContainer.id = 'coverLetterPreview';
-    tempContainer.className = 'pdf-body';
-    tempContainer.style.display = 'none';
-    document.body.appendChild(tempContainer);
-
     try {
-      // Special handling for previewLetter
+      // Special handling for previewLetter with direct data
       if (elementId.startsWith('previewLetter-') && previewLetter) {
-        // Directly recreate the exact letter as it's seen in the preview
-        // For export, we'll create a clean version from the raw data to ensure proper formatting
-        const letter = previewLetter;
-        
-        // Create a clean, well-formatted letter for PDF export that matches the screenshot
-        tempContainer.innerHTML = `
-          <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px; max-width: 650px; margin: 0 auto;">
-            <!-- Header with name and date -->
-            <div style="text-align: center; margin-bottom: 20px;">
-              <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${letter.content.header.fullName || '[Your Name]'}</p>
-              <p style="margin-bottom: 8px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
-            </div>
-            
-            <!-- Recipient Info -->
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 4px 0;">Hiring Manager</p>
-              <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
-            </div>
-            
-            <!-- Greeting -->
-            <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
-            
-            <!-- Your contact info section -->
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 4px 0;">${letter.content.header.fullName || '[Your Name]'}</p>
-              <p style="margin: 0 0 4px 0;">${letter.content.header.location || '[Your Address]'}</p>
-              <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
-              <p style="margin: 0 0 4px 0;">${letter.content.header.email || '[Email Address]'}</p>
-              <p style="margin: 0 0 4px 0;">${letter.content.header.phone || '[Phone Number]'}</p>
-              <p style="margin: 0 0 4px 0;">[Date]</p>
-            </div>
-            
-            <!-- Recipient Info (repeated as in the screenshot) -->
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 4px 0;">Hiring Manager</p>
-              <p style="margin: 0 0 4px 0;">${letter.content.recipient.company || 'Sercante'}</p>
-              <p style="margin: 0 0 4px 0;">[Company Address]</p>
-              <p style="margin: 0 0 4px 0;">[City, State, Zip Code]</p>
-            </div>
-            
-            <!-- Second Greeting -->
-            <p style="margin-bottom: 20px;">Dear [Hiring Manager's Name],</p>
-            
-            <!-- Body content -->
-            <div style="margin-bottom: 20px; white-space: pre-wrap; line-height: 1.6;">
-              ${letter.content.body || 'I am writing to express my enthusiastic interest in the Marketing Automation Analyst position at Sercante, as advertised. With a robust background in software engineering and proven expertise in leading technical teams, I am excited about the opportunity to transition my skills toward marketing automation and contribute to Sercante\'s continued success.\n\nThroughout my career, I\'ve demonstrated an ability to learn rapidly and adapt to new technologies. At TechCorp Inc., I led a team of developers in streamlining our product\'s performance by reducing page load time by 45% and transforming our deployment process with a CI/CD pipeline, cutting deployment time from hours to mere minutes. This experience has honed my ability to manage projects effectively, a key component in overseeing marketing automation projects, timelines, and deliverables at Sercante.\n\nMy analytical mindset and passion for technology-driven solutions are evident from my achievements, such as improving test coverage from 45% to 85% at WebSolutions LLC. I have consistently delivered projects that blend technical acumen with client-focused outcomes. This aligns well with Sercante\'s need for an Analyst who can delve into client performance metrics and support strategic deployment.'}
-            </div>
-            
-            <!-- Closing -->
-            <div style="margin-top: 25px;">
-              <p style="margin-bottom: 25px;">${letter.content.closing || 'Sincerely,'}</p>
-              <p>${letter.content.header.fullName || '[Your Name]'}</p>
-            </div>
-          </div>
-        `;
-      } else {
-        // Get content from the element
-        const originalContent = element.innerHTML;
-        
-        // Extract and format content properly for the PDF
-        let contentToFormat = originalContent;
-        
-        // If this is from an AI-generated section, format it more carefully
-        if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
-          // Clean and process the content to ensure proper formatting
-          contentToFormat = cleanAIOutput(contentToFormat);
-          
-          // Apply user data where available
-          contentToFormat = replaceUserPlaceholders(contentToFormat);
-          
-          // Convert plain text to structured paragraphs if needed
-          if (!contentToFormat.includes('<p>')) {
-            contentToFormat = contentToFormat
-              .split('\n\n')
-              .filter(para => para.trim().length > 0)
-              .map(para => `<p>${para.trim()}</p>`)
-              .join('');
-          }
-          
-          // Create proper structure for a cover letter
-          const currentDate = new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          
-          const userName = user?.name || '[Your Name]';
-          const userEmail = user?.email || '[Email Address]';
-          const userPhone = '[Phone Number]'; // Default since we may not have phone
-          const userLocation = user?.location || '[Your Address]';
-          const recipientCompany = companyName || '[Company Name]';
-          
-          // Create structured cover letter format
-          tempContainer.innerHTML = `
-            <div style="text-align: center; margin-bottom: 20px;">
-              <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${userName}</p>
-              <p style="margin: 0;">${userEmail} | ${userPhone} | ${userLocation}</p>
-              <p style="margin-top: 8px;">${currentDate}</p>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-              <p>Hiring Manager</p>
-              <p>${recipientCompany}</p>
-            </div>
-            
-            <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
-            
-            <div style="margin-bottom: 20px;">
-              ${contentToFormat}
-            </div>
-            
-            <div>
-              <p style="margin-bottom: 25px;">Sincerely,</p>
-              <p>${userName}</p>
-            </div>
-          `;
-        } else {
-          // Content already has structure, just use it with additional styling
-          tempContainer.innerHTML = `
-            <div class="cover-letter-formatted">
-              ${contentToFormat}
-            </div>
-          `;
-        }
+        // Use our dedicated function for cover letter objects
+        exportCoverLetterToPDF(previewLetter);
+        return;
       }
       
-      // Apply PDF-specific CSS to the document
-      const pdfStyles = document.createElement('style');
-      pdfStyles.textContent = `
-        .pdf-body {
-          font-family: Arial, sans-serif;
-          font-size: 12pt;
-          line-height: 1.6;
-          color: #000;
-          padding: 40px;
-          max-width: 8.5in;
-          margin: 0 auto;
-        }
-        
-        .pdf-body p {
-          margin-bottom: 12px;
-        }
-        
-        .cover-letter-formatted p {
-          margin-bottom: 12px;
-        }
-        
-        .placeholder {
-          color: #aaa;
-          font-style: italic;
-        }
-      `;
-      document.head.appendChild(pdfStyles);
-      
-      // Set up html2pdf options with clean margins and no headers/footers
-      const options = {
-        margin: [0.5, 0.5, 0.5, 0.5], // top, right, bottom, left margins in inches
-        filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          letterRendering: true,
-          logging: false
-        },
-        jsPDF: { 
-          unit: 'in', 
-          format: 'letter', 
-          orientation: 'portrait',
-          compress: true
-        }
-      };
-
-      // Check if html2pdf is loaded
-      if (typeof window.html2pdf === 'undefined') {
+      // Get the element to export
+      const element = document.getElementById(elementId);
+      if (!element) {
         toast({
-          title: 'PDF Library Not Loaded',
-          description: 'Please wait a moment and try again as the PDF export library is still loading.',
+          title: 'Error',
+          description: 'Could not find the cover letter content to download',
           variant: 'destructive',
         });
         return;
       }
-
-      // Generate and save the PDF
-      window.html2pdf()
-        .set(options)
-        .from(tempContainer)
-        .save()
-        .then(() => {
-          toast({
-            title: 'PDF Downloaded',
-            description: 'Your cover letter has been downloaded as a PDF.',
-          });
-        })
-        .catch((error: any) => {
-          console.error('PDF generation error:', error);
-          toast({
-            title: 'PDF Generation Failed',
-            description: 'There was an error generating the PDF. Please try again.',
-            variant: 'destructive',
-          });
-        })
-        .finally(() => {
-          // Clean up temporary elements
-          if (document.body.contains(tempContainer)) {
-            document.body.removeChild(tempContainer);
-          }
-          if (document.head.contains(pdfStyles)) {
-            document.head.removeChild(pdfStyles);
-          }
+      
+      // Create a wrapper with proper styling for the PDF
+      const wrapper = document.createElement('div');
+      wrapper.id = 'pdf-export-wrapper';
+      wrapper.className = 'pdf-body';
+      
+      let content = element.innerHTML;
+      
+      // If this is AI-generated content, apply special formatting
+      if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
+        // Clean and format the content
+        content = cleanAIOutput(content);
+        content = replaceUserPlaceholders(content);
+        
+        // Create paragraphs if needed
+        if (!content.includes('<p>')) {
+          content = content
+            .split('\n\n')
+            .filter(para => para.trim().length > 0)
+            .map(para => `<p>${para.trim()}</p>`)
+            .join('');
+        }
+        
+        // Create a properly formatted cover letter
+        const currentDate = new Date().toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric'
         });
+        
+        const userName = user?.name || '[Your Name]';
+        const userEmail = user?.email || '[Email Address]';
+        const userPhone = '[Phone Number]';
+        const userLocation = user?.location || '[Your Address]';
+        const recipientCompany = companyName || '[Company Name]';
+        
+        wrapper.innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${userName}</p>
+            <p style="margin: 0;">${userEmail} | ${userPhone} | ${userLocation}</p>
+            <p style="margin-top: 8px;">${currentDate}</p>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <p>Hiring Manager</p>
+            <p>${recipientCompany}</p>
+          </div>
+          
+          <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
+          
+          <div style="margin-bottom: 20px;">
+            ${content}
+          </div>
+          
+          <div>
+            <p style="margin-bottom: 25px;">Sincerely,</p>
+            <p>${userName}</p>
+          </div>
+        `;
+      } else {
+        // Regular content, just wrap it
+        wrapper.innerHTML = `
+          <div class="cover-letter-formatted">
+            ${content}
+          </div>
+        `;
+      }
+      
+      // Clone and position for export
+      const clone = wrapper.cloneNode(true) as HTMLElement;
+      clone.style.position = "absolute";
+      clone.style.left = "-9999px";
+      clone.style.top = "0";
+      clone.style.display = "block";
+      document.body.appendChild(clone);
+      
+      // Check if html2pdf is loaded
+      if (typeof window.html2pdf === 'undefined') {
+        toast({
+          title: 'PDF Library Not Loaded',
+          description: 'Please wait a moment and try again.',
+          variant: 'destructive',
+        });
+        document.body.removeChild(clone);
+        return;
+      }
+      
+      // Export the PDF
+      window.html2pdf().set({
+        margin: 0.5,
+        filename: filename,
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          letterRendering: true 
+        },
+        jsPDF: { 
+          unit: "in", 
+          format: "letter", 
+          orientation: "portrait" 
+        }
+      })
+      .from(clone)
+      .save()
+      .then(() => {
+        document.body.removeChild(clone);
+        toast({
+          title: 'PDF Downloaded',
+          description: 'Your cover letter has been downloaded as a PDF.',
+        });
+      })
+      .catch((err: unknown) => {
+        document.body.removeChild(clone);
+        console.error('PDF generation error:', err);
+        toast({
+          title: 'PDF Generation Failed',
+          description: 'There was an error generating the PDF. Please try again.',
+          variant: 'destructive',
+        });
+      });
     } catch (error) {
-      console.error('Error preparing PDF content:', error);
+      console.error('Error in PDF export:', error);
       toast({
         title: 'Error Preparing PDF',
         description: 'There was a problem formatting your cover letter for PDF export.',
         variant: 'destructive',
       });
-      
-      // Clean up on error
-      if (document.body.contains(tempContainer)) {
-        document.body.removeChild(tempContainer);
-      }
     }
   };
 
