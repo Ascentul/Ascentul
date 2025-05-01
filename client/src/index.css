@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PDF Export Styling */
+.pdf-body {
+  font-family: 'Arial', sans-serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #000;
+  padding: 1.5in 1in;
+  width: 100%;
+  max-width: 8.5in;
+  background: white;
+}
+
 /* Project portfolio animations */
 @keyframes fadeIn {
   from {
