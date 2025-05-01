@@ -773,9 +773,8 @@ export default function CoverLetter() {
 
   // This was removed to eliminate duplication (function is defined above)
   
-  // Import our utility functions for PDF export
-  // We're using the utility from exportPDF.ts
-
+  // We use the exportCoverLetterToPDF utility imported at the top of the file
+  
   // Export cover letter as PDF using the utility functions
   const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
     try {
