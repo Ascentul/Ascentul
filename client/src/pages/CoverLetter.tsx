@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { exportCoverLetterToPDF } from '@/utils/exportPDF';
+import { jsPDF } from 'jspdf';
 
 // Add html2pdf type for TypeScript
 declare global {
