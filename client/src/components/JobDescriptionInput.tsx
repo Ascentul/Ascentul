@@ -79,9 +79,7 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
         </div>
       )}
       
-      {!isAnalyzing && jobDescQuality === 'empty' && required && (
-        <div className="h-4"></div>
-      )}
+      
       
       {!isAnalyzing && jobDescQuality === 'poor' && (
         <Alert variant="destructive" className="py-2">
