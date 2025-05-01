@@ -1611,7 +1611,7 @@ export default function CoverLetter() {
                           <Button 
                             size="sm"
                             variant="outline"
-                            onClick={() => exportPDF("optimizedCoverLetterContent", "Optimized_Cover_Letter.pdf")}
+                            onClick={() => handleDownloadPDF("optimizedCoverLetterContent")}
                             title="Export optimized content as PDF"
                             disabled={!analysisResult.optimizedCoverLetter}
                           >
