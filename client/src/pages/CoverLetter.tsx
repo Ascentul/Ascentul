@@ -778,7 +778,7 @@ export default function CoverLetter() {
   
   // We use the exportCoverLetterToPDF utility imported at the top of the file
   
-  // Export cover letter as PDF using the utility functions
+  // Export cover letter as PDF using jsPDF for reliable generation
   const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
     try {
       // Special handling for previewLetter with direct data
@@ -798,124 +798,105 @@ export default function CoverLetter() {
         });
         return;
       }
+
+      // Extract the text content for reliable PDF generation
+      let letterBody = "";
       
-      // Create a wrapper with proper styling for the PDF
-      const wrapper = document.createElement('div');
-      wrapper.id = 'pdf-export-wrapper';
-      wrapper.className = 'pdf-body';
-      
-      let content = element.innerHTML;
-      
-      // If this is AI-generated content, apply special formatting
+      // Different extraction based on element type
       if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
-        // Clean and format the content
-        content = cleanAIOutput(content);
-        content = replaceUserPlaceholders(content);
-        
-        // Create paragraphs if needed
-        if (!content.includes('<p>')) {
-          content = content
-            .split('\n\n')
-            .filter(para => para.trim().length > 0)
-            .map(para => `<p>${para.trim()}</p>`)
-            .join('');
-        }
-        
-        // Create a properly formatted cover letter
-        const currentDate = new Date().toLocaleDateString('en-US', {
-          year: 'numeric', month: 'long', day: 'numeric'
-        });
-        
-        const userName = user?.name || '[Your Name]';
-        const userEmail = user?.email || '[Email Address]';
-        const userPhone = '[Phone Number]';
-        const userLocation = user?.location || '[Your Address]';
-        const recipientCompany = companyName || '[Company Name]';
-        
-        wrapper.innerHTML = `
-          <div style="text-align: center; margin-bottom: 20px;">
-            <p style="font-size: 14pt; font-weight: bold; margin-bottom: 8px;">${userName}</p>
-            <p style="margin: 0;">${userEmail} | ${userPhone} | ${userLocation}</p>
-            <p style="margin-top: 8px;">${currentDate}</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <p>Hiring Manager</p>
-            <p>${recipientCompany}</p>
-          </div>
-          
-          <p style="margin-bottom: 20px;">Dear Hiring Manager,</p>
-          
-          <div style="margin-bottom: 20px;">
-            ${content}
-          </div>
-          
-          <div>
-            <p style="margin-bottom: 25px;">Sincerely,</p>
-            <p>${userName}</p>
-          </div>
-        `;
+        // For AI-generated content, get the text and clean it
+        letterBody = element.textContent || "";
+        letterBody = cleanAIOutput(letterBody);
+        letterBody = replaceUserPlaceholders(letterBody);
       } else {
-        // Regular content, just wrap it
-        wrapper.innerHTML = `
-          <div class="cover-letter-formatted">
-            ${content}
-          </div>
-        `;
+        // For general content, just get the text
+        letterBody = element.textContent || "";
       }
       
-      // Clone and position for export
-      const clone = wrapper.cloneNode(true) as HTMLElement;
-      clone.style.position = "absolute";
-      clone.style.left = "-9999px";
-      clone.style.top = "0";
-      clone.style.display = "block";
-      document.body.appendChild(clone);
-      
-      // Check if html2pdf is loaded
-      if (typeof window.html2pdf === 'undefined') {
+      if (!letterBody || letterBody.trim() === "") {
         toast({
-          title: 'PDF Library Not Loaded',
-          description: 'Please wait a moment and try again.',
+          title: 'Empty Content',
+          description: 'There is no content to export as PDF.',
           variant: 'destructive',
         });
-        document.body.removeChild(clone);
         return;
       }
       
-      // Export the PDF
-      window.html2pdf().set({
-        margin: 0.5,
-        filename: filename,
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          letterRendering: true 
-        },
-        jsPDF: { 
-          unit: "in", 
-          format: "letter", 
-          orientation: "portrait" 
-        }
-      })
-      .from(clone)
-      .save()
-      .then(() => {
-        document.body.removeChild(clone);
-        toast({
-          title: 'PDF Downloaded',
-          description: 'Your cover letter has been downloaded as a PDF.',
-        });
-      })
-      .catch((err: unknown) => {
-        document.body.removeChild(clone);
-        console.error('PDF generation error:', err);
-        toast({
-          title: 'PDF Generation Failed',
-          description: 'There was an error generating the PDF. Please try again.',
-          variant: 'destructive',
-        });
+      console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
+
+      // Create PDF document directly with jsPDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'letter'
       });
+      
+      // Set font
+      doc.setFont("helvetica");
+      doc.setFontSize(12);
+      
+      // Define margins (1 inch = 25.4mm)
+      const margin = 25.4; 
+      
+      // Get page dimensions
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      // Calculate text width (accounting for margins)
+      const textWidth = pageWidth - (margin * 2);
+      
+      // Add a title based on context
+      const title = elementId === 'generatedContent' ? 
+        'Generated Cover Letter' : 
+        (elementId === 'optimizedCoverLetterContent' ? 
+          'Optimized Cover Letter' : 'Cover Letter');
+      
+      // Add title at the top
+      doc.setFontSize(16);
+      doc.text(title, margin, margin);
+      
+      // Add a separator line
+      doc.setLineWidth(0.5);
+      doc.line(margin, margin + 5, pageWidth - margin, margin + 5);
+      
+      // Format user info if available
+      const userName = user?.name || '[Your Name]';
+      const recipientCompany = companyName || '[Company Name]';
+      const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      
+      // Add header information
+      doc.setFontSize(12);
+      doc.text(`${userName}`, margin, margin + 12);
+      doc.text(`${currentDate}`, margin, margin + 18);
+      doc.text(`To: ${recipientCompany}`, margin, margin + 28);
+      
+      // Reset font size for body
+      doc.setFontSize(11);
+      
+      // Split text to fit within page width and respect line breaks
+      const bodyLines = doc.splitTextToSize(letterBody, textWidth);
+      
+      // Add content with proper spacing
+      doc.text(bodyLines, margin, margin + 40);
+      
+      // Add closing
+      const textHeight = doc.getTextDimensions(bodyLines).h;
+      doc.text(`Sincerely,`, margin, margin + 45 + textHeight);
+      doc.text(`${userName}`, margin, margin + 55 + textHeight);
+      
+      // Generate output filename
+      const outputFilename = filename || `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Save the PDF
+      doc.save(outputFilename);
+      
+      toast({
+        title: 'PDF Downloaded',
+        description: 'Your cover letter has been downloaded as a PDF.',
+      });
+      
     } catch (error) {
       console.error('Error in PDF export:', error);
       toast({
@@ -1106,13 +1087,14 @@ export default function CoverLetter() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-primary hover:text-primary/80"
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 flex items-center gap-1 text-xs"
                           onClick={() => handleDownloadPDF(`previewLetter-${coverLetter.id}`)}
-                          title="Download as PDF"
+                          title="Download letter as PDF"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-3.5 w-3.5" />
+                          <span>PDF</span>
                         </Button>
                       </div>
                     </CardFooter>
