@@ -299,12 +299,15 @@ export default function CoverLetter() {
   // This function has been moved to a utility file, we're keeping it here for backwards compatibility
   // with other parts of the code
   const directPdfExport = (coverLetter: any) => {
-    // Call the utility directly
-    exportCoverLetterToPDF(coverLetter);
+    // First set the preview letter so the proper content is in the DOM
+    setPreviewLetter(coverLetter);
     
-    // The original implementation has been replaced by the utility, 
-    // but we're keeping this function as a wrapper for existing calls
-    console.log('Starting improved PDF export for cover letter:', coverLetter);
+    // Use a timeout to ensure the DOM is updated before export
+    setTimeout(() => {
+      // Call the utility directly (no parameters needed)
+      exportCoverLetterToPDF();
+      console.log('Starting improved PDF export for cover letter');
+    }, 100);
     
     try {
       // Create a temporary div for PDF export with professional styling
