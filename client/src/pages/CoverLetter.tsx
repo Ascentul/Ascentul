@@ -1428,8 +1428,8 @@ export default function CoverLetter() {
             </DialogTitle>
           </DialogHeader>
           <CoverLetterForm
-            letter={selectedLetter}
-            onClose={() => setIsAddLetterOpen(false)}
+            coverLetter={selectedLetter}
+            onSuccess={() => setIsAddLetterOpen(false)}
           />
         </DialogContent>
       </Dialog>
