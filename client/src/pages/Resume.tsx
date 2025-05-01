@@ -748,7 +748,7 @@ export default function Resume() {
           >
             
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col lg:flex-row gap-6 [&>*]:flex-1">
               {/* Left column: Resume upload and job description */}
               <ResumeAnalyzer 
                 onExtractComplete={handleExtractComplete}
@@ -758,7 +758,7 @@ export default function Resume() {
                 onAnalyze={handleAnalyzeExtractedText}
               />
 
-              {/* Right column: Analysis results or instructions */}
+              {/* Right column: Analysis results or loading state or instructions */}
               {analysisResults ? (
                 <motion.div 
                   className="grid grid-cols-1 gap-6 will-change-opacity will-change-transform"
@@ -796,6 +796,29 @@ export default function Resume() {
                     </div>
                   </div>
                 </motion.div>
+              ) : isAnalyzing ? (
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                      <BarChart4 className="h-5 w-5 mr-2" />
+                      AI Analysis Results
+                    </h3>
+                    
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                      <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                      
+                      <p className="text-neutral-600 text-lg mb-2">
+                        Analyzing your resume...
+                      </p>
+                      
+                      <p className="text-neutral-500 mb-6">
+                        This may take a few seconds.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card className="overflow-hidden border-slate-200">
                   <CardContent className="pt-6">
