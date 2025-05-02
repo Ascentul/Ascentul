@@ -1806,10 +1806,10 @@ export default function CoverLetter() {
                       </div>
                       
                       {/* Action buttons with container spanning full width */}
-                      <div className="w-full px-6 pt-4 pb-6 flex justify-between gap-4">
+                      <div className="mt-6 mb-6 flex w-full justify-between gap-2 px-0">
                         <Button 
-                          variant="outline" 
-                          className="flex-1 flex items-center justify-center"
+                          variant="ghost" 
+                          className="flex-1 max-w-[160px]"
                           onClick={() => {
                             setAnalysisResult({
                               ...analysisResult,
@@ -1824,7 +1824,7 @@ export default function CoverLetter() {
 
                         <Button 
                           variant="outline"
-                          className="flex-1 flex items-center justify-center"
+                          className="flex-1 max-w-[160px]"
                           onClick={() => handleCopyOptimizedCoverLetter()}
                           disabled={!analysisResult.optimizedCoverLetter}
                         >
@@ -1833,7 +1833,8 @@ export default function CoverLetter() {
                         </Button>
 
                         <Button 
-                          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 flex-1 flex items-center justify-center"
+                          variant="default"
+                          className="flex-1"
                           onClick={handleSaveOptimizedCoverLetter}
                           title="Save this optimized version as a new cover letter"
                           disabled={!analysisResult.optimizedCoverLetter}
