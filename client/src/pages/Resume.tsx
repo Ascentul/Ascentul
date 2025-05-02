@@ -471,7 +471,7 @@ export default function Resume() {
       let skillsPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.skills && optimizedCareerData.skills.length > 0) {
         // Get current skills to avoid duplicates
-        const currentSkillsResponse = await apiRequest('GET', '/api/career-data', {});
+        const currentSkillsResponse = await apiRequest('GET', '/api/career-data');
         const currentSkillsData = await currentSkillsResponse.json();
         const currentSkillNames = new Set(
           (currentSkillsData.skills || []).map((s: any) => s.name.toLowerCase())
