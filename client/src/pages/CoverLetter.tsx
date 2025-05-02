@@ -1439,12 +1439,12 @@ export default function CoverLetter() {
                   <div className="space-y-6">
                     {/* Job Description input */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center justify-between">
+                      <Label className="text-sm font-medium field-label">
                         <div className="flex items-center">
                           <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
                         </div>
                         {analyzeJobDescription.trim().length > 100 && (
-                          <span className="text-green-600 text-xs font-medium flex items-center">
+                          <span className="text-green-600 text-xs font-medium flex items-center field-status">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
@@ -1511,12 +1511,12 @@ export default function CoverLetter() {
 
                     {/* Cover Letter textarea */}
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium flex items-center justify-between">
+                      <Label className="text-sm font-medium field-label">
                         <div className="flex items-center">
                           <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
                         </div>
                         {analyzeCoverLetterText.trim().length > 200 && (
-                          <span className="text-green-600 text-xs font-medium flex items-center">
+                          <span className="text-green-600 text-xs font-medium flex items-center field-status">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               viewBox="0 0 24 24"
