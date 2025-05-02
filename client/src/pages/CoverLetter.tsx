@@ -1743,7 +1743,7 @@ export default function CoverLetter() {
                         </ul>
                       </div>
 
-                      <div className="pt-3 pb-0 flex flex-col h-full" id="optimizedCoverLetterSection">
+                      <div className="pt-3 flex flex-col h-full" id="optimizedCoverLetterSection">
                         <div className="flex justify-between items-center mb-2">
                           <h4 className="text-sm font-medium flex items-center">
                             <span className="text-primary mr-1">📝</span> Optimized Cover Letter
@@ -1772,7 +1772,7 @@ export default function CoverLetter() {
                         </div>
 
                         {/* Styled content box with scrollable area */}
-                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative flex-grow">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6 relative flex-grow">
                           {/* Generation timestamp metadata */}
                           {generationTimestamp && (
                             <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
@@ -1803,9 +1803,11 @@ export default function CoverLetter() {
                               })}
                           </div>
                         </div>
-
-                        {/* Button row directly on gradient background */}
-                        <div className="grid grid-cols-4 gap-2 px-0 pb-0 mt-0">
+                      </div>
+                      
+                      {/* Action button row directly on gradient background */}
+                      <div className="p-6 pt-0">
+                        <div className="grid grid-cols-4 gap-2">
                           <Button 
                             variant="outline" 
                             className="col-span-1"
