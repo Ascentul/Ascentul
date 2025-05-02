@@ -329,10 +329,10 @@ export default function GoalCard({
                   {description}
                 </p>
               </div>
-              <Badge variant="outline" className={getBadgeStyles()}>
+              <Badge variant="outline" className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()}`}>
                 {status === 'not_started' ? (
                   <span className="flex items-center">
-                    <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
+                    <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
                     Not started
                   </span>
                 ) : status === 'in_progress' ? 'In progress' : 
