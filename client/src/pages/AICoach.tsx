@@ -274,37 +274,34 @@ export default function AICoach() {
               </CardContent>
               
               <div className="mt-4">
-                <div className="flex w-full gap-2 relative h-[60px]">
-                  <Input
-                    placeholder="Ask your career coach anything..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={isSending}
-                    className="absolute inset-0 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary rounded-lg py-6 px-4 text-base shadow-sm"
-                  />
-                  <div className="absolute right-0 top-0 bottom-0 flex items-center pr-[2px]">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ duration: 0.2 }}
-                      className="h-[calc(100%-4px)] my-[2px]"
-                    >
-                      <Button 
-                        onClick={handleSendMessage}
-                        disabled={!newMessage.trim() || isSending}
-                        className="h-full flex items-center justify-center px-5 rounded-lg shadow-md bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
-                      >
-                        {isSending ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/80 border-t-transparent"></div>
-                        ) : (
-                          <div className="flex items-center justify-center">
-                            <MessageSquare className="h-5 w-5 mr-2" />
-                            <span>Send</span>
-                          </div>
-                        )}
-                      </Button>
-                    </motion.div>
+                <div className="flex items-center space-x-2 h-12">
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="Ask your career coach anything..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={isSending}
+                      className="h-full w-full border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary rounded-lg py-3 px-4 text-base shadow-sm"
+                    />
                   </div>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || isSending}
+                      className="h-12 min-w-[48px] px-3 flex items-center justify-center rounded-lg shadow-sm bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
+                    >
+                      {isSending ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/80 border-t-transparent"></div>
+                      ) : (
+                        <MessageSquare className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </motion.div>
                 </div>
               </div>
             </Card>
