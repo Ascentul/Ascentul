@@ -1163,8 +1163,8 @@ export default function CoverLetter() {
             style={{ transform: 'translateZ(0)' }}
           >
             {/* Input form */}
-            <Card className="overflow-hidden border-slate-200">
-              <CardContent className="pt-6 bg-gradient-to-br from-white to-blue-50 rounded-t-xl">
+            <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full">
+              <CardContent className="pt-6 rounded-t-xl bg-transparent">
                 <h3 className="text-xl font-semibold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
                   <FileUp className="h-5 w-5 mr-2 text-blue-500" />
                   Generate Cover Letter Content
@@ -1321,8 +1321,8 @@ export default function CoverLetter() {
             </Card>
 
             {/* Results */}
-            <Card className="overflow-hidden border-slate-200">
-              <CardContent className="pt-6 bg-gradient-to-br from-white to-blue-50 rounded-t-xl">
+            <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full">
+              <CardContent className="pt-6 rounded-t-xl bg-transparent">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
                     <Sparkles className="h-5 w-5 mr-2 text-blue-500" />
@@ -1441,8 +1441,8 @@ export default function CoverLetter() {
           >
             {/* Left column: Cover letter upload and job description - using lg:w-1/2 for proper sizing */}
             <div className="lg:w-1/2">
-              <Card className="overflow-hidden border-slate-200">
-                <CardContent className="pt-6 bg-gradient-to-br from-white to-blue-50 rounded-t-xl">
+              <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full">
+                <CardContent className="pt-6 rounded-t-xl bg-transparent">
                   <h3 className="text-xl font-semibold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
                     <FileUp className="h-5 w-5 mr-2 text-blue-500" />
                     Analyze Your Cover Letter
@@ -1629,8 +1629,8 @@ export default function CoverLetter() {
             {/* Right column: Analysis results or loading state or instructions */}
             <div className="lg:w-1/2">
               {analysisResult ? (
-                <Card className="overflow-hidden border-slate-200">
-                  <CardContent className="pt-6 bg-gradient-to-br from-white to-blue-50 rounded-t-xl">
+                <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full">
+                  <CardContent className="pt-6 rounded-t-xl bg-transparent">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center analysis-header" id="analysisHeader">
                         <BarChart4 className="h-5 w-5 mr-2 text-blue-500" />
