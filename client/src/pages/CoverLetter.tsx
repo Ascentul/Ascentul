@@ -1805,8 +1805,8 @@ export default function CoverLetter() {
                         </div>
                       </div>
                       
-                      {/* Action buttons directly on gradient background */}
-                      <div className="flex justify-between w-full my-6 px-4">
+                      {/* Action buttons directly on card content */}
+                      <div className="flex justify-between w-full mt-6 mb-6 px-6">
                         <Button 
                           variant="outline" 
                           onClick={() => {
