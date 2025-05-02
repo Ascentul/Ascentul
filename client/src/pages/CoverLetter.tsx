@@ -1806,7 +1806,7 @@ export default function CoverLetter() {
                       </div>
                       
                       {/* Action buttons with container spanning full width */}
-                      <div className="mt-6 mb-8 flex w-full justify-between gap-2 px-0">
+                      <div className="mt-6 mb-6 flex w-full justify-between gap-2 px-0">
                         <Button 
                           variant="ghost" 
                           className="flex-1 max-w-[160px]"
