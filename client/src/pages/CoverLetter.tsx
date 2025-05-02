@@ -1773,17 +1773,7 @@ export default function CoverLetter() {
 
                         {/* Styled content box with scrollable area */}
                         <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-0 relative flex-grow">
-                          {/* Generation timestamp metadata */}
-                          {generationTimestamp && (
-                            <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
-                              Generated: {new Intl.DateTimeFormat('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }).format(generationTimestamp)}
-                            </div>
-                          )}
+                          
 
                           <div 
                             className="p-4 pb-0 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
