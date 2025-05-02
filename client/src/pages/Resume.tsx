@@ -150,7 +150,7 @@ export default function Resume() {
 
   // State to track when we're generating from optimization
   const [isGeneratingFromOptimize, setIsGeneratingFromOptimize] = useState(false);
-  
+
   // Generate full resume
   const generateResumeMutation = useMutation({
     mutationFn: async () => {
@@ -165,10 +165,10 @@ export default function Resume() {
         title: 'Resume Generated',
         description: 'Your AI-tailored resume is ready to view and customize',
       });
-      
+
       // Always store the generated resume data
       setGeneratedResume(data);
-      
+
       // Check if we're in the optimization flow
       if (isGeneratingFromOptimize) {
         // When called from optimization flow, automatically save the resume
@@ -183,7 +183,7 @@ export default function Resume() {
     onError: (error) => {
       // Reset the flag on error too
       setIsGeneratingFromOptimize(false);
-      
+
       toast({
         title: 'Error',
         description: `Failed to generate resume: ${error.message}`,
@@ -191,7 +191,7 @@ export default function Resume() {
       });
     },
   });
-  
+
   // Helper function to save the generated resume
   const saveGeneratedResume = (resumeData: any) => {
     // Create a new resume using the generated content
@@ -208,28 +208,28 @@ export default function Resume() {
         certifications: resumeData.certifications || []
       }
     };
-    
+
     // Show saving state
     setIsSavingResume(true);
-    
+
     // Save the resume directly using the API
     apiRequest('POST', '/api/resumes', newResume)
       .then(() => {
         // Invalidate the resumes query to refresh the list
         queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
-        
+
         toast({
           title: 'Resume Saved',
           description: 'Your resume has been saved to My Resumes',
         });
-        
+
         // Reset loading state
         setIsSavingResume(false);
       })
       .catch((error) => {
         // Reset loading state
         setIsSavingResume(false);
-        
+
         toast({
           title: 'Error',
           description: `Failed to save resume: ${error.message}`,
@@ -703,7 +703,7 @@ export default function Resume() {
   // Function to download resume as PDF using our centralized utility
   const handleDownloadPDF = async (elementId: string) => {
     console.log(`Initiating PDF download for resume with element ID: ${elementId}`);
-    
+
     const element = document.getElementById(elementId);
     if (!element) {
       toast({
@@ -718,14 +718,14 @@ export default function Resume() {
     // Create a filename based on resume name or default
     const resumeName = previewResume?.name || generatedResume?.personalInfo?.fullName || 'resume';
     const filename = `${resumeName}_${new Date().toISOString().split('T')[0]}.pdf`;
-    
+
     try {
       // Use our centralized export utility
       const success = await exportResumeToPDF(element, { 
         filename,
         showToast: true // Show success/error toasts from the utility
       });
-      
+
       if (success) {
         console.log(`Resume PDF successfully generated with name: ${filename}`);
       } else {
@@ -784,7 +784,7 @@ export default function Resume() {
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            
+
 
             <div className="flex flex-col lg:flex-row gap-6 [&>*]:flex-1">
               {/* Left column: Resume upload and job description */}
@@ -825,12 +825,7 @@ export default function Resume() {
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         New Analysis
                       </Button>
-                      <Button
-                        onClick={generateSuggestions}
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Get Suggestions
-                      </Button>
+                      
                     </div>
                   </div>
                 </motion.div>
@@ -841,16 +836,16 @@ export default function Resume() {
                       <BarChart4 className="h-5 w-5 mr-2" />
                       AI Analysis Results
                     </h3>
-                    
+
                     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                       <div className="w-16 h-16 mb-6 flex items-center justify-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                       </div>
-                      
+
                       <p className="text-neutral-600 text-lg mb-2">
                         Analyzing your resume...
                       </p>
-                      
+
                       <p className="text-neutral-500 mb-6">
                         This may take a few seconds.
                       </p>
@@ -864,7 +859,7 @@ export default function Resume() {
                       <BarChart4 className="h-5 w-5 mr-2" />
                       AI Analysis Results
                     </h3>
-                    
+
                     <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                       <div className="w-16 h-16 mb-6 text-neutral-200">
                         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -874,11 +869,11 @@ export default function Resume() {
                           <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      
+
                       <p className="text-neutral-600 text-lg mb-2">
                         Submit your resume and job description
                       </p>
-                      
+
                       <p className="text-neutral-500 mb-6">
                         to see AI-powered analysis and suggestions.
                       </p>
@@ -993,10 +988,10 @@ export default function Resume() {
                             try {
                               // Set the preview resume to trigger rendering
                               setPreviewResume(resume);
-                              
+
                               // Allow template to render
                               await new Promise(resolve => setTimeout(resolve, 100));
-                              
+
                               const resumeElement = document.querySelector('.resume-template');
                               if (!resumeElement) {
                                 throw new Error("Could not find resume template");
@@ -1094,14 +1089,7 @@ export default function Resume() {
                     >
                       {generateResumeMutation?.isPending ? 'Creating...' : 'Generate Resume'}
                     </Button>
-                    <Button 
-                      className="w-full"
-                      variant="outline"
-                      onClick={generateSuggestions}
-                      disabled={getSuggestionsMutation.isPending}
-                    >
-                      {getSuggestionsMutation.isPending ? 'Generating...' : 'Generate Suggestions'}
-                    </Button>
+                    
                   </div>
                 </div>
               </CardContent>
@@ -1392,12 +1380,12 @@ export default function Resume() {
                     .then(() => {
                       // Invalidate the resumes query to refresh the list
                       queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
-                      
+
                       toast({
                         title: 'Resume Saved',
                         description: 'Your resume has been saved to My Resumes',
                       });
-                      
+
                       // Reset loading state and close the dialog
                       setIsSavingResume(false);
                       setIsGeneratedResumeOpen(false);
@@ -1405,7 +1393,7 @@ export default function Resume() {
                     .catch((error) => {
                       // Reset loading state
                       setIsSavingResume(false);
-                      
+
                       toast({
                         title: 'Error',
                         description: `Failed to save resume: ${error.message}`,
