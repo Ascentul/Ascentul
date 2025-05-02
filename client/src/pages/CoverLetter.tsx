@@ -1164,9 +1164,9 @@ export default function CoverLetter() {
           >
             {/* Input form */}
             <Card className="overflow-hidden border-slate-200">
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
-                  <FileUp className="h-5 w-5 mr-2" />
+              <CardContent className="pt-6 bg-gradient-to-br from-blue-50 to-white border-t-4 border-t-blue-500/30 rounded-t-xl">
+                <h3 className="text-xl font-semibold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+                  <FileUp className="h-5 w-5 mr-2 text-blue-500" />
                   Generate Cover Letter Content
                 </h3>
                 <div className="space-y-5">
@@ -1322,10 +1322,10 @@ export default function CoverLetter() {
 
             {/* Results */}
             <Card className="overflow-hidden border-slate-200">
-              <CardContent className="pt-6">
+              <CardContent className="pt-6 bg-gradient-to-br from-blue-50 to-white border-t-4 border-t-blue-500/30 rounded-t-xl">
                 <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-xl font-semibold text-primary/90 flex items-center">
-                    <Sparkles className="h-5 w-5 mr-2" />
+                  <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+                    <Sparkles className="h-5 w-5 mr-2 text-blue-500" />
                     AI-Generated Content
                   </h3>
 
@@ -1442,9 +1442,9 @@ export default function CoverLetter() {
             {/* Left column: Cover letter upload and job description - using lg:w-1/2 for proper sizing */}
             <div className="lg:w-1/2">
               <Card className="overflow-hidden border-slate-200">
-                <CardContent className="pt-6">
-                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
-                    <FileUp className="h-5 w-5 mr-2" />
+                <CardContent className="pt-6 bg-gradient-to-br from-blue-50 to-white border-t-4 border-t-blue-500/30 rounded-t-xl">
+                  <h3 className="text-xl font-semibold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
+                    <FileUp className="h-5 w-5 mr-2 text-blue-500" />
                     Analyze Your Cover Letter
                   </h3>
                   <div className="space-y-6">
@@ -1630,10 +1630,10 @@ export default function CoverLetter() {
             <div className="lg:w-1/2">
               {analysisResult ? (
                 <Card className="overflow-hidden border-slate-200">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-6 bg-gradient-to-br from-blue-50 to-white border-t-4 border-t-blue-500/30 rounded-t-xl">
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                        <BarChart4 className="h-5 w-5 mr-2" />
+                      <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center analysis-header" id="analysisHeader">
+                        <BarChart4 className="h-5 w-5 mr-2 text-blue-500" />
                         AI Analysis Results
                       </h3>
                       <span className="text-xs text-neutral-500 flex items-center">
