@@ -1627,7 +1627,7 @@ export default function CoverLetter() {
                       </h3>
                       <span className="text-xs text-neutral-500 flex items-center">
                         <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                        Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit',minute:'2-digit'})}
                     </span>
                     </div>
                     <div className="space-y-5">
@@ -1808,8 +1808,8 @@ export default function CoverLetter() {
                       {/* Action buttons with container spanning full width */}
                       <div className="mt-6 mb-6 flex w-full justify-between gap-2 px-0">
                         <Button 
-                          variant="ghost" 
-                          className="flex-1 max-w-[160px] mb-6 bg-white hover:bg-gray-100"
+                          variant="outline" 
+                          className="flex-1 max-w-[160px] mb-6"
                           onClick={() => {
                             setAnalysisResult({
                               ...analysisResult,
