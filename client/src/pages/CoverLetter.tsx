@@ -1432,28 +1432,70 @@ export default function CoverLetter() {
           </motion.div>
         </TabsContent>
 
+
         <TabsContent value="analyze" className="space-y-6">
           <motion.div 
-            className="flex flex-col lg:flex-row gap-6 [&>*]:flex-1 will-change-opacity will-change-transform"
+            className="flex flex-col lg:flex-row gap-6 items-start will-change-opacity will-change-transform"
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            {/* Left column: Cover letter upload and job description */}
-            <Card className="overflow-hidden border-slate-200">
-              <CardContent className="pt-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
-                  <FileUp className="h-5 w-5 mr-2" />
-                  Analyze Your Cover Letter
-                </h3>
-                <div className="space-y-6">
-                  {/* Job Description input */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
-                      </div>
-                      {analyzeJobDescription.trim().length > 100 && (
-                        <span className="text-green-600 text-xs font-medium flex items-center">
+            {/* Left column: Cover letter upload and job description - using lg:w-1/2 for proper sizing */}
+            <div className="lg:w-1/2">
+              <Card className="overflow-hidden border-slate-200">
+                <CardContent className="pt-6">
+                  <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
+                    <FileUp className="h-5 w-5 mr-2" />
+                    Analyze Your Cover Letter
+                  </h3>
+                  <div className="space-y-6">
+                    {/* Job Description input */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-primary mr-1">1.</span> Job Description <span className="text-red-500 ml-1">*</span>
+                        </div>
+                        {analyzeJobDescription.trim().length > 100 && (
+                          <span className="text-green-600 text-xs font-medium flex items-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3 mr-1"
+                            >
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Complete
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAnalyzeJobDescription("We're hiring a marketing associate with strong writing and cross-functional collaboration skills. The ideal candidate has experience creating compelling content, managing social media campaigns, and analyzing performance metrics. You'll work with our creative team to develop marketing materials that align with our brand voice and drive customer engagement.")}
+                          className="h-6 text-xs text-primary ml-auto"
+                        >
+                          Paste Example
+                        </Button>
+                      </Label>
+                      <Textarea
+                        placeholder="We're hiring a marketing associate with strong writing and cross-functional collaboration skills..."
+                        value={analyzeJobDescription}
+                        onChange={(e) => setAnalyzeJobDescription(e.target.value)}
+                        className={`min-h-[150px] resize-y border-2 ${
+                          analyzeJobDescription.trim().length > 100 ? 'border-green-200 focus:border-green-300' : 
+                          analyzeJobDescription.trim().length > 50 ? 'border-amber-200 focus:border-amber-300' : 
+                          analyzeJobDescription.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
+                          'border-primary/20 focus:border-primary/40'
+                        }`}
+                        id="jobDescription"
+                        disabled={analyzeCoverLetterMutation.isPending}
+                      />
+                      {analyzeJobDescription.trim().length > 0 && analyzeJobDescription.trim().length < 50 && (
+                        <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -1462,70 +1504,70 @@ export default function CoverLetter() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="h-3 w-3 mr-1"
+                            className="h-4 w-4 mr-2 mt-0.5 shrink-0"
                           >
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
                           </svg>
-                          Complete
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAnalyzeJobDescription("We're hiring a marketing associate with strong writing and cross-functional collaboration skills. The ideal candidate has experience creating compelling content, managing social media campaigns, and analyzing performance metrics. You'll work with our creative team to develop marketing materials that align with our brand voice and drive customer engagement.")}
-                        className="h-6 text-xs text-primary ml-auto"
-                      >
-                        Paste Example
-                      </Button>
-                    </Label>
-                    <Textarea
-                      placeholder="We're hiring a marketing associate with strong writing and cross-functional collaboration skills..."
-                      value={analyzeJobDescription}
-                      onChange={(e) => setAnalyzeJobDescription(e.target.value)}
-                      className={`min-h-[150px] resize-y border-2 ${
-                        analyzeJobDescription.trim().length > 100 ? 'border-green-200 focus:border-green-300' : 
-                        analyzeJobDescription.trim().length > 50 ? 'border-amber-200 focus:border-amber-300' : 
-                        analyzeJobDescription.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
-                        'border-primary/20 focus:border-primary/40'
-                      }`}
-                      id="jobDescription"
-                      disabled={analyzeCoverLetterMutation.isPending}
-                    />
-                    {analyzeJobDescription.trim().length > 0 && analyzeJobDescription.trim().length < 50 && (
-                      <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
-                        >
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="12" y1="8" x2="12" y2="12"></line>
-                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <div>
-                          <div className="font-medium mb-1">Job Description Too Short</div>
-                          <div className="text-xs">
-                            Please provide a more detailed job description (at least 50 characters) for accurate analysis.
+                          <div>
+                            <div className="font-medium mb-1">Job Description Too Short</div>
+                            <div className="text-xs">
+                              Please provide a more detailed job description (at least 50 characters) for accurate analysis.
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Cover Letter textarea */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
-                      </div>
-                      {analyzeCoverLetterText.trim().length > 200 && (
-                        <span className="text-green-600 text-xs font-medium flex items-center">
+                    {/* Cover Letter textarea */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className="text-primary mr-1">2.</span> Your Cover Letter <span className="text-red-500 ml-1">*</span>
+                        </div>
+                        {analyzeCoverLetterText.trim().length > 200 && (
+                          <span className="text-green-600 text-xs font-medium flex items-center">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3 w-3 mr-1"
+                            >
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Complete
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAnalyzeCoverLetterText("Dear Hiring Manager,\n\nI'm writing to apply for the Marketing Associate position at your company. With my background in content creation and digital marketing, I believe I would be a valuable addition to your team. I have experience managing social media campaigns, creating engaging content, and analyzing performance metrics to optimize marketing strategies.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my skills align with your needs.\n\nSincerely,\n[Your Name]")}
+                          className="h-6 text-xs text-primary ml-auto"
+                        >
+                          Paste Example
+                        </Button>
+                      </Label>
+                      <Textarea
+                        placeholder="Dear [Hiring Manager], I'm writing to apply for the Marketing Associate position..."
+                        value={analyzeCoverLetterText}
+                        onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
+                        className={`min-h-[200px] resize-y border-2 ${
+                          analyzeCoverLetterText.trim().length > 200 ? 'border-green-200 focus:border-green-300' : 
+                          analyzeCoverLetterText.trim().length > 100 ? 'border-amber-200 focus:border-amber-300' : 
+                          analyzeCoverLetterText.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
+                          'border-primary/20 focus:border-primary/40'
+                        }`}
+                        id="coverLetterInput"
+                        disabled={analyzeCoverLetterMutation.isPending}
+                      />
+                      {analyzeCoverLetterText.trim().length > 0 && analyzeCoverLetterText.trim().length < 100 && (
+                        <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -1534,396 +1576,850 @@ export default function CoverLetter() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="h-3 w-3 mr-1"
+                            className="h-4 w-4 mr-2 mt-0.5 shrink-0"
                           >
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
                           </svg>
-                          Complete
-                        </span>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setAnalyzeCoverLetterText("Dear Hiring Manager,\n\nI'm writing to apply for the Marketing Associate position at your company. With my background in content creation and digital marketing, I believe I would be a valuable addition to your team. I have experience managing social media campaigns, creating engaging content, and analyzing performance metrics to optimize marketing strategies.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my skills align with your needs.\n\nSincerely,\n[Your Name]")}
-                        className="h-6 text-xs text-primary ml-auto"
-                      >
-                        Paste Example
-                      </Button>
-                    </Label>
-                    <Textarea
-                      placeholder="Dear [Hiring Manager], I'm writing to apply for the Marketing Associate position..."
-                      value={analyzeCoverLetterText}
-                      onChange={(e) => setAnalyzeCoverLetterText(e.target.value)}
-                      className={`min-h-[200px] resize-y border-2 ${
-                        analyzeCoverLetterText.trim().length > 200 ? 'border-green-200 focus:border-green-300' : 
-                        analyzeCoverLetterText.trim().length > 100 ? 'border-amber-200 focus:border-amber-300' : 
-                        analyzeCoverLetterText.trim().length > 0 ? 'border-red-200 focus:border-red-300' : 
-                        'border-primary/20 focus:border-primary/40'
-                      }`}
-                      id="coverLetterInput"
-                      disabled={analyzeCoverLetterMutation.isPending}
-                    />
-                    {analyzeCoverLetterText.trim().length > 0 && analyzeCoverLetterText.trim().length < 100 && (
-                      <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-800 rounded-md flex items-start">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4 mr-2 mt-0.5 shrink-0"
-                        >
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="12" y1="8" x2="12" y2="12"></line>
-                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <div>
-                          <div className="font-medium mb-1">Cover Letter Too Short</div>
-                          <div className="text-xs">
-                            Please provide a more complete cover letter (at least 100 characters) for meaningful analysis.
+                          <div>
+                            <div className="font-medium mb-1">Cover Letter Too Short</div>
+                            <div className="text-xs">
+                              Please provide a more complete cover letter (at least 100 characters) for meaningful analysis.
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Analyze button with tooltip */}
-                  <div className="relative">
-                    <Button 
-                      className="w-full relative transition-all duration-300" 
-                      onClick={handleAnalyzeCoverLetter}
-                      disabled={analyzeCoverLetterMutation.isPending || !analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() || 
-                               analyzeJobDescription.trim().length < 50 || analyzeCoverLetterText.trim().length < 100}
-                      variant={analyzeCoverLetterMutation.isPending ? "outline" : "default"}
-                      id="analyzeBtn"
-                      title="AI will assess how well your cover letter aligns with the job description and offer suggestions to improve clarity, tone, and relevance."
-                    >
-                      {analyzeCoverLetterMutation.isPending ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Analyzing Cover Letter...
-                        </>
-                      ) : (
-                        <>
-                          <BarChart4 className="h-4 w-4 mr-2" />
-                          {!analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() ? 
-                           "Analyze Cover Letter" : 
-                           "Analyze Cover Letter"}
-                        </>
                       )}
-                    </Button>
+                    </div>
+
+                    {/* Analyze button with tooltip */}
+                    <div className="relative">
+                      <Button 
+                        className="w-full relative transition-all duration-300" 
+                        onClick={handleAnalyzeCoverLetter}
+                        disabled={analyzeCoverLetterMutation.isPending || !analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() || 
+                                 analyzeJobDescription.trim().length < 50 || analyzeCoverLetterText.trim().length < 100}
+                        variant={analyzeCoverLetterMutation.isPending ? "outline" : "default"}
+                        id="analyzeBtn"
+                        title="AI will assess how well your cover letter aligns with the job description and offer suggestions to improve clarity, tone, and relevance."
+                      >
+                        {analyzeCoverLetterMutation.isPending ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Analyzing Cover Letter...
+                          </>
+                        ) : (
+                          <>
+                            <BarChart4 className="h-4 w-4 mr-2" />
+                            {!analyzeJobDescription.trim() || !analyzeCoverLetterText.trim() ? 
+                            "Analyze Cover Letter" : 
+                            "Analyze Cover Letter"}
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Right column: Analysis results or loading state or instructions */}
-            {analysisResult ? (
-              <Card className="overflow-hidden border-slate-200">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                      <BarChart4 className="h-5 w-5 mr-2" />
-                      AI Analysis Results
-                    </h3>
-                    <span className="text-xs text-neutral-500 flex items-center">
-                      <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                      Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
-                  </div>
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {/* Score cards are styled with dynamic classes based on score */}
-                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
-                        Math.round(analysisResult.overallScore) < 60 
-                          ? 'bg-red-50/70 border-red-100' 
-                          : Math.round(analysisResult.overallScore) < 80 
-                            ? 'bg-amber-50/70 border-amber-100' 
-                            : 'bg-emerald-50/70 border-emerald-100'
-                      }`}
-                           title="Overall score reflecting the quality of your cover letter">
-                        <span className="text-xl font-bold">{Math.round(analysisResult.overallScore)}</span>
-                        <span className="text-xs text-neutral-500">Overall</span>
-                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
-                          {Math.round(analysisResult.overallScore) < 60 
-                            ? 'Needs Work' 
+            <div className="lg:w-1/2">
+              {analysisResult ? (
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                        <BarChart4 className="h-5 w-5 mr-2" />
+                        AI Analysis Results
+                      </h3>
+                      <span className="text-xs text-neutral-500 flex items-center">
+                        <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                        Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                    </div>
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {/* Score cards are styled with dynamic classes based on score */}
+                        <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                          Math.round(analysisResult.overallScore) < 60 
+                            ? 'bg-red-50/70 border-red-100' 
                             : Math.round(analysisResult.overallScore) < 80 
-                              ? 'Good'
-                              : 'Excellent'}
-                        </span>
-                      </div>
+                              ? 'bg-amber-50/70 border-amber-100' 
+                              : 'bg-emerald-50/70 border-emerald-100'
+                        }`}
+                            title="Overall score reflecting the quality of your cover letter">
+                          <span className="text-xl font-bold">{Math.round(analysisResult.overallScore)}</span>
+                          <span className="text-xs text-neutral-500">Overall</span>
+                          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                            {Math.round(analysisResult.overallScore) < 60 
+                              ? 'Needs Work' 
+                              : Math.round(analysisResult.overallScore) < 80 
+                                ? 'Good'
+                                : 'Excellent'}
+                          </span>
+                        </div>
 
-                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
-                        Math.round(analysisResult.alignment) < 60 
-                          ? 'bg-red-50/70 border-red-100' 
-                          : Math.round(analysisResult.alignment) < 80 
-                            ? 'bg-amber-50/70 border-amber-100' 
-                            : 'bg-emerald-50/70 border-emerald-100'
-                      }`}
-                           title="How well your letter aligns with the job requirements">
-                        <span className="text-xl font-bold">{Math.round(analysisResult.alignment)}</span>
-                        <span className="text-xs text-neutral-500">Alignment</span>
-                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
-                          {Math.round(analysisResult.alignment) < 60 
-                            ? 'Misaligned' 
+                        <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                          Math.round(analysisResult.alignment) < 60 
+                            ? 'bg-red-50/70 border-red-100' 
                             : Math.round(analysisResult.alignment) < 80 
-                              ? 'Aligned'
-                              : 'Perfect Match'}
-                        </span>
-                      </div>
+                              ? 'bg-amber-50/70 border-amber-100' 
+                              : 'bg-emerald-50/70 border-emerald-100'
+                        }`}
+                            title="How well your letter aligns with the job requirements">
+                          <span className="text-xl font-bold">{Math.round(analysisResult.alignment)}</span>
+                          <span className="text-xs text-neutral-500">Alignment</span>
+                          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                            {Math.round(analysisResult.alignment) < 60 
+                              ? 'Misaligned' 
+                              : Math.round(analysisResult.alignment) < 80 
+                                ? 'Aligned'
+                                : 'Perfect Match'}
+                          </span>
+                        </div>
 
-                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
-                        Math.round(analysisResult.persuasiveness) < 60 
-                          ? 'bg-red-50/70 border-red-100' 
-                          : Math.round(analysisResult.persuasiveness) < 80 
-                            ? 'bg-amber-50/70 border-amber-100' 
-                            : 'bg-emerald-50/70 border-emerald-100'
-                      }`}
-                           title="How persuasive and compelling your letter is">
-                        <span className="text-xl font-bold">{Math.round(analysisResult.persuasiveness)}</span>
-                        <span className="text-xs text-neutral-500">Persuasive</span>
-                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
-                          {Math.round(analysisResult.persuasiveness) < 60 
-                            ? 'Basic' 
+                        <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                          Math.round(analysisResult.persuasiveness) < 60 
+                            ? 'bg-red-50/70 border-red-100' 
                             : Math.round(analysisResult.persuasiveness) < 80 
-                              ? 'Convincing'
-                              : 'Compelling'}
-                        </span>
-                      </div>
+                              ? 'bg-amber-50/70 border-amber-100' 
+                              : 'bg-emerald-50/70 border-emerald-100'
+                        }`}
+                            title="How persuasive and compelling your letter is">
+                          <span className="text-xl font-bold">{Math.round(analysisResult.persuasiveness)}</span>
+                          <span className="text-xs text-neutral-500">Persuasive</span>
+                          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                            {Math.round(analysisResult.persuasiveness) < 60 
+                              ? 'Basic' 
+                              : Math.round(analysisResult.persuasiveness) < 80 
+                                ? 'Convincing'
+                                : 'Compelling'}
+                          </span>
+                        </div>
 
-                      <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
-                        Math.round(analysisResult.clarity) < 60 
-                          ? 'bg-red-50/70 border-red-100' 
-                          : Math.round(analysisResult.clarity) < 80 
-                            ? 'bg-amber-50/70 border-amber-100' 
-                            : 'bg-emerald-50/70 border-emerald-100'
-                      }`}
-                           title="Clarity and readability of your writing">
-                        <span className="text-xl font-bold">{Math.round(analysisResult.clarity)}</span>
-                        <span className="text-xs text-neutral-500">Clarity</span>
-                        <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
-                          {Math.round(analysisResult.clarity) < 60 
-                            ? 'Unclear' 
+                        <div className={`flex flex-col items-center p-3 rounded-lg border score-box ${
+                          Math.round(analysisResult.clarity) < 60 
+                            ? 'bg-red-50/70 border-red-100' 
                             : Math.round(analysisResult.clarity) < 80 
-                              ? 'Clear'
-                              : 'Crystal Clear'}
-                        </span>
+                              ? 'bg-amber-50/70 border-amber-100' 
+                              : 'bg-emerald-50/70 border-emerald-100'
+                        }`}
+                            title="Clarity and readability of your writing">
+                          <span className="text-xl font-bold">{Math.round(analysisResult.clarity)}</span>
+                          <span className="text-xs text-neutral-500">Clarity</span>
+                          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+                            {Math.round(analysisResult.clarity) < 60 
+                              ? 'Unclear' 
+                              : Math.round(analysisResult.clarity) < 80 
+                                ? 'Clear'
+                                : 'Crystal Clear'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 flex items-center">
-                        <span className="text-emerald-500 mr-1">✓</span> Strengths
-                      </h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-2 rounded-md border border-emerald-100/50" id="strengthsList">
-                        {analysisResult.strengths.map((strength: string, index: number) => (
-                          <li key={index} className="text-neutral-700">{strength}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 flex items-center">
-                        <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
-                      </h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-2 rounded-md border border-amber-100/50" id="areasToImproveList">
-                        {analysisResult.weaknesses.map((weakness: string, index: number) => (
-                          <li key={index} className="text-neutral-700">{weakness}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-medium mb-2 flex items-center">
-                        <span className="text-blue-500 mr-1">💡</span> Suggestions
-                      </h4>
-                      <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-2 rounded-md border border-blue-100/50" id="suggestionsList">
-                        {analysisResult.improvementSuggestions.map((suggestion: string, index: number) => (
-                          <li key={index} className="text-neutral-700">{suggestion}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="pt-3 pb-2" id="optimizedCoverLetterSection">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-sm font-medium flex items-center">
-                          <span className="text-primary mr-1">📝</span> Optimized Cover Letter
+                      <div>
+                        <h4 className="text-sm font-medium mb-2 flex items-center">
+                          <span className="text-emerald-500 mr-1">✓</span> Strengths
                         </h4>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 px-2 text-xs" 
-                          onClick={() => {
-                            const optimizedSection = document.getElementById('optimizedCoverLetterContent');
-                            const toggleButton = document.getElementById('toggleOptimizedBtn');
-                            if (optimizedSection && toggleButton) {
-                              if (optimizedSection.classList.contains('hidden')) {
-                                optimizedSection.classList.remove('hidden');
-                                toggleButton.textContent = 'Hide';
-                              } else {
-                                optimizedSection.classList.add('hidden');
-                                toggleButton.textContent = 'Show';
-                              }
-                            }
-                          }}
-                          id="toggleOptimizedBtn"
-                        >
-                          Hide
-                        </Button>
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-2 rounded-md border border-emerald-100/50" id="strengthsList">
+                          {analysisResult.strengths.map((strength: string, index: number) => (
+                            <li key={index} className="text-neutral-700">{strength}</li>
+                          ))}
+                        </ul>
                       </div>
 
-                      {/* Styled content box with scrollable area */}
-                      <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative">
-                        {/* Generation timestamp metadata */}
-                        {generationTimestamp && (
-                          <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
-                            Generated: {new Intl.DateTimeFormat('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }).format(generationTimestamp)}
-                          </div>
-                        )}
+                      <div>
+                        <h4 className="text-sm font-medium mb-2 flex items-center">
+                          <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
+                        </h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-2 rounded-md border border-amber-100/50" id="areasToImproveList">
+                          {analysisResult.weaknesses.map((weakness: string, index: number) => (
+                            <li key={index} className="text-neutral-700">{weakness}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                        <div 
-                          className="p-4 pb-16 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
-                          id="optimizedCoverLetterContent"
-                        >
-                          {analysisResult.optimizedCoverLetter && replaceUserPlaceholders(cleanAIOutput(analysisResult.optimizedCoverLetter))
-                            .split(/(\[.*?\])/).map((part, index) => {
-                              // Check if this part is a placeholder (surrounded by brackets)
-                              const isPlaceholder = /^\[.*\]$/.test(part);
-                              return isPlaceholder ? (
-                                <span key={index} className="text-neutral-400 bg-neutral-50 px-1 rounded" title="Fill in your personal details in your profile">
-                                  {part}
-                                </span>
-                              ) : (
-                                <span key={index}>{part}</span>
-                              );
-                            })}
-                        </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-2 flex items-center">
+                          <span className="text-blue-500 mr-1">💡</span> Suggestions
+                        </h4>
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-2 rounded-md border border-blue-100/50" id="suggestionsList">
+                          {analysisResult.improvementSuggestions.map((suggestion: string, index: number) => (
+                            <li key={index} className="text-neutral-700">{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                        {/* Sticky Button Bar */}
-                        <div className="flex flex-wrap gap-2 justify-end items-center p-2 sticky bottom-0 bg-white border-t border-slate-100 shadow-sm">
+                      <div className="pt-3 pb-2" id="optimizedCoverLetterSection">
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="text-sm font-medium flex items-center">
+                            <span className="text-primary mr-1">📝</span> Optimized Cover Letter
+                          </h4>
                           <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setAnalysisResult({
-                                ...analysisResult,
-                                optimizedCoverLetter: ''
-                              });
-                            }}
-                            title="Reset optimized content"
-                            className="bg-white"
-                          >
-                            <ArrowLeft className="mr-2 h-3 w-3" />
-                            Reset
-                          </Button>
-
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCopyOptimizedCoverLetter}
-                            title="Copy optimized content to clipboard"
-                            className={`relative ${optimizedCopySuccess ? 'bg-green-50' : 'bg-white'}`}
-                            disabled={!analysisResult.optimizedCoverLetter}
-                          >
-                            {optimizedCopySuccess ? (
-                              <>
-                                <CheckCircle className="mr-2 h-3 w-3 text-green-500" />
-                                Copied!
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="mr-2 h-3 w-3" />
-                                Copy
-                              </>
-                            )}
-                          </Button>
-
-                          
-
-                          <Button 
+                            variant="ghost" 
                             size="sm" 
-                            onClick={handleSaveOptimizedCoverLetter}
-                            title="Save this optimized version as a new cover letter"
-                            disabled={!analysisResult.optimizedCoverLetter}
+                            className="h-7 px-2 text-xs" 
+                            onClick={() => {
+                              const optimizedSection = document.getElementById('optimizedCoverLetterContent');
+                              const toggleButton = document.getElementById('toggleOptimizedBtn');
+                              if (optimizedSection && toggleButton) {
+                                if (optimizedSection.classList.contains('hidden')) {
+                                  optimizedSection.classList.remove('hidden');
+                                  toggleButton.textContent = 'Hide';
+                                } else {
+                                  optimizedSection.classList.add('hidden');
+                                  toggleButton.textContent = 'Show';
+                                }
+                              }
+                            }}
+                            id="toggleOptimizedBtn"
                           >
-                            <UploadCloud className="mr-2 h-3 w-3" />
-                            Save Optimized Version
+                            Hide
                           </Button>
+                        </div>
+
+                        {/* Styled content box with scrollable area */}
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative">
+                          {/* Generation timestamp metadata */}
+                          {generationTimestamp && (
+                            <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
+                              Generated: {new Intl.DateTimeFormat('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }).format(generationTimestamp)}
+                            </div>
+                          )}
+
+                          <div 
+                            className="p-4 pb-16 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
+                            id="optimizedCoverLetterContent"
+                          >
+                            {analysisResult.optimizedCoverLetter && replaceUserPlaceholders(cleanAIOutput(analysisResult.optimizedCoverLetter))
+                              .split(/(\[.*?\])/).map((part, index) => {
+                                // Check if this part is a placeholder (surrounded by brackets)
+                                const isPlaceholder = /^\[.*\]$/.test(part);
+                                return isPlaceholder ? (
+                                  <span key={index} className="text-neutral-400 bg-neutral-50 px-1 rounded" title="Fill in your personal details in your profile">
+                                    {part}
+                                  </span>
+                                ) : (
+                                  <span key={index}>{part}</span>
+                                );
+                              })}
+                          </div>
+
+                          {/* Sticky Button Bar */}
+                          <div className="flex flex-wrap gap-2 justify-end items-center p-2 sticky bottom-0 bg-white border-t border-slate-100 shadow-sm">
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setAnalysisResult({
+                                  ...analysisResult,
+                                  optimizedCoverLetter: ''
+                                });
+                              }}
+                              title="Reset optimized content"
+                              className="bg-white"
+                            >
+                              <ArrowLeft className="mr-2 h-3 w-3" />
+                              Reset
+                            </Button>
+
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCopyOptimizedCoverLetter()}
+                              className="bg-white"
+                              disabled={!analysisResult.optimizedCoverLetter}
+                            >
+                              <Copy className="mr-2 h-3 w-3" />
+                              Copy
+                            </Button>
+
+                            <Button 
+                              size="sm" 
+                              className="bg-primary hover:bg-primary/90"
+                              onClick={() => handleDownloadPDF('optimizedCoverLetterContent')}
+                              disabled={!analysisResult.optimizedCoverLetter}
+                              id="downloadOptimizedPdfBtn"
+                            >
+                              <Download className="mr-2 h-3 w-3" />
+                              Download PDF
+                            </Button>
+
+                            <Button 
+                              size="sm" 
+                              onClick={handleSaveOptimizedCoverLetter}
+                              title="Save this optimized version as a new cover letter"
+                              disabled={!analysisResult.optimizedCoverLetter}
+                            >
+                              <UploadCloud className="mr-2 h-3 w-3" />
+                              Save Optimized Version
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : analyzeCoverLetterMutation.isPending ? (
-              <Card className="overflow-hidden border-slate-200">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                  </CardContent>
+                </Card>
+              ) : analyzeCoverLetterMutation.isPending ? (
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                        <BarChart4 className="h-5 w-5 mr-2" />
+                        AI Analysis Results
+                      </h3>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                      <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+
+                      <p className="text-neutral-600 text-lg mb-2">
+                        Analyzing your cover letter...
+                      </p>
+
+                      <p className="text-neutral-500 mb-6">
+                        This may take a few seconds.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="overflow-hidden border-slate-200">
+                  <CardContent className="pt-6">
+                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
                       <BarChart4 className="h-5 w-5 mr-2" />
                       AI Analysis Results
                     </h3>
-                  </div>
 
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <div className="w-16 h-16 mb-6 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="w-16 h-16 mb-6 text-neutral-200">
+                        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+
+                      <p className="text-neutral-600 text-lg mb-2">
+                        Submit your cover letter and job description
+                      </p>
+
+                      <p className="text-neutral-500 mb-6">
+                        to see AI-powered analysis and suggestions.
+                      </p>
                     </div>
-
-                    <p className="text-neutral-600 text-lg mb-2">
-                      Analyzing your cover letter...
-                    </p>
-
-                    <p className="text-neutral-500 mb-6">
-                      This will take just a few seconds.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="overflow-hidden border-slate-200">
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                      <BarChart4 className="h-5 w-5 mr-2" />
-                      AI Analysis Results
-                    </h3>
-                  </div>
-
-                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                    <div className="w-16 h-16 mb-6 text-neutral-200">
-                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-
-                    <p className="text-neutral-600 text-lg mb-2">
-                      Submit your cover letter and job description
-                    </p>
-
-                    <p className="text-neutral-500 mb-6">
-                      to see AI-powered analysis and suggestions.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </motion.div>
         </TabsContent>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </Tabs>
 
       {/* Cover letter creation/edit dialog */}
