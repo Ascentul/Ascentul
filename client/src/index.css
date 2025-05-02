@@ -1,3 +1,15 @@
+
+/* Cover letter generator card alignment fixes */
+.generate-cover-letter-card {
+  height: auto !important;
+  max-height: 100%;
+  align-self: flex-start !important;
+}
+
+.card-grid-container {
+  align-items: flex-start;
+}
+
 /* Import special PDF export styles */
 @import './styles/print-tailwind.css';
 
