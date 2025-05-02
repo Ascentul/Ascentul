@@ -35,8 +35,6 @@ export default function Goals() {
   const [isAddGoalOpen, setIsAddGoalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
   const [hiddenGoalIds, setHiddenGoalIds] = useState<number[]>([]);
-  // Add a state to track goals that are currently being dissolved
-  const [dissolvingGoalIds, setDissolvingGoalIds] = useState<number[]>([]);
   // Add state for view mode (list or timeline)
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   // Add state for selected template
@@ -118,51 +116,40 @@ export default function Goals() {
     }
   };
   
-  // Handle when a goal has been completed and should dissolve
+  // Handle when a goal has been completed
   const handleGoalComplete = (goalId: number) => {
-    // First, mark this goal as dissolving so we know it's in the animation phase
-    setDissolvingGoalIds(prev => [...prev, goalId]);
-    
-    // After the animation completes (1.5s), update the goal status via API and remove from dissolving state
-    setTimeout(() => {
-      // Find the goal in the current goals list
-      const goal = goals.find((g: any) => g.id === goalId);
-      if (goal) {
-        // Update the goal status to completed via the API
-        apiRequest('PUT', `/api/goals/${goalId}`, { 
-          ...goal, 
-          status: 'completed',
-          progress: 100,
-          completed: true,
-          completedAt: new Date().toISOString()
-        })
-        .then(() => {
-          // Remove goal from dissolving state
-          setDissolvingGoalIds(prev => prev.filter(id => id !== goalId));
-          
-          // Refresh goals data and user statistics
-          queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
-          
-          toast({
-            title: "Goal Saved as Completed",
-            description: "Your goal has been moved to the completed section.",
-            variant: "success",
-          });
-        })
-        .catch((error) => {
-          console.error('Error updating goal:', error);
-          // Remove from dissolving state even if there's an error
-          setDissolvingGoalIds(prev => prev.filter(id => id !== goalId));
-          
-          toast({
-            title: "Error",
-            description: "Failed to save completed goal. Please try again.",
-            variant: "destructive",
-          });
+    // Find the goal in the current goals list
+    const goal = goals.find((g: any) => g.id === goalId);
+    if (goal) {
+      // Immediately update the goal status to completed via the API
+      apiRequest('PUT', `/api/goals/${goalId}`, { 
+        ...goal, 
+        status: 'completed',
+        progress: 100,
+        completed: true,
+        completedAt: new Date().toISOString()
+      })
+      .then(() => {
+        // Refresh goals data and user statistics
+        queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+        
+        toast({
+          title: "Goal Saved as Completed",
+          description: "Your goal has been moved to the completed section.",
+          variant: "success",
         });
-      }
-    }, 2500); // This should match the CSS transition time (2.5 seconds)
+      })
+      .catch((error) => {
+        console.error('Error updating goal:', error);
+        
+        toast({
+          title: "Error",
+          description: "Failed to save completed goal. Please try again.",
+          variant: "destructive",
+        });
+      });
+    }
   };
 
   const sortedAndFilteredGoals = () => {
@@ -374,14 +361,14 @@ export default function Goals() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           </div>
-        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed' || dissolvingGoalIds.includes(g.id)).length > 0 ? (
+        ) : goals && Array.isArray(goals) && goals.filter((g: any) => g.status !== 'completed').length > 0 ? (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             variants={listContainer}
           >
-            {/* Regular active goals */}
+            {/* Active goals */}
             {sortedAndFilteredGoals()
-              .filter(goal => goal.status !== 'completed' && !dissolvingGoalIds.includes(goal.id))
+              .filter(goal => goal.status !== 'completed')
               .map((goal: any) => (
                 <motion.div 
                   key={goal.id} 
@@ -399,40 +386,6 @@ export default function Goals() {
                     onEdit={handleEditGoal}
                     onComplete={handleGoalComplete}
                   />
-                </motion.div>
-              ))}
-              
-            {/* Dissolving goals that are fading out */}
-            {goals
-              .filter(goal => dissolvingGoalIds.includes(goal.id))
-              .map((goal: any) => (
-                <motion.div 
-                  key={`dissolving-${goal.id}`} 
-                  className="relative"
-                  variants={listItem}
-                >
-                  <div className="goal-card dissolving">
-                    <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-[#f9fafe]">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium">{goal.title}</h3>
-                            <p className="text-sm text-neutral-500 mt-1">{goal.description || ''}</p>
-                          </div>
-                          <Badge variant="outline" className="bg-green-100 text-green-800">
-                            Completed
-                          </Badge>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Progress</span>
-                            <span>100%</span>
-                          </div>
-                          <Progress value={100} className="h-2" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
                 </motion.div>
               ))}
           </motion.div>
