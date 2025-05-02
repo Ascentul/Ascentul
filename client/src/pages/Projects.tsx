@@ -229,7 +229,7 @@ export default function Projects() {
               className="will-change-transform"
               style={{ transform: 'translateZ(0)' }}
             >
-              <Card className="flex flex-col overflow-hidden group project-card cursor-pointer">
+              <Card className="flex flex-col overflow-hidden group project-card cursor-pointer transition-shadow duration-300 hover:shadow-md">
                 {/* Project Image Section */}
                 <div className="relative w-full h-[200px]">
                   {project.imageUrl ? (
