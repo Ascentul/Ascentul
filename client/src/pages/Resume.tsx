@@ -1064,19 +1064,19 @@ export default function Resume() {
             <Card className="w-full">
               <CardContent className="pt-3 px-5 pb-5">
                 <h3 className="text-xl font-semibold mb-3">Generate the Perfect Resume with AI</h3>
-                <div className="space-y-3 max-w-3xl mx-auto">
-                  <div className="space-y-1.5">
+                <div className="space-y-4 w-full">
+                  <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
-                      className="min-h-[180px]"
+                      className="min-h-[240px] w-full"
                     />
                   </div>
 
-                  <div>
-                    <p className="text-sm text-neutral-500 mb-3">
+                  <div className="bg-primary/5 p-4 rounded-lg">
+                    <p className="text-sm text-neutral-600">
                       Your work history will be automatically used from your profile to generate relevant suggestions.
                     </p>
                   </div>
