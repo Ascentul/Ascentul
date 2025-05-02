@@ -1,8 +1,14 @@
-import { Edit, Calendar, CheckSquare, Square, ChevronDown, ChevronUp, PartyPopper } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Edit, Calendar, CheckSquare, Square, PartyPopper } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -319,105 +325,77 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="flex flex-col justify-between min-h-[340px] bg-gradient-to-b from-white to-[#f0f6ff] shadow-sm rounded-2xl hover:shadow-md transition-shadow duration-150 h-full relative overflow-hidden">
-          {/* Main content section */}
-          <div className="flex flex-col h-full">
-            <div className="px-6 pt-6 pb-4 flex-grow">
-              {/* Title + Status Badge */}
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-base font-semibold">{title}</h3>
-                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{description}</p>
-                </div>
-                <Badge variant="outline" className={`${getBadgeStyles()} text-sm font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full`}>
-                  {status === 'not_started' ? (
-                    <span className="flex items-center">
-                      <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
-                      Not started
-                    </span>
-                  ) : status === 'in_progress' ? 'In progress' : 
-                    status.charAt(0).toUpperCase() + status.slice(1)}
-                </Badge>
+        <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white">
+          {/* Top Section */}
+          <CardContent className="space-y-3 pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {description}
+                </p>
               </div>
+              <Badge variant="secondary" className={getBadgeStyles()}>
+                {status === 'not_started' ? (
+                  <span className="flex items-center">
+                    <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
+                    Not started
+                  </span>
+                ) : status === 'in_progress' ? 'In progress' : 
+                  status.charAt(0).toUpperCase() + status.slice(1)}
+              </Badge>
+            </div>
 
-              {/* Progress */}
-              <div className="mt-4">
-                <div className="flex justify-between text-xs mb-1">
-                  <span>Progress</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="relative">
-                  <Progress value={progress} className="h-2 transition-all duration-300" />
-                  {progress > 0 && (
-                    <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0 }}>
-                      {progress}%
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Checklist summary and dropdown */}
-              {hasChecklist && (
-                <div className="mt-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
-                    onClick={() => setShowChecklist(!showChecklist)}
-                  >
-                    <span>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</span>
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-500 mr-1">View checklist</span>
-                      {showChecklist ? 
-                        <ChevronUp className="h-4 w-4 transition-transform duration-200" /> : 
-                        <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                      }
-                    </div>
-                  </Button>
-
-                  {showChecklist && (
-                    <div className="mt-1 space-y-1 max-h-[120px] overflow-y-auto">
-                      {checklist.map((item) => (
-                        <div key={item.id} className="flex items-start gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => toggleChecklistItem(item.id)}
-                            className="h-5 w-5 p-0 mt-0.5 flex-shrink-0"
-                          >
-                            {item.completed ? (
-                              <CheckSquare className="h-4 w-4 text-primary" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
-                            {item.text}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <div>
+              <p className="text-sm font-medium">Progress</p>
+              <Progress value={progress} className="mt-1 h-2 transition-all duration-300" />
+              {progress > 0 && (
+                <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0 }}>
+                  {progress}%
+                </span>
               )}
             </div>
-            
-            {/* Footer: Date and Edit Button (pinned to bottom) */}
-            <div className="flex justify-between items-center px-6 pb-4 pt-3 border-t border-gray-100 mt-auto">
-              <div className="text-xs text-neutral-500 flex items-center">
-                <Calendar className="h-3 w-3 mr-1" />
-                {formatDueDate()}
+
+            {hasChecklist && (
+              <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <p>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="font-medium">View checklist</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {checklist.map((item) => (
+                      <DropdownMenuItem key={item.id} onClick={() => toggleChecklistItem(item.id)} className="flex items-start gap-2">
+                        {item.completed ? (
+                          <CheckSquare className="h-4 w-4 text-primary" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                        <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
+                          {item.text}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-primary hover:text-primary/80 p-1 h-auto"
-                onClick={() => onEdit(id)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
+            )}
+          </CardContent>
+
+          {/* Bottom Section */}
+          <div className="flex items-center justify-between px-4 py-3 border-t mt-auto">
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              {formatDueDate()}
+            </p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-blue-600"
+              onClick={() => onEdit(id)}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
           </div>
         </Card>
       </div>
