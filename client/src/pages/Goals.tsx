@@ -289,17 +289,8 @@ export default function Goals() {
                   <DropdownMenuItem onClick={() => setStatusFilter(null)}>
                     All Statuses
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                    Active
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setStatusFilter('in_progress')}>
                     In Progress
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('on-track')}>
-                    On Track
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setStatusFilter('at-risk')}>
-                    At Risk
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
                     Completed
