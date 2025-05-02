@@ -1406,19 +1406,9 @@ export default function CoverLetter() {
                       </Button>
 
                       <Button 
-                        variant="outline"
-                        className="col-span-1"
-                        onClick={() => handleDownloadPDF("generatedContent")}
-                        disabled={!generatedContent}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Export PDF
-                      </Button>
-
-                      <Button 
                         onClick={handleSaveGenerated} 
                         disabled={!generatedContent}
-                        className="col-span-1"
+                        className="col-span-2"
                       >
                         <UploadCloud className="mr-2 h-4 w-4" />
                         Save Letter
@@ -1637,7 +1627,7 @@ export default function CoverLetter() {
                       </h3>
                       <span className="text-xs text-neutral-500 flex items-center">
                         <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                        Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        Analyzed {newDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </span>
                     </div>
                     <div className="space-y-5">
