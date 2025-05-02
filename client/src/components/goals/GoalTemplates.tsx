@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'wouter';
 import {
   Card,
   CardContent,
