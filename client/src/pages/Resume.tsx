@@ -148,6 +148,9 @@ export default function Resume() {
     },
   });
 
+  // State to track when we're generating from optimization
+  const [isGeneratingFromOptimize, setIsGeneratingFromOptimize] = useState(false);
+  
   // Generate full resume
   const generateResumeMutation = useMutation({
     mutationFn: async () => {
@@ -166,16 +169,21 @@ export default function Resume() {
       // Always store the generated resume data
       setGeneratedResume(data);
       
-      // Only show the modal in the standard flow (not when called from optimizeAndGenerateResume)
-      // We'll check by seeing if the optimization modal is open - if it is, we're in the optimization flow
-      if (!isOptimizeDialogOpen) {
-        setIsGeneratedResumeOpen(true);
-      } else {
+      // Check if we're in the optimization flow
+      if (isGeneratingFromOptimize) {
         // When called from optimization flow, automatically save the resume
         saveGeneratedResume(data);
+        // Reset the flag
+        setIsGeneratingFromOptimize(false);
+      } else {
+        // Regular flow - show the modal
+        setIsGeneratedResumeOpen(true);
       }
     },
     onError: (error) => {
+      // Reset the flag on error too
+      setIsGeneratingFromOptimize(false);
+      
       toast({
         title: 'Error',
         description: `Failed to generate resume: ${error.message}`,
@@ -640,6 +648,9 @@ export default function Resume() {
     if (optimizedCareerData.careerSummary) {
       setUserWorkHistory(`Career Summary:\n${optimizedCareerData.careerSummary}\n\n${formattedWorkHistory}`);
     }
+
+    // Set the flag that we're generating from optimization flow
+    setIsGeneratingFromOptimize(true);
 
     // Close the optimization dialog
     setIsOptimizeDialogOpen(false);
