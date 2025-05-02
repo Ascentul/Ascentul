@@ -32,7 +32,7 @@ interface OptimizationResult {
       feedback: string;
       suggestion: string;
     };
-    summary: {
+    about: {
       score: number;
       feedback: string;
       suggestion: string;
@@ -48,19 +48,18 @@ interface OptimizationResult {
       missingSkills: string[];
       suggestedSkills: string[];
     };
-    recommendations: {
+    featured: {
       score: number;
       feedback: string;
+      suggestions: string[];
     };
-    education: {
+    banner: {
       score: number;
       feedback: string;
-    };
-    profile: {
-      score: number;
-      feedback: string;
+      suggestion: string;
     };
   };
+  recruiterPerspective: string;
   actionPlan: {
     highPriority: string[];
     mediumPriority: string[];
@@ -371,30 +370,29 @@ function LinkedInOptimizer() {
                 <div className="space-y-4">
                   <SectionCard 
                     title="Headline" 
-                    score={results.sections.headline.score}
+                    score={results.sections.headline.score * 10} // Convert 0-10 to 0-100
                     feedback={results.sections.headline.feedback}
                     suggestions={results.sections.headline.suggestion}
                   />
                   
                   <SectionCard 
-                    title="Summary" 
-                    score={results.sections.summary.score}
-                    feedback={results.sections.summary.feedback}
-                    suggestions={results.sections.summary.suggestion}
+                    title="About Section" 
+                    score={results.sections.about.score * 10} // Convert 0-10 to 0-100
+                    feedback={results.sections.about.feedback}
+                    suggestions={results.sections.about.suggestion}
                   />
                   
                   <SectionCard 
                     title="Experience" 
-                    score={results.sections.experience.score}
+                    score={results.sections.experience.score * 10} // Convert 0-10 to 0-100
                     feedback={results.sections.experience.feedback}
                     suggestions={results.sections.experience.suggestions}
                   />
                   
                   <SectionCard 
                     title="Skills" 
-                    score={results.sections.skills.score}
+                    score={results.sections.skills.score * 10} // Convert 0-10 to 0-100
                     feedback={results.sections.skills.feedback}
-                    suggestions={results.sections.skills.suggestions}
                   >
                     {results.sections.skills.missingSkills.length > 0 && (
                       <div className="mt-2">
@@ -430,22 +428,25 @@ function LinkedInOptimizer() {
                   </SectionCard>
                   
                   <SectionCard 
-                    title="Recommendations" 
-                    score={results.sections.recommendations.score}
-                    feedback={results.sections.recommendations.feedback}
+                    title="Featured Section" 
+                    score={results.sections.featured.score * 10} // Convert 0-10 to 0-100
+                    feedback={results.sections.featured.feedback}
+                    suggestions={results.sections.featured.suggestions}
                   />
                   
                   <SectionCard 
-                    title="Education" 
-                    score={results.sections.education.score}
-                    feedback={results.sections.education.feedback}
+                    title="Banner Image" 
+                    score={results.sections.banner.score * 10} // Convert 0-10 to 0-100
+                    feedback={results.sections.banner.feedback}
+                    suggestions={results.sections.banner.suggestion}
                   />
                   
-                  <SectionCard 
-                    title="Profile Picture" 
-                    score={results.sections.profile.score}
-                    feedback={results.sections.profile.feedback}
-                  />
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mt-6">
+                    <h3 className="text-lg font-medium mb-2">Recruiter Perspective</h3>
+                    <p className="text-gray-700 dark:text-gray-300 italic">
+                      "{results.recruiterPerspective}"
+                    </p>
+                  </div>
                 </div>
               )}
               
