@@ -1772,7 +1772,7 @@ export default function CoverLetter() {
                         </div>
 
                         {/* Styled content box with scrollable area */}
-                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-3 relative">
                           {/* Generation timestamp metadata */}
                           {generationTimestamp && (
                             <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
@@ -1803,44 +1803,44 @@ export default function CoverLetter() {
                               })}
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Button row aligned with text field and tightly spaced */}
-                      <div className="grid grid-cols-4 gap-2 mt-2 px-4 pb-3">
-                        <Button 
-                          variant="outline" 
-                          className="col-span-1"
-                          onClick={() => {
-                            setAnalysisResult({
-                              ...analysisResult,
-                              optimizedCoverLetter: ''
-                            });
-                          }}
-                          title="Reset optimized content"
-                        >
-                          <ArrowLeft className="mr-2 h-4 w-4" />
-                          Reset
-                        </Button>
 
-                        <Button 
-                          variant="outline"
-                          className="col-span-1"
-                          onClick={() => handleCopyOptimizedCoverLetter()}
-                          disabled={!analysisResult.optimizedCoverLetter}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy
-                        </Button>
+                        {/* Button row directly on gradient background */}
+                        <div className="grid grid-cols-4 gap-2 mt-0 px-0 mb-2">
+                          <Button 
+                            variant="outline" 
+                            className="col-span-1"
+                            onClick={() => {
+                              setAnalysisResult({
+                                ...analysisResult,
+                                optimizedCoverLetter: ''
+                              });
+                            }}
+                            title="Reset optimized content"
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Reset
+                          </Button>
 
-                        <Button 
-                          className="col-span-2 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
-                          onClick={handleSaveOptimizedCoverLetter}
-                          title="Save this optimized version as a new cover letter"
-                          disabled={!analysisResult.optimizedCoverLetter}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Save Optimized Version
-                        </Button>
+                          <Button 
+                            variant="outline"
+                            className="col-span-1"
+                            onClick={() => handleCopyOptimizedCoverLetter()}
+                            disabled={!analysisResult.optimizedCoverLetter}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy
+                          </Button>
+
+                          <Button 
+                            className="col-span-2 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+                            onClick={handleSaveOptimizedCoverLetter}
+                            title="Save this optimized version as a new cover letter"
+                            disabled={!analysisResult.optimizedCoverLetter}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Save Optimized Version
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
