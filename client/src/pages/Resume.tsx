@@ -784,103 +784,104 @@ export default function Resume() {
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-
-
-            <div className="flex flex-col lg:flex-row gap-6 [&>*]:flex-1">
-              {/* Left column: Resume upload and job description */}
-              <ResumeAnalyzer 
-                onExtractComplete={handleExtractComplete}
-                jobDescription={extractionJobDescription}
-                setJobDescription={setExtractionJobDescription}
-                isAnalyzing={isAnalyzing}
-                onAnalyze={handleAnalyzeExtractedText}
-              />
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+              {/* Left column: Resume upload and job description - using self-start to prevent height stretching */}
+              <div className="lg:w-1/2">
+                <ResumeAnalyzer 
+                  onExtractComplete={handleExtractComplete}
+                  jobDescription={extractionJobDescription}
+                  setJobDescription={setExtractionJobDescription}
+                  isAnalyzing={isAnalyzing}
+                  onAnalyze={handleAnalyzeExtractedText}
+                />
+              </div>
 
               {/* Right column: Analysis results or loading state or instructions */}
-              {analysisResults ? (
-                <motion.div 
-                  className="grid grid-cols-1 gap-6 will-change-opacity will-change-transform"
-                  variants={subtleUp}
-                  style={{ transform: 'translateZ(0)' }}
-                >
-                  {/* Display analysis results */}
-                  <ResumeAnalysisResults results={analysisResults} />
+              <div className="lg:w-1/2">
+                {analysisResults ? (
+                  <motion.div 
+                    className="grid grid-cols-1 gap-6 will-change-opacity will-change-transform overflow-auto"
+                    variants={subtleUp}
+                    style={{ transform: 'translateZ(0)' }}
+                  >
+                    {/* Display analysis results */}
+                    <ResumeAnalysisResults results={analysisResults} />
 
-                  {/* Action buttons */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      {analysisResults.timestamp && (
-                        <p className="text-sm text-neutral-500">
-                          Last analyzed {new Date(analysisResults.timestamp).toLocaleTimeString()} on {new Date(analysisResults.timestamp).toLocaleDateString()}
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        {analysisResults.timestamp && (
+                          <p className="text-sm text-neutral-500">
+                            Last analyzed {new Date(analysisResults.timestamp).toLocaleTimeString()} on {new Date(analysisResults.timestamp).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setAnalysisResults(null);
+                          }}
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-2" />
+                          New Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : isAnalyzing ? (
+                  <Card className="overflow-hidden border-slate-200">
+                    <CardContent className="pt-6">
+                      <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                        <BarChart4 className="h-5 w-5 mr-2" />
+                        AI Analysis Results
+                      </h3>
+
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        </div>
+
+                        <p className="text-neutral-600 text-lg mb-2">
+                          Analyzing your resume...
                         </p>
-                      )}
-                    </div>
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setAnalysisResults(null);
-                        }}
-                      >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        New Analysis
-                      </Button>
 
-                    </div>
-                  </div>
-                </motion.div>
-              ) : isAnalyzing ? (
-                <Card className="overflow-hidden border-slate-200">
-                  <CardContent className="pt-6">
-                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                      <BarChart4 className="h-5 w-5 mr-2" />
-                      AI Analysis Results
-                    </h3>
-
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                      <div className="w-16 h-16 mb-6 flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                        <p className="text-neutral-500 mb-6">
+                          This may take a few seconds.
+                        </p>
                       </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="overflow-hidden border-slate-200">
+                    <CardContent className="pt-6">
+                      <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
+                        <BarChart4 className="h-5 w-5 mr-2" />
+                        AI Analysis Results
+                      </h3>
 
-                      <p className="text-neutral-600 text-lg mb-2">
-                        Analyzing your resume...
-                      </p>
+                      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                        <div className="w-16 h-16 mb-6 text-neutral-200">
+                          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </div>
 
-                      <p className="text-neutral-500 mb-6">
-                        This may take a few seconds.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="overflow-hidden border-slate-200">
-                  <CardContent className="pt-6">
-                    <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center analysis-header" id="analysisHeader">
-                      <BarChart4 className="h-5 w-5 mr-2" />
-                      AI Analysis Results
-                    </h3>
+                        <p className="text-neutral-600 text-lg mb-2">
+                          Submit your resume and job description
+                        </p>
 
-                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                      <div className="w-16 h-16 mb-6 text-neutral-200">
-                        <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M32 12L35.3 18.76L42.64 19.84L37.32 25.04L38.64 32.36L32 28.88L25.36 32.36L26.68 25.04L21.36 19.84L28.7 18.76L32 12Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M44 42L46 46L50 47L47 50L48 54L44 52L40 54L41 50L38 47L42 46L44 42Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>`
-                        </svg>
+                        <p className="text-neutral-500 mb-6">
+                          to see AI-powered analysis and suggestions.
+                        </p>
                       </div>
-
-                      <p className="text-neutral-600 text-lg mb-2">
-                        Submit your resume and job description
-                      </p>
-
-                      <p className="text-neutral-500 mb-6">
-                        to see AI-powered analysis and suggestions.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           </motion.div>
         </TabsContent>
