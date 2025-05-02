@@ -275,7 +275,7 @@ export default function CoverLetter() {
   // Helper function to clean AI output by removing meta commentary
   const cleanAIOutput = (text: string): string => {
     if (!text) return "";
-    
+
     // Check for separator like "---" and cut content after it
     const cutoff = text.indexOf('---');
     if (cutoff !== -1) return text.slice(0, cutoff).trim();
@@ -296,26 +296,26 @@ export default function CoverLetter() {
     });
     return filteredLines.join('\n').trim();
   };
-  
+
   // This function has been moved to a utility file, we're keeping it here for backwards compatibility
   // with other parts of the code
   const directPdfExport = (coverLetter: any) => {
     // First set the preview letter so the proper content is in the DOM
     setPreviewLetter(coverLetter);
-    
+
     // Use a timeout to ensure the DOM is updated before export
     setTimeout(() => {
       // Call the utility directly (no parameters needed)
       exportCoverLetterToPDF();
       console.log('Starting improved PDF export for cover letter');
     }, 100);
-    
+
     try {
       // Create a temporary div for PDF export with professional styling
       const container = document.createElement('div');
       container.id = 'coverLetterPreview';
       container.className = 'pdf-export';
-      
+
       // Apply professional PDF styling
       container.style.width = '8.5in';
       container.style.minHeight = '11in';
@@ -326,17 +326,17 @@ export default function CoverLetter() {
       container.style.color = '#000';
       container.style.backgroundColor = 'white';
       container.style.boxSizing = 'border-box';
-      
+
       // Create inner container for proper alignment
       const innerContainer = document.createElement('div');
       innerContainer.className = 'pdf-inner';
       innerContainer.style.maxWidth = '6.5in';
       innerContainer.style.margin = '0 auto';
       innerContainer.style.textAlign = 'left';
-      
+
       // Get letter data
       const letter = coverLetter;
-      
+
       // Process body content
       let bodyContent = '';
       if (letter.content.body) {
@@ -348,44 +348,44 @@ export default function CoverLetter() {
       } else {
         bodyContent = '<p style="margin-bottom: 12px;">No content available.</p>';
       }
-      
+
       // Create professional letter content with proper formatting
       innerContainer.innerHTML = `
         <div style="text-align: center; margin-bottom: 36px;">
           <h1 style="font-size: 16pt; font-weight: bold; margin-bottom: 8px; font-family: Georgia, serif;">${letter.content.header.fullName || '[Your Name]'}</h1>
           <p style="margin-bottom: 12px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
         </div>
-        
+
         <div style="margin-bottom: 24px;">
           <p style="margin-bottom: 4px;">Hiring Manager</p>
           <p style="margin-bottom: 4px;">${letter.content.recipient.company || 'Company Name'}</p>
         </div>
-        
+
         <p style="margin-bottom: 24px;">Dear Hiring Manager,</p>
-        
+
         <div style="margin-bottom: 24px; text-align: justify;">
           ${bodyContent}
         </div>
-        
+
         <div style="margin-top: 36px;">
           <p style="margin-bottom: 24px;">${letter.content.closing || 'Sincerely,'}</p>
           <p>${letter.content.header.fullName || '[Your Name]'}</p>
         </div>
       `;
-      
+
       // Append the inner container to the main container
       container.appendChild(innerContainer);
-      
+
       // Attach to document but position off-screen
       container.style.position = 'fixed';
       container.style.top = '0';
       container.style.left = '-9999px';
       container.style.zIndex = '-1000';
       document.body.appendChild(container);
-      
+
       // Generate filename from letter name
       const filename = `${letter.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       // Configure PDF export options for better quality and formatting
       const options = {
         margin: 0, // No margins since we've already applied them in the container
@@ -406,9 +406,9 @@ export default function CoverLetter() {
           compress: true
         }
       };
-      
+
       console.log('Generating PDF with professional styling');
-      
+
       // Add delay to ensure DOM rendering is complete
       setTimeout(() => {
         window.html2pdf()
@@ -421,7 +421,7 @@ export default function CoverLetter() {
               title: 'PDF Downloaded',
               description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
             });
-            
+
             // Clean up
             document.body.removeChild(container);
           })
@@ -432,46 +432,46 @@ export default function CoverLetter() {
               description: 'PDF generation failed. Trying alternative method...',
               variant: 'destructive',
             });
-            
+
             // Clean up
             document.body.removeChild(container);
-            
+
             // Fall back to direct jsPDF generation if HTML method fails
             try {
               // Get a direct reference to the jsPDF library
               const { jsPDF } = window.html2pdf().worker;
-              
+
               // Create a new PDF document
               const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'pt',
                 format: 'letter'
               });
-              
+
               // Set up basic configurations
               doc.setFont('Georgia');
               doc.setFontSize(12);
-              
+
               // Define page dimensions
               const pageWidth = doc.internal.pageSize.getWidth();
               const pageHeight = doc.internal.pageSize.getHeight();
               const margin = 72; // 1 inch margins in points
               const textWidth = pageWidth - (margin * 2);
-              
+
               // Define starting positions
               let y = margin;
               const x = margin;
-              
+
               // Header section - centered
               doc.setFontSize(16);
               doc.setFont('Georgia', 'bold');
-              
+
               // Full name
               const fullName = letter.content.header.fullName || '[Your Name]';
               const fullNameWidth = doc.getStringUnitWidth(fullName) * 16 * doc.internal.scaleFactor / 72;
               doc.text(fullName, (pageWidth - fullNameWidth) / 2, y);
               y += 24;
-              
+
               // Date
               doc.setFontSize(12);
               doc.setFont('Georgia', 'normal');
@@ -479,23 +479,23 @@ export default function CoverLetter() {
               const dateWidth = doc.getStringUnitWidth(date) * 12 * doc.internal.scaleFactor / 72;
               doc.text(date, (pageWidth - dateWidth) / 2, y);
               y += 40;
-              
+
               // Recipient section
               doc.text('Hiring Manager', x, y);
               y += 20;
               doc.text(letter.content.recipient.company || 'Company Name', x, y);
               y += 40;
-              
+
               // Greeting
               doc.text('Dear Hiring Manager,', x, y);
               y += 40;
-              
+
               // Body content
               if (letter.content.body) {
                 // Process the body text by splitting into paragraphs
                 const paragraphs = letter.content.body.split('\n')
                   .filter((para: string) => para.trim().length > 0);
-                
+
                 // Add each paragraph with spacing
                 for (const paragraph of paragraphs) {
                   // Word wrapping with split text function
@@ -508,16 +508,16 @@ export default function CoverLetter() {
                 doc.text('No content available.', x, y);
                 y += 20;
               }
-              
+
               // Add closing
               y += 20;
               doc.text(letter.content.closing || 'Sincerely,', x, y);
               y += 40;
               doc.text(letter.content.header.fullName || '[Your Name]', x, y);
-              
+
               // Save the PDF
               doc.save(filename);
-              
+
               // Show success notification
               toast({
                 title: 'PDF Downloaded',
@@ -546,20 +546,20 @@ export default function CoverLetter() {
   // Handle PDF downloads for any cover letter content
   const handleDownloadPDF = (elementId: string) => {
     console.log(`Handling PDF download for: ${elementId}`);
-    
+
     // For cover letter card buttons - extract the letter ID and use it for direct export
     if (elementId.startsWith('previewLetter-')) {
       const letterId = parseInt(elementId.replace('previewLetter-', ''), 10);
       console.log(`Looking for cover letter with ID: ${letterId}`);
-      
+
       // Find the letter in the cover letters array
       const letterToExport = coverLetters.find((letter: any) => letter.id === letterId);
-      
+
       if (letterToExport) {
         console.log('Found letter to export, setting as preview letter');
         // Set the preview letter so our export function can access it
         setPreviewLetter(letterToExport);
-        
+
         // Use setTimeout to ensure state is updated before exporting
         setTimeout(() => {
           console.log('Exporting preview letter to PDF');
@@ -576,21 +576,21 @@ export default function CoverLetter() {
         return;
       }
     }
-    
+
     // For generated content case
     if (elementId === 'generatedContent') {
       const filename = `Generated_Cover_Letter_${new Date().toISOString().split('T')[0]}.pdf`;
       exportPDF(elementId, filename);
       return;
     }
-    
+
     // For optimized content case
     if (elementId === 'optimizedCoverLetterContent') {
       const filename = `Optimized_Cover_Letter_${new Date().toISOString().split('T')[0]}.pdf`;
       exportPDF(elementId, filename);
       return;
     }
-    
+
     // Default case - just use the element ID as part of filename
     const filename = `${elementId.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
     exportPDF(elementId, filename);
@@ -602,20 +602,20 @@ export default function CoverLetter() {
   // Helper function to replace placeholder tags with user information
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
-    
+
     // Validate field length for proper fallbacks
     const nameToDisplay = user.name && user.name.length >= 2 ? user.name : '[Your Name]';
     const emailToDisplay = user.email && user.email.length >= 5 ? user.email : '[Email Address]';
     // We'll use a default value since phone may not be in the user object
     const phoneToDisplay = '[Phone Number]';
     const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
-    
+
     return text
       // Name replacements
       .replace(/\[Your Name\]/g, nameToDisplay)
       .replace(/\[your name\]/g, nameToDisplay.toLowerCase())
       .replace(/\[YOUR NAME\]/g, nameToDisplay.toUpperCase())
-      
+
       // Email replacements
       .replace(/\[Your Email\]/g, emailToDisplay)
       .replace(/\[your email\]/g, emailToDisplay.toLowerCase())
@@ -623,7 +623,7 @@ export default function CoverLetter() {
       .replace(/\[Email Address\]/g, emailToDisplay)
       .replace(/\[email address\]/g, emailToDisplay.toLowerCase())
       .replace(/\[EMAIL ADDRESS\]/g, emailToDisplay.toUpperCase())
-      
+
       // Phone replacements
       .replace(/\[Your Phone\]/g, phoneToDisplay)
       .replace(/\[your phone\]/g, phoneToDisplay.toLowerCase())
@@ -631,7 +631,7 @@ export default function CoverLetter() {
       .replace(/\[Phone Number\]/g, phoneToDisplay)
       .replace(/\[phone number\]/g, phoneToDisplay.toLowerCase())
       .replace(/\[PHONE NUMBER\]/g, phoneToDisplay.toUpperCase())
-      
+
       // Location/Address replacements
       .replace(/\[Your Location\]/g, locationToDisplay)
       .replace(/\[your location\]/g, locationToDisplay.toLowerCase())
@@ -645,7 +645,7 @@ export default function CoverLetter() {
   const handleCopyToClipboard = () => {
     // Process content: clean AI commentary and replace user placeholders
     const processedContent = replaceUserPlaceholders(cleanAIOutput(generatedContent));
-    
+
     navigator.clipboard.writeText(processedContent)
       .then(() => {
         setCopySuccess(true);
@@ -664,7 +664,7 @@ export default function CoverLetter() {
         });
         console.error('Copy failed:', error);
       });
-      
+
     // Create an element to scroll to the generated content to provide feedback
     const contentElement = document.getElementById('generatedContent');
     if (contentElement) {
@@ -723,10 +723,10 @@ export default function CoverLetter() {
       });
       return;
     }
-    
+
     // Process content: replace user placeholders
     const processedContent = replaceUserPlaceholders(analysisResult.optimizedCoverLetter);
-    
+
     navigator.clipboard.writeText(processedContent)
       .then(() => {
         setOptimizedCopySuccess(true);
@@ -745,7 +745,7 @@ export default function CoverLetter() {
         });
         console.error('Copy failed:', error);
       });
-      
+
     // Create an element to scroll to the optimized content to provide feedback
     const contentElement = document.getElementById('optimizedCoverLetterContent');
     if (contentElement) {
@@ -801,9 +801,9 @@ export default function CoverLetter() {
   };
 
   // This was removed to eliminate duplication (function is defined above)
-  
+
   // We use the exportCoverLetterToPDF utility imported at the top of the file
-  
+
   // Export cover letter as PDF using jsPDF for reliable generation
   const exportPDF = (elementId: string, filename: string = "cover-letter.pdf") => {
     try {
@@ -813,7 +813,7 @@ export default function CoverLetter() {
         exportCoverLetterToPDF();
         return;
       }
-      
+
       // Get the element to export
       const element = document.getElementById(elementId);
       if (!element) {
@@ -827,7 +827,7 @@ export default function CoverLetter() {
 
       // Extract the text content for reliable PDF generation
       let letterBody = "";
-      
+
       // Different extraction based on element type
       if (elementId === 'generatedContent' || elementId === 'optimizedCoverLetterContent') {
         // For AI-generated content, get the text and clean it
@@ -838,7 +838,7 @@ export default function CoverLetter() {
         // For general content, just get the text
         letterBody = element.textContent || "";
       }
-      
+
       if (!letterBody || letterBody.trim() === "") {
         toast({
           title: 'Empty Content',
@@ -847,7 +847,7 @@ export default function CoverLetter() {
         });
         return;
       }
-      
+
       console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
 
       // Create PDF document directly with jsPDF
@@ -856,73 +856,73 @@ export default function CoverLetter() {
         unit: 'mm',
         format: 'letter'
       });
-      
+
       // Set font
       doc.setFont("helvetica");
       doc.setFontSize(12);
-      
+
       // Define margins (1 inch = 25.4mm)
       const margin = 25.4; 
-      
+
       // Get page dimensions
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      
+
       // Calculate text width (accounting for margins)
       const textWidth = pageWidth - (margin * 2);
-      
+
       // Add a title based on context
       const title = elementId === 'generatedContent' ? 
         'Generated Cover Letter' : 
         (elementId === 'optimizedCoverLetterContent' ? 
           'Optimized Cover Letter' : 'Cover Letter');
-      
+
       // Add title at the top
       doc.setFontSize(16);
       doc.text(title, margin, margin);
-      
+
       // Add a separator line
       doc.setLineWidth(0.5);
       doc.line(margin, margin + 5, pageWidth - margin, margin + 5);
-      
+
       // Format user info if available
       const userName = user?.name || '[Your Name]';
       const recipientCompany = companyName || '[Company Name]';
       const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
       });
-      
+
       // Add header information
       doc.setFontSize(12);
       doc.text(`${userName}`, margin, margin + 12);
       doc.text(`${currentDate}`, margin, margin + 18);
       doc.text(`To: ${recipientCompany}`, margin, margin + 28);
-      
+
       // Reset font size for body
       doc.setFontSize(11);
-      
+
       // Split text to fit within page width and respect line breaks
       const bodyLines = doc.splitTextToSize(letterBody, textWidth);
-      
+
       // Add content with proper spacing
       doc.text(bodyLines, margin, margin + 40);
-      
+
       // Add closing
       const textHeight = doc.getTextDimensions(bodyLines).h;
       doc.text(`Sincerely,`, margin, margin + 45 + textHeight);
       doc.text(`${userName}`, margin, margin + 55 + textHeight);
-      
+
       // Generate output filename
       const outputFilename = filename || `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       // Save the PDF
       doc.save(outputFilename);
-      
+
       toast({
         title: 'PDF Downloaded',
         description: 'Your cover letter has been downloaded as a PDF.',
       });
-      
+
     } catch (error) {
       console.error('Error in PDF export:', error);
       toast({
@@ -952,7 +952,7 @@ export default function CoverLetter() {
   };
 
   const cardAnimation = {
-    hidden: { opacity: 0, y: 20 },
+    hidden:{ opacity: 0, y: 20 },
     visible: { 
       opacity: 1, 
       y: 0, 
@@ -1191,7 +1191,7 @@ export default function CoverLetter() {
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="companyNameSuggestions" className="flex items-center">
                         <span className="text-primary mr-1">2.</span> Company Name
@@ -1212,7 +1212,7 @@ export default function CoverLetter() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="jobDescriptionSuggestions" className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -1301,7 +1301,7 @@ export default function CoverLetter() {
                       )}
                       Generate Full Letter
                     </Button>
-                    
+
                     <Button 
                       onClick={generateSuggestions}
                       disabled={!jobDescription || generateSuggestionsMutation.isPending || generateCoverLetterMutation.isPending}
@@ -1328,7 +1328,7 @@ export default function CoverLetter() {
                     <Sparkles className="h-5 w-5 mr-2" />
                     AI-Generated Content
                   </h3>
-                  
+
                   {generationTimestamp && (
                     <span className="text-xs text-neutral-500 flex items-center">
                       <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
@@ -1336,7 +1336,7 @@ export default function CoverLetter() {
                     </span>
                   )}
                 </div>
-                
+
                 {!generatedContent ? (
                   <div className="flex flex-col items-center justify-center h-full py-12 text-center border border-dashed border-slate-200 rounded-lg">
                     <Sparkles className="h-12 w-12 text-neutral-300 mb-3" />
@@ -1373,7 +1373,7 @@ export default function CoverLetter() {
                         )}
                       </div>
                     </motion.div>
-                    
+
                     {/* Fixed button bar at the bottom with 4 buttons: Reset, Copy, Export PDF, Save */}
                     <div className="grid grid-cols-4 gap-2 sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
                       <Button 
@@ -1387,7 +1387,7 @@ export default function CoverLetter() {
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Reset
                       </Button>
-                      
+
                       <Button 
                         variant="outline"
                         className="col-span-1"
@@ -1405,7 +1405,7 @@ export default function CoverLetter() {
                           </>
                         )}
                       </Button>
-                      
+
                       <Button 
                         variant="outline"
                         className="col-span-1"
@@ -1415,7 +1415,7 @@ export default function CoverLetter() {
                         <Download className="mr-2 h-4 w-4" />
                         Export PDF
                       </Button>
-                      
+
                       <Button 
                         onClick={handleSaveGenerated} 
                         disabled={!generatedContent}
@@ -1777,7 +1777,7 @@ export default function CoverLetter() {
                           Hide
                         </Button>
                       </div>
-                      
+
                       {/* Styled content box with scrollable area */}
                       <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative">
                         {/* Generation timestamp metadata */}
@@ -1791,7 +1791,7 @@ export default function CoverLetter() {
                             }).format(generationTimestamp)}
                           </div>
                         )}
-                        
+
                         <div 
                           className="p-4 pb-16 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
                           id="optimizedCoverLetterContent"
@@ -1809,7 +1809,7 @@ export default function CoverLetter() {
                               );
                             })}
                         </div>
-                        
+
                         {/* Sticky Button Bar */}
                         <div className="flex flex-wrap gap-2 justify-end items-center p-2 sticky bottom-0 bg-white border-t border-slate-100 shadow-sm">
                           <Button 
@@ -1827,7 +1827,7 @@ export default function CoverLetter() {
                             <ArrowLeft className="mr-2 h-3 w-3" />
                             Reset
                           </Button>
-                          
+
                           <Button 
                             size="sm"
                             variant="outline"
@@ -1848,18 +1848,9 @@ export default function CoverLetter() {
                               </>
                             )}
                           </Button>
+
                           
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownloadPDF("optimizedCoverLetterContent")}
-                            title="Export optimized content as PDF"
-                            disabled={!analysisResult.optimizedCoverLetter}
-                          >
-                            <Download className="mr-2 h-3 w-3" />
-                            Export PDF
-                          </Button>
-                          
+
                           <Button 
                             size="sm" 
                             onClick={handleSaveOptimizedCoverLetter}
@@ -1884,16 +1875,16 @@ export default function CoverLetter() {
                       AI Analysis Results
                     </h3>
                   </div>
-                  
+
                   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                     <div className="w-16 h-16 mb-6 flex items-center justify-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                     </div>
-                    
+
                     <p className="text-neutral-600 text-lg mb-2">
                       Analyzing your cover letter...
                     </p>
-                    
+
                     <p className="text-neutral-500 mb-6">
                       This will take just a few seconds.
                     </p>
@@ -1909,7 +1900,7 @@ export default function CoverLetter() {
                       AI Analysis Results
                     </h3>
                   </div>
-                  
+
                   <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                     <div className="w-16 h-16 mb-6 text-neutral-200">
                       <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1919,11 +1910,11 @@ export default function CoverLetter() {
                         <path d="M20 44L18 46L20 48L18 50L20 52L22 50L24 52L22 48L24 46L22 44L20 44Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </div>
-                    
+
                     <p className="text-neutral-600 text-lg mb-2">
                       Submit your cover letter and job description
                     </p>
-                    
+
                     <p className="text-neutral-500 mb-6">
                       to see AI-powered analysis and suggestions.
                     </p>
