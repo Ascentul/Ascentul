@@ -215,10 +215,10 @@ export default function AICoach() {
           Get personalized career guidance powered by AI with tailored advice for your specific situation
         </p>
       
-        <div className="relative mb-3">
-          {/* Model selector positioned at top-right */}
-          <div className="absolute -top-1 right-0 z-10 transform -translate-y-full">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/80 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800/30 shadow-sm">
+        <div className="relative">
+          {/* Model selector floating above top-right corner */}
+          <div className="absolute -top-3 right-3 z-20">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/90 dark:bg-blue-900/50 border border-blue-100 dark:border-blue-800/40 shadow-sm hover:shadow transition-shadow">
               <Cpu className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium mr-1">AI Model:</span>
               <ModelSelector 
@@ -274,7 +274,7 @@ export default function AICoach() {
               </CardContent>
               
               <div className="mt-4">
-                <div className="flex w-full gap-2">
+                <div className="flex items-stretch w-full gap-2">
                   <Input
                     placeholder="Ask your career coach anything..."
                     value={newMessage}
@@ -284,20 +284,21 @@ export default function AICoach() {
                     className="border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary rounded-lg py-6 px-4 text-base shadow-sm"
                   />
                   <motion.div
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.2 }}
+                    className="flex items-stretch h-full"
                   >
                     <Button 
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || isSending}
-                      className="h-14 px-5 shadow-md bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
+                      className="h-full flex items-center px-5 rounded-lg shadow-md bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
                     >
                       {isSending ? (
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/80 border-t-transparent"></div>
                       ) : (
                         <>
                           <MessageSquare className="h-5 w-5 mr-2" />
-                          Send
+                          <span>Send</span>
                         </>
                       )}
                     </Button>
