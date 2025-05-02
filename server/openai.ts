@@ -70,7 +70,7 @@ export interface LinkedInProfileAnalysis {
       feedback: string;
       suggestion: string;
     };
-    summary: {
+    about: {
       score: number;
       feedback: string;
       suggestion: string;
@@ -86,19 +86,18 @@ export interface LinkedInProfileAnalysis {
       missingSkills: string[];
       suggestedSkills: string[];
     };
-    recommendations: {
+    featured: {
       score: number;
       feedback: string;
+      suggestions: string[];
     };
-    education: {
+    banner: {
       score: number;
       feedback: string;
-    };
-    profile: {
-      score: number;
-      feedback: string;
+      suggestion: string;
     };
   };
+  recruiterPerspective: string;
   actionPlan: {
     highPriority: string[];
     mediumPriority: string[];
@@ -123,13 +122,27 @@ export async function analyzeLinkedInProfile(
       ? validateModelAndGetId(selectedModel) 
       : DEFAULT_MODEL;
     
-    const systemPrompt = `You are an expert LinkedIn profile optimizer and career coach with a specialty in helping professionals optimize their LinkedIn profiles for specific target jobs.
+    const systemPrompt = `You are a top-tier LinkedIn optimization coach with years of experience helping people land high-quality roles.  
+Your job is to evaluate a LinkedIn profile for a user who is targeting the role of ${targetJobTitle}.  
 
-Analyze the given LinkedIn profile for someone who is targeting a position as a ${targetJobTitle}. Provide a thorough analysis and actionable recommendations to improve their profile's effectiveness.
+The user has provided their full LinkedIn profile content (headline, about section, experience, skills, featured, banner):
 
 ${contentSource}
 
-Evaluate each section of the profile and assign a score from 0-100 based on its effectiveness for the target role. Provide specific feedback and suggestions for improvement.
+You will evaluate their profile strictly — as if you are a consultant being paid $500 for a session.  
+Do not give vague or overly polite advice. Be direct, specific, and helpful.  
+
+For each section (Headline, About, Experience, Skills, Featured, and Banner):  
+- Score it out of 10  
+- Explain the score  
+- Suggest improvements with example rewrites when useful  
+
+For the banner, evaluate: relevance, quality, branding, and visual impact. Recommend ideas if missing.  
+
+End with:  
+- Overall Score out of 100  
+- A final summary starting with:  
+"If I were a recruiter for ${targetJobTitle}, I would think…"  
 
 Your response must be in JSON format with the following structure:
 {
@@ -140,7 +153,7 @@ Your response must be in JSON format with the following structure:
       "feedback": string,
       "suggestion": string
     },
-    "summary": {
+    "about": {
       "score": number,
       "feedback": string,
       "suggestion": string
@@ -156,19 +169,18 @@ Your response must be in JSON format with the following structure:
       "missingSkills": string[],
       "suggestedSkills": string[]
     },
-    "recommendations": {
+    "featured": {
       "score": number,
-      "feedback": string
+      "feedback": string,
+      "suggestions": string[]
     },
-    "education": {
+    "banner": {
       "score": number,
-      "feedback": string
-    },
-    "profile": {
-      "score": number,
-      "feedback": string
+      "feedback": string,
+      "suggestion": string
     }
   },
+  "recruiterPerspective": string,
   "actionPlan": {
     "highPriority": string[],
     "mediumPriority": string[],
@@ -190,43 +202,42 @@ Your response must be in JSON format with the following structure:
       overallScore: result.overallScore || 50,
       sections: {
         headline: {
-          score: result.sections?.headline?.score || 50,
+          score: result.sections?.headline?.score || 5,
           feedback: result.sections?.headline?.feedback || "No feedback available for your headline.",
           suggestion: result.sections?.headline?.suggestion || "Add a compelling headline that includes your target role and key skills."
         },
-        summary: {
-          score: result.sections?.summary?.score || 50,
-          feedback: result.sections?.summary?.feedback || "No feedback available for your summary.",
-          suggestion: result.sections?.summary?.suggestion || "Create a summary that highlights your relevant experience and value proposition."
+        about: {
+          score: result.sections?.about?.score || 5,
+          feedback: result.sections?.about?.feedback || "No feedback available for your about section.",
+          suggestion: result.sections?.about?.suggestion || "Create an about section that highlights your relevant experience and value proposition."
         },
         experience: {
-          score: result.sections?.experience?.score || 50,
+          score: result.sections?.experience?.score || 5,
           feedback: result.sections?.experience?.feedback || "No feedback available for your experience section.",
           suggestions: result.sections?.experience?.suggestions || ["Focus on achievements rather than responsibilities", "Quantify your results where possible"]
         },
         skills: {
-          score: result.sections?.skills?.score || 50,
+          score: result.sections?.skills?.score || 5,
           feedback: result.sections?.skills?.feedback || "No feedback available for your skills section.",
           missingSkills: result.sections?.skills?.missingSkills || [],
           suggestedSkills: result.sections?.skills?.suggestedSkills || []
         },
-        recommendations: {
-          score: result.sections?.recommendations?.score || 50,
-          feedback: result.sections?.recommendations?.feedback || "No feedback available for your recommendations."
+        featured: {
+          score: result.sections?.featured?.score || 5,
+          feedback: result.sections?.featured?.feedback || "No feedback available for your featured section.",
+          suggestions: result.sections?.featured?.suggestions || ["Add projects relevant to your target role", "Include certifications and achievements"]
         },
-        education: {
-          score: result.sections?.education?.score || 50,
-          feedback: result.sections?.education?.feedback || "No feedback available for your education section."
-        },
-        profile: {
-          score: result.sections?.profile?.score || 50,
-          feedback: result.sections?.profile?.feedback || "No feedback available for your profile picture."
+        banner: {
+          score: result.sections?.banner?.score || 5,
+          feedback: result.sections?.banner?.feedback || "No feedback available for your banner image.",
+          suggestion: result.sections?.banner?.suggestion || "Use a professional banner image that represents your industry or personal brand."
         }
       },
+      recruiterPerspective: result.recruiterPerspective || `If I were a recruiter for ${targetJobTitle}, I would think this profile needs several improvements to stand out from other candidates.`,
       actionPlan: {
         highPriority: result.actionPlan?.highPriority || ["Update your headline to include target job title"],
         mediumPriority: result.actionPlan?.mediumPriority || ["Add relevant skills to your profile"],
-        lowPriority: result.actionPlan?.lowPriority || ["Request recommendations from colleagues"]
+        lowPriority: result.actionPlan?.lowPriority || ["Enhance your featured section with relevant projects"]
       }
     };
   } catch (error: any) {
@@ -241,7 +252,7 @@ Your response must be in JSON format with the following structure:
           feedback: "We encountered an error analyzing your profile.",
           suggestion: "Please try again later or contact support."
         },
-        summary: {
+        about: {
           score: 0,
           feedback: "We encountered an error analyzing your profile.",
           suggestion: "Please try again later or contact support."
@@ -257,19 +268,18 @@ Your response must be in JSON format with the following structure:
           missingSkills: [],
           suggestedSkills: []
         },
-        recommendations: {
+        featured: {
           score: 0,
-          feedback: "We encountered an error analyzing your profile."
+          feedback: "We encountered an error analyzing your profile.",
+          suggestions: ["Please try again later"]
         },
-        education: {
+        banner: {
           score: 0,
-          feedback: "We encountered an error analyzing your profile."
-        },
-        profile: {
-          score: 0,
-          feedback: "We encountered an error analyzing your profile."
+          feedback: "We encountered an error analyzing your profile.",
+          suggestion: "Please try again later or contact support."
         }
       },
+      recruiterPerspective: "We encountered an error analyzing your profile. Please try again later.",
       actionPlan: {
         highPriority: ["Try submitting your profile again"],
         mediumPriority: [],
