@@ -1803,55 +1803,57 @@ export default function CoverLetter() {
                               })}
                           </div>
 
-                          {/* Sticky Button Bar */}
-                          <div className="flex flex-wrap gap-2 justify-end items-center p-2 sticky bottom-0 bg-white border-t border-slate-100 shadow-sm">
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setAnalysisResult({
-                                  ...analysisResult,
-                                  optimizedCoverLetter: ''
-                                });
-                              }}
-                              title="Reset optimized content"
-                              className="bg-white"
-                            >
-                              <ArrowLeft className="mr-2 h-3 w-3" />
-                              Reset
-                            </Button>
+                          {/* Button Bar - Placed directly on gradient background */}
+                          <div className="w-full flex justify-between items-center px-4 pb-4 pt-2 bg-transparent">
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setAnalysisResult({
+                                    ...analysisResult,
+                                    optimizedCoverLetter: ''
+                                  });
+                                }}
+                                title="Reset optimized content"
+                              >
+                                <ArrowLeft className="mr-2 h-3 w-3" />
+                                Reset
+                              </Button>
 
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleCopyOptimizedCoverLetter()}
-                              className="bg-white"
-                              disabled={!analysisResult.optimizedCoverLetter}
-                            >
-                              <Copy className="mr-2 h-3 w-3" />
-                              Copy
-                            </Button>
+                              <Button 
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCopyOptimizedCoverLetter()}
+                                disabled={!analysisResult.optimizedCoverLetter}
+                              >
+                                <Copy className="mr-2 h-3 w-3" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                onClick={() => handleDownloadPDF('optimizedCoverLetterContent')}
+                                disabled={!analysisResult.optimizedCoverLetter}
+                                id="downloadOptimizedPdfBtn"
+                              >
+                                <Download className="mr-2 h-3 w-3" />
+                                Download PDF
+                              </Button>
 
-                            <Button 
-                              size="sm" 
-                              className="bg-primary hover:bg-primary/90"
-                              onClick={() => handleDownloadPDF('optimizedCoverLetterContent')}
-                              disabled={!analysisResult.optimizedCoverLetter}
-                              id="downloadOptimizedPdfBtn"
-                            >
-                              <Download className="mr-2 h-3 w-3" />
-                              Download PDF
-                            </Button>
-
-                            <Button 
-                              size="sm" 
-                              onClick={handleSaveOptimizedCoverLetter}
-                              title="Save this optimized version as a new cover letter"
-                              disabled={!analysisResult.optimizedCoverLetter}
-                            >
-                              <UploadCloud className="mr-2 h-3 w-3" />
-                              Save Optimized Version
-                            </Button>
+                              <Button 
+                                size="sm" 
+                                className="bg-blue-700 hover:bg-blue-800"
+                                onClick={handleSaveOptimizedCoverLetter}
+                                title="Save this optimized version as a new cover letter"
+                                disabled={!analysisResult.optimizedCoverLetter}
+                              >
+                                <UploadCloud className="mr-2 h-3 w-3" />
+                                Save Optimized Version
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
