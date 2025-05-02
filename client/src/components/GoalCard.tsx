@@ -1,5 +1,5 @@
 import { Edit, Calendar, CheckSquare, Square, ChevronDown, ChevronUp, PartyPopper } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -320,8 +320,10 @@ export default function GoalCard({
         ref={cardRef}
       >
         <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[340px] h-full flex flex-col relative overflow-hidden">
-          <CardContent className="p-0 flex flex-col h-full">
-            <div className="pt-6 px-6 sm:px-5 flex-grow flex flex-col h-full">
+          {/* Main content area */}
+          <div className="flex flex-col h-full">
+            {/* Upper content with flex-grow */}
+            <div className="pt-6 px-6 sm:px-5 flex-grow flex flex-col">
               <div className="pr-[120px] mb-4">
                 <h3 className="text-base font-semibold">{title}</h3>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">{description}</p>
@@ -404,7 +406,8 @@ export default function GoalCard({
               )}
             </div>
             
-            <div className="border-t border-gray-100 pt-2 pb-3 px-6 sm:px-5 flex items-center justify-between">
+            {/* Footer area - fixed at bottom */}
+            <div className="border-t border-gray-100 pt-2 pb-3 px-6 sm:px-5 flex items-center justify-between mt-auto">
               <div className="text-xs text-neutral-500 flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
                 {formatDueDate()}
@@ -420,7 +423,7 @@ export default function GoalCard({
                 </Button>
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
     </>
