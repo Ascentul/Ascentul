@@ -334,11 +334,6 @@ export default function GoalCard({
               <p className="text-sm font-medium">Progress</p>
               <div className="relative">
                 <Progress value={progress} className="mt-1 h-2 transition-all duration-300" />
-                {progress > 0 && (
-                  <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0, pointerEvents: 'none' }}>
-                    {progress}%
-                  </span>
-                )}
               </div>
             </div>
 
