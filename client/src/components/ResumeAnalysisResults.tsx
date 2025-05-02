@@ -2,18 +2,16 @@ import React from "react";
 import { formatDistance } from "date-fns";
 import { 
   Card, 
-  CardContent, 
+  CardContent,
   CardHeader, 
   CardTitle,
   CardDescription 
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { 
   BarChart4, 
-  Star, 
   AlertTriangle, 
   CheckCircle2, 
-  XCircle, 
+  CheckCircle, 
   Clock, 
   Lightbulb,
   Code,
@@ -50,225 +48,189 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
   const timestamp = results.timestamp || new Date().toISOString();
   const timeAgo = formatDistance(new Date(timestamp), new Date(), { addSuffix: true });
   
-  // Helper function to get color based on score
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-amber-600";
-    return "text-red-600";
+  // Helper function to get background and border color based on score
+  const getScoreBoxStyles = (score: number) => {
+    if (score >= 80) return "bg-emerald-50/70 border-emerald-100";
+    if (score >= 60) return "bg-amber-50/70 border-amber-100";
+    return "bg-red-50/70 border-red-100";
   };
   
-  // Helper function to get progress bar color based on score
-  const getProgressColor = (score: number) => {
-    if (score >= 80) return "bg-green-600";
-    if (score >= 60) return "bg-amber-600";
-    return "bg-red-600";
+  // Helper function to get score label based on score
+  const getScoreLabel = (score: number, type: string) => {
+    if (type === 'overall') {
+      return score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Work';
+    } else if (type === 'keyword') {
+      return score >= 80 ? 'Perfect Match' : score >= 60 ? 'Aligned' : 'Misaligned';
+    } else if (type === 'relevance') {
+      return score >= 80 ? 'Compelling' : score >= 60 ? 'Convincing' : 'Basic';
+    } else {
+      return score >= 80 ? 'Crystal Clear' : score >= 60 ? 'Clear' : 'Unclear';
+    }
   };
+
+  // Generate a clarity score (for fourth score box) - using average of other scores
+  const clarityScore = Math.round((results.overallScore + results.keywordMatchScore + results.relevanceScore) / 3);
 
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Analysis header with timestamp */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center mb-3">
         <h3 className="text-xl font-semibold text-primary/90 flex items-center analysis-header">
           <BarChart4 className="h-5 w-5 mr-2" />
-          AI Resume Analysis
+          AI Analysis Results
         </h3>
         <span className="text-xs text-neutral-500 flex items-center">
-          <Clock className="h-3.5 w-3.5 mr-1" />
+          <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
           Analyzed {timeAgo}
         </span>
       </div>
       
-      {/* Overall scores section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Overall Match Score */}
-        <Card className="overflow-hidden border-slate-200">
-          <CardContent className="pt-6">
-            <div className="text-center mb-2">
-              <h4 className="text-sm font-medium text-neutral-700">Overall Match</h4>
-              <div className={`text-3xl font-bold ${getScoreColor(results.overallScore)}`}>
-                {results.overallScore}%
-              </div>
-            </div>
-            <Progress 
-              value={results.overallScore} 
-              className={`h-2 ${getProgressColor(results.overallScore)}`} 
-            />
-          </CardContent>
-        </Card>
+      {/* Score cards in a 4-column grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Overall Score */}
+        <div 
+          className={`flex flex-col items-center p-3 rounded-lg border score-box ${getScoreBoxStyles(results.overallScore)}`}
+          title="Overall score reflecting the quality of your resume"
+        >
+          <span className="text-xl font-bold">{Math.round(results.overallScore)}</span>
+          <span className="text-xs text-neutral-500">Overall</span>
+          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+            {getScoreLabel(results.overallScore, 'overall')}
+          </span>
+        </div>
         
-        {/* Keyword Match Score */}
-        <Card className="overflow-hidden border-slate-200">
-          <CardContent className="pt-6">
-            <div className="text-center mb-2">
-              <h4 className="text-sm font-medium text-neutral-700">Keyword Match</h4>
-              <div className={`text-3xl font-bold ${getScoreColor(results.keywordMatchScore)}`}>
-                {results.keywordMatchScore}%
-              </div>
-            </div>
-            <Progress 
-              value={results.keywordMatchScore} 
-              className={`h-2 ${getProgressColor(results.keywordMatchScore)}`} 
-            />
-          </CardContent>
-        </Card>
+        {/* Keyword Match Score (renamed to Alignment) */}
+        <div 
+          className={`flex flex-col items-center p-3 rounded-lg border score-box ${getScoreBoxStyles(results.keywordMatchScore)}`}
+          title="How well your resume aligns with the job requirements"
+        >
+          <span className="text-xl font-bold">{Math.round(results.keywordMatchScore)}</span>
+          <span className="text-xs text-neutral-500">Alignment</span>
+          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+            {getScoreLabel(results.keywordMatchScore, 'keyword')}
+          </span>
+        </div>
         
-        {/* Relevance Score */}
-        <Card className="overflow-hidden border-slate-200">
-          <CardContent className="pt-6">
-            <div className="text-center mb-2">
-              <h4 className="text-sm font-medium text-neutral-700">Relevance Score</h4>
-              <div className={`text-3xl font-bold ${getScoreColor(results.relevanceScore)}`}>
-                {results.relevanceScore}%
-              </div>
-            </div>
-            <Progress 
-              value={results.relevanceScore} 
-              className={`h-2 ${getProgressColor(results.relevanceScore)}`} 
-            />
-          </CardContent>
-        </Card>
+        {/* Relevance Score (renamed to Persuasive) */}
+        <div 
+          className={`flex flex-col items-center p-3 rounded-lg border score-box ${getScoreBoxStyles(results.relevanceScore)}`}
+          title="How persuasive and compelling your resume is"
+        >
+          <span className="text-xl font-bold">{Math.round(results.relevanceScore)}</span>
+          <span className="text-xs text-neutral-500">Persuasive</span>
+          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+            {getScoreLabel(results.relevanceScore, 'relevance')}
+          </span>
+        </div>
+        
+        {/* New Clarity Score */}
+        <div 
+          className={`flex flex-col items-center p-3 rounded-lg border score-box ${getScoreBoxStyles(clarityScore)}`}
+          title="Clarity and readability of your writing"
+        >
+          <span className="text-xl font-bold">{clarityScore}</span>
+          <span className="text-xs text-neutral-500">Clarity</span>
+          <span className="text-xs mt-1 font-medium text-center px-2 py-0.5 rounded-full text-neutral-700 bg-white/70">
+            {getScoreLabel(clarityScore, 'clarity')}
+          </span>
+        </div>
       </div>
       
-      {/* Strengths Section */}
-      <Card className="overflow-hidden border-slate-200">
-        <CardHeader className="py-4 px-6">
-          <CardTitle className="text-md flex items-center text-green-700">
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            Strengths
-          </CardTitle>
-          <CardDescription>
-            Areas where your resume matches well with the job description
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-6">
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
+      {/* Strengths Section - styled with light green background */}
+      <div className="space-y-5">
+        <div>
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <span className="text-emerald-500 mr-1">✓</span> Strengths
+          </h4>
+          <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-2 rounded-md border border-emerald-100/50">
             {results.strengths.map((strength, index) => (
               <li key={`strength-${index}`} className="text-neutral-700">{strength}</li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
-      
-      {/* Weaknesses Section */}
-      <Card className="overflow-hidden border-slate-200">
-        <CardHeader className="py-4 px-6">
-          <CardTitle className="text-md flex items-center text-red-700">
-            <XCircle className="h-4 w-4 mr-2" />
-            Areas to Improve
-          </CardTitle>
-          <CardDescription>
-            Aspects where your resume could better align with the job requirements
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-6">
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
+        </div>
+        
+        {/* Areas to Improve Section - styled with light yellow background */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
+          </h4>
+          <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-2 rounded-md border border-amber-100/50">
             {results.weaknesses.map((weakness, index) => (
               <li key={`weakness-${index}`} className="text-neutral-700">{weakness}</li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
-      
-      {/* Missing Keywords Section */}
-      {results.missingKeywords.length > 0 && (
-        <Card className="overflow-hidden border-slate-200">
-          <CardHeader className="py-4 px-6">
-            <CardTitle className="text-md flex items-center text-amber-700">
-              <KeySquare className="h-4 w-4 mr-2" />
-              Missing Keywords
-            </CardTitle>
-            <CardDescription>
-              Key terms from the job description not found in your resume
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6">
-            <div className="flex flex-wrap gap-2">
-              {results.missingKeywords.map((keyword, index) => (
-                <span 
-                  key={`keyword-${index}`} 
-                  className="bg-amber-50 text-amber-800 px-2 py-1 rounded-full text-xs font-medium"
-                >
-                  {keyword}
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Improvement Suggestions */}
-      <Card className="overflow-hidden border-slate-200">
-        <CardHeader className="py-4 px-6">
-          <CardTitle className="text-md flex items-center text-blue-700">
-            <Lightbulb className="h-4 w-4 mr-2" />
-            Improvement Suggestions
-          </CardTitle>
-          <CardDescription>
-            Actionable recommendations to enhance your resume for this position
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-6">
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
+        </div>
+        
+        {/* Improvement Suggestions - styled with light purple background */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <span className="text-blue-500 mr-1">💡</span> Suggestions
+          </h4>
+          <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-2 rounded-md border border-blue-100/50">
             {results.improvementSuggestions.map((suggestion, index) => (
               <li key={`suggestion-${index}`} className="text-neutral-700">{suggestion}</li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
-      
-      {/* Two Column Section for Technical and Soft Skills */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Technical Skills Assessment */}
-        <Card className="overflow-hidden border-slate-200">
-          <CardHeader className="py-4 px-6">
-            <CardTitle className="text-md flex items-center text-violet-700">
-              <Code className="h-4 w-4 mr-2" />
-              Technical Skills
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-6">
-            <ul className="list-disc pl-5 space-y-1.5 text-sm">
-              {results.technicalSkillAssessment.map((skill, index) => (
-                <li key={`tech-${index}`} className="text-neutral-700">{skill}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-        
-        {/* Soft Skills Assessment */}
-        <Card className="overflow-hidden border-slate-200">
-          <CardHeader className="py-4 px-6">
-            <CardTitle className="text-md flex items-center text-pink-700">
-              <Heart className="h-4 w-4 mr-2" />
-              Soft Skills
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-6">
-            <ul className="list-disc pl-5 space-y-1.5 text-sm">
-              {results.softSkillAssessment.map((skill, index) => (
-                <li key={`soft-${index}`} className="text-neutral-700">{skill}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        </div>
       </div>
       
-      {/* Formatting Feedback */}
-      <Card className="overflow-hidden border-slate-200">
-        <CardHeader className="py-4 px-6">
-          <CardTitle className="text-md flex items-center text-teal-700">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Formatting Feedback
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-6">
-          <ul className="list-disc pl-5 space-y-1.5 text-sm">
-            {results.formattingFeedback.map((feedback, index) => (
-              <li key={`format-${index}`} className="text-neutral-700">{feedback}</li>
+      {/* Missing Keywords Section - using tags in amber/yellow styling */}
+      {results.missingKeywords.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <KeySquare className="h-4 w-4 mr-1 text-amber-600" /> Missing Keywords
+          </h4>
+          <div className="flex flex-wrap gap-2 bg-amber-50/50 p-2 rounded-md border border-amber-100/50">
+            {results.missingKeywords.map((keyword, index) => (
+              <span 
+                key={`keyword-${index}`} 
+                className="bg-amber-100/80 text-amber-800 px-2 py-0.5 rounded-full text-xs font-medium"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Technical and Soft Skills - 2-column layout with consistent styling */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        {/* Technical Skills Assessment */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <Code className="h-4 w-4 mr-1 text-violet-600" /> Technical Skills
+          </h4>
+          <ul className="list-disc pl-5 space-y-1 text-sm bg-violet-50/50 p-2 rounded-md border border-violet-100/50">
+            {results.technicalSkillAssessment.map((skill, index) => (
+              <li key={`tech-${index}`} className="text-neutral-700">{skill}</li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
+        </div>
+        
+        {/* Soft Skills Assessment */}
+        <div>
+          <h4 className="text-sm font-medium mb-2 flex items-center">
+            <Heart className="h-4 w-4 mr-1 text-pink-600" /> Soft Skills
+          </h4>
+          <ul className="list-disc pl-5 space-y-1 text-sm bg-pink-50/50 p-2 rounded-md border border-pink-100/50">
+            {results.softSkillAssessment.map((skill, index) => (
+              <li key={`soft-${index}`} className="text-neutral-700">{skill}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      
+      {/* Formatting Feedback - with consistent styling */}
+      <div className="mt-4">
+        <h4 className="text-sm font-medium mb-2 flex items-center">
+          <FileSpreadsheet className="h-4 w-4 mr-1 text-teal-600" /> Formatting Feedback
+        </h4>
+        <ul className="list-disc pl-5 space-y-1 text-sm bg-teal-50/50 p-2 rounded-md border border-teal-100/50">
+          {results.formattingFeedback.map((feedback, index) => (
+            <li key={`format-${index}`} className="text-neutral-700">{feedback}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 };
