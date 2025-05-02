@@ -319,21 +319,25 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-[#f9fafe]">
-          <CardContent className="p-4">
+        <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[280px] flex flex-col justify-between">
+          <CardContent className="p-6 sm:p-5">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-medium">{title}</h3>
                 <p className="text-sm text-neutral-500 mt-1">{description}</p>
               </div>
               <Badge variant="outline" className={getBadgeStyles()}>
-                {status === 'not_started' ? 'Not started' : 
-                 status === 'in_progress' ? 'In progress' : 
-                 status.charAt(0).toUpperCase() + status.slice(1)}
+                {status === 'not_started' ? (
+                  <span className="flex items-center">
+                    <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
+                    Not started
+                  </span>
+                ) : status === 'in_progress' ? 'In progress' : 
+                   status.charAt(0).toUpperCase() + status.slice(1)}
               </Badge>
             </div>
 
-            <div className="mt-3">
+            <div className="mt-4">
               <div className="flex justify-between text-xs mb-1">
                 <span>Progress</span>
                 <span>{progress}%</span>
@@ -350,15 +354,21 @@ export default function GoalCard({
 
             {/* Checklist Toggle and Checklist Items */}
             {hasChecklist && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
                   onClick={() => setShowChecklist(!showChecklist)}
                 >
-                  <span>Checklist ({checklist.filter(item => item.completed).length}/{checklist.length})</span>
-                  {showChecklist ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  <span>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</span>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-500 mr-1">View checklist</span>
+                    {showChecklist ? 
+                      <ChevronUp className="h-4 w-4 transition-transform duration-200" /> : 
+                      <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                    }
+                  </div>
                 </Button>
 
                 {showChecklist && (
