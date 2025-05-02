@@ -1714,7 +1714,7 @@ export default function CoverLetter() {
                         <h4 className="text-sm font-medium mb-2 flex items-center">
                           <span className="text-emerald-500 mr-1">✓</span> Strengths
                         </h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-2 rounded-md border border-emerald-100/50" id="strengthsList">
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-emerald-50/50 p-4 rounded-md border border-emerald-100/50" id="strengthsList">
                           {analysisResult.strengths.map((strength: string, index: number) => (
                             <li key={index} className="text-neutral-700">{strength}</li>
                           ))}
@@ -1725,7 +1725,7 @@ export default function CoverLetter() {
                         <h4 className="text-sm font-medium mb-2 flex items-center">
                           <span className="text-amber-500 mr-1">⚠️</span> Areas to Improve
                         </h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-2 rounded-md border border-amber-100/50" id="areasToImproveList">
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-amber-50/50 p-4 rounded-md border border-amber-100/50" id="areasToImproveList">
                           {analysisResult.weaknesses.map((weakness: string, index: number) => (
                             <li key={index} className="text-neutral-700">{weakness}</li>
                           ))}
@@ -1736,7 +1736,7 @@ export default function CoverLetter() {
                         <h4 className="text-sm font-medium mb-2 flex items-center">
                           <span className="text-blue-500 mr-1">💡</span> Suggestions
                         </h4>
-                        <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-2 rounded-md border border-blue-100/50" id="suggestionsList">
+                        <ul className="list-disc pl-5 space-y-1 text-sm bg-blue-50/50 p-4 rounded-md border border-blue-100/50" id="suggestionsList">
                           {analysisResult.improvementSuggestions.map((suggestion: string, index: number) => (
                             <li key={index} className="text-neutral-700">{suggestion}</li>
                           ))}
