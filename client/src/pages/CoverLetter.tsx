@@ -1805,10 +1805,11 @@ export default function CoverLetter() {
                         </div>
                       </div>
                       
-                      {/* Action buttons directly on card content */}
-                      <div className="flex justify-between gap-4 mt-6 mb-6 px-6">
+                      {/* Action buttons directly on card content without wrapper */}
+                      <div className="flex justify-between gap-4 mt-6 mb-6 px-6 w-full">
                         <Button 
                           variant="outline" 
+                          className="flex-1"
                           onClick={() => {
                             setAnalysisResult({
                               ...analysisResult,
@@ -1823,6 +1824,7 @@ export default function CoverLetter() {
 
                         <Button 
                           variant="outline"
+                          className="flex-1"
                           onClick={() => handleCopyOptimizedCoverLetter()}
                           disabled={!analysisResult.optimizedCoverLetter}
                         >
@@ -1831,7 +1833,7 @@ export default function CoverLetter() {
                         </Button>
 
                         <Button 
-                          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+                          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 flex-1"
                           onClick={handleSaveOptimizedCoverLetter}
                           title="Save this optimized version as a new cover letter"
                           disabled={!analysisResult.optimizedCoverLetter}
