@@ -318,9 +318,6 @@ export default function GoalCard({
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {description}
-                </p>
               </div>
               <Badge variant="outline" className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()}`}>
                 {status === 'not_started' ? (
