@@ -405,8 +405,9 @@ export default function GoalCard({
             <Button
               variant="ghost"
               size="icon"
-              className="text-blue-600"
+              className="text-blue-600 hover:text-blue-800 transition-colors p-1.5 rounded-full hover:bg-blue-50"
               onClick={() => onEdit(id)}
+              aria-label="Edit goal"
             >
               <Edit className="w-4 h-4" />
             </Button>
