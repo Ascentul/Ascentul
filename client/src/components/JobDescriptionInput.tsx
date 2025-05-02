@@ -26,12 +26,12 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
 }) => {
   const [jobDescQuality, setJobDescQuality] = useState<'empty' | 'poor' | 'fair' | 'good'>('empty');
   const [charCount, setCharCount] = useState(0);
-  
+
   // Update quality rating and character count when value changes
   useEffect(() => {
     const trimmedValue = value.trim();
     setCharCount(trimmedValue.length);
-    
+
     if (!trimmedValue) {
       setJobDescQuality('empty');
     } else if (trimmedValue.length < 50) {
@@ -42,11 +42,11 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
       setJobDescQuality('good');
     }
   }, [value, minLength]);
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
   };
-  
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -57,7 +57,7 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
           </div>
         )}
       </div>
-      
+
       <Textarea
         id={id}
         placeholder={placeholder}
@@ -71,14 +71,14 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
         onChange={handleChange}
         disabled={isAnalyzing}
       />
-      
+
       {isAnalyzing && (
         <div className="flex items-center space-x-2 text-primary/80 mb-4">
           <Loader2 className="animate-spin h-4 w-4" />
           <span className="text-sm">Analyzing with AI...</span>
         </div>
       )}
-      
+
       {!isAnalyzing && jobDescQuality === 'poor' && (
         <Alert variant="destructive" className="py-2 mb-4">
           <AlertCircle className="h-4 w-4" />
@@ -88,7 +88,7 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
           </AlertDescription>
         </Alert>
       )}
-      
+
       {!isAnalyzing && jobDescQuality === 'fair' && (
         <Alert className="bg-amber-50 border-amber-200 py-2 mb-4">
           <AlertCircle className="h-4 w-4 text-amber-600" />
@@ -96,16 +96,6 @@ const JobDescriptionInput: React.FC<JobDescriptionInputProps> = ({
           <AlertDescription className="text-xs text-amber-700">
             For accurate AI analysis, a more detailed job description ({minLength}+ characters) with specific skills,
             responsibilities, and requirements is recommended.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {!isAnalyzing && jobDescQuality === 'good' && (
-        <Alert className="bg-green-50 border-green-200 py-2 mb-4 mt-6">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-sm font-medium text-green-700">Good Job Description</AlertTitle>
-          <AlertDescription className="text-xs text-green-700">
-            This job description has enough detail for effective analysis. Including specific skills and requirements will yield better results.
           </AlertDescription>
         </Alert>
       )}
