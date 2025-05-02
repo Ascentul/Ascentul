@@ -215,12 +215,12 @@ export default function AICoach() {
           Get personalized career guidance powered by AI with tailored advice for your specific situation
         </p>
       
-        <Card className="p-6 shadow-lg border-primary/10 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950/20">
-          {/* Model selector in header */}
-          <div className="flex justify-center mb-4">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
+        <div className="relative mb-3">
+          {/* Model selector positioned at top-right */}
+          <div className="absolute -top-1 right-0 z-10 transform -translate-y-full">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/80 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800/30 shadow-sm">
               <Cpu className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium mr-2">AI Model:</span>
+              <span className="text-sm font-medium mr-1">AI Model:</span>
               <ModelSelector 
                 selectedModel={selectedModel}
                 onModelChange={setSelectedModel}
@@ -230,13 +230,16 @@ export default function AICoach() {
                 variant="ghost" 
                 size="sm"
                 onClick={handleReset}
-                className="ml-2 p-1.5 h-8 w-8 rounded-full text-gray-500 hover:text-primary"
+                className="ml-1 p-1.5 h-8 w-8 rounded-full text-gray-500 hover:text-primary"
               >
                 <RefreshCw className="h-4 w-4" />
                 <span className="sr-only">Reset Conversation</span>
               </Button>
             </div>
           </div>
+        </div>
+        
+        <Card className="p-6 shadow-lg border-primary/10 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-blue-950/20">
             
           {/* Full-width Chat Area */}
           <div className="w-full">
