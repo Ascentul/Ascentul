@@ -113,7 +113,7 @@ const GoalTemplateCard: React.FC<GoalTemplateCardProps> = ({
   onClick,
 }) => {
   return (
-    <Card className="w-64 min-w-[16rem] min-h-[260px] bg-white border hover:shadow-md hover:bg-[#f9fafe] transition-all rounded-xl flex flex-col justify-between">
+    <Card className="w-64 min-w-[16rem] min-h-[260px] bg-white border hover:shadow-md transition-all rounded-xl flex flex-col justify-between">
       <CardContent className="pt-6">
         <div className="bg-white shadow-sm rounded-full p-2 inline-block mb-2">
           <span className="text-2xl">{icon}</span>
