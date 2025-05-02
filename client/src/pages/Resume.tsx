@@ -1057,13 +1057,13 @@ export default function Resume() {
 
         <TabsContent value="suggestions">
           <motion.div 
-            className="will-change-opacity will-change-transform"
+            className="will-change-opacity will-change-transform mt-3"
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
             <Card className="w-full">
-              <CardContent className="pt-3 px-5 pb-5">
-                <h3 className="text-xl font-semibold mb-3">Generate the Perfect Resume with AI</h3>
+              <CardContent className="pt-3 px-5 pb-6">
+                <h3 className="text-xl font-semibold mb-2.5">Generate the Perfect Resume with AI</h3>
                 <div className="space-y-4 w-full">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
@@ -1075,13 +1075,13 @@ export default function Resume() {
                     />
                   </div>
 
-                  <div className="bg-primary/5 p-4 rounded-lg">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 max-w-[97%] mx-auto mt-4">
                     <p className="text-sm text-neutral-600">
                       Your work history will be automatically used from your profile to generate relevant suggestions.
                     </p>
                   </div>
 
-                  <div className="flex justify-center mt-2">
+                  <div className="flex justify-center mt-4 mb-6">
                     <Button 
                       className="px-8" 
                       onClick={generateFullResume}
