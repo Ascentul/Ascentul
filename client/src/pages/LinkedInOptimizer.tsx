@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, Plus, Info } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface LinkedInProfileData {
   url?: string;
@@ -168,6 +174,104 @@ function SectionCard({
         </motion.div>
       )}
     </Card>
+  );
+}
+
+// Add to Goal button component
+interface AddToGoalButtonProps {
+  goalText: string;
+}
+
+function AddToGoalButton({ goalText }: AddToGoalButtonProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Get existing goals to check for duplicates
+  const { data: existingGoals = [] } = useQuery({
+    queryKey: ['/api/goals'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/goals');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    // Don't refetch on window focus to reduce API calls
+    refetchOnWindowFocus: false
+  });
+  
+  // Check if this goal already exists (by title)
+  const isDuplicate = existingGoals.some(
+    (goal: any) => goal.title.toLowerCase() === goalText.toLowerCase()
+  );
+  
+  // Mutation to save the goal
+  const saveGoalMutation = useMutation({
+    mutationFn: async () => {
+      const data = {
+        title: goalText,
+        description: "Created from LinkedIn Optimizer action plan",
+        status: "not_started",
+        source: "LinkedIn Optimizer"
+      };
+      const response = await apiRequest('POST', '/api/goals', data);
+      return response.json();
+    },
+    onMutate: () => {
+      setIsSaving(true);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Added to Career Goals",
+        description: "This action has been added to your career goals tracker",
+      });
+      // Invalidate goals cache to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to add goal",
+        description: error.message || "There was an error adding this to your goals",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsSaving(false);
+    }
+  });
+  
+  const handleAddToGoals = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't trigger parent click events
+    if (!isDuplicate) {
+      saveGoalMutation.mutate();
+    }
+  };
+  
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`ml-2 px-2 ${isDuplicate ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={handleAddToGoals}
+            disabled={isDuplicate || isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            <span className="ml-1 text-xs">Add to Goals</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {isDuplicate 
+            ? "This goal already exists in your Career Goals" 
+            : "Click to add this as a goal to track in your dashboard"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -355,7 +459,7 @@ function LinkedInOptimizer() {
                 </Button>
                 <Button
                   variant="ghost"
-                  className={`px-4 py-2 -mb-px ${
+                  className={`px-4 py-2 -mb-px flex items-center gap-1 ${
                     activeTab === "action-plan"
                       ? "border-b-2 border-primary"
                       : "text-gray-500"
@@ -363,6 +467,9 @@ function LinkedInOptimizer() {
                   onClick={() => setActiveTab("action-plan")}
                 >
                   Action Plan
+                  <span className="bg-primary/10 text-primary text-xs px-1.5 py-0.5 rounded-full font-medium">
+                    Save As Goals
+                  </span>
                 </Button>
               </div>
               
@@ -452,6 +559,19 @@ function LinkedInOptimizer() {
               
               {activeTab === "action-plan" && (
                 <div className="space-y-6">
+                  <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-1">Save Actions to Your Goals</h3>
+                        <p className="text-blue-700 dark:text-blue-400 text-sm">
+                          Click the "+ Add to Goals" button next to any action item to save it to your Career Goals tracker. 
+                          You can then track your progress on these improvements over time in your goals dashboard.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div>
                     <h3 className="flex items-center gap-2 text-lg font-medium mb-2 text-red-600 dark:text-red-400">
                       <AlertTriangle className="h-5 w-5" />
@@ -460,10 +580,13 @@ function LinkedInOptimizer() {
                     <ul className="space-y-2">
                       {results.actionPlan.highPriority.map((action, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="mt-1">
+                          <div className="mt-1 flex-shrink-0">
                             {getPriorityIcon("high")}
                           </div>
-                          <span>{action}</span>
+                          <div className="flex flex-1 justify-between items-start">
+                            <span>{action}</span>
+                            <AddToGoalButton goalText={action} />
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -477,10 +600,13 @@ function LinkedInOptimizer() {
                     <ul className="space-y-2">
                       {results.actionPlan.mediumPriority.map((action, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="mt-1">
+                          <div className="mt-1 flex-shrink-0">
                             {getPriorityIcon("medium")}
                           </div>
-                          <span>{action}</span>
+                          <div className="flex flex-1 justify-between items-start">
+                            <span>{action}</span>
+                            <AddToGoalButton goalText={action} />
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -494,10 +620,13 @@ function LinkedInOptimizer() {
                     <ul className="space-y-2">
                       {results.actionPlan.lowPriority.map((action, index) => (
                         <li key={index} className="flex items-start gap-2">
-                          <div className="mt-1">
+                          <div className="mt-1 flex-shrink-0">
                             {getPriorityIcon("low")}
                           </div>
-                          <span>{action}</span>
+                          <div className="flex flex-1 justify-between items-start">
+                            <span>{action}</span>
+                            <AddToGoalButton goalText={action} />
+                          </div>
                         </li>
                       ))}
                     </ul>
