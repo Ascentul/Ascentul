@@ -1,14 +1,8 @@
-import { Edit, Calendar, CheckSquare, Square, PartyPopper } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Edit, Calendar, CheckSquare, Square, PartyPopper, ChevronUp, ChevronDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -326,8 +320,8 @@ export default function GoalCard({
         ref={cardRef}
       >
         <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white">
-          {/* Top Section */}
-          <CardContent className="space-y-3 pb-4">
+          {/* Top Section with space-y-3 for consistent spacing */}
+          <div className="p-6 space-y-3 pb-4 flex-grow">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
@@ -335,7 +329,7 @@ export default function GoalCard({
                   {description}
                 </p>
               </div>
-              <Badge variant="secondary" className={getBadgeStyles()}>
+              <Badge variant="outline" className={getBadgeStyles()}>
                 {status === 'not_started' ? (
                   <span className="flex items-center">
                     <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
@@ -359,30 +353,50 @@ export default function GoalCard({
             {hasChecklist && (
               <div className="flex justify-between items-center text-sm text-muted-foreground">
                 <p>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</p>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="font-medium">View checklist</Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    {checklist.map((item) => (
-                      <DropdownMenuItem key={item.id} onClick={() => toggleChecklistItem(item.id)} className="flex items-start gap-2">
-                        {item.completed ? (
-                          <CheckSquare className="h-4 w-4 text-primary" />
-                        ) : (
-                          <Square className="h-4 w-4" />
-                        )}
-                        <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
-                          {item.text}
-                        </span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="font-medium"
+                  onClick={() => setShowChecklist(!showChecklist)}
+                >
+                  View checklist
+                  {showChecklist ? (
+                    <ChevronUp className="ml-2 h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  )}
+                </Button>
               </div>
             )}
-          </CardContent>
 
-          {/* Bottom Section */}
+            {/* Checklist items */}
+            {showChecklist && hasChecklist && (
+              <div className="mt-2 space-y-1 max-h-[120px] overflow-y-auto">
+                {checklist.map((item) => (
+                  <div key={item.id} className="flex items-start gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleChecklistItem(item.id)}
+                      className="h-5 w-5 p-0 mt-0.5 flex-shrink-0"
+                    >
+                      {item.completed ? (
+                        <CheckSquare className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
+                      {item.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Section - pinned to bottom with mt-auto */}
           <div className="flex items-center justify-between px-4 py-3 border-t mt-auto">
             <p className="text-sm text-muted-foreground flex items-center gap-1">
               <Calendar className="w-4 h-4" />
