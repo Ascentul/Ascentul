@@ -1031,13 +1031,13 @@ export default function Resume() {
             </motion.div>
           ) : (
             <motion.div 
-              className="text-center py-16 px-6 bg-white rounded-lg shadow-sm border border-gray-100"
+              className="text-center py-16 px-6 bg-gradient-to-b from-white to-[#f0f6ff] rounded-lg shadow-md shadow-gray-200 border border-gray-100"
               variants={fadeIn}
             >
               <div className="bg-[#f4f4f4] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FileText className="h-10 w-10 text-primary/60" />
+                <FileText className="h-10 w-10 text-blue-500" />
               </div>
-              <h3 className="text-2xl font-medium mb-3">You haven't created any resumes yet</h3>
+              <h3 className="text-2xl font-medium mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">You haven't created any resumes yet</h3>
               <p className="text-neutral-500 mb-6 max-w-md mx-auto">
                 Create your first professional resume to showcase your skills and experience to potential employers.
               </p>
