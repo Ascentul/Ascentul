@@ -1130,7 +1130,7 @@ export default function CoverLetter() {
             </motion.div>
           ) : (
             <motion.div 
-              className="text-center py-16 px-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 max-w-[800px] mx-auto"
+              className="text-center py-16 px-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full"
               variants={fadeIn}
             >
               <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
