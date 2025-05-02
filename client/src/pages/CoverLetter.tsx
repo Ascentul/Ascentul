@@ -1805,41 +1805,43 @@ export default function CoverLetter() {
                         </div>
                       </div>
                       
-                      {/* Action buttons directly on card content with no wrapper div */}
-                      <Button 
-                        variant="outline" 
-                        className="mt-6 mb-6 ml-6"
-                        onClick={() => {
-                          setAnalysisResult({
-                            ...analysisResult,
-                            optimizedCoverLetter: ''
-                          });
-                        }}
-                        title="Reset optimized content"
-                      >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Reset
-                      </Button>
+                      {/* Action buttons with container spanning full width */}
+                      <div className="w-full px-6 pt-4 pb-6 flex justify-between gap-4">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 flex items-center justify-center"
+                          onClick={() => {
+                            setAnalysisResult({
+                              ...analysisResult,
+                              optimizedCoverLetter: ''
+                            });
+                          }}
+                          title="Reset optimized content"
+                        >
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Reset
+                        </Button>
 
-                      <Button 
-                        variant="outline"
-                        className="mt-6 mb-6 mx-4"
-                        onClick={() => handleCopyOptimizedCoverLetter()}
-                        disabled={!analysisResult.optimizedCoverLetter}
-                      >
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copy
-                      </Button>
+                        <Button 
+                          variant="outline"
+                          className="flex-1 flex items-center justify-center"
+                          onClick={() => handleCopyOptimizedCoverLetter()}
+                          disabled={!analysisResult.optimizedCoverLetter}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </Button>
 
-                      <Button 
-                        className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 mt-6 mb-6 mr-6"
-                        onClick={handleSaveOptimizedCoverLetter}
-                        title="Save this optimized version as a new cover letter"
-                        disabled={!analysisResult.optimizedCoverLetter}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Save Optimized Version
-                      </Button>
+                        <Button 
+                          className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 flex-1 flex items-center justify-center"
+                          onClick={handleSaveOptimizedCoverLetter}
+                          title="Save this optimized version as a new cover letter"
+                          disabled={!analysisResult.optimizedCoverLetter}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Save Optimized Version
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
