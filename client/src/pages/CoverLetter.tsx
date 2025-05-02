@@ -1805,8 +1805,8 @@ export default function CoverLetter() {
                         </div>
                       </div>
                       
-                      {/* Action button row directly on gradient background */}
-                      <div className="p-6 pt-0">
+                      {/* Action button row directly on gradient background with proper spacing */}
+                      <div className="px-4 pt-6 pb-6">
                         <div className="grid grid-cols-4 gap-2">
                           <Button 
                             variant="outline" 
