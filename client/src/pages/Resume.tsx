@@ -1289,39 +1289,35 @@ export default function Resume() {
                         createdAt: new Date().toISOString()
                       };
 
-                      // Set the preview resume to trigger rendering of the template
-                      // This is exactly the same approach used in the first button at line 921
+                      // Set the preview resume to trigger rendering
                       setPreviewResume(resumeData);
                       
-                      // Allow time for the preview to render (it starts hidden)
-                      setTimeout(async () => {
-                        // Now generate the PDF from the template
-                        const resumeElement = document.querySelector('.resume-template');
-                        if (resumeElement) {
-                          try {
-                            // Use our centralized export utility
-                            await exportResumeToPDF(resumeElement as HTMLElement, {
-                              filename: `Resume_Alt_${new Date().toISOString().split('T')[0]}.pdf`,
-                            });
-                          } finally {
-                            // Clear the preview resume state
-                            setPreviewResume(null);
-                          }
-                        } else {
-                          toast({
-                            title: "Error",
-                            description: "Could not find resume template to export",
-                            variant: "destructive"
-                          });
-                        }
-                      }, 100);
-                    } catch (err: any) {
-                      console.error("Error during PDF export:", err);
-                      toast({
-                        title: "Error",
-                        description: err.message || "Could not export resume to PDF",
-                        variant: "destructive",
+                      // Allow template to render - using same await Promise approach as the working button
+                      await new Promise(resolve => setTimeout(resolve, 100));
+                      
+                      const resumeElement = document.querySelector('.resume-template');
+                      if (!resumeElement) {
+                        throw new Error("Could not find resume template");
+                      }
+
+                      const success = await exportResumeToPDF(resumeElement as HTMLElement, {
+                        filename: `Resume_Alt_${new Date().toISOString().split('T')[0]}.pdf`,
+                        showToast: true
                       });
+
+                      if (!success) {
+                        console.error("PDF export failed");
+                      }
+                    } catch (error) {
+                      console.error("Error during PDF export:", error);
+                      toast({
+                        title: "Export Failed",
+                        description: "Could not generate PDF. Please try again.",
+                        variant: "destructive"
+                      });
+                    } finally {
+                      // Always clear preview state
+                      setPreviewResume(null);
                     }
                   }
                 }}
