@@ -229,7 +229,7 @@ export default function Projects() {
               className="will-change-transform"
               style={{ transform: 'translateZ(0)' }}
             >
-              <Card className="flex flex-col overflow-hidden group project-card cursor-pointer transition-shadow duration-300 hover:shadow-md">
+              <Card className="flex flex-col overflow-hidden group project-card cursor-pointer transition-shadow duration-300">
                 {/* Project Image Section */}
                 <div className="relative w-full h-[200px]">
                   {project.imageUrl ? (
@@ -371,7 +371,7 @@ export default function Projects() {
           <p className="text-neutral-500 mb-6 max-w-md mx-auto">
             Click below to get started showcasing your professional work, personal projects, and achievements!
           </p>
-          <Button onClick={handleAddNew} size="lg" className="shadow-sm hover:shadow-md transition-all">
+          <Button onClick={handleAddNew} size="lg" className="shadow-sm hover:shadow-lg transition-all">
             <Plus className="mr-2 h-5 w-5" />
             Add First Project
           </Button>
