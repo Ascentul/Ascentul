@@ -319,14 +319,14 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[320px] flex flex-col justify-between relative">
-          <CardContent className="pt-6 pb-4 px-6 sm:px-5 flex flex-col justify-between h-full">
-            <div>
+        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[320px] h-full flex flex-col justify-between relative">
+          <CardContent className="pt-6 pb-3 px-6 sm:px-5 flex flex-col h-full">
+            <div className="space-y-2 mb-auto">
               <div className="pr-[120px]">
                 <h3 className="text-base font-semibold">{title}</h3>
                 <p className="text-sm text-gray-600 mt-1">{description}</p>
               </div>
-              <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-xs font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full w-auto max-w-[110px]`}>
+              <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-sm font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full w-auto max-w-[110px]`}>
                 {status === 'not_started' ? (
                   <span className="flex items-center">
                     <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
@@ -337,7 +337,7 @@ export default function GoalCard({
               </Badge>
             </div>
 
-            <div className="mt-4 flex-grow">
+            <div className="mt-3 space-y-2">
               <div className="flex justify-between text-xs mb-1">
                 <span>Progress</span>
                 <span>{progress}%</span>
@@ -354,7 +354,7 @@ export default function GoalCard({
 
             {/* Checklist Toggle and Checklist Items */}
             {hasChecklist && (
-              <div className="mt-4 flex-grow">
+              <div className="mt-3 space-y-1">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -372,7 +372,7 @@ export default function GoalCard({
                 </Button>
 
                 {showChecklist && (
-                  <div className="mt-2 space-y-1.5">
+                  <div className="mt-1 space-y-1">
                     {checklist.map((item) => (
                       <div key={item.id} className="flex items-start gap-2">
                         <Button
@@ -398,7 +398,7 @@ export default function GoalCard({
               </div>
             )}
 
-            <div className="border-t border-gray-100 mt-3 pt-2 flex justify-between items-center">
+            <div className="border-t border-gray-100 mt-3 pt-2 flex items-end justify-between">
               <div className="text-xs text-neutral-500 flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
                 {formatDueDate()}
