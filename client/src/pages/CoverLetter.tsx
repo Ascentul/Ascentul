@@ -1833,8 +1833,7 @@ export default function CoverLetter() {
                             </div>
                             <div className="flex gap-2">
                               <Button 
-                                size="sm" 
-                                variant="secondary"
+                                size="sm"
                                 onClick={() => handleDownloadPDF('optimizedCoverLetterContent')}
                                 disabled={!analysisResult.optimizedCoverLetter}
                                 id="downloadOptimizedPdfBtn"
