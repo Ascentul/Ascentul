@@ -774,7 +774,7 @@ export default function Resume() {
           <TabsTrigger value="resumes">
             My Resumes {resumes && resumes.length > 0 && `(${resumes.length})`}
           </TabsTrigger>
-          <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
+          <TabsTrigger value="suggestions">Generate With AI</TabsTrigger>
           <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
         </TabsList>
 
