@@ -319,7 +319,7 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-none">
+        <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-[#f9fafe]">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
@@ -338,7 +338,14 @@ export default function GoalCard({
                 <span>Progress</span>
                 <span>{progress}%</span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <div className="relative">
+                <Progress value={progress} className="h-2 transition-all duration-300" />
+                {progress > 0 && (
+                  <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0 }}>
+                    {progress}%
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Checklist Toggle and Checklist Items */}

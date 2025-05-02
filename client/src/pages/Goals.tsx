@@ -291,7 +291,7 @@ export default function Goals() {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
+                  <Button variant="outline" className="w-full justify-between rounded-full px-4 py-1 bg-gray-100 hover:bg-white hover:ring-1 hover:ring-gray-300 transition-all">
                     <div className="flex items-center">
                       <Filter className="mr-2 h-4 w-4" />
                       {statusFilter || 'Filter by Status'}
