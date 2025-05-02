@@ -1057,21 +1057,21 @@ export default function Resume() {
 
         <TabsContent value="suggestions">
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 will-change-opacity will-change-transform"
+            className="will-change-opacity will-change-transform"
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            <Card>
+            <Card className="w-full">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Optimize Your Resume with AI</h3>
-                <div className="space-y-4">
+                <h3 className="text-xl font-semibold mb-4">Optimize Your Resume with AI</h3>
+                <div className="space-y-4 max-w-3xl mx-auto">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
                     <Textarea
                       placeholder="Paste the job description here..."
                       value={jobDescription}
                       onChange={(e) => setJobDescription(e.target.value)}
-                      className="min-h-[150px]"
+                      className="min-h-[200px]"
                     />
                   </div>
 
@@ -1081,15 +1081,25 @@ export default function Resume() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex justify-center">
                     <Button 
-                      className="w-full" 
+                      className="px-8" 
                       onClick={generateFullResume}
                       disabled={generateResumeMutation?.isPending}
+                      size="lg"
                     >
-                      {generateResumeMutation?.isPending ? 'Creating...' : 'Generate Resume'}
+                      {generateResumeMutation?.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Resume...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Generate Resume
+                        </>
+                      )}
                     </Button>
-                    
                   </div>
                 </div>
               </CardContent>
