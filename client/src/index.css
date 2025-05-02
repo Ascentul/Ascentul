@@ -92,7 +92,7 @@
 
 /* Project card animations */
 .project-card, .cover-letter-card, .resume-card {
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease;
 }
 
 .project-card:hover, .cover-letter-card:hover, .resume-card:hover {

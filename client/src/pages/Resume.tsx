@@ -934,7 +934,7 @@ export default function Resume() {
                   variants={cardAnimation}
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}>
-                  <Card className="overflow-hidden resume-card">
+                  <Card className="overflow-hidden resume-card transition-shadow duration-300 hover:shadow-md">
                     <CardContent className="p-0">
                       <div className="bg-primary/5 p-6 flex items-center">
                         <FileText className="h-10 w-10 text-primary mr-4" />
