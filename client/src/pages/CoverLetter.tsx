@@ -1006,7 +1006,7 @@ export default function CoverLetter() {
           <TabsTrigger value="letters">
             My Cover Letters {Array.isArray(coverLetters) && coverLetters.length > 0 && `(${coverLetters.length})`}
           </TabsTrigger>
-          <TabsTrigger value="suggestions">Optimize with AI</TabsTrigger>
+          <TabsTrigger value="suggestions">Generate With AI</TabsTrigger>
           <TabsTrigger value="analyze">Upload & Analyze</TabsTrigger>
         </TabsList>
 
