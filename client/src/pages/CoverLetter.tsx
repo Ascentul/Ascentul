@@ -1619,7 +1619,7 @@ export default function CoverLetter() {
             <div className="lg:w-1/2">
               {analysisResult ? (
                 <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full shadow-md shadow-gray-200">
-                  <CardContent className="pt-6 rounded-t-xl bg-transparent">
+                  <CardContent className="pt-6 pb-1 rounded-t-xl bg-transparent">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center analysis-header" id="analysisHeader">
                         <BarChart4 className="h-5 w-5 mr-2 text-blue-500" />
@@ -1743,7 +1743,7 @@ export default function CoverLetter() {
                         </ul>
                       </div>
 
-                      <div className="pt-3 pb-2" id="optimizedCoverLetterSection">
+                      <div className="pt-3 pb-0 flex flex-col h-full" id="optimizedCoverLetterSection">
                         <div className="flex justify-between items-center mb-2">
                           <h4 className="text-sm font-medium flex items-center">
                             <span className="text-primary mr-1">📝</span> Optimized Cover Letter
@@ -1772,7 +1772,7 @@ export default function CoverLetter() {
                         </div>
 
                         {/* Styled content box with scrollable area */}
-                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-3 relative">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-2 relative flex-grow">
                           {/* Generation timestamp metadata */}
                           {generationTimestamp && (
                             <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
@@ -1805,7 +1805,7 @@ export default function CoverLetter() {
                         </div>
 
                         {/* Button row directly on gradient background */}
-                        <div className="grid grid-cols-4 gap-2 mt-0 px-0 mb-2">
+                        <div className="grid grid-cols-4 gap-2 px-0 pb-0 mt-0">
                           <Button 
                             variant="outline" 
                             className="col-span-1"
