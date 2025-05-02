@@ -162,8 +162,18 @@ export default function Resume() {
         title: 'Resume Generated',
         description: 'Your AI-tailored resume is ready to view and customize',
       });
+      
+      // Always store the generated resume data
       setGeneratedResume(data);
-      setIsGeneratedResumeOpen(true);
+      
+      // Only show the modal in the standard flow (not when called from optimizeAndGenerateResume)
+      // We'll check by seeing if the optimization modal is open - if it is, we're in the optimization flow
+      if (!isOptimizeDialogOpen) {
+        setIsGeneratedResumeOpen(true);
+      } else {
+        // When called from optimization flow, automatically save the resume
+        saveGeneratedResume(data);
+      }
     },
     onError: (error) => {
       toast({
@@ -173,6 +183,52 @@ export default function Resume() {
       });
     },
   });
+  
+  // Helper function to save the generated resume
+  const saveGeneratedResume = (resumeData: any) => {
+    // Create a new resume using the generated content
+    const newResume = {
+      name: `Resume for ${jobDescription.split(' ').slice(0, 3).join(' ')}...`,
+      template: 'modern',
+      content: {
+        personalInfo: resumeData.personalInfo || {},
+        summary: resumeData.summary || '',
+        skills: resumeData.skills || [],
+        experience: resumeData.experience || [],
+        education: resumeData.education || [],
+        projects: [],
+        certifications: resumeData.certifications || []
+      }
+    };
+    
+    // Show saving state
+    setIsSavingResume(true);
+    
+    // Save the resume directly using the API
+    apiRequest('POST', '/api/resumes', newResume)
+      .then(() => {
+        // Invalidate the resumes query to refresh the list
+        queryClient.invalidateQueries({ queryKey: ['/api/resumes'] });
+        
+        toast({
+          title: 'Resume Saved',
+          description: 'Your resume has been saved to My Resumes',
+        });
+        
+        // Reset loading state
+        setIsSavingResume(false);
+      })
+      .catch((error) => {
+        // Reset loading state
+        setIsSavingResume(false);
+        
+        toast({
+          title: 'Error',
+          description: `Failed to save resume: ${error.message}`,
+          variant: 'destructive',
+        });
+      });
+  };
 
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: number) => {
