@@ -1806,7 +1806,7 @@ export default function CoverLetter() {
                       </div>
                       
                       {/* Action buttons directly on card content */}
-                      <div className="flex justify-between w-full mt-6 mb-6 px-6">
+                      <div className="flex justify-between gap-4 mt-6 mb-6 px-6">
                         <Button 
                           variant="outline" 
                           onClick={() => {
