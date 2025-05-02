@@ -319,14 +319,14 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[250px] sm:min-h-[260px] flex flex-col justify-between relative">
+        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[320px] flex flex-col justify-between relative">
           <CardContent className="pt-6 pb-4 px-6 sm:px-5 flex flex-col justify-between h-full">
             <div>
               <div className="pr-[120px]">
                 <h3 className="text-base font-semibold">{title}</h3>
                 <p className="text-sm text-gray-600 mt-1">{description}</p>
               </div>
-              <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-xs font-medium whitespace-nowrap px-3 py-1 rounded-full w-auto max-w-[110px]`}>
+              <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-xs font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full w-auto max-w-[110px]`}>
                 {status === 'not_started' ? (
                   <span className="flex items-center">
                     <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
@@ -337,7 +337,7 @@ export default function GoalCard({
               </Badge>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex-grow">
               <div className="flex justify-between text-xs mb-1">
                 <span>Progress</span>
                 <span>{progress}%</span>
@@ -354,7 +354,7 @@ export default function GoalCard({
 
             {/* Checklist Toggle and Checklist Items */}
             {hasChecklist && (
-              <div className="mt-4">
+              <div className="mt-4 flex-grow">
                 <Button
                   variant="ghost"
                   size="sm"
