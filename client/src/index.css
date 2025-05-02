@@ -1,4 +1,11 @@
 
+/* Import special PDF export styles */
+@import './styles/print-tailwind.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Cover letter generator card alignment fixes */
 .generate-cover-letter-card {
   height: auto !important;
@@ -9,13 +16,6 @@
 .card-grid-container {
   align-items: flex-start;
 }
-
-/* Import special PDF export styles */
-@import './styles/print-tailwind.css';
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 /* PDF Export Styling */
 .pdf-body {
@@ -351,6 +351,19 @@
   .resume-template h3 {
     page-break-after: avoid;
   }
+}
+
+/* Adjust container for label section to space between left (label + asterisk) and right (status) */
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Ensure the status text doesn't wrap or misalign */
+.field-status {
+  white-space: nowrap;
+  margin-left: 8px;
 }
 
 @layer base {
