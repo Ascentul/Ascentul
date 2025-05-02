@@ -1373,8 +1373,8 @@ export default function CoverLetter() {
                       </div>
                     </motion.div>
 
-                    {/* Fixed button bar at the bottom with 4 buttons: Reset, Copy, Export PDF, Save */}
-                    <div className="grid grid-cols-4 gap-2 sticky bottom-0 bg-white p-2 border-t border-neutral-100 rounded-b-lg shadow-sm">
+                    {/* Button row integrated with parent gradient background */}
+                    <div className="grid grid-cols-4 gap-2 mt-4 px-2">
                       <Button 
                         variant="outline" 
                         className="col-span-1"
