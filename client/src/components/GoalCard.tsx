@@ -41,7 +41,6 @@ export default function GoalCard({
 }: GoalCardProps) {
   const [showChecklist, setShowChecklist] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [isDissolving, setIsDissolving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -310,7 +309,7 @@ export default function GoalCard({
       
       <div 
         id={`goal-${id}`}
-        className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
+        className="goal-card"
         ref={cardRef}
       >
         <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white hover:shadow-md transition-shadow duration-150">
