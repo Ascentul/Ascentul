@@ -446,7 +446,7 @@ export default function Goals() {
           </motion.div>
         ) : (
           <motion.div 
-            className="text-center py-8 bg-gradient-to-br from-white to-[#f9fafe] rounded-xl shadow-md"
+            className="text-center py-8 bg-gradient-to-b from-white to-[#f0f6ff] shadow-sm rounded-xl"
             variants={subtleUp}
           >
             <div className="bg-white shadow-sm rounded-full p-3 inline-block mb-4">
