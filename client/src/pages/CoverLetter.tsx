@@ -1157,12 +1157,12 @@ export default function CoverLetter() {
 
         <TabsContent value="suggestions" className="space-y-6">
           <motion.div 
-            className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6 will-change-opacity will-change-transform card-grid-container"
             variants={subtleUp}
-            style={{ transform: 'translateZ(0)' }}
+            style={{ transform: 'translateZ(0)', alignItems: 'flex-start' }}
           >
             {/* Input form */}
-            <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] h-full shadow-md shadow-gray-200">
+            <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-blue-50 min-h-[350px] generate-cover-letter-card shadow-md shadow-gray-200">
               <CardContent className="pt-6 rounded-t-xl bg-transparent">
                 <h3 className="text-xl font-semibold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center">
                   <FileUp className="h-5 w-5 mr-2 text-blue-500" />
