@@ -1290,17 +1290,18 @@ export default function Resume() {
                       };
 
                       // Set the preview resume to trigger rendering of the template
+                      // This is exactly the same approach used in the first button at line 921
                       setPreviewResume(resumeData);
                       
-                      // Allow time for the preview to render
+                      // Allow time for the preview to render (it starts hidden)
                       setTimeout(async () => {
-                        // Now generate the PDF from the rendered template
+                        // Now generate the PDF from the template
                         const resumeElement = document.querySelector('.resume-template');
                         if (resumeElement) {
                           try {
-                            // Use our centralized export utility with the rendered template
+                            // Use our centralized export utility
                             await exportResumeToPDF(resumeElement as HTMLElement, {
-                              filename: `AI_Generated_Resume_${new Date().toISOString().split('T')[0]}.pdf`,
+                              filename: `Resume_Alt_${new Date().toISOString().split('T')[0]}.pdf`,
                             });
                           } finally {
                             // Clear the preview resume state
