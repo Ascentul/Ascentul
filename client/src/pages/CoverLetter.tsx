@@ -1627,7 +1627,7 @@ export default function CoverLetter() {
                       </h3>
                       <span className="text-xs text-neutral-500 flex items-center">
                         <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                        Analyzed {newDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        Analyzed {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </span>
                     </div>
                     <div className="space-y-5">
