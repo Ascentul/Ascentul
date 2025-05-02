@@ -42,8 +42,6 @@ export default function GoalCard({
   const [showChecklist, setShowChecklist] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isDissolving, setIsDissolving] = useState(false);
-  const [isFadingOut, setIsFadingOut] = useState(false);
-  const [isMounting, setIsMounting] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -54,8 +52,8 @@ export default function GoalCard({
   
   // Function to handle the dissolve animation when a goal is completed
   const handleDissolveAnimation = (goalId: number) => {
-    // Start the fade-out animation
-    setIsFadingOut(true);
+    // Start the dissolve animation
+    setIsDissolving(true);
     
     // After the animation finishes (matching our animation duration),
     // call the onComplete handler to move the goal to the Completed Goals section
@@ -63,18 +61,8 @@ export default function GoalCard({
       if (onComplete) {
         onComplete(goalId);
       }
-    }, 300); // 300ms to match our animation duration
+    }, 2500); // 2.5 seconds to match our animation duration
   };
-  
-  // Effect to handle mount animation
-  useEffect(() => {
-    // Set mounting to false after a short delay
-    const timer = setTimeout(() => {
-      setIsMounting(false);
-    }, 200);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   // Convert status to badge styling
   const getBadgeStyles = () => {
@@ -328,7 +316,7 @@ export default function GoalCard({
       
       <div 
         id={`goal-${id}`}
-        className={`goal-card ${isDissolving ? 'dissolving' : ''} ${isFadingOut ? 'fading-out' : ''} ${isMounting ? 'mounting' : ''}`}
+        className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
         <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white hover:shadow-md transition-shadow duration-150">
