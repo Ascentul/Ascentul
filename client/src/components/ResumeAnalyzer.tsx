@@ -244,8 +244,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden border-slate-200">
-      <CardContent className="pt-6">
+    <Card className="overflow-hidden border-slate-200 bg-gradient-to-b from-white to-[#f0f6ff] shadow-md shadow-gray-200">
+      <CardContent className="pt-6 bg-transparent">
         <h3 className="text-xl font-semibold mb-3 text-primary/90 flex items-center">
           <FileUp className="h-5 w-5 mr-2" />
           Analyze Your Resume
