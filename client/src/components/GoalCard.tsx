@@ -319,13 +319,14 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[340px] h-full flex flex-col justify-between relative">
-          <CardContent className="pt-6 pb-3 px-6 sm:px-5 flex flex-col h-full">
-            <div className="flex-grow flex flex-col">
+        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[340px] h-full flex flex-col relative overflow-hidden">
+          <CardContent className="p-0 flex flex-col h-full">
+            <div className="pt-6 px-6 sm:px-5 flex-grow flex flex-col h-full">
               <div className="pr-[120px] mb-4">
                 <h3 className="text-base font-semibold">{title}</h3>
                 <p className="text-sm text-gray-600 mt-1 line-clamp-2">{description}</p>
               </div>
+              
               <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-sm font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full w-auto max-w-[110px]`}>
                 {status === 'not_started' ? (
                   <span className="flex items-center">
@@ -335,74 +336,75 @@ export default function GoalCard({
                 ) : status === 'in_progress' ? 'In progress' : 
                    status.charAt(0).toUpperCase() + status.slice(1)}
               </Badge>
+              
               <div className="mt-auto"></div>
+
+              {/* Fixed position progress section */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs mb-1">
+                  <span>Progress</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="relative">
+                  <Progress value={progress} className="h-2 transition-all duration-300" />
+                  {progress > 0 && (
+                    <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0 }}>
+                      {progress}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Checklist Toggle and Checklist Items */}
+              {hasChecklist ? (
+                <div className="mb-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
+                    onClick={() => setShowChecklist(!showChecklist)}
+                  >
+                    <span>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</span>
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-500 mr-1">View checklist</span>
+                      {showChecklist ? 
+                        <ChevronUp className="h-4 w-4 transition-transform duration-200" /> : 
+                        <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                      }
+                    </div>
+                  </Button>
+
+                  {showChecklist && (
+                    <div className="mt-1 space-y-1 max-h-[120px] overflow-y-auto">
+                      {checklist.map((item) => (
+                        <div key={item.id} className="flex items-start gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => toggleChecklistItem(item.id)}
+                            className="h-5 w-5 p-0 mt-0.5 flex-shrink-0"
+                          >
+                            {item.completed ? (
+                              <CheckSquare className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
+                            {item.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-3"></div>
+              )}
             </div>
-
-            {/* Fixed position progress section */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs mb-1">
-                <span>Progress</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="relative">
-                <Progress value={progress} className="h-2 transition-all duration-300" />
-                {progress > 0 && (
-                  <span className="absolute inset-0 text-[10px] text-white flex items-center justify-center font-medium" style={{ opacity: progress > 15 ? 1 : 0 }}>
-                    {progress}%
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Checklist Toggle and Checklist Items */}
-            {hasChecklist ? (
-              <div className="mb-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-1 h-auto w-full flex justify-between items-center text-xs text-neutral-500"
-                  onClick={() => setShowChecklist(!showChecklist)}
-                >
-                  <span>{checklist.filter(item => item.completed).length}/{checklist.length} tasks complete</span>
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-500 mr-1">View checklist</span>
-                    {showChecklist ? 
-                      <ChevronUp className="h-4 w-4 transition-transform duration-200" /> : 
-                      <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                    }
-                  </div>
-                </Button>
-
-                {showChecklist && (
-                  <div className="mt-1 space-y-1 max-h-[120px] overflow-y-auto">
-                    {checklist.map((item) => (
-                      <div key={item.id} className="flex items-start gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => toggleChecklistItem(item.id)}
-                          className="h-5 w-5 p-0 mt-0.5 flex-shrink-0"
-                        >
-                          {item.completed ? (
-                            <CheckSquare className="h-4 w-4 text-primary" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <span className={`text-xs ${item.completed ? 'line-through text-neutral-400' : 'text-neutral-600'}`}>
-                          {item.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="mb-3"></div>
-            )}
-
-            <div className="border-t border-gray-100 pt-2 flex items-center justify-between">
+            
+            <div className="border-t border-gray-100 pt-2 pb-3 px-6 sm:px-5 flex items-center justify-between">
               <div className="text-xs text-neutral-500 flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
                 {formatDueDate()}
