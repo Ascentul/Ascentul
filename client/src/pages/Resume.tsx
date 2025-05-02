@@ -1075,12 +1075,6 @@ export default function Resume() {
                     />
                   </div>
 
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 max-w-[97%] mx-auto mt-4">
-                    <p className="text-sm text-neutral-600">
-                      Your work history will be automatically used from your profile to generate relevant suggestions.
-                    </p>
-                  </div>
-
                   <div className="flex justify-center mt-4 mb-6">
                     <Button 
                       className="px-8" 
