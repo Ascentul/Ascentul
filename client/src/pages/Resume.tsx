@@ -1062,9 +1062,9 @@ export default function Resume() {
             variants={subtleUp}
             style={{ transform: 'translateZ(0)' }}
           >
-            <Card className="w-full">
-              <CardContent className="pt-3 px-5 pb-6">
-                <h3 className="text-xl font-semibold mb-2.5">Generate the Perfect Resume with AI</h3>
+            <Card className="w-full bg-gradient-to-b from-white to-[#f0f6ff] shadow-md shadow-gray-200">
+              <CardContent className="pt-3 px-5 pb-6 bg-transparent">
+                <h3 className="text-xl font-semibold mb-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Generate the Perfect Resume with AI</h3>
                 <div className="space-y-4 w-full">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
