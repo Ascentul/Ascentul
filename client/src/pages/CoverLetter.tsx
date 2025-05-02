@@ -1803,8 +1803,8 @@ export default function CoverLetter() {
                               })}
                           </div>
 
-                          {/* Button row integrated with parent gradient background */}
-                          <div className="grid grid-cols-4 gap-2 mt-4 px-2 pb-4">
+                          {/* Button row integrated with parent gradient background - no excess padding */}
+                          <div className="grid grid-cols-4 gap-2 mt-4 px-2 pb-0">
                             <Button 
                               variant="outline" 
                               className="col-span-1"
