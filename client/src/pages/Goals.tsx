@@ -322,7 +322,7 @@ export default function Goals() {
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
+                  <Button variant="outline" className="w-full justify-between rounded-full px-4 py-1 bg-gray-100 hover:bg-white hover:ring-1 hover:ring-gray-300 transition-all">
                     <div className="flex items-center">
                       <ArrowUpDown className="mr-2 h-4 w-4" />
                       Sort by
@@ -367,7 +367,7 @@ export default function Goals() {
       {/* Active Goals Section */}
       <motion.div className="mb-10" variants={subtleUp}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Active Goals</h2>
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Active Goals</h2>
         </div>
         
         {isLoading ? (
@@ -420,7 +420,7 @@ export default function Goals() {
                   variants={listItem}
                 >
                   <div className="goal-card dissolving">
-                    <Card className="border border-neutral-200 shadow-none">
+                    <Card className="border border-neutral-200 shadow-md rounded-xl hover:shadow-lg transition-all duration-200 bg-gradient-to-br from-white to-[#f9fafe]">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
                           <div>
@@ -446,19 +446,22 @@ export default function Goals() {
           </motion.div>
         ) : (
           <motion.div 
-            className="text-center py-6 bg-white rounded-lg shadow-sm"
+            className="text-center py-8 bg-gradient-to-br from-white to-[#f9fafe] rounded-xl shadow-md"
             variants={subtleUp}
           >
-            <Target className="mx-auto h-12 w-12 text-neutral-300 mb-4" />
+            <div className="bg-white shadow-sm rounded-full p-3 inline-block mb-4">
+              <Target className="h-12 w-12 text-blue-500" />
+            </div>
             <h3 className="text-xl font-medium mb-2">No Active Goals</h3>
-            <p className="text-neutral-500 mb-4">
-              Start by creating your first career goal to track your progress
+            <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+              Start by creating your first career goal to track your progress toward professional success
             </p>
             <Button
               onClick={() => {
                 setSelectedGoal(null);
                 setIsAddGoalOpen(true);
               }}
+              className="px-6 py-2 shadow-sm hover:shadow transition-all"
             >
               <Plus className="mr-2 h-4 w-4" />
               Create First Goal
@@ -472,7 +475,7 @@ export default function Goals() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold flex items-center">
             <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
-            Completed Goals
+            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Completed Goals</span>
           </h2>
           <Tabs defaultValue="list" className="w-[200px]">
             <TabsList>
@@ -521,7 +524,7 @@ export default function Goals() {
                             animate={{ opacity: 1 }}
                             className="mb-4"
                           >
-                            <div className="bg-neutral-50 dark:bg-neutral-900 rounded-lg border p-4 relative">
+                            <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl border shadow-sm p-4 relative hover:shadow-md transition-all duration-200">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center">
@@ -537,7 +540,7 @@ export default function Goals() {
                                 <Button 
                                   variant="ghost" 
                                   size="sm"
-                                  className="text-xs h-8"
+                                  className="text-xs h-8 rounded-full hover:bg-gray-100"
                                   onClick={() => handleReopenGoal(goal.id)}
                                 >
                                   <RefreshCw className="h-3 w-3 mr-1" />
@@ -561,9 +564,9 @@ export default function Goals() {
         ) : (
           <Card>
             <CardContent className="p-6">
-              <div className="text-center py-4 text-neutral-500">
-                <CheckCircle className="mx-auto h-8 w-8 text-neutral-300 mb-2" />
-                <p>No completed goals yet. Complete a goal to see it here!</p>
+              <div className="text-center py-6">
+                <CheckCircle className="mx-auto h-16 w-16 text-gray-300 mb-3" />
+                <p className="text-sm text-gray-500">🎯 You're on your way! Complete a goal to start building momentum.</p>
               </div>
             </CardContent>
           </Card>
