@@ -1058,7 +1058,7 @@ export default function CoverLetter() {
                     backfaceVisibility: 'hidden' 
                   }}
                 >
-                  <Card className="overflow-hidden h-full flex flex-col cover-letter-card min-h-[180px] transition-shadow duration-300 hover:shadow-md">
+                  <Card className="overflow-hidden h-full flex flex-col cover-letter-card min-h-[180px] transition-shadow duration-300">
                     <CardContent className="p-0 flex-1">
                       <div className="bg-primary/5 pt-5 pb-4 px-6 flex items-center justify-between">
                         <div className="flex items-center">
@@ -1147,7 +1147,7 @@ export default function CoverLetter() {
                   setIsAddLetterOpen(true);
                 }}
                 size="lg" 
-                className="shadow-sm hover:shadow-md transition-all"
+                className="shadow-sm hover:shadow-lg transition-all"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Create First Cover Letter

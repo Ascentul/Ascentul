@@ -934,7 +934,7 @@ export default function Resume() {
                   variants={cardAnimation}
                   className="will-change-transform"
                   style={{ transform: 'translateZ(0)' }}>
-                  <Card className="overflow-hidden resume-card transition-shadow duration-300 hover:shadow-md">
+                  <Card className="overflow-hidden resume-card transition-shadow duration-300">
                     <CardContent className="p-0">
                       <div className="bg-primary/5 p-6 flex items-center">
                         <FileText className="h-10 w-10 text-primary mr-4" />
@@ -1051,7 +1051,7 @@ export default function Resume() {
                   setIsAddResumeOpen(true);
                 }}
                 size="lg" 
-                className="shadow-sm hover:shadow-md transition-all"
+                className="shadow-sm hover:shadow-lg transition-all"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Create First Resume
