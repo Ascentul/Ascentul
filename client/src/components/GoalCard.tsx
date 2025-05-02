@@ -50,18 +50,12 @@ export default function GoalCard({
   // Reference to the card element for confetti positioning
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // Function to handle the dissolve animation when a goal is completed
+  // Function to handle goal completion (immediately remove the goal without animation)
   const handleDissolveAnimation = (goalId: number) => {
-    // Start the dissolve animation
-    setIsDissolving(true);
-    
-    // After the animation finishes (matching our animation duration),
-    // call the onComplete handler to move the goal to the Completed Goals section
-    setTimeout(() => {
-      if (onComplete) {
-        onComplete(goalId);
-      }
-    }, 2500); // 2.5 seconds to match our animation duration
+    // Immediately call the onComplete handler to move the goal to the Completed Goals section
+    if (onComplete) {
+      onComplete(goalId);
+    }
   };
 
   // Convert status to badge styling
