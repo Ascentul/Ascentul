@@ -1809,7 +1809,7 @@ export default function CoverLetter() {
                       <div className="mt-6 mb-6 flex w-full justify-between gap-2 px-0">
                         <Button 
                           variant="ghost" 
-                          className="flex-1 max-w-[160px]"
+                          className="flex-1 max-w-[160px] mb-6"
                           onClick={() => {
                             setAnalysisResult({
                               ...analysisResult,
@@ -1824,7 +1824,7 @@ export default function CoverLetter() {
 
                         <Button 
                           variant="outline"
-                          className="flex-1 max-w-[160px]"
+                          className="flex-1 max-w-[160px] mb-6"
                           onClick={() => handleCopyOptimizedCoverLetter()}
                           disabled={!analysisResult.optimizedCoverLetter}
                         >
@@ -1834,7 +1834,7 @@ export default function CoverLetter() {
 
                         <Button 
                           variant="default"
-                          className="flex-1"
+                          className="flex-1 mb-6"
                           onClick={handleSaveOptimizedCoverLetter}
                           title="Save this optimized version as a new cover letter"
                           disabled={!analysisResult.optimizedCoverLetter}
