@@ -214,11 +214,11 @@ export default function AICoach() {
         <p className="text-gray-600 dark:text-gray-300 mb-6">
           Get personalized career guidance powered by AI with tailored advice for your specific situation
         </p>
-      
-        <div className="relative">
-          {/* Model selector floating above top-right corner */}
-          <div className="absolute -top-3 right-3 z-20">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/90 dark:bg-blue-900/50 border border-blue-100 dark:border-blue-800/40 shadow-sm hover:shadow transition-shadow">
+        
+        <div className="relative mb-8">
+          {/* Model selector floating above the card */}
+          <div className="absolute -bottom-3 right-4 z-20 translate-y-[-100%]">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50/90 dark:bg-blue-900/50 border border-blue-100 dark:border-blue-800/40 shadow-md hover:shadow-lg transition-shadow">
               <Cpu className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium mr-1">AI Model:</span>
               <ModelSelector 
@@ -274,35 +274,37 @@ export default function AICoach() {
               </CardContent>
               
               <div className="mt-4">
-                <div className="flex items-stretch w-full gap-2">
+                <div className="flex w-full gap-2 relative h-[60px]">
                   <Input
                     placeholder="Ask your career coach anything..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
                     disabled={isSending}
-                    className="border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary rounded-lg py-6 px-4 text-base shadow-sm"
+                    className="absolute inset-0 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary/30 focus:border-primary rounded-lg py-6 px-4 text-base shadow-sm"
                   />
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-stretch h-full"
-                  >
-                    <Button 
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || isSending}
-                      className="h-full flex items-center px-5 rounded-lg shadow-md bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
+                  <div className="absolute right-0 top-0 bottom-0 flex items-center pr-[2px]">
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.2 }}
+                      className="h-[calc(100%-4px)] my-[2px]"
                     >
-                      {isSending ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/80 border-t-transparent"></div>
-                      ) : (
-                        <>
-                          <MessageSquare className="h-5 w-5 mr-2" />
-                          <span>Send</span>
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
+                      <Button 
+                        onClick={handleSendMessage}
+                        disabled={!newMessage.trim() || isSending}
+                        className="h-full flex items-center justify-center px-5 rounded-lg shadow-md bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
+                      >
+                        {isSending ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/80 border-t-transparent"></div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <MessageSquare className="h-5 w-5 mr-2" />
+                            <span>Send</span>
+                          </div>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
             </Card>
