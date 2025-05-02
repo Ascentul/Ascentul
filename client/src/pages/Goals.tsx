@@ -385,7 +385,7 @@ export default function Goals() {
               .map((goal: any) => (
                 <motion.div 
                   key={goal.id} 
-                  className="relative group"
+                  className="relative"
                   variants={listItem}
                 >
                   <GoalCard
@@ -399,14 +399,6 @@ export default function Goals() {
                     onEdit={handleEditGoal}
                     onComplete={handleGoalComplete}
                   />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDeleteGoal(goal.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </motion.div>
               ))}
               
@@ -416,7 +408,7 @@ export default function Goals() {
               .map((goal: any) => (
                 <motion.div 
                   key={`dissolving-${goal.id}`} 
-                  className="relative group"
+                  className="relative"
                   variants={listItem}
                 >
                   <div className="goal-card dissolving">

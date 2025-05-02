@@ -319,7 +319,7 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white">
+        <Card className="rounded-2xl shadow-sm flex flex-col justify-between h-full bg-white hover:shadow-md transition-shadow duration-150">
           {/* Top Section with space-y-3 for consistent spacing */}
           <div className="p-6 space-y-3 pb-4 flex-grow">
             <div className="flex justify-between items-start">
