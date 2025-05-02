@@ -319,30 +319,29 @@ export default function GoalCard({
         className={`goal-card ${isDissolving ? 'dissolving' : ''}`}
         ref={cardRef}
       >
-        <Card className="border border-neutral-200 shadow-sm shadow-gray-200 rounded-xl hover:shadow-md transition-shadow duration-150 bg-gradient-to-br from-white to-[#f9fafe] min-h-[340px] h-full flex flex-col relative overflow-hidden">
-          {/* Main content area - use flex layout with no unnecessary wrappers */}
+        <Card className="flex flex-col justify-between min-h-[340px] bg-gradient-to-b from-white to-[#f0f6ff] shadow-sm rounded-2xl hover:shadow-md transition-shadow duration-150 h-full relative overflow-hidden">
+          {/* Main content section */}
           <div className="flex flex-col h-full">
-            {/* Upper content with flex-grow */}
-            <div className="pt-6 px-6 sm:px-5 flex-grow flex flex-col mb-auto">
-              <div className="pr-[120px] mb-4">
-                <h3 className="text-base font-semibold">{title}</h3>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">{description}</p>
+            <div className="px-6 pt-6 pb-4 flex-grow">
+              {/* Title + Status Badge */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-base font-semibold">{title}</h3>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{description}</p>
+                </div>
+                <Badge variant="outline" className={`${getBadgeStyles()} text-sm font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full`}>
+                  {status === 'not_started' ? (
+                    <span className="flex items-center">
+                      <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
+                      Not started
+                    </span>
+                  ) : status === 'in_progress' ? 'In progress' : 
+                    status.charAt(0).toUpperCase() + status.slice(1)}
+                </Badge>
               </div>
-              
-              <Badge variant="outline" className={`${getBadgeStyles()} absolute top-4 right-4 text-sm font-medium whitespace-nowrap truncate px-2.5 py-1 rounded-full w-auto max-w-[110px]`}>
-                {status === 'not_started' ? (
-                  <span className="flex items-center">
-                    <span className="h-2 w-2 bg-gray-400 rounded-full mr-1.5"></span>
-                    Not started
-                  </span>
-                ) : status === 'in_progress' ? 'In progress' : 
-                   status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
-              
-              <div className="mt-auto"></div>
 
-              {/* Fixed position progress section */}
-              <div className="mb-4">
+              {/* Progress */}
+              <div className="mt-4">
                 <div className="flex justify-between text-xs mb-1">
                   <span>Progress</span>
                   <span>{progress}%</span>
@@ -357,9 +356,9 @@ export default function GoalCard({
                 </div>
               </div>
 
-              {/* Checklist Toggle and Checklist Items */}
-              {hasChecklist ? (
-                <div className="mb-0">
+              {/* Checklist summary and dropdown */}
+              {hasChecklist && (
+                <div className="mt-3">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -401,25 +400,23 @@ export default function GoalCard({
                     </div>
                   )}
                 </div>
-              ) : null}
+              )}
             </div>
             
-            {/* Footer area - no margin/padding bottom */}
-            <div className="border-t border-gray-100 pt-2 pb-3 px-6 sm:px-5 flex items-center justify-between">
+            {/* Footer: Date and Edit Button (pinned to bottom) */}
+            <div className="flex justify-between items-center px-6 pb-4 pt-3 border-t border-gray-100 mt-auto">
               <div className="text-xs text-neutral-500 flex items-center">
                 <Calendar className="h-3 w-3 mr-1" />
                 {formatDueDate()}
               </div>
-              <div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:text-primary/80 p-1 h-auto"
-                  onClick={() => onEdit(id)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary hover:text-primary/80 p-1 h-auto"
+                onClick={() => onEdit(id)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </Card>
