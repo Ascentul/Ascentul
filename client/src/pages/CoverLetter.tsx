@@ -1743,7 +1743,7 @@ export default function CoverLetter() {
                         </ul>
                       </div>
 
-                      <div className="pt-3 flex flex-col h-full" id="optimizedCoverLetterSection">
+                      <div className="flex flex-col h-full" id="optimizedCoverLetterSection">
                         <div className="flex justify-between items-center mb-2">
                           <h4 className="text-sm font-medium flex items-center">
                             <span className="text-primary mr-1">📝</span> Optimized Cover Letter
@@ -1772,7 +1772,7 @@ export default function CoverLetter() {
                         </div>
 
                         {/* Styled content box with scrollable area */}
-                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6 relative flex-grow">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-0 relative flex-grow">
                           {/* Generation timestamp metadata */}
                           {generationTimestamp && (
                             <div className="absolute top-1 right-2 text-xs text-slate-400 italic">
