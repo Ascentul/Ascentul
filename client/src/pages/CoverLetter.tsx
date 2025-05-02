@@ -1805,8 +1805,8 @@ export default function CoverLetter() {
                         </div>
                       </div>
                       
-                      {/* Button row moved outside white content box, directly on gradient background */}
-                      <div className="grid grid-cols-4 gap-2 mt-4 px-4 pb-4">
+                      {/* Button row aligned with text field and tightly spaced */}
+                      <div className="grid grid-cols-4 gap-2 mt-2 px-4 pb-3">
                         <Button 
                           variant="outline" 
                           className="col-span-1"
