@@ -662,6 +662,112 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
           Close
         </Button>
       </div>
+      
+      {/* Follow-up Form Dialog */}
+      {showFollowUpForm && (
+        <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Schedule Follow-up</DialogTitle>
+              <DialogDescription>
+                Plan your next interaction with {contact.fullName}.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...followUpForm}>
+              <form onSubmit={followUpForm.handleSubmit(handleScheduleFollowUp)} className="space-y-4">
+                <FormField
+                  control={followUpForm.control}
+                  name="followUpDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Follow-up Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date"
+                          value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const date = e.target.value ? new Date(e.target.value) : new Date();
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={followUpForm.control}
+                  name="reminderType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reminder Type</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select reminder type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Email">Email</SelectItem>
+                          <SelectItem value="Notification">Notification</SelectItem>
+                          <SelectItem value="None">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={followUpForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Add notes about the follow-up plan..."
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => setShowFollowUpForm(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={scheduleFollowUpMutation.isPending}
+                  >
+                    {scheduleFollowUpMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Scheduling...
+                      </>
+                    ) : (
+                      'Schedule Follow-up'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
