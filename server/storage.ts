@@ -419,6 +419,12 @@ export interface IStorage {
   // Contact Interactions operations
   getContactInteractions(contactId: number): Promise<ContactInteraction[]>;
   createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction>;
+  
+  // Contact Follow-ups operations
+  getContactFollowUps(contactId: number): Promise<FollowupAction[]>;
+  createContactFollowUp(userId: number, contactId: number, followUp: Partial<InsertFollowupAction>): Promise<FollowupAction>;
+  completeContactFollowUp(id: number): Promise<FollowupAction | undefined>;
+  deleteContactFollowUp(id: number): Promise<boolean>;
 
   // Career Path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
