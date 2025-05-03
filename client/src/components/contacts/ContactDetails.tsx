@@ -966,7 +966,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                           {followUp.reminderType === 'Other' && <CalendarPlus className="h-4 w-4 text-gray-500" />}
                           <div>
                             <CardTitle className="text-base font-medium">
-                              {followUp.reminderType} - {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
+                              {followUp.reminderType} {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
                             </CardTitle>
                             <CardDescription className="text-xs">
                               {followUp.completed 
