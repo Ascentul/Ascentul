@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -268,6 +269,7 @@ export default function UserManagement() {
           <p className="text-muted-foreground">Manage and monitor all users in the system</p>
         </div>
         <div className="flex items-center gap-2 mt-4 sm:mt-0">
+          <AddStaffUserDialog />
           <Button variant="outline" size="sm" onClick={handleExportUsers}>
             <Download className="mr-2 h-4 w-4" />
             Export
@@ -944,15 +946,18 @@ function UserTypeBadge({ type }: { type: string }) {
     case 'university_admin':
       badgeStyles = 'bg-purple-50 text-purple-700 border-purple-200';
       break;
+    case 'staff':
+      badgeStyles = 'bg-amber-50 text-amber-700 border-amber-200';
+      break;
     default:
       badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
   }
   
-  const displayName = type === 'regular' 
-    ? 'Regular' 
-    : type === 'university_student' 
-      ? 'Student' 
-      : 'Admin';
+  let displayName = 'User';
+  if (type === 'regular') displayName = 'Regular';
+  else if (type === 'university_student') displayName = 'Student';
+  else if (type === 'university_admin') displayName = 'Admin';
+  else if (type === 'staff') displayName = 'Staff';
       
   return (
     <span className={`text-xs px-2 py-1 rounded-full border ${badgeStyles}`}>
@@ -1045,7 +1050,160 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Add Staff User Dialog Component
+function AddStaffUserDialog() {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const form = useForm<AddStaffUserFormValues>({
+    resolver: zodResolver(addStaffUserSchema),
+    defaultValues: {
+      username: "",
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const createStaffUserMutation = useMutation({
+    mutationFn: async (values: AddStaffUserFormValues) => {
+      const res = await apiRequest('POST', '/api/admin/create-staff', values);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create staff user');
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Staff user created",
+        description: `${data.user.name} was added as a staff member.`,
+      });
+      setOpen(false);
+      form.reset();
+      // Refresh the users list
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error creating staff user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  function onSubmit(values: AddStaffUserFormValues) {
+    createStaffUserMutation.mutate(values);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Staff User
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add Staff User</DialogTitle>
+          <DialogDescription>
+            Create a new staff user account. Staff users will have access to administrative features with limited permissions.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="staffuser" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Staff Member Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="staff@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Set a strong temporary password for this staff user.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter className="mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={createStaffUserMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createStaffUserMutation.isPending}
+              >
+                {createStaffUserMutation.isPending ? (
+                  <>
+                    <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  "Create Staff User"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Helper function to create mock user data for demonstration
+
 function createMockUser(id: number): User {
   const userTypes = ['regular', 'university_student', 'university_admin'] as const;
   const universities = ['MIT', 'Stanford', 'Harvard', 'Berkeley'];
