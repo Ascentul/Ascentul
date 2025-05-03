@@ -500,6 +500,7 @@ export class MemStorage implements IStorage {
   private supportTicketIdCounter: number;
   private projectIdCounter: number;
   private networkingContactIdCounter: number;
+  private contactInteractionIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -535,6 +536,7 @@ export class MemStorage implements IStorage {
     this.jobApplications = new Map();
     this.applicationWizardSteps = new Map();
     this.networkingContacts = new Map();
+    this.contactInteractions = new Map();
 
     this.userIdCounter = 1;
     this.goalIdCounter = 1;
@@ -566,6 +568,7 @@ export class MemStorage implements IStorage {
     this.supportTicketIdCounter = 1;
     this.projectIdCounter = 1;
     this.networkingContactIdCounter = 1;
+    this.contactInteractionIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
@@ -1489,6 +1492,38 @@ export class MemStorage implements IStorage {
         if (!b.lastContactedDate) return 1;
         return a.lastContactedDate.getTime() - b.lastContactedDate.getTime();
       });
+  }
+  
+  // Contact Interactions methods
+  async getContactInteractions(contactId: number): Promise<ContactInteraction[]> {
+    return Array.from(this.contactInteractions.values())
+      .filter(interaction => interaction.contactId === contactId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction> {
+    const newInteraction: ContactInteraction = {
+      id: this.contactInteractionIdCounter++,
+      userId,
+      contactId,
+      interactionType: interaction.interactionType,
+      notes: interaction.notes || null,
+      date: interaction.date || new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.contactInteractions.set(newInteraction.id, newInteraction);
+    
+    // Update the last contacted date on the contact
+    const contact = await this.getNetworkingContact(contactId);
+    if (contact) {
+      await this.updateNetworkingContact(contactId, {
+        lastContactedDate: newInteraction.date
+      });
+    }
+    
+    return newInteraction;
   }
   
   // Certification operations
