@@ -565,6 +565,16 @@ interface CareerProfileData {
 // Starter career paths removed as no longer needed
 
 export default function CareerPathExplorer() {
+  // We'll use the router for navigation instead of direct window.location
+  const navigate = (path: string) => {
+    // This is a safe way to navigate programmatically
+    const link = document.createElement('a');
+    link.href = path;
+    link.setAttribute('data-navigation', 'true');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   const { toast } = useToast();
   const [activePath, setActivePath] = useState<CareerPath>(careerPaths[0]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -1207,13 +1217,8 @@ export default function CareerPathExplorer() {
                         
                         toast({
                           title: "Career Goal Created",
-                          description: `"${goalTitle}" has been added to your career goals tracker.`,
+                          description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
                         });
-                        
-                        // Navigate to goals page to see the new goal
-                        setTimeout(() => {
-                          window.location.href = '/goals';
-                        }, 1500);
                       } else {
                         throw new Error("Failed to create goal");
                       }
@@ -1477,13 +1482,8 @@ export default function CareerPathExplorer() {
                         
                         toast({
                           title: "Career Goal Created",
-                          description: `"${goalTitle}" has been added to your career goals tracker.`,
+                          description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
                         });
-                        
-                        // Navigate to goals page to see the new goal
-                        setTimeout(() => {
-                          window.location.href = '/goals';
-                        }, 1500);
                       } else {
                         throw new Error("Failed to create goal");
                       }
