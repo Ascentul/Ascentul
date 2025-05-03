@@ -1125,6 +1125,82 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
           }}
         />
       )}
+      
+      {/* Materials Selection Modal */}
+      <Dialog open={showMaterialsModal} onOpenChange={setShowMaterialsModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Select Application Materials</DialogTitle>
+            <DialogDescription>
+              Choose the resume and cover letter you used for this job application.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="resume">Resume</Label>
+              <Select 
+                value={selectedResume?.id} 
+                onValueChange={(value) => {
+                  const fakeResumes = [
+                    { id: "resume-1", title: "Software Engineer Resume" },
+                    { id: "resume-2", title: "Product Manager Resume" },
+                    { id: "resume-3", title: "Data Scientist Resume" }
+                  ];
+                  const selected = fakeResumes.find(r => r.id === value);
+                  if (selected) setSelectedResume(selected);
+                }}
+              >
+                <SelectTrigger id="resume">
+                  <SelectValue placeholder="Select a resume" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="resume-1">Software Engineer Resume</SelectItem>
+                  <SelectItem value="resume-2">Product Manager Resume</SelectItem>
+                  <SelectItem value="resume-3">Data Scientist Resume</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="cover-letter">Cover Letter</Label>
+              <Select 
+                value={selectedCoverLetter?.id} 
+                onValueChange={(value) => {
+                  const fakeCoverLetters = [
+                    { id: "cl-1", title: "Software Engineer Cover Letter" },
+                    { id: "cl-2", title: "Product Manager Cover Letter" },
+                    { id: "cl-3", title: "Data Scientist Cover Letter" }
+                  ];
+                  const selected = fakeCoverLetters.find(r => r.id === value);
+                  if (selected) setSelectedCoverLetter(selected);
+                }}
+              >
+                <SelectTrigger id="cover-letter">
+                  <SelectValue placeholder="Select a cover letter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cl-1">Software Engineer Cover Letter</SelectItem>
+                  <SelectItem value="cl-2">Product Manager Cover Letter</SelectItem>
+                  <SelectItem value="cl-3">Data Scientist Cover Letter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => {
+              setShowMaterialsModal(false);
+              setPendingStatus(null);
+            }}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleApplyWithMaterials}>
+              Apply with Selected Materials
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
