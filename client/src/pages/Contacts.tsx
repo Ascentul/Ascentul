@@ -275,7 +275,7 @@ export default function Contacts() {
             }
           }}
         >
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               All Contacts
@@ -287,10 +287,6 @@ export default function Contacts() {
             <TabsTrigger value="follow-up" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Need Follow-up
-            </TabsTrigger>
-            <TabsTrigger value="recent" className="flex items-center gap-2">
-              <UserRound className="w-4 h-4" />
-              Recently Added
             </TabsTrigger>
           </TabsList>
 
@@ -346,22 +342,6 @@ export default function Contacts() {
                   // Mark the follow-up as completed via API
                   completeFollowUpMutation.mutate(followUpId);
                 }}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="recent">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ContactsTable
-                contacts={[...contacts].sort((a, b) => 
-                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                ).slice(0, 10)}
-                onSelectContact={handleSelectContact}
-                onDeleteContact={handleDeleteContact}
               />
             )}
           </TabsContent>
