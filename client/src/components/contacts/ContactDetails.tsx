@@ -407,12 +407,164 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
 
         {/* Interactions Tab */}
         <TabsContent value="interactions" className="py-4">
-          <div className="text-center py-6">
-            <Clock className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-            <h3 className="text-lg font-medium mt-4">Interaction history is not available</h3>
-            <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-              This feature is coming soon. You will be able to track all interactions, meetings, and communications with this contact.
-            </p>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Interaction History</h3>
+              <Button 
+                size="sm" 
+                onClick={() => setShowInteractionForm(true)}
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" /> Log Interaction
+              </Button>
+            </div>
+            
+            {/* Interaction Form Dialog */}
+            {showInteractionForm && (
+              <Dialog open={showInteractionForm} onOpenChange={setShowInteractionForm}>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Log New Interaction</DialogTitle>
+                  </DialogHeader>
+                  
+                  <Form {...interactionForm}>
+                    <form onSubmit={interactionForm.handleSubmit(handleLogInteraction)} className="space-y-4">
+                      <FormField
+                        control={interactionForm.control}
+                        name="interactionType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Interaction Type</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select interaction type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Call">Call</SelectItem>
+                                <SelectItem value="Email">Email</SelectItem>
+                                <SelectItem value="Meeting">Meeting</SelectItem>
+                                <SelectItem value="Video Call">Video Call</SelectItem>
+                                <SelectItem value="Coffee Chat">Coffee Chat</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={interactionForm.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Date</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="date"
+                                value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                                onChange={(e) => {
+                                  const date = e.target.value ? new Date(e.target.value) : new Date();
+                                  field.onChange(date);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={interactionForm.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter notes about this interaction" 
+                                className="min-h-[100px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => setShowInteractionForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={logInteractionMutation.isPending}
+                        >
+                          {logInteractionMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Interaction'
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            {/* Interaction List */}
+            {isLoadingInteractions ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : interactions.length > 0 ? (
+              <div className="space-y-4">
+                {interactions.map((interaction) => (
+                  <Card key={interaction.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          {interaction.interactionType === 'Call' && <Phone className="h-4 w-4 text-blue-500" />}
+                          {interaction.interactionType === 'Email' && <Mail className="h-4 w-4 text-green-500" />}
+                          {interaction.interactionType === 'Meeting' && <Users className="h-4 w-4 text-purple-500" />}
+                          {interaction.interactionType === 'Video Call' && <Video className="h-4 w-4 text-red-500" />}
+                          {interaction.interactionType === 'Coffee Chat' && <Coffee className="h-4 w-4 text-amber-500" />}
+                          {interaction.interactionType === 'Other' && <MessageSquare className="h-4 w-4 text-gray-500" />}
+                          <CardTitle className="text-base">{interaction.interactionType}</CardTitle>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(interaction.date), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{interaction.notes}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Clock className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mt-4">No interactions yet</h3>
+                <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                  Record your calls, meetings, and other communications with this contact to keep track of your relationship.
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
 
