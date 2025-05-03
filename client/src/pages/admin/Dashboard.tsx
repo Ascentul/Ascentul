@@ -396,6 +396,8 @@ export default function AdminDashboard() {
     switch(activeTab) {
       case 'overview':
         return <AdminOverview />;
+      case 'users':
+        return <UserManagement />;
       case 'support':
         return <SupportPage />;
       case 'ai-models':
