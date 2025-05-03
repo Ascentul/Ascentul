@@ -726,13 +726,26 @@ export default function CareerPathExplorer() {
           onValueChange={(value) => setExplorationMode(value as 'target' | 'profile')}
           className="w-auto"
         >
-          <TabsList className="grid grid-cols-2 w-full min-w-[400px]">
-            <TabsTrigger value="target" className="flex items-center justify-center gap-1.5">
-              <span className="text-base">🎯</span>
+          <TabsList 
+            className="mb-4 bg-gray-100 rounded-md p-1" 
+            role="tablist"
+          >
+            <TabsTrigger 
+              value="target" 
+              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              role="tab"
+              aria-selected={explorationMode === 'target'}
+              tabIndex={explorationMode === 'target' ? 0 : -1}
+            >
               <span>Search Target Role</span>
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center justify-center gap-1.5">
-              <span className="text-base">⚡</span>
+            <TabsTrigger 
+              value="profile" 
+              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              role="tab"
+              aria-selected={explorationMode === 'profile'}
+              tabIndex={explorationMode === 'profile' ? 0 : -1}
+            >
               <span>Suggested Paths for Me</span>
             </TabsTrigger>
           </TabsList>
