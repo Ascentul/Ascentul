@@ -490,7 +490,7 @@ export default function AnalyticsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {analyticsData?.topUsers.map((user, index) => (
+              {analyticsData?.topUsers?.map((user, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
