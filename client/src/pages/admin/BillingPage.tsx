@@ -1,93 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, addDays } from 'date-fns';
-import { 
-  Search, 
-  Copy, 
-  MoreHorizontal, 
-  Users, 
-  User,
-  Building, 
-  Calendar, 
-  CreditCard, 
-  ExternalLink,
-  Mail, 
-  AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
-  RefreshCw,
-  Download,
-  FileDown,
-  Eye,
-  Edit,
-  Ban,
-  UserPlus,
-  RotateCcw,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Filter
-} from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
-import { useUser, useIsAdminUser } from '@/lib/useUserData';
-import { useLocation } from 'wouter';
-
-// UI Components
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { ChevronLeft, Download, Eye, MoreHorizontal, RefreshCw, Search, Mail, CreditCard, Calendar, Clock, AlertTriangle, User, Building2, BadgeCheck } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-} from '@/components/ui/sheet';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { DrawerContent, DrawerClose, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, Drawer } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
-// Types for our billing data
+// Customer interface
 interface Customer {
   id: number;
   stripeCustomerId: string;
@@ -120,803 +46,623 @@ interface PaymentRecord {
   invoiceUrl?: string;
 }
 
-// Mock data generator to simulate API response
+// Generate mock data for development purposes
 function generateMockData(): Customer[] {
-  const userTypes: ('Pro' | 'University')[] = ['Pro', 'University'];
-  const statuses: ('Active' | 'Canceled' | 'Trialing')[] = ['Active', 'Canceled', 'Trialing'];
-  const paymentStatuses: ('Paid' | 'Failed' | 'Pending')[] = ['Paid', 'Failed', 'Pending'];
-  const proPlans = ['Monthly Pro', 'Annual Pro', 'Premium Pro'];
-  const universityPlans = ['Basic University', 'Standard University', 'Enterprise University'];
+  const customers: Customer[] = [];
   
-  return Array.from({ length: 50 }, (_, i) => {
-    const userType = userTypes[Math.floor(Math.random() * userTypes.length)];
-    const isUniversity = userType === 'University';
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const now = new Date();
-    const seats = isUniversity ? Math.floor(Math.random() * 900) + 100 : undefined;
-    const usedSeats = isUniversity ? Math.floor(Math.random() * seats!) : undefined;
+  // Pro users
+  for (let i = 1; i <= 10; i++) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 12));
     
-    const paymentHistory: PaymentRecord[] = Array.from({ length: Math.floor(Math.random() * 10) + 1 }, (_, j) => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - j);
-      const status = paymentStatuses[Math.floor(Math.random() * paymentStatuses.length)];
+    const renewalDate = new Date(startDate);
+    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
+    
+    const nextPaymentDate = new Date();
+    nextPaymentDate.setDate(nextPaymentDate.getDate() + Math.floor(Math.random() * 30));
+    
+    const paymentHistory: PaymentRecord[] = [];
+    let totalPaid = 0;
+    
+    // Generate payment history
+    for (let j = 0; j < Math.floor(Math.random() * 8) + 1; j++) {
+      const paymentDate = new Date(startDate);
+      paymentDate.setMonth(paymentDate.getMonth() + j);
       
-      return {
-        id: `inv_${Math.random().toString(36).substr(2, 9)}`,
-        date: date.toISOString(),
-        amount: isUniversity ? (Math.floor(Math.random() * 5000) + 1000) : (Math.floor(Math.random() * 300) + 50),
-        status,
-        invoiceUrl: status === 'Paid' ? `https://dashboard.stripe.com/invoices/inv_example${i}${j}` : undefined
-      };
+      const amount = 15.00; // Standard monthly rate
+      totalPaid += amount;
+      
+      paymentHistory.push({
+        id: `inv_${Math.random().toString(36).substring(2, 10)}`,
+        date: paymentDate.toISOString(),
+        amount: amount,
+        status: Math.random() > 0.1 ? 'Paid' : (Math.random() > 0.5 ? 'Failed' : 'Pending'),
+        invoiceUrl: `https://stripe.com/invoice/${Math.random().toString(36).substring(2, 10)}`
+      });
+    }
+    
+    customers.push({
+      id: i,
+      stripeCustomerId: `cus_${Math.random().toString(36).substring(2, 10)}`,
+      name: `User ${i}`,
+      email: `user${i}@example.com`,
+      userType: 'Pro',
+      status: Math.random() > 0.2 ? 'Active' : (Math.random() > 0.5 ? 'Canceled' : 'Trialing'),
+      nextPaymentDate: nextPaymentDate.toISOString(),
+      totalAmountPaid: parseFloat(totalPaid.toFixed(2)),
+      currentPlan: 'Pro Monthly',
+      paymentMethod: {
+        type: 'card',
+        brand: ['Visa', 'Mastercard', 'Amex'][Math.floor(Math.random() * 3)],
+        last4: Math.floor(1000 + Math.random() * 9000).toString(),
+        expMonth: Math.floor(1 + Math.random() * 12),
+        expYear: new Date().getFullYear() + Math.floor(Math.random() * 5)
+      },
+      paymentHistory,
+      subscriptionStart: startDate.toISOString(),
+      subscriptionRenewal: renewalDate.toISOString()
     });
+  }
+  
+  // University customers
+  for (let i = 1; i <= 5; i++) {
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 10));
     
-    const totalPaid = paymentHistory
-      .filter(p => p.status === 'Paid')
-      .reduce((sum, p) => sum + p.amount, 0);
+    const renewalDate = new Date(startDate);
+    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
     
-    const nextPaymentDate = addDays(now, Math.floor(Math.random() * 30) + 1).toISOString();
-    const subscriptionStart = new Date(now);
-    subscriptionStart.setMonth(subscriptionStart.getMonth() - Math.floor(Math.random() * 12));
+    const nextPaymentDate = new Date();
+    nextPaymentDate.setDate(nextPaymentDate.getDate() + Math.floor(Math.random() * 90));
     
-    const subscriptionRenewal = new Date(now);
-    subscriptionRenewal.setMonth(subscriptionRenewal.getMonth() + Math.floor(Math.random() * 12));
+    const seats = Math.floor(Math.random() * 900) + 100;
+    const usedSeats = Math.floor(Math.random() * seats);
     
-    return {
-      id: i + 1,
-      stripeCustomerId: `cus_${Math.random().toString(36).substr(2, 9)}`,
-      name: isUniversity 
-        ? `${['Stanford', 'Harvard', 'MIT', 'Berkeley', 'Oxford', 'Cambridge', 'Yale', 'Princeton'][Math.floor(Math.random() * 8)]} University` 
-        : `${['John', 'Jane', 'Alex', 'Sara', 'Mike', 'Emily', 'Sam', 'Olivia'][Math.floor(Math.random() * 8)]} ${['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'][Math.floor(Math.random() * 8)]}`,
-      email: isUniversity 
-        ? `admin@${['stanford', 'harvard', 'mit', 'berkeley', 'oxford', 'cambridge', 'yale', 'princeton'][Math.floor(Math.random() * 8)]}.edu`.toLowerCase() 
-        : `${['john', 'jane', 'alex', 'sara', 'mike', 'emily', 'sam', 'olivia'][Math.floor(Math.random() * 8)]}.${['smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis'][Math.floor(Math.random() * 8)]}@example.com`.toLowerCase(),
-      userType,
-      status,
-      nextPaymentDate,
-      totalAmountPaid: totalPaid,
-      currentPlan: isUniversity ? universityPlans[Math.floor(Math.random() * universityPlans.length)] : proPlans[Math.floor(Math.random() * proPlans.length)],
+    const paymentHistory: PaymentRecord[] = [];
+    let totalPaid = 0;
+    
+    // Generate payment history for universities
+    for (let j = 0; j < Math.floor(Math.random() * 4) + 1; j++) {
+      const paymentDate = new Date(startDate);
+      paymentDate.setMonth(paymentDate.getMonth() + j * 3); // Quarterly payments
+      
+      const amount = seats * 10; // $10 per seat
+      totalPaid += amount;
+      
+      paymentHistory.push({
+        id: `inv_${Math.random().toString(36).substring(2, 10)}`,
+        date: paymentDate.toISOString(),
+        amount: amount,
+        status: Math.random() > 0.05 ? 'Paid' : (Math.random() > 0.5 ? 'Failed' : 'Pending'),
+        invoiceUrl: `https://stripe.com/invoice/${Math.random().toString(36).substring(2, 10)}`
+      });
+    }
+    
+    customers.push({
+      id: i + 10,
+      stripeCustomerId: `cus_${Math.random().toString(36).substring(2, 10)}`,
+      name: `University ${i}`,
+      email: `admin@university${i}.edu`,
+      userType: 'University',
+      status: Math.random() > 0.1 ? 'Active' : (Math.random() > 0.5 ? 'Canceled' : 'Trialing'),
+      nextPaymentDate: nextPaymentDate.toISOString(),
+      totalAmountPaid: parseFloat(totalPaid.toFixed(2)),
+      currentPlan: 'University Plan',
       seats,
       usedSeats,
       paymentMethod: {
         type: 'card',
-        brand: ['Visa', 'Mastercard', 'Amex', 'Discover'][Math.floor(Math.random() * 4)],
-        last4: Math.floor(Math.random() * 10000).toString().padStart(4, '0'),
-        expMonth: Math.floor(Math.random() * 12) + 1,
-        expYear: 2024 + Math.floor(Math.random() * 5)
+        brand: ['Visa', 'Mastercard', 'Amex'][Math.floor(Math.random() * 3)],
+        last4: Math.floor(1000 + Math.random() * 9000).toString(),
+        expMonth: Math.floor(1 + Math.random() * 12),
+        expYear: new Date().getFullYear() + Math.floor(Math.random() * 5)
       },
       paymentHistory,
-      subscriptionStart: subscriptionStart.toISOString(),
-      subscriptionRenewal: subscriptionRenewal.toISOString()
-    };
-  });
+      subscriptionStart: startDate.toISOString(),
+      subscriptionRenewal: renewalDate.toISOString()
+    });
+  }
+  
+  return customers;
 }
 
-// Billing Page Component
+// Utility function to get status badge variant
+function getBadgeVariantForStatus(status: string): "default" | "destructive" | "outline" | "secondary" | null | undefined {
+  switch (status) {
+    case 'Active':
+      return 'default';
+    case 'Canceled':
+      return 'destructive';
+    case 'Trialing':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
+}
+
 export default function BillingPage() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // State for filtering
-  const [searchTerm, setSearchTerm] = useState('');
-  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  
-  // Query for customer data
-  const { data: customers = [], isLoading } = useQuery({
-    queryKey: ['/api/admin/billing/customers', customerTypeFilter, statusFilter, searchTerm],
+  const [customerFilter, setCustomerFilter] = useState('all');
+
+  // Fetch customers data
+  const { data: customers = [], isLoading, refetch } = useQuery({
+    queryKey: ['customers'],
     queryFn: async () => {
-      try {
-        // In a real app, this would be an API call
-        // const response = await apiRequest('GET', '/api/admin/billing/customers');
-        // return await response.json();
-        
-        // For now, return mock data
-        return generateMockData();
-      } catch (error) {
-        console.error("Error fetching billing data:", error);
-        toast({
-          title: "Error fetching billing data",
-          description: "Failed to load customer billing information",
-          variant: "destructive"
-        });
-        return [];
-      }
-    }
+      // In a real application, this would be an API call
+      // For now, we'll use mock data
+      return generateMockData();
+    },
   });
-  
-  // Filter customers based on search and filters
-  const filteredCustomers = customers
-    .filter(customer => {
-      // Search term filter
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase();
-        return customer.name.toLowerCase().includes(search) ||
-               customer.email.toLowerCase().includes(search) ||
-               customer.stripeCustomerId.toLowerCase().includes(search);
-      }
-      return true;
-    })
-    .filter(customer => {
-      // Customer type filter
-      if (customerTypeFilter === 'all') return true;
-      return customer.userType.toLowerCase() === customerTypeFilter.toLowerCase();
-    })
-    .filter(customer => {
-      // Status filter
-      if (statusFilter === 'all') return true;
-      return customer.status.toLowerCase() === statusFilter.toLowerCase();
-    });
+
+  // Filter customers based on search query and customer type filter
+  const filteredCustomers = customers.filter((customer) => {
+    const matchesSearch = 
+      customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.stripeCustomerId.toLowerCase().includes(searchQuery.toLowerCase());
     
-  // Pagination settings
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const paginatedCustomers = filteredCustomers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  
-  // Handle customer row click to view details
+    const matchesFilter = 
+      customerFilter === 'all' || 
+      (customerFilter === 'pro' && customer.userType === 'Pro') ||
+      (customerFilter === 'university' && customer.userType === 'University');
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Handle customer row click
   const handleCustomerRowClick = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDrawerOpen(true);
   };
-  
-  // Mutation for canceling subscription
+
+  // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async (customerId: number) => {
-      // This would be an API call in a real app
-      await new Promise(resolve => setTimeout(resolve, 500)); // simulate API delay
-      return { success: true, customerId };
+      // In a real app, this would call an API
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      return { success: true };
     },
-    onSuccess: (data) => {
-      // Update the customer status in the cache
-      queryClient.setQueryData(
-        ['/api/admin/billing/customers', customerTypeFilter, statusFilter, searchTerm],
-        (oldData: Customer[] | undefined) => 
-          oldData?.map(customer => 
-            customer.id === data.customerId
-              ? { ...customer, status: 'Canceled' }
-              : customer
-          )
-      );
-      
+    onSuccess: () => {
       toast({
-        title: "Subscription Canceled",
-        description: "The customer's subscription has been canceled."
+        title: "Subscription canceled",
+        description: "The customer's subscription has been canceled.",
       });
-      
-      // Update the selected customer if we're looking at them
-      if (selectedCustomer && selectedCustomer.id === data.customerId) {
-        setSelectedCustomer({
-          ...selectedCustomer,
-          status: 'Canceled'
-        });
-      }
+      setIsDrawerOpen(false);
+      refetch();
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to cancel subscription: ${error.message}`,
-        variant: "destructive"
+        title: "Error canceling subscription",
+        description: error.message,
+        variant: "destructive",
       });
-    }
-  });
-  
-  // Mutation for retrying payment
-  const retryPaymentMutation = useMutation({
-    mutationFn: async (invoiceId: string) => {
-      // This would be an API call in a real app
-      await new Promise(resolve => setTimeout(resolve, 500)); // simulate API delay
-      return { success: true, invoiceId };
     },
-    onSuccess: (data) => {
-      // Update the payment status in the cache
-      if (selectedCustomer) {
-        const updatedHistory = selectedCustomer.paymentHistory.map(payment =>
-          payment.id === data.invoiceId
-            ? { ...payment, status: 'Paid' as const }
-            : payment
-        );
-        
-        setSelectedCustomer({
-          ...selectedCustomer,
-          paymentHistory: updatedHistory
-        });
-        
-        // Also update in the main customers list
-        queryClient.setQueryData(
-          ['/api/admin/billing/customers', customerTypeFilter, statusFilter, searchTerm],
-          (oldData: Customer[] | undefined) => 
-            oldData?.map(customer => 
-              customer.id === selectedCustomer.id
-                ? { ...customer, paymentHistory: updatedHistory }
-                : customer
-            )
-        );
-      }
-      
+  });
+
+  // Reactivate subscription mutation
+  const reactivateSubscriptionMutation = useMutation({
+    mutationFn: async (customerId: number) => {
+      // In a real app, this would call an API
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      return { success: true };
+    },
+    onSuccess: () => {
       toast({
-        title: "Payment Retried",
-        description: "The payment has been successfully processed."
+        title: "Subscription reactivated",
+        description: "The customer's subscription has been reactivated.",
+      });
+      setIsDrawerOpen(false);
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error reactivating subscription",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update payment method mutation
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: async (customerId: number) => {
+      // In a real app, this would call an API
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Request sent",
+        description: "A payment update request has been sent to the customer.",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: `Failed to retry payment: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-  
-  // Mutation for updating seats
-  const updateSeatsMutation = useMutation({
-    mutationFn: async ({ customerId, newSeats }: { customerId: number, newSeats: number }) => {
-      // This would be an API call in a real app
-      await new Promise(resolve => setTimeout(resolve, 500)); // simulate API delay
-      return { success: true, customerId, newSeats };
-    },
-    onSuccess: (data) => {
-      // Update the seats in the cache
-      queryClient.setQueryData(
-        ['/api/admin/billing/customers', customerTypeFilter, statusFilter, searchTerm],
-        (oldData: Customer[] | undefined) => 
-          oldData?.map(customer => 
-            customer.id === data.customerId
-              ? { ...customer, seats: data.newSeats }
-              : customer
-          )
-      );
-      
-      // Update the selected customer if we're looking at them
-      if (selectedCustomer && selectedCustomer.id === data.customerId) {
-        setSelectedCustomer({
-          ...selectedCustomer,
-          seats: data.newSeats
-        });
-      }
-      
-      toast({
-        title: "Seats Updated",
-        description: `The license seats have been updated to ${data.newSeats}.`
+        title: "Error sending payment update request",
+        description: error.message,
+        variant: "destructive",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update seats: ${error.message}`,
-        variant: "destructive"
-      });
-    }
   });
-  
-  // Export customer billing data as CSV
-  const exportBillingData = () => {
-    const headers = [
-      'Customer Name',
-      'Email',
-      'Type',
-      'Status',
-      'Current Plan',
-      'Next Payment',
-      'Total Paid'
-    ];
-    
-    const csvRows = [
-      headers.join(','),
-      ...filteredCustomers.map(c => [
-        `"${c.name}"`,
-        `"${c.email}"`,
-        c.userType,
-        c.status,
-        `"${c.currentPlan}"`,
-        format(new Date(c.nextPaymentDate), 'MM/dd/yyyy'),
-        `$${c.totalAmountPaid.toFixed(2)}`
-      ].join(','))
-    ];
-    
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `billing-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Export Complete",
-      description: "Billing data has been exported as CSV."
-    });
-  };
-  
-  // Pagination handlers
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-  
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-  
-  // Reset filters
-  const resetFilters = () => {
-    setSearchTerm('');
-    setCustomerTypeFilter('all');
-    setStatusFilter('all');
-    setCurrentPage(1);
-  };
-  
-  // Handlers for the drawer actions
-  const handleUpdateSeats = (newSeats: number) => {
-    if (selectedCustomer) {
-      updateSeatsMutation.mutate({ customerId: selectedCustomer.id, newSeats });
-    }
-  };
-  
-  const handleCancelSubscription = () => {
-    if (selectedCustomer && selectedCustomer.status !== 'Canceled') {
-      if (window.confirm(`Are you sure you want to cancel the subscription for ${selectedCustomer.name}?`)) {
-        cancelSubscriptionMutation.mutate(selectedCustomer.id);
-      }
-    }
-  };
-  
-  const handleRetryPayment = (invoiceId: string) => {
-    retryPaymentMutation.mutate(invoiceId);
-  };
-  
-  const openStripeCustomer = () => {
-    if (selectedCustomer) {
-      window.open(`https://dashboard.stripe.com/customers/${selectedCustomer.stripeCustomerId}`, '_blank');
-    }
-  };
-  
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Billing Management</h1>
-          <p className="text-muted-foreground">View and manage customer subscriptions and payments</p>
+          <h2 className="text-3xl font-bold tracking-tight">Billing & Payments</h2>
+          <p className="text-muted-foreground">Manage customer subscriptions and payments</p>
         </div>
-        <div className="flex items-center gap-2 mt-4 sm:mt-0">
-          <Button variant="outline" onClick={exportBillingData}>
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-      
-      {/* Filter Tabs */}
-      <Tabs defaultValue="all" onValueChange={setCustomerTypeFilter}>
-        <TabsList>
-          <TabsTrigger value="all">All Customers</TabsTrigger>
-          <TabsTrigger value="pro">Pro Users</TabsTrigger>
-          <TabsTrigger value="university">Universities</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      {/* Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search by name, email, or customer ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-            prefix={<Search className="h-4 w-4 text-muted-foreground" />}
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="canceled">Canceled</SelectItem>
-            <SelectItem value="trialing">Trialing</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="ghost" size="icon" onClick={resetFilters}>
-          <RefreshCw className="h-4 w-4" />
+        <Button onClick={() => refetch()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
         </Button>
       </div>
-      
-      {/* Customers Table */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Next Payment</TableHead>
-                <TableHead>Total Paid</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+
+      <Tabs defaultValue="all" className="w-full" onValueChange={setCustomerFilter}>
+        <div className="flex justify-between items-center mb-4">
+          <TabsList>
+            <TabsTrigger value="all">All Customers</TabsTrigger>
+            <TabsTrigger value="pro">Pro Users</TabsTrigger>
+            <TabsTrigger value="university">Universities</TabsTrigger>
+          </TabsList>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="w-[240px] pl-8"
+              placeholder="Search customers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-                      Loading customer data...
-                    </div>
-                  </TableCell>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>User Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Next Payment</TableHead>
+                  <TableHead className="text-right">Amount Paid</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : paginatedCustomers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No customers found matching your filters
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedCustomers.map((customer) => (
-                  <TableRow 
-                    key={customer.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleCustomerRowClick(customer)}
-                  >
-                    <TableCell>
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {customer.currentPlan}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex justify-center items-center">
+                        <RefreshCw className="animate-spin h-5 w-5 mr-2 text-muted-foreground" />
+                        <span>Loading customers...</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <span className="mr-2">{customer.email}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(customer.email);
-                            toast({
-                              title: "Email Copied",
-                              description: "Email address copied to clipboard",
-                              variant: "default"
-                            });
-                          }}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={customer.userType === 'Pro' ? 'default' : 'secondary'}>
-                        {customer.userType === 'Pro' ? (
-                          <User className="mr-1 h-3 w-3" />
-                        ) : (
-                          <Building className="mr-1 h-3 w-3" />
-                        )}
-                        {customer.userType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          customer.status === 'Active' ? 'success' :
-                          customer.status === 'Trialing' ? 'warning' : 'destructive'
-                        }
-                      >
-                        {customer.status === 'Active' ? (
-                          <CheckCircle className="mr-1 h-3 w-3" />
-                        ) : customer.status === 'Trialing' ? (
-                          <Clock className="mr-1 h-3 w-3" />
-                        ) : (
-                          <XCircle className="mr-1 h-3 w-3" />
-                        )}
-                        {customer.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(customer.nextPaymentDate), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      ${customer.totalAmountPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleCustomerRowClick(customer)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Billing
-                          </DropdownMenuItem>
-                          
-                          {customer.userType === 'University' && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              const newSeats = window.prompt("Enter new number of seats:", customer.seats?.toString());
-                              if (newSeats && !isNaN(parseInt(newSeats))) {
-                                handleUpdateSeats(parseInt(newSeats));
-                              }
-                            }}>
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              Update Seats
-                            </DropdownMenuItem>
-                          )}
-                          
-                          {customer.status !== 'Canceled' && (
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelSubscription();
-                            }}>
-                              <Ban className="mr-2 h-4 w-4" />
-                              Cancel Subscription
-                            </DropdownMenuItem>
-                          )}
-                          
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`https://dashboard.stripe.com/customers/${customer.stripeCustomerId}`, '_blank');
-                          }}>
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            View in Stripe
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-        
-        {/* Pagination Footer */}
-        {filteredCustomers.length > 0 && (
-          <CardFooter className="flex items-center justify-between border-t p-4">
-            <div className="text-sm text-muted-foreground">
-              Showing {Math.min(filteredCustomers.length, (currentPage - 1) * itemsPerPage + 1)}-
-              {Math.min(filteredCustomers.length, currentPage * itemsPerPage)} of {filteredCustomers.length} customers
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={prevPage}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={nextPage}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </CardFooter>
-        )}
-      </Card>
-      
+                ) : filteredCustomers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <p className="text-muted-foreground">No customers found</p>
+                      {searchQuery && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Try adjusting your search query
+                        </p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <TableRow
+                      key={customer.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleCustomerRowClick(customer)}
+                    >
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <div className="font-medium">{customer.name}</div>
+                          <div className="text-sm text-muted-foreground">{customer.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal flex items-center">
+                          {customer.userType === 'Pro' ? (
+                            <User className="h-3 w-3 mr-1" />
+                          ) : (
+                            <Building2 className="h-3 w-3 mr-1" />
+                          )}
+                          <span>{customer.userType}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getBadgeVariantForStatus(customer.status)}>
+                          {customer.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {customer.status === 'Canceled' ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          format(new Date(customer.nextPaymentDate), 'MMM d, yyyy')
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${customer.totalAmountPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={(e) => {
+                          e.stopPropagation();
+                          handleCustomerRowClick(customer);
+                        }}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+          {!isLoading && filteredCustomers.length > 0 && (
+            <CardFooter className="py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredCustomers.length} of {customers.length} customers
+              </div>
+            </CardFooter>
+          )}
+        </Card>
+      </Tabs>
+
       {/* Customer Details Drawer */}
-      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent className="sm:max-w-md overflow-y-auto">
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
           {selectedCustomer && (
             <>
-              <SheetHeader>
-                <SheetTitle>Billing Details</SheetTitle>
-                <SheetDescription>
-                  Customer and subscription information
-                </SheetDescription>
-              </SheetHeader>
-              
-              <div className="space-y-6 py-6">
-                {/* Customer Info */}
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">{selectedCustomer.name}</h3>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Mail className="mr-2 h-4 w-4" />
-                    {selectedCustomer.email}
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Badge 
-                      variant={
-                        selectedCustomer.status === 'Active' ? 'success' :
-                        selectedCustomer.status === 'Trialing' ? 'warning' : 'destructive'
-                      }
-                      className="mr-2"
-                    >
-                      {selectedCustomer.status}
-                    </Badge>
-                    <Badge variant="outline">
-                      {selectedCustomer.userType}
-                    </Badge>
-                  </div>
+              <DrawerHeader>
+                <div className="flex items-center">
+                  <DrawerClose asChild>
+                    <Button variant="ghost" size="icon" className="mr-2">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </DrawerClose>
+                  <DrawerTitle>Customer Details</DrawerTitle>
                 </div>
-                
-                {/* Subscription Details */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium border-b pb-2">Subscription Details</h4>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="text-muted-foreground">Stripe ID</div>
-                    <div className="font-mono">{selectedCustomer.stripeCustomerId}</div>
-                    
-                    <div className="text-muted-foreground">Current Plan</div>
-                    <div className="font-medium">{selectedCustomer.currentPlan}</div>
-                    
-                    <div className="text-muted-foreground">Next Invoice</div>
-                    <div>{format(new Date(selectedCustomer.nextPaymentDate), 'MMM d, yyyy')}</div>
-                    
-                    <div className="text-muted-foreground">Start Date</div>
-                    <div>{format(new Date(selectedCustomer.subscriptionStart), 'MMM d, yyyy')}</div>
-                    
-                    <div className="text-muted-foreground">Renewal Date</div>
-                    <div>{format(new Date(selectedCustomer.subscriptionRenewal), 'MMM d, yyyy')}</div>
-                    
-                    {selectedCustomer.userType === 'University' && (
-                      <>
-                        <div className="text-muted-foreground">License Seats</div>
-                        <div className="flex items-center">
-                          <span className="mr-2">{selectedCustomer.usedSeats} / {selectedCustomer.seats}</span>
-                          <Progress 
-                            value={(selectedCustomer.usedSeats! / selectedCustomer.seats!) * 100} 
-                            className="h-2 w-16" 
-                          />
+                <DrawerDescription>View and manage customer subscription</DrawerDescription>
+              </DrawerHeader>
+              <div className="px-4 py-2 overflow-auto">
+                <div className="space-y-6">
+                  {/* Customer Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Customer Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                          <span className="text-muted-foreground">Name:</span>
+                          <span className="font-medium">{selectedCustomer.name}</span>
+                          
+                          <span className="text-muted-foreground">Email:</span>
+                          <div className="flex items-center">
+                            <span className="font-medium">{selectedCustomer.email}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                              <Mail className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          
+                          <span className="text-muted-foreground">Customer ID:</span>
+                          <span className="font-mono text-xs">{selectedCustomer.stripeCustomerId}</span>
+                          
+                          <span className="text-muted-foreground">User Type:</span>
+                          <span className="font-medium">{selectedCustomer.userType}</span>
+                          
+                          <span className="text-muted-foreground">Status:</span>
+                          <Badge variant={getBadgeVariantForStatus(selectedCustomer.status)}>
+                            {selectedCustomer.status}
+                          </Badge>
                         </div>
-                      </>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Subscription Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-[100px_1fr] gap-2 text-sm">
+                          <span className="text-muted-foreground">Plan:</span>
+                          <span className="font-medium">{selectedCustomer.currentPlan}</span>
+                          
+                          <span className="text-muted-foreground">Started:</span>
+                          <span>{format(new Date(selectedCustomer.subscriptionStart), 'MMM d, yyyy')}</span>
+                          
+                          {selectedCustomer.status !== 'Canceled' && (
+                            <>
+                              <span className="text-muted-foreground">Renewal:</span>
+                              <span>{format(new Date(selectedCustomer.subscriptionRenewal), 'MMM d, yyyy')}</span>
+                            </>
+                          )}
+                          
+                          {selectedCustomer.userType === 'University' && selectedCustomer.seats && (
+                            <>
+                              <span className="text-muted-foreground">Seats:</span>
+                              <span>
+                                {selectedCustomer.usedSeats} / {selectedCustomer.seats} used
+                                <Progress 
+                                  value={(selectedCustomer.usedSeats! / selectedCustomer.seats!) * 100} 
+                                  className="h-2 mt-1"
+                                />
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Payment Method */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="text-lg">Payment Method</CardTitle>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => updatePaymentMethodMutation.mutate(selectedCustomer.id)}
+                        disabled={updatePaymentMethodMutation.isPending}
+                      >
+                        {updatePaymentMethodMutation.isPending ? (
+                          <>
+                            <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="mr-2 h-3 w-3" />
+                            Update
+                          </>
+                        )}
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedCustomer.paymentMethod ? (
+                        <div className="flex items-center p-3 border rounded-md bg-muted/40">
+                          <div className="mr-4">
+                            <CreditCard className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-medium">
+                              {selectedCustomer.paymentMethod.brand} •••• {selectedCustomer.paymentMethod.last4}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Expires {selectedCustomer.paymentMethod.expMonth}/{selectedCustomer.paymentMethod.expYear}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center p-3 border rounded-md bg-muted/40">
+                          <AlertTriangle className="h-8 w-8 text-destructive mr-4" />
+                          <div>
+                            <p className="font-medium">No payment method on file</p>
+                            <p className="text-sm text-muted-foreground">Customer needs to add a payment method</p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Payment History */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Payment History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Invoice ID</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedCustomer.paymentHistory.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4">
+                                <p className="text-muted-foreground">No payment history available</p>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            selectedCustomer.paymentHistory.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell className="font-mono text-xs">
+                                  {payment.id}
+                                </TableCell>
+                                <TableCell>
+                                  {format(new Date(payment.date), 'MMM d, yyyy')}
+                                </TableCell>
+                                <TableCell>
+                                  ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={
+                                    payment.status === 'Paid' 
+                                      ? 'default' 
+                                      : payment.status === 'Failed' 
+                                        ? 'destructive' 
+                                        : 'outline'
+                                  }>
+                                    {payment.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {payment.invoiceUrl && (
+                                    <Button variant="ghost" size="icon">
+                                      <Download className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              <DrawerFooter className="border-t px-4 py-4">
+                <div className="flex justify-between w-full">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDrawerOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <div className="flex gap-2">
+                    {selectedCustomer.status === 'Canceled' ? (
+                      <Button
+                        onClick={() => reactivateSubscriptionMutation.mutate(selectedCustomer.id)}
+                        disabled={reactivateSubscriptionMutation.isPending}
+                      >
+                        {reactivateSubscriptionMutation.isPending ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Reactivating...
+                          </>
+                        ) : (
+                          <>
+                            <BadgeCheck className="mr-2 h-4 w-4" />
+                            Reactivate Subscription
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        onClick={() => cancelSubscriptionMutation.mutate(selectedCustomer.id)}
+                        disabled={cancelSubscriptionMutation.isPending}
+                      >
+                        {cancelSubscriptionMutation.isPending ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Canceling...
+                          </>
+                        ) : (
+                          "Cancel Subscription"
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
-                
-                {/* Payment Method */}
-                {selectedCustomer.paymentMethod && (
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-medium border-b pb-2">Payment Method</h4>
-                    
-                    <div className="flex items-center p-3 border rounded-md">
-                      <CreditCard className="h-8 w-8 mr-3 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">
-                          {selectedCustomer.paymentMethod.brand} •••• {selectedCustomer.paymentMethod.last4}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Expires {selectedCustomer.paymentMethod.expMonth}/{selectedCustomer.paymentMethod.expYear}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Payment History */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium border-b pb-2">Payment History</h4>
-                  
-                  {selectedCustomer.paymentHistory.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-4">
-                      No payment records found
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedCustomer.paymentHistory.map((payment) => (
-                        <div key={payment.id} className="flex justify-between items-center p-3 border rounded-md">
-                          <div>
-                            <div className="font-medium">
-                              ${payment.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                          <div className="flex items-center">
-                            <Badge 
-                              variant={
-                                payment.status === 'Paid' ? 'success' :
-                                payment.status === 'Pending' ? 'warning' : 'destructive'
-                              }
-                              className="mr-2"
-                            >
-                              {payment.status}
-                            </Badge>
-                            
-                            {payment.status === 'Failed' ? (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRetryPayment(payment.id)}
-                                title="Retry payment"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                            ) : payment.invoiceUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => window.open(payment.invoiceUrl, '_blank')}
-                                title="View invoice"
-                              >
-                                <FileDown className="h-4 w-4" />
-                              </Button>
-                            ) : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Admin Actions */}
-              <div className="space-y-2 mt-6 border-t pt-6">
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={openStripeCustomer}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View in Stripe Dashboard
-                </Button>
-                
-                {selectedCustomer.userType === 'University' && (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => {
-                      const newSeats = window.prompt("Enter new number of seats:", selectedCustomer.seats?.toString());
-                      if (newSeats && !isNaN(parseInt(newSeats))) {
-                        handleUpdateSeats(parseInt(newSeats));
-                      }
-                    }}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Update License Seats
-                  </Button>
-                )}
-                
-                {selectedCustomer.status !== 'Canceled' && (
-                  <Button
-                    className="w-full"
-                    variant="destructive"
-                    onClick={handleCancelSubscription}
-                  >
-                    <Ban className="mr-2 h-4 w-4" />
-                    Cancel Subscription
-                  </Button>
-                )}
-              </div>
+              </DrawerFooter>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
-}
-
-// Badge variants for success and warning
-// These would normally be defined in your theme, but included here for completeness
-function getBadgeVariantStyles(variant?: string) {
-  if (variant === 'success') {
-    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-  }
-  if (variant === 'warning') {
-    return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-  }
 }
