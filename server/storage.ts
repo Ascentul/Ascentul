@@ -28,6 +28,9 @@ import {
   type InsertAchievement,
   userAchievements,
   type UserAchievement,
+  contactInteractions,
+  type ContactInteraction,
+  type InsertContactInteraction,
   type InsertUserAchievement,
   recommendations,
   type Recommendation,
@@ -94,7 +97,7 @@ import {
 import session from "express-session";
 import { sessionStore } from "./session-store";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Session store
@@ -4044,6 +4047,35 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${networkingContacts.followUpDate} IS NOT NULL`)
       .where(sql`${networkingContacts.followUpDate} <= ${now}`)
       .orderBy(networkingContacts.followUpDate);
+  }
+  
+  // Contact Interaction methods
+  async getContactInteractions(contactId: number): Promise<ContactInteraction[]> {
+    return db
+      .select()
+      .from(contactInteractions)
+      .where(eq(contactInteractions.contactId, contactId))
+      .orderBy(desc(contactInteractions.date));
+  }
+  
+  async createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction> {
+    // Insert the new interaction
+    const [newInteraction] = await db
+      .insert(contactInteractions)
+      .values({
+        ...interaction,
+        userId,
+        contactId
+      })
+      .returning();
+      
+    // Update the last contacted date on the contact
+    await db
+      .update(networkingContacts)
+      .set({ lastContactedDate: interaction.date || new Date() })
+      .where(eq(networkingContacts.id, contactId));
+      
+    return newInteraction;
   }
   
   // These methods remain to be implemented
