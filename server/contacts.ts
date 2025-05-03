@@ -204,16 +204,56 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Update the contact's lastContactedDate to today
-      const updatedContact = await storage.updateNetworkingContact(contactId, {
-        ...existingContact,
-        lastContactedDate: new Date()
-      });
+      // Create a new interaction record
+      const newInteraction = await storage.createContactInteraction(
+        userId, 
+        contactId, 
+        {
+          interactionType: req.body.interactionType,
+          notes: req.body.notes,
+          date: req.body.date ? new Date(req.body.date) : new Date()
+        }
+      );
       
-      res.status(200).json(updatedContact);
+      res.status(201).json(newInteraction);
     } catch (error) {
       console.error("Error logging contact interaction:", error);
       res.status(500).json({ message: "Failed to log interaction" });
+    }
+  });
+  
+  // Get interactions for a specific contact
+  app.get("/api/contacts/:id/interactions", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get all interactions for this contact
+      const interactions = await storage.getContactInteractions(contactId);
+      
+      res.status(200).json(interactions);
+    } catch (error) {
+      console.error("Error fetching contact interactions:", error);
+      res.status(500).json({ message: "Failed to fetch interactions" });
     }
   });
 };

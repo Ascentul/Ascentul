@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { NetworkingContact } from '@shared/schema';
+import { NetworkingContact, ContactInteraction } from '@shared/schema';
 import { format } from 'date-fns';
 import ContactForm from './ContactForm';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -30,20 +33,63 @@ import {
   Globe,
   Clock,
   CalendarClock,
+  MessageSquare,
+  Video,
+  Coffee,
+  Plus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 interface ContactDetailsProps {
   contactId: number;
   onClose: () => void;
 }
 
+// Form schema for logging interaction
+const interactionFormSchema = z.object({
+  interactionType: z.string({
+    required_error: "Please select an interaction type",
+  }),
+  notes: z.string().min(3, "Notes must be at least 3 characters").max(500, "Notes must not exceed 500 characters"),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
+});
+
+type InteractionFormValues = z.infer<typeof interactionFormSchema>;
+
 export default function ContactDetails({ contactId, onClose }: ContactDetailsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [showInteractionForm, setShowInteractionForm] = useState(false);
   
   // Fetch contact data
   const {
@@ -57,17 +103,44 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       method: 'GET',
     }),
   });
+  
+  // Fetch contact interactions
+  const {
+    data: interactions = [],
+    isLoading: isLoadingInteractions,
+  } = useQuery({
+    queryKey: [`/api/contacts/${contactId}/interactions`],
+    queryFn: async () => apiRequest<ContactInteraction[]>({
+      url: `/api/contacts/${contactId}/interactions`,
+      method: 'GET',
+    }),
+    enabled: !!contactId,
+  });
+
+  // Form for interaction
+  const interactionForm = useForm<InteractionFormValues>({
+    resolver: zodResolver(interactionFormSchema),
+    defaultValues: {
+      interactionType: "",
+      notes: "",
+      date: new Date(),
+    },
+  });
 
   // Log interaction mutation
   const logInteractionMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (values: InteractionFormValues) => {
       return apiRequest({
         url: `/api/contacts/${contactId}/log-interaction`,
         method: 'POST',
+        data: values,
       });
     },
     onSuccess: () => {
+      setShowInteractionForm(false);
+      interactionForm.reset();
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/interactions`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       toast({
@@ -131,8 +204,17 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   };
 
   // Handle log interaction
-  const handleLogInteraction = () => {
-    logInteractionMutation.mutate();
+  const handleLogInteraction = (data: InteractionFormValues) => {
+    logInteractionMutation.mutate(data);
+  };
+  
+  // Handle simple quick interaction log
+  const handleQuickInteraction = () => {
+    logInteractionMutation.mutate({
+      interactionType: "Other",
+      notes: "Quick interaction logged",
+      date: new Date(),
+    });
   };
 
   if (isEditing) {
@@ -292,7 +374,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={handleLogInteraction}
+                  onClick={handleQuickInteraction}
                   disabled={logInteractionMutation.isPending}
                   className="w-full"
                 >
@@ -304,7 +386,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   ) : (
                     <>
                       <Calendar className="mr-2 h-4 w-4" />
-                      Log Interaction Today
+                      Log Quick Interaction
                     </>
                   )}
                 </Button>
