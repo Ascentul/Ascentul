@@ -416,7 +416,7 @@ export interface IStorage {
   deleteNetworkingContact(id: number): Promise<boolean>;
   getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]>;
   
-  // Contact Interactions
+  // Contact Interactions operations
   getContactInteractions(contactId: number): Promise<ContactInteraction[]>;
   createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction>;
 
