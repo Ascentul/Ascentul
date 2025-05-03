@@ -662,7 +662,7 @@ export default function CareerPathExplorer() {
           <p className="text-neutral-500 mb-6 max-w-md mx-auto">
             Add your work history, education, and skills in Account Settings to get personalized career path suggestions.
           </p>
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-lg transition-all" asChild>
+          <Button size="lg" className="bg-[#1333c2] hover:bg-[#0f2aae] text-white shadow-sm hover:shadow-lg transition-all" asChild>
             <a href="/account/career">Complete Your Profile</a>
           </Button>
         </div>
@@ -846,7 +846,7 @@ export default function CareerPathExplorer() {
                         });
                     }}
                     disabled={isSearching || !jobTitle.trim()}
-                    className="min-w-[120px]"
+                    className="min-w-[120px] bg-[#1333c2] hover:bg-[#0f2aae] text-white"
                   >
                     {isSearching ? (
                       <>
@@ -871,12 +871,11 @@ export default function CareerPathExplorer() {
       {explorationMode === 'target' && generatedPath && (
         <div className="flex flex-wrap gap-2 mb-6">
           <Button
-            variant={activePath.id === generatedPath.id ? "default" : "outline"}
             onClick={() => {
               setActivePath(generatedPath);
               setSelectedNodeId(null);
             }}
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white hover:text-white"
+            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white shadow-sm hover:shadow-lg transition-all"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             {generatedPath.name || `${jobTitle} Path`}
@@ -1000,7 +999,7 @@ export default function CareerPathExplorer() {
               }
             }}
             size="lg" 
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-lg transition-all"
+            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white shadow-sm hover:shadow-lg transition-all"
           >
             <Plus className="mr-2 h-5 w-5" />
             Generate My First Path
@@ -1152,7 +1151,7 @@ export default function CareerPathExplorer() {
               </div>
               
               <DrawerFooter className="px-6 pt-0">
-                <Button className="w-full">
+                <Button className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white">
                   Set as Career Goal
                 </Button>
                 <Button 
@@ -1341,7 +1340,7 @@ export default function CareerPathExplorer() {
               </div>
               
               <DrawerFooter className="px-6 pt-0">
-                <Button className="w-full">
+                <Button className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white">
                   Create Goal Based on These Insights
                 </Button>
                 <DrawerClose asChild>
