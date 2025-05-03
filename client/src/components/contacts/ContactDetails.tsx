@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertCircle,
@@ -90,8 +91,8 @@ const followUpFormSchema = z.object({
     required_error: "Please select a follow-up date",
   }),
   notes: z.string().min(3, "Notes must be at least 3 characters").max(500, "Notes must not exceed 500 characters"),
-  reminderType: z.enum(["Email", "Notification", "None"], {
-    required_error: "Please select a reminder type",
+  reminderType: z.enum(["Email", "Call", "Meeting", "Coffee", "Lunch", "Other"], {
+    required_error: "Please select a follow-up type",
   }),
 });
 
@@ -670,69 +671,74 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
             <DialogHeader>
               <DialogTitle>Schedule Follow-up</DialogTitle>
               <DialogDescription>
-                Plan your next interaction with {contact.fullName}.
+                Plan your next interaction with {contact.fullName}
               </DialogDescription>
             </DialogHeader>
             
             <Form {...followUpForm}>
               <form onSubmit={followUpForm.handleSubmit(handleScheduleFollowUp)} className="space-y-4">
-                <FormField
-                  control={followUpForm.control}
-                  name="followUpDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Follow-up Date</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date"
-                          value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : new Date();
-                            field.onChange(date);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={followUpForm.control}
-                  name="reminderType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reminder Type</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={followUpForm.control}
+                    name="followUpDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Follow-up Date</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select reminder type" />
-                          </SelectTrigger>
+                          <Input 
+                            type="date"
+                            value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                            onChange={(e) => {
+                              const date = e.target.value ? new Date(e.target.value) : new Date();
+                              field.onChange(date);
+                            }}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Email">Email</SelectItem>
-                          <SelectItem value="Notification">Notification</SelectItem>
-                          <SelectItem value="None">None</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={followUpForm.control}
+                    name="reminderType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Follow-up Type</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select follow-up type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Email">Send Email</SelectItem>
+                            <SelectItem value="Call">Make Call</SelectItem>
+                            <SelectItem value="Meeting">Schedule Meeting</SelectItem>
+                            <SelectItem value="Coffee">Coffee Chat</SelectItem>
+                            <SelectItem value="Lunch">Lunch Meeting</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
                 <FormField
                   control={followUpForm.control}
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel>Follow-up Notes</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Add notes about the follow-up plan..."
-                          className="min-h-[100px]"
+                          placeholder="What do you want to follow up about? Add any details or talking points you want to cover..."
+                          className="min-h-[120px]"
                           {...field}
                         />
                       </FormControl>
@@ -741,7 +747,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   )}
                 />
                 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-4">
                   <Button 
                     type="button" 
                     variant="outline"
