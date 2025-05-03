@@ -720,23 +720,37 @@ export default function CareerPathExplorer() {
       </div>
       
       {/* Mode Selection Toggle */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <div className="bg-card border rounded-lg p-1 inline-flex">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="border border-gray-200 rounded-full p-1.5 flex bg-gray-50/80 shadow-sm">
           <Button
-            variant={explorationMode === 'target' ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
-            className={`rounded-md text-sm px-3 ${explorationMode === 'target' ? '' : 'hover:bg-muted'}`}
+            className={`rounded-full text-sm font-medium px-4 py-2 h-auto ${
+              explorationMode === 'target' 
+              ? 'bg-white text-gray-800 shadow-sm' 
+              : 'text-gray-600 hover:text-gray-800'
+            }`}
             onClick={() => setExplorationMode('target')}
           >
-            🎯 Search Target Role
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-base">🎯</span>
+              <span>Search Target Role</span>
+            </span>
           </Button>
           <Button
-            variant={explorationMode === 'profile' ? "default" : "ghost"}
+            variant="ghost"
             size="sm"
-            className={`rounded-md text-sm px-3 ${explorationMode === 'profile' ? '' : 'hover:bg-muted'}`}
+            className={`rounded-full text-sm font-medium px-4 py-2 h-auto ${
+              explorationMode === 'profile' 
+              ? 'bg-white text-gray-800 shadow-sm' 
+              : 'text-gray-600 hover:text-gray-800'
+            }`}
             onClick={() => setExplorationMode('profile')}
           >
-            ⚡ Suggested Paths for Me
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-base">⚡</span>
+              <span>Suggested Paths for Me</span>
+            </span>
           </Button>
         </div>
       </div>
