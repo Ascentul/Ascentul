@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { IStorage } from "./storage";
-import { insertNetworkingContactSchema } from "@shared/schema";
+import { insertNetworkingContactSchema, insertFollowupActionSchema } from "@shared/schema";
 import { requireAuth } from "./auth";
 import { z } from "zod";
 
@@ -255,6 +255,84 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     } catch (error) {
       console.error("Error fetching contact interactions:", error);
       res.status(500).json({ message: "Failed to fetch interactions" });
+    }
+  });
+  
+  // Schedule a follow-up for a contact
+  app.post("/api/contacts/:id/schedule-followup", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Create a follow-up record
+      const followUpData = {
+        type: req.body.reminderType,
+        description: `Follow-up with ${existingContact.fullName}`,
+        notes: req.body.notes,
+        dueDate: req.body.followUpDate ? new Date(req.body.followUpDate) : null,
+        completed: false
+      };
+      
+      const followUp = await storage.createContactFollowUp(userId, contactId, followUpData);
+      
+      res.status(201).json(followUp);
+    } catch (error) {
+      console.error("Error scheduling contact follow-up:", error);
+      res.status(500).json({ message: "Failed to schedule follow-up" });
+    }
+  });
+  
+  // Get all follow-ups for a specific contact
+  app.get("/api/contacts/:id/followups", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get all follow-ups for this contact
+      const followUps = await storage.getContactFollowUps(contactId);
+      
+      res.status(200).json(followUps);
+    } catch (error) {
+      console.error("Error fetching contact follow-ups:", error);
+      res.status(500).json({ message: "Failed to fetch follow-ups" });
     }
   });
 };
