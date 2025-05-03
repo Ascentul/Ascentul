@@ -958,15 +958,34 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
-                          {followUp.reminderType === 'Call' && <Phone className="h-4 w-4 text-blue-500" />}
-                          {followUp.reminderType === 'Email' && <Mail className="h-4 w-4 text-green-500" />}
-                          {followUp.reminderType === 'Meeting' && <Users className="h-4 w-4 text-purple-500" />}
-                          {followUp.reminderType === 'Coffee' && <Coffee className="h-4 w-4 text-amber-500" />}
-                          {followUp.reminderType === 'Lunch' && <Utensils className="h-4 w-4 text-orange-500" />}
-                          {followUp.reminderType === 'Other' && <CalendarPlus className="h-4 w-4 text-gray-500" />}
+                          {(() => {
+                            // Extract the type from the format 'contact_Type'
+                            const reminderType = followUp.type?.startsWith('contact_') 
+                              ? followUp.type.replace('contact_', '') 
+                              : followUp.type;
+                            
+                            // Render appropriate icon based on type
+                            switch(reminderType) {
+                              case 'Call':
+                                return <Phone className="h-4 w-4 text-blue-500" />;
+                              case 'Email':
+                                return <Mail className="h-4 w-4 text-green-500" />;
+                              case 'Meeting':
+                                return <Users className="h-4 w-4 text-purple-500" />;
+                              case 'Coffee':
+                                return <Coffee className="h-4 w-4 text-amber-500" />;
+                              case 'Lunch':
+                                return <Utensils className="h-4 w-4 text-orange-500" />;
+                              default:
+                                return <CalendarPlus className="h-4 w-4 text-gray-500" />;
+                            }
+                          })()}
                           <div>
                             <CardTitle className="text-base font-medium">
-                              {followUp.reminderType} {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
+                              {/* Extract the type from the format 'contact_Type' */}
+                              {followUp.type?.startsWith('contact_') 
+                                ? followUp.type.replace('contact_', '') 
+                                : followUp.type} {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
                             </CardTitle>
                             <CardDescription className="text-xs">
                               {followUp.completed 
