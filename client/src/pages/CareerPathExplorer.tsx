@@ -1386,14 +1386,22 @@ export default function CareerPathExplorer() {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {role.keySkills.slice(0, 3).map((skill, i) => (
-                            <Badge key={`skill-${index}-${i}`} variant="outline" className="bg-slate-50">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {role.keySkills.length > 3 && (
+                          {role.keySkills && role.keySkills.length > 0 ? (
+                            <>
+                              {role.keySkills.slice(0, 3).map((skill, i) => (
+                                <Badge key={`skill-${index}-${i}`} variant="outline" className="bg-slate-50">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {role.keySkills.length > 3 && (
+                                <Badge variant="outline" className="bg-slate-50">
+                                  +{role.keySkills.length - 3} more
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
                             <Badge variant="outline" className="bg-slate-50">
-                              +{role.keySkills.length - 3} more
+                              No specific skills listed
                             </Badge>
                           )}
                         </div>
@@ -1405,64 +1413,82 @@ export default function CareerPathExplorer() {
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Your Transferable Skills</h3>
                   <div className="space-y-2">
-                    {roleInsights.transferableSkills.map((skill, index) => (
-                      <div key={`skill-${index}`} className="rounded-lg border bg-card p-3 flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">{skill.skill}</span>
-                          <p className="text-sm text-muted-foreground">{skill.relevance}</p>
+                    {roleInsights.transferableSkills && roleInsights.transferableSkills.length > 0 ? (
+                      roleInsights.transferableSkills.map((skill, index) => (
+                        <div key={`skill-${index}`} className="rounded-lg border bg-card p-3 flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">{skill.skill}</span>
+                            <p className="text-sm text-muted-foreground">{skill.relevance}</p>
+                          </div>
+                          <Badge className={
+                            skill.currentProficiency === 'advanced' ? 'bg-green-100 text-green-800' :
+                            skill.currentProficiency === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                            'bg-amber-100 text-amber-800'
+                          }>
+                            {skill.currentProficiency}
+                          </Badge>
                         </div>
-                        <Badge className={
-                          skill.currentProficiency === 'advanced' ? 'bg-green-100 text-green-800' :
-                          skill.currentProficiency === 'intermediate' ? 'bg-blue-100 text-blue-800' :
-                          'bg-amber-100 text-amber-800'
-                        }>
-                          {skill.currentProficiency}
-                        </Badge>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border bg-card p-3 text-center text-muted-foreground">
+                        No transferable skills have been identified yet
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Development Plan</h3>
                   <div className="rounded-lg border bg-card">
-                    {roleInsights.developmentPlan.map((step, index) => (
-                      <div key={`step-${index}`} className={`p-4 ${index !== roleInsights.developmentPlan.length - 1 ? 'border-b' : ''}`}>
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                            {index + 1}
+                    {roleInsights.developmentPlan && roleInsights.developmentPlan.length > 0 ? (
+                      roleInsights.developmentPlan.map((step, index) => (
+                        <div key={`step-${index}`} className={`p-4 ${index !== roleInsights.developmentPlan.length - 1 ? 'border-b' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
+                              {index + 1}
+                            </div>
+                            <h4 className="font-medium">{step.step}</h4>
+                            <Badge variant="outline" className="ml-auto">{step.timeframe}</Badge>
                           </div>
-                          <h4 className="font-medium">{step.step}</h4>
-                          <Badge variant="outline" className="ml-auto">{step.timeframe}</Badge>
+                          <p className="text-muted-foreground mt-1 text-sm ml-8">{step.description}</p>
                         </div>
-                        <p className="text-muted-foreground mt-1 text-sm ml-8">{step.description}</p>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No development plan available yet
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
                 
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Recommended Certifications</h3>
                   <div className="space-y-3">
-                    {roleInsights.recommendedCertifications.map((cert, index) => (
-                      <div key={`cert-${index}`} className="rounded-lg border bg-card p-4">
-                        <div className="flex justify-between">
-                          <h4 className="font-medium">{cert.name}</h4>
-                          <Badge className={
-                            cert.difficulty === 'advanced' ? 'bg-purple-100 text-purple-800' :
-                            cert.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }>
-                            {cert.difficulty}
-                          </Badge>
+                    {roleInsights.recommendedCertifications && roleInsights.recommendedCertifications.length > 0 ? (
+                      roleInsights.recommendedCertifications.map((cert, index) => (
+                        <div key={`cert-${index}`} className="rounded-lg border bg-card p-4">
+                          <div className="flex justify-between">
+                            <h4 className="font-medium">{cert.name}</h4>
+                            <Badge className={
+                              cert.difficulty === 'advanced' ? 'bg-purple-100 text-purple-800' :
+                              cert.difficulty === 'intermediate' ? 'bg-blue-100 text-blue-800' :
+                              'bg-green-100 text-green-800'
+                            }>
+                              {cert.difficulty}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
+                          <div className="flex justify-between mt-2 text-sm">
+                            <span className="text-muted-foreground">Est. time: {cert.timeToComplete}</span>
+                            <span className="text-muted-foreground">{cert.relevance}</span>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
-                        <div className="flex justify-between mt-2 text-sm">
-                          <span className="text-muted-foreground">Est. time: {cert.timeToComplete}</span>
-                          <span className="text-muted-foreground">{cert.relevance}</span>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border bg-card p-4 text-center text-muted-foreground">
+                        No specific certifications recommended yet
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -1502,21 +1528,42 @@ export default function CareerPathExplorer() {
                       }
                       
                       // Create action items from development plan
-                      const checklist = roleInsights.developmentPlan.map(step => ({
-                        id: crypto.randomUUID(),
-                        text: step.step,
-                        completed: false
-                      }));
+                      const checklist = roleInsights.developmentPlan && roleInsights.developmentPlan.length > 0
+                        ? roleInsights.developmentPlan.map(step => ({
+                            id: crypto.randomUUID(),
+                            text: step.step,
+                            completed: false
+                          }))
+                        : [
+                            {
+                              id: crypto.randomUUID(),
+                              text: `Research requirements for ${suggestedNextStep} role`,
+                              completed: false
+                            },
+                            {
+                              id: crypto.randomUUID(),
+                              text: 'Identify skill gaps',
+                              completed: false
+                            }
+                          ];
                       
                       // Add skill development items
-                      const skillChecklist = roleInsights.transferableSkills
-                        .filter(skill => skill.currentProficiency !== 'advanced')
-                        .slice(0, 2)
-                        .map(skill => ({
-                          id: crypto.randomUUID(),
-                          text: `Improve ${skill.skill} skill`,
-                          completed: false
-                        }));
+                      const skillChecklist = roleInsights.transferableSkills && roleInsights.transferableSkills.length > 0
+                        ? roleInsights.transferableSkills
+                            .filter(skill => skill.currentProficiency !== 'advanced')
+                            .slice(0, 2)
+                            .map(skill => ({
+                              id: crypto.randomUUID(),
+                              text: `Improve ${skill.skill} skill`,
+                              completed: false
+                            }))
+                        : [
+                            {
+                              id: crypto.randomUUID(),
+                              text: 'Develop relevant technical skills',
+                              completed: false
+                            }
+                          ];
                       
                       // Create the goal
                       const goalData = {
