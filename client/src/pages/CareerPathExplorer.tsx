@@ -22,7 +22,8 @@ import {
   DollarSign,
   Calendar,
   BookOpen,
-  Loader2
+  Loader2,
+  SearchX
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
