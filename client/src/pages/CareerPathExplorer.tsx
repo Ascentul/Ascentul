@@ -763,107 +763,101 @@ export default function CareerPathExplorer() {
       
       {/* Job Title Search - Only show in 'target' mode */}
       {explorationMode === 'target' && (
-        <div className="mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div>
-                <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
-                <div className="flex gap-2 mt-1 items-center">
-                  <div className="flex-1">
-                    <Input
-                      id="job-title-search"
-                      placeholder="Enter a job title (e.g., Software Engineer, Data Scientist)"
-                      value={jobTitle}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobTitle(e.target.value)}
-                    />
-                  </div>
-                  <Button 
-                    onClick={() => {
-                      if (!jobTitle.trim()) {
-                        toast({
-                          title: "Job title required",
-                          description: "Please enter a job title to generate a career path.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
+        <div className="mb-6 mt-6 space-y-2">
+          <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1">
+              <Input
+                id="job-title-search"
+                placeholder="Enter a job title (e.g., Software Engineer, Data Scientist)"
+                value={jobTitle}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobTitle(e.target.value)}
+              />
+            </div>
+            <Button 
+              onClick={() => {
+                if (!jobTitle.trim()) {
+                  toast({
+                    title: "Job title required",
+                    description: "Please enter a job title to generate a career path.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
+                setIsSearching(true);
+                
+                apiRequest('POST', '/api/career-path/generate-from-job', {
+                  jobTitle: jobTitle.trim()
+                })
+                  .then(res => res.json())
+                  .then(data => {
+                    console.log('API Response:', data);
+                    
+                    // Check if the data has a 'paths' array (from the OpenAI response)
+                    if (data.paths && data.paths.length > 0) {
+                      // The first path in the paths array is the main career path
+                      const mainPath = data.paths[0];
                       
-                      setIsSearching(true);
-                      
-                      apiRequest('POST', '/api/career-path/generate-from-job', {
-                        jobTitle: jobTitle.trim()
-                      })
-                        .then(res => res.json())
-                        .then(data => {
-                          console.log('API Response:', data);
-                          
-                          // Check if the data has a 'paths' array (from the OpenAI response)
-                          if (data.paths && data.paths.length > 0) {
-                            // The first path in the paths array is the main career path
-                            const mainPath = data.paths[0];
+                      // Make sure it has the required format
+                      if (mainPath && mainPath.nodes && mainPath.nodes.length > 0) {
+                        // Process the nodes to add proper icon components
+                        const processedPath = {
+                          ...mainPath,
+                          nodes: mainPath.nodes.map((node: any) => {
+                            // Map the icon string to an actual React component
+                            const iconComponent = getIconComponent(node.icon);
                             
-                            // Make sure it has the required format
-                            if (mainPath && mainPath.nodes && mainPath.nodes.length > 0) {
-                              // Process the nodes to add proper icon components
-                              const processedPath = {
-                                ...mainPath,
-                                nodes: mainPath.nodes.map((node: any) => {
-                                  // Map the icon string to an actual React component
-                                  const iconComponent = getIconComponent(node.icon);
-                                  
-                                  return {
-                                    ...node,
-                                    icon: iconComponent
-                                  };
-                                })
-                              };
-                              
-                              // Set this as the generated path
-                              setGeneratedPath(processedPath);
-                              setActivePath(processedPath);
-                              
-                              toast({
-                                title: "Career Path Generated",
-                                description: `Career path for "${jobTitle}" has been generated successfully.`,
-                              });
-                            } else {
-                              throw new Error('Invalid path structure returned');
-                            }
-                          } else {
-                            throw new Error('No valid career paths found in response');
-                          }
-                          
-                          setIsSearching(false);
-                        })
-                        .catch(err => {
-                          console.error('Error generating career path:', err);
-                          setIsSearching(false);
-                          toast({
-                            title: "Error",
-                            description: `Failed to generate career path: ${err.message || 'Unknown error'}`,
-                            variant: "destructive"
-                          });
+                            return {
+                              ...node,
+                              icon: iconComponent
+                            };
+                          })
+                        };
+                        
+                        // Set this as the generated path
+                        setGeneratedPath(processedPath);
+                        setActivePath(processedPath);
+                        
+                        toast({
+                          title: "Career Path Generated",
+                          description: `Career path for "${jobTitle}" has been generated successfully.`,
                         });
-                    }}
-                    disabled={isSearching || !jobTitle.trim()}
-                    className="min-w-[120px] bg-[#1333c2] hover:bg-[#0f2aae] text-white"
-                  >
-                    {isSearching ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>Generate</>
-                    )}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Quickly generate a career path based on a specific job title
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+                      } else {
+                        throw new Error('Invalid path structure returned');
+                      }
+                    } else {
+                      throw new Error('No valid career paths found in response');
+                    }
+                    
+                    setIsSearching(false);
+                  })
+                  .catch(err => {
+                    console.error('Error generating career path:', err);
+                    setIsSearching(false);
+                    toast({
+                      title: "Error",
+                      description: `Failed to generate career path: ${err.message || 'Unknown error'}`,
+                      variant: "destructive"
+                    });
+                  });
+              }}
+              disabled={isSearching || !jobTitle.trim()}
+              className="min-w-[120px] bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+            >
+              {isSearching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>Generate</>
+              )}
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Quickly generate a career path based on a specific job title
+          </p>
         </div>
       )}
 
