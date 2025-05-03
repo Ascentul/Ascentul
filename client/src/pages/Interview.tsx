@@ -916,11 +916,7 @@ const Interview = () => {
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.3 }}
                           >
-                            {/* Debug info for selection */}
-                            <div className="bg-amber-100 border border-amber-300 rounded mb-2 p-2 text-xs text-amber-800">
-                              Debug: selectedApplicationId: {selectedApplicationId ? selectedApplicationId : 'null'} | 
-                              Applications: {applications?.length || 0} | Auto-refresh: {shouldAutoRefresh ? 'Yes' : 'No'}
-                            </div>
+
                             
                             <ApplicationDetails 
                               application={selectedApplication}
