@@ -1296,8 +1296,8 @@ export default function CareerPathExplorer() {
                         setRoleInsights(insights);
                         setShowInsightsDrawer(true);
                         toast({
-                          title: "AI Insights Generated",
-                          description: "Career path insights have been generated based on your work history.",
+                          title: "Your Career Path Analysis",
+                          description: "We've analyzed your skills and found ways to bridge the gap to this career.",
                         });
                       } else {
                         throw new Error("Failed to generate insights");
@@ -1317,12 +1317,12 @@ export default function CareerPathExplorer() {
                   {isGeneratingInsights ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating AI Suggestions...
+                      Analyzing Your Career Path...
                     </>
                   ) : (
                     <>
                       <Lightbulb className="mr-2 h-4 w-4" />
-                      Generate AI Suggestions Based on My Work History
+                      Bridge the Gap to This Career
                     </>
                   )}
                 </Button>
@@ -1341,8 +1341,8 @@ export default function CareerPathExplorer() {
           {isGeneratingInsights ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              <p className="text-lg font-medium">Generating personalized career insights...</p>
-              <p className="text-muted-foreground">This may take a moment as we analyze your work history</p>
+              <p className="text-lg font-medium">Finding your path forward...</p>
+              <p className="text-muted-foreground">We're analyzing your experience to bridge skill gaps</p>
             </div>
           ) : roleInsights ? (
             <>
