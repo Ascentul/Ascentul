@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   CalendarClock, 
   ExternalLink, 
@@ -64,6 +65,10 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   const [showEditStageForm, setShowEditStageForm] = useState(false);
   const [currentFollowupToEdit, setCurrentFollowupToEdit] = useState<FollowupAction | null>(null);
   const [showEditFollowupForm, setShowEditFollowupForm] = useState(false);
+  const [showMaterialsModal, setShowMaterialsModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<ApplicationStatus | null>(null);
+  const [selectedResume, setSelectedResume] = useState<{id: string, title: string} | null>(null);
+  const [selectedCoverLetter, setSelectedCoverLetter] = useState<{id: string, title: string} | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -247,6 +252,14 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
       return; // Don't update the status
     }
     
+    // If changing from "In Progress" to "Applied", show the materials selection modal
+    if (localApplication.status === 'In Progress' && status === 'Applied') {
+      // Set the pending status so we know what to update to after the modal is closed
+      setPendingStatus(status);
+      setShowMaterialsModal(true);
+      return; // Don't update the status yet until the user selects materials
+    }
+    
     const updatedApplication = { ...localApplication, status };
     setLocalApplication(updatedApplication);
     
@@ -260,6 +273,44 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
         onStatusChange(application.id, status);
       }
     }
+  };
+  
+  // Handle applying with selected materials
+  const handleApplyWithMaterials = () => {
+    if (!pendingStatus) return;
+    
+    // Create an update object with the new status and selected resume/cover letter
+    const updateData = {
+      status: pendingStatus,
+      resumeId: selectedResume?.id,
+      resumeTitle: selectedResume?.title,
+      coverLetterId: selectedCoverLetter?.id,
+      coverLetterTitle: selectedCoverLetter?.title,
+      appliedAt: new Date().toISOString()
+    };
+    
+    // Update the application with the selected materials
+    updateApplication.mutate(updateData);
+    
+    // Update local state
+    setLocalApplication(prev => ({
+      ...prev,
+      ...updateData
+    }));
+    
+    // Call the parent callback if it exists
+    if (onStatusChange && pendingStatus) {
+      onStatusChange(application.id, pendingStatus);
+    }
+    
+    // Close the modal and reset the pending status
+    setShowMaterialsModal(false);
+    setPendingStatus(null);
+    
+    toast({
+      title: "Application Status Updated",
+      description: "Your application has been marked as Applied with the selected materials.",
+    });
   };
 
   const handleSave = () => {
