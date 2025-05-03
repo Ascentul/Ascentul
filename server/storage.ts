@@ -3906,20 +3906,68 @@ export class MemStorage implements IStorage {
   async getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]> {
     const now = new Date();
     
-    return Array.from(this.networkingContacts.values())
+    // First, get contacts with built-in followUpDate property
+    const contactsWithBuiltInFollowup = Array.from(this.networkingContacts.values())
       .filter(contact => 
         contact.userId === userId && 
         contact.status === "active" &&
         contact.followUpDate && 
         contact.followUpDate <= now
-      )
-      .sort((a, b) => {
-        // Sort by followUpDate (oldest first)
-        if (a.followUpDate && b.followUpDate) {
-          return a.followUpDate.getTime() - b.followUpDate.getTime();
-        }
-        return 0;
-      });
+      );
+    
+    // Get all follow-up actions that are for contacts (not completed)
+    const allContactFollowups = Array.from(this.followupActions.values())
+      .filter(followup => 
+        !followup.completed && 
+        followup.dueDate && 
+        followup.dueDate <= now
+      );
+      
+    console.log(`Found ${allContactFollowups.length} pending follow-ups in the system`);
+    
+    // Get contact IDs from follow-up actions
+    const contactIdsWithExplicitFollowups = new Set(
+      allContactFollowups.map(followup => followup.applicationId)
+    );
+    
+    // Get contacts that have explicit follow-ups
+    const contactsWithExplicitFollowups = Array.from(this.networkingContacts.values())
+      .filter(contact => 
+        contact.userId === userId && 
+        contact.status === "active" &&
+        contactIdsWithExplicitFollowups.has(contact.id)
+      );
+    
+    console.log(`Found ${contactsWithExplicitFollowups.length} contacts with explicit follow-ups`);
+    
+    // Combine both lists, removing duplicates
+    const allContactIds = new Set();
+    const allContacts: NetworkingContact[] = [];
+    
+    // Process both lists and ensure we don't have duplicates
+    [...contactsWithBuiltInFollowup, ...contactsWithExplicitFollowups].forEach(contact => {
+      if (!allContactIds.has(contact.id)) {
+        allContactIds.add(contact.id);
+        allContacts.push(contact);
+      }
+    });
+    
+    console.log(`Total contacts needing follow-up: ${allContacts.length}`);
+    
+    // Sort by followUpDate (oldest first), or by due date of earliest follow-up action
+    return allContacts.sort((a, b) => {
+      // If both have followUpDate, use that
+      if (a.followUpDate && b.followUpDate) {
+        return a.followUpDate.getTime() - b.followUpDate.getTime();
+      }
+      
+      // If only one has followUpDate, prioritize it
+      if (a.followUpDate) return -1;
+      if (b.followUpDate) return 1;
+      
+      // Otherwise sort by most recently created
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
   }
 
   // Contact Interactions methods
