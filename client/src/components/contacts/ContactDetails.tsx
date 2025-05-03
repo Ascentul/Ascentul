@@ -228,6 +228,60 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       });
     },
   });
+  
+  // Mark follow-up as complete mutation
+  const markFollowUpCompleteMutation = useMutation({
+    mutationFn: async (followUpId: number) => {
+      return apiRequest({
+        url: `/api/contacts/${contactId}/follow-ups/${followUpId}/complete`,
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      toast({
+        title: 'Follow-up completed',
+        description: 'Follow-up has been marked as completed.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to mark follow-up as complete. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Delete follow-up mutation
+  const deleteFollowUpMutation = useMutation({
+    mutationFn: async (followUpId: number) => {
+      return apiRequest({
+        url: `/api/contacts/${contactId}/follow-ups/${followUpId}`,
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      toast({
+        title: 'Follow-up deleted',
+        description: 'Follow-up has been removed successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete follow-up. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -823,30 +877,28 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                               size="sm" 
                               variant="outline"
                               className="h-8 px-2 text-xs"
-                              onClick={() => {
-                                // TODO: Mark as completed mutation
-                                toast({
-                                  title: 'Coming soon',
-                                  description: 'This feature is not yet implemented.',
-                                });
-                              }}
+                              onClick={() => markFollowUpCompleteMutation.mutate(followUp.id)}
+                              disabled={markFollowUpCompleteMutation.isPending}
                             >
-                              Mark Complete
+                              {markFollowUpCompleteMutation.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                              ) : (
+                                'Mark Complete'
+                              )}
                             </Button>
                           )}
                           <Button 
                             size="sm" 
                             variant="outline"
                             className="h-8 px-2 text-xs text-destructive hover:text-destructive"
-                            onClick={() => {
-                              // TODO: Delete follow-up mutation
-                              toast({
-                                title: 'Coming soon',
-                                description: 'This feature is not yet implemented.',
-                              });
-                            }}
+                            onClick={() => deleteFollowUpMutation.mutate(followUp.id)}
+                            disabled={deleteFollowUpMutation.isPending}
                           >
-                            <Trash className="h-3 w-3" />
+                            {deleteFollowUpMutation.isPending ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash className="h-3 w-3" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -902,117 +954,6 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
           Close
         </Button>
       </div>
-      
-      {/* Follow-up Form Dialog */}
-      {showFollowUpForm && (
-        <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Schedule Follow-up</DialogTitle>
-              <DialogDescription>
-                Plan your next interaction with {contact.fullName}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...followUpForm}>
-              <form onSubmit={followUpForm.handleSubmit(handleScheduleFollowUp)} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={followUpForm.control}
-                    name="followUpDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Follow-up Date</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="date"
-                            value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
-                            onChange={(e) => {
-                              const date = e.target.value ? new Date(e.target.value) : new Date();
-                              field.onChange(date);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={followUpForm.control}
-                    name="reminderType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Follow-up Type</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select follow-up type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Email">Send Email</SelectItem>
-                            <SelectItem value="Call">Make Call</SelectItem>
-                            <SelectItem value="Meeting">Schedule Meeting</SelectItem>
-                            <SelectItem value="Coffee">Coffee Chat</SelectItem>
-                            <SelectItem value="Lunch">Lunch Meeting</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={followUpForm.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Follow-up Notes</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="What do you want to follow up about? Add any details or talking points you want to cover..."
-                          className="min-h-[120px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => setShowFollowUpForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    disabled={scheduleFollowUpMutation.isPending}
-                  >
-                    {scheduleFollowUpMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Scheduling...
-                      </>
-                    ) : (
-                      'Schedule Follow-up'
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
