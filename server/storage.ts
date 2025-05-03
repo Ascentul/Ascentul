@@ -3956,6 +3956,82 @@ export class MemStorage implements IStorage {
 
     return newInteraction;
   }
+  
+  // Contact Follow-ups methods
+  async getContactFollowUps(contactId: number): Promise<FollowupAction[]> {
+    // Filter follow-ups by contactId and sort by due date (most recent first)
+    return Array.from(this.followupActions.values())
+      .filter(followup => 
+        // Use applicationId field to store contactId for contact-related follow-ups
+        followup.applicationId === contactId && 
+        // To distinguish contact follow-ups from application follow-ups
+        followup.type.startsWith('contact_')
+      )
+      .sort((a, b) => {
+        // Sort by due date if available, otherwise by created date
+        const dateA = a.dueDate || a.createdAt;
+        const dateB = b.dueDate || b.createdAt;
+        return dateA.getTime() - dateB.getTime();
+      });
+  }
+
+  async createContactFollowUp(userId: number, contactId: number, followUp: Partial<InsertFollowupAction>): Promise<FollowupAction> {
+    // Ensure the contact exists
+    const contact = this.networkingContacts.get(contactId);
+    if (!contact) {
+      throw new Error(`Contact with ID ${contactId} not found`);
+    }
+
+    const now = new Date();
+    
+    // Create the new follow-up
+    const newFollowUp: FollowupAction = {
+      id: this.followupActionIdCounter++,
+      processId: null, // Not related to an interview process
+      applicationId: contactId, // Store contactId in applicationId field
+      stageId: null, // Not related to an interview stage
+      type: followUp.type || 'contact_followup', // Prefix with 'contact_' to distinguish
+      description: followUp.description || `Follow up with ${contact.fullName}`,
+      dueDate: followUp.dueDate || null,
+      completed: false,
+      completedDate: null,
+      notes: followUp.notes || null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    // Store the follow-up
+    this.followupActions.set(newFollowUp.id, newFollowUp);
+
+    return newFollowUp;
+  }
+
+  async completeContactFollowUp(id: number): Promise<FollowupAction | undefined> {
+    const followUp = this.followupActions.get(id);
+    if (!followUp) return undefined;
+
+    // If already completed, just return it
+    if (followUp.completed) return followUp;
+
+    const now = new Date();
+    
+    // Update the follow-up to completed status
+    const updatedFollowUp: FollowupAction = {
+      ...followUp,
+      completed: true,
+      completedDate: now,
+      updatedAt: now
+    };
+
+    // Store the updated follow-up
+    this.followupActions.set(id, updatedFollowUp);
+
+    return updatedFollowUp;
+  }
+
+  async deleteContactFollowUp(id: number): Promise<boolean> {
+    return this.followupActions.delete(id);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
