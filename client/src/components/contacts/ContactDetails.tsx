@@ -579,12 +579,18 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex items-start gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <span className="text-sm">Last Contact: {formattedLastContact}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm">Last Contact:</span>
+                  <span className="text-sm text-muted-foreground">{formattedLastContact}</span>
+                </div>
               </div>
               
               <div className="flex items-start gap-2">
                 <CalendarClock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                <span className="text-sm">Next Follow-up: {formattedNextFollowUp}</span>
+                <div className="flex flex-col">
+                  <span className="text-sm">Next Follow-up:</span>
+                  <span className="text-sm text-muted-foreground">{formattedNextFollowUp}</span>
+                </div>
               </div>
 
               <div className="col-span-2 mt-2 space-y-2">
