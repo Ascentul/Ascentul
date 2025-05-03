@@ -3906,21 +3906,20 @@ export class MemStorage implements IStorage {
   async getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]> {
     const now = new Date();
     
-    // First, get contacts with built-in followUpDate property
+    // First, get contacts with built-in followUpDate property (including future dates)
     const contactsWithBuiltInFollowup = Array.from(this.networkingContacts.values())
       .filter(contact => 
         contact.userId === userId && 
         contact.status === "active" &&
-        contact.followUpDate && 
-        contact.followUpDate <= now
+        contact.followUpDate !== null
       );
     
-    // Get all follow-up actions that are for contacts (not completed)
+    // Get all follow-up actions that are for contacts (not completed, regardless of date)
     const allContactFollowups = Array.from(this.followupActions.values())
       .filter(followup => 
         !followup.completed && 
-        followup.dueDate && 
-        followup.dueDate <= now
+        followup.dueDate !== null &&
+        followup.type.startsWith('contact_')
       );
       
     console.log(`Found ${allContactFollowups.length} pending follow-ups in the system`);
