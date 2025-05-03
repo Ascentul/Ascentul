@@ -72,6 +72,36 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Fetch user's resumes
+  const { data: resumes, isLoading: isLoadingResumes } = useQuery({
+    queryKey: ['/api/resumes'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/resumes');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching resumes:', error);
+        return [];
+      }
+    },
+    enabled: showMaterialsModal, // Only fetch when modal is open
+  });
+  
+  // Fetch user's cover letters
+  const { data: coverLetters, isLoading: isLoadingCoverLetters } = useQuery({
+    queryKey: ['/api/cover-letters'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/cover-letters');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching cover letters:', error);
+        return [];
+      }
+    },
+    enabled: showMaterialsModal, // Only fetch when modal is open
+  });
+  
   // Update localApplication when the application prop changes
   useEffect(() => {
     console.log("Application changed:", application);
@@ -1142,22 +1172,33 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
               <Select 
                 value={selectedResume?.id} 
                 onValueChange={(value) => {
-                  const fakeResumes = [
-                    { id: "resume-1", title: "Software Engineer Resume" },
-                    { id: "resume-2", title: "Product Manager Resume" },
-                    { id: "resume-3", title: "Data Scientist Resume" }
-                  ];
-                  const selected = fakeResumes.find(r => r.id === value);
-                  if (selected) setSelectedResume(selected);
+                  if (resumes && resumes.length > 0) {
+                    const selected = resumes.find((r: any) => r.id === value);
+                    if (selected) {
+                      setSelectedResume({
+                        id: selected.id,
+                        title: selected.title || selected.name || 'Untitled Resume'
+                      });
+                    }
+                  }
                 }}
+                disabled={isLoadingResumes}
               >
                 <SelectTrigger id="resume">
-                  <SelectValue placeholder="Select a resume" />
+                  <SelectValue placeholder={isLoadingResumes ? "Loading resumes..." : "Select a resume"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="resume-1">Software Engineer Resume</SelectItem>
-                  <SelectItem value="resume-2">Product Manager Resume</SelectItem>
-                  <SelectItem value="resume-3">Data Scientist Resume</SelectItem>
+                  {isLoadingResumes ? (
+                    <SelectItem value="loading" disabled>Loading resumes...</SelectItem>
+                  ) : resumes && resumes.length > 0 ? (
+                    resumes.map((resume: any) => (
+                      <SelectItem key={resume.id} value={resume.id}>
+                        {resume.title || resume.name || 'Untitled Resume'}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>No resumes found</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1167,22 +1208,33 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
               <Select 
                 value={selectedCoverLetter?.id} 
                 onValueChange={(value) => {
-                  const fakeCoverLetters = [
-                    { id: "cl-1", title: "Software Engineer Cover Letter" },
-                    { id: "cl-2", title: "Product Manager Cover Letter" },
-                    { id: "cl-3", title: "Data Scientist Cover Letter" }
-                  ];
-                  const selected = fakeCoverLetters.find(r => r.id === value);
-                  if (selected) setSelectedCoverLetter(selected);
+                  if (coverLetters && coverLetters.length > 0) {
+                    const selected = coverLetters.find((cl: any) => cl.id === value);
+                    if (selected) {
+                      setSelectedCoverLetter({
+                        id: selected.id,
+                        title: selected.title || selected.name || 'Untitled Cover Letter'
+                      });
+                    }
+                  }
                 }}
+                disabled={isLoadingCoverLetters}
               >
                 <SelectTrigger id="cover-letter">
-                  <SelectValue placeholder="Select a cover letter" />
+                  <SelectValue placeholder={isLoadingCoverLetters ? "Loading cover letters..." : "Select a cover letter"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cl-1">Software Engineer Cover Letter</SelectItem>
-                  <SelectItem value="cl-2">Product Manager Cover Letter</SelectItem>
-                  <SelectItem value="cl-3">Data Scientist Cover Letter</SelectItem>
+                  {isLoadingCoverLetters ? (
+                    <SelectItem value="loading" disabled>Loading cover letters...</SelectItem>
+                  ) : coverLetters && coverLetters.length > 0 ? (
+                    coverLetters.map((coverLetter: any) => (
+                      <SelectItem key={coverLetter.id} value={coverLetter.id}>
+                        {coverLetter.title || coverLetter.name || 'Untitled Cover Letter'}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>No cover letters found</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
