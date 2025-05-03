@@ -881,8 +881,8 @@ export default function CareerPathExplorer() {
       {explorationMode === 'target' && generatedPath && (
         <div className="relative mt-8">
           <h2 className="text-2xl font-bold mb-6">Career Path Progression</h2>
-          <div className="relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+          <div className="relative mx-14">
+            <div className="absolute left-[-40px] top-1/2 -translate-y-1/2 z-10">
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -895,7 +895,7 @@ export default function CareerPathExplorer() {
             
             <div 
               ref={scrollContainerRef}
-              className="pb-6 overflow-x-auto scrollbar-hide relative flex items-start gap-4"
+              className="pb-6 px-2 overflow-x-auto scrollbar-hide relative flex items-start gap-4"
               style={{ 
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
@@ -955,7 +955,7 @@ export default function CareerPathExplorer() {
               ))}
             </div>
             
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10">
               <Button 
                 variant="ghost" 
                 size="icon" 
