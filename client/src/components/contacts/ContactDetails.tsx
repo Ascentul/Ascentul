@@ -141,9 +141,9 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     data: followUps = [],
     isLoading: isLoadingFollowUps,
   } = useQuery({
-    queryKey: [`/api/contacts/${contactId}/follow-ups`],
+    queryKey: [`/api/contacts/${contactId}/followups`],
     queryFn: async () => apiRequest<FollowupAction[]>({
-      url: `/api/contacts/${contactId}/follow-ups`,
+      url: `/api/contacts/${contactId}/followups`,
       method: 'GET',
     }),
     enabled: !!contactId,
@@ -202,17 +202,24 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   // Schedule follow-up mutation
   const scheduleFollowUpMutation = useMutation({
     mutationFn: async (values: FollowUpFormValues) => {
+      // Transform form values to match server expectations
+      const serverData = {
+        type: values.reminderType,
+        notes: values.notes,
+        dueDate: values.followUpDate,
+      };
+      
       return apiRequest({
         url: `/api/contacts/${contactId}/schedule-followup`,
         method: 'POST',
-        data: values,
+        data: serverData,
       });
     },
     onSuccess: () => {
       setShowFollowUpForm(false);
       followUpForm.reset();
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/followups`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       toast({
