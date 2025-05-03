@@ -209,6 +209,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         userId, 
         contactId, 
         {
+          contactId: contactId,
           interactionType: req.body.interactionType,
           notes: req.body.notes,
           date: req.body.date ? new Date(req.body.date) : new Date()
