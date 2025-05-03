@@ -3959,20 +3959,42 @@ export class MemStorage implements IStorage {
   
   // Contact Follow-ups methods
   async getContactFollowUps(contactId: number): Promise<FollowupAction[]> {
+    console.log(`🔍 Looking for follow-ups for contact ID: ${contactId}`);
+    
+    // Debug all follow-up actions in storage
+    const allActions = Array.from(this.followupActions.values());
+    console.log(`📊 Total follow-up actions in storage: ${allActions.length}`);
+    
+    // Debug the actions to find any for this contact
+    allActions.forEach(action => {
+      console.log(`📑 Follow-up ID ${action.id}:
+        - applicationId: ${action.applicationId}
+        - type: ${action.type}
+        - dueDate: ${action.dueDate}
+        - notes: ${action.notes}
+      `);
+    });
+    
     // Filter follow-ups by contactId and sort by due date (most recent first)
-    return Array.from(this.followupActions.values())
-      .filter(followup => 
-        // Use applicationId field to store contactId for contact-related follow-ups
-        followup.applicationId === contactId && 
-        // To distinguish contact follow-ups from application follow-ups
-        followup.type.startsWith('contact_')
-      )
+    const result = Array.from(this.followupActions.values())
+      .filter(followup => {
+        // Check if this is a contact follow-up for the requested contact
+        const matches = followup.applicationId === contactId;
+        
+        // We no longer need to check type.startsWith('contact_') due to a bug in the createContactFollowUp method
+        // where it doesn't add this prefix correctly. Let's only filter by applicationId.
+        
+        return matches;
+      })
       .sort((a, b) => {
         // Sort by due date if available, otherwise by created date
         const dateA = a.dueDate || a.createdAt;
         const dateB = b.dueDate || b.createdAt;
         return dateA.getTime() - dateB.getTime();
       });
+      
+    console.log(`✅ Found ${result.length} follow-ups for contact ID: ${contactId}`);
+    return result;
   }
 
   async createContactFollowUp(userId: number, contactId: number, followUp: Partial<InsertFollowupAction>): Promise<FollowupAction> {
@@ -3984,15 +4006,41 @@ export class MemStorage implements IStorage {
 
     const now = new Date();
     
+    // Log incoming data
+    console.log(`📝 Creating contact follow-up for contact ID ${contactId}:`, JSON.stringify(followUp, null, 2));
+    
+    // Check/validate dueDate if provided
+    let parsedDueDate = null;
+    if (followUp.dueDate) {
+      if (followUp.dueDate instanceof Date) {
+        console.log(`✅ Valid Date object for dueDate:`, followUp.dueDate.toISOString());
+        parsedDueDate = followUp.dueDate;
+      } else {
+        try {
+          parsedDueDate = new Date(followUp.dueDate);
+          console.log(`✅ Parsed dueDate string to Date:`, parsedDueDate.toISOString());
+        } catch (err) {
+          console.error(`❌ Error parsing dueDate:`, err);
+          throw new Error("Invalid date format");
+        }
+      }
+    }
+    
+    // Ensure the type includes the contact_ prefix
+    let followUpType = followUp.type || 'followup';
+    if (!followUpType.startsWith('contact_')) {
+      followUpType = `contact_${followUpType}`;
+    }
+    
     // Create the new follow-up
     const newFollowUp: FollowupAction = {
       id: this.followupActionIdCounter++,
       processId: null, // Not related to an interview process
       applicationId: contactId, // Store contactId in applicationId field
       stageId: null, // Not related to an interview stage
-      type: followUp.type || 'contact_followup', // Prefix with 'contact_' to distinguish
+      type: followUpType, // Ensure it has the 'contact_' prefix
       description: followUp.description || `Follow up with ${contact.fullName}`,
-      dueDate: followUp.dueDate || null,
+      dueDate: parsedDueDate,
       completed: false,
       completedDate: null,
       notes: followUp.notes || null,
