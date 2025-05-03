@@ -1145,7 +1145,88 @@ export default function CareerPathExplorer() {
               </div>
               
               <DrawerFooter className="px-6 pt-0">
-                <Button className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white">
+                <Button 
+                  className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+                  onClick={async () => {
+                    // Check if we have existing goals to avoid duplicates
+                    try {
+                      // Get existing goals
+                      const goalsResponse = await apiRequest('GET', '/api/goals');
+                      const existingGoals = await goalsResponse.json();
+                      
+                      // Check if this goal already exists (by title)
+                      const goalTitle = `Become a ${selectedNode.title}`;
+                      const isDuplicate = existingGoals.some(
+                        (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
+                      );
+                      
+                      if (isDuplicate) {
+                        toast({
+                          title: "Goal Already Exists",
+                          description: "You already have this career goal in your tracker.",
+                          variant: "default"
+                        });
+                        return;
+                      }
+                      
+                      // Create the goal
+                      const goalData = {
+                        title: goalTitle,
+                        description: `Career goal to become a ${selectedNode.title} in the ${activePath.name} industry. Salary range: ${selectedNode.salaryRange}.`,
+                        status: "not_started",
+                        checklist: [
+                          {
+                            id: crypto.randomUUID(),
+                            text: `Research required skills for ${selectedNode.title} role`,
+                            completed: false
+                          },
+                          {
+                            id: crypto.randomUUID(),
+                            text: `Identify training or certification needs`,
+                            completed: false
+                          },
+                          {
+                            id: crypto.randomUUID(),
+                            text: `Update resume to target this role`,
+                            completed: false
+                          },
+                          {
+                            id: crypto.randomUUID(),
+                            text: `Network with professionals in this field`,
+                            completed: false
+                          }
+                        ]
+                      };
+                      
+                      // Save the goal
+                      const response = await apiRequest('POST', '/api/goals', goalData);
+                      
+                      if (response.ok) {
+                        // Close the drawer
+                        setDrawerOpen(false);
+                        
+                        toast({
+                          title: "Career Goal Created",
+                          description: `"${goalTitle}" has been added to your career goals tracker.`,
+                        });
+                        
+                        // Navigate to goals page to see the new goal
+                        setTimeout(() => {
+                          window.location.href = '/goals';
+                        }, 1500);
+                      } else {
+                        throw new Error("Failed to create goal");
+                      }
+                    } catch (error) {
+                      console.error("Error creating career goal:", error);
+                      toast({
+                        title: "Error Creating Goal",
+                        description: "There was a problem creating your career goal. Please try again.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
                   Set as Career Goal
                 </Button>
                 <Button 
@@ -1334,7 +1415,88 @@ export default function CareerPathExplorer() {
               </div>
               
               <DrawerFooter className="px-6 pt-0">
-                <Button className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white">
+                <Button 
+                  className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+                  onClick={async () => {
+                    if (!roleInsights || !selectedNode) return;
+                    
+                    // Use the recommended next step from insights
+                    const suggestedNextStep = roleInsights.suggestedRoles[0]?.title || selectedNode.title;
+                    
+                    try {
+                      // Get existing goals
+                      const goalsResponse = await apiRequest('GET', '/api/goals');
+                      const existingGoals = await goalsResponse.json();
+                      
+                      // Check if this goal already exists (by title)
+                      const goalTitle = `Career transition to ${suggestedNextStep}`;
+                      const isDuplicate = existingGoals.some(
+                        (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
+                      );
+                      
+                      if (isDuplicate) {
+                        toast({
+                          title: "Goal Already Exists",
+                          description: "You already have this career goal in your tracker.",
+                          variant: "default"
+                        });
+                        return;
+                      }
+                      
+                      // Create action items from development plan
+                      const checklist = roleInsights.developmentPlan.map(step => ({
+                        id: crypto.randomUUID(),
+                        text: step.step,
+                        completed: false
+                      }));
+                      
+                      // Add skill development items
+                      const skillChecklist = roleInsights.transferableSkills
+                        .filter(skill => skill.currentProficiency !== 'advanced')
+                        .slice(0, 2)
+                        .map(skill => ({
+                          id: crypto.randomUUID(),
+                          text: `Improve ${skill.skill} skill`,
+                          completed: false
+                        }));
+                      
+                      // Create the goal
+                      const goalData = {
+                        title: goalTitle,
+                        description: `Based on AI career insights: Transition to a ${suggestedNextStep} role`,
+                        status: "not_started",
+                        checklist: [...checklist, ...skillChecklist]
+                      };
+                      
+                      // Save the goal
+                      const response = await apiRequest('POST', '/api/goals', goalData);
+                      
+                      if (response.ok) {
+                        // Close the drawer
+                        setShowInsightsDrawer(false);
+                        
+                        toast({
+                          title: "Career Goal Created",
+                          description: `"${goalTitle}" has been added to your career goals tracker.`,
+                        });
+                        
+                        // Navigate to goals page to see the new goal
+                        setTimeout(() => {
+                          window.location.href = '/goals';
+                        }, 1500);
+                      } else {
+                        throw new Error("Failed to create goal");
+                      }
+                    } catch (error) {
+                      console.error("Error creating career goal from insights:", error);
+                      toast({
+                        title: "Error Creating Goal",
+                        description: "There was a problem creating your career goal. Please try again.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
                   Create Goal Based on These Insights
                 </Button>
                 <DrawerClose asChild>
