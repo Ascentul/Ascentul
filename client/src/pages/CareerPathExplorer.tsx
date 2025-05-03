@@ -1260,8 +1260,6 @@ export default function CareerPathExplorer() {
           )}
         </DrawerContent>
       </Drawer>
-      
-
     </div>
   );
 }
