@@ -734,7 +734,7 @@ export default function CareerPathExplorer() {
           >
             <TabsTrigger 
               value="target" 
-              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm"
               role="tab"
               aria-selected={explorationMode === 'target'}
               tabIndex={explorationMode === 'target' ? 0 : -1}
@@ -743,7 +743,7 @@ export default function CareerPathExplorer() {
             </TabsTrigger>
             <TabsTrigger 
               value="profile" 
-              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm data-[state=active]:font-semibold"
+              className="rounded-md transition-all duration-200 ease-in-out flex items-center justify-center gap-2 font-medium data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm"
               role="tab"
               aria-selected={explorationMode === 'profile'}
               tabIndex={explorationMode === 'profile' ? 0 : -1}
