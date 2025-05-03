@@ -257,9 +257,10 @@ export default function ContactForm({
               <FormItem>
                 <FormLabel>Last Contact Date</FormLabel>
                 <FormControl>
-                  <div className="relative">
+                  <div className="relative w-[160px]">
                     <Input
                       type="date"
+                      className="w-full"
                       {...field}
                       value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
                       onChange={(e) => {
