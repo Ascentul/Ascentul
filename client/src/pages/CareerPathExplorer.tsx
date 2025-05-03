@@ -1218,6 +1218,11 @@ export default function CareerPathExplorer() {
                         toast({
                           title: "Career Goal Created",
                           description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
+                          action: (
+                            <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
+                              View Goal
+                            </Button>
+                          ),
                         });
                       } else {
                         throw new Error("Failed to create goal");
@@ -1483,6 +1488,11 @@ export default function CareerPathExplorer() {
                         toast({
                           title: "Career Goal Created",
                           description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
+                          action: (
+                            <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
+                              View Goal
+                            </Button>
+                          ),
                         });
                       } else {
                         throw new Error("Failed to create goal");
