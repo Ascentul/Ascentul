@@ -561,10 +561,6 @@ export default function Dashboard() {
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <InterviewsStatCard />
-        </motion.div>
-        
-        <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <NextInterviewCard />
         </motion.div>
         
