@@ -73,7 +73,7 @@ export default function CompaniesTable({
   }, [contacts]);
 
   return (
-    <div className="w-full border rounded-lg shadow-sm text-sm bg-white p-4">
+    <div className="border rounded-md shadow-sm bg-white">
       <Table>
         <TableHeader>
           <TableRow>
@@ -100,30 +100,31 @@ export default function CompaniesTable({
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <Users className="w-3 h-3 text-muted-foreground" />
                   <span>{company.contactCount} {company.contactCount === 1 ? 'person' : 'people'}</span>
                 </div>
               </TableCell>
               <TableCell>
-                {company.mostRecentContact ? (
-                  <div className="flex items-center gap-1">
-                    <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                    <span>{format(new Date(company.mostRecentContact), 'MMM d, yyyy')}</span>
-                  </div>
-                ) : (
-                  <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent">
-                    Never contacted
-                  </Badge>
-                )}
+                <div className="flex flex-col">
+                  {company.mostRecentContact ? (
+                    <div className="flex items-center gap-1">
+                      <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                      <span>{format(new Date(company.mostRecentContact), 'MMM d, yyyy')}</span>
+                    </div>
+                  ) : (
+                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent px-1 py-0 text-xs inline-flex items-center justify-center rounded-full font-medium">
+                      Never contacted
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <Button 
                   variant="ghost" 
-                  size="sm" 
+                  className="h-8 w-8 p-0 mr-2"
                   onClick={() => onSelectCompany(company.name)}
-                  className="gap-1"
                 >
-                  View All
+                  <span className="sr-only">View all</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </TableCell>
@@ -132,7 +133,7 @@ export default function CompaniesTable({
 
           {companyData.length === 0 && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-8">
+              <TableCell colSpan={4} className="text-center py-12">
                 <Building className="w-12 h-12 mx-auto text-muted-foreground" />
                 <h3 className="text-lg font-medium mt-4">No companies found</h3>
                 <p className="text-muted-foreground mt-2">
