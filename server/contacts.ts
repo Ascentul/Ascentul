@@ -178,4 +178,42 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       res.status(500).json({ message: "Failed to delete contact" });
     }
   });
+
+  // Log an interaction with a contact
+  app.post("/api/contacts/:id/log-interaction", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Update the contact's lastContactedDate to today
+      const updatedContact = await storage.updateNetworkingContact(contactId, {
+        ...existingContact,
+        lastContactedDate: new Date()
+      });
+      
+      res.status(200).json(updatedContact);
+    } catch (error) {
+      console.error("Error logging contact interaction:", error);
+      res.status(500).json({ message: "Failed to log interaction" });
+    }
+  });
 };
