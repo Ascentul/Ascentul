@@ -40,6 +40,8 @@ import {
   Video,
   Coffee,
   Plus,
+  Utensils,
+  Trash,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -364,7 +366,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="interactions">Interactions</TabsTrigger>
-          <TabsTrigger value="followups">Follow-ups</TabsTrigger>
+          <TabsTrigger value="follow-ups">Follow-ups</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -651,6 +653,227 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <p className="text-muted-foreground mt-2 max-w-md mx-auto">
                   Record your calls, meetings, and other communications with this contact to keep track of your relationship.
                 </p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+        
+        {/* Follow-ups Tab */}
+        <TabsContent value="follow-ups" className="py-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Follow-up Reminders</h3>
+              <Button 
+                size="sm" 
+                onClick={() => setShowFollowUpForm(true)}
+                className="gap-1"
+              >
+                <Plus className="h-4 w-4" /> Schedule Follow-up
+              </Button>
+            </div>
+            
+            {/* Follow-up Form Dialog */}
+            {showFollowUpForm && (
+              <Dialog open={showFollowUpForm} onOpenChange={setShowFollowUpForm}>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Schedule Follow-up</DialogTitle>
+                  </DialogHeader>
+                  
+                  <Form {...followUpForm}>
+                    <form onSubmit={followUpForm.handleSubmit(handleScheduleFollowUp)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={followUpForm.control}
+                          name="followUpDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Follow-up Date</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date"
+                                  value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                                  onChange={(e) => {
+                                    const date = e.target.value ? new Date(e.target.value) : new Date();
+                                    field.onChange(date);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={followUpForm.control}
+                          name="reminderType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Follow-up Type</FormLabel>
+                              <Select 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select follow-up type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Email">Send Email</SelectItem>
+                                  <SelectItem value="Call">Make Call</SelectItem>
+                                  <SelectItem value="Meeting">Schedule Meeting</SelectItem>
+                                  <SelectItem value="Coffee">Coffee Meetup</SelectItem>
+                                  <SelectItem value="Lunch">Lunch Meetup</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <FormField
+                        control={followUpForm.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Enter notes for this follow-up" 
+                                className="min-h-[100px]"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => setShowFollowUpForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={scheduleFollowUpMutation.isPending}
+                        >
+                          {scheduleFollowUpMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Schedule Follow-up'
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
+            
+            {/* Follow-ups List */}
+            {isLoadingFollowUps ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : followUps.length > 0 ? (
+              <div className="space-y-4">
+                {followUps.map((followUp) => (
+                  <Card key={followUp.id} className={cn(
+                    "overflow-hidden", 
+                    followUp.completed ? "opacity-70" : "",
+                    new Date(followUp.dueDate) < new Date() && !followUp.completed ? "border-red-300" : ""
+                  )}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          {followUp.reminderType === 'Call' && <Phone className="h-4 w-4 text-blue-500" />}
+                          {followUp.reminderType === 'Email' && <Mail className="h-4 w-4 text-green-500" />}
+                          {followUp.reminderType === 'Meeting' && <Users className="h-4 w-4 text-purple-500" />}
+                          {followUp.reminderType === 'Coffee' && <Coffee className="h-4 w-4 text-amber-500" />}
+                          {followUp.reminderType === 'Lunch' && <Utensils className="h-4 w-4 text-orange-500" />}
+                          {followUp.reminderType === 'Other' && <CalendarPlus className="h-4 w-4 text-gray-500" />}
+                          <div>
+                            <CardTitle className="text-base font-medium">
+                              {followUp.reminderType} - {format(new Date(followUp.dueDate), 'MMM d, yyyy')}
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                              {followUp.completed 
+                                ? `Completed on ${followUp.completedDate ? format(new Date(followUp.completedDate), 'MMM d, yyyy') : 'Unknown'}`
+                                : new Date(followUp.dueDate) < new Date() 
+                                  ? 'Overdue' 
+                                  : `Due in ${Math.ceil((new Date(followUp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days`
+                              }
+                            </CardDescription>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          {!followUp.completed && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => {
+                                // TODO: Mark as completed mutation
+                                toast({
+                                  title: 'Coming soon',
+                                  description: 'This feature is not yet implemented.',
+                                });
+                              }}
+                            >
+                              Mark Complete
+                            </Button>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="h-8 px-2 text-xs text-destructive hover:text-destructive"
+                            onClick={() => {
+                              // TODO: Delete follow-up mutation
+                              toast({
+                                title: 'Coming soon',
+                                description: 'This feature is not yet implemented.',
+                              });
+                            }}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    {followUp.notes && (
+                      <CardContent className="pb-4 pt-0">
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{followUp.notes}</p>
+                      </CardContent>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <CalendarClock className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mt-4">No follow-ups scheduled</h3>
+                <p className="text-muted-foreground mt-2">
+                  Schedule follow-ups to keep track of when to reconnect with this contact.
+                </p>
+                <Button 
+                  onClick={() => setShowFollowUpForm(true)} 
+                  variant="outline" 
+                  className="mt-4"
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Schedule a Follow-up
+                </Button>
               </div>
             )}
           </div>
