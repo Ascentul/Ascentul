@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, PlusCircle, UserRound, Users, Clock, Building } from 'lucide-react';
+import { Loader2, PlusCircle, UserRound, Users, Clock, Building, ChevronRight } from 'lucide-react';
 // Remove PrivateLayout to avoid duplicate wrappers
 import {
   Select,
@@ -202,6 +202,10 @@ export default function Contacts() {
               <Users className="w-4 h-4" />
               All Contacts
             </TabsTrigger>
+            <TabsTrigger value="companies" className="flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              Companies
+            </TabsTrigger>
             <TabsTrigger value="follow-up" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Need Follow-up
@@ -209,10 +213,6 @@ export default function Contacts() {
             <TabsTrigger value="recent" className="flex items-center gap-2">
               <UserRound className="w-4 h-4" />
               Recently Added
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
-              Companies
             </TabsTrigger>
           </TabsList>
 
