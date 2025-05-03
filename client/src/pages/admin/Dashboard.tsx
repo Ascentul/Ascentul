@@ -16,6 +16,7 @@ import AdminOverview from './AdminOverview';
 import SupportPage from './SupportPage';
 import AdminModelsPage from './ModelsPage';
 import OpenAILogsPage from './OpenAILogsPage';
+import UserManagement from './UserManagement';
 import {
   Form,
   FormControl,
