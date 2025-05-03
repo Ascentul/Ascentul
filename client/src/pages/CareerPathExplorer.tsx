@@ -721,38 +721,22 @@ export default function CareerPathExplorer() {
       
       {/* Mode Selection Toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex bg-gray-50 border border-gray-200 rounded-md">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`rounded-none text-sm font-medium px-4 py-2 h-auto border-0 ${
-              explorationMode === 'target' 
-              ? 'bg-white text-gray-800 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-700 bg-transparent'
-            }`}
-            onClick={() => setExplorationMode('target')}
-          >
-            <span className="inline-flex items-center gap-1.5">
+        <Tabs
+          value={explorationMode}
+          onValueChange={(value) => setExplorationMode(value as 'target' | 'profile')}
+          className="w-auto"
+        >
+          <TabsList className="grid grid-cols-2 w-full min-w-[400px]">
+            <TabsTrigger value="target" className="flex items-center justify-center gap-1.5">
               <span className="text-base">🎯</span>
               <span>Search Target Role</span>
-            </span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`rounded-none text-sm font-medium px-4 py-2 h-auto border-0 ${
-              explorationMode === 'profile' 
-              ? 'bg-white text-gray-800 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-700 bg-transparent'
-            }`}
-            onClick={() => setExplorationMode('profile')}
-          >
-            <span className="inline-flex items-center gap-1.5">
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center justify-center gap-1.5">
               <span className="text-base">⚡</span>
               <span>Suggested Paths for Me</span>
-            </span>
-          </Button>
-        </div>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
       
       {/* Render the appropriate view based on exploration mode */}
