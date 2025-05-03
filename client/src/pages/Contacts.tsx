@@ -196,7 +196,16 @@ export default function Contacts() {
         </div>
 
         {/* Tabs for different contact views */}
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs 
+          defaultValue="all" 
+          className="w-full"
+          onValueChange={(value) => {
+            // When the "follow-up" tab is selected, refresh the data
+            if (value === "follow-up") {
+              queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+            }
+          }}
+        >
           <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
