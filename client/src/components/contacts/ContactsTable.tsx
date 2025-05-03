@@ -134,13 +134,13 @@ export default function ContactsTable({
                         <span>{format(new Date(contact.lastContactedDate), 'MMM d, yyyy')}</span>
                       </div>
                       {needsFollowUp(contact.lastContactedDate) && (
-                        <Badge variant="outline" className="mt-1 bg-red-100 text-red-800 border-transparent px-2 py-0.5 text-xs">
+                        <Badge variant="outline" className="mt-1 bg-red-100 text-red-800 border-transparent px-1.5 py-0.5 text-xs inline-flex items-center justify-center rounded-full">
                           Needs follow-up
                         </Badge>
                       )}
                     </>
                   ) : (
-                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent px-2 py-0.5 text-xs">
+                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent px-1.5 py-0.5 text-xs inline-flex items-center justify-center rounded-full">
                       Never contacted
                     </Badge>
                   )}
