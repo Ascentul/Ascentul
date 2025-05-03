@@ -1,25 +1,40 @@
 import { Card, CardContent } from '@/components/ui/card';
 import dayjs from 'dayjs';
 import { Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useUpcomingInterviews, INTERVIEW_COUNT_UPDATE_EVENT } from '@/context/UpcomingInterviewsContext';
 
-// Utility function to get the next interview date
-function getNextInterviewDate(applications: any[]) {
+// Utility to get the next interview date from localStorage
+function getNextInterviewDate() {
   const now = dayjs();
-  const upcoming = applications
-    .filter(app => app.status === "active" || app.status === "interviewing")
-    .flatMap(app => {
-      // Check for interviews in local storage
-      const key = `mockInterviewStages_${app.id}`;
-      const storedStages = localStorage.getItem(key);
-      return storedStages ? JSON.parse(storedStages) : [];
-    })
-    .filter(interview => interview.status === "scheduled")
-    .map(i => dayjs(i.date))
-    .filter(date => date.isAfter(now));
+  const upcomingDates: dayjs.Dayjs[] = [];
+  
+  // Find all interview stage keys in localStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.includes('mockInterviewStages_') || key.includes('mockStages_'))) {
+      try {
+        const stages = JSON.parse(localStorage.getItem(key) || '[]');
+        if (Array.isArray(stages)) {
+          stages.forEach(stage => {
+            if ((stage.status === 'scheduled' || stage.outcome === 'scheduled') && stage.scheduledDate) {
+              const interviewDate = dayjs(stage.scheduledDate);
+              if (interviewDate.isAfter(now)) {
+                upcomingDates.push(interviewDate);
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.error(`Error processing interview stages in ${key}:`, e);
+      }
+    }
+  }
 
-  if (upcoming.length === 0) return null;
+  if (upcomingDates.length === 0) return null;
 
-  return upcoming.reduce((soonest, current) =>
+  // Find the soonest date
+  return upcomingDates.reduce((soonest, current) =>
     current.isBefore(soonest) ? current : soonest
   );
 }
@@ -34,13 +49,30 @@ function formatInterviewCountdown(date: dayjs.Dayjs | null) {
   return "In 1+ Week";
 }
 
-interface NextInterviewCardProps {
-  applications: any[];
-}
+export function NextInterviewCard() {
+  const { upcomingInterviewCount, updateInterviewCount } = useUpcomingInterviews();
+  const [nextInterviewDate, setNextInterviewDate] = useState<dayjs.Dayjs | null>(null);
 
-export function NextInterviewCard({ applications }: NextInterviewCardProps) {
-  const nextDate = getNextInterviewDate(applications);
-  const label = formatInterviewCountdown(nextDate);
+  // Update interview data when component mounts or interview count changes
+  useEffect(() => {
+    const nextDate = getNextInterviewDate();
+    setNextInterviewDate(nextDate);
+    
+    // Set up an event listener for interview updates
+    const handleInterviewUpdate = () => {
+      const updatedDate = getNextInterviewDate();
+      setNextInterviewDate(updatedDate);
+    };
+    
+    window.addEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewUpdate);
+    
+    // Clean up listener
+    return () => {
+      window.removeEventListener(INTERVIEW_COUNT_UPDATE_EVENT, handleInterviewUpdate);
+    };
+  }, [upcomingInterviewCount]);
+
+  const label = formatInterviewCountdown(nextInterviewDate);
 
   return (
     <Card className="shadow-sm">
