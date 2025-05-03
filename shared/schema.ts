@@ -993,4 +993,31 @@ export const insertNetworkingContactSchema = createInsertSchema(networkingContac
 });
 
 export type NetworkingContact = typeof networkingContacts.$inferSelect;
+
+// Contact Interactions model
+export const contactInteractions = pgTable("contact_interactions", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").notNull(),
+  userId: integer("user_id").notNull(),
+  interactionType: text("interaction_type").notNull(), // options: "meeting", "call", "email", "social", "other"
+  notes: text("notes"),
+  date: timestamp("date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertContactInteractionSchema = createInsertSchema(contactInteractions).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  date: true,
+}).extend({
+  date: z.date().optional().default(new Date()).or(
+    z.string().transform((val) => val ? new Date(val) : new Date())
+  ),
+});
+
+export type ContactInteraction = typeof contactInteractions.$inferSelect;
+export type InsertContactInteraction = z.infer<typeof insertContactInteractionSchema>;
 export type InsertNetworkingContact = z.infer<typeof insertNetworkingContactSchema>;
