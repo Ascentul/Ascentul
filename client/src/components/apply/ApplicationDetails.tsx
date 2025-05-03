@@ -538,9 +538,8 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
 
       {/* Main content tabs */}
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid grid-cols-4">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
           <TabsTrigger value="interviews">Interviews</TabsTrigger>
           <TabsTrigger value="follow-up">Follow-up</TabsTrigger>
         </TabsList>
@@ -596,46 +595,103 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="materials" className="space-y-4">
-          <Card>
+
+          {/* Materials Used Section */}
+          <Card className="bg-white rounded-lg shadow p-4 mt-6">
             <CardHeader>
-              <CardTitle>Resume</CardTitle>
-              <CardDescription>Resume used for this application</CardDescription>
+              <CardTitle>Materials Used</CardTitle>
+              <CardDescription>Resume and cover letter used for this application</CardDescription>
             </CardHeader>
             <CardContent>
-              {mockResume ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-blue-500" />
-                    <span>{mockResume.name}</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Resume:</Label>
+                  {localApplication.resumeId ? (
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                        <span>{localApplication.resumeTitle || "Selected Resume"}</span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          // Open modal to change resume
+                          // Implement this functionality later
+                          toast({
+                            title: "Coming soon",
+                            description: "Resume selection functionality is coming soon.",
+                          });
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-muted-foreground italic">Not provided</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Open modal to select resume
+                          // Implement this functionality later
+                          toast({
+                            title: "Coming soon",
+                            description: "Resume selection functionality is coming soon.",
+                          });
+                        }}
+                      >
+                        Select
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground italic">No resume attached to this application.</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Cover Letter</CardTitle>
-              <CardDescription>Cover letter used for this application</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {mockCoverLetter ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-blue-500" />
-                    <span>{mockCoverLetter.name}</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
+                
+                <div>
+                  <Label className="text-sm font-medium">Cover Letter:</Label>
+                  {localApplication.coverLetterId ? (
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 mr-2 text-blue-500" />
+                        <span>{localApplication.coverLetterTitle || "Selected Cover Letter"}</span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Open modal to change cover letter
+                          // Implement this functionality later
+                          toast({
+                            title: "Coming soon",
+                            description: "Cover letter selection functionality is coming soon.",
+                          });
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-muted-foreground italic">Not provided</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Open modal to select cover letter
+                          // Implement this functionality later
+                          toast({
+                            title: "Coming soon",
+                            description: "Cover letter selection functionality is coming soon.",
+                          });
+                        }}
+                      >
+                        Select
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-muted-foreground italic">No cover letter attached to this application.</p>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

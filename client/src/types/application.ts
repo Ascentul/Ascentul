@@ -18,6 +18,11 @@ export interface Application {
   title?: string; // Alternate to position
   description?: string;
   externalJobUrl?: string;
+  // Materials Used
+  resumeId?: string | null;
+  resumeTitle?: string | null;
+  coverLetterId?: string | null;
+  coverLetterTitle?: string | null;
 }
 
 // Interview stage type definition
