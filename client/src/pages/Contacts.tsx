@@ -343,7 +343,7 @@ export default function Contacts() {
       <Dialog open={selectedContactId !== null} onOpenChange={() => handleCloseDialog()}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>{getSelectedContact()?.fullName || 'Contact Details'}</DialogTitle>
+            <DialogTitle>Contact Details</DialogTitle>
           </DialogHeader>
           
           {selectedContactId && (
