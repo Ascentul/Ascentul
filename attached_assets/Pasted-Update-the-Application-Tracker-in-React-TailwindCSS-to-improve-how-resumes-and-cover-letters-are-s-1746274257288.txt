@@ -1,0 +1,69 @@
+Update the Application Tracker in React + TailwindCSS to improve how resumes and cover letters are selected, saved, and displayed when an application is marked as "Applied."
+
+---
+
+🔹 1. Remove the "Materials" tab entirely from the application view.
+
+---
+
+🔹 2. Add a new section titled “Materials Used” inside the “Details” tab:
+
+- Display the selected resume and cover letter for that application.
+- Format:
+  Resume: [fileName] (clickable to preview or change)
+  Cover Letter: [fileName] (clickable to preview or change)
+- If none selected, show:
+  Resume: Not provided  
+  Cover Letter: Not provided
+
+- Clicking on either item re-opens the selection modal to update the materials.
+- Style using Tailwind:
+  `bg-white rounded-lg shadow p-4 mt-6` with section header
+
+---
+
+🔹 3. When a user changes the application status from “In Progress” → “Applied”:
+Trigger a modal asking:
+
+> “Which resume and cover letter did you use for this application?”
+
+- The modal includes two sections:
+  A. Resume Selection  
+  B. Cover Letter Selection
+
+Each section should:
+- Display a visual list of the user’s saved assets (titles + short preview if available)
+- Allow the user to select one per type (radio-style selection with highlight)
+- Use Tailwind to style each card: `bg-zinc-50 rounded p-3 hover:shadow cursor-pointer`
+- Highlight selected item using `ring-2 ring-blue-500`
+
+---
+
+🔹 4. Modal Buttons:
+- ✅ **Confirm** → saves `resumeId`, `coverLetterId`, and marks the app as "Applied"
+- ❌ **Skip** → skips material selection, stores nulls, and still updates status to "Applied"
+
+---
+
+🔹 5. Data Structure:
+Store resume and cover letter references in the application object:
+
+{
+  status: "applied",
+  resumeId: "res_001",
+  resumeTitle: "Product_Manager_v3.pdf",
+  coverLetterId: "cl_002",
+  coverLetterTitle: "Spotify_Story.pdf"
+}
+
+If skipped:
+{
+  resumeId: null,
+  coverLetterId: null
+}
+
+---
+
+Make sure this modal only appears when transitioning from "In Progress" → "Applied" — not for other status changes.
+
+Ensure the UI is responsive and uses modern Tailwind styling. Make it easy to reuse this component across multiple parts of the app if needed.
