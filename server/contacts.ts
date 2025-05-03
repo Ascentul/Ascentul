@@ -433,6 +433,34 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       res.status(500).json({ message: "Failed to fetch follow-ups" });
     }
   });
+  
+  // Mark a follow-up as completed
+  app.put("/api/contacts/followups/:followupId/complete", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const followupId = parseInt(req.params.followupId);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(followupId)) {
+        return res.status(400).json({ message: "Invalid follow-up ID" });
+      }
+      
+      // Complete the follow-up
+      const updatedFollowUp = await storage.completeContactFollowUp(followupId);
+      
+      if (!updatedFollowUp) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      
+      res.json(updatedFollowUp);
+    } catch (error) {
+      console.error("Error completing follow-up:", error);
+      res.status(500).json({ message: "Failed to complete follow-up" });
+    }
+  });
 
   // Delete a follow-up for a specific contact
   app.delete("/api/contacts/:contactId/followups/:followupId", requireAuth, async (req: Request, res: Response) => {
