@@ -132,6 +132,19 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     }),
     enabled: !!contactId,
   });
+  
+  // Fetch contact follow-ups
+  const {
+    data: followUps = [],
+    isLoading: isLoadingFollowUps,
+  } = useQuery({
+    queryKey: [`/api/contacts/${contactId}/follow-ups`],
+    queryFn: async () => apiRequest<FollowupAction[]>({
+      url: `/api/contacts/${contactId}/follow-ups`,
+      method: 'GET',
+    }),
+    enabled: !!contactId,
+  });
 
   // Form for interaction
   const interactionForm = useForm<InteractionFormValues>({
@@ -196,6 +209,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       setShowFollowUpForm(false);
       followUpForm.reset();
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       toast({
@@ -346,9 +360,10 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="interactions">Interactions</TabsTrigger>
+          <TabsTrigger value="followups">Follow-ups</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
