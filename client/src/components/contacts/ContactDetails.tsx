@@ -347,6 +347,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   
   // Handle schedule follow-up button click
   const handleQuickFollowUp = () => {
+    setActiveTab("follow-ups");
     setShowFollowUpForm(true);
   };
 
@@ -528,7 +529,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setShowFollowUpForm(true)}
+                  onClick={handleQuickFollowUp}
                   className="w-full"
                 >
                   <CalendarPlus className="mr-2 h-4 w-4" />
