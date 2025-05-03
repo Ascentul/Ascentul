@@ -652,13 +652,17 @@ export default function CareerPathExplorer() {
        
     if (!hasCompleteProfile) {
       return (
-        <div className="flex flex-col items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
-          <User className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Complete Your Profile</h3>
-          <p className="text-muted-foreground text-center max-w-md mb-4">
+        <div className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full">
+          <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <User className="h-10 w-10 text-blue-500" />
+          </div>
+          <h3 className="text-2xl font-medium mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Complete Your Profile
+          </h3>
+          <p className="text-neutral-500 mb-6 max-w-md mx-auto">
             Add your work history, education, and skills in Account Settings to get personalized career path suggestions.
           </p>
-          <Button variant="outline" asChild>
+          <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-lg transition-all" asChild>
             <a href="/account/career">Complete Your Profile</a>
           </Button>
         </div>
@@ -996,7 +1000,7 @@ export default function CareerPathExplorer() {
               }
             }}
             size="lg" 
-            className="shadow-sm hover:shadow-lg transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-lg transition-all"
           >
             <Plus className="mr-2 h-5 w-5" />
             Generate My First Path
