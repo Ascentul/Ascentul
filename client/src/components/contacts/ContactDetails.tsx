@@ -240,13 +240,13 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const markFollowUpCompleteMutation = useMutation({
     mutationFn: async (followUpId: number) => {
       return apiRequest({
-        url: `/api/contacts/${contactId}/follow-ups/${followUpId}/complete`,
+        url: `/api/contacts/${contactId}/followups/${followUpId}/complete`,
         method: 'POST',
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/followups`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       toast({
@@ -267,13 +267,13 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const deleteFollowUpMutation = useMutation({
     mutationFn: async (followUpId: number) => {
       return apiRequest({
-        url: `/api/contacts/${contactId}/follow-ups/${followUpId}`,
+        url: `/api/contacts/${contactId}/followups/${followUpId}`,
         method: 'DELETE',
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/follow-ups`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/followups`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       toast({
