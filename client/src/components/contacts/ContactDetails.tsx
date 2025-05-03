@@ -360,17 +360,63 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     ? format(new Date(contact.lastContactedDate), 'MMMM d, yyyy')
     : 'Never';
   
-  // NOTE: nextFollowUpDate is not in the current schema
-  const formattedNextFollowUp = 'Not scheduled';
+  // Find the next scheduled follow-up that's not completed
+  const getNextFollowUp = () => {
+    if (isLoadingFollowUps || !followUps.length) return null;
+    
+    // Filter follow-ups that aren't completed and sort by due date (earliest first)
+    const pendingFollowUps = followUps
+      .filter(followUp => !followUp.completed && followUp.dueDate)
+      .sort((a, b) => {
+        const dateA = new Date(a.dueDate);
+        const dateB = new Date(b.dueDate);
+        return dateA.getTime() - dateB.getTime();
+      });
+    
+    // Return the earliest pending follow-up if it exists
+    return pendingFollowUps.length > 0 ? pendingFollowUps[0] : null;
+  };
+  
+  const nextFollowUp = getNextFollowUp();
+  
+  // Format next follow-up date and display with time remaining
+  const formattedNextFollowUp = nextFollowUp?.dueDate 
+    ? (() => {
+        const dueDate = new Date(nextFollowUp.dueDate);
+        const daysUntil = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Generate a description of how many days until the follow-up
+        const timeDescription = daysUntil < 0 
+          ? `${Math.abs(daysUntil)} days overdue` 
+          : daysUntil === 0 
+            ? 'Today' 
+            : daysUntil === 1 
+              ? 'Tomorrow' 
+              : `In ${daysUntil} days`;
+        
+        return `${format(dueDate, 'MMM d, yyyy')} (${timeDescription})`;
+      })()
+    : 'Not scheduled';
 
   // Check if follow-up is needed
   const needsFollowUp = () => {
+    // Case 1: No last contact date means we should follow up
     if (!contact.lastContactedDate) return true;
     
+    // Case 2: If we have scheduled follow-ups that are overdue
+    const overdueFollowUp = followUps.some(followUp => {
+      return !followUp.completed && 
+        followUp.dueDate && 
+        new Date(followUp.dueDate) < new Date();
+    });
+    
+    if (overdueFollowUp) return true;
+    
+    // Case 3: Traditional 30-day rule (if no specific follow-up is scheduled)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    return new Date(contact.lastContactedDate) < thirtyDaysAgo;
+    return (!nextFollowUp && new Date(contact.lastContactedDate) < thirtyDaysAgo);
   };
 
   // Handle log interaction
