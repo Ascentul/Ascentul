@@ -3915,6 +3915,41 @@ export class MemStorage implements IStorage {
         return 0;
       });
   }
+
+  // Contact Interactions methods
+  async getContactInteractions(contactId: number): Promise<ContactInteraction[]> {
+    // Filter interactions by contactId and sort by date (most recent first)
+    return Array.from(this.contactInteractions.values())
+      .filter(interaction => interaction.contactId === contactId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction> {
+    // Ensure the contact exists
+    const contact = this.networkingContacts.get(contactId);
+    if (!contact) {
+      throw new Error(`Contact with ID ${contactId} not found`);
+    }
+
+    // Create the new interaction
+    const newInteraction: ContactInteraction = {
+      id: this.contactInteractionIdCounter++,
+      contactId,
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...interaction
+    };
+
+    // Store the interaction
+    this.contactInteractions.set(newInteraction.id, newInteraction);
+
+    // Update the contact's lastContactedDate
+    contact.lastContactedDate = new Date();
+    this.networkingContacts.set(contact.id, contact);
+
+    return newInteraction;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
