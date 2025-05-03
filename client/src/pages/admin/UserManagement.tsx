@@ -1,10 +1,23 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download, Plus, UserPlus } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useUser, useIsAdminUser } from '@/lib/useUserData';
 import { useLocation } from 'wouter';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 // UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,12 +81,22 @@ import {
   SheetFooter
 } from '@/components/ui/sheet';
 
+// Schema for staff user creation
+const addStaffUserSchema = z.object({
+  username: z.string().min(3, { message: "Username must be at least 3 characters" }),
+  name: z.string().min(2, { message: "Name is required" }),
+  email: z.string().email({ message: "Please enter a valid email" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+type AddStaffUserFormValues = z.infer<typeof addStaffUserSchema>;
+
 interface User {
   id: number;
   username: string;
   name: string;
   email: string;
-  userType: "regular" | "university_student" | "university_admin";
+  userType: "regular" | "university_student" | "university_admin" | "staff";
   university?: string;
   universityId?: number;
   subscriptionPlan: "free" | "premium" | "university";
@@ -282,6 +305,7 @@ export default function UserManagement() {
                   <SelectItem value="regular">Regular</SelectItem>
                   <SelectItem value="university_student">Student</SelectItem>
                   <SelectItem value="university_admin">Admin</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
                 </SelectContent>
               </Select>
 
