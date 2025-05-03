@@ -40,7 +40,7 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email' }).optional().nullable(),
   phone: z.string().optional().nullable(),
   jobTitle: z.string().optional().nullable(), // changed from position to jobTitle
-  company: z.string().optional().nullable(),
+  company: z.string().min(1, { message: 'Company name is required' }),
   linkedInUrl: z.string().url({ message: 'Please enter a valid URL' }).optional().nullable(), // changed from linkedinUrl to linkedInUrl
   relationshipType: z.string(),
   lastContactedDate: z.date().optional().nullable(), // changed from lastContactDate to lastContactedDate
@@ -192,7 +192,7 @@ export default function ContactForm({
             name="company"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Company</FormLabel>
+                <FormLabel>Company*</FormLabel>
                 <FormControl>
                   <Input placeholder="Acme Inc." {...field} value={field.value || ''} />
                 </FormControl>
