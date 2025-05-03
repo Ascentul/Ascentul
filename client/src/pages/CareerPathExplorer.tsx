@@ -26,7 +26,8 @@ import {
   Loader2,
   SearchX,
   MapPin,
-  Plus
+  Plus,
+  FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
@@ -652,17 +653,15 @@ export default function CareerPathExplorer() {
        
     if (!hasCompleteProfile) {
       return (
-        <div className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-100 rounded-xl shadow-sm border border-blue-50 w-full">
-          <div className="mb-8">
-            <div className="inline-flex rounded-full bg-blue-500 p-3 mx-auto">
-              <User className="h-8 w-8 text-white" />
-            </div>
+        <div className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-sm border border-gray-100 w-full">
+          <div className="text-blue-600 mb-4">
+            <FileText className="h-12 w-12 mx-auto" />
           </div>
           <h3 className="text-xl font-medium text-blue-600 mb-3">Complete Your Profile</h3>
-          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Add your work history, education, and skills in Account Settings to get personalized career path suggestions.
           </p>
-          <Button className="shadow-sm hover:shadow-md transition-all bg-blue-600 hover:bg-blue-700" asChild>
+          <Button className="bg-blue-700 hover:bg-blue-800" asChild>
             <a href="/account/career">Complete Your Profile</a>
           </Button>
         </div>
@@ -978,20 +977,18 @@ export default function CareerPathExplorer() {
       
       {explorationMode === 'target' && !generatedPath && (
         <motion.div 
-          className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-100 rounded-xl shadow-sm border border-blue-50 w-full"
+          className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-sm border border-gray-100 w-full"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="mb-8">
-            <div className="inline-flex rounded-full bg-blue-500 p-3 mx-auto">
-              <MapPin className="h-8 w-8 text-white" />
-            </div>
+          <div className="text-blue-600 mb-4">
+            <FileText className="h-12 w-12 mx-auto" />
           </div>
           <h3 className="text-xl font-medium text-blue-600 mb-3">
             You haven't generated any career paths yet
           </h3>
-          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Enter a job title above and click "Generate" to explore a personalized career progression path.
           </p>
           <Button 
@@ -1001,10 +998,9 @@ export default function CareerPathExplorer() {
                 searchInput.focus();
               }
             }}
-            size="lg" 
-            className="shadow-sm hover:shadow-md transition-all bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-700 hover:bg-blue-800"
           >
-            <Plus className="mr-2 h-5 w-5" />
+            <Plus className="mr-2 h-4 w-4" />
             Generate My First Path
           </Button>
         </motion.div>
