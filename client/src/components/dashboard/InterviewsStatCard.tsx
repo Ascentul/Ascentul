@@ -72,7 +72,7 @@ export function InterviewsStatCard({ isLoading = false }: InterviewsStatCardProp
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div className="ml-4">
-                <h3 className="text-neutral-500 text-sm">Next Interview</h3>
+                <h3 className="text-neutral-500 text-sm">Upcoming Interviews</h3>
                 <p className="text-2xl font-semibold">{upcomingInterviewCount}</p>
               </div>
             </div>
