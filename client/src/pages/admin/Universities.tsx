@@ -411,9 +411,9 @@ export default function Universities() {
                   <TableRow>
                     <TableHead>University</TableHead>
                     <TableHead className="hidden md:table-cell">Admin Email</TableHead>
-                    <TableHead className="hidden sm:table-cell">License Plan</TableHead>
-                    <TableHead className="hidden md:table-cell">Seats</TableHead>
+                    <TableHead className="hidden sm:table-cell">Seats</TableHead>
                     <TableHead className="hidden lg:table-cell">Expiry Date</TableHead>
+                    <TableHead className="hidden xl:table-cell">Active Students (30d)</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -434,27 +434,38 @@ export default function Universities() {
                       >
                         <TableCell>
                           <div className="font-medium">{university.name}</div>
-                          <div className="text-xs text-muted-foreground md:hidden">
-                            {university.adminEmail}
+                          <div className="flex items-center text-xs text-muted-foreground md:hidden">
+                            <div>{university.adminEmail}</div>
+                            <div className="ml-2">
+                              <LicensePlanBadge plan={university.licensePlan} small />
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">{university.adminEmail}</TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <LicensePlanBadge plan={university.licensePlan} />
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
                           <div className="flex items-center">
-                            <span className="mr-2 text-sm">
+                            <span className="mr-2 text-sm whitespace-nowrap">
                               {university.licenseUsed} / {university.licenseSeats}
                             </span>
                             <Progress 
                               value={(university.licenseUsed / university.licenseSeats) * 100} 
-                              className="h-2 w-16"
+                              className="h-2 w-20"
                             />
                           </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {format(new Date(university.licenseEnd), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div className="flex items-center">
+                            <span className="mr-2">
+                              {Math.round(university.engagementStats.activeUsers / university.licenseSeats * 100)}%
+                            </span>
+                            <Progress 
+                              value={(university.engagementStats.activeUsers / university.licenseSeats) * 100} 
+                              className="h-2 w-16"
+                            />
+                          </div>
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={university.status} />
@@ -889,7 +900,7 @@ function StatusBadge({ status, large = false }: { status: string, large?: boolea
   );
 }
 
-function LicensePlanBadge({ plan }: { plan: string }) {
+function LicensePlanBadge({ plan, small = false }: { plan: string, small?: boolean }) {
   let planColor = "";
   
   switch (plan) {
@@ -905,7 +916,10 @@ function LicensePlanBadge({ plan }: { plan: string }) {
   }
   
   return (
-    <Badge variant="outline" className={planColor}>
+    <Badge 
+      variant="outline" 
+      className={`${planColor} ${small ? 'text-xs py-0 px-1.5' : ''}`}
+    >
       {plan}
     </Badge>
   );
