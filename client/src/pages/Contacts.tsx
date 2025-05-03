@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -345,9 +344,6 @@ export default function Contacts() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>{getSelectedContact()?.fullName || 'Contact Details'}</DialogTitle>
-            <DialogDescription>
-              View and manage contact information
-            </DialogDescription>
           </DialogHeader>
           
           {selectedContactId && (
@@ -364,9 +360,6 @@ export default function Contacts() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Contact</DialogTitle>
-            <DialogDescription>
-              Fill out the form to add a new contact to your network
-            </DialogDescription>
           </DialogHeader>
           
           <ContactForm
