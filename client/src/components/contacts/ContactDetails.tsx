@@ -207,8 +207,15 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       const serverData = {
         type: values.reminderType,
         notes: values.notes,
-        dueDate: values.followUpDate instanceof Date ? values.followUpDate.toISOString() : values.followUpDate,
+        // Always make sure we have a valid date object and serialize it properly
+        dueDate: values.followUpDate instanceof Date 
+          ? values.followUpDate.toISOString() 
+          : values.followUpDate 
+            ? new Date(values.followUpDate).toISOString() 
+            : new Date().toISOString(),
       };
+      
+      console.log('Submitting follow-up with data:', serverData);
       
       return apiRequest({
         url: `/api/contacts/${contactId}/schedule-followup`,
@@ -758,14 +765,14 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                                   value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
                                   onChange={(e) => {
                                     if (e.target.value) {
-                                      // When a date is selected, convert it to a date object with proper time zone handling
+                                      // When a date is selected, convert it to a date object
+                                      // Important: we need to maintain a Date object for the form value
                                       const dateValue = e.target.value;
-                                      const [year, month, day] = dateValue.split('-').map(Number);
-                                      const date = new Date(year, month - 1, day);
-                                      // Using ISO string ensures proper timezone serialization
-                                      field.onChange(date.toISOString());
+                                      // Create a date using the browser's local timezone
+                                      const date = new Date(dateValue + 'T00:00:00');
+                                      field.onChange(date);
                                     } else {
-                                      field.onChange(new Date().toISOString());
+                                      field.onChange(null);
                                     }
                                   }}
                                 />
