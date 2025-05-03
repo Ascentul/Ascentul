@@ -37,9 +37,6 @@ export function ApplicationCard({
     ? formatDistanceToNow(new Date(application.applicationDate), { addSuffix: true })
     : formatDistanceToNow(new Date(application.createdAt), { addSuffix: true });
     
-  // Debug ID display
-  const debugIdInfo = `[ID: ${application.id}]`;
-
   // Prevent card click from triggering when edit button is clicked
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -67,7 +64,7 @@ export function ApplicationCard({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-medium text-base text-foreground">
-                  {jobTitle} <span className="text-xs text-amber-600">{debugIdInfo}</span>
+                  {jobTitle}
                 </h3>
                 <p className="text-muted-foreground text-sm">{companyName}</p>
               </div>
