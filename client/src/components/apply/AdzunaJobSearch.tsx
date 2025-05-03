@@ -601,10 +601,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={() => window.open('https://www.adzuna.com/', '_blank')}>
-          Visit Adzuna
-        </Button>
+      <CardFooter className="flex justify-end">
         {searchResults.length > 0 && (
           <Button 
             onClick={() => {
