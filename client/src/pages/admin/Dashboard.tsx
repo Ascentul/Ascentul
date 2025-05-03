@@ -578,16 +578,18 @@ export default function AdminDashboard() {
 
         {/* Content area */}
         <main className="flex-1 p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="md:hidden grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-            </TabsList>
+          <div className="mx-auto max-w-1440 w-full px-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="md:hidden grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value={activeTab} className="mt-0">
-              <TabContent />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value={activeTab} className="mt-0">
+                <TabContent />
+              </TabsContent>
+            </Tabs>
+          </div>
         </main>
       </div>
     </div>
