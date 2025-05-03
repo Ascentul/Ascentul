@@ -24,7 +24,9 @@ import {
   CalendarDays,
   BookOpen,
   Loader2,
-  SearchX
+  SearchX,
+  MapPin,
+  Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
@@ -969,13 +971,35 @@ export default function CareerPathExplorer() {
       )}
       
       {explorationMode === 'target' && !generatedPath && (
-        <div className="flex flex-col items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
-          <SearchX className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No Career Path Generated Yet</h3>
-          <p className="text-muted-foreground text-center max-w-md mb-4">
-            Enter a job title above and click "Generate" to visualize a potential career progression path.
+        <motion.div 
+          className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <MapPin className="h-10 w-10 text-blue-500" />
+          </div>
+          <h3 className="text-2xl font-medium mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            You haven't generated any career paths yet
+          </h3>
+          <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+            Enter a job title above and click "Generate" to explore a personalized career progression path.
           </p>
-        </div>
+          <Button 
+            onClick={() => {
+              const searchInput = document.getElementById('job-title-search') as HTMLInputElement;
+              if (searchInput) {
+                searchInput.focus();
+              }
+            }}
+            size="lg" 
+            className="shadow-sm hover:shadow-lg transition-all"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Generate My First Path
+          </Button>
+        </motion.div>
       )}
 
       {/* Role Detail Drawer */}
