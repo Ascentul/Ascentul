@@ -796,15 +796,6 @@ const Interview = () => {
                                 <Briefcase className="h-4 w-4 mr-2" />
                                 Active Applications
                               </h3>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => setShowApplyWizard(true)}
-                                className="text-xs"
-                              >
-                                <Plus className="h-3.5 w-3.5 mr-1" />
-                                New Application
-                              </Button>
                             </div>
                             
                             {/* Status filter buttons */}
