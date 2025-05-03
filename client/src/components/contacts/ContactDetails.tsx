@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Building,
   Calendar,
+  CalendarPlus,
   Edit,
   ExternalLink,
   Loader2,
@@ -83,13 +84,26 @@ const interactionFormSchema = z.object({
   }),
 });
 
+// Form schema for scheduling follow-up
+const followUpFormSchema = z.object({
+  followUpDate: z.date({
+    required_error: "Please select a follow-up date",
+  }),
+  notes: z.string().min(3, "Notes must be at least 3 characters").max(500, "Notes must not exceed 500 characters"),
+  reminderType: z.enum(["Email", "Notification", "None"], {
+    required_error: "Please select a reminder type",
+  }),
+});
+
 type InteractionFormValues = z.infer<typeof interactionFormSchema>;
+type FollowUpFormValues = z.infer<typeof followUpFormSchema>;
 
 export default function ContactDetails({ contactId, onClose }: ContactDetailsProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [showInteractionForm, setShowInteractionForm] = useState(false);
+  const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   
   // Fetch contact data
@@ -127,6 +141,16 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       date: new Date(),
     },
   });
+  
+  // Form for follow-up
+  const followUpForm = useForm<FollowUpFormValues>({
+    resolver: zodResolver(followUpFormSchema),
+    defaultValues: {
+      followUpDate: new Date(new Date().setDate(new Date().getDate() + 7)), // Default to 1 week from now
+      notes: "",
+      reminderType: "Email",
+    },
+  });
 
   // Log interaction mutation
   const logInteractionMutation = useMutation({
@@ -153,6 +177,35 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       toast({
         title: 'Error',
         description: 'Failed to log interaction. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Schedule follow-up mutation
+  const scheduleFollowUpMutation = useMutation({
+    mutationFn: async (values: FollowUpFormValues) => {
+      return apiRequest({
+        url: `/api/contacts/${contactId}/schedule-followup`,
+        method: 'POST',
+        data: values,
+      });
+    },
+    onSuccess: () => {
+      setShowFollowUpForm(false);
+      followUpForm.reset();
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      toast({
+        title: 'Follow-up scheduled',
+        description: 'Follow-up reminder has been scheduled successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to schedule follow-up. Please try again.',
         variant: 'destructive',
       });
     },
@@ -209,10 +262,20 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     logInteractionMutation.mutate(data);
   };
   
+  // Handle schedule follow-up
+  const handleScheduleFollowUp = (data: FollowUpFormValues) => {
+    scheduleFollowUpMutation.mutate(data);
+  };
+  
   // Handle log interaction button click
   const handleQuickInteraction = () => {
     setActiveTab("interactions");
     setShowInteractionForm(true);
+  };
+  
+  // Handle schedule follow-up button click
+  const handleQuickFollowUp = () => {
+    setShowFollowUpForm(true);
   };
 
   if (isEditing) {
@@ -368,7 +431,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 </div>
               )}
 
-              <div className="col-span-2 mt-2">
+              <div className="col-span-2 mt-2 space-y-2">
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -387,6 +450,16 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                       Log Interaction
                     </>
                   )}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowFollowUpForm(true)}
+                  className="w-full"
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Schedule Follow-up
                 </Button>
               </div>
             </div>
