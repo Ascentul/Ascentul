@@ -6,6 +6,7 @@ import { NetworkingContact } from '@shared/schema';
 import ContactDetails from '@/components/contacts/ContactDetails';
 import ContactForm from '@/components/contacts/ContactForm';
 import ContactsTable from '@/components/contacts/ContactsTable';
+import CompaniesTable from '@/components/contacts/CompaniesTable';
 
 // Import UI components
 import {
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, PlusCircle, UserRound, Users, Clock } from 'lucide-react';
+import { Loader2, PlusCircle, UserRound, Users, Clock, Building } from 'lucide-react';
 // Remove PrivateLayout to avoid duplicate wrappers
 import {
   Select,
@@ -39,6 +40,7 @@ export default function Contacts() {
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [relationshipFilter, setRelationshipFilter] = useState<string>('');
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   // Fetch contacts with optional filtering
   const {
@@ -195,7 +197,7 @@ export default function Contacts() {
 
         {/* Tabs for different contact views */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               All Contacts
@@ -207,6 +209,10 @@ export default function Contacts() {
             <TabsTrigger value="recent" className="flex items-center gap-2">
               <UserRound className="w-4 h-4" />
               Recently Added
+            </TabsTrigger>
+            <TabsTrigger value="companies" className="flex items-center gap-2">
+              <Building className="w-4 h-4" />
+              Companies
             </TabsTrigger>
           </TabsList>
 
@@ -275,6 +281,58 @@ export default function Contacts() {
                 ).slice(0, 10)}
                 onSelectContact={handleSelectContact}
                 onDeleteContact={handleDeleteContact}
+              />
+            )}
+          </TabsContent>
+          
+          <TabsContent value="companies">
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : contacts.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-md border shadow-sm">
+                <Building className="w-12 h-12 mx-auto text-muted-foreground" />
+                <h3 className="text-lg font-medium mt-4">No companies found</h3>
+                <p className="text-muted-foreground mt-2">
+                  Add contacts with company information to see them grouped here
+                </p>
+                <Button 
+                  onClick={() => setIsAddingContact(true)} 
+                  className="mt-4"
+                  variant="outline"
+                >
+                  Add Your First Contact
+                </Button>
+              </div>
+            ) : selectedCompany ? (
+              <div>
+                <div className="mb-4 flex items-center">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSelectedCompany(null)}
+                    className="flex items-center mr-4"
+                  >
+                    <ChevronRight className="h-4 w-4 rotate-180 mr-1" /> Back to Companies
+                  </Button>
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <Building className="w-5 h-5 mr-2 text-primary" />
+                    {selectedCompany} Contacts
+                  </h3>
+                </div>
+                <ContactsTable
+                  contacts={contacts.filter(contact => contact.company === selectedCompany)}
+                  onSelectContact={handleSelectContact}
+                  onDeleteContact={handleDeleteContact}
+                />
+              </div>
+            ) : (
+              <CompaniesTable
+                contacts={contacts}
+                onSelectCompany={(companyName) => {
+                  setSelectedCompany(companyName);
+                }}
               />
             )}
           </TabsContent>
