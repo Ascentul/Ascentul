@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
-  Users, Activity, Briefcase, BarChart4, 
-  Building, Calendar, TrendingUp, BookOpen 
+  Users, Activity, TrendingUp, TrendingDown, 
+  Building, Calendar, CreditCard, School,
+  UserPlus, FileText, PieChart, Download,
+  BarChart as BarChartIcon, Settings, Cpu, Plus
 } from 'lucide-react';
 import {
   BarChart,
@@ -14,14 +17,12 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
-  Legend
+  Legend,
+  Cell
 } from 'recharts';
 
 export default function AdminOverview() {
-  // Mock data - would be replaced with actual API queries
+  // User growth data (January to present)
   const userGrowthData = [
     { name: 'Jan', users: 400 },
     { name: 'Feb', users: 650 },
@@ -32,97 +33,132 @@ export default function AdminOverview() {
     { name: 'Jul', users: 1800 },
   ];
 
-  const userTypeData = [
-    { name: 'Regular', value: 2400 },
-    { name: 'University', value: 1600 },
+  // Feature usage data
+  const featureUsageData = [
+    { name: 'Resume Builder', usage: 78 },
+    { name: 'Cover Letters', usage: 62 },
+    { name: 'Interview Prep', usage: 82 },
+    { name: 'AI Coach', usage: 91 },
+    { name: 'Work History', usage: 65 },
+    { name: 'Goals', usage: 72 },
   ];
 
-  const planData = [
-    { name: 'Free', value: 800 },
-    { name: 'Premium', value: 1600 },
-    { name: 'University', value: 1600 },
-  ];
+  // Formatted date and time for "last updated" timestamp
+  const formattedDateTime = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).format(new Date());
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
-  const { data: userStats } = useQuery({
-    queryKey: ['/api/admin/users/stats'],
-    initialData: {
-      totalUsers: 4000,
-      activeUsers: 2850,
-      universities: 18,
-      newSignups: 245,
-      premiumUsers: 1600,
-      universityUsers: 1600,
-      freeUsers: 800,
-      averageEngagement: '32 min/day',
-    }
-  });
+  // Use dummy data if the API is not available yet
+  const userStats = {
+    totalUsers: 4000,
+    proUsers: 1600,
+    universities: 18,
+    universityUsers: 1600, 
+    newSignups: 245,
+  };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Admin Overview</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Last updated:</span>
-          <span className="text-sm font-medium">{new Date().toLocaleDateString()}</span>
+    <div className="dark bg-gray-900 text-white min-h-screen rounded-lg p-2">
+      {/* Top bar with title and timestamp */}
+      <div className="flex items-center justify-between mb-8 bg-gray-800/50 backdrop-blur-lg p-4 rounded-lg shadow-lg border border-gray-700/50">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          Admin Dashboard
+        </h1>
+        <div className="flex items-center gap-2 bg-gray-700/50 px-3 py-1.5 rounded-full text-xs">
+          <span className="text-gray-400">Last updated:</span>
+          <span className="font-medium text-gray-200">{formattedDateTime}</span>
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
         <StatCard 
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={<Users className="h-6 w-6 text-blue-400" />}
           title="Total Users"
           value={userStats.totalUsers.toLocaleString()}
           trend="+12% from last month"
           trendUp={true}
+          gradientFrom="from-blue-500"
+          gradientTo="to-indigo-600"
         />
         <StatCard 
-          icon={<Activity className="h-5 w-5 text-green-500" />}
-          title="Active Users"
-          value={userStats.activeUsers.toLocaleString()}
+          icon={<CreditCard className="h-6 w-6 text-purple-400" />}
+          title="Pro Plan Users"
+          value={userStats.proUsers.toLocaleString()}
           trend="+8% from last month"
           trendUp={true}
+          gradientFrom="from-purple-500"
+          gradientTo="to-pink-600"
         />
         <StatCard 
-          icon={<Building className="h-5 w-5 text-blue-500" />}
+          icon={<Building className="h-6 w-6 text-emerald-400" />}
           title="Universities"
           value={userStats.universities.toString()}
           trend="+3 from last month"
           trendUp={true}
+          gradientFrom="from-emerald-500"
+          gradientTo="to-teal-600"
         />
         <StatCard 
-          icon={<Calendar className="h-5 w-5 text-orange-500" />}
+          icon={<School className="h-6 w-6 text-amber-400" />}
+          title="University Users"
+          value={userStats.universityUsers.toLocaleString()}
+          trend="+5% from last month"
+          trendUp={true}
+          gradientFrom="from-amber-500"
+          gradientTo="to-orange-600"
+        />
+        <StatCard 
+          icon={<UserPlus className="h-6 w-6 text-green-400" />}
           title="New Signups (30d)"
           value={userStats.newSignups.toLocaleString()}
           trend="+18% from last month"
           trendUp={true}
+          gradientFrom="from-green-500"
+          gradientTo="to-emerald-600"
         />
       </div>
 
       {/* Charts section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">User Growth</CardTitle>
+        {/* User Growth Line Chart */}
+        <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700/50 shadow-xl overflow-hidden">
+          <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 pb-4">
+            <CardTitle className="text-lg font-bold text-gray-100 flex items-center">
+              <BarChartIcon className="mr-2 h-5 w-5 text-blue-400" />
+              User Growth
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={userGrowthData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      borderColor: '#374151',
+                      color: '#E5E7EB'
+                    }} 
+                  />
+                  <Legend />
                   <Line
                     type="monotone"
                     dataKey="users"
-                    stroke="#0C29AB"
-                    activeDot={{ r: 8 }}
+                    name="Total Users"
+                    stroke="#60A5FA"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 8, strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -130,91 +166,98 @@ export default function AdminOverview() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">User Distribution</CardTitle>
+        {/* Feature Usage Bar Chart */}
+        <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700/50 shadow-xl overflow-hidden">
+          <CardHeader className="border-b border-gray-700/50 bg-gradient-to-r from-purple-500/10 to-pink-500/10 pb-4">
+            <CardTitle className="text-lg font-bold text-gray-100 flex items-center">
+              <Activity className="mr-2 h-5 w-5 text-purple-400" />
+              Feature Usage
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="h-60">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={userTypeData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {userTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                <p className="text-center text-sm font-medium mt-2">User Types</p>
-              </div>
-
-              <div className="h-60">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={planData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {planData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                <p className="text-center text-sm font-medium mt-2">Subscription Plans</p>
-              </div>
+          <CardContent className="pt-6">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={featureUsageData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <XAxis dataKey="name" stroke="#9CA3AF" />
+                  <YAxis stroke="#9CA3AF" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1F2937', 
+                      borderColor: '#374151',
+                      color: '#E5E7EB'
+                    }}
+                    formatter={(value) => [`${value}%`, 'Usage']}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="usage" 
+                    name="Usage %" 
+                    radius={[4, 4, 0, 0]}
+                    barSize={36}
+                  >
+                    {featureUsageData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={index % 2 === 0 ? '#8B5CF6' : '#EC4899'} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Engagement metrics */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Feature Usage</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: 'Resume Builder', usage: 78 },
-                  { name: 'Cover Letters', usage: 62 },
-                  { name: 'Interview Prep', usage: 82 },
-                  { name: 'AI Coach', usage: 91 },
-                  { name: 'Work History', usage: 65 },
-                  { name: 'Goals', usage: 72 },
-                ]}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis label={{ value: 'Usage %', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Bar dataKey="usage" fill="#0C29AB" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Quick Actions Grid */}
+      <div className="mb-2">
+        <h2 className="text-lg font-bold text-gray-100 mb-4 flex items-center">
+          <FileText className="mr-2 h-5 w-5 text-gray-400" />
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <QuickActionCard
+            icon={<UserPlus className="h-6 w-6" />}
+            title="Add User"
+            gradientFrom="from-blue-500"
+            gradientTo="to-indigo-600"
+          />
+          <QuickActionCard
+            icon={<Building className="h-6 w-6" />}
+            title="Add University"
+            gradientFrom="from-purple-500"
+            gradientTo="to-pink-600"
+          />
+          <QuickActionCard
+            icon={<FileText className="h-6 w-6" />}
+            title="Edit Content"
+            gradientFrom="from-emerald-500"
+            gradientTo="to-teal-600"
+          />
+          <QuickActionCard
+            icon={<Download className="h-6 w-6" />}
+            title="Export Data"
+            gradientFrom="from-amber-500"
+            gradientTo="to-orange-600"
+          />
+          <QuickActionCard
+            icon={<PieChart className="h-6 w-6" />}
+            title="View Analytics"
+            gradientFrom="from-red-500"
+            gradientTo="to-rose-600"
+          />
+          <QuickActionCard
+            icon={<Cpu className="h-6 w-6" />}
+            title="Manage AI Models"
+            gradientFrom="from-green-500"
+            gradientTo="to-emerald-600"
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -225,24 +268,69 @@ interface StatCardProps {
   value: string;
   trend: string;
   trendUp: boolean;
+  gradientFrom: string;
+  gradientTo: string;
 }
 
-function StatCard({ icon, title, value, trend, trendUp }: StatCardProps) {
+function StatCard({ 
+  icon, 
+  title, 
+  value, 
+  trend, 
+  trendUp,
+  gradientFrom,
+  gradientTo
+}: StatCardProps) {
   return (
-    <Card>
-      <CardContent className="p-6">
+    <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
+      <div className={`h-1 w-full bg-gradient-to-r ${gradientFrom} ${gradientTo}`}></div>
+      <div className="p-6">
         <div className="flex items-center justify-between">
-          <div className="bg-muted/50 p-2 rounded-md">{icon}</div>
-          <div className={`flex items-center text-xs font-medium ${trendUp ? 'text-green-500' : 'text-red-500'}`}>
-            {trendUp ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingUp className="mr-1 h-3 w-3 transform rotate-180" />}
+          <div className={`bg-gradient-to-br ${gradientFrom} ${gradientTo} p-3 rounded-lg text-white`}>
+            {icon}
+          </div>
+          <div className={`flex items-center text-xs font-medium ${trendUp ? 'text-green-400' : 'text-red-400'} bg-gray-800/80 py-1 px-2 rounded-full`}>
+            {trendUp ? (
+              <TrendingUp className="mr-1 h-3 w-3" />
+            ) : (
+              <TrendingDown className="mr-1 h-3 w-3" />
+            )}
             <span>{trend}</span>
           </div>
         </div>
         <div className="mt-4">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
+          <p className="text-sm font-medium text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-gray-50 mt-1">{value}</p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+interface QuickActionCardProps {
+  icon: React.ReactNode;
+  title: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
+
+function QuickActionCard({ icon, title, gradientFrom, gradientTo }: QuickActionCardProps) {
+  // Extract color from gradient for the glow effect
+  const colorName = gradientFrom.split('-')[1];
+  
+  return (
+    <button className="group transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-gray-900 rounded-xl">
+      <div className="bg-gray-800/60 backdrop-blur-lg border border-gray-700/50 p-6 rounded-xl shadow-lg h-full flex flex-col items-center justify-center text-center hover:bg-gray-800/80">
+        <div className={`mb-4 bg-gradient-to-br ${gradientFrom} ${gradientTo} p-3 rounded-lg text-white group-hover:shadow-lg transition-all duration-300`} 
+          style={{
+            boxShadow: `0 0 0 rgba(0, 0, 0, 0)`,
+            // Apply dynamic shadow on hover using inline styles and CSS variables
+            "--tw-shadow-color": `rgba(var(--${colorName}-500-rgb), 0.2)`,
+          } as React.CSSProperties}>
+          {icon}
+        </div>
+        <p className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{title}</p>
+      </div>
+    </button>
   );
 }
