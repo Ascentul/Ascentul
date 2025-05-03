@@ -90,6 +90,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [showInteractionForm, setShowInteractionForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("info");
   
   // Fetch contact data
   const {
@@ -208,13 +209,10 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     logInteractionMutation.mutate(data);
   };
   
-  // Handle simple quick interaction log
+  // Handle log interaction button click
   const handleQuickInteraction = () => {
-    logInteractionMutation.mutate({
-      interactionType: "Other",
-      notes: "Quick interaction logged",
-      date: new Date(),
-    });
+    setActiveTab("interactions");
+    setShowInteractionForm(true);
   };
 
   if (isEditing) {
@@ -283,7 +281,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="info" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="interactions">Interactions</TabsTrigger>
@@ -386,7 +384,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   ) : (
                     <>
                       <Calendar className="mr-2 h-4 w-4" />
-                      Log Quick Interaction
+                      Log Interaction
                     </>
                   )}
                 </Button>
