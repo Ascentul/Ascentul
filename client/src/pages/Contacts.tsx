@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -7,6 +7,7 @@ import ContactDetails from '@/components/contacts/ContactDetails';
 import ContactForm from '@/components/contacts/ContactForm';
 import ContactsTable from '@/components/contacts/ContactsTable';
 import CompaniesTable from '@/components/contacts/CompaniesTable';
+import { FollowUpsTable } from '@/components/contacts/FollowUpsTable';
 
 // Import UI components
 import {
@@ -41,6 +42,7 @@ export default function Contacts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [relationshipFilter, setRelationshipFilter] = useState<string>('');
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('all');
 
   // Fetch contacts with optional filtering
   const {
@@ -72,7 +74,7 @@ export default function Contacts() {
     },
   });
 
-  // Fetch contacts needing follow-up
+  // Fetch contacts needing follow-up (this is the previous endpoint that returns contacts)
   const {
     data: contactsNeedingFollowUp = [],
     isLoading: isLoadingFollowUp,
@@ -84,6 +86,70 @@ export default function Contacts() {
     }),
   });
 
+  // Define the interface for follow-ups
+  interface FollowUpWithContact {
+    id: number;
+    type: string;
+    description: string;
+    dueDate: string | Date;
+    completed: boolean;
+    notes: string | null;
+    contact: {
+      id: number;
+      fullName: string;
+      company: string | null;
+      email: string | null;
+      phone: string | null;
+    };
+  }
+
+  // Fetch all active follow-ups (used in the new UI)
+  const {
+    data: allFollowUps = [] as FollowUpWithContact[],
+    isLoading: isLoadingAllFollowUps,
+  } = useQuery<FollowUpWithContact[]>({
+    queryKey: ['/api/contacts/all-followups'],
+    queryFn: async () => {
+      const response = await apiRequest({
+        url: '/api/contacts/all-followups',
+        method: 'GET',
+      });
+      return response as FollowUpWithContact[];
+    },
+    enabled: activeTab === 'follow-up', // Only fetch when this tab is active
+  });
+
+  // When the follow-up tab is selected, refresh the data
+  useEffect(() => {
+    if (activeTab === 'follow-up') {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
+    }
+  }, [activeTab, queryClient]);
+
+  // Mutation for completing a follow-up
+  const completeFollowUpMutation = useMutation({
+    mutationFn: async (followUpId: number) => {
+      await apiRequest<void>({
+        url: `/api/contacts/followups/${followUpId}/complete`,
+        method: 'PUT',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
+      toast({
+        title: 'Follow-up completed',
+        description: 'The follow-up has been marked as completed.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to complete the follow-up. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
   // Delete contact mutation
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
@@ -95,6 +161,7 @@ export default function Contacts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
       toast({
         title: 'Contact deleted',
         description: 'The contact has been removed from your network.',
@@ -200,9 +267,11 @@ export default function Contacts() {
           defaultValue="all" 
           className="w-full"
           onValueChange={(value) => {
+            // Update the active tab
+            setActiveTab(value);
             // When the "follow-up" tab is selected, refresh the data
             if (value === "follow-up") {
-              queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
             }
           }}
         >
@@ -257,23 +326,26 @@ export default function Contacts() {
           </TabsContent>
 
           <TabsContent value="follow-up">
-            {isLoadingFollowUp ? (
+            {isLoadingAllFollowUps ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : contactsNeedingFollowUp.length === 0 ? (
+            ) : allFollowUps.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-md border shadow-sm">
                 <Clock className="w-12 h-12 mx-auto text-muted-foreground" />
                 <h3 className="text-lg font-medium mt-4">No follow-ups needed</h3>
                 <p className="text-muted-foreground mt-2">
-                  You're all caught up! All your contacts have been contacted within the last 30 days.
+                  You're all caught up! There are no pending follow-ups scheduled.
                 </p>
               </div>
             ) : (
-              <ContactsTable
-                contacts={contactsNeedingFollowUp}
+              <FollowUpsTable
+                followUps={allFollowUps}
                 onSelectContact={handleSelectContact}
-                onDeleteContact={handleDeleteContact}
+                onCompleteFollowUp={(followUpId) => {
+                  // Mark the follow-up as completed via API
+                  completeFollowUpMutation.mutate(followUpId);
+                }}
               />
             )}
           </TabsContent>
