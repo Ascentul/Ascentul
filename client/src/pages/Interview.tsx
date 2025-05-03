@@ -717,10 +717,6 @@ const Interview = () => {
               <Search className="h-4 w-4 mr-2" />
               Find Jobs
             </TabsTrigger>
-            <TabsTrigger value="practice" className="flex-1">
-              <BookOpenText className="h-4 w-4 mr-2" />
-              Practice
-            </TabsTrigger>
           </TabsList>
         </Tabs>
       </motion.div>
