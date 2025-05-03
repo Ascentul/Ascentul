@@ -587,14 +587,6 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <span className="text-sm">Next Follow-up: {formattedNextFollowUp}</span>
               </div>
 
-              {needsFollowUp() && (
-                <div className="col-span-2">
-                  <Badge variant="outline" className="bg-red-100 text-red-800 border-transparent">
-                    Needs follow-up
-                  </Badge>
-                </div>
-              )}
-
               <div className="col-span-2 mt-2 space-y-2">
                 <Button 
                   variant="outline" 
