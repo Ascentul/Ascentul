@@ -578,7 +578,7 @@ export default function AdminDashboard() {
 
         {/* Content area */}
         <main className="flex-1 p-6">
-          <div className="mx-auto max-w-1440 w-full px-4">
+          <div className="mx-auto max-w-1440 w-full px-6 md:px-8 lg:px-10">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="md:hidden grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
