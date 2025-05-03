@@ -844,7 +844,17 @@ const Interview = () => {
                               >
                                 <ApplicationStatusBadge status="Rejected" showIcon={false} className="border-none bg-transparent hover:bg-transparent p-0" />
                               </Button>
-                              
+                              {statusFilter && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-7"
+                                  onClick={() => setStatusFilter(null)}
+                                >
+                                  <FilterX className="h-3.5 w-3.5 mr-1" />
+                                  Clear
+                                </Button>
+                              )}
                             </div>
                             
                             {filteredApplications.filter(app => 

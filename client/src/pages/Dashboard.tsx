@@ -15,7 +15,6 @@ import TodaysRecommendations from '@/components/TodaysRecommendations';
 import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
 import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
-import { NextInterviewCard } from '@/components/NextInterviewCard';
 import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
 import { InterviewDebugTools } from '@/components/interview/InterviewDebugTools';
 
@@ -561,7 +560,7 @@ export default function Dashboard() {
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <NextInterviewCard />
+          <InterviewsStatCard />
         </motion.div>
         
         {/* Debug section removed - interview issue has been resolved */}
