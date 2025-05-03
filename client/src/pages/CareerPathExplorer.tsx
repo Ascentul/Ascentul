@@ -21,6 +21,7 @@ import {
   GraduationCap,
   DollarSign,
   Calendar,
+  CalendarDays,
   BookOpen,
   Loader2,
   SearchX
@@ -29,7 +30,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, getQueryFn } from '@/lib/queryClient';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -548,6 +549,183 @@ const getIconComponent = (iconName: string): JSX.Element => {
   }
 };
 
+// Define exploration modes
+type ExplorationMode = 'target' | 'profile' | 'starter';
+
+// Define career profile data interface for typechecking
+interface CareerProfileData {
+  workHistory?: any[];
+  education?: any[];
+  skills?: any[];
+  [key: string]: any;
+}
+
+// New starter career paths specifically for the Explore Starter Paths view
+const starterCareerPaths: CareerPath[] = [
+  {
+    id: 'web-development',
+    name: 'Web Development',
+    nodes: [
+      {
+        id: 'junior-web-developer',
+        title: 'Junior Web Developer',
+        level: 'entry',
+        salaryRange: '$50,000 - $75,000',
+        yearsExperience: '0-1 years',
+        skills: [
+          { name: 'HTML/CSS', level: 'intermediate' },
+          { name: 'JavaScript', level: 'basic' },
+          { name: 'Responsive Design', level: 'basic' },
+          { name: 'Git', level: 'basic' }
+        ],
+        growthPotential: 'high',
+        description: 'Builds and maintains website components. Great entry point with many learning opportunities.',
+        icon: <Braces className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'web-developer',
+        title: 'Web Developer',
+        level: 'mid',
+        salaryRange: '$75,000 - $100,000',
+        yearsExperience: '2-4 years',
+        skills: [
+          { name: 'JavaScript Frameworks', level: 'intermediate' },
+          { name: 'Backend Basics', level: 'basic' },
+          { name: 'APIs', level: 'intermediate' },
+          { name: 'Testing', level: 'basic' }
+        ],
+        growthPotential: 'high',
+        description: 'Creates full-featured websites and applications with both frontend and some backend capabilities.',
+        icon: <Cpu className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'senior-web-developer',
+        title: 'Senior Web Developer',
+        level: 'senior',
+        salaryRange: '$100,000 - $140,000',
+        yearsExperience: '5+ years',
+        skills: [
+          { name: 'Full-stack Development', level: 'advanced' },
+          { name: 'Architecture Design', level: 'intermediate' },
+          { name: 'Performance Optimization', level: 'intermediate' },
+          { name: 'Team Leadership', level: 'intermediate' }
+        ],
+        growthPotential: 'medium',
+        description: 'Leads web projects, mentors junior developers, and makes key technical decisions.',
+        icon: <Database className="h-6 w-6 text-primary" />
+      }
+    ]
+  },
+  {
+    id: 'digital-marketing',
+    name: 'Digital Marketing',
+    nodes: [
+      {
+        id: 'marketing-coordinator',
+        title: 'Marketing Coordinator',
+        level: 'entry',
+        salaryRange: '$45,000 - $60,000',
+        yearsExperience: '0-1 years',
+        skills: [
+          { name: 'Social Media', level: 'intermediate' },
+          { name: 'Content Creation', level: 'basic' },
+          { name: 'Basic Analytics', level: 'basic' },
+          { name: 'Email Marketing', level: 'basic' }
+        ],
+        growthPotential: 'high',
+        description: 'Supports marketing campaigns, manages social media, and helps create content. Ideal for beginners with creative skills.',
+        icon: <LineChart className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'digital-marketing-specialist',
+        title: 'Digital Marketing Specialist',
+        level: 'mid',
+        salaryRange: '$60,000 - $85,000',
+        yearsExperience: '2-4 years',
+        skills: [
+          { name: 'SEO/SEM', level: 'intermediate' },
+          { name: 'Campaign Management', level: 'intermediate' },
+          { name: 'Analytics', level: 'intermediate' },
+          { name: 'Content Strategy', level: 'intermediate' }
+        ],
+        growthPotential: 'high',
+        description: 'Manages full marketing campaigns and specializes in specific channels. Drives measurable results.',
+        icon: <Lightbulb className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'senior-marketing-manager',
+        title: 'Senior Marketing Manager',
+        level: 'senior',
+        salaryRange: '$85,000 - $120,000',
+        yearsExperience: '5+ years',
+        skills: [
+          { name: 'Marketing Strategy', level: 'advanced' },
+          { name: 'Team Leadership', level: 'intermediate' },
+          { name: 'Budget Management', level: 'intermediate' },
+          { name: 'Cross-channel Integration', level: 'advanced' }
+        ],
+        growthPotential: 'medium',
+        description: 'Leads marketing teams and strategies. Responsible for market positioning and brand growth.',
+        icon: <Award className="h-6 w-6 text-primary" />
+      }
+    ]
+  },
+  {
+    id: 'data-analytics',
+    name: 'Data Analytics',
+    nodes: [
+      {
+        id: 'data-analyst-junior',
+        title: 'Junior Data Analyst',
+        level: 'entry',
+        salaryRange: '$55,000 - $75,000',
+        yearsExperience: '0-1 years',
+        skills: [
+          { name: 'Excel', level: 'intermediate' },
+          { name: 'SQL Basics', level: 'basic' },
+          { name: 'Data Visualization', level: 'basic' },
+          { name: 'Reporting', level: 'basic' }
+        ],
+        growthPotential: 'high',
+        description: 'Creates reports and visualizations. Great for analytical minds and those interested in data.',
+        icon: <LineChart className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'data-analyst',
+        title: 'Data Analyst',
+        level: 'mid',
+        salaryRange: '$75,000 - $95,000',
+        yearsExperience: '2-4 years',
+        skills: [
+          { name: 'Advanced SQL', level: 'intermediate' },
+          { name: 'Python/R', level: 'intermediate' },
+          { name: 'Statistical Analysis', level: 'intermediate' },
+          { name: 'Dashboard Creation', level: 'intermediate' }
+        ],
+        growthPotential: 'high',
+        description: 'Conducts complex data analysis to solve business problems and inform decisions.',
+        icon: <Database className="h-6 w-6 text-primary" />
+      },
+      {
+        id: 'senior-data-analyst',
+        title: 'Senior Data Analyst',
+        level: 'senior',
+        salaryRange: '$95,000 - $130,000',
+        yearsExperience: '5+ years',
+        skills: [
+          { name: 'Data Modeling', level: 'advanced' },
+          { name: 'Advanced Analytics', level: 'advanced' },
+          { name: 'Machine Learning Basics', level: 'intermediate' },
+          { name: 'Business Strategy', level: 'intermediate' }
+        ],
+        growthPotential: 'medium',
+        description: 'Leads data initiatives, develops analytics strategies, and mentors junior analysts.',
+        icon: <Award className="h-6 w-6 text-primary" />
+      }
+    ]
+  }
+];
+
 export default function CareerPathExplorer() {
   const { toast } = useToast();
   const [activePath, setActivePath] = useState<CareerPath>(careerPaths[0]);
@@ -562,6 +740,29 @@ export default function CareerPathExplorer() {
   const [jobTitle, setJobTitle] = useState<string>('');
   const [isSearching, setIsSearching] = useState(false);
   const [generatedPath, setGeneratedPath] = useState<any>(null);
+  
+  // 3-Mode exploreration state
+  const [explorationMode, setExplorationMode] = useState<ExplorationMode>(() => {
+    // Try to get from localStorage first
+    const savedMode = localStorage.getItem('careerExplorationMode');
+    if (savedMode && ['target', 'profile', 'starter'].includes(savedMode)) {
+      return savedMode as ExplorationMode;
+    }
+    
+    // Default to 'starter' if no saved preference
+    return 'starter';
+  });
+  
+  // Query user profile data if in profile mode
+  const { data: careerProfileData, isLoading: isLoadingProfile } = useQuery<CareerProfileData>({
+    queryKey: ['/api/career-data/profile'],
+    enabled: explorationMode === 'profile'
+  });
+  
+  // Update local storage when mode changes
+  useEffect(() => {
+    localStorage.setItem('careerExplorationMode', explorationMode);
+  }, [explorationMode]);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -592,6 +793,142 @@ export default function CareerPathExplorer() {
     }
   };
 
+  // Helper function to render the Starter Paths view
+  const renderStarterPaths = () => {
+    return (
+      <div className="mt-6">
+        <h2 className="text-2xl font-semibold mb-4">Explore Starter Career Paths</h2>
+        <p className="text-muted-foreground mb-6">
+          Browse these curated entry-level career tracks to discover potential progression paths.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {starterCareerPaths.map((path) => (
+            <Card key={path.id} className="overflow-hidden border-2 border-primary/5 hover:border-primary/20 transition-colors">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-medium mb-2">{path.name}</h3>
+                
+                <div className="space-y-4 mt-4">
+                  {path.nodes.map((node, index) => (
+                    <div key={node.id} className="relative">
+                      {index > 0 && (
+                        <div className="absolute h-full w-0.5 bg-primary/10 left-[15px] -top-4 z-0"></div>
+                      )}
+                      <div className="flex items-start relative z-10">
+                        <div className="rounded-full p-2 bg-primary/10 mr-3">
+                          {node.icon}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{node.title}</h4>
+                          <div className="flex items-center text-sm text-muted-foreground mt-1">
+                            <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                            <span>{node.yearsExperience}</span>
+                            <span className="mx-1.5">•</span>
+                            <DollarSign className="h-3.5 w-3.5 mr-1" />
+                            <span>{node.salaryRange}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            <Badge variant="outline" className={`${LevelBadgeColors[node.level]} text-xs`}>
+                              {node.level.charAt(0).toUpperCase() + node.level.slice(1)} Level
+                            </Badge>
+                            <Badge variant="outline" className={`${GrowthIndicators[node.growthPotential].color.replace('text-', 'bg-').replace('500', '100')} ${GrowthIndicators[node.growthPotential].color} text-xs`}>
+                              {GrowthIndicators[node.growthPotential].text}
+                            </Badge>
+                            {index === 0 && (
+                              <Badge variant="outline" className="bg-blue-100 text-blue-800 text-xs">
+                                Entry Point
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
+  // Helper function to render the Profile-based Paths view
+  const renderProfileBasedPaths = () => {
+    if (isLoadingProfile) {
+      return (
+        <div className="flex items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-3">Loading your career profile data...</span>
+        </div>
+      );
+    }
+    
+    const hasCompleteProfile = careerProfileData && 
+      ((careerProfileData.workHistory && careerProfileData.workHistory.length > 0) || 
+       (careerProfileData.education && careerProfileData.education.length > 0) || 
+       (careerProfileData.skills && careerProfileData.skills.length > 0));
+       
+    if (!hasCompleteProfile) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
+          <User className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">Complete Your Profile</h3>
+          <p className="text-muted-foreground text-center max-w-md mb-4">
+            Add your work history, education, and skills in Account Settings to get personalized career path suggestions.
+          </p>
+          <Button variant="outline" asChild>
+            <a href="/account/career">Complete Your Profile</a>
+          </Button>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-6">
+        <h2 className="text-2xl font-semibold mb-4">Career Paths Based on Your Profile</h2>
+        <p className="text-muted-foreground mb-6">
+          These paths are suggested based on your current role, skills, and experience.
+        </p>
+        
+        {/* Implementation would use careerProfileData to generate or fetch personalized paths */}
+        {/* For demo, just show sample paths from the standard paths */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {careerPaths.slice(0, 2).map((path) => (
+            <Card key={path.id} className="overflow-hidden">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-medium mb-4">{path.name}</h3>
+                
+                <div className="space-y-4">
+                  {path.nodes.slice(0, 3).map((node, index) => (
+                    <div key={node.id} className="flex items-start gap-3">
+                      <div className="rounded-full p-2 bg-primary/10 shrink-0">
+                        {node.icon}
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{node.title}</h4>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {node.description}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <Badge variant="outline" className={`${LevelBadgeColors[node.level]} text-xs`}>
+                            {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <Button variant="outline" className="w-full mt-4">View Full Path</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -603,10 +940,45 @@ export default function CareerPathExplorer() {
         </div>
       </div>
       
-      {/* Job Title Search */}
-      <div className="mb-6">
-        <Card>
-          <CardContent className="pt-6">
+      {/* Mode Selection Toggle */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+        <div className="bg-card border rounded-lg p-1 inline-flex">
+          <Button
+            variant={explorationMode === 'target' ? "default" : "ghost"}
+            size="sm"
+            className={`rounded-md text-sm px-3 ${explorationMode === 'target' ? '' : 'hover:bg-muted'}`}
+            onClick={() => setExplorationMode('target')}
+          >
+            🎯 Search Target Role
+          </Button>
+          <Button
+            variant={explorationMode === 'profile' ? "default" : "ghost"}
+            size="sm"
+            className={`rounded-md text-sm px-3 ${explorationMode === 'profile' ? '' : 'hover:bg-muted'}`}
+            onClick={() => setExplorationMode('profile')}
+          >
+            ⚡ Suggested Paths for Me
+          </Button>
+          <Button
+            variant={explorationMode === 'starter' ? "default" : "ghost"}
+            size="sm"
+            className={`rounded-md text-sm px-3 ${explorationMode === 'starter' ? '' : 'hover:bg-muted'}`}
+            onClick={() => setExplorationMode('starter')}
+          >
+            🧭 Explore Starter Paths
+          </Button>
+        </div>
+      </div>
+      
+      {/* Render the appropriate view based on exploration mode */}
+      {explorationMode === 'starter' && renderStarterPaths()}
+      {explorationMode === 'profile' && renderProfileBasedPaths()}
+      
+      {/* Job Title Search - Only show in 'target' mode */}
+      {explorationMode === 'target' && (
+        <div className="mb-6">
+          <Card>
+            <CardContent className="pt-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-end">
               <div className="flex-1">
                 <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
@@ -651,7 +1023,7 @@ export default function CareerPathExplorer() {
                           // Process the nodes to add proper icon components
                           const processedPath = {
                             ...mainPath,
-                            nodes: mainPath.nodes.map(node => {
+                            nodes: mainPath.nodes.map((node: any) => {
                               // Map the icon string to an actual React component
                               const iconComponent = getIconComponent(node.icon);
                               
@@ -704,13 +1076,11 @@ export default function CareerPathExplorer() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div>)}
 
-      {/* Path Selector */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        
-        {/* Show generated path if exists */}
-        {generatedPath && (
+      {/* Only show Path Selector in target mode with generated path */}
+      {explorationMode === 'target' && generatedPath && (
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={activePath.id === generatedPath.id ? "default" : "outline"}
             onClick={() => {
@@ -722,11 +1092,11 @@ export default function CareerPathExplorer() {
             <Sparkles className="h-4 w-4 mr-2" />
             {generatedPath.name || `${jobTitle} Path`}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Career Path Visualization - Only shown after search */}
-      {generatedPath && (
+      {/* Career Path Visualization - Only shown after search in target mode */}
+      {explorationMode === 'target' && generatedPath && (
         <div className="relative mt-8">
           <h2 className="text-2xl font-bold mb-6">Career Path Progression</h2>
           <div className="relative">
@@ -817,7 +1187,7 @@ export default function CareerPathExplorer() {
         </div>
       )}
       
-      {!generatedPath && (
+      {explorationMode === 'target' && !generatedPath && (
         <div className="flex flex-col items-center justify-center py-12 mt-6 border border-dashed rounded-lg border-gray-300 bg-gray-50/50">
           <SearchX className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Career Path Generated Yet</h3>
