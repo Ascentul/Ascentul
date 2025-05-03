@@ -283,11 +283,14 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // Create a follow-up record
+      // Create a follow-up record with proper date conversion
       const followUpData = {
+        // Store original type as reminderType for consistent UI display
         type: req.body.type,
+        reminderType: req.body.type, 
         description: `Follow-up with ${existingContact.fullName}`,
         notes: req.body.notes,
+        // Ensure proper date parsing from ISO string
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
         completed: false
       };
