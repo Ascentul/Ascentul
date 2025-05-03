@@ -285,10 +285,10 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       
       // Create a follow-up record
       const followUpData = {
-        type: req.body.reminderType,
+        type: req.body.type,
         description: `Follow-up with ${existingContact.fullName}`,
         notes: req.body.notes,
-        dueDate: req.body.followUpDate ? new Date(req.body.followUpDate) : null,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
         completed: false
       };
       

@@ -203,10 +203,11 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const scheduleFollowUpMutation = useMutation({
     mutationFn: async (values: FollowUpFormValues) => {
       // Transform form values to match server expectations
+      // Convert date to ISO string to ensure proper serialization and map field names to match server expectations
       const serverData = {
         type: values.reminderType,
         notes: values.notes,
-        dueDate: values.followUpDate,
+        dueDate: values.followUpDate instanceof Date ? values.followUpDate.toISOString() : values.followUpDate,
       };
       
       return apiRequest({
