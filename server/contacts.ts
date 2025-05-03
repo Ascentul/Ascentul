@@ -283,6 +283,35 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         return res.status(403).json({ message: "Access denied" });
       }
       
+      // Debug the incoming request body
+      console.log("💾 Received follow-up data:", JSON.stringify(req.body, null, 2));
+      
+      // Validate and safely parse the date
+      let parsedDate: Date | null = null;
+      
+      try {
+        if (req.body.dueDate) {
+          parsedDate = new Date(req.body.dueDate);
+          
+          // Validate the parsed date is legitimate
+          if (isNaN(parsedDate.getTime())) {
+            console.error("❌ Invalid date received:", req.body.dueDate);
+            return res.status(400).json({ message: "Invalid date format" });
+          }
+          
+          // Additional validation: prevent dates from the distant past
+          if (parsedDate.getFullYear() < 2000) {
+            console.error("❌ Suspicious date detected:", parsedDate);
+            return res.status(400).json({ message: "Invalid date" });
+          }
+          
+          console.log("✅ Parsed valid date:", parsedDate.toISOString());
+        }
+      } catch (dateError) {
+        console.error("❌ Date parsing error:", dateError);
+        return res.status(400).json({ message: "Failed to parse date" });
+      }
+      
       // Create a follow-up record with proper date conversion
       const followUpData = {
         // Store original type as reminderType for consistent UI display
@@ -290,8 +319,8 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         reminderType: req.body.type, 
         description: `Follow-up with ${existingContact.fullName}`,
         notes: req.body.notes,
-        // Ensure proper date parsing from ISO string
-        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : null,
+        // Use our validated date
+        dueDate: parsedDate,
         completed: false
       };
       
