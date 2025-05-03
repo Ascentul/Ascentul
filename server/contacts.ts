@@ -48,6 +48,72 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       res.status(500).json({ message: "Failed to fetch contacts needing follow-up" });
     }
   });
+  
+  // Get all active follow-ups for all contacts
+  app.get("/api/contacts/all-followups", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // First, get all contacts for this user
+      const contacts = await storage.getNetworkingContacts(userId);
+      
+      // Then, gather all follow-ups for these contacts
+      const allFollowUps = [];
+      const contactMap = new Map();
+      
+      // Build a map of contact IDs to contact details for quick lookups
+      contacts.forEach(contact => {
+        contactMap.set(contact.id, contact);
+      });
+      
+      // Get all follow-ups for each contact
+      for (const contact of contacts) {
+        const followUps = await storage.getContactFollowUps(contact.id);
+        
+        // Only add non-completed follow-ups with future due dates
+        const pendingFollowUps = followUps.filter(followUp => {
+          return (
+            !followUp.completed && 
+            followUp.dueDate && 
+            new Date(followUp.dueDate) > new Date()
+          );
+        });
+        
+        // Add contact information to each follow-up
+        pendingFollowUps.forEach(followUp => {
+          allFollowUps.push({
+            ...followUp,
+            contact: {
+              id: contact.id,
+              fullName: contact.fullName,
+              company: contact.company,
+              email: contact.email,
+              phone: contact.phone
+            }
+          });
+        });
+      }
+      
+      // Sort follow-ups by due date (soonest first)
+      allFollowUps.sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+      
+      console.log(`Found ${allFollowUps.length} pending follow-ups across all contacts`);
+      
+      // Return all pending follow-ups
+      res.json(allFollowUps);
+    } catch (error) {
+      console.error("Error fetching all follow-ups:", error);
+      res.status(500).json({ message: "Failed to fetch follow-ups" });
+    }
+  });
 
   // Get a specific contact by ID
   app.get("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
