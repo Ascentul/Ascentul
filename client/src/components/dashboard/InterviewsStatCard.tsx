@@ -76,17 +76,6 @@ export function InterviewsStatCard({ isLoading = false }: InterviewsStatCardProp
                 <p className="text-2xl font-semibold">{upcomingInterviewCount}</p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-7 w-7" 
-              onClick={handleCleanup}
-              disabled={isCleaning}
-              title="Clean up orphaned interviews"
-            >
-              <RotateCcw className={`h-4 w-4 ${isCleaning ? 'animate-spin' : ''}`} />
-              <span className="sr-only">Clean up orphaned interviews</span>
-            </Button>
           </div>
         </CardContent>
       </Card>
