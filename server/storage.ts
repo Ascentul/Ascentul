@@ -412,6 +412,10 @@ export interface IStorage {
   updateNetworkingContact(id: number, contactData: Partial<NetworkingContact>): Promise<NetworkingContact | undefined>;
   deleteNetworkingContact(id: number): Promise<boolean>;
   getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]>;
+  
+  // Contact Interactions
+  getContactInteractions(contactId: number): Promise<ContactInteraction[]>;
+  createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction>;
 
   // Career Path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
@@ -464,6 +468,7 @@ export class MemStorage implements IStorage {
   private jobApplications: Map<number, JobApplication>;
   private applicationWizardSteps: Map<number, ApplicationWizardStep>;
   private networkingContacts: Map<number, NetworkingContact>;
+  private contactInteractions: Map<number, ContactInteraction>;
 
   private userIdCounter: number;
   private goalIdCounter: number;
