@@ -757,8 +757,16 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                                   type="date"
                                   value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
                                   onChange={(e) => {
-                                    const date = e.target.value ? new Date(e.target.value) : new Date();
-                                    field.onChange(date);
+                                    if (e.target.value) {
+                                      // When a date is selected, convert it to a date object with proper time zone handling
+                                      const dateValue = e.target.value;
+                                      const [year, month, day] = dateValue.split('-').map(Number);
+                                      const date = new Date(year, month - 1, day);
+                                      // Using ISO string ensures proper timezone serialization
+                                      field.onChange(date.toISOString());
+                                    } else {
+                                      field.onChange(new Date().toISOString());
+                                    }
                                   }}
                                 />
                               </FormControl>
