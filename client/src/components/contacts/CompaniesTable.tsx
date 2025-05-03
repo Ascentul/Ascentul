@@ -112,7 +112,7 @@ export default function CompaniesTable({
                       <span>{format(new Date(company.mostRecentContact), 'MMM d, yyyy')}</span>
                     </div>
                   ) : (
-                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent px-1 py-0 text-xs inline-flex items-center justify-center rounded-full font-medium">
+                    <Badge variant="outline" className="bg-gray-100 text-gray-800 border-transparent px-0.5 py-0 text-[10px] inline-flex items-center justify-center rounded-full font-medium w-[75px]">
                       Never contacted
                     </Badge>
                   )}
