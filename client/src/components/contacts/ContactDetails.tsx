@@ -353,11 +353,11 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
 
   // Format dates for display
   const formattedCreatedAt = contact.createdAt 
-    ? format(new Date(contact.createdAt), 'MMMM d, yyyy')
+    ? format(new Date(contact.createdAt), 'MMMM d, yyyy').replace(/-/g, ' ')
     : 'Unknown';
   
   const formattedLastContact = contact.lastContactedDate
-    ? format(new Date(contact.lastContactedDate), 'MMMM d, yyyy')
+    ? format(new Date(contact.lastContactedDate), 'MMMM d, yyyy').replace(/-/g, ' ')
     : 'Never';
   
   // Find the next scheduled follow-up that's not completed
@@ -394,7 +394,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
               ? 'Tomorrow' 
               : `In ${daysUntil} days`;
         
-        return `${format(dueDate, 'MMM d, yyyy')} (${timeDescription})`;
+        return `${format(dueDate, 'MMM d, yyyy').replace(/-/g, ' ')} (${timeDescription})`;
       })()
     : 'Not scheduled';
 
@@ -779,7 +779,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                           <CardTitle className="text-base">{interaction.interactionType}</CardTitle>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(interaction.date), 'MMM d, yyyy')}
+                          {format(new Date(interaction.date), 'MMM d, yyyy').replace(/-/g, ' ')}
                         </p>
                       </div>
                     </CardHeader>
@@ -966,11 +966,11 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                           {followUp.reminderType === 'Other' && <CalendarPlus className="h-4 w-4 text-gray-500" />}
                           <div>
                             <CardTitle className="text-base font-medium">
-                              {followUp.reminderType} - {format(new Date(followUp.dueDate), 'MMM d, yyyy')}
+                              {followUp.reminderType} - {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
                             </CardTitle>
                             <CardDescription className="text-xs">
                               {followUp.completed 
-                                ? `Completed on ${followUp.completedDate ? format(new Date(followUp.completedDate), 'MMM d, yyyy') : 'Unknown'}`
+                                ? `Completed on ${followUp.completedDate ? format(new Date(followUp.completedDate), 'MMM d, yyyy').replace(/-/g, ' ') : 'Unknown'}`
                                 : new Date(followUp.dueDate) < new Date() 
                                   ? 'Overdue' 
                                   : `Due in ${Math.ceil((new Date(followUp.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days`
