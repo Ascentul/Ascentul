@@ -653,15 +653,15 @@ export default function CareerPathExplorer() {
        
     if (!hasCompleteProfile) {
       return (
-        <div className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-sm border border-gray-100 w-full">
-          <div className="text-blue-600 mb-4">
-            <FileText className="h-12 w-12 mx-auto" />
+        <div className="text-center py-16 px-6 mt-6 bg-[#f8fbff] rounded-xl shadow-sm border border-gray-100 w-full">
+          <div className="text-blue-600 mb-5">
+            <FileText className="h-10 w-10 mx-auto" />
           </div>
-          <h3 className="text-xl font-medium text-blue-600 mb-3">Complete Your Profile</h3>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          <h3 className="text-xl font-medium text-blue-600 mb-2">Complete Your Profile</h3>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto text-base">
             Add your work history, education, and skills in Account Settings to get personalized career path suggestions.
           </p>
-          <Button className="bg-blue-700 hover:bg-blue-800" asChild>
+          <Button className="bg-blue-700 hover:bg-blue-800 px-6" asChild>
             <a href="/account/career">Complete Your Profile</a>
           </Button>
         </div>
@@ -977,18 +977,18 @@ export default function CareerPathExplorer() {
       
       {explorationMode === 'target' && !generatedPath && (
         <motion.div 
-          className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-sm border border-gray-100 w-full"
+          className="text-center py-16 px-6 mt-6 bg-[#f8fbff] rounded-xl shadow-sm border border-gray-100 w-full"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="text-blue-600 mb-4">
-            <FileText className="h-12 w-12 mx-auto" />
+          <div className="text-blue-600 mb-5">
+            <FileText className="h-10 w-10 mx-auto" />
           </div>
-          <h3 className="text-xl font-medium text-blue-600 mb-3">
+          <h3 className="text-xl font-medium text-blue-600 mb-2">
             You haven't generated any career paths yet
           </h3>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          <p className="text-gray-500 mb-8 max-w-md mx-auto text-base">
             Enter a job title above and click "Generate" to explore a personalized career progression path.
           </p>
           <Button 
@@ -998,7 +998,7 @@ export default function CareerPathExplorer() {
                 searchInput.focus();
               }
             }}
-            className="bg-blue-700 hover:bg-blue-800"
+            className="bg-blue-700 hover:bg-blue-800 px-6"
           >
             <Plus className="mr-2 h-4 w-4" />
             Generate My First Path
