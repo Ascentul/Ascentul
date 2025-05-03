@@ -550,7 +550,7 @@ const getIconComponent = (iconName: string): JSX.Element => {
 };
 
 // Define exploration modes
-type ExplorationMode = 'target' | 'profile' | 'starter';
+type ExplorationMode = 'target' | 'profile';
 
 // Define career profile data interface for typechecking
 interface CareerProfileData {
@@ -745,12 +745,13 @@ export default function CareerPathExplorer() {
   const [explorationMode, setExplorationMode] = useState<ExplorationMode>(() => {
     // Try to get from localStorage first
     const savedMode = localStorage.getItem('careerExplorationMode');
-    if (savedMode && ['target', 'profile', 'starter'].includes(savedMode)) {
+    if (savedMode && ['target', 'profile'].includes(savedMode)) {
       return savedMode as ExplorationMode;
     }
     
-    // Default to 'starter' if no saved preference
-    return 'starter';
+    // Default to 'profile' if user has required data, otherwise 'target'
+    const hasRequiredData = true; // Will be set based on profile data check
+    return hasRequiredData ? 'profile' : 'target';
   });
   
   // Query user profile data if in profile mode
@@ -959,19 +960,10 @@ export default function CareerPathExplorer() {
           >
             ⚡ Suggested Paths for Me
           </Button>
-          <Button
-            variant={explorationMode === 'starter' ? "default" : "ghost"}
-            size="sm"
-            className={`rounded-md text-sm px-3 ${explorationMode === 'starter' ? '' : 'hover:bg-muted'}`}
-            onClick={() => setExplorationMode('starter')}
-          >
-            🧭 Explore Starter Paths
-          </Button>
         </div>
       </div>
       
       {/* Render the appropriate view based on exploration mode */}
-      {explorationMode === 'starter' && renderStarterPaths()}
       {explorationMode === 'profile' && renderProfileBasedPaths()}
       
       {/* Job Title Search - Only show in 'target' mode */}
