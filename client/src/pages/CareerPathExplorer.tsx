@@ -582,6 +582,7 @@ export default function CareerPathExplorer() {
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [roleInsights, setRoleInsights] = useState<RoleInsight | null>(null);
   const [showInsightsDrawer, setShowInsightsDrawer] = useState(false);
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Job title search
@@ -1157,9 +1158,13 @@ export default function CareerPathExplorer() {
               <DrawerFooter className="px-6 pt-0">
                 <Button 
                   className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+                  disabled={isCreatingGoal}
                   onClick={async () => {
                     // Check if we have existing goals to avoid duplicates
                     try {
+                      // Show loading state
+                      setIsCreatingGoal(true);
+                      
                       // Get existing goals
                       const goalsResponse = await apiRequest('GET', '/api/goals');
                       const existingGoals = await goalsResponse.json();
@@ -1176,6 +1181,7 @@ export default function CareerPathExplorer() {
                           description: "You already have this career goal in your tracker.",
                           variant: "default"
                         });
+                        setIsCreatingGoal(false);
                         return;
                       }
                       
@@ -1234,54 +1240,91 @@ export default function CareerPathExplorer() {
                         description: "There was a problem creating your career goal. Please try again.",
                         variant: "destructive"
                       });
+                    } finally {
+                      setIsCreatingGoal(false);
                     }
                   }}
                 >
-                  Set as Career Goal
+                  {isCreatingGoal ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Goal...
+                    </>
+                  ) : (
+                    <>Set as Career Goal</>
+                  )}
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    // Show loading state
-                    setIsGeneratingInsights(true);
-                    
-                    // Fetch work history first
-                    apiRequest('GET', '/api/work-history')
-                      .then(res => res.json())
-                      .then(workHistory => {
-                        // Call the API endpoint to generate role insights based on work history
-                        return apiRequest('POST', '/api/generate-role-details', {
-                          currentRole: selectedNode.title,
-                          yearsExperience: selectedNode.yearsExperience,
-                          industry: activePath.name,
-                          workHistory
+                  className="w-full relative"
+                  disabled={isGeneratingInsights}
+                  onClick={async () => {
+                    try {
+                      // Show loading state
+                      setIsGeneratingInsights(true);
+                      
+                      // First check if user has work history
+                      const workHistoryResponse = await apiRequest('GET', '/api/work-history');
+                      const workHistory = await workHistoryResponse.json();
+                      
+                      if (!workHistory || workHistory.length === 0) {
+                        toast({
+                          title: "No Work History Found",
+                          description: "Please add your work history in Account Settings before generating insights.",
+                          action: (
+                            <Button variant="outline" size="sm" onClick={() => navigate('/account/career')}>
+                              Add Work History
+                            </Button>
+                          ),
                         });
-                      })
-                      .then(res => res.json())
-                      .then(insights => {
-                        // Handle insights data
+                        setIsGeneratingInsights(false);
+                        return;
+                      }
+                      
+                      // Call the API endpoint to generate role insights based on work history
+                      const responseData = await apiRequest('POST', '/api/generate-role-details', {
+                        currentRole: selectedNode.title,
+                        yearsExperience: selectedNode.yearsExperience,
+                        industry: activePath.name,
+                        workHistory
+                      });
+                      
+                      const insights = await responseData.json();
+                      
+                      // Handle insights data
+                      if (insights) {
                         setRoleInsights(insights);
                         setShowInsightsDrawer(true);
-                        setIsGeneratingInsights(false);
                         toast({
                           title: "AI Insights Generated",
                           description: "Career path insights have been generated based on your work history.",
                         });
-                      })
-                      .catch(err => {
-                        console.error('Error generating role insights:', err);
-                        setIsGeneratingInsights(false);
-                        toast({
-                          title: "Error Generating Insights",
-                          description: "Unable to generate insights. Please try again later.",
-                          variant: "destructive"
-                        });
+                      } else {
+                        throw new Error("Failed to generate insights");
+                      }
+                    } catch (err) {
+                      console.error('Error generating role insights:', err);
+                      toast({
+                        title: "Error Generating Insights",
+                        description: "Unable to generate insights. Please try again later.",
+                        variant: "destructive"
                       });
+                    } finally {
+                      setIsGeneratingInsights(false);
+                    }
                   }}
                 >
-                  <Lightbulb className="mr-2 h-4 w-4" />
-                  Generate AI Suggestions Based on My Work History
+                  {isGeneratingInsights ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating AI Suggestions...
+                    </>
+                  ) : (
+                    <>
+                      <Lightbulb className="mr-2 h-4 w-4" />
+                      Generate AI Suggestions Based on My Work History
+                    </>
+                  )}
                 </Button>
                 <DrawerClose asChild>
                   <Button variant="ghost">Close</Button>
@@ -1427,8 +1470,12 @@ export default function CareerPathExplorer() {
               <DrawerFooter className="px-6 pt-0">
                 <Button 
                   className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+                  disabled={isCreatingGoal}
                   onClick={async () => {
                     if (!roleInsights || !selectedNode) return;
+                    
+                    // Add state to track goal creation
+                    setIsCreatingGoal(true);
                     
                     // Use the recommended next step from insights
                     const suggestedNextStep = roleInsights.suggestedRoles[0]?.title || selectedNode.title;
@@ -1450,6 +1497,7 @@ export default function CareerPathExplorer() {
                           description: "You already have this career goal in your tracker.",
                           variant: "default"
                         });
+                        setIsCreatingGoal(false);
                         return;
                       }
                       
@@ -1504,10 +1552,19 @@ export default function CareerPathExplorer() {
                         description: "There was a problem creating your career goal. Please try again.",
                         variant: "destructive"
                       });
+                    } finally {
+                      setIsCreatingGoal(false);
                     }
                   }}
                 >
-                  Create Goal Based on These Insights
+                  {isCreatingGoal ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Goal...
+                    </>
+                  ) : (
+                    <>Create Goal Based on These Insights</>
+                  )}
                 </Button>
                 <DrawerClose asChild>
                   <Button variant="outline">Close</Button>
