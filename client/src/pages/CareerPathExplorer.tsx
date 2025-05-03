@@ -721,14 +721,14 @@ export default function CareerPathExplorer() {
       
       {/* Mode Selection Toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="border border-gray-200 rounded-full p-1.5 flex bg-gray-50/80 shadow-sm">
+        <div className="flex bg-gray-50 border border-gray-200 rounded-md">
           <Button
             variant="ghost"
             size="sm"
-            className={`rounded-full text-sm font-medium px-4 py-2 h-auto ${
+            className={`rounded-none text-sm font-medium px-4 py-2 h-auto border-0 ${
               explorationMode === 'target' 
               ? 'bg-white text-gray-800 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-800'
+              : 'text-gray-600 hover:text-gray-700 bg-transparent'
             }`}
             onClick={() => setExplorationMode('target')}
           >
@@ -740,10 +740,10 @@ export default function CareerPathExplorer() {
           <Button
             variant="ghost"
             size="sm"
-            className={`rounded-full text-sm font-medium px-4 py-2 h-auto ${
+            className={`rounded-none text-sm font-medium px-4 py-2 h-auto border-0 ${
               explorationMode === 'profile' 
               ? 'bg-white text-gray-800 shadow-sm' 
-              : 'text-gray-600 hover:text-gray-800'
+              : 'text-gray-600 hover:text-gray-700 bg-transparent'
             }`}
             onClick={() => setExplorationMode('profile')}
           >
