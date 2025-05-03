@@ -367,4 +367,52 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       res.status(500).json({ message: "Failed to fetch follow-ups" });
     }
   });
+
+  // Delete a follow-up for a specific contact
+  app.delete("/api/contacts/:contactId/followups/:followupId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const contactId = parseInt(req.params.contactId);
+      const followupId = parseInt(req.params.followupId);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(contactId) || isNaN(followupId)) {
+        return res.status(400).json({ message: "Invalid IDs provided" });
+      }
+      
+      // Make sure the contact exists and belongs to the user
+      const existingContact = await storage.getNetworkingContact(contactId);
+      
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      if (existingContact.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Get the followup to make sure it exists and belongs to this contact
+      const allFollowups = await storage.getContactFollowUps(contactId);
+      const followup = allFollowups.find(f => f.id === followupId);
+      
+      if (!followup) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      
+      // Delete the follow-up
+      const success = await storage.deleteFollowupAction(followupId);
+      
+      if (success) {
+        res.status(200).json({ success: true });
+      } else {
+        res.status(500).json({ message: "Failed to delete follow-up" });
+      }
+    } catch (error) {
+      console.error("Error deleting contact follow-up:", error);
+      res.status(500).json({ message: "Failed to delete follow-up" });
+    }
+  });
 };
