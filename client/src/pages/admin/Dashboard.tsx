@@ -17,6 +17,7 @@ import SupportPage from './SupportPage';
 import AdminModelsPage from './ModelsPage';
 import OpenAILogsPage from './OpenAILogsPage';
 import UserManagement from './UserManagement';
+import Universities from './Universities';
 import {
   Form,
   FormControl,
@@ -398,6 +399,8 @@ export default function AdminDashboard() {
         return <AdminOverview />;
       case 'users':
         return <UserManagement />;
+      case 'universities':
+        return <Universities />;
       case 'support':
         return <SupportPage />;
       case 'ai-models':
