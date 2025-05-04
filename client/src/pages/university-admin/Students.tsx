@@ -686,55 +686,7 @@ export default function StudentManagement() {
                       </div>
                     </div>
                     
-                    <div className="pt-2">
-                      <h4 className="text-sm font-medium mb-2">Progress Overview</h4>
-                      <div className="space-y-3">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>Profile Completion</span>
-                            <span className="font-medium">{selectedStudent.progress}%</span>
-                          </div>
-                          <div className="w-full bg-secondary rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                selectedStudent.progress >= 70 
-                                  ? 'bg-green-500' 
-                                  : selectedStudent.progress >= 40 
-                                  ? 'bg-yellow-500' 
-                                  : 'bg-red-500'
-                              }`}
-                              style={{ width: `${selectedStudent.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>Resume Completion</span>
-                            <span className="font-medium">85%</span>
-                          </div>
-                          <div className="w-full bg-secondary rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full bg-green-500"
-                              style={{ width: '85%' }}
-                            ></div>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span>Career Path Exploration</span>
-                            <span className="font-medium">65%</span>
-                          </div>
-                          <div className="w-full bg-secondary rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full bg-yellow-500"
-                              style={{ width: '65%' }}
-                            ></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+
                   </TabsContent>
                   
                   <TabsContent value="progress" className="pt-4">
