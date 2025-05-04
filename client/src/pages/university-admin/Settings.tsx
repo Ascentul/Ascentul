@@ -10,6 +10,22 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Form, 
   FormControl, 
@@ -37,7 +53,11 @@ import {
   BellRing, 
   Users,
   Building,
-  GraduationCap
+  GraduationCap,
+  BookOpen,
+  Plus,
+  PenLine,
+  Calendar
 } from 'lucide-react';
 
 // Form schema for university profile
@@ -71,10 +91,57 @@ const notificationSettingsSchema = z.object({
   adminEmail: z.string().email('Please enter a valid email address').optional(),
 });
 
+// Schema for academic program
+const academicProgramSchema = z.object({
+  programName: z.string().min(1, 'Program name is required'),
+  degreeType: z.enum(['Associate', 'Bachelor', 'Master', 'Doctorate', 'Certificate']),
+  departmentName: z.string().min(1, 'Department name is required'),
+  description: z.string().optional(),
+  duration: z.number().min(1, 'Duration must be at least 1').max(10, 'Duration cannot exceed 10'),
+  active: z.boolean().default(true),
+});
+
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useUser();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isAddProgramDialogOpen, setIsAddProgramDialogOpen] = useState(false);
+  const [isEditProgramDialogOpen, setIsEditProgramDialogOpen] = useState(false);
+  const [selectedProgram, setSelectedProgram] = useState<typeof mockPrograms[0] | null>(null);
+  
+  // Mock academic programs data
+  const [programs, setPrograms] = useState([
+    {
+      id: 1,
+      programName: 'Computer Science',
+      degreeType: 'Bachelor',
+      departmentName: 'School of Engineering',
+      description: 'A comprehensive program covering software development, algorithms, and computer systems.',
+      duration: 4,
+      active: true,
+    },
+    {
+      id: 2,
+      programName: 'Business Administration',
+      degreeType: 'Master',
+      departmentName: 'Business School',
+      description: 'Advanced business management and leadership skills for future executives.',
+      duration: 2,
+      active: true,
+    },
+    {
+      id: 3,
+      programName: 'Psychology',
+      degreeType: 'Bachelor',
+      departmentName: 'School of Social Sciences',
+      description: 'Study of human behavior, mental processes, and their applications.',
+      duration: 4,
+      active: true,
+    }
+  ]);
+  
+  // Create a copy of programs for the mock data
+  const mockPrograms = programs;
 
   // University profile form
   const profileForm = useForm<z.infer<typeof universityProfileSchema>>({
@@ -149,6 +216,103 @@ export default function Settings() {
     toast({
       title: 'Notification settings updated',
       description: 'Notification preferences have been saved.',
+    });
+  };
+  
+  // Academic program form management
+  const programForm = useForm<z.infer<typeof academicProgramSchema>>({
+    resolver: zodResolver(academicProgramSchema),
+    defaultValues: {
+      programName: '',
+      degreeType: 'Bachelor',
+      departmentName: '',
+      description: '',
+      duration: 4,
+      active: true,
+    }
+  });
+  
+  const editProgramForm = useForm<z.infer<typeof academicProgramSchema>>({
+    resolver: zodResolver(academicProgramSchema),
+    defaultValues: {
+      programName: '',
+      degreeType: 'Bachelor',
+      departmentName: '',
+      description: '',
+      duration: 4,
+      active: true,
+    }
+  });
+  
+  // Reset and initialize add program form
+  const handleOpenAddProgramDialog = () => {
+    programForm.reset({
+      programName: '',
+      degreeType: 'Bachelor', 
+      departmentName: '',
+      description: '',
+      duration: 4,
+      active: true,
+    });
+    setIsAddProgramDialogOpen(true);
+  };
+  
+  // Reset and initialize edit program form
+  const handleOpenEditProgramDialog = (program: typeof programs[0]) => {
+    setSelectedProgram(program);
+    editProgramForm.reset({
+      programName: program.programName,
+      degreeType: program.degreeType as any,
+      departmentName: program.departmentName,
+      description: program.description || '',
+      duration: program.duration,
+      active: program.active,
+    });
+    setIsEditProgramDialogOpen(true);
+  };
+  
+  // Add a new program
+  const handleAddProgram = (data: z.infer<typeof academicProgramSchema>) => {
+    const newProgram = {
+      id: Date.now(),
+      ...data
+    };
+    setPrograms([...programs, newProgram]);
+    setIsAddProgramDialogOpen(false);
+    toast({
+      title: 'Program Added',
+      description: `${data.programName} has been added successfully.`,
+    });
+  };
+  
+  // Update an existing program
+  const handleUpdateProgram = (data: z.infer<typeof academicProgramSchema>) => {
+    if (!selectedProgram) return;
+    
+    const updatedPrograms = programs.map(p => 
+      p.id === selectedProgram.id ? { ...p, ...data } : p
+    );
+    
+    setPrograms(updatedPrograms);
+    setIsEditProgramDialogOpen(false);
+    setSelectedProgram(null);
+    
+    toast({
+      title: 'Program Updated',
+      description: `${data.programName} has been updated successfully.`,
+    });
+  };
+  
+  // Delete a program
+  const handleDeleteProgram = (id: number) => {
+    setPrograms(programs.filter(p => p.id !== id));
+    setIsEditProgramDialogOpen(false);
+    setSelectedProgram(null);
+    
+    toast({
+      title: 'Program Deleted',
+      description: 'The academic program has been removed.',
+      variant: 'destructive'
     });
   };
 
