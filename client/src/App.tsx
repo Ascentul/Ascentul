@@ -436,6 +436,11 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
+        <Route path="/admin/universities">
+          <AdminRoute>
+            <UniversitiesPage />
+          </AdminRoute>
+        </Route>
         <Route path="/admin">
           <AdminRoute>
             <AdminDashboard />
