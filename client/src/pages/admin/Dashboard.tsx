@@ -404,7 +404,8 @@ export default function AdminDashboard() {
         return <AdminOverview />;
       case 'users':
         return <UserManagement />;
-      // Universities are now handled by a separate page at /admin/universities
+      case 'universities':
+        return <UniversitiesPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
@@ -509,19 +510,11 @@ export default function AdminDashboard() {
             active={activeTab === 'users'}
             onClick={() => setActiveTab('users')}
           />
-          {/* Use SidebarItem like other tabs for consistency */}
           <SidebarItem
             icon={<Building className="h-5 w-5" />}
             label="Universities"
-            active={isUniversitiesRoute}
-            onClick={() => {
-              // Navigate to the universities page using window.location.assign
-              // This is more reliable than href in some cases
-              window.location.assign("/admin/universities");
-              
-              // Add a console log for debugging
-              console.log("Attempting to navigate to /admin/universities");
-            }}
+            active={activeTab === 'universities'}
+            onClick={() => setActiveTab('universities')}
           />
           <SidebarItem
             icon={<Activity className="h-5 w-5" />}
