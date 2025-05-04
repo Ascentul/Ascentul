@@ -538,10 +538,6 @@ export default function StudentManagement() {
                             Message
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <FileText className="mr-2 h-4 w-4" />
-                            View Resume
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setSelectedStudent(student);
                             setIsAnalyticsDialogOpen(true);
