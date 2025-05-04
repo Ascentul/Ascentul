@@ -654,11 +654,8 @@ export default function CareerPathExplorer() {
   
   // Function to fetch AI-generated certification recommendations
   const fetchCertificationRecommendations = async (nodeId: string) => {
-    // Skip if we already have recommendations for this node
-    if (roleCertifications[nodeId]) {
-      return;
-    }
-    
+    // Always attempt to fetch recommendations when a node is clicked
+    // We may already have them cached, but we'll always try to get fresh data
     const node = activePath.nodes.find(n => n.id === nodeId);
     if (!node) return;
     
@@ -1268,16 +1265,11 @@ export default function CareerPathExplorer() {
                       <div className="text-center py-8 border border-dashed rounded-lg">
                         <GraduationCap className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
                         <p className="text-muted-foreground">
-                          No AI certification recommendations available for this role yet.
+                          No certification recommendations available for this role yet.
                         </p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mt-4"
-                          onClick={() => fetchCertificationRecommendations(selectedNode.id)}
-                        >
-                          Generate Recommendations
-                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          We're searching for relevant certifications. Please check back in a moment.
+                        </p>
                       </div>
                     )}
                     
