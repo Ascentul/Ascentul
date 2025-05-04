@@ -3,6 +3,32 @@ import { storage } from "../storage";
 
 const router = express.Router();
 
+// Development-only route for testing
+if (process.env.NODE_ENV === 'development') {
+  router.post("/setup-test-admin", async (req, res) => {
+    try {
+      const testUser = await storage.createUser({
+        username: "testadmin",
+        email: "testadmin@university.edu",
+        password: "Test123!",
+        name: "Test Admin",
+        userType: "university_admin"
+      });
+      
+      res.json({ 
+        message: "Test admin account created",
+        credentials: {
+          username: "testadmin",
+          password: "Test123!"
+        }
+      });
+    } catch (error) {
+      console.error("Error creating test admin:", error);
+      res.status(500).json({ message: "Failed to create test admin" });
+    }
+  });
+}
+
 // Set the user's role to university_admin
 router.post("/set-university-admin", async (req, res) => {
   // Check if user is authenticated via session
