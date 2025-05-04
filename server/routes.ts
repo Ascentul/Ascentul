@@ -25,6 +25,7 @@ import { registerCareerDataRoutes } from "./career-data";
 import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
 import pdfTestRouter from "./routes/pdf-test";
+import userRoleRouter from "./routes/user-role";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -188,6 +189,9 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
+  
+  // Register user role router for admin access
+  apiRouter.use('/user-role', userRoleRouter);
   
   // Create admin and sample users at startup
   try {
