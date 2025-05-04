@@ -29,6 +29,8 @@ import userRoleRouter from "./routes/user-role";
 import academicProgramsRouter from "./routes/academic-programs";
 // Import mail router for email functionality
 import mailRouter from "./routes/mail";
+// Import university invites router
+import universityInvitesRouter from "./routes/university-invites";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -201,6 +203,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register mail router for email functionality
   apiRouter.use('/mail', mailRouter);
+  
+  // Register university invites router
+  apiRouter.use('/university-invites', universityInvitesRouter);
   
   // Create admin and sample users at startup
   try {
