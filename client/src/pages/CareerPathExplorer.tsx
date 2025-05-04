@@ -723,11 +723,11 @@ export default function CareerPathExplorer() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 px-2 sm:px-4 md:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Career Path Explorer</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Career Path Explorer</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Visualize potential career progressions and explore different roles.
           </p>
         </div>
