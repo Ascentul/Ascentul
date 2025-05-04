@@ -62,7 +62,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       }
       params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
       
-      console.log('Directly fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      // Important: Make sure this matches the server-side endpoint
+      const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
+      console.log('Directly fetching from:', endpointUrl);
       
       const timeout = setTimeout(() => {
         // Show a loading message if it's taking longer than expected
@@ -72,7 +74,8 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         });
       }, 3000);
       
-      const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+      const response = await fetch(endpointUrl);
+      console.log('Fetching from API using endpoint:', endpointUrl);
       clearTimeout(timeout);
       
       console.log('Direct fetch response status:', response.status);
@@ -157,10 +160,12 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       }
       params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
       
-      console.log('Fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      // Important: Make sure this matches the server-side endpoint
+      const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
+      console.log('Fetching from:', endpointUrl);
       
       try {
-        const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+        const response = await fetch(endpointUrl);
         console.log('Response status:', response.status);
         
         if (!response.ok) {
