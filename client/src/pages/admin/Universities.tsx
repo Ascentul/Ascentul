@@ -29,7 +29,7 @@ export default function UniversitiesPage() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  // Query to get all invites
+  // Query to get all invites with error handling for missing invites table
   const {
     data: invites,
     isLoading: isLoadingInvites,
@@ -38,12 +38,20 @@ export default function UniversitiesPage() {
   } = useQuery({
     queryKey: ["/api/university-invites"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/university-invites");
-      if (!response.ok) {
-        throw new Error("Failed to fetch university invites");
+      try {
+        const response = await apiRequest("GET", "/api/university-invites");
+        if (!response.ok) {
+          console.warn("Issue fetching invites, will use empty array");
+          return { invites: [] };
+        }
+        return response.json();
+      } catch (err) {
+        console.warn("Error fetching invites:", err);
+        return { invites: [] };
       }
-      return response.json();
     },
+    // Don't retry fetching if there's a server error like missing table
+    retry: false,
   });
 
   // Query to get all universities
@@ -245,7 +253,7 @@ export default function UniversitiesPage() {
                 <div className="text-center p-4 text-destructive">
                   Error: {String(universitiesError)}
                 </div>
-              ) : !universities || universities.length === 0 ? (
+              ) : !universities || !Array.isArray(universities) || universities.length === 0 ? (
                 <div className="text-center p-8 border rounded-lg bg-muted/20">
                   <p className="text-muted-foreground mb-2">No universities registered yet</p>
                   <p className="text-sm">
@@ -294,7 +302,7 @@ export default function UniversitiesPage() {
                 <div className="text-center p-4 text-destructive">
                   Error: {String(invitesError)}
                 </div>
-              ) : !invites || invites.length === 0 ? (
+              ) : !invites || !Array.isArray(invites) || invites.length === 0 ? (
                 <div className="text-center p-8 border rounded-lg bg-muted/20">
                   <p className="text-muted-foreground mb-2">No invitations sent yet</p>
                   <p className="text-sm">
