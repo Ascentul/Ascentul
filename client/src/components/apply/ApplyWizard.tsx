@@ -213,7 +213,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   if (!isOpen) return null;
   
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-lg p-6 max-w-[700px] max-h-[90vh] overflow-y-auto mx-auto">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-lg font-semibold">Application Agent</h3>
