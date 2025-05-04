@@ -30,14 +30,26 @@ export default function Account() {
       : 'profile';
   });
   
-  // Listen for URL changes
+  // Listen for URL changes and update active tab
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get('tab');
+    const handleUrlChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      
+      if (tabParam === 'career' || tabParam === 'subscription' || tabParam === 'security') {
+        setActiveTab(tabParam);
+      }
+    };
+
+    // Call immediately to handle current URL
+    handleUrlChange();
     
-    if (tabParam === 'career' || tabParam === 'subscription' || tabParam === 'security') {
-      setActiveTab(tabParam);
-    }
+    // Add event listener for URL changes not captured by useLocation
+    window.addEventListener('popstate', handleUrlChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+    };
   }, [location]);
   
   // Handle section editing for career profile sections
@@ -65,11 +77,26 @@ export default function Account() {
 
   if (!user) return null;
 
+  // Function to update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Update URL with new tab parameter without page reload
+    const url = new URL(window.location.href);
+    if (value !== 'profile') {
+      url.searchParams.set('tab', value);
+    } else {
+      url.searchParams.delete('tab');
+    }
+    
+    window.history.pushState({}, '', url);
+  };
+
   return (
     <div className="container max-w-5xl py-8">
       <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
-      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
