@@ -23,10 +23,11 @@ interface ChecklistItem {
 
 interface GetStartedChecklistProps {
   userId: number;
+  profileCompletion?: number; // Add profile completion percentage
 }
 
 // Main component
-export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
+export function GetStartedChecklist({ userId, profileCompletion = 0 }: GetStartedChecklistProps) {
   const { toast } = useToast();
   
   // State to track checklist items
@@ -219,6 +220,34 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const progressPercentage = (completedCount / checklistItems.length) * 100;
 
   // We're always showing the review option now, so no need to check for unlocking
+  
+  // Auto-complete the career profile checklist item when profile completion reaches 100%
+  useEffect(() => {
+    if (profileCompletion === 100) {
+      // Find career profile checklist item
+      const careerProfileItem = checklistItems.find(item => item.id === 'career-profile');
+      
+      // If it exists and is not already marked as completed, mark it as completed
+      if (careerProfileItem && !careerProfileItem.completed) {
+        setChecklistItems(prevItems => {
+          const updatedItems = prevItems.map(item => 
+            item.id === 'career-profile' ? { ...item, completed: true } : item
+          );
+          
+          // Save updated progress to localStorage
+          saveProgress(updatedItems, reviewItem.completed);
+          
+          // Show a success toast
+          toast({
+            title: "Career profile complete!",
+            description: "✅ Your career profile is now 100% complete. Great job!",
+          });
+          
+          return updatedItems;
+        });
+      }
+    }
+  }, [profileCompletion, toast, checklistItems, reviewItem, saveProgress]);
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
