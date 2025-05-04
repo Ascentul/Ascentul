@@ -369,8 +369,8 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       )}
 
       {step === 2 && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             {isLoadingResumes ? (
               <div className="col-span-full flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -413,14 +413,11 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
             )}
           </div>
           
-          <Button variant="outline" onClick={() => setStep(1)} className="mt-4 mr-auto">Back</Button>
-          <Button 
-            onClick={() => setStep(3)}
-            className="mt-4 ml-auto"
-          >
-            Continue to Review
-          </Button>
-        </div>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button onClick={() => setStep(3)}>Continue to Review</Button>
+          </div>
+        </>
       )}
 
       {step === 3 && (
