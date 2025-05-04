@@ -1152,7 +1152,7 @@ export default function CareerPathExplorer() {
                 </Tabs>
               </div>
               
-              <DrawerFooter className="px-6 pt-0 flex flex-row items-center justify-between gap-2">
+              <DrawerFooter className="px-6 pt-0 flex flex-row items-center justify-between gap-2 pb-10">
                 <Button 
                   className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4"
                   size="sm"
