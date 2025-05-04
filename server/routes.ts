@@ -278,6 +278,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add some XP to the sample user
       await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
+    }
+    
+    // Create a university admin user for testing
+    const existingUniversityAdmin = await storage.getUserByUsername("university_admin");
+    if (!existingUniversityAdmin) {
+      // Hash university admin password
+      const adminPwd = "password";
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = crypto.pbkdf2Sync(adminPwd, salt, 1000, 64, 'sha512').toString('hex');
+      const securePassword = `${hashedPassword}.${salt}`;
+      
+      const universityAdminUser = await storage.createUser({
+        username: "university_admin",
+        password: securePassword,
+        name: "University Administrator",
+        email: "admin@university.edu",
+        userType: "university_admin",
+        profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
+        subscriptionStatus: "active",
+        needsUsername: false,
+      });
+      
+      // Then update with additional fields
+      await storage.updateUser(universityAdminUser.id, {
+        subscriptionPlan: "university",
+        emailVerified: true,
+        subscriptionExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
+      });
+      console.log("Created university admin user:", universityAdminUser.id);
+      
+      // Don't try to reference sampleUser here because it might not exist
       
       // Create a sample Skill Stacker plan
       const pythonGoal = await storage.getGoals(sampleUser.id).then(goals => 
