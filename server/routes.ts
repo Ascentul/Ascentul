@@ -26,6 +26,7 @@ import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
 import pdfTestRouter from "./routes/pdf-test";
 import userRoleRouter from "./routes/user-role";
+import academicProgramsRouter from "./routes/academic-programs";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -192,6 +193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register user role router for admin access
   apiRouter.use('/user-role', userRoleRouter);
+  
+  // Register academic programs router for university admin
+  apiRouter.use('/academic-programs', academicProgramsRouter);
   
   // Create admin and sample users at startup
   try {
