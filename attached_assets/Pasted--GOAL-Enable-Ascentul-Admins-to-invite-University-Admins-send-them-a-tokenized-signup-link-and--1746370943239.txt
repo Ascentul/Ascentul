@@ -1,0 +1,86 @@
+📌 GOAL:
+Enable Ascentul Admins to invite University Admins, send them a tokenized signup link, and automatically create/log the university in the system upon registration.
+
+✅ FEATURES TO IMPLEMENT:
+
+### 1. 📬 ADMIN-INITIATED INVITE FLOW
+
+- Add a “Send University Admin Invite” modal/form on `/admin/universities`
+  - Inputs: University name, Admin Email, (optional: first/last name)
+  - On submit:
+    - Create a new record in `invites` table/collection with:
+      - `email`, `role = 'university_admin'`, `universityName`, `token`, `status = 'pending'`, `expiresAt = 7 days from now`
+    - Send email via Mailgun:
+      - Template: 
+        ```
+        Subject: You're Invited to Manage Your University on Ascentul
+        Body: Hello, you've been invited to join Ascentul as the admin for {University Name}.
+        Click here to set up your account:
+        https://app.ascentul.io/university-register?token={token}
+        ```
+    - Token should be a secure UUID (or JWT with expiry if preferred)
+
+### 2. 🧾 UNIVERSITY REGISTRATION FLOW
+
+- New route: `/university-register?token=abc123`
+- On page load:
+  - Validate the token by checking the `invites` table
+  - If invalid/expired, show error
+  - If valid:
+    - Show registration form (email pre-filled/locked)
+    - Inputs: name, password
+- On form submit:
+  - Create a new user with:
+    - `role = 'university_admin'`
+    - `email` from invite
+    - `universityId` (created or looked up by `universityName`)
+  - Create a new `university` record (if not already created):
+    - `name`, `slug`, `createdBy`, `createdAt`
+  - Link user to the university via `universityId`
+  - Update invite: `status = 'accepted'`
+  - Redirect to `/university-dashboard`
+
+### 3. 🗃 DATABASE SCHEMA
+
+Add or update tables:
+
+#### `invites`:
+- `id`
+- `email`
+- `role`
+- `token`
+- `universityName`
+- `universityId` (nullable until accepted)
+- `status` (`pending`, `accepted`, `expired`)
+- `sentAt`, `expiresAt`
+
+#### `universities`:
+- `id`
+- `name`
+- `slug`
+- `createdAt`
+- `createdBy`
+
+#### `users`:
+- Add fields:
+  - `role`
+  - `universityId` (nullable for superadmins)
+
+### 4. 🔒 ACCESS CONTROL
+
+- Only `role: 'superadmin'` can access `/admin/*` routes
+- Only `role: 'university_admin'` can access `/university-dashboard` and student invite tools
+- Protect `student` routes accordingly
+
+### 5. 🧠 BUSINESS LOGIC
+
+- If university already exists: assign user to it (don’t create duplicate)
+- Token expires after 7 days (soft fail)
+- Prevent resending invites to the same email unless the previous is `expired`
+
+📦 TECH:
+- Mailgun API for email
+- UUID for secure tokens (or JWT)
+- Supabase or your backend DB for data logic
+- Store secrets via Replit's Secrets tab (for Mailgun key)
+

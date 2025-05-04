@@ -10,7 +10,10 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  userType: text("user_type").notNull().default("regular"), // Options: "regular", "admin", "staff"
+  userType: text("user_type").notNull().default("regular"), // Options: "regular", "admin", "staff", "university_admin", "university_student"
+  role: text("role").default("user"), // Options: "user", "admin", "superadmin", "university_admin"
+  universityId: integer("university_id"), // Link to university if user is part of a university
+  universityName: text("university_name"), // Direct university name reference for easier access
   xp: integer("xp").default(0),
   level: integer("level").default(1),
   rank: text("rank").default("Career Explorer"),
@@ -797,6 +800,56 @@ export type InsertMentorChatConversation = z.infer<typeof insertMentorChatConver
 
 export type MentorChatMessage = typeof mentorChatMessages.$inferSelect;
 export type InsertMentorChatMessage = z.infer<typeof insertMentorChatMessageSchema>;
+
+// Universities model
+export const universities = pgTable("universities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  adminEmail: text("admin_email"),
+  createdById: integer("created_by_id"),
+  licensePlan: text("license_plan").default("Starter"),
+  licenseSeats: integer("license_seats").default(50),
+  licenseUsed: integer("license_used").default(0),
+  licenseStart: timestamp("license_start").defaultNow(),
+  licenseEnd: timestamp("license_end"),
+  status: text("status").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUniversitySchema = createInsertSchema(universities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  licenseUsed: true,
+});
+
+// Invites model for university admins and other roles
+export const invites = pgTable("invites", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  token: text("token").notNull().unique(),
+  universityName: text("university_name"),
+  universityId: integer("university_id"),
+  status: text("status").notNull().default("pending"),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+});
+
+export const insertInviteSchema = createInsertSchema(invites).omit({
+  id: true,
+  sentAt: true,
+  acceptedAt: true,
+});
+
+export type University = typeof universities.$inferSelect;
+export type InsertUniversity = z.infer<typeof insertUniversitySchema>;
+
+export type Invite = typeof invites.$inferSelect;
+export type InsertInvite = z.infer<typeof insertInviteSchema>;
 
 export type Recommendation = typeof recommendations.$inferSelect;
 export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
