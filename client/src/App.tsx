@@ -93,7 +93,7 @@ import {
 } from "@/pages/university-admin";
 
 // University Edition Layout
-// Redirect component for /interviews → /application_tracker
+// Redirect components for path changes
 function InterviewsRedirect() {
   const [, navigate] = useLocation();
   const queryParams = window.location.search;
@@ -103,6 +103,17 @@ function InterviewsRedirect() {
   }, [navigate, queryParams]);
   
   return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
+}
+
+function ContactsRedirect() {
+  const [, navigate] = useLocation();
+  const queryParams = window.location.search;
+  
+  useEffect(() => {
+    navigate(`/network-hub${queryParams}`);
+  }, [navigate, queryParams]);
+  
+  return <div className="p-8 text-center">Redirecting to Network Hub...</div>;
 }
 
 function UniversityLayout({ children }: { children: React.ReactNode }) {
@@ -532,10 +543,15 @@ function App() {
           </CareerRoute>
         </Route>
         
-        {/* Redirect old /interviews path to the new /application_tracker path */}
+        {/* Redirect old paths to new paths */}
         <Route path="/interviews">
           <CareerRoute>
             <InterviewsRedirect />
+          </CareerRoute>
+        </Route>
+        <Route path="/contacts">
+          <CareerRoute>
+            <ContactsRedirect />
           </CareerRoute>
         </Route>
         <Route path="/work-history">
