@@ -276,10 +276,12 @@ router.get('/welcome', async (req: Request, res: Response) => {
 /**
  * @route POST /api/mail/application-update
  * @description Send an application update notification email
- * @access Private (requires authentication)
+ * @access Public in development, Private in production
  */
 router.post('/application-update', async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
+  // In production, require authentication
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && !req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
@@ -293,18 +295,70 @@ router.post('/application-update', async (req: Request, res: Response) => {
       });
     }
     
-    // Ensure user is available if name is not provided
-    if (!name && !req.user) {
-      return res.status(400).json({ 
-        error: 'Missing name parameter', 
-        details: 'Name must be provided in request body or user must be authenticated' 
-      });
-    }
+    // For name, try to use from body, then from authenticated user if available
+    const userName = name || (req.isAuthenticated() && req.user ? req.user.name : 'User');
+    
+    console.log(`Sending application update email to ${email} (${userName}) for ${companyName} - ${positionTitle}`);
     
     // Send application update email
     const result = await sendApplicationUpdateEmail(
       email,
-      name || (req.user ? req.user.name : 'User'),
+      userName,
+      companyName,
+      positionTitle,
+      status
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: `Application update email sent successfully to ${email}`,
+      details: result
+    });
+  } catch (error: any) {
+    console.error('Error sending application update email:', error);
+    res.status(500).json({
+      error: 'Failed to send application update email',
+      details: error.message || String(error)
+    });
+  }
+});
+
+/**
+ * @route GET /api/mail/application-update
+ * @description Send an application update notification email (development only)
+ * @access Public in development mode
+ */
+router.get('/application-update', async (req: Request, res: Response) => {
+  // Only allow this in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ 
+      error: 'Not allowed in production',
+      details: 'This endpoint is only available in development mode'
+    });
+  }
+  
+  try {
+    // Get parameters from query
+    const email = req.query.email as string;
+    const name = req.query.name as string;
+    const companyName = req.query.company as string;
+    const positionTitle = req.query.position as string;
+    const status = req.query.status as string;
+    
+    // Validate required parameters
+    if (!email || !companyName || !positionTitle || !status) {
+      return res.status(400).json({
+        error: 'Missing required query parameters',
+        details: 'email, company, position, and status are required'
+      });
+    }
+    
+    console.log(`Sending application update email to ${email} (${name || 'User'}) for ${companyName} - ${positionTitle}`);
+    
+    // Send application update email
+    const result = await sendApplicationUpdateEmail(
+      email,
+      name || 'User',
       companyName,
       positionTitle,
       status
@@ -327,21 +381,28 @@ router.post('/application-update', async (req: Request, res: Response) => {
 /**
  * @route POST /api/mail/custom
  * @description Send a custom email (admin only)
- * @access Private (requires admin authentication)
+ * @access Public in development, Private (requires admin authentication) in production
  */
 router.post('/custom', async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
+  // In production, require authentication and admin status
+  const isProduction = process.env.NODE_ENV === 'production';
   
-  // Ensure user is available
-  if (!req.user) {
-    return res.status(401).json({ error: 'User not found in session' });
-  }
-  
-  // Check if user is an admin
-  if (req.user.userType !== 'admin' && req.user.userType !== 'university_admin') {
-    return res.status(403).json({ error: 'Not authorized' });
+  if (isProduction) {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    // Ensure user is available
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not found in session' });
+    }
+    
+    // Check if user is an admin
+    if (req.user.userType !== 'admin' && req.user.userType !== 'university_admin') {
+      return res.status(403).json({ error: 'Not authorized. Admin privileges required.' });
+    }
+  } else {
+    console.log('Development mode: Bypassing authentication for custom email');
   }
 
   try {
@@ -353,6 +414,8 @@ router.post('/custom', async (req: Request, res: Response) => {
         details: 'to, subject, and either text or html are required'
       });
     }
+    
+    console.log(`Sending custom email to ${to} with subject "${subject}"`);
     
     // Send custom email
     const result = await sendEmail({
