@@ -118,44 +118,111 @@ const academicProgramSchema = z.object({
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [isAddProgramDialogOpen, setIsAddProgramDialogOpen] = useState(false);
   const [isEditProgramDialogOpen, setIsEditProgramDialogOpen] = useState(false);
-  const [selectedProgram, setSelectedProgram] = useState<typeof mockPrograms[0] | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<AcademicProgram | null>(null);
   
-  // Mock academic programs data
-  const [programs, setPrograms] = useState([
-    {
-      id: 1,
-      programName: 'Computer Science',
-      degreeType: 'Bachelor',
-      departmentName: 'School of Engineering',
-      description: 'A comprehensive program covering software development, algorithms, and computer systems.',
-      duration: 4,
-      active: true,
-    },
-    {
-      id: 2,
-      programName: 'Business Administration',
-      degreeType: 'Master',
-      departmentName: 'Business School',
-      description: 'Advanced business management and leadership skills for future executives.',
-      duration: 2,
-      active: true,
-    },
-    {
-      id: 3,
-      programName: 'Psychology',
-      degreeType: 'Bachelor',
-      departmentName: 'School of Social Sciences',
-      description: 'Study of human behavior, mental processes, and their applications.',
-      duration: 4,
-      active: true,
+  // Query for fetching academic programs
+  const { 
+    data: programs = [], 
+    isLoading: programsLoading,
+    error: programsError 
+  } = useQuery({
+    queryKey: ['/api/academic-programs'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/academic-programs');
+      if (!response.ok) {
+        throw new Error('Failed to fetch academic programs');
+      }
+      return response.json();
     }
-  ]);
+  });
   
-  // Create a copy of programs for the mock data
-  const mockPrograms = programs;
+  // Mutation for adding a new program
+  const addProgramMutation = useMutation({
+    mutationFn: async (program: z.infer<typeof academicProgramSchema>) => {
+      const response = await apiRequest('POST', '/api/academic-programs', program);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add program: ${errorText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/academic-programs'] });
+      setIsAddProgramDialogOpen(false);
+      toast({
+        title: 'Program Added',
+        description: 'The academic program has been added successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to Add Program',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Mutation for updating a program
+  const updateProgramMutation = useMutation({
+    mutationFn: async ({ id, program }: { id: number, program: z.infer<typeof academicProgramSchema> }) => {
+      const response = await apiRequest('PUT', `/api/academic-programs/${id}`, program);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update program: ${errorText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/academic-programs'] });
+      setIsEditProgramDialogOpen(false);
+      setSelectedProgram(null);
+      toast({
+        title: 'Program Updated',
+        description: 'The academic program has been updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to Update Program',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Mutation for deleting a program
+  const deleteProgramMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/academic-programs/${id}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete program: ${errorText}`);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/academic-programs'] });
+      setIsEditProgramDialogOpen(false);
+      setSelectedProgram(null);
+      toast({
+        title: 'Program Deleted',
+        description: 'The academic program has been deleted successfully.',
+        variant: 'destructive',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to Delete Program',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
 
   // University profile form
   const profileForm = useForm<z.infer<typeof universityProfileSchema>>({
@@ -272,14 +339,14 @@ export default function Settings() {
   };
   
   // Reset and initialize edit program form
-  const handleOpenEditProgramDialog = (program: typeof programs[0]) => {
+  const handleOpenEditProgramDialog = (program: AcademicProgram) => {
     setSelectedProgram(program);
     editProgramForm.reset({
       programName: program.programName,
       degreeType: program.degreeType as any,
       departmentName: program.departmentName,
       description: program.description || '',
-      duration: program.duration,
+      duration: program.duration || 4,
       active: program.active,
     });
     setIsEditProgramDialogOpen(true);
@@ -287,47 +354,22 @@ export default function Settings() {
   
   // Add a new program
   const handleAddProgram = (data: z.infer<typeof academicProgramSchema>) => {
-    const newProgram = {
-      id: Date.now(),
-      ...data
-    };
-    setPrograms([...programs, newProgram]);
-    setIsAddProgramDialogOpen(false);
-    toast({
-      title: 'Program Added',
-      description: `${data.programName} has been added successfully.`,
-    });
+    addProgramMutation.mutate(data);
   };
   
   // Update an existing program
   const handleUpdateProgram = (data: z.infer<typeof academicProgramSchema>) => {
     if (!selectedProgram) return;
     
-    const updatedPrograms = programs.map(p => 
-      p.id === selectedProgram.id ? { ...p, ...data } : p
-    );
-    
-    setPrograms(updatedPrograms);
-    setIsEditProgramDialogOpen(false);
-    setSelectedProgram(null);
-    
-    toast({
-      title: 'Program Updated',
-      description: `${data.programName} has been updated successfully.`,
+    updateProgramMutation.mutate({
+      id: selectedProgram.id,
+      program: data
     });
   };
   
   // Delete a program
   const handleDeleteProgram = (id: number) => {
-    setPrograms(programs.filter(p => p.id !== id));
-    setIsEditProgramDialogOpen(false);
-    setSelectedProgram(null);
-    
-    toast({
-      title: 'Program Deleted',
-      description: 'The academic program has been removed.',
-      variant: 'destructive'
-    });
+    deleteProgramMutation.mutate(id);
   };
 
   return (
@@ -811,13 +853,33 @@ export default function Settings() {
                 onClick={handleOpenAddProgramDialog} 
                 className="ml-auto"
                 size="sm"
+                disabled={programsLoading || addProgramMutation.isPending}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Program
               </Button>
             </CardHeader>
             <CardContent>
-              {programs.length === 0 ? (
+              {programsLoading ? (
+                <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                  <Loader2 className="h-10 w-10 text-muted-foreground mb-3 animate-spin" />
+                  <h3 className="font-semibold mb-1">Loading programs...</h3>
+                </div>
+              ) : programsError ? (
+                <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                  <AlertCircle className="h-10 w-10 text-destructive mb-3" />
+                  <h3 className="font-semibold mb-1">Error loading programs</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {(programsError as Error).message || 'Failed to fetch academic programs'}
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/academic-programs'] })}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : programs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
                   <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
                   <h3 className="font-semibold mb-1">No programs added</h3>
@@ -843,7 +905,7 @@ export default function Settings() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {programs.map((program) => (
+                      {programs.map((program: AcademicProgram) => (
                         <tr key={program.id}>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="font-medium">{program.programName}</div>
@@ -865,6 +927,7 @@ export default function Settings() {
                               variant="ghost" 
                               size="sm" 
                               onClick={() => handleOpenEditProgramDialog(program)}
+                              disabled={updateProgramMutation.isPending || deleteProgramMutation.isPending}
                             >
                               <PenLine className="h-4 w-4 mr-1" />
                               Edit
@@ -986,10 +1049,27 @@ export default function Settings() {
                   />
                   
                   <DialogFooter>
-                    <Button variant="outline" type="button" onClick={() => setIsAddProgramDialogOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      type="button" 
+                      onClick={() => setIsAddProgramDialogOpen(false)}
+                      disabled={addProgramMutation.isPending}
+                    >
                       Cancel
                     </Button>
-                    <Button type="submit">Add Program</Button>
+                    <Button 
+                      type="submit"
+                      disabled={addProgramMutation.isPending}
+                    >
+                      {addProgramMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding...
+                        </>
+                      ) : (
+                        'Add Program'
+                      )}
+                    </Button>
                   </DialogFooter>
                 </form>
               </Form>
@@ -1129,15 +1209,42 @@ export default function Settings() {
                       variant="destructive" 
                       type="button" 
                       onClick={() => selectedProgram && handleDeleteProgram(selectedProgram.id)}
+                      disabled={deleteProgramMutation.isPending || updateProgramMutation.isPending}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Program
+                      {deleteProgramMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Program
+                        </>
+                      )}
                     </Button>
                     <div className="flex gap-2">
-                      <Button variant="outline" type="button" onClick={() => setIsEditProgramDialogOpen(false)}>
+                      <Button 
+                        variant="outline" 
+                        type="button" 
+                        onClick={() => setIsEditProgramDialogOpen(false)}
+                        disabled={updateProgramMutation.isPending || deleteProgramMutation.isPending}
+                      >
                         Cancel
                       </Button>
-                      <Button type="submit">Update Program</Button>
+                      <Button 
+                        type="submit"
+                        disabled={updateProgramMutation.isPending}
+                      >
+                        {updateProgramMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          'Update Program'
+                        )}
+                      </Button>
                     </div>
                   </DialogFooter>
                 </form>
