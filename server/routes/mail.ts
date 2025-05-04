@@ -4,25 +4,6 @@
 import express, { Request, Response } from 'express';
 import { sendEmail, sendWelcomeEmail, sendApplicationUpdateEmail } from '../mail';
 
-// Define interface for authenticated request user
-interface AuthUser {
-  id: number;
-  username: string;
-  name: string;
-  email: string;
-  userType: string;
-}
-
-// Augment Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-      isAuthenticated(): boolean;
-    }
-  }
-}
-
 const router = express.Router();
 
 /**
@@ -30,7 +11,7 @@ const router = express.Router();
  * @description Check the status of the mail service
  * @access Public
  */
-router.get('/status', (req, res) => {
+router.get('/status', (req: Request, res: Response) => {
   const mailgunApiKey = process.env.MAILGUN_API_KEY ? 'configured' : 'not configured';
   
   res.status(200).json({
@@ -46,7 +27,7 @@ router.get('/status', (req, res) => {
  * @description Send a test email to verify Mailgun configuration
  * @access Private (requires authentication)
  */
-router.post('/test', async (req, res) => {
+router.post('/test', async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -58,6 +39,11 @@ router.post('/test', async (req, res) => {
         error: 'Mailgun API key not configured',
         details: 'The MAILGUN_API_KEY environment variable is not set.' 
       });
+    }
+
+    // Ensure that user is available and has required properties
+    if (!req.user) {
+      return res.status(401).json({ error: 'User not found in session' });
     }
 
     // Use the authenticated user's email for testing
@@ -88,11 +74,11 @@ router.post('/test', async (req, res) => {
       message: `Test email sent successfully to ${to}`,
       details: result
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending test email:', error);
     res.status(500).json({ 
       error: 'Failed to send test email', 
-      details: error.message
+      details: error.message || String(error)
     });
   }
 });
@@ -102,14 +88,19 @@ router.post('/test', async (req, res) => {
  * @description Send a welcome email to a specified user or the current user
  * @access Private (requires authentication)
  */
-router.post('/welcome', async (req, res) => {
+router.post('/welcome', async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
   try {
+    // Ensure user is available if needed
+    if (!req.body.email && !req.user) {
+      return res.status(401).json({ error: 'User not found in session and no email provided' });
+    }
+    
     // Extract user info from request or use current user
-    const { email, name } = req.body.email ? req.body : req.user;
+    const { email, name } = req.body.email ? req.body : req.user!;
     
     // Send welcome email
     const result = await sendWelcomeEmail(email, name);
@@ -119,11 +110,11 @@ router.post('/welcome', async (req, res) => {
       message: `Welcome email sent successfully to ${email}`,
       details: result
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending welcome email:', error);
     res.status(500).json({
       error: 'Failed to send welcome email',
-      details: error.message
+      details: error.message || String(error)
     });
   }
 });
@@ -133,7 +124,7 @@ router.post('/welcome', async (req, res) => {
  * @description Send an application update notification email
  * @access Private (requires authentication)
  */
-router.post('/application-update', async (req, res) => {
+router.post('/application-update', async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -148,10 +139,18 @@ router.post('/application-update', async (req, res) => {
       });
     }
     
+    // Ensure user is available if name is not provided
+    if (!name && !req.user) {
+      return res.status(400).json({ 
+        error: 'Missing name parameter', 
+        details: 'Name must be provided in request body or user must be authenticated' 
+      });
+    }
+    
     // Send application update email
     const result = await sendApplicationUpdateEmail(
       email,
-      name || req.user.name,
+      name || (req.user ? req.user.name : 'User'),
       companyName,
       positionTitle,
       status
@@ -162,11 +161,11 @@ router.post('/application-update', async (req, res) => {
       message: `Application update email sent successfully to ${email}`,
       details: result
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending application update email:', error);
     res.status(500).json({
       error: 'Failed to send application update email',
-      details: error.message
+      details: error.message || String(error)
     });
   }
 });
@@ -176,9 +175,14 @@ router.post('/application-update', async (req, res) => {
  * @description Send a custom email (admin only)
  * @access Private (requires admin authentication)
  */
-router.post('/custom', async (req, res) => {
+router.post('/custom', async (req: Request, res: Response) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
+  }
+  
+  // Ensure user is available
+  if (!req.user) {
+    return res.status(401).json({ error: 'User not found in session' });
   }
   
   // Check if user is an admin
@@ -209,11 +213,11 @@ router.post('/custom', async (req, res) => {
       message: `Custom email sent successfully to ${Array.isArray(to) ? to.join(', ') : to}`,
       details: result
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending custom email:', error);
     res.status(500).json({
       error: 'Failed to send custom email',
-      details: error.message
+      details: error.message || String(error)
     });
   }
 });
