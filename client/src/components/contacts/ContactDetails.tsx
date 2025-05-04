@@ -126,6 +126,9 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       url: `/api/contacts/${contactId}`,
       method: 'GET',
     }),
+    onSuccess: (data) => {
+      setNotesText(data.notes || '');
+    }
   });
   
   // Fetch contact interactions
@@ -1477,10 +1480,8 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
               <Textarea 
                 placeholder="Enter notes about this contact" 
                 className="min-h-[200px]"
-                value={contact?.notes || ''}
-                onChange={(e) => {
-                  // We'll update the notes directly in the mutation
-                }}
+                value={notesText}
+                onChange={(e) => setNotesText(e.target.value)}
               />
             </div>
             
@@ -1493,10 +1494,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 Cancel
               </Button>
               <Button 
-                onClick={() => {
-                  const notesText = (document.querySelector('textarea') as HTMLTextAreaElement)?.value || '';
-                  updateContactNotesMutation.mutate(notesText);
-                }}
+                onClick={() => updateContactNotesMutation.mutate(notesText)}
                 disabled={updateContactNotesMutation.isPending}
               >
                 {updateContactNotesMutation.isPending ? (
