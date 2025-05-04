@@ -923,9 +923,9 @@ export default function Settings() {
                       control={programForm.control}
                       name="duration"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration (years)</FormLabel>
-                          <FormControl>
+                        <div>
+                          <div className="text-sm font-medium">Duration (years)</div>
+                          <div className="mt-1">
                             <Input 
                               type="number" 
                               min={1} 
@@ -933,9 +933,9 @@ export default function Settings() {
                               {...field}
                               onChange={e => field.onChange(Number(e.target.value))}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                          </div>
+                          <div className="mt-1 text-sm text-destructive">{programForm.formState.errors.duration?.message}</div>
+                        </div>
                       )}
                     />
                   </div>
@@ -1062,9 +1062,9 @@ export default function Settings() {
                       control={editProgramForm.control}
                       name="duration"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration (years)</FormLabel>
-                          <FormControl>
+                        <div>
+                          <div className="text-sm font-medium">Duration (years)</div>
+                          <div className="mt-1">
                             <Input 
                               type="number" 
                               min={1} 
@@ -1072,9 +1072,9 @@ export default function Settings() {
                               {...field}
                               onChange={e => field.onChange(Number(e.target.value))}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                          </div>
+                          <div className="mt-1 text-sm text-destructive">{editProgramForm.formState.errors.duration?.message}</div>
+                        </div>
                       )}
                     />
                   </div>
