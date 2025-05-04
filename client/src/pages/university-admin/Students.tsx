@@ -59,6 +59,8 @@ import {
   AvatarFallback, 
   AvatarImage 
 } from '@/components/ui/avatar';
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Check,
   MoreHorizontal,
@@ -77,6 +79,7 @@ import {
   Eye,
   ExternalLink,
   Download,
+  Send,
   UserCircle
 } from 'lucide-react';
 
@@ -289,6 +292,30 @@ export default function StudentManagement() {
       description: `Analytics report for ${selectedStudent?.name} has been exported successfully.`,
     });
   };
+  
+  // State for message dialog
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  const [messageContent, setMessageContent] = useState('');
+  
+  // Function to handle sending message to student
+  const handleSendMessage = () => {
+    if (!messageContent.trim()) {
+      toast({
+        title: 'Message Required',
+        description: 'Please enter a message before sending.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Message Sent',
+      description: `Your message has been sent to ${selectedStudent?.name}.`,
+    });
+    
+    setMessageContent('');
+    setIsMessageDialogOpen(false);
+  };
 
   // Setup form for adding a new student
   const form = useForm<AddStudentFormValues>({
@@ -465,7 +492,10 @@ export default function StudentManagement() {
                             <Mail className="mr-2 h-4 w-4" />
                             Send Email
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedStudent(student);
+                            setIsMessageDialogOpen(true);
+                          }}>
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Message
                           </DropdownMenuItem>
@@ -1016,6 +1046,52 @@ export default function StudentManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Message Dialog */}
+      {selectedStudent && (
+        <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Message</DialogTitle>
+              <DialogDescription>
+                Send a direct message to {selectedStudent.name}.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input 
+                  id="subject" 
+                  placeholder="Message subject"
+                  defaultValue={`Regarding your career development progress`}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="message">Message</Label>
+                <Textarea 
+                  id="message" 
+                  placeholder="Type your message here..." 
+                  className="min-h-[150px]"
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendMessage}>
+                <Send className="mr-2 h-4 w-4" />
+                Send Message
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
