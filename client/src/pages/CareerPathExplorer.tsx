@@ -1581,13 +1581,6 @@ export default function CareerPathExplorer() {
                       <p>Certification recommendations are AI-generated based on current industry trends and role requirements. Always verify the relevance and accreditation status before enrolling.</p>
                     </div>
                   </div>
-                  
-                  {/* Footer button for Certifications tab - Close only */}
-                  <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 pb-4">
-                    <DialogClose asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto mx-auto">Close</Button>
-                    </DialogClose>
-                  </div>
                 </TabsContent>
               </Tabs>
             </div>
