@@ -15,6 +15,7 @@ import TodaysRecommendations from '@/components/TodaysRecommendations';
 import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
 import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
+import { GetStartedChecklist } from '@/components/dashboard/GetStartedChecklist';
 import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
 import { InterviewDebugTools } from '@/components/interview/InterviewDebugTools';
 
@@ -538,6 +539,9 @@ export default function Dashboard() {
           </Dialog>
         </div>
       </motion.div>
+
+      {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
+      {user && <GetStartedChecklist userId={user.id} />}
       
       {/* Stats Overview */}
       <motion.div 
