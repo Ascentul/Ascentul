@@ -1387,7 +1387,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 onClick={() => {
                   setNewNoteText("");
                   setEditingNote(null); 
-                  setIsEditing(true);
+                  setShowNoteDialog(true);
                 }} 
                 size="sm"
               >
@@ -1407,7 +1407,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                         onClick={() => {
                           setEditingNote(note);
                           setNewNoteText(note.text);
-                          setIsEditing(true);
+                          setShowNoteDialog(true);
                         }} 
                         className="h-6 w-6 p-0"
                       >
@@ -1444,7 +1444,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   onClick={() => {
                     setNewNoteText("");
                     setEditingNote(null);
-                    setIsEditing(true);
+                    setShowNoteDialog(true);
                   }} 
                   variant="outline" 
                   className="mt-4"
@@ -1675,9 +1675,9 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       )}
       
       {/* Add/Edit Note Dialog */}
-      <Dialog open={isEditing} onOpenChange={(open) => {
+      <Dialog open={showNoteDialog} onOpenChange={(open) => {
         if (!open) {
-          setIsEditing(false);
+          setShowNoteDialog(false);
           setEditingNote(null);
           setNewNoteText("");
         }
@@ -1706,7 +1706,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 type="button" 
                 variant="outline"
                 onClick={() => {
-                  setIsEditing(false);
+                  setShowNoteDialog(false);
                   setEditingNote(null);
                   setNewNoteText("");
                 }}
