@@ -334,7 +334,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       return apiRequest({
         url: `/api/contacts/interactions/${interactionId}`,
         method: 'PUT',
-        body: data,
+        data: data,
       });
     },
     onSuccess: () => {
