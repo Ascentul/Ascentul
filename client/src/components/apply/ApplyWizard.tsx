@@ -413,8 +413,10 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
             )}
           </div>
           
-          <Button variant="outline" onClick={() => setStep(1)} className="float-left mt-4">Back</Button>
-          <Button onClick={() => setStep(3)} className="float-right mt-4">Continue to Review</Button>
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button onClick={() => setStep(3)}>Continue to Review</Button>
+          </div>
         </>
       )}
 
