@@ -782,6 +782,377 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* Academic Programs Tab */}
+        <TabsContent value="programs" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Academic Programs</CardTitle>
+                <CardDescription>
+                  Manage your university's academic programs and departments.
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={handleOpenAddProgramDialog} 
+                className="ml-auto"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Program
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {programs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                  <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
+                  <h3 className="font-semibold mb-1">No programs added</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add your first academic program to start managing course offerings.
+                  </p>
+                  <Button variant="secondary" onClick={handleOpenAddProgramDialog}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Program
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-md border">
+                  <table className="w-full divide-y text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left font-medium">Program</th>
+                        <th scope="col" className="px-4 py-3 text-left font-medium">Degree Type</th>
+                        <th scope="col" className="px-4 py-3 text-left font-medium">Department</th>
+                        <th scope="col" className="px-4 py-3 text-left font-medium">Duration</th>
+                        <th scope="col" className="px-4 py-3 text-left font-medium">Status</th>
+                        <th scope="col" className="px-4 py-3 text-right font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {programs.map((program) => (
+                        <tr key={program.id}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="font-medium">{program.programName}</div>
+                          </td>
+                          <td className="px-4 py-3">{program.degreeType}</td>
+                          <td className="px-4 py-3">{program.departmentName}</td>
+                          <td className="px-4 py-3">{program.duration} {program.duration === 1 ? 'year' : 'years'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              program.active 
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {program.active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleOpenEditProgramDialog(program)}
+                            >
+                              <PenLine className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Add Program Dialog */}
+          <Dialog open={isAddProgramDialogOpen} onOpenChange={setIsAddProgramDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Add Academic Program</DialogTitle>
+                <DialogDescription>
+                  Create a new academic program for your university.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...programForm}>
+                <form onSubmit={programForm.handleSubmit(handleAddProgram)} className="space-y-4">
+                  <FormField
+                    control={programForm.control}
+                    name="programName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Program Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Computer Science" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={programForm.control}
+                      name="degreeType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Degree Type</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select degree type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Associate">Associate</SelectItem>
+                              <SelectItem value="Bachelor">Bachelor</SelectItem>
+                              <SelectItem value="Master">Master</SelectItem>
+                              <SelectItem value="Doctorate">Doctorate</SelectItem>
+                              <SelectItem value="Certificate">Certificate</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={programForm.control}
+                      name="duration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration (years)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min={1} 
+                              max={10} 
+                              {...field}
+                              onChange={e => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={programForm.control}
+                    name="departmentName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., School of Engineering" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={programForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Provide a brief description of the program" 
+                            className="min-h-24"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={programForm.control}
+                    name="active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Active Program</FormLabel>
+                          <FormDescription>
+                            Inactive programs won't be displayed to students
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter>
+                    <Button variant="outline" type="button" onClick={() => setIsAddProgramDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Add Program</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Edit Program Dialog */}
+          <Dialog open={isEditProgramDialogOpen} onOpenChange={setIsEditProgramDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Edit Academic Program</DialogTitle>
+                <DialogDescription>
+                  Update the details of an existing academic program.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...editProgramForm}>
+                <form onSubmit={editProgramForm.handleSubmit(handleUpdateProgram)} className="space-y-4">
+                  <FormField
+                    control={editProgramForm.control}
+                    name="programName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Program Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Computer Science" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={editProgramForm.control}
+                      name="degreeType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Degree Type</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select degree type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Associate">Associate</SelectItem>
+                              <SelectItem value="Bachelor">Bachelor</SelectItem>
+                              <SelectItem value="Master">Master</SelectItem>
+                              <SelectItem value="Doctorate">Doctorate</SelectItem>
+                              <SelectItem value="Certificate">Certificate</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editProgramForm.control}
+                      name="duration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration (years)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min={1} 
+                              max={10} 
+                              {...field}
+                              onChange={e => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={editProgramForm.control}
+                    name="departmentName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., School of Engineering" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editProgramForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Provide a brief description of the program" 
+                            className="min-h-24"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editProgramForm.control}
+                    name="active"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Active Program</FormLabel>
+                          <FormDescription>
+                            Inactive programs won't be displayed to students
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter className="flex justify-between">
+                    <Button 
+                      variant="destructive" 
+                      type="button" 
+                      onClick={() => selectedProgram && handleDeleteProgram(selectedProgram.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Program
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" type="button" onClick={() => setIsEditProgramDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit">Update Program</Button>
+                    </div>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
       </Tabs>
     </div>
   );
