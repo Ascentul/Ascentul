@@ -97,13 +97,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Fall back to role-based redirection
         const user = data.user;
         if (user.userType === 'admin') {
-          window.location.href = '/admin';
+          window.location.href = '/admin-dashboard';
         } else if (user.userType === 'staff') {
-          window.location.href = '/staff';
-        } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-          window.location.href = '/university';
+          window.location.href = '/staff-dashboard';
+        } else if (user.userType === 'university_admin') {
+          window.location.href = '/university-admin/dashboard';
+        } else if (user.userType === 'university_student') {
+          window.location.href = '/career-dashboard';
         } else { // regular user
-          window.location.href = '/dashboard';
+          window.location.href = '/career-dashboard';
         }
       }
     },
@@ -113,15 +115,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const getRedirectPathByRole = (userType: string): string => {
     switch (userType) {
       case 'admin':
-        return '/admin';
+        return '/admin-dashboard';
       case 'staff':
-        return '/staff';
-      case 'university_student':
+        return '/staff-dashboard';
       case 'university_admin':
-        return '/university';
+        return '/university-admin/dashboard';
+      case 'university_student':
+        return '/career-dashboard';
       case 'regular':
       default:
-        return '/dashboard';
+        return '/career-dashboard';
     }
   };
 
