@@ -212,15 +212,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   
   return (
     <>
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-lg font-semibold">Track Application</h3>
-          <p className="text-sm text-muted-foreground">
-            {step === 1 && "Start by adding job details or import from a job board."}
-            {step === 2 && "Select or upload a resume for this application."}
-            {step === 3 && "Review and submit your application details."}
-          </p>
-        </div>
+      <div className="flex justify-end mb-4">
         <Button variant="ghost" size="icon" onClick={handleClose}>
           <span className="sr-only">Close</span>
           ✕
