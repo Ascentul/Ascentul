@@ -41,6 +41,18 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from '@/hooks/use-toast';
 import { 
   Avatar, 
@@ -171,6 +183,20 @@ const mockStudents: Student[] = [
   },
 ];
 
+// Form schema for adding a new student
+const addStudentSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z
+    .string()
+    .email({ message: "Please enter a valid email address" })
+    .refine((email) => email.endsWith('.edu'), {
+      message: "Email must be an educational email (.edu)"
+    }),
+  status: z.enum(['active', 'inactive']).default('active'),
+});
+
+type AddStudentFormValues = z.infer<typeof addStudentSchema>;
+
 export default function StudentManagement() {
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>(mockStudents);
@@ -179,6 +205,7 @@ export default function StudentManagement() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   // Filter students based on search query and status filter
   const filteredStudents = students.filter(student => {
@@ -252,6 +279,47 @@ export default function StudentManagement() {
       .toUpperCase();
   };
 
+  // Setup form for adding a new student
+  const form = useForm<AddStudentFormValues>({
+    resolver: zodResolver(addStudentSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      status: 'active',
+    },
+  });
+
+  // Function to handle adding a new student
+  const handleAddStudent = (data: AddStudentFormValues) => {
+    // Generate a random ID (in a real app, this would come from the backend)
+    const maxId = students.reduce((max, student) => Math.max(max, student.id), 0);
+    const newId = maxId + 1;
+    
+    // Create the new student
+    const newStudent: Student = {
+      id: newId,
+      name: data.name,
+      email: data.email,
+      status: data.status,
+      lastLogin: 'Never',
+      progress: 0,
+      profileImage: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`, // Random avatar
+    };
+    
+    // Add the student to the list
+    setStudents([...students, newStudent]);
+    
+    // Close the dialog and reset the form
+    setIsAddDialogOpen(false);
+    form.reset();
+    
+    // Show success message
+    toast({
+      title: 'Student Added',
+      description: `${data.name} has been added successfully. An invite email has been sent.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -299,7 +367,7 @@ export default function StudentManagement() {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <Button>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Student
           </Button>
@@ -686,6 +754,93 @@ export default function StudentManagement() {
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Add Student Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Student</DialogTitle>
+            <DialogDescription>
+              Enter student details below. An invitation email will be sent to the student.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAddStudent)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter student's full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="student@university.edu" 
+                        type="email" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Must be a valid .edu email address
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Status</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          defaultValue="active"
+                          {...field}
+                        >
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </FormControl>
+                    </div>
+                    <FormDescription>
+                      Students with inactive status won't be able to log in
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" type="button" onClick={() => setIsAddDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add Student
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
