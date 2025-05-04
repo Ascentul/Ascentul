@@ -335,8 +335,8 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     // Store the full job object
     setSelectedJob(job);
     
-    // Set tab to job view
-    setActiveTab('job-view');
+    // Keep user on results tab - job details will be shown in the same tab
+    setActiveTab('results');
     
     // Pass job info to parent component if callback exists
     if (onSelectJob) {
@@ -404,9 +404,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             {searchResults.length > 0 && (
               <TabsTrigger value="results" className="flex-1">Results ({searchResults.length})</TabsTrigger>
             )}
-            {selectedJob && (
-              <TabsTrigger value="job-view" className="flex-1">Job Details</TabsTrigger>
-            )}
           </TabsList>
           
           <TabsContent value="search" className="space-y-4">
@@ -471,51 +468,161 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
           
           <TabsContent value="results">
             {searchResults.length > 0 ? (
-              <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                {searchResults.map((job) => (
-                  <div
-                    key={job.id}
-                    className="p-4 border rounded-md hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleSelectJob(job)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-semibold text-lg">{job.title}</h3>
-                      <div className="flex gap-1">
+              <div className="space-y-4">
+                {/* Job list section */}
+                {!selectedJob && (
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto">
+                    {searchResults.map((job) => (
+                      <div
+                        key={job.id}
+                        className="p-4 border rounded-md hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleSelectJob(job)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold text-lg">{job.title}</h3>
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-6 gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartApplication(job);
+                              }}
+                            >
+                              Add to Tracker
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-6 gap-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium">{job.company.display_name}</p>
+                        <p className="text-sm text-gray-500">{job.location.display_name}</p>
+                        
+                        {(job.salary_min || job.salary_max) && (
+                          <p className="text-sm text-gray-700 mt-1">{formatSalary(job)}</p>
+                        )}
+                        
+                        <p className="mt-2 text-sm line-clamp-2 text-gray-600">{job.description}</p>
+                        
+                        <p className="text-xs text-gray-400 mt-2">
+                          Posted: {new Date(job.created).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Job details section */}
+                {selectedJob && (
+                  <div className="flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Job Details</h3>
+                      <div className="flex gap-2">
                         <Button 
-                          size="sm" 
                           variant="outline" 
-                          className="h-6 gap-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartApplication(job);
-                          }}
+                          size="sm" 
+                          onClick={() => window.open(selectedJob.redirect_url, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Apply on Adzuna
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleStartApplication(selectedJob)}
                         >
                           Add to Tracker
                         </Button>
                         <Button 
+                          variant="secondary" 
                           size="sm" 
-                          variant="ghost" 
-                          className="h-6 gap-1"
+                          onClick={() => setSelectedJob(null)}
                         >
-                          <ExternalLink className="h-3 w-3" />
-                          View
+                          Back to Results
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm font-medium">{job.company.display_name}</p>
-                    <p className="text-sm text-gray-500">{job.location.display_name}</p>
                     
-                    {(job.salary_min || job.salary_max) && (
-                      <p className="text-sm text-gray-700 mt-1">{formatSalary(job)}</p>
-                    )}
-                    
-                    <p className="mt-2 text-sm line-clamp-2 text-gray-600">{job.description}</p>
-                    
-                    <p className="text-xs text-gray-400 mt-2">
-                      Posted: {new Date(job.created).toLocaleDateString()}
-                    </p>
+                    <div className="mb-6 overflow-auto max-h-[600px]">
+                      <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
+                      <div className="flex flex-wrap gap-2 mb-4 text-sm">
+                        <span className="font-medium">{selectedJob.company.display_name}</span>
+                        <span className="text-gray-500">•</span>
+                        <span className="text-gray-600">{selectedJob.location.display_name}</span>
+                      </div>
+                      
+                      {(selectedJob.salary_min || selectedJob.salary_max) && (
+                        <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
+                          <span className="font-medium">Salary: </span>
+                          <span>{formatSalary(selectedJob)}</span>
+                        </div>
+                      )}
+                      
+                      {selectedJob.contract_time && (
+                        <div className="mb-4">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                            {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
+                             selectedJob.contract_time === 'part_time' ? 'Part-time' : 
+                             selectedJob.contract_time}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-2">Job Description</h3>
+                        <div>
+                          <div 
+                            className={`text-gray-700 whitespace-pre-line ${
+                              !expandedDescription && selectedJob.description.length > 500 
+                                ? "max-h-[300px] overflow-hidden relative" 
+                                : ""
+                            }`}
+                          >
+                            {selectedJob.description}
+                            {!expandedDescription && selectedJob.description.length > 500 && (
+                              <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
+                            )}
+                          </div>
+                          
+                          {selectedJob.description.length > 500 && (
+                            <button 
+                              onClick={() => {
+                                console.log('Toggle description', !expandedDescription);
+                                setExpandedDescription(prevState => !prevState);
+                              }}
+                              className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                            >
+                              {expandedDescription ? (
+                                <>
+                                  <ChevronUp className="h-4 w-4 mr-1" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-4 w-4 mr-1" />
+                                  Show More
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <span className="text-sm text-gray-500">
+                          Posted: {new Date(selectedJob.created).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             ) : (
               <div className="text-center py-8">
@@ -557,111 +664,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
               </>
             ) : (
               <p className="text-center py-8 text-gray-500">No search history available</p>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="job-view">
-            {selectedJob ? (
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Job Details</h3>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Apply on Adzuna
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      onClick={() => setActiveTab('results')}
-                    >
-                      Back to Results
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="mb-6 overflow-auto max-h-[600px]">
-                  <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
-                  <div className="flex flex-wrap gap-2 mb-4 text-sm">
-                    <span className="font-medium">{selectedJob.company.display_name}</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-600">{selectedJob.location.display_name}</span>
-                  </div>
-                  
-                  {(selectedJob.salary_min || selectedJob.salary_max) && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
-                      <span className="font-medium">Salary: </span>
-                      <span>{formatSalary(selectedJob)}</span>
-                    </div>
-                  )}
-                  
-                  {selectedJob.contract_time && (
-                    <div className="mb-4">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                        {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
-                         selectedJob.contract_time === 'part_time' ? 'Part-time' : 
-                         selectedJob.contract_time}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Job Description</h3>
-                    <div>
-                      {/* Use a ref for the job description container */}
-                      <div 
-                        className={`text-gray-700 whitespace-pre-line ${
-                          !expandedDescription && selectedJob.description.length > 500 
-                            ? "max-h-[300px] overflow-hidden relative" 
-                            : ""
-                        }`}
-                      >
-                        {selectedJob.description}
-                        {!expandedDescription && selectedJob.description.length > 500 && (
-                          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
-                        )}
-                      </div>
-                      
-                      {/* Only show toggle button for longer descriptions */}
-                      {selectedJob.description.length > 500 && (
-                        <button 
-                          onClick={() => {
-                            console.log('Toggle description', !expandedDescription);
-                            setExpandedDescription(prevState => !prevState);
-                          }}
-                          className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                        >
-                          {expandedDescription ? (
-                            <>
-                              <ChevronUp className="h-4 w-4 mr-1" />
-                              Show Less
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-4 w-4 mr-1" />
-                              Show More
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6">
-                    <span className="text-sm text-gray-500">
-                      Posted: {new Date(selectedJob.created).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No job selected. Select a job from the results to view details.</p>
-              </div>
             )}
           </TabsContent>
         </Tabs>
