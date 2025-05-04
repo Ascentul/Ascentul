@@ -234,58 +234,23 @@ function App() {
   const isPlanSelectionRoute = location === "/plan-selection";
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
 
-  // Only redirect root path to home if not trying to access sign-in
-  if (location === "/" || location === "") {
-    // Just navigate to /home for consistency, 
-    // the sign-in specific routing is handled below in isSignInRoute check
-    navigate("/home");
-    return null;
-  }
-
-  // Skip layout for auth routes
-  const isAdminLoginRoute = location === "/admin-login";
-  const isStaffLoginRoute = location === "/staff-login";
-
-  if (isSignInRoute) {
+  // Authentication routes always take precedence
+  if (isSignInRoute || isSignUpRoute || location === "/admin-login" || location === "/staff-login" || location === "/staff-signup") {
     return (
       <Switch>
         <Route path="/sign-in" component={SignIn} />
-      </Switch>
-    );
-  }
-
-  if (isSignUpRoute) {
-    return (
-      <Switch>
         <Route path="/sign-up" component={SignUp} />
-      </Switch>
-    );
-  }
-
-  if (isAdminLoginRoute) {
-    return (
-      <Switch>
         <Route path="/admin-login" component={AdminLogin} />
-      </Switch>
-    );
-  }
-
-  if (isStaffLoginRoute) {
-    return (
-      <Switch>
         <Route path="/staff-login" component={StaffLogin} />
-      </Switch>
-    );
-  }
-
-  const isStaffSignupRoute = location === "/staff-signup";
-
-  if (isStaffSignupRoute) {
-    return (
-      <Switch>
         <Route path="/staff-signup" component={StaffSignup} />
       </Switch>
     );
+  }
+
+  // Only redirect root path to home if not trying to access an auth page
+  if (location === "/" || location === "") {
+    navigate("/home");
+    return null;
   }
 
   // Payment Portal Routes with layout
@@ -360,17 +325,13 @@ function App() {
     );
   }
 
-  // Use PublicLayout for public routes
+  // Use PublicLayout for public routes (excluding auth routes which are handled above)
   if (isPublicRoute) {
     return (
       <PublicLayout>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/home" component={Home} />
-          {/* Sign-in route already handled above */}
-          <Route path="/sign-up" component={SignUp} />
-          <Route path="/admin-login" component={AdminLogin} />
-          <Route path="/staff-login" component={StaffLogin} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />
