@@ -1,112 +1,149 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState } from 'react';
+import * as z from 'zod';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Mail, Upload, Copy, CheckCircle2, Download } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { 
+  Select, 
+  SelectContent, 
+  SelectGroup, 
+  SelectItem, 
+  SelectLabel, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Mail, 
+  Users, 
+  AlertCircle, 
+  Copy, 
+  Check, 
+  Plus, 
+  Trash2,
+  Upload
+} from 'lucide-react';
 
-// Define form schema for invitations
+// Form schema for inviting students
 const inviteFormSchema = z.object({
-  emails: z.string().min(1, { message: 'Email addresses are required' }),
-  role: z.string().min(1, { message: 'Role is required' }),
-  message: z.string().optional(),
-  expiresAfter: z.string().min(1, { message: 'Expiration period is required' }),
+  emailAddresses: z.string()
+    .min(1, "Email addresses are required")
+    .refine(emails => {
+      const emailList = emails.split(',').map(email => email.trim());
+      return emailList.every(email => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      });
+    }, {
+      message: "Please enter valid email addresses separated by commas"
+    }),
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(1, "Message is required"),
+  program: z.string().min(1, "Program is required"),
+  sendCopy: z.boolean().default(false),
+  expirationDays: z.string().min(1, "Expiration period is required"),
 });
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
 export default function Invite() {
   const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [showInviteLink, setShowInviteLink] = useState(false);
-  const inviteLink = 'https://ascentul.com/join/university-code-XYZ123';
+  const [inviteSent, setInviteSent] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
-  // Initialize form
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: {
-      emails: '',
-      role: 'student',
-      message: 'You have been invited to join our university on the Ascentul career development platform. Please use the link below to create your account.',
-      expiresAfter: '7days',
-    },
+      emailAddresses: "",
+      subject: "Invitation to Ascentul Career Platform",
+      message: "Dear Student,\n\nYou have been invited to join the Ascentul Career Development Platform by your university. This platform will help you prepare for your career journey with AI-powered tools for resume building, interview preparation, and more.\n\nPlease click the link below to create your account and get started.\n\nBest regards,\nCareer Services Team",
+      program: "",
+      sendCopy: true,
+      expirationDays: "30",
+    }
   });
 
-  // Handle invitation submission
-  const onSubmit = (data: InviteFormValues) => {
-    // In a real implementation, this would send API request
-    console.log('Invitation data:', data);
-    
-    // Show success toast
-    toast({
-      title: 'Invitations Sent',
-      description: `Invitations have been sent to ${data.emails.split('\n').length} recipients.`,
-    });
-    
-    setShowInviteLink(true);
-  };
-
-  // Handle CSV file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    
-    setIsUploading(true);
-    
-    // Simulate file processing
-    setTimeout(() => {
-      setIsUploading(false);
-      
-      // Set emails field with mock data from file
-      form.setValue('emails', 'student1@university.edu\nstudent2@university.edu\nstudent3@university.edu');
-      
+    if (file) {
+      setCsvFile(file);
       toast({
-        title: 'File Uploaded',
-        description: '3 email addresses were extracted from the CSV file.',
+        title: "CSV File Selected",
+        description: `${file.name} has been selected. Click "Parse Emails" to extract email addresses.`,
       });
-    }, 1500);
+    }
   };
 
-  // Handle copy invite link to clipboard
+  const parseCsvFile = () => {
+    if (!csvFile) {
+      toast({
+        title: "No CSV File",
+        description: "Please upload a CSV file first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // In a real implementation, we would parse the CSV file
+    // For demo purposes, we'll just set some sample emails
+    const sampleEmails = "student1@stanford.edu, student2@stanford.edu, student3@stanford.edu, student4@stanford.edu, student5@stanford.edu";
+    form.setValue("emailAddresses", sampleEmails);
+    
+    toast({
+      title: "Emails Extracted",
+      description: `Successfully extracted ${sampleEmails.split(',').length} email addresses from the CSV file.`,
+    });
+  };
+
   const copyInviteLink = () => {
+    // In a real implementation, we would generate an actual invite link
+    const inviteLink = "https://app.ascentul.com/invite/abc123xyz456";
     navigator.clipboard.writeText(inviteLink);
     setIsCopied(true);
     
     toast({
-      title: 'Link Copied',
-      description: 'Invitation link copied to clipboard',
+      title: "Invite Link Copied",
+      description: "The invite link has been copied to your clipboard.",
     });
     
-    // Reset copied state after 2 seconds
-    setTimeout(() => setIsCopied(false), 2000);
+    setTimeout(() => {
+      setIsCopied(false);
+    }, 3000);
+  };
+
+  const onSubmit = (data: InviteFormValues) => {
+    console.log("Form data:", data);
+    
+    // Count the number of emails
+    const emailCount = data.emailAddresses.split(',').filter(email => email.trim().length > 0).length;
+    
+    toast({
+      title: "Invitations Sent",
+      description: `Successfully sent ${emailCount} invitations to students.`,
+    });
+    
+    setInviteSent(true);
   };
 
   return (
@@ -114,197 +151,293 @@ export default function Invite() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Invite Students</h1>
         <p className="text-muted-foreground">
-          Send invitations to students to join your university's Ascentul platform.
+          Send invitations to students to join the Ascentul Career Development Platform.
         </p>
       </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Invitation Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Send Email Invitations</CardTitle>
-            <CardDescription>
-              Invite multiple students by email address. Enter one email per line or upload a CSV file.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="emails"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Addresses</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter email addresses (one per line)"
-                          className="min-h-32"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter one email address per line or{' '}
-                        <label className="cursor-pointer text-primary">
-                          upload a CSV file
-                          <input
-                            type="file"
-                            accept=".csv"
-                            className="hidden"
-                            onChange={handleFileUpload}
-                            disabled={isUploading}
-                          />
-                        </label>
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="student">Student</SelectItem>
-                            <SelectItem value="instructor">Instructor</SelectItem>
-                            <SelectItem value="career_advisor">Career Advisor</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="expiresAfter"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expires After</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Expiration period" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="3days">3 Days</SelectItem>
-                            <SelectItem value="7days">7 Days</SelectItem>
-                            <SelectItem value="14days">14 Days</SelectItem>
-                            <SelectItem value="30days">30 Days</SelectItem>
-                            <SelectItem value="never">Never</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="message"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Invitation Message</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Enter a custom message for the invitation email"
-                          className="min-h-24"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Invitations
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-
-        {/* Bulk Upload and Instructions */}
-        <div className="space-y-6">
+      
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>CSV Template</CardTitle>
+              <CardTitle>Send Invitations</CardTitle>
               <CardDescription>
-                Download a template for bulk invitations or create your own CSV file with these columns.
+                Invite students via email to create their accounts on the platform.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <h4 className="font-medium mb-2">Required CSV Format:</h4>
-                <div className="bg-muted p-3 rounded-md font-mono text-xs">
-                  email,role,firstName,lastName<br />
-                  student1@university.edu,student,John,Smith<br />
-                  student2@university.edu,student,Jane,Doe
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="emailAddresses"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Addresses</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter email addresses separated by commas"
+                            className="min-h-32"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter student email addresses separated by commas, or upload a CSV file.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      asChild
+                    >
+                      <label className="cursor-pointer">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload CSV
+                        <input 
+                          type="file" 
+                          accept=".csv" 
+                          className="hidden" 
+                          onChange={handleCsvUpload}
+                        />
+                      </label>
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={parseCsvFile}
+                      disabled={!csvFile}
+                    >
+                      Parse Emails
+                    </Button>
+                    
+                    {csvFile && (
+                      <p className="text-sm text-muted-foreground">
+                        {csvFile.name}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="program"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Program</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a program" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Undergraduate</SelectLabel>
+                                <SelectItem value="cs-bs">Computer Science (BS)</SelectItem>
+                                <SelectItem value="eng-bs">Engineering (BS)</SelectItem>
+                                <SelectItem value="bus-bs">Business Administration (BS)</SelectItem>
+                              </SelectGroup>
+                              <SelectGroup>
+                                <SelectLabel>Graduate</SelectLabel>
+                                <SelectItem value="cs-ms">Computer Science (MS)</SelectItem>
+                                <SelectItem value="eng-ms">Engineering (MS)</SelectItem>
+                                <SelectItem value="mba">MBA</SelectItem>
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="expirationDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Invitation Expiration</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select expiration period" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="7">7 days</SelectItem>
+                              <SelectItem value="14">14 days</SelectItem>
+                              <SelectItem value="30">30 days</SelectItem>
+                              <SelectItem value="60">60 days</SelectItem>
+                              <SelectItem value="90">90 days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Subject</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Email subject line" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Message</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter email message content"
+                            className="min-h-32"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Customize the invitation message sent to students.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="sendCopy"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Send me a copy
+                          </FormLabel>
+                          <FormDescription>
+                            Receive a copy of the invitation email for your records.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Invitations
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="md:col-span-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Invite Link</CardTitle>
+              <CardDescription>
+                Generate a shareable invite link that can be used by multiple students.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <div className="grid flex-1 gap-2">
+                  <div className="font-medium">Ascentul Invite Link</div>
+                  <div className="truncate text-sm text-muted-foreground">
+                    https://app.ascentul.com/invite/abc123xyz456
+                  </div>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={copyInviteLink}
+                >
+                  {isCopied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-              <Button variant="outline" className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                Download Template
+              <Button className="w-full" variant="outline" onClick={copyInviteLink}>
+                {isCopied ? "Copied!" : "Copy Invite Link"}
               </Button>
             </CardContent>
           </Card>
-
-          {showInviteLink && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Invitation Link</CardTitle>
-                <CardDescription>
-                  Share this link with students to join your university platform.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Input
-                    readOnly
-                    value={inviteLink}
-                    className="mr-2 font-mono"
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={copyInviteLink}
-                    className="flex-shrink-0"
-                  >
-                    {isCopied ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                Recent student invitation activity.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">25 Students</p>
+                    <p className="text-sm text-muted-foreground">Invited this month</p>
+                  </div>
+                  <Users className="h-8 w-8 text-primary opacity-80" />
                 </div>
-              </CardContent>
-              <CardFooter className="text-sm text-muted-foreground">
-                This link will expire based on the settings you selected.
-              </CardFooter>
-            </Card>
-          )}
+                
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Recent Invites</div>
+                  <div className="text-sm">
+                    <p className="flex justify-between py-1">
+                      <span>Computer Science (BS)</span>
+                      <span className="text-muted-foreground">12 students</span>
+                    </p>
+                    <p className="flex justify-between py-1">
+                      <span>MBA Program</span>
+                      <span className="text-muted-foreground">8 students</span>
+                    </p>
+                    <p className="flex justify-between py-1">
+                      <span>Engineering (MS)</span>
+                      <span className="text-muted-foreground">5 students</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+      
+      {inviteSent && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Invitations have been sent successfully. Students will receive an email with instructions to join the platform.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }
