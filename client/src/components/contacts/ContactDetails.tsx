@@ -1271,37 +1271,39 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                   )}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2">
-                          {(() => {
-                            // Extract the type from the format 'contact_Type'
-                            const reminderType = followUp.type?.startsWith('contact_') 
-                              ? followUp.type.replace('contact_', '') 
-                              : followUp.type;
-                            
-                            // Render appropriate icon based on type
-                            switch(reminderType) {
-                              case 'Call':
-                                return <Phone className="h-4 w-4 text-blue-500" />;
-                              case 'Email':
-                                return <Mail className="h-4 w-4 text-green-500" />;
-                              case 'Meeting':
-                                return <Users className="h-4 w-4 text-purple-500" />;
-                              case 'Coffee':
-                                return <Coffee className="h-4 w-4 text-amber-500" />;
-                              case 'Lunch':
-                                return <Utensils className="h-4 w-4 text-orange-500" />;
-                              default:
-                                return <CalendarPlus className="h-4 w-4 text-gray-500" />;
-                            }
-                          })()}
-                          <div>
-                            <CardTitle className="text-base font-medium">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            {(() => {
+                              // Extract the type from the format 'contact_Type'
+                              const reminderType = followUp.type?.startsWith('contact_') 
+                                ? followUp.type.replace('contact_', '') 
+                                : followUp.type;
+                              
+                              // Render appropriate icon based on type
+                              switch(reminderType) {
+                                case 'Call':
+                                  return <Phone className="h-4 w-4 text-blue-500" />;
+                                case 'Email':
+                                  return <Mail className="h-4 w-4 text-green-500" />;
+                                case 'Meeting':
+                                  return <Users className="h-4 w-4 text-purple-500" />;
+                                case 'Coffee':
+                                  return <Coffee className="h-4 w-4 text-amber-500" />;
+                                case 'Lunch':
+                                  return <Utensils className="h-4 w-4 text-orange-500" />;
+                                default:
+                                  return <CalendarPlus className="h-4 w-4 text-gray-500" />;
+                              }
+                            })()}
+                          </div>
+                          <div className="flex flex-col">
+                            <CardTitle className="text-base font-medium leading-tight">
                               {/* Extract the type from the format 'contact_Type' */}
                               {followUp.type?.startsWith('contact_') 
                                 ? followUp.type.replace('contact_', '') 
                                 : followUp.type} {format(new Date(followUp.dueDate), 'MMM d, yyyy').replace(/-/g, ' ')}
                             </CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardDescription className="text-xs mt-0.5">
                               {followUp.completed 
                                 ? `Completed on ${followUp.completedDate ? format(new Date(followUp.completedDate), 'MMM d, yyyy').replace(/-/g, ' ') : 'Unknown'}`
                                 : new Date(followUp.dueDate) < new Date() 
@@ -1355,7 +1357,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                       </div>
                     </CardHeader>
                     {followUp.notes && (
-                      <CardContent className="pb-4 pt-0">
+                      <CardContent className="pb-4 pt-0 pl-7">
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">{followUp.notes}</p>
                       </CardContent>
                     )}
