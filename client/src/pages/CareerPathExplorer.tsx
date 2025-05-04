@@ -1400,6 +1400,113 @@ export default function CareerPathExplorer() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Footer buttons for Overview tab only */}
+                  <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 pb-4">
+                    <Button 
+                      className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4 w-full sm:w-auto"
+                      size="sm"
+                      disabled={isCreatingGoal}
+                      onClick={async () => {
+                        // Check if we have existing goals to avoid duplicates
+                        try {
+                          // Show loading state
+                          setIsCreatingGoal(true);
+                          
+                          // Get existing goals
+                          const goalsResponse = await apiRequest('GET', '/api/goals');
+                          const existingGoals = await goalsResponse.json();
+                          
+                          // Check if this goal already exists (by title)
+                          const goalTitle = `Become a ${selectedNode.title}`;
+                          const isDuplicate = existingGoals.some(
+                            (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
+                          );
+                          
+                          if (isDuplicate) {
+                            toast({
+                              title: "Goal Already Exists",
+                              description: "You already have this career goal in your tracker.",
+                              variant: "default"
+                            });
+                            setIsCreatingGoal(false);
+                            return;
+                          }
+                          
+                          // Create the goal
+                          const goalData = {
+                            title: goalTitle,
+                            description: `Career goal to become a ${selectedNode.title} in the ${activePath.name} industry. Salary range: ${selectedNode.salaryRange}.`,
+                            status: "not_started",
+                            checklist: [
+                              {
+                                id: crypto.randomUUID(),
+                                text: `Research required skills for ${selectedNode.title} role`,
+                                completed: false
+                              },
+                              {
+                                id: crypto.randomUUID(),
+                                text: `Identify training or certification needs`,
+                                completed: false
+                              },
+                              {
+                                id: crypto.randomUUID(),
+                                text: `Update resume to target this role`,
+                                completed: false
+                              },
+                              {
+                                id: crypto.randomUUID(),
+                                text: `Network with professionals in this field`,
+                                completed: false
+                              }
+                            ]
+                          };
+                          
+                          // Save the goal
+                          const response = await apiRequest('POST', '/api/goals', goalData);
+                          
+                          if (response.ok) {
+                            // Close the dialog
+                            setDrawerOpen(false);
+                            
+                            toast({
+                              title: "Career Goal Created",
+                              description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
+                              action: (
+                                <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
+                                  View Goal
+                                </Button>
+                              ),
+                            });
+                          } else {
+                            throw new Error("Failed to create goal");
+                          }
+                        } catch (error) {
+                          console.error("Error creating career goal:", error);
+                          toast({
+                            title: "Error Creating Goal",
+                            description: "There was a problem creating your career goal. Please try again.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          setIsCreatingGoal(false);
+                        }
+                      }}
+                    >
+                      {isCreatingGoal ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Goal...
+                        </>
+                      ) : (
+                        <>Set as Career Goal</>
+                      )}
+                    </Button>
+
+                    <DialogClose asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">Close</Button>
+                    </DialogClose>
+                  </div>
                 </TabsContent>
                 
                 <TabsContent value="skills" className="mt-4 space-y-4">
@@ -1423,6 +1530,13 @@ export default function CareerPathExplorer() {
                       {selectedNode.level === 'lead' && <li>Leadership: Experience managing teams or technical projects</li>}
                       <li>Communication: {selectedNode.level === 'entry' ? 'Basic' : selectedNode.level === 'mid' ? 'Intermediate' : 'Advanced'} communication skills</li>
                     </ul>
+                  </div>
+                  
+                  {/* Footer button for Skills tab - Close only */}
+                  <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 pb-4">
+                    <DialogClose asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto mx-auto">Close</Button>
+                    </DialogClose>
                   </div>
                 </TabsContent>
                 
@@ -1467,118 +1581,16 @@ export default function CareerPathExplorer() {
                       <p>Certification recommendations are AI-generated based on current industry trends and role requirements. Always verify the relevance and accreditation status before enrolling.</p>
                     </div>
                   </div>
+                  
+                  {/* Footer button for Certifications tab - Close only */}
+                  <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 pb-4">
+                    <DialogClose asChild>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto mx-auto">Close</Button>
+                    </DialogClose>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
-            
-            <DialogFooter className="px-4 sm:px-6 pt-0 flex flex-col sm:flex-row items-center justify-between gap-2 pb-10">
-              {/* Only show "Set as Career Goal" button on the Overview tab */}
-              {activeTab === 'overview' && (
-                <Button 
-                  className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4 w-full sm:w-auto"
-                  size="sm"
-                  disabled={isCreatingGoal}
-                  onClick={async () => {
-                    // Check if we have existing goals to avoid duplicates
-                    try {
-                      // Show loading state
-                      setIsCreatingGoal(true);
-                      
-                      // Get existing goals
-                      const goalsResponse = await apiRequest('GET', '/api/goals');
-                      const existingGoals = await goalsResponse.json();
-                      
-                      // Check if this goal already exists (by title)
-                      const goalTitle = `Become a ${selectedNode.title}`;
-                      const isDuplicate = existingGoals.some(
-                        (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
-                      );
-                      
-                      if (isDuplicate) {
-                        toast({
-                          title: "Goal Already Exists",
-                          description: "You already have this career goal in your tracker.",
-                          variant: "default"
-                        });
-                        setIsCreatingGoal(false);
-                        return;
-                      }
-                      
-                      // Create the goal
-                      const goalData = {
-                        title: goalTitle,
-                        description: `Career goal to become a ${selectedNode.title} in the ${activePath.name} industry. Salary range: ${selectedNode.salaryRange}.`,
-                        status: "not_started",
-                        checklist: [
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Research required skills for ${selectedNode.title} role`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Identify training or certification needs`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Update resume to target this role`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Network with professionals in this field`,
-                            completed: false
-                          }
-                        ]
-                      };
-                      
-                      // Save the goal
-                      const response = await apiRequest('POST', '/api/goals', goalData);
-                      
-                      if (response.ok) {
-                        // Close the dialog
-                        setDrawerOpen(false);
-                        
-                        toast({
-                          title: "Career Goal Created",
-                          description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
-                          action: (
-                            <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
-                              View Goal
-                            </Button>
-                          ),
-                        });
-                      } else {
-                        throw new Error("Failed to create goal");
-                      }
-                    } catch (error) {
-                      console.error("Error creating career goal:", error);
-                      toast({
-                        title: "Error Creating Goal",
-                        description: "There was a problem creating your career goal. Please try again.",
-                        variant: "destructive"
-                      });
-                    } finally {
-                      setIsCreatingGoal(false);
-                    }
-                  }}
-                >
-                  {isCreatingGoal ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Goal...
-                    </>
-                  ) : (
-                    <>Set as Career Goal</>
-                  )}
-                </Button>
-              )}
-
-              <DialogClose asChild>
-                <Button variant="outline" size="sm" className={`w-full sm:w-auto ${activeTab !== 'overview' ? 'mx-auto' : ''}`}>Close</Button>
-              </DialogClose>
-            </DialogFooter>
           </DialogContent>
         )}
       </Dialog>
