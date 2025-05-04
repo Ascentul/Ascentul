@@ -263,7 +263,7 @@ export default function UniversitiesPage() {
                         <div>
                           <h3 className="font-medium">{university.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {university.adminUsers?.length || 0} administrators
+                            {university.adminEmail ? "1 administrator" : "No administrators"}
                           </p>
                         </div>
                         <Button variant="outline" size="sm">
