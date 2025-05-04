@@ -1671,24 +1671,30 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         </Dialog>
       )}
       
-      {/* Edit Notes Dialog */}
-      <Dialog open={activeTab === "notes" && isEditing} onOpenChange={(open) => !open && setIsEditing(false)}>
+      {/* Add/Edit Note Dialog */}
+      <Dialog open={activeTab === "notes" && isEditing} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditing(false);
+          setEditingNote(null);
+          setNewNoteText("");
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Contact Notes</DialogTitle>
+            <DialogTitle>{editingNote ? 'Edit Note' : 'Add Note'}</DialogTitle>
             <DialogDescription>
-              Update notes for this contact.
+              {editingNote ? 'Update the existing note.' : 'Add a new note for this contact.'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Notes</label>
+              <label className="text-sm font-medium">Note</label>
               <Textarea 
-                placeholder="Enter notes about this contact" 
+                placeholder="Enter your note here..." 
                 className="min-h-[200px]"
-                value={notesText}
-                onChange={(e) => setNotesText(e.target.value)}
+                value={newNoteText}
+                onChange={(e) => setNewNoteText(e.target.value)}
               />
             </div>
             
@@ -1696,23 +1702,57 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
               <Button 
                 type="button" 
                 variant="outline"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditingNote(null);
+                  setNewNoteText("");
+                }}
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={() => updateContactNotesMutation.mutate(notesText)}
-                disabled={updateContactNotesMutation.isPending}
-              >
-                {updateContactNotesMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Notes'
-                )}
-              </Button>
+              
+              {editingNote ? (
+                <Button 
+                  onClick={() => {
+                    updateNoteMutation.mutate({
+                      noteId: editingNote.id,
+                      text: newNoteText
+                    });
+                  }}
+                  disabled={updateNoteMutation.isPending || !newNoteText.trim()}
+                >
+                  {updateNoteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Update Note
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => {
+                    addNoteMutation.mutate(newNoteText);
+                  }}
+                  disabled={addNoteMutation.isPending || !newNoteText.trim()}
+                >
+                  {addNoteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Note
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
