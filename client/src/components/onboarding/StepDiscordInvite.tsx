@@ -9,9 +9,9 @@ interface StepDiscordInviteProps {
 
 const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip }) => {
   const handleJoinDiscord = () => {
-    // First open Discord
+    // First open Discord in new tab
     window.open("https://discord.gg/xJSSYxWt", "_blank");
-    // Then continue to next step
+    // Then immediately continue to next step (plan selection)
     onNext();
   };
 
