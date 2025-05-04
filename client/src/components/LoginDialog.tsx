@@ -103,23 +103,38 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       // This will be updated during the onboarding flow
       const tempUsername = `user_${Date.now().toString().slice(-6)}`;
       
-      // Make a direct API call for registration
+      // Make a direct API call for registration - ensure we're using the correct endpoint
       const response = await fetch('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: tempUsername, // Use temporary username
+          username: signupUsername || tempUsername, // Use provided username or fallback to temporary
           password: signupPassword,
           email: signupEmail,
           name: signupName,
           userType: 'regular', // Default to regular account type
-          needsUsername: true, // Flag to indicate username needs to be set during onboarding
+          needsUsername: !signupUsername, // Only flag if we're using a temporary username
         }),
       });
       
-      const data = await response.json();
+      // Handle the response carefully to avoid XML parsing errors
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          // Handle non-JSON responses
+          const text = await response.text();
+          data = { message: text || "Registration failed with a non-JSON response" };
+        }
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        // If JSON parsing fails, create a fallback data object
+        data = { message: "Failed to parse server response" };
+      }
       
       if (!response.ok) {
         throw new Error(data.message || 'Registration failed');
