@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -329,6 +329,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   };
   
   const handleSelectJob = (job: AdzunaJob) => {
+    // Reset expanded description when selecting a new job
+    setExpandedDescription(false);
+    
     // Store the full job object
     setSelectedJob(job);
     
@@ -609,18 +612,27 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-2">Job Description</h3>
                     <div>
-                      <div className={expandedDescription || selectedJob.description.length <= 500 
-                        ? "text-gray-700 whitespace-pre-line" 
-                        : "text-gray-700 whitespace-pre-line max-h-[300px] overflow-hidden relative"
-                      }>
+                      {/* Use a ref for the job description container */}
+                      <div 
+                        className={`text-gray-700 whitespace-pre-line ${
+                          !expandedDescription && selectedJob.description.length > 500 
+                            ? "max-h-[300px] overflow-hidden relative" 
+                            : ""
+                        }`}
+                      >
                         {selectedJob.description}
                         {!expandedDescription && selectedJob.description.length > 500 && (
                           <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
                         )}
                       </div>
+                      
+                      {/* Only show toggle button for longer descriptions */}
                       {selectedJob.description.length > 500 && (
                         <button 
-                          onClick={() => setExpandedDescription(!expandedDescription)}
+                          onClick={() => {
+                            console.log('Toggle description', !expandedDescription);
+                            setExpandedDescription(prevState => !prevState);
+                          }}
                           className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
                         >
                           {expandedDescription ? (
