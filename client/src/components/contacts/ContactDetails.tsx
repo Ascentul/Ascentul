@@ -541,6 +541,8 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     onSuccess: (newNote) => {
       // Reset the text input
       setNewNoteText("");
+      // Close the dialog
+      setShowNoteDialog(false);
       // Update state with the new note
       setContactNotes(prevNotes => [newNote, ...prevNotes]);
       toast({
@@ -571,6 +573,8 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         );
         // Reset editing state
         setEditingNote(null);
+        // Close the dialog
+        setShowNoteDialog(false);
         toast({
           title: 'Note updated',
           description: 'Contact note has been updated successfully.',
