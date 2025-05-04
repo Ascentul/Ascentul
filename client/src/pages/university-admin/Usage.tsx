@@ -280,63 +280,131 @@ export default function Usage() {
     return [headerRow, ...dataRows].join('\n');
   };
   
+  // Generate export content based on data selections
+  const generateExportContent = (
+    includeSections: { 
+      overview?: boolean;
+      features?: boolean;
+      programs?: boolean;
+    } = { overview: true, features: true, programs: true }
+  ) => {
+    // Define headers for different datasets
+    const monthlyHeaders = {
+      name: 'Month',
+      logins: 'Total Logins',
+      activities: 'Activities',
+      resumes: 'Resumes Created',
+      interviews: 'Interviews Conducted'
+    };
+    
+    const programHeaders = {
+      name: 'Program Name',
+      value: 'Usage Count'
+    };
+    
+    const featureHeaders = {
+      name: 'Feature Name',
+      value: 'Usage Count'
+    };
+    
+    const usageBreakdownHeaders = {
+      feature: 'Feature',
+      usage: 'Usage Count',
+      change: 'Change',
+      status: 'Status'
+    };
+    
+    // Get date for generating metadata
+    const now = new Date();
+    
+    // Combine all data into sections
+    let csvContent = '# Ascentul University Usage Data Export\n';
+    csvContent += `# Generated: ${now.toLocaleString()}\n\n`;
+    
+    // Add sections based on selections
+    if (includeSections.overview) {
+      csvContent += '## Monthly Usage Data\n';
+      csvContent += convertToCSV(monthlyUsageData, monthlyHeaders);
+      csvContent += '\n\n';
+    }
+    
+    if (includeSections.programs) {
+      csvContent += '## Program Usage Data\n';
+      csvContent += convertToCSV(programUsageData, programHeaders);
+      csvContent += '\n\n';
+    }
+    
+    if (includeSections.features) {
+      csvContent += '## Feature Usage Data\n';
+      csvContent += convertToCSV(featureUsageData, featureHeaders);
+      csvContent += '\n\n';
+      
+      csvContent += '## Usage Breakdown\n';
+      csvContent += convertToCSV(usageBreakdown, usageBreakdownHeaders);
+    }
+    
+    return csvContent;
+  };
+  
+  // Download a specific report
+  const downloadReport = (report: SavedReport) => {
+    try {
+      // Determine sections to include based on saved report type
+      const includeSections = {
+        overview: true,
+        features: report.frequency === 'monthly' || report.frequency === 'quarterly',
+        programs: report.frequency === 'quarterly' || report.frequency === 'yearly'
+      };
+      
+      // Generate content
+      const csvContent = generateExportContent(includeSections);
+      
+      // Create file name based on report
+      const dateStr = report.date.replace(/,/g, '').replace(/ /g, '-');
+      const fileName = `${report.name.replace(/ /g, '_')}_${dateStr}.csv`;
+      
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      // Show success toast
+      toast({
+        title: "Report Downloaded",
+        description: `${report.name} has been downloaded successfully.`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      toast({
+        title: "Download Failed",
+        description: "An error occurred while downloading the report.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Handler for exporting data
   const handleExportData = () => {
     setIsExporting(true);
     
     try {
-      // Define headers for different datasets
-      const monthlyHeaders = {
-        name: 'Month',
-        logins: 'Total Logins',
-        activities: 'Activities',
-        resumes: 'Resumes Created',
-        interviews: 'Interviews Conducted'
-      };
-      
-      const programHeaders = {
-        name: 'Program Name',
-        value: 'Usage Count'
-      };
-      
-      const featureHeaders = {
-        name: 'Feature Name',
-        value: 'Usage Count'
-      };
-      
-      const usageBreakdownHeaders = {
-        feature: 'Feature',
-        usage: 'Usage Count',
-        change: 'Change',
-        status: 'Status'
-      };
-      
       // Get date for filename
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
       
-      // Combine all data into sections
-      let csvContent = '# Ascentul University Usage Data Export\n';
-      csvContent += `# Generated: ${now.toLocaleString()}\n\n`;
-      
-      // Add monthly data
-      csvContent += '## Monthly Usage Data\n';
-      csvContent += convertToCSV(monthlyUsageData, monthlyHeaders);
-      csvContent += '\n\n';
-      
-      // Add program usage data
-      csvContent += '## Program Usage Data\n';
-      csvContent += convertToCSV(programUsageData, programHeaders);
-      csvContent += '\n\n';
-      
-      // Add feature usage data
-      csvContent += '## Feature Usage Data\n';
-      csvContent += convertToCSV(featureUsageData, featureHeaders);
-      csvContent += '\n\n';
-      
-      // Add usage breakdown
-      csvContent += '## Usage Breakdown\n';
-      csvContent += convertToCSV(usageBreakdown, usageBreakdownHeaders);
+      // Generate full report with all sections
+      const csvContent = generateExportContent();
       
       // Create and trigger download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -826,7 +894,12 @@ export default function Usage() {
                       <Badge variant="outline">{report.type}</Badge>
                     </td>
                     <td className="text-right p-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => downloadReport(report)}
+                        title={`Download ${report.name}`}
+                      >
                         <Download className="h-4 w-4" />
                       </Button>
                     </td>
