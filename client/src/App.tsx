@@ -116,14 +116,24 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
             </Link>
             <nav className="flex items-center space-x-6 text-sm font-medium">
               {isAdmin && (
-                <Link
-                  href="/university/admin"
-                  className={`transition-colors hover:text-foreground/80 ${
-                    location === "/university/admin" ? "text-foreground" : "text-foreground/60"
-                  }`}
-                >
-                  Admin Dashboard
-                </Link>
+                <>
+                  <Link
+                    href="/university/admin"
+                    className={`transition-colors hover:text-foreground/80 ${
+                      location === "/university/admin" ? "text-foreground" : "text-foreground/60"
+                    }`}
+                  >
+                    Admin Dashboard
+                  </Link>
+                  <Link
+                    href="/university-admin"
+                    className={`transition-colors hover:text-foreground/80 ${
+                      location.startsWith("/university-admin") ? "text-foreground" : "text-foreground/60"
+                    }`}
+                  >
+                    Admin Portal
+                  </Link>
+                </>
               )}
               <Link
                 href="/university/study-plan"
@@ -366,6 +376,52 @@ function App() {
   }
 
   const isAdminRoute = (location.startsWith("/admin") && location !== "/admin-login") || location === "/admin-dashboard";
+  
+  // University Admin routes check
+  const isUniversityAdminRoute = location.startsWith("/university-admin");
+
+  // University Admin Dashboard has its own layout
+  if (isUniversityAdminRoute) {
+    return (
+      <Switch>
+        <Route path="/university-admin">
+          <UniversityAdminRoute>
+            <UniversityAdminLayout>
+              <UniAdminDashboard />
+            </UniversityAdminLayout>
+          </UniversityAdminRoute>
+        </Route>
+        <Route path="/university-admin/students">
+          <UniversityAdminRoute>
+            <UniversityAdminLayout>
+              <UniAdminStudents />
+            </UniversityAdminLayout>
+          </UniversityAdminRoute>
+        </Route>
+        <Route path="/university-admin/invite">
+          <UniversityAdminRoute>
+            <UniversityAdminLayout>
+              <UniAdminInvite />
+            </UniversityAdminLayout>
+          </UniversityAdminRoute>
+        </Route>
+        <Route path="/university-admin/usage">
+          <UniversityAdminRoute>
+            <UniversityAdminLayout>
+              <UniAdminUsage />
+            </UniversityAdminLayout>
+          </UniversityAdminRoute>
+        </Route>
+        <Route path="/university-admin/settings">
+          <UniversityAdminRoute>
+            <UniversityAdminLayout>
+              <UniAdminSettings />
+            </UniversityAdminLayout>
+          </UniversityAdminRoute>
+        </Route>
+      </Switch>
+    );
+  }
 
   // Admin Dashboard has its own layout
   if (isAdminRoute) {

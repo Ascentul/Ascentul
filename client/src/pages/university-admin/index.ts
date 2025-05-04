@@ -1,7 +1,5 @@
-import Dashboard from './Dashboard';
-import Students from './Students';
-import Invite from './Invite';
-import Usage from './Usage';
-import Settings from './Settings';
-
-export { Dashboard, Students, Invite, Usage, Settings };
+export { default as Dashboard } from './Dashboard';
+export { default as Students } from './Students';
+export { default as Invite } from './Invite';
+export { default as Usage } from './Usage';
+export { default as Settings } from './Settings';
