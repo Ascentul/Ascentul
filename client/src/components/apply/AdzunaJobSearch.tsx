@@ -29,6 +29,18 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [searchResults, setSearchResults] = useState<AdzunaJob[]>([]);
   const [directIsLoading, setDirectIsLoading] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [showApplicationWizard, setShowApplicationWizard] = useState(false);
+  const [applicationJob, setApplicationJob] = useState<{
+    id?: string;
+    title: string;
+    company: string;
+    description: string;
+    location?: string;
+    url?: string;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState('search');
 
   // Reset search results when search params change
   useEffect(() => {
@@ -66,7 +78,47 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       localStorage.setItem('adzuna_search_history', JSON.stringify(searchHistory));
     }
   }, [searchHistory]);
-  
+
+  // Fetch jobs from Adzuna API
+  const { isLoading: queryIsLoading, data, error } = useQuery({
+    queryKey: ['jobs', searchParams, shouldFetch],
+    queryFn: async () => {
+      if (!shouldFetch) {
+        console.log('Search is not enabled yet');
+        return null;
+      }
+      
+      const params = new URLSearchParams();
+      params.append('keywords', searchParams.keywords);
+      if (searchParams.location) {
+        params.append('location', searchParams.location);
+      }
+      params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
+      
+      console.log('Fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      
+      try {
+        const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API error:', errorText);
+          throw new Error(`Failed to fetch jobs: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Received data:', data);
+        return data;
+      } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+      }
+    },
+    enabled: shouldFetch,
+    refetchOnWindowFocus: false
+  });
+
   // Effect to process query results
   useEffect(() => {
     if (data?.results && Array.isArray(data.results)) {
@@ -168,59 +220,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     setShouldFetch(true);
     console.log('shouldFetch should now be true');
   }, [searchParams]);
-
-  // State to store selected job
-  const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
-  const [showAssistant, setShowAssistant] = useState(false);
-  const [showApplicationWizard, setShowApplicationWizard] = useState(false);
-  const [applicationJob, setApplicationJob] = useState<{
-    id?: string;
-    title: string;
-    company: string;
-    description: string;
-    location?: string;
-    url?: string;
-  } | null>(null);
-
-  // Fetch jobs from Adzuna API
-  const { isLoading: queryIsLoading, data, error } = useQuery({
-    queryKey: ['jobs', searchParams, shouldFetch],
-    queryFn: async () => {
-      if (!shouldFetch) {
-        console.log('Search is not enabled yet');
-        return null;
-      }
-      
-      const params = new URLSearchParams();
-      params.append('keywords', searchParams.keywords);
-      if (searchParams.location) {
-        params.append('location', searchParams.location);
-      }
-      params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
-      
-      console.log('Fetching from:', `/api/adzuna/jobs?${params.toString()}`);
-      
-      try {
-        const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API error:', errorText);
-          throw new Error(`Failed to fetch jobs: ${errorText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Received data:', data);
-        return data;
-      } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-      }
-    },
-    enabled: shouldFetch,
-    refetchOnWindowFocus: false
-  });
 
   // Combined loading state
   const isLoading = queryIsLoading || directIsLoading;
@@ -327,9 +326,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     }
     return 'Salary not specified';
   };
-
-  // State for active tab
-  const [activeTab, setActiveTab] = useState('search');
   
   // Automatically switch to results tab when search results are received
   useEffect(() => {
@@ -453,12 +449,13 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                         </span>
                       )}
                       
-                      {job.contract_time && (
+                      {/* Note: contract_time might not be available in all jobs */}
+                      {job['contract_time'] && (
                         <span className="text-xs flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {job.contract_time === 'full_time' ? 'Full-time' : 
-                           job.contract_time === 'part_time' ? 'Part-time' : 
-                           job.contract_time}
+                          {job['contract_time'] === 'full_time' ? 'Full-time' : 
+                           job['contract_time'] === 'part_time' ? 'Part-time' : 
+                           job['contract_time']}
                         </span>
                       )}
                     </div>
