@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Avatar, 
@@ -25,8 +25,32 @@ import {
   Activity, 
   Calendar, 
   Mail, 
-  MessageSquare 
+  MessageSquare,
+  Loader2,
+  Check
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for the dashboard
 interface UniversityStats {
@@ -65,8 +89,62 @@ const featureUsageData = [
 
 const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
 
+// Define validation schema for email form
+const emailFormSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  message: z.string().min(1, "Message is required"),
+});
+
+type EmailFormValues = z.infer<typeof emailFormSchema>;
+
 export default function Dashboard() {
   const { user } = useUser();
+  const { toast } = useToast();
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  
+  // Initialize form with react-hook-form
+  const form = useForm<EmailFormValues>({
+    resolver: zodResolver(emailFormSchema),
+    defaultValues: {
+      subject: "",
+      message: "",
+    },
+  });
+  
+  // Handle email form submission
+  const handleSendEmail = async (data: EmailFormValues) => {
+    setIsSending(true);
+    
+    try {
+      // In a real application, this would make an API call
+      // await apiRequest('POST', '/api/email/send-mass', {
+      //   subject: data.subject,
+      //   message: data.message,
+      //   recipients: 'all'
+      // });
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast({
+        title: "Email Sent Successfully",
+        description: `Email sent to all students with subject "${data.subject}"`,
+        variant: "default",
+      });
+      
+      form.reset();
+      setEmailDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Failed to Send Email",
+        description: "There was an error sending the email. Please try again.",
+        variant: "destructive",
+      });
+    }
+    
+    setIsSending(false);
+  };
 
   // Mock stats for the university
   const mockStats: UniversityStats = {
@@ -355,7 +433,11 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2">
+        <Button 
+          className="h-auto py-4 flex flex-col items-center justify-center gap-2" 
+          variant="outline"
+          onClick={() => setEmailDialogOpen(true)}
+        >
           <Mail className="h-6 w-6" />
           <span>Email All Students</span>
         </Button>
@@ -368,6 +450,77 @@ export default function Dashboard() {
           <span>Support Chat</span>
         </Button>
       </div>
+      
+      {/* Email Dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Email All Students</DialogTitle>
+            <DialogDescription>
+              Send an email to all students enrolled in your university.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSendEmail)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter email subject" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Message</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Type your message here..."
+                        className="min-h-[150px] resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => setEmailDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSending}>
+                  {isSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Email
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
