@@ -91,6 +91,112 @@ const usageBreakdown = [
 export default function Usage() {
   const [dateRange, setDateRange] = useState('last30Days');
   const [programFilter, setProgramFilter] = useState('all');
+  const [isExporting, setIsExporting] = useState(false);
+  
+  // Function to convert data to CSV format
+  const convertToCSV = (data: any[], headerMap: Record<string, string>) => {
+    // Get all unique keys from all objects in data
+    const allKeys = Array.from(
+      new Set(
+        data.flatMap(item => Object.keys(item))
+      )
+    ).filter(key => headerMap[key]); // Only include keys that have headers defined
+    
+    // Create header row
+    const headerRow = allKeys.map(key => headerMap[key]).join(',');
+    
+    // Create data rows
+    const dataRows = data.map(item => {
+      return allKeys.map(key => {
+        // Handle commas and quotes in the data
+        const value = item[key] !== undefined ? item[key] : '';
+        const stringValue = String(value);
+        return stringValue.includes(',') ? `"${stringValue}"` : stringValue;
+      }).join(',');
+    });
+    
+    // Combine header and data rows
+    return [headerRow, ...dataRows].join('\n');
+  };
+  
+  // Handler for exporting data
+  const handleExportData = () => {
+    setIsExporting(true);
+    
+    try {
+      // Define headers for different datasets
+      const monthlyHeaders = {
+        name: 'Month',
+        logins: 'Total Logins',
+        activities: 'Activities',
+        resumes: 'Resumes Created',
+        interviews: 'Interviews Conducted'
+      };
+      
+      const programHeaders = {
+        name: 'Program Name',
+        value: 'Usage Count'
+      };
+      
+      const featureHeaders = {
+        name: 'Feature Name',
+        value: 'Usage Count'
+      };
+      
+      const usageBreakdownHeaders = {
+        feature: 'Feature',
+        usage: 'Usage Count',
+        change: 'Change',
+        status: 'Status'
+      };
+      
+      // Get date for filename
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Combine all data into sections
+      let csvContent = '# Ascentul University Usage Data Export\n';
+      csvContent += `# Generated: ${now.toLocaleString()}\n\n`;
+      
+      // Add monthly data
+      csvContent += '## Monthly Usage Data\n';
+      csvContent += convertToCSV(monthlyUsageData, monthlyHeaders);
+      csvContent += '\n\n';
+      
+      // Add program usage data
+      csvContent += '## Program Usage Data\n';
+      csvContent += convertToCSV(programUsageData, programHeaders);
+      csvContent += '\n\n';
+      
+      // Add feature usage data
+      csvContent += '## Feature Usage Data\n';
+      csvContent += convertToCSV(featureUsageData, featureHeaders);
+      csvContent += '\n\n';
+      
+      // Add usage breakdown
+      csvContent += '## Usage Breakdown\n';
+      csvContent += convertToCSV(usageBreakdown, usageBreakdownHeaders);
+      
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `university_usage_report_${dateStr}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setIsExporting(false);
+      }, 100);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      setIsExporting(false);
+    }
+  };
   
   // Fetch academic programs from API
   const { 
@@ -170,9 +276,22 @@ export default function Usage() {
             <Calendar className="mr-2 h-4 w-4" />
             Schedule Report
           </Button>
-          <Button variant="outline">
-            <FileText className="mr-2 h-4 w-4" />
-            Export Data
+          <Button 
+            variant="outline" 
+            onClick={handleExportData}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Export Data
+              </>
+            )}
           </Button>
         </div>
       </div>
