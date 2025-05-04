@@ -622,16 +622,16 @@ function SidebarItem({
   onClick: () => void;
 }) {
   return (
-    <button
-      className={`flex items-center w-full py-2 px-3 rounded-md text-sm ${
+    <div
+      className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
         active
-          ? "bg-accent text-accent-foreground font-medium"
+          ? "bg-[#1333c2] text-white font-medium"
           : "text-foreground/70 hover:bg-muted/80"
       }`}
       onClick={onClick}
     >
       <span className="mr-3">{icon}</span>
       <span>{label}</span>
-    </button>
+    </div>
   );
 }
