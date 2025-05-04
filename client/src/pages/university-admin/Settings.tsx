@@ -339,6 +339,10 @@ export default function Settings() {
             <BellRing className="mr-2 h-4 w-4" />
             Notifications
           </TabsTrigger>
+          <TabsTrigger value="programs" className="flex items-center">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Programs
+          </TabsTrigger>
         </TabsList>
 
         {/* University Profile Tab */}
