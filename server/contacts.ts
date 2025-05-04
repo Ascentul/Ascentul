@@ -33,7 +33,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Get contacts that need follow-up
-  app.get("/api/contacts/need-followup", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts/need-followup", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       
@@ -50,7 +50,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
   
   // Get all active follow-ups for all contacts
-  app.get("/api/contacts/all-followups", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts/all-followups", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       
@@ -116,7 +116,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Get a specific contact by ID
-  app.get("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts/:id", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -176,7 +176,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Update an existing contact
-  app.put("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/contacts/:id", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -211,7 +211,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Delete a contact
-  app.delete("/api/contacts/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/contacts/:id", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -246,7 +246,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Log an interaction with a contact
-  app.post("/api/contacts/:id/log-interaction", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/contacts/:id/log-interaction", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -290,7 +290,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
   
   // Get interactions for a specific contact
-  app.get("/api/contacts/:id/interactions", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts/:id/interactions", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -325,7 +325,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
   
   // Schedule a follow-up for a contact
-  app.post("/api/contacts/:id/schedule-followup", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/contacts/:id/schedule-followup", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -400,7 +400,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
   
   // Get all follow-ups for a specific contact
-  app.get("/api/contacts/:id/followups", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts/:id/followups", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
@@ -435,7 +435,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
   
   // Mark a follow-up as completed
-  app.put("/api/contacts/followups/:followupId/complete", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/contacts/followups/:followupId/complete", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const followupId = parseInt(req.params.followupId);
