@@ -1,14 +1,14 @@
 import { Router, Request, Response } from "express";
 import { IStorage } from "./storage";
 import { insertNetworkingContactSchema, insertFollowupActionSchema } from "@shared/schema";
-import { requireAuth } from "./auth";
+import { requireAuth, requireLoginFallback } from "./auth";
 import { z } from "zod";
 
 export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   console.log("Registered contacts routes at /api/contacts");
 
   // Get all contacts for the current user
-  app.get("/api/contacts", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/contacts", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       
@@ -148,7 +148,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Create a new contact
-  app.post("/api/contacts", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/contacts", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       
