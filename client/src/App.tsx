@@ -93,29 +93,6 @@ import {
 } from "@/pages/university-admin";
 
 // University Edition Layout
-// Redirect components for path changes
-function InterviewsRedirect() {
-  const [, navigate] = useLocation();
-  const queryParams = window.location.search;
-  
-  useEffect(() => {
-    navigate(`/interviews${queryParams}`);
-  }, [navigate, queryParams]);
-  
-  return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
-}
-
-function ContactsRedirect() {
-  const [, navigate] = useLocation();
-  const queryParams = window.location.search;
-  
-  useEffect(() => {
-    navigate(`/network-hub${queryParams}`);
-  }, [navigate, queryParams]);
-  
-  return <div className="p-8 text-center">Redirecting to Network Hub...</div>;
-}
-
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user } = useUser();
@@ -542,18 +519,6 @@ function App() {
             <Interview />
           </CareerRoute>
         </Route>
-        
-        {/* Redirect old paths to new paths */}
-        <Route path="/application_tracker">
-          <CareerRoute>
-            <InterviewsRedirect />
-          </CareerRoute>
-        </Route>
-        <Route path="/contacts">
-          <CareerRoute>
-            <ContactsRedirect />
-          </CareerRoute>
-        </Route>
         <Route path="/work-history">
           <CareerRoute>
             <WorkHistory />
@@ -595,7 +560,7 @@ function App() {
             <CareerProfile />
           </CareerRoute>
         </Route>
-        <Route path="/network-hub">
+        <Route path="/contacts">
           <CareerRoute>
             <Contacts />
           </CareerRoute>

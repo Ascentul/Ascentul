@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useUser, useIsUniversityUser } from '@/lib/useUserData';
 import { usePendingTasks } from '@/context/PendingTasksContext';
-import { useCareerData } from '@/hooks/use-career-data';
 import StatCard from '@/components/StatCard';
 import CareerJourneyChart from '@/components/CareerJourneyChart';
 import LevelProgress from '@/components/LevelProgress';
@@ -125,31 +124,10 @@ const DEFAULT_STATS: Stats = {
   ]
 };
 
-// Calculate profile completion percentage based on career data
-const calculateProfileCompletion = (careerData: any): number => {
-  if (!careerData) return 0;
-  
-  // Check each section of profile data
-  const sections = [
-    !!careerData.careerSummary,
-    (careerData.workHistory?.length || 0) > 0,
-    (careerData.educationHistory?.length || 0) > 0,
-    (careerData.skills?.length || 0) > 0,
-    (careerData.certifications?.length || 0) > 0
-  ];
-  
-  // Calculate percentage based on completed sections
-  const completedSections = sections.filter(Boolean).length;
-  return Math.round((completedSections / sections.length) * 100);
-};
-
 export default function Dashboard() {
   const { user } = useUser();
   const { toast } = useToast();
   const isUnivUser = useIsUniversityUser();
-  
-  // Fetch career data to calculate profile completion
-  const { careerData } = useCareerData();
   
   // Modal states
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
@@ -620,48 +598,7 @@ export default function Dashboard() {
       </motion.div>
       
       {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
-      {user && (() => {
-        // Query applications from API for the checklist auto-completion
-        const { data: apiApplications } = useQuery<any[]>({
-          queryKey: ['/api/job-applications-for-checklist'],
-          queryFn: async () => {
-            try {
-              const response = await apiRequest('GET', '/api/job-applications');
-              if (!response.ok) throw new Error(`API error: ${response.status}`);
-              return await response.json();
-            } catch (error) {
-              console.error('Error fetching applications for checklist:', error);
-              return [];
-            }
-          },
-          staleTime: 1000 * 60 * 5, // 5 minutes
-        });
-        
-        // Check for applications from localStorage
-        let hasLocalApplications = false;
-        try {
-          const mockApps = localStorage.getItem('mockJobApplications');
-          if (mockApps) {
-            const apps = JSON.parse(mockApps);
-            hasLocalApplications = Array.isArray(apps) && apps.length > 0;
-          }
-        } catch (e) {
-          console.error('Error checking for applications in localStorage:', e);
-        }
-        
-        // Determine if user has any applications
-        const hasApiApplications = Array.isArray(apiApplications) && apiApplications.length > 0;
-        const hasAnyApplications = hasLocalApplications || hasApiApplications;
-        
-        return (
-          <GetStartedChecklist 
-            userId={user.id} 
-            profileCompletion={calculateProfileCompletion(careerData)}
-            hasGoals={Array.isArray(goals) && goals.length > 0}
-            hasApplications={hasAnyApplications}
-          />
-        );
-      })()}
+      {user && <GetStartedChecklist userId={user.id} />}
       
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 
