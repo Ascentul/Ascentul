@@ -187,6 +187,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const [contactNotes, setContactNotes] = useState<ContactNote[]>([]);
   const [editingNote, setEditingNote] = useState<ContactNote | null>(null);
   const [newNoteText, setNewNoteText] = useState("");
+  const [showNoteDialog, setShowNoteDialog] = useState(false);
   
   // Load notes from localStorage when contact changes
   useEffect(() => {
