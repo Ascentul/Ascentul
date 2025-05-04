@@ -16,6 +16,7 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Invite, University } from "@shared/schema";
 import AdminLayout from "../../layouts/AdminLayout";
+import { useIsSystemAdmin } from "@/lib/useUserData";
 
 const inviteFormSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -28,6 +29,13 @@ type InviteFormValues = z.infer<typeof inviteFormSchema>;
 export default function UniversitiesPage() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const isSystemAdmin = useIsSystemAdmin();
+  
+  // Log for debugging
+  useEffect(() => {
+    console.log("UniversitiesPage loaded successfully");
+    console.log("Is system admin:", isSystemAdmin);
+  }, [isSystemAdmin]);
 
   // Query to get all invites with error handling for missing invites table
   const {

@@ -99,6 +99,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200"
                       : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   )}
+                  onClick={(e) => {
+                    // Special handling for Universities page
+                    if (item.href === "/admin/universities") {
+                      e.preventDefault();
+                      console.log("Navigation to Universities page requested");
+                      // Use direct window navigation for Universities page
+                      window.location.href = item.href;
+                    }
+                  }}
                 >
                   {item.icon}
                   {item.title}
