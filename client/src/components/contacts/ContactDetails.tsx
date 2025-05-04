@@ -109,6 +109,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const [showInteractionForm, setShowInteractionForm] = useState(false);
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
+  const [editingInteraction, setEditingInteraction] = useState<ContactInteraction | null>(null);
   
   // Fetch contact data
   const {
@@ -322,6 +323,57 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       toast({
         title: 'Error',
         description: 'Failed to delete follow-up. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Update interaction mutation
+  const updateInteractionMutation = useMutation({
+    mutationFn: async ({ interactionId, data }: { interactionId: number; data: Partial<ContactInteraction> }) => {
+      return apiRequest({
+        url: `/api/contacts/interactions/${interactionId}`,
+        method: 'PUT',
+        body: data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/interactions`] });
+      toast({
+        title: 'Interaction updated',
+        description: 'Interaction has been updated successfully.',
+      });
+      // Reset editing state
+      setEditingInteraction(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update interaction. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Delete interaction mutation
+  const deleteInteractionMutation = useMutation({
+    mutationFn: async (interactionId: number) => {
+      return apiRequest({
+        url: `/api/contacts/interactions/${interactionId}`,
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/interactions`] });
+      toast({
+        title: 'Interaction deleted',
+        description: 'Interaction has been removed successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete interaction. Please try again.',
         variant: 'destructive',
       });
     },
@@ -778,9 +830,35 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                           {interaction.interactionType === 'Other' && <MessageSquare className="h-4 w-4 text-gray-500" />}
                           <CardTitle className="text-base">{interaction.interactionType}</CardTitle>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(interaction.date), 'MMM d, yyyy').replace(/-/g, ' ')}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(interaction.date), 'MMM d, yyyy').replace(/-/g, ' ')}
+                          </p>
+                          <div className="flex gap-1 ml-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingInteraction(interaction)}
+                              title="Edit interaction"
+                            >
+                              <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this interaction?')) {
+                                  deleteInteractionMutation.mutate(interaction.id);
+                                }
+                              }}
+                              title="Delete interaction"
+                            >
+                              <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
