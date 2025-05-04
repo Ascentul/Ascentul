@@ -430,26 +430,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Button 
-          className="h-auto py-4 flex flex-col items-center justify-center gap-2" 
-          variant="outline"
-          onClick={() => setEmailDialogOpen(true)}
-        >
-          <Mail className="h-6 w-6" />
-          <span>Email All Students</span>
-        </Button>
-        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2" variant="outline">
-          <FileText className="h-6 w-6" />
-          <span>Download Reports</span>
-        </Button>
-        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2" variant="outline">
-          <MessageSquare className="h-6 w-6" />
-          <span>Support Chat</span>
-        </Button>
-      </div>
       
       {/* Email Dialog */}
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
