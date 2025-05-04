@@ -341,10 +341,9 @@ export default function OnboardingFlow() {
       const success = await saveOnboardingData();
       
       if (success) {
-        // Use window.location.href for navigation to ensure full page refresh
-        // This ensures the authentication state is properly carried over
-        window.location.href = '/plan-selection';
-        console.log('Navigating to /plan-selection');
+        // We don't need to navigate anywhere here since step 5 is already
+        // the plan selection step which is displayed in the component
+        console.log('Successfully saved onboarding data');
       } else {
         // Show error toast if saving failed
         toast({
@@ -838,6 +837,94 @@ export default function OnboardingFlow() {
                 onNext={handleNext} 
                 onSkip={handleNext} 
               />
+            </CardContent>
+          </div>
+        );
+        
+      case 5:
+        // Plan selection step
+        return (
+          <div className="space-y-6">
+            <CardHeader>
+              <CardTitle className="text-2xl">Choose your plan</CardTitle>
+              <CardDescription>
+                Select the plan that best fits your needs and goals.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="border-2 hover:border-primary">
+                  <CardHeader>
+                    <CardTitle>Free Plan</CardTitle>
+                    <CardDescription>Basic features for personal use</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold mb-4">$0<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                    <ul className="space-y-2">
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Basic career tracking</span>
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Limited AI suggestions</span>
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Job application tracker</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={handleNext} 
+                      variant="outline" 
+                      className="w-full"
+                    >
+                      Get Started
+                    </Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card className="border-2 border-primary bg-primary/5">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Pro Plan</CardTitle>
+                      <span className="bg-primary text-white text-xs px-2 py-1 rounded-full">RECOMMENDED</span>
+                    </div>
+                    <CardDescription>Advanced features for career growth</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold mb-4">$9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                    <ul className="space-y-2">
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Everything in Free plan</span>
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Unlimited AI career suggestions</span>
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Advanced network management</span>
+                      </li>
+                      <li className="flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <span>Priority support</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={handleNext} 
+                      className="w-full bg-[#1333c2] hover:bg-[#0f2aae]"
+                    >
+                      Start Pro Plan
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
             </CardContent>
           </div>
         );
