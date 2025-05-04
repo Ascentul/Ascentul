@@ -37,10 +37,20 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FollowupAction {
   id: number;
@@ -81,6 +91,8 @@ export function EditFollowupForm({
   onSuccess 
 }: EditFollowupFormProps) {
   const [isPending, setIsPending] = useState(false);
+  const [isDeletePending, setIsDeletePending] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -112,6 +124,76 @@ export function EditFollowupForm({
       }
     }
   });
+  
+  // Mutation to delete the followup
+  const deleteFollowupMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        const response = await apiRequest(
+          'DELETE',
+          `/api/applications/${applicationId}/followups/${followup.id}`
+        );
+        return response.ok;
+      } catch (error) {
+        console.error("Error deleting followup via API:", error);
+        throw error;
+      }
+    }
+  });
+  
+  // Function to handle follow-up deletion
+  const handleDelete = () => {
+    setIsDeletePending(true);
+    
+    // First delete from localStorage for immediate UI update
+    try {
+      // Get current followups from localStorage
+      const mockFollowups = JSON.parse(localStorage.getItem(`mockFollowups_${applicationId}`) || '[]');
+      
+      // Filter out the followup to delete
+      const updatedFollowups = mockFollowups.filter((f: any) => f.id !== followup.id);
+      
+      // Save back to localStorage
+      localStorage.setItem(`mockFollowups_${applicationId}`, JSON.stringify(updatedFollowups));
+      
+      // Force UI update
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/${applicationId}/followups`] });
+    } catch (localStorageError) {
+      console.error("Error updating localStorage:", localStorageError);
+    }
+    
+    // Also try to delete on the server
+    deleteFollowupMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast({
+          title: "Follow-up deleted",
+          description: "The follow-up action has been removed successfully.",
+        });
+        
+        // Call the onSuccess callback
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      },
+      onError: (error) => {
+        console.error("Error deleting followup via API:", error);
+        
+        // Even if the API delete fails, the localStorage delete should have worked,
+        // so we can still call the success callback
+        toast({
+          title: "Follow-up deleted",
+          description: "The follow-up action has been removed successfully.",
+        });
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      },
+      onSettled: () => setIsDeletePending(false)
+    });
+  };
   
   const onSubmit = (data: FollowupFormValues) => {
     setIsPending(true);
@@ -188,17 +270,18 @@ export function EditFollowupForm({
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Edit Follow-up Action</DialogTitle>
-          <DialogDescription>
-            Update the details of this follow-up action.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Follow-up Action</DialogTitle>
+            <DialogDescription>
+              Update the details of this follow-up action.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="type"
@@ -322,22 +405,68 @@ export function EditFollowupForm({
               )}
             />
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? (
+            <DialogFooter className="flex justify-between sm:justify-between">
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeletePending}
+              >
+                {isDeletePending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
+                    Deleting...
                   </>
                 ) : (
-                  'Update Follow-up'
+                  <>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </>
                 )}
               </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Follow-up'
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog for Delete */}
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete this follow-up action. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>
+            {isDeletePending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Delete"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
