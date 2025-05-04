@@ -5,12 +5,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExternalLink, Loader2, Search, Lightbulb } from 'lucide-react';
+import { ExternalLink, Loader2, Search } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { ApplicationAssistant } from './ApplicationAssistant';
 import { ApplicationWizard } from './ApplicationWizard';
 
 interface AdzunaJobSearchProps {
@@ -241,7 +240,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
 
   // State to store selected job
   const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
-  const [showAssistant, setShowAssistant] = useState(false);
   const [showApplicationWizard, setShowApplicationWizard] = useState(false);
   const [applicationJob, setApplicationJob] = useState<{
     id?: string;
@@ -623,28 +621,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   </div>
                 </div>
                 
-                <div className="mt-6 flex justify-between">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      if (onSelectJob) {
-                        onSelectJob({
-                          title: selectedJob.title,
-                          company: selectedJob.company.display_name,
-                          url: selectedJob.redirect_url,
-                          description: selectedJob.description,
-                          location: selectedJob.location?.display_name
-                        });
-                      }
-                      
-                      // Open AI application assistant
-                      setShowAssistant(true);
-                    }}
-                  >
-                    <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
-                    Get Application Help
-                  </Button>
-                  
+                <div className="mt-6 flex justify-end">
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
@@ -693,14 +670,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
         jobDetails={applicationJob}
       />
     )}
-    
-    <ApplicationAssistant
-      isOpen={showAssistant}
-      onClose={() => setShowAssistant(false)}
-      jobTitle={selectedJob?.title}
-      companyName={selectedJob?.company?.display_name}
-      jobDescription={selectedJob?.description}
-    />
     </>
   );
 }
