@@ -25,10 +25,11 @@ interface GetStartedChecklistProps {
   userId: number;
   profileCompletion?: number; // Profile completion percentage
   hasGoals?: boolean; // Whether user has any career goals
+  hasApplications?: boolean; // Whether user has added any job applications
 }
 
 // Main component
-export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = false }: GetStartedChecklistProps) {
+export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = false, hasApplications = false }: GetStartedChecklistProps) {
   const { toast } = useToast();
   
   // Initial checklist item definitions with completed explicitly set to false for clarity
@@ -292,6 +293,37 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       }
     }
   }, [hasGoals, toast, reviewItem.completed, saveProgress, checklistItems, userId]);
+  
+  // Auto-complete the job application checklist item when user has added any applications
+  // but only if this is not a new user session
+  useEffect(() => {
+    // Only auto-complete if this is NOT a new user (has saved progress)
+    // and user has applications
+    if (hasApplications && localStorage.getItem(`checklist_progress_${userId}`)) {
+      // Find job application checklist item
+      const jobApplicationItem = checklistItems.find(item => item.id === 'job-application');
+      
+      // If it exists and is not already marked as completed, mark it as completed
+      if (jobApplicationItem && !jobApplicationItem.completed) {
+        setChecklistItems(prevItems => {
+          const updatedItems = prevItems.map(item => 
+            item.id === 'job-application' ? { ...item, completed: true } : item
+          );
+          
+          // Save updated progress to localStorage
+          saveProgress(updatedItems, reviewItem.completed);
+          
+          // Show a success toast
+          toast({
+            title: "Application added!",
+            description: "✅ You've added your first job application. Great start!",
+          });
+          
+          return updatedItems;
+        });
+      }
+    }
+  }, [hasApplications, toast, reviewItem.completed, saveProgress, checklistItems, userId]);
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
