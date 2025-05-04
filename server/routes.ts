@@ -26,6 +26,7 @@ import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
 import pdfTestRouter from "./routes/pdf-test";
 import * as openai from "./openai";
+import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
@@ -5129,9 +5130,35 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
         '/api/career-data',
         '/api/cover-letters',
         '/api/resumes',
-        '/api/jobs'
+        '/api/jobs',
+        '/api/career-certifications'
       ]
     });
+  });
+  
+  // API endpoint for career certification recommendations
+  apiRouter.post("/career-certifications", async (req: Request, res: Response) => {
+    try {
+      // Validate request body
+      const { role, level, skills } = req.body;
+      
+      if (!role || !level || !Array.isArray(skills)) {
+        return res.status(400).json({ 
+          message: "Invalid request. Required fields: role (string), level (string), skills (array)" 
+        });
+      }
+      
+      console.log(`Generating certification recommendations for ${role} (${level}) with ${skills.length} skills`);
+      
+      // Generate certification recommendations
+      const certifications = await generateCertificationRecommendations(role, level, skills);
+      
+      // Return the recommendations
+      res.status(200).json({ certifications });
+    } catch (error) {
+      console.error("Error generating certification recommendations:", error);
+      res.status(500).json({ message: "Failed to generate certification recommendations" });
+    }
   });
   
   const httpServer = createServer(app);
