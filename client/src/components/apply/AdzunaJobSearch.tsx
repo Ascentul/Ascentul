@@ -620,24 +620,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-6 flex justify-end">
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleStartApplication(selectedJob)}
-                    >
-                      Add to Tracker
-                    </Button>
-                    
-                    <Button 
-                      variant="default" 
-                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
-                    >
-                      Apply on Adzuna
-                    </Button>
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="text-center py-8">
