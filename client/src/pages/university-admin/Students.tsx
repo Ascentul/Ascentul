@@ -316,6 +316,41 @@ export default function StudentManagement() {
     setMessageContent('');
     setIsMessageDialogOpen(false);
   };
+  
+  // State for email dialog
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContent, setEmailContent] = useState('');
+  
+  // Function to handle sending email to student
+  const handleSendEmail = () => {
+    if (!emailSubject.trim()) {
+      toast({
+        title: 'Subject Required',
+        description: 'Please enter an email subject before sending.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (!emailContent.trim()) {
+      toast({
+        title: 'Email Content Required',
+        description: 'Please enter email content before sending.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    toast({
+      title: 'Email Sent',
+      description: `Your email has been sent to ${selectedStudent?.name}.`,
+    });
+    
+    setEmailSubject('');
+    setEmailContent('');
+    setIsEmailDialogOpen(false);
+  };
 
   // Setup form for adding a new student
   const form = useForm<AddStudentFormValues>({
@@ -488,7 +523,10 @@ export default function StudentManagement() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Profile
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedStudent(student);
+                            setIsEmailDialogOpen(true);
+                          }}>
                             <Mail className="mr-2 h-4 w-4" />
                             Send Email
                           </DropdownMenuItem>
@@ -599,11 +637,21 @@ export default function StudentManagement() {
                 </div>
                 
                 <div className="w-full space-y-2">
-                  <Button variant="outline" className="w-full" size="sm">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm"
+                    onClick={() => setIsEmailDialogOpen(true)}
+                  >
                     <Mail className="mr-2 h-4 w-4" />
                     Send Email
                   </Button>
-                  <Button variant="outline" className="w-full" size="sm">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    size="sm"
+                    onClick={() => setIsMessageDialogOpen(true)}
+                  >
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Message
                   </Button>
@@ -1087,6 +1135,53 @@ export default function StudentManagement() {
               <Button onClick={handleSendMessage}>
                 <Send className="mr-2 h-4 w-4" />
                 Send Message
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Email Dialog */}
+      {selectedStudent && (
+        <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Email</DialogTitle>
+              <DialogDescription>
+                Send an email to {selectedStudent.name} at {selectedStudent.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="emailSubject">Subject</Label>
+                <Input 
+                  id="emailSubject" 
+                  placeholder="Email subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="emailContent">Email Content</Label>
+                <Textarea 
+                  id="emailContent" 
+                  placeholder="Type your email content here..." 
+                  className="min-h-[200px]"
+                  value={emailContent}
+                  onChange={(e) => setEmailContent(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendEmail}>
+                <Mail className="mr-2 h-4 w-4" />
+                Send Email
               </Button>
             </div>
           </DialogContent>
