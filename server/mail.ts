@@ -4,7 +4,13 @@
  */
 import formData from 'form-data';
 import Mailgun from 'mailgun.js';
-import { MessagesSendResult } from 'mailgun.js/interfaces/Messages';
+
+// Define our own type for the Mailgun response since the package lacks proper typings
+interface MessagesSendResult {
+  id: string;
+  message: string;
+  status: number;
+}
 
 // Initialize mailgun client
 const mailgun = new Mailgun(formData);
@@ -54,8 +60,14 @@ async function sendEmail({
       key: process.env.MAILGUN_API_KEY
     });
 
-    // Create email data object
-    const emailData = {
+    // Create email data object with optional properties
+    const emailData: {
+      from: string;
+      to: string;
+      subject: string;
+      text: string;
+      html?: string;
+    } = {
       from,
       to: Array.isArray(to) ? to.join(',') : to,
       subject,
@@ -68,7 +80,14 @@ async function sendEmail({
     }
 
     // Send email via Mailgun
-    const result = await mg.messages.create(domain, emailData);
+    const mailgunResult = await mg.messages.create(domain, emailData);
+    
+    // Convert to our internal type
+    const result: MessagesSendResult = {
+      id: mailgunResult.id || `msg_${Date.now()}`,
+      message: mailgunResult.message || 'Email sent',
+      status: 200
+    };
     
     console.log('Email sent successfully:', {
       to,
