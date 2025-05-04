@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useRoute } from 'wouter';
 import { useUser, useIsAdminUser } from '@/lib/useUserData';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -393,6 +393,7 @@ export default function AdminDashboard() {
   const { user } = useUser();
   const isAdmin = useIsAdminUser();
   const [, setLocation] = useLocation();
+  const [isUniversitiesRoute] = useRoute('/admin/universities');
   const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
 
@@ -403,8 +404,7 @@ export default function AdminDashboard() {
         return <AdminOverview />;
       case 'users':
         return <UserManagement />;
-      case 'universities':
-        return <UniversitiesPage />;
+      // Universities are now handled by a separate page at /admin/universities
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
@@ -509,12 +509,18 @@ export default function AdminDashboard() {
             active={activeTab === 'users'}
             onClick={() => setActiveTab('users')}
           />
-          <SidebarItem
-            icon={<Building className="h-5 w-5" />}
-            label="Universities"
-            active={activeTab === 'universities'}
-            onClick={() => setActiveTab('universities')}
-          />
+          <Link href="/admin/universities">
+            <button
+              className={`flex items-center w-full py-2 px-3 rounded-md text-sm ${
+                isUniversitiesRoute
+                  ? "bg-accent text-accent-foreground font-medium"
+                  : "text-foreground/70 hover:bg-muted/80"
+              }`}
+            >
+              <span className="mr-3"><Building className="h-5 w-5" /></span>
+              <span>Universities</span>
+            </button>
+          </Link>
           <SidebarItem
             icon={<Activity className="h-5 w-5" />}
             label="Analytics"
