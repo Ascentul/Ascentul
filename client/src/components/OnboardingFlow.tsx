@@ -187,11 +187,11 @@ export default function OnboardingFlow() {
     // The useEffect is only needed for updating progress bar
     
     // If the user needs to set a username, we'll add a step (so 5 steps total including Discord)
-    // Without username: 4 steps total [career, details, interests, discord]
+    // Without username: 5 steps total [career, details, interests, discord, plan]
     if (needsUsername) {
-      setProgress(step * 20); // 5 steps total (0, 1, 2, 3, 4)
+      setProgress(step * 16.67); // 6 steps total (0, 1, 2, 3, 4, 5)
     } else {
-      setProgress(step * 25); // 4 steps total (1, 2, 3, 4)
+      setProgress(step * 20); // 5 steps total (1, 2, 3, 4, 5)
     }
   }, [step, needsUsername]);
 
@@ -333,7 +333,10 @@ export default function OnboardingFlow() {
       // After interests selection, move to Discord invite
       setStep(4);
     } else if (step === 4) {
-      // When we're on the final step (Discord invite)
+      // After Discord invite step, just proceed to plan selection step
+      setStep(5);
+    } else if (step === 5) {
+      // When we're on the final step (Plan Selection)
       // Save onboarding data to user profile and wait for it to complete
       const success = await saveOnboardingData();
       
@@ -350,7 +353,7 @@ export default function OnboardingFlow() {
           variant: "destructive",
         });
       }
-    } else if ((needsUsername && step < 5) || (!needsUsername && step < 4)) {
+    } else if ((needsUsername && step < 6) || (!needsUsername && step < 5)) {
       setStep(step + 1);
     }
   };
