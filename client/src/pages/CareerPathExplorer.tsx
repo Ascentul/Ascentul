@@ -1044,18 +1044,18 @@ export default function CareerPathExplorer() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Show generated paths if available, otherwise show default paths */}
             {(generatedProfilePaths || careerPaths.slice(0, 2)).map((path) => (
-              <Card key={path.id} className="overflow-hidden">
-                <CardContent className="p-6">
+              <Card key={path.id} className="overflow-hidden h-full">
+                <CardContent className="p-6 flex flex-col h-full">
                   <h3 className="text-xl font-medium mb-4">{path.name}</h3>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-4 flex-grow">
                     {path.nodes.slice(0, 3).map((node, index) => (
                       <div key={node.id} className="flex items-start gap-3">
                         <div className="rounded-full p-2 bg-primary/10 shrink-0">
                           {node.icon}
                         </div>
-                        <div>
-                          <h4 className="font-medium">{node.title}</h4>
+                        <div className="min-w-0 flex-grow"> {/* Added min-width to prevent overflow */}
+                          <h4 className="font-medium truncate">{node.title}</h4>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                             {node.description}
                           </p>
@@ -1284,10 +1284,10 @@ export default function CareerPathExplorer() {
                 onClick={() => handleNodeClick(node.id)}
               >
                 <Card className={cn(
-                  "shadow-md",
+                  "shadow-md h-full",
                   selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
                 )}>
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-2">
                       <div className="mt-1">
                         {node.icon}
@@ -1296,11 +1296,13 @@ export default function CareerPathExplorer() {
                         {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
                       </Badge>
                     </div>
-                    <h3 className="font-bold text-lg mb-1">{node.title}</h3>
-                    <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
-                    <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                    <div className="flex-grow">
+                      <h3 className="font-bold text-lg mb-1 truncate">{node.title}</h3>
+                      <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
+                      <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                    </div>
                     <div className={cn(
-                      "flex items-center gap-1 text-xs mt-2", 
+                      "flex items-center gap-1 text-xs mt-3", 
                       GrowthIndicators[node.growthPotential].color
                     )}>
                       {GrowthIndicators[node.growthPotential].icon}
@@ -1360,10 +1362,10 @@ export default function CareerPathExplorer() {
                     onClick={() => handleNodeClick(node.id)}
                   >
                     <Card className={cn(
-                      "w-[230px] sm:w-60 shadow-md",
+                      "w-[230px] sm:w-60 shadow-md h-full",
                       selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
                     )}>
-                      <CardContent className="p-4">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="flex justify-between items-start mb-2">
                           <div className="mt-1">
                             {node.icon}
@@ -1372,11 +1374,13 @@ export default function CareerPathExplorer() {
                             {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
                           </Badge>
                         </div>
-                        <h3 className="font-bold text-base sm:text-lg mb-1">{node.title}</h3>
-                        <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
-                        <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                        <div className="flex-grow">
+                          <h3 className="font-bold text-base sm:text-lg mb-1 truncate">{node.title}</h3>
+                          <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
+                          <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                        </div>
                         <div className={cn(
-                          "flex items-center gap-1 text-xs mt-2", 
+                          "flex items-center gap-1 text-xs mt-3", 
                           GrowthIndicators[node.growthPotential].color
                         )}>
                           {GrowthIndicators[node.growthPotential].icon}
