@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { RefreshCw, Mail, Plus } from "lucide-react";
+import { RefreshCw, Mail, Plus, Building } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Invite, University } from "@shared/schema";
 import AdminLayout from "../../layouts/AdminLayout";
 import { useIsSystemAdmin } from "@/lib/useUserData";
@@ -165,6 +166,19 @@ export default function UniversitiesPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto p-4">
+        {(isErrorUniversities || isErrorInvites) && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle className="flex items-center">
+              <span className="mr-2">⚠️</span>
+              API Connection Issue
+            </AlertTitle>
+            <AlertDescription>
+              There was a problem connecting to the university management APIs. Some features may be limited.
+              Please try refreshing the page or contact technical support if the issue persists.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">University Management</h1>
@@ -262,11 +276,19 @@ export default function UniversitiesPage() {
                   Error: {String(universitiesError)}
                 </div>
               ) : !universities || !Array.isArray(universities) || universities.length === 0 ? (
-                <div className="text-center p-8 border rounded-lg bg-muted/20">
-                  <p className="text-muted-foreground mb-2">No universities registered yet</p>
-                  <p className="text-sm">
-                    Send invitations to university admins to get started
+                <div className="flex flex-col items-center p-8 border rounded-lg bg-gradient-to-b from-blue-50 to-white">
+                  <Building className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-bold text-lg mb-2">No Universities Yet</h3>
+                  <p className="text-muted-foreground mb-4 text-center">
+                    Universities will appear here once invitations are accepted
                   </p>
+                  <Button 
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Invite University Admin
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -311,11 +333,19 @@ export default function UniversitiesPage() {
                   Error: {String(invitesError)}
                 </div>
               ) : !invites || !Array.isArray(invites) || invites.length === 0 ? (
-                <div className="text-center p-8 border rounded-lg bg-muted/20">
-                  <p className="text-muted-foreground mb-2">No invitations sent yet</p>
-                  <p className="text-sm">
-                    Click "Invite University Admin" to send your first invitation
+                <div className="flex flex-col items-center p-8 border rounded-lg bg-gradient-to-b from-blue-50 to-white">
+                  <Building className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-bold text-lg mb-2">No Invitations Yet</h3>
+                  <p className="text-muted-foreground mb-4 text-center">
+                    Get started by inviting university administrators
                   </p>
+                  <Button 
+                    onClick={() => setIsCreateDialogOpen(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Send First Invitation
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
