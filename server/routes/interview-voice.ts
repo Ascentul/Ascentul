@@ -311,6 +311,11 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
     });
     
     try {
+      // Log OpenAI instance status for debugging
+      const isUsingMock = !process.env.OPENAI_API_KEY;
+      console.log(`[Interview Voice] OpenAI status: ${isUsingMock ? 'Using mock OpenAI' : 'Using real OpenAI API'}`);
+      console.log(`[Interview Voice] OpenAI API key: ${process.env.OPENAI_API_KEY ? 'Present' : 'Missing'}`);
+      
       // Call OpenAI to generate a question with optimized parameters for natural conversation
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -322,7 +327,38 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
         stream: false // Using non-streaming for reliability in this version
       });
       
+      console.log('[Interview Voice] OpenAI response received:', completion);
+      
+      // Add fallback for mock mode which may not return the expected format
+      if (!completion || !completion.choices || !completion.choices[0] || !completion.choices[0].message) {
+        console.log('[Interview Voice] Invalid OpenAI response format:', completion);
+        
+        if (isUsingMock) {
+          // Provide a mock response for testing
+          return res.status(200).json({
+            question: "This is a mock interview question since the OpenAI API key is not configured. Tell me about your previous experience with similar roles?",
+            aiResponse: "This is a mock interview question since the OpenAI API key is not configured. Tell me about your previous experience with similar roles?"
+          });
+        } else {
+          throw new Error('Invalid OpenAI response format');
+        }
+      }
+      
       const aiResponse = completion.choices[0].message.content;
+      
+      if (!aiResponse) {
+        console.log('[Interview Voice] Empty AI response content');
+        
+        if (isUsingMock) {
+          // Provide a mock response for testing
+          return res.status(200).json({
+            question: "This is a mock interview question since the OpenAI API returned an empty response. What skills do you bring to this position?",
+            aiResponse: "This is a mock interview question since the OpenAI API returned an empty response. What skills do you bring to this position?"
+          });
+        } else {
+          throw new Error('Empty AI response content');
+        }
+      }
       
       // Log the generated question for debugging
       logResponse('generate-question', 200, 'Successfully generated interview question', {
@@ -336,7 +372,18 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
         aiResponse: aiResponse // Add this field to match analyze-response format
       });
     } catch (openaiError: any) {
+      console.error('[Interview Voice] OpenAI API error:', openaiError);
       logResponse('generate-question', 500, 'OpenAI API error', openaiError);
+      
+      // If we're in mock mode, provide a fallback response
+      if (!process.env.OPENAI_API_KEY) {
+        console.log('[Interview Voice] Providing mock response due to OpenAI API error in mock mode');
+        return res.status(200).json({
+          question: "This is a mock interview question provided as a fallback. Can you describe your approach to problem-solving?",
+          aiResponse: "This is a mock interview question provided as a fallback. Can you describe your approach to problem-solving?"
+        });
+      }
+      
       return res.status(500).json({ 
         error: 'Failed to generate interview question', 
         details: openaiError.message || 'Unknown error with OpenAI API'
