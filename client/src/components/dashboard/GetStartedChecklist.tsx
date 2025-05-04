@@ -36,7 +36,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Complete your career profile',
       description: 'Add your work history, education, and skills',
       completed: false,
-      href: '/account-settings?tab=career',
+      href: '/account?tab=career',
       icon: <Briefcase className="h-4 w-4 text-primary" />
     },
     {
