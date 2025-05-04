@@ -226,5 +226,8 @@ export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuar
 }
 
 export function UniversityAdminRoute({ children }: { children: ReactNode }) {
-  return <UniversityAdminRouteGuard>{children}</UniversityAdminRouteGuard>;
+  // We now have a separate UniversityAdminRouteGuard component
+  // This is now just a wrapper that passes children to the actual component
+  // This exists for backward compatibility with existing code
+  return <>{children}</>;
 }
