@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +9,74 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { cn } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
+
+// Define the type for individual notes
+interface ContactNote {
+  id: string;
+  contactId: number;
+  text: string;
+  timestamp: string;
+}
+
+// Helper functions for managing notes in localStorage
+const NOTES_STORAGE_PREFIX = 'ascentul.notes.';
+
+const getContactNotesKey = (contactId: number): string => {
+  return `${NOTES_STORAGE_PREFIX}${contactId}`;
+};
+
+const getContactNotes = (contactId: number): ContactNote[] => {
+  const storageKey = getContactNotesKey(contactId);
+  const notesJson = localStorage.getItem(storageKey);
+  return notesJson ? JSON.parse(notesJson) : [];
+};
+
+const saveContactNotes = (contactId: number, notes: ContactNote[]): void => {
+  const storageKey = getContactNotesKey(contactId);
+  localStorage.setItem(storageKey, JSON.stringify(notes));
+};
+
+const addContactNote = (contactId: number, text: string): ContactNote => {
+  const notes = getContactNotes(contactId);
+  const newNote: ContactNote = {
+    id: uuidv4(),
+    contactId,
+    text,
+    timestamp: new Date().toISOString()
+  };
+  
+  // Add to the beginning for reverse chronological order
+  notes.unshift(newNote);
+  saveContactNotes(contactId, notes);
+  return newNote;
+};
+
+const updateContactNote = (contactId: number, noteId: string, text: string): ContactNote | null => {
+  const notes = getContactNotes(contactId);
+  const noteIndex = notes.findIndex(note => note.id === noteId);
+  
+  if (noteIndex === -1) return null;
+  
+  notes[noteIndex] = {
+    ...notes[noteIndex],
+    text,
+    timestamp: new Date().toISOString() // Update timestamp on edit
+  };
+  
+  saveContactNotes(contactId, notes);
+  return notes[noteIndex];
+};
+
+const deleteContactNote = (contactId: number, noteId: string): boolean => {
+  const notes = getContactNotes(contactId);
+  const filteredNotes = notes.filter(note => note.id !== noteId);
+  
+  if (filteredNotes.length === notes.length) return false;
+  
+  saveContactNotes(contactId, filteredNotes);
+  return true;
+};
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -115,6 +183,19 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const [editingFollowUp, setEditingFollowUp] = useState<FollowupAction | null>(null);
   const [notesText, setNotesText] = useState<string>("");
   
+  // Contact notes from localStorage
+  const [contactNotes, setContactNotes] = useState<ContactNote[]>([]);
+  const [editingNote, setEditingNote] = useState<ContactNote | null>(null);
+  const [newNoteText, setNewNoteText] = useState("");
+  
+  // Load notes from localStorage when contact changes
+  useEffect(() => {
+    if (contactId) {
+      const notes = getContactNotes(contactId);
+      setContactNotes(notes);
+    }
+  }, [contactId]);
+
   // Fetch contact data
   const {
     data: contact,
@@ -128,6 +209,14 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     }),
     onSuccess: (data) => {
       setNotesText(data.notes || '');
+      
+      // If no notes exist in localStorage, but there's a legacy note in the contact data,
+      // migrate it to the new format
+      const existingNotes = getContactNotes(contactId);
+      if (existingNotes.length === 0 && data.notes) {
+        const migratedNote = addContactNote(contactId, data.notes);
+        setContactNotes([migratedNote]);
+      }
     }
   });
   
@@ -437,6 +526,85 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       toast({
         title: 'Error',
         description: 'Failed to delete interaction. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Add note mutation
+  const addNoteMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const newNote = addContactNote(contactId, text);
+      return newNote;
+    },
+    onSuccess: (newNote) => {
+      // Reset the text input
+      setNewNoteText("");
+      // Update state with the new note
+      setContactNotes(prevNotes => [newNote, ...prevNotes]);
+      toast({
+        title: 'Note added',
+        description: 'Contact note has been added successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to add note. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Update note mutation
+  const updateNoteMutation = useMutation({
+    mutationFn: async ({ noteId, text }: { noteId: string, text: string }) => {
+      const updatedNote = updateContactNote(contactId, noteId, text);
+      return updatedNote;
+    },
+    onSuccess: (updatedNote) => {
+      if (updatedNote) {
+        // Update the notes array with the updated note
+        setContactNotes(prevNotes => 
+          prevNotes.map(note => note.id === updatedNote.id ? updatedNote : note)
+        );
+        // Reset editing state
+        setEditingNote(null);
+        toast({
+          title: 'Note updated',
+          description: 'Contact note has been updated successfully.',
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update note. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Delete note mutation
+  const deleteNoteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      const success = deleteContactNote(contactId, noteId);
+      return { success, noteId };
+    },
+    onSuccess: ({ success, noteId }) => {
+      if (success) {
+        // Remove the deleted note from state
+        setContactNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+        toast({
+          title: 'Note deleted',
+          description: 'Contact note has been deleted successfully.',
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete note. Please try again.',
         variant: 'destructive',
       });
     },
@@ -1212,35 +1380,74 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         {/* Notes Tab */}
         <TabsContent value="notes" className="py-4">
           <div className="flex flex-col space-y-4">
-            {contact.notes ? (
-              <div className="relative p-4 bg-muted/50 rounded-md">
-                <div className="absolute top-2 right-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsEditing(true)} 
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span className="sr-only">Edit notes</span>
-                  </Button>
-                </div>
-                <p className="whitespace-pre-wrap">{contact.notes}</p>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium">Notes</h3>
+              <Button 
+                onClick={() => {
+                  setNewNoteText(""); 
+                  setIsEditing(true);
+                }} 
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Note
+              </Button>
+            </div>
+            
+            {contactNotes.length > 0 ? (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {contactNotes.map((note) => (
+                  <div key={note.id} className="relative p-4 bg-muted/50 rounded-md">
+                    <div className="absolute top-2 right-2 flex space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          setEditingNote(note);
+                          setNewNoteText(note.text);
+                          setIsEditing(true);
+                        }} 
+                        className="h-6 w-6 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                        <span className="sr-only">Edit note</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => deleteNoteMutation.mutate(note.id)} 
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive/90"
+                      >
+                        <Trash className="h-3 w-3" />
+                        <span className="sr-only">Delete note</span>
+                      </Button>
+                    </div>
+                    
+                    <p className="whitespace-pre-wrap mb-2">{note.text}</p>
+                    
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(note.timestamp), 'MMM d, yyyy - h:mm a')}
+                    </p>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-6">
-                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
                 <h3 className="text-lg font-medium mt-4">No notes available</h3>
                 <p className="text-muted-foreground mt-2">
-                  There are no notes for this contact.
+                  There are no notes for this contact yet.
                 </p>
                 <Button 
-                  onClick={() => setIsEditing(true)} 
+                  onClick={() => {
+                    setNewNoteText("");
+                    setIsEditing(true);
+                  }} 
                   variant="outline" 
                   className="mt-4"
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Add Notes
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add First Note
                 </Button>
               </div>
             )}
