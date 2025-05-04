@@ -40,8 +40,8 @@ export default function SignInPage() {
       
       // Use the login function from useUser hook with the appropriate login type
       // The university login type will be used to redirect to university-specific areas
-      const loginTypeParam = loginType === 'university' ? 'university' : undefined;
-      await login(loginEmail, loginPassword, loginTypeParam as any);
+      const loginTypeParam = loginType === 'university' ? 'university' : 'regular';
+      await login(loginEmail, loginPassword, loginTypeParam);
       
       toast({
         title: "Login successful!",
