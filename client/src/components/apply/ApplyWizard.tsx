@@ -212,12 +212,15 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <Button variant="ghost" size="icon" onClick={handleClose}>
-          <span className="sr-only">Close</span>
-          ✕
-        </Button>
-      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleClose}
+        className="absolute top-4 right-4"
+      >
+        <span className="sr-only">Close</span>
+        ✕
+      </Button>
 
       {step === 1 && (
         <Tabs defaultValue="manual" className="w-full">
