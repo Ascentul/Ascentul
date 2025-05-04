@@ -174,21 +174,34 @@ router.get('/test', async (req: Request, res: Response) => {
 /**
  * @route POST /api/mail/welcome
  * @description Send a welcome email to a specified user or the current user
- * @access Private (requires authentication)
+ * @access Public in development, Private in production
  */
 router.post('/welcome', async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
+  // In production, require authentication
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && !req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
   try {
-    // Ensure user is available if needed
-    if (!req.body.email && !req.user) {
-      return res.status(401).json({ error: 'User not found in session and no email provided' });
+    // For all environments, email is required in body or from authenticated user
+    if (!req.body.email && !(req.isAuthenticated() && req.user?.email)) {
+      return res.status(400).json({ 
+        error: 'Email required',
+        details: 'Email address must be provided in request body or you must be authenticated'
+      });
     }
     
-    // Extract user info from request or use current user
-    const { email, name } = req.body.email ? req.body : req.user!;
+    // Extract user info from request or use current user if authenticated
+    let email = req.body.email;
+    let name = req.body.name;
+    
+    if (!email && req.isAuthenticated() && req.user) {
+      email = req.user.email;
+      name = req.user.name;
+    }
+    
+    console.log(`Sending welcome email to ${email} (${name || 'unnamed user'})`);
     
     // Send welcome email
     const result = await sendWelcomeEmail(email, name);
@@ -202,6 +215,59 @@ router.post('/welcome', async (req: Request, res: Response) => {
     console.error('Error sending welcome email:', error);
     res.status(500).json({
       error: 'Failed to send welcome email',
+      details: error.message || String(error)
+    });
+  }
+});
+
+/**
+ * @route GET /api/mail/welcome
+ * @description Send a welcome email (development only)
+ * @access Public in development mode
+ */
+router.get('/welcome', async (req: Request, res: Response) => {
+  // Only allow this in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ 
+      error: 'Not allowed in production',
+      details: 'This endpoint is only available in development mode'
+    });
+  }
+  
+  try {
+    // Make sure we have the Mailgun API key
+    if (!process.env.MAILGUN_API_KEY) {
+      return res.status(500).json({ 
+        error: 'Mailgun API key not configured',
+        details: 'The MAILGUN_API_KEY environment variable is not set.' 
+      });
+    }
+
+    // Get recipient email from query parameters
+    const toEmail = req.query.email as string;
+    const toName = req.query.name as string;
+    
+    if (!toEmail) {
+      return res.status(400).json({ 
+        error: 'Email required',
+        details: 'Email address must be provided as a query parameter'
+      });
+    }
+    
+    console.log(`Sending welcome email to ${toEmail} (${toName || 'unnamed user'})`);
+
+    // Send welcome email
+    const result = await sendWelcomeEmail(toEmail, toName);
+    
+    res.status(200).json({ 
+      success: true, 
+      message: `Welcome email sent successfully to ${toEmail}`,
+      details: result
+    });
+  } catch (error: any) {
+    console.error('Error sending welcome email:', error);
+    res.status(500).json({ 
+      error: 'Failed to send welcome email', 
       details: error.message || String(error)
     });
   }
