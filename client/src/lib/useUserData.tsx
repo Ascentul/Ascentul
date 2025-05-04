@@ -388,9 +388,16 @@ export function useIsUniversityUser() {
   return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
 }
 
+// Check for any admin-like capabilities (broader definition, includes university admins)
 export function useIsAdminUser() {
   const { user } = useUser();
-  return !!user && (user.userType === 'admin' || user.userType === 'university_admin' || user.id === 1);
+  return !!user && (user.userType === 'admin' || user.id === 1);
+}
+
+// Check specifically for Ascentul system administrators
+export function useIsSystemAdmin() {
+  const { user } = useUser();
+  return !!user && (user.userType === 'admin' || user.id === 1);
 }
 
 export function useIsStaffUser() {
