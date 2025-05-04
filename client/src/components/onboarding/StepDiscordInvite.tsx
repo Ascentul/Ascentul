@@ -31,7 +31,7 @@ const StepDiscordInvite: React.FC<StepDiscordInviteProps> = ({ onNext, onSkip })
 
         <Button
           onClick={handleJoinDiscord}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 px-6 rounded-md"
+          className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white font-semibold py-6 px-6 rounded-md"
           size="lg"
         >
           Join the Ascentul Discord
