@@ -68,10 +68,198 @@ interface CareerNode {
   salaryRange: string;
   yearsExperience: string;
   skills: CareerSkill[];
-  growthPotential: 'low' | 'medium' | 'high';
   description: string;
+  growthPotential: 'low' | 'medium' | 'high';
   icon: JSX.Element;
 }
+
+// Component to display certification list with proper React hooks
+// This is outside the main component to avoid React hook rules violations
+interface CertificationCardProps {
+  cert: CertificationRecommendation;
+  onAddAsGoal: (cert: CertificationRecommendation) => void;
+  isLoading: boolean;
+}
+
+// Individual certification card component
+const CertificationCard: React.FC<CertificationCardProps> = ({ cert, onAddAsGoal, isLoading }) => {
+  return (
+    <div className="border rounded-lg p-4 transition-all hover:shadow-md">
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-medium">{cert.name}</h4>
+          <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
+        </div>
+        <Badge className={
+          cert.relevance === 'highly relevant' ? 'bg-green-100 text-green-800' :
+          cert.relevance === 'relevant' ? 'bg-blue-100 text-blue-800' :
+          'bg-amber-100 text-amber-800'
+        }>
+          {cert.relevance}
+        </Badge>
+      </div>
+      
+      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+        <div className="flex items-center gap-1">
+          <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground">
+            {cert.difficulty} level
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground">
+            {cert.estimatedTimeToComplete}
+          </span>
+        </div>
+      </div>
+      
+      <div className="mt-3 pt-2 border-t">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => onAddAsGoal(cert)}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              Adding as Goal...
+            </>
+          ) : (
+            <>
+              <Plus className="mr-1 h-3 w-3" />
+              Add as Career Goal
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Main certification list component
+const CertificationList: React.FC<{ certifications: CertificationRecommendation[] }> = ({ certifications }) => {
+  const { toast } = useToast();
+  const [isLoadingMap, setIsLoadingMap] = useState<Record<string, boolean>>({});
+  const navigate = (path: string) => window.location.href = path;
+  
+  // Create certification goal handler
+  const handleAddAsGoal = async (cert: CertificationRecommendation) => {
+    // Create a unique key for this certification
+    const certKey = `${cert.name}-${cert.provider}`;
+    
+    try {
+      // Set loading state for this specific certification
+      setIsLoadingMap(prev => ({
+        ...prev,
+        [certKey]: true
+      }));
+      
+      // Get existing goals
+      const goalsResponse = await apiRequest('GET', '/api/goals');
+      const existingGoals = await goalsResponse.json();
+      
+      // Check if this certification goal already exists (by title)
+      const goalTitle = `Earn ${cert.name} Certification`;
+      const isDuplicate = existingGoals.some(
+        (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
+      );
+      
+      if (isDuplicate) {
+        toast({
+          title: "Goal Already Exists",
+          description: "You already have this certification in your goals.",
+          variant: "default"
+        });
+        return;
+      }
+      
+      // Create certification goal
+      const goalData = {
+        title: goalTitle,
+        description: `Complete the ${cert.name} certification from ${cert.provider}. This is a ${cert.difficulty} level certification that typically takes ${cert.estimatedTimeToComplete} to complete.`,
+        status: "not_started",
+        checklist: [
+          {
+            id: crypto.randomUUID(),
+            text: `Research ${cert.name} certification details and requirements`,
+            completed: false
+          },
+          {
+            id: crypto.randomUUID(),
+            text: `Find and register for preparation courses or materials`,
+            completed: false
+          },
+          {
+            id: crypto.randomUUID(),
+            text: `Schedule study time for certification preparation`,
+            completed: false
+          },
+          {
+            id: crypto.randomUUID(),
+            text: `Register for the certification exam`,
+            completed: false
+          },
+          {
+            id: crypto.randomUUID(),
+            text: `Complete the certification exam`,
+            completed: false
+          }
+        ]
+      };
+      
+      // Save the goal
+      const response = await apiRequest('POST', '/api/goals', goalData);
+      
+      if (response.ok) {
+        toast({
+          title: "Certification Goal Created",
+          description: `"${goalTitle}" has been added to your career goals.`,
+          action: (
+            <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
+              View Goal
+            </Button>
+          ),
+        });
+      } else {
+        throw new Error("Failed to create goal");
+      }
+    } catch (error) {
+      console.error("Error creating certification goal:", error);
+      toast({
+        title: "Error Creating Goal",
+        description: "There was a problem adding this certification as a goal.",
+        variant: "destructive"
+      });
+    } finally {
+      // Clear loading state
+      setIsLoadingMap(prev => ({
+        ...prev,
+        [certKey]: false
+      }));
+    }
+  };
+  
+  return (
+    <>
+      {certifications.map((cert, index) => {
+        // Create a unique key for this certification
+        const certKey = `${cert.name}-${cert.provider}`;
+        
+        return (
+          <CertificationCard 
+            key={`${cert.name}-${index}`}
+            cert={cert}
+            onAddAsGoal={handleAddAsGoal}
+            isLoading={isLoadingMap[certKey] || false}
+          />
+        );
+      })}
+    </>
+  );
+};
 
 interface CareerPath {
   id: string;
@@ -1255,37 +1443,9 @@ export default function CareerPathExplorer() {
                       </div>
                     ) : roleCertifications[selectedNode.id] && roleCertifications[selectedNode.id].length > 0 ? (
                       <div className="space-y-4">
-                        {roleCertifications[selectedNode.id].map((cert, index) => (
-                          <div key={`${cert.name}-${index}`} className="border rounded-lg p-4 transition-all hover:shadow-md">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-medium">{cert.name}</h4>
-                                <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
-                              </div>
-                              <Badge className={
-                                cert.relevance === 'highly relevant' ? 'bg-green-100 text-green-800' :
-                                cert.relevance === 'relevant' ? 'bg-blue-100 text-blue-800' :
-                                'bg-amber-100 text-amber-800'
-                              }>
-                                {cert.relevance}
-                              </Badge>
-                            </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                              <div className="flex items-center gap-1">
-                                <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">
-                                  {cert.difficulty} level
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-muted-foreground">
-                                  {cert.estimatedTimeToComplete}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        <CertificationList 
+                          certifications={roleCertifications[selectedNode.id]} 
+                        />
                       </div>
                     ) : (
                       <div className="text-center py-8 border border-dashed rounded-lg">
