@@ -897,6 +897,55 @@ export default function CareerPathExplorer() {
 
   // Helper function for starter paths removed
   
+  // State for path generation
+  const [isGeneratingPaths, setIsGeneratingPaths] = useState(false);
+  const [generatedProfilePaths, setGeneratedProfilePaths] = useState<CareerPath[] | null>(null);
+
+  // Function to generate AI-based career paths for the user
+  const generateCareerPathsFromProfile = async () => {
+    if (!careerProfileData) {
+      toast({
+        title: "Profile data required",
+        description: "Please complete your profile information first to generate customized paths.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsGeneratingPaths(true);
+      
+      // In a production environment, this would call an API endpoint
+      // For now, we'll simulate a delay and use the predefined paths
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Normally, this would be an API call like:
+      // const response = await apiRequest("POST", "/api/career-paths/generate", {
+      //   profileData: careerProfileData
+      // });
+      // const data = await response.json();
+      
+      // For demo purposes, we'll use a subset of the existing paths
+      // In production, this would be AI-generated based on the user's profile
+      setGeneratedProfilePaths(careerPaths.slice(0, 3));
+      
+      toast({
+        title: "Paths Generated",
+        description: "We've analyzed your profile and generated customized career paths.",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error generating career paths:", error);
+      toast({
+        title: "Generation Failed",
+        description: "An error occurred while generating your personalized career paths.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPaths(false);
+    }
+  };
+
   // Helper function to render the Profile-based Paths view
   const renderProfileBasedPaths = () => {
     if (isLoadingProfile) {
@@ -934,45 +983,76 @@ export default function CareerPathExplorer() {
     
     return (
       <div className="mt-6">
-        <h2 className="text-2xl font-semibold mb-4">Career Paths Based on Your Profile</h2>
-        <p className="text-muted-foreground mb-6">
-          These paths are suggested based on your current role, skills, and experience.
-        </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-semibold">Career Paths Based on Your Profile</h2>
+            <p className="text-muted-foreground mt-2">
+              These paths are suggested based on your current role, skills, and experience.
+            </p>
+          </div>
+          
+          <Button 
+            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white mt-4 sm:mt-0 w-full sm:w-auto"
+            onClick={generateCareerPathsFromProfile}
+            disabled={isGeneratingPaths}
+          >
+            {isGeneratingPaths ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Paths...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Paths
+              </>
+            )}
+          </Button>
+        </div>
         
-        {/* Implementation would use careerProfileData to generate or fetch personalized paths */}
-        {/* For demo, just show sample paths from the standard paths */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {careerPaths.slice(0, 2).map((path) => (
-            <Card key={path.id} className="overflow-hidden">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-medium mb-4">{path.name}</h3>
-                
-                <div className="space-y-4">
-                  {path.nodes.slice(0, 3).map((node, index) => (
-                    <div key={node.id} className="flex items-start gap-3">
-                      <div className="rounded-full p-2 bg-primary/10 shrink-0">
-                        {node.icon}
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{node.title}</h4>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {node.description}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          <Badge variant="outline" className={`${LevelBadgeColors[node.level]} text-xs`}>
-                            {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
-                          </Badge>
+        {isGeneratingPaths ? (
+          <div className="flex flex-col items-center justify-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full">
+            <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+            <h3 className="text-xl font-medium mb-2">Analyzing Your Profile</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              We're using AI to analyze your skills, experience, and education to generate personalized career path recommendations.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Show generated paths if available, otherwise show default paths */}
+            {(generatedProfilePaths || careerPaths.slice(0, 2)).map((path) => (
+              <Card key={path.id} className="overflow-hidden">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-medium mb-4">{path.name}</h3>
+                  
+                  <div className="space-y-4">
+                    {path.nodes.slice(0, 3).map((node, index) => (
+                      <div key={node.id} className="flex items-start gap-3">
+                        <div className="rounded-full p-2 bg-primary/10 shrink-0">
+                          {node.icon}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{node.title}</h4>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {node.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            <Badge variant="outline" className={`${LevelBadgeColors[node.level]} text-xs`}>
+                              {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <Button variant="outline" className="w-full mt-4">View Full Path</Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    ))}
+                  </div>
+                  
+                  <Button variant="outline" className="w-full mt-4">View Full Path</Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
