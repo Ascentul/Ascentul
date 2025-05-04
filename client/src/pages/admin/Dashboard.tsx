@@ -83,6 +83,7 @@ import {
   Eye,
   Trash2,
   Cpu,
+  Mail,
 } from 'lucide-react';
 // Import the components directly
 // This avoid the need for separate imports
@@ -414,6 +415,8 @@ export default function AdminDashboard() {
         return <AdminModelsPage />;
       case 'openai-logs':
         return <OpenAILogsPage />;
+      case 'email':
+        return <EmailAdmin />;
       default:
         return <AdminOverview />;
     }
