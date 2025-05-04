@@ -580,44 +580,42 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   </div>
                 </div>
                 
-                <div className="border rounded-md p-6 overflow-auto max-h-[600px]">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
-                    <div className="flex flex-wrap gap-2 mb-4 text-sm">
-                      <span className="font-medium">{selectedJob.company.display_name}</span>
-                      <span className="text-gray-500">•</span>
-                      <span className="text-gray-600">{selectedJob.location.display_name}</span>
+                <div className="mb-6 overflow-auto max-h-[600px]">
+                  <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
+                  <div className="flex flex-wrap gap-2 mb-4 text-sm">
+                    <span className="font-medium">{selectedJob.company.display_name}</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-gray-600">{selectedJob.location.display_name}</span>
+                  </div>
+                  
+                  {(selectedJob.salary_min || selectedJob.salary_max) && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
+                      <span className="font-medium">Salary: </span>
+                      <span>{formatSalary(selectedJob)}</span>
                     </div>
-                    
-                    {(selectedJob.salary_min || selectedJob.salary_max) && (
-                      <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
-                        <span className="font-medium">Salary: </span>
-                        <span>{formatSalary(selectedJob)}</span>
-                      </div>
-                    )}
-                    
-                    {selectedJob.contract_time && (
-                      <div className="mb-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                          {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
-                           selectedJob.contract_time === 'part_time' ? 'Part-time' : 
-                           selectedJob.contract_time}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-2">Job Description</h3>
-                      <div className="text-gray-700 whitespace-pre-line">
-                        {selectedJob.description}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6">
-                      <span className="text-sm text-gray-500">
-                        Posted: {new Date(selectedJob.created).toLocaleDateString()}
+                  )}
+                  
+                  {selectedJob.contract_time && (
+                    <div className="mb-4">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
+                         selectedJob.contract_time === 'part_time' ? 'Part-time' : 
+                         selectedJob.contract_time}
                       </span>
                     </div>
+                  )}
+                  
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-2">Job Description</h3>
+                    <div className="text-gray-700 whitespace-pre-line">
+                      {selectedJob.description}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <span className="text-sm text-gray-500">
+                      Posted: {new Date(selectedJob.created).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
