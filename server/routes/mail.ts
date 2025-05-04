@@ -12,13 +12,20 @@ const router = express.Router();
  * @access Public
  */
 router.get('/status', (req: Request, res: Response) => {
+  // Get all environment variables for debugging
+  const envKeys = Object.keys(process.env).filter(key => !key.includes('SECRET') && !key.includes('KEY')).join(', ');
+  console.log('Available environment variables (excluding secrets):', envKeys);
+  
+  // Check specifically for MAILGUN_API_KEY
   const mailgunApiKey = process.env.MAILGUN_API_KEY ? 'configured' : 'not configured';
+  console.log('MAILGUN_API_KEY status:', mailgunApiKey);
   
   res.status(200).json({
     service: 'Mailgun Email',
     status: 'operational',
     mailgunApiKey,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
   });
 });
 
