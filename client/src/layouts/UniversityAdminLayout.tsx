@@ -85,29 +85,7 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
     },
   ];
   
-  // Additional tools that might be helpful for university admins
-  const additionalTools = [
-    { 
-      name: 'Announcements', 
-      href: '/university-admin/announcements', 
-      icon: <Bell className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Resources', 
-      href: '/university-admin/resources', 
-      icon: <BookOpen className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Events', 
-      href: '/university-admin/events', 
-      icon: <CalendarDays className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Support', 
-      href: '/university-admin/support', 
-      icon: <MessageSquare className="h-5 w-5" /> 
-    },
-  ];
+  // No additional tools for university admins
   
   return (
     <div className="flex h-screen bg-gray-50">
@@ -169,27 +147,7 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
             ))}
           </div>
           
-          <Separator className="my-4" />
-          
-          {/* Additional Tools Section */}
-          <h3 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Additional Tools</h3>
-          <div className="space-y-1">
-            {additionalTools.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  location === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {item.icon}
-                <span className="ml-3">{item.name}</span>
-              </Link>
-            ))}
-          </div>
+          {/* No additional tools section */}
         </nav>
         
         {/* User Section */}
