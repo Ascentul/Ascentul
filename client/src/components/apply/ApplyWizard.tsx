@@ -402,11 +402,6 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
               </Button>
             )}
           </div>
-          
-          <div className="flex justify-between w-full mt-4 clear-both">
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>Continue to Review</Button>
-          </div>
         </>
       )}
 
