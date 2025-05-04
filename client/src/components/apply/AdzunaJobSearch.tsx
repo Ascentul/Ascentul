@@ -376,8 +376,20 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
               onClick={(e) => {
                 console.log('Search button clicked!');
                 e.preventDefault();
+                
+                // Validate search term
+                if (!searchParams.keywords.trim()) {
+                  toast({
+                    title: "Missing information",
+                    description: "Please enter keywords for your job search",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
                 // Use direct fetch instead of the query
                 directFetch();
+                
                 // Also update search history
                 setSearchHistory((prev) => [
                   { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
@@ -386,6 +398,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
               }} 
               disabled={isLoading || !searchParams.keywords.trim()} 
               className="w-full mt-2"
+              type="button"
             >
               {isLoading ? (
                 <>
