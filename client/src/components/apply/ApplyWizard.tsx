@@ -400,15 +400,16 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                 </Card>
               ))
             ) : (
-              <div className="col-span-full p-8 text-center bg-muted rounded-md">
-                <p>No resumes found. Create one in the Resume Builder.</p>
+              <>
+                <p className="col-span-full p-4 text-center">No resumes found. Create one in the Resume Builder.</p>
                 <Button 
                   variant="link" 
                   onClick={() => window.location.href = '/resume'}
+                  className="mx-auto block"
                 >
                   Go to Resume Builder
                 </Button>
-              </div>
+              </>
             )}
           </div>
           
