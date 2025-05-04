@@ -6,7 +6,7 @@ import { insertInterviewStageSchema, insertFollowupActionSchema } from '@shared/
 
 export function registerApplicationInterviewRoutes(app: Router, storage: IStorage) {
   // Get interview stages for an application
-  app.get('/api/applications/:applicationId/stages', requireLoginFallback, async (req: Request, res: Response) => {
+  app.get('/applications/:applicationId/stages', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
@@ -40,7 +40,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
   });
   
   // Create a new interview stage for an application
-  app.post('/api/applications/:applicationId/stages', requireLoginFallback, async (req: Request, res: Response) => {
+  app.post('/applications/:applicationId/stages', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
@@ -124,7 +124,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
   });
   
   // Get follow-up actions for an application
-  app.get('/api/applications/:applicationId/followups', requireLoginFallback, async (req: Request, res: Response) => {
+  app.get('/applications/:applicationId/followups', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
@@ -158,7 +158,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
   });
   
   // Create a new follow-up action for an application
-  app.post('/api/applications/:applicationId/followups', requireLoginFallback, async (req: Request, res: Response) => {
+  app.post('/applications/:applicationId/followups', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.applicationId);
       if (isNaN(applicationId)) {
