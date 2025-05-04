@@ -948,15 +948,15 @@ export default function CareerPathExplorer() {
           variant: "default"
         });
       } else {
-        // Fallback if no paths were generated
+        // If no paths were generated, show a toast but don't use default paths
         toast({
-          title: "Path Generation Limited",
-          description: "We couldn't generate highly personalized paths. Please complete more of your profile.",
-          variant: "default"
+          title: "Path Generation Failed",
+          description: "We couldn't generate personalized paths. Please complete more of your profile and try again.",
+          variant: "destructive"
         });
         
-        // Use default paths as fallback
-        setGeneratedProfilePaths(careerPaths.slice(0, 2));
+        // Don't set any placeholder paths
+        setGeneratedProfilePaths(null);
       }
     } catch (error) {
       console.error("Error generating career paths:", error);
@@ -965,6 +965,8 @@ export default function CareerPathExplorer() {
         description: "An error occurred while generating your personalized career paths.",
         variant: "destructive"
       });
+      // Set generatedProfilePaths to null to ensure no placeholder paths are shown
+      setGeneratedProfilePaths(null);
     } finally {
       setIsGeneratingPaths(false);
     }
@@ -1040,10 +1042,10 @@ export default function CareerPathExplorer() {
               We're using AI to analyze your skills, experience, and education to generate personalized career path recommendations.
             </p>
           </div>
-        ) : (
+        ) : generatedProfilePaths ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Show generated paths if available, otherwise show default paths */}
-            {(generatedProfilePaths || careerPaths.slice(0, 2)).map((path) => (
+            {/* Only show generated paths, no default placeholders */}
+            {generatedProfilePaths.map((path) => (
               <Card key={path.id} className="overflow-hidden h-full">
                 <CardContent className="p-6 flex flex-col h-full">
                   <h3 className="text-xl font-medium mb-4">{path.name}</h3>
@@ -1095,6 +1097,18 @@ export default function CareerPathExplorer() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full">
+            <div className="bg-white w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm">
+              <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-blue-500" />
+            </div>
+            <h3 className="text-xl sm:text-2xl font-medium mb-2 sm:mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Generate Personalized Career Paths
+            </h3>
+            <p className="text-neutral-500 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base text-center">
+              Click the "Generate Paths" button above to create AI-powered career path recommendations based on your profile data.
+            </p>
           </div>
         )}
       </div>
