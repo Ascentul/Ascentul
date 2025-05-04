@@ -393,17 +393,13 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                 </Card>
               ))
             ) : (
-              <>
-                <div className="col-span-full p-4 flex flex-col items-center justify-center space-y-3">
-                  <Button 
-                    variant="link" 
-                    onClick={() => window.location.href = '/resume'}
-                    className="block"
-                  >
-                    Go to Resume Builder
-                  </Button>
-                </div>
-              </>
+              <Button 
+                variant="link" 
+                onClick={() => window.location.href = '/resume'}
+                className="mx-auto"
+              >
+                Go to Resume Builder
+              </Button>
             )}
           </div>
           
