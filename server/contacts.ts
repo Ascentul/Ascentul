@@ -324,6 +324,65 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     }
   });
   
+  // Update an interaction
+  app.put("/api/contacts/interactions/:id", requireLoginFallback, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const interactionId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(interactionId)) {
+        return res.status(400).json({ message: "Invalid interaction ID" });
+      }
+      
+      // Update the interaction
+      const updatedInteraction = await storage.updateContactInteraction(interactionId, {
+        ...req.body,
+        updatedAt: new Date()
+      });
+      
+      if (!updatedInteraction) {
+        return res.status(404).json({ message: "Interaction not found" });
+      }
+      
+      res.status(200).json(updatedInteraction);
+    } catch (error) {
+      console.error("Error updating contact interaction:", error);
+      res.status(500).json({ message: "Failed to update interaction" });
+    }
+  });
+  
+  // Delete an interaction
+  app.delete("/api/contacts/interactions/:id", requireLoginFallback, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const interactionId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (isNaN(interactionId)) {
+        return res.status(400).json({ message: "Invalid interaction ID" });
+      }
+      
+      // Delete the interaction
+      const success = await storage.deleteContactInteraction(interactionId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Interaction not found" });
+      }
+      
+      res.status(200).json({ success: true, message: "Interaction deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting contact interaction:", error);
+      res.status(500).json({ message: "Failed to delete interaction" });
+    }
+  });
+  
   // Schedule a follow-up for a contact
   app.post("/api/contacts/:id/schedule-followup", requireLoginFallback, async (req: Request, res: Response) => {
     try {
