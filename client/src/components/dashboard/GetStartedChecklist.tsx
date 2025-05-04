@@ -44,7 +44,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Set your first career goal',
       description: 'Define what you want to achieve next',
       completed: false,
-      href: '/account?tab=career',
+      href: '/goals',
       icon: <CheckCircle className="h-4 w-4 text-green-500" />
     },
     {
