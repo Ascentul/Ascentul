@@ -136,12 +136,51 @@ const scheduleReportSchema = z.object({
 
 type ScheduleReportFormValues = z.infer<typeof scheduleReportSchema>;
 
+// Type for saved reports
+interface SavedReport {
+  id: string;
+  name: string;
+  date: string;
+  type: string;
+  frequency: string;
+}
+
 export default function Usage() {
   const [dateRange, setDateRange] = useState('last30Days');
   const [programFilter, setProgramFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([
+    { 
+      id: '1', 
+      name: 'April 2025 Monthly Usage Report', 
+      date: 'May 01, 2025', 
+      type: 'Monthly',
+      frequency: 'monthly'
+    },
+    { 
+      id: '2', 
+      name: 'Feature Engagement Analysis Q1', 
+      date: 'Apr 15, 2025', 
+      type: 'Quarterly',
+      frequency: 'quarterly'
+    },
+    { 
+      id: '3', 
+      name: 'Program Comparison Report', 
+      date: 'Apr 10, 2025', 
+      type: 'Custom',
+      frequency: 'once'
+    },
+    { 
+      id: '4', 
+      name: 'Annual Usage Summary 2024', 
+      date: 'Jan 15, 2025', 
+      type: 'Annual',
+      frequency: 'yearly'
+    }
+  ]);
   const { toast } = useToast();
   
   // Initialize the form
@@ -180,6 +219,18 @@ export default function Usage() {
         month: 'short',
         day: '2-digit',
       });
+
+      // Create a new report entry
+      const newReport: SavedReport = {
+        id: `new-${Date.now()}`,
+        name: data.reportName,
+        date: reportDate,
+        type: data.frequency.charAt(0).toUpperCase() + data.frequency.slice(1),
+        frequency: data.frequency
+      };
+
+      // Add the new report to the top of the list
+      setSavedReports([newReport, ...savedReports]);
       
       // Show success toast
       toast({
@@ -767,54 +818,27 @@ export default function Usage() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b">
-                  <td className="p-2">April 2025 Monthly Usage Report</td>
-                  <td className="p-2">May 01, 2025</td>
-                  <td className="p-2">
-                    <Badge variant="outline">Monthly</Badge>
-                  </td>
-                  <td className="text-right p-2">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-2">Feature Engagement Analysis Q1</td>
-                  <td className="p-2">Apr 15, 2025</td>
-                  <td className="p-2">
-                    <Badge variant="outline">Quarterly</Badge>
-                  </td>
-                  <td className="text-right p-2">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-2">Program Comparison Report</td>
-                  <td className="p-2">Apr 10, 2025</td>
-                  <td className="p-2">
-                    <Badge variant="outline">Custom</Badge>
-                  </td>
-                  <td className="text-right p-2">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="p-2">Annual Usage Summary 2024</td>
-                  <td className="p-2">Jan 15, 2025</td>
-                  <td className="p-2">
-                    <Badge variant="outline">Annual</Badge>
-                  </td>
-                  <td className="text-right p-2">
-                    <Button variant="ghost" size="sm">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </td>
-                </tr>
+                {savedReports.map((report) => (
+                  <tr key={report.id} className="border-b">
+                    <td className="p-2">{report.name}</td>
+                    <td className="p-2">{report.date}</td>
+                    <td className="p-2">
+                      <Badge variant="outline">{report.type}</Badge>
+                    </td>
+                    <td className="text-right p-2">
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                {savedReports.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center py-4 text-muted-foreground">
+                      No reports scheduled yet. Use the "Schedule Report" button to create one.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
