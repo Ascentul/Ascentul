@@ -915,25 +915,49 @@ export default function CareerPathExplorer() {
     try {
       setIsGeneratingPaths(true);
       
-      // In a production environment, this would call an API endpoint
-      // For now, we'll simulate a delay and use the predefined paths
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      console.log("Sending profile data to API:", careerProfileData);
       
-      // Normally, this would be an API call like:
-      // const response = await apiRequest("POST", "/api/career-paths/generate", {
-      //   profileData: careerProfileData
-      // });
-      // const data = await response.json();
-      
-      // For demo purposes, we'll use a subset of the existing paths
-      // In production, this would be AI-generated based on the user's profile
-      setGeneratedProfilePaths(careerPaths.slice(0, 3));
-      
-      toast({
-        title: "Paths Generated",
-        description: "We've analyzed your profile and generated customized career paths.",
-        variant: "default"
+      // Make the API call to our new endpoint
+      const response = await apiRequest("POST", "/api/career-paths/generate", {
+        profileData: careerProfileData
       });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("API Response:", data);
+      
+      // Check if the data has paths array from the AI-generated response
+      if (data.paths && data.paths.length > 0) {
+        // Process the paths to ensure they have proper icon components
+        const processedPaths = data.paths.map((path: any) => ({
+          ...path,
+          nodes: path.nodes.map((node: any) => ({
+            ...node,
+            icon: getIconComponent(node.icon) // Convert string icon names to React components
+          }))
+        }));
+        
+        setGeneratedProfilePaths(processedPaths);
+        
+        toast({
+          title: "Paths Generated",
+          description: "We've analyzed your profile and generated personalized career paths.",
+          variant: "default"
+        });
+      } else {
+        // Fallback if no paths were generated
+        toast({
+          title: "Path Generation Limited",
+          description: "We couldn't generate highly personalized paths. Please complete more of your profile.",
+          variant: "default"
+        });
+        
+        // Use default paths as fallback
+        setGeneratedProfilePaths(careerPaths.slice(0, 2));
+      }
     } catch (error) {
       console.error("Error generating career paths:", error);
       toast({
