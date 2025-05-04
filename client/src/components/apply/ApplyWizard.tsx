@@ -394,14 +394,13 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
               ))}
             </div>
           ) : (
-            <div className="flex justify-center py-8">
-              <Button 
-                variant="link" 
-                onClick={() => window.location.href = '/resume'}
-              >
-                Go to Resume Builder
-              </Button>
-            </div>
+            <Button 
+              variant="link" 
+              onClick={() => window.location.href = '/resume'}
+              className="mx-auto mt-8"
+            >
+              Go to Resume Builder
+            </Button>
           )}
         </>
       )}
