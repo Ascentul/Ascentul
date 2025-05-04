@@ -23,7 +23,10 @@ import {
   BarChart,
   Activity,
   Clock,
-  User
+  User,
+  UserPlus,
+  Bell,
+  Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 
