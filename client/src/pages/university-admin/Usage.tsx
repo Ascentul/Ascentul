@@ -16,6 +16,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
+import { AcademicProgram } from './Settings';
+import { Loader2 } from 'lucide-react';
 import {
   BarChart,
   LineChart,
@@ -88,6 +91,22 @@ export default function Usage() {
   const [dateRange, setDateRange] = useState('last30Days');
   const [programFilter, setProgramFilter] = useState('all');
   
+  // Fetch academic programs from API
+  const { 
+    data: academicPrograms = [], 
+    isLoading: programsLoading, 
+    error: programsError 
+  } = useQuery({
+    queryKey: ['/api/academic-programs'],
+    queryFn: async () => {
+      const response = await fetch('/api/academic-programs');
+      if (!response.ok) {
+        throw new Error('Failed to fetch academic programs');
+      }
+      return response.json();
+    }
+  });
+  
   return (
     <div className="space-y-6">
       <div>
@@ -121,11 +140,26 @@ export default function Usage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Programs</SelectItem>
-              <SelectItem value="cs-bs">Computer Science (BS)</SelectItem>
-              <SelectItem value="eng-bs">Engineering (BS)</SelectItem>
-              <SelectItem value="bus-bs">Business Administration (BS)</SelectItem>
-              <SelectItem value="cs-ms">Computer Science (MS)</SelectItem>
-              <SelectItem value="mba">MBA</SelectItem>
+              {programsLoading ? (
+                <div className="flex items-center justify-center py-2">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span>Loading programs...</span>
+                </div>
+              ) : programsError ? (
+                <div className="text-red-500 p-2 text-sm">
+                  Error loading programs
+                </div>
+              ) : academicPrograms.length === 0 ? (
+                <div className="p-2 text-sm text-muted-foreground">
+                  No programs found
+                </div>
+              ) : (
+                academicPrograms.map((program: AcademicProgram) => (
+                  <SelectItem key={program.id} value={program.id.toString()}>
+                    {program.programName} ({program.degreeType})
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
