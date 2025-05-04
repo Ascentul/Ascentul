@@ -1154,6 +1154,114 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
         </TabsContent>
       </Tabs>
 
+      {/* Edit Interaction Dialog */}
+      {editingInteraction && (
+        <Dialog open={!!editingInteraction} onOpenChange={(open) => !open && setEditingInteraction(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Interaction</DialogTitle>
+              <DialogDescription>
+                Update the details of this interaction.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Interaction Type</label>
+                  <Select 
+                    value={editingInteraction.interactionType}
+                    onValueChange={(value) => {
+                      setEditingInteraction({
+                        ...editingInteraction,
+                        interactionType: value
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select interaction type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Call">Call</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Meeting">Meeting</SelectItem>
+                      <SelectItem value="Video Call">Video Call</SelectItem>
+                      <SelectItem value="Coffee Chat">Coffee Chat</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Date</label>
+                  <Input 
+                    type="date"
+                    value={new Date(editingInteraction.date).toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const dateString = e.target.value + 'T00:00:00';
+                        const date = new Date(dateString);
+                        setEditingInteraction({
+                          ...editingInteraction,
+                          date: date
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Notes</label>
+                <Textarea 
+                  placeholder="Enter details about this interaction" 
+                  className="min-h-[100px]"
+                  value={editingInteraction.notes || ''}
+                  onChange={(e) => {
+                    setEditingInteraction({
+                      ...editingInteraction,
+                      notes: e.target.value
+                    });
+                  }}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setEditingInteraction(null)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    updateInteractionMutation.mutate({
+                      interactionId: editingInteraction.id,
+                      data: {
+                        interactionType: editingInteraction.interactionType,
+                        date: editingInteraction.date,
+                        notes: editingInteraction.notes
+                      }
+                    });
+                  }}
+                  disabled={updateInteractionMutation.isPending}
+                >
+                  {updateInteractionMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Interaction'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <div className="flex justify-end pt-4">
         <Button variant="outline" onClick={onClose}>
           Close
