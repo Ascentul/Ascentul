@@ -213,7 +213,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
   if (!isOpen) return null;
   
   return (
-    <div className="w-full">
+    <>
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-lg font-semibold">Application Agent</h3>
@@ -537,6 +537,6 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
           </form>
         </Form>
       )}
-    </div>
+    </>
   );
 }
