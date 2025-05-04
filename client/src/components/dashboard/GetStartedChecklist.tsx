@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { 
   CheckCircle, Circle, Briefcase, Users, FileText, 
-  Linkedin, Star, ChevronRight, X 
+  Linkedin, Star, ChevronRight, X, Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import Confetti from '@/components/Confetti';
 
 // Define checklist item interface
 interface ChecklistItem {
@@ -25,6 +27,8 @@ interface GetStartedChecklistProps {
 
 // Main component
 export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
+  const { toast } = useToast();
+  
   // State to track checklist items
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -33,7 +37,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       description: 'Add your work history, education, and skills',
       completed: false,
       href: '/account-settings/career',
-      icon: <Briefcase className="h-5 w-5 text-primary" />
+      icon: <Briefcase className="h-4 w-4 text-primary" />
     },
     {
       id: 'career-goal',
@@ -41,7 +45,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       description: 'Define what you want to achieve next',
       completed: false,
       href: '/goals',
-      icon: <CheckCircle className="h-5 w-5 text-green-500" />
+      icon: <CheckCircle className="h-4 w-4 text-green-500" />
     },
     {
       id: 'job-application',
@@ -49,7 +53,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       description: 'Start managing your job applications',
       completed: false,
       href: '/job-applications',
-      icon: <FileText className="h-5 w-5 text-blue-500" />
+      icon: <FileText className="h-4 w-4 text-blue-500" />
     },
     {
       id: 'linkedin-profile',
@@ -57,7 +61,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       description: 'Get AI-powered insights for improvement',
       completed: false,
       href: '/linkedin-analyzer',
-      icon: <Linkedin className="h-5 w-5 text-blue-600" />
+      icon: <Linkedin className="h-4 w-4 text-blue-600" />
     },
     {
       id: 'network-contact',
@@ -65,7 +69,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       description: 'Start building your professional network',
       completed: false,
       href: '/network',
-      icon: <Users className="h-5 w-5 text-indigo-500" />
+      icon: <Users className="h-4 w-4 text-indigo-500" />
     }
   ]);
 
@@ -76,7 +80,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     description: 'Tell us what you think about Ascentul',
     completed: false,
     href: '/feedback',
-    icon: <Star className="h-5 w-5 text-yellow-500" />
+    icon: <Star className="h-4 w-4 text-yellow-500" />
   });
 
   // State to track whether the checklist should be shown
@@ -85,6 +89,10 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const [isLoading, setIsLoading] = useState(true);
   // State to track if the review item is unlocked
   const [reviewUnlocked, setReviewUnlocked] = useState(false);
+  // State for confetti animation
+  const [showConfetti, setShowConfetti] = useState(false);
+  // Track if we just completed all tasks
+  const [justCompleted, setJustCompleted] = useState(false);
 
   // Fetch user's checklist progress from localStorage (or API in the future)
   useEffect(() => {
@@ -176,6 +184,24 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       // Save progress
       saveProgress(updatedItems, reviewItem.completed);
       
+      // Check if we just completed all 5 items
+      const newCompletedCount = updatedItems.filter(item => item.completed).length;
+      if (newCompletedCount === 5 && prevItems.filter(item => item.completed).length === 4) {
+        // We just completed the final task
+        setJustCompleted(true);
+        setShowConfetti(true);
+        
+        toast({
+          title: "Onboarding complete!",
+          description: "✅ You've completed onboarding! Your dashboard is now fully personalized.",
+        });
+        
+        // Hide checklist after 2 seconds
+        setTimeout(() => {
+          setShowChecklist(false);
+        }, 2000);
+      }
+      
       return updatedItems;
     });
   };
@@ -203,7 +229,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
-    if (completedCount >= 5) {
+    if (completedCount >= 5 && !justCompleted) {
       // Give a short delay before hiding to allow for animation
       const timer = setTimeout(() => {
         setShowChecklist(false);
@@ -211,7 +237,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       
       return () => clearTimeout(timer);
     }
-  }, [completedCount]);
+  }, [completedCount, justCompleted]);
 
   // If checklist is hidden, don't render anything
   if (!showChecklist) return null;
@@ -229,7 +255,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1,
-      transition: { duration: 0.5 } 
+      transition: { duration: 0.3 } 
     }
   };
 
@@ -240,37 +266,42 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       variants={fadeIn}
       className="mb-6"
     >
-      <Card className="relative overflow-hidden">
+      {/* Confetti effect for completion */}
+      <Confetti active={showConfetti} duration={2000} />
+      
+      <Card className="relative overflow-hidden border border-border/60 bg-background/95 shadow-sm">
         <button 
           onClick={dismissChecklist}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Dismiss checklist"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
         
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl">Get Started with Ascentul</CardTitle>
-          <CardDescription>5 quick actions to unlock your full dashboard</CardDescription>
+        <CardHeader className="pb-1 pt-4 px-4">
+          <CardTitle className="text-lg font-medium">Get Started with Ascentul</CardTitle>
+          <CardDescription className="text-sm">
+            Want to personalize your dashboard and unlock advanced features? Complete these quick steps.
+          </CardDescription>
           
           <div className="mt-2">
-            <div className="flex justify-between text-sm mb-1">
+            <div className="flex justify-between text-xs mb-1">
               <span>{completedCount} of 5 tasks completed</span>
               <span>{Math.round(progressPercentage)}%</span>
             </div>
-            <Progress value={progressPercentage} className="h-2" />
+            <Progress value={progressPercentage} className="h-1.5" />
           </div>
         </CardHeader>
         
-        <CardContent className="pt-4">
-          <div className="space-y-3">
+        <CardContent className="pt-3 pb-4 px-4">
+          <div className="space-y-2.5">
             {checklistItems.map((item) => (
               <div 
                 key={item.id}
-                className={`flex items-start p-3 rounded-lg border transition-colors ${
+                className={`flex items-start p-2.5 rounded-md border transition-colors ${
                   item.completed 
                     ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900' 
-                    : 'border-border hover:bg-muted/50'
+                    : 'border-border/60 hover:bg-muted/50'
                 }`}
               >
                 <button 
@@ -279,28 +310,28 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   aria-label={`Mark ${item.title} as ${item.completed ? 'incomplete' : 'complete'}`}
                 >
                   {item.completed ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
+                    <Circle className="h-4 w-4 text-muted-foreground" />
                   )}
                 </button>
                 
-                <div className="ml-3 flex-grow">
-                  <h3 className={`text-base font-medium ${
+                <div className="ml-2.5 flex-grow">
+                  <h3 className={`text-sm font-medium ${
                     item.completed ? 'text-green-700 dark:text-green-400' : ''
                   }`}>
                     {item.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
                 </div>
                 
                 <Link href={item.href}>
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="flex-shrink-0 ml-2 whitespace-nowrap"
+                    size="sm"
+                    className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
                   >
-                    {item.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-4 w-4" />
+                    {item.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
                   </Button>
                 </Link>
               </div>
@@ -309,10 +340,10 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
             {/* Review item - only show if 3+ tasks are completed */}
             {reviewUnlocked && (
               <div 
-                className={`flex items-start p-3 rounded-lg border transition-colors ${
+                className={`flex items-start p-2.5 rounded-md border transition-colors ${
                   reviewItem.completed 
                     ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900' 
-                    : 'border-border hover:bg-muted/50'
+                    : 'border-border/60 hover:bg-muted/50'
                 }`}
               >
                 <button 
@@ -321,33 +352,33 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   aria-label={`Mark ${reviewItem.title} as ${reviewItem.completed ? 'incomplete' : 'complete'}`}
                 >
                   {reviewItem.completed ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
+                    <Circle className="h-4 w-4 text-muted-foreground" />
                   )}
                 </button>
                 
-                <div className="ml-3 flex-grow">
+                <div className="ml-2.5 flex-grow">
                   <div className="flex items-center">
-                    <h3 className={`text-base font-medium ${
+                    <h3 className={`text-sm font-medium ${
                       reviewItem.completed ? 'text-green-700 dark:text-green-400' : ''
                     }`}>
                       {reviewItem.title}
                     </h3>
-                    <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
                       Unlocked
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{reviewItem.description}</p>
+                  <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
                 </div>
                 
                 <Link href={reviewItem.href}>
                   <Button 
                     variant="outline" 
-                    size="sm" 
-                    className="flex-shrink-0 ml-2 whitespace-nowrap"
+                    size="sm"
+                    className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
                   >
-                    {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-4 w-4" />
+                    {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
                   </Button>
                 </Link>
               </div>

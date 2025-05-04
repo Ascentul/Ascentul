@@ -539,9 +539,6 @@ export default function Dashboard() {
           </Dialog>
         </div>
       </motion.div>
-
-      {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
-      {user && <GetStartedChecklist userId={user.id} />}
       
       {/* Stats Overview */}
       <motion.div 
@@ -599,6 +596,9 @@ export default function Dashboard() {
           />
         </motion.div>
       </motion.div>
+      
+      {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
+      {user && <GetStartedChecklist userId={user.id} />}
       
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 

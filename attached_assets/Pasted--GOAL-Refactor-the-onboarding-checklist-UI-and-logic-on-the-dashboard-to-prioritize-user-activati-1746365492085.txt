@@ -1,0 +1,49 @@
+🧠 GOAL:
+Refactor the onboarding checklist UI and logic on the dashboard to prioritize user activation without blocking product value.
+
+🎯 CONTEXT:
+- The current checklist sits above all core dashboard stats, which visually delays the value of the app.
+- We want to improve first-use experience while reducing friction for power users.
+
+✅ TASKS:
+
+1. 🧭 REPOSITION CHECKLIST
+- Move the entire onboarding checklist **below the stat cards section** on the dashboard.
+- Use smooth vertical spacing (same margin as between stat cards and other dashboard modules).
+
+2. 🎯 MAINTAIN CHECKLIST BEHAVIOR
+- Checklist should continue to display **until all 5 required items are completed**:
+  - Complete your career profile
+  - Set your first career goal
+  - Track your first application
+  - Analyze your LinkedIn profile
+  - Add 1 contact to the Network Hub
+- The 6th item — “⭐ Leave a quick review” — should unlock **after 3 items are completed**.
+- Once all 5 required actions are completed, **hide the checklist permanently** for that user (flag in DB or localStorage fallback).
+
+3. ✅ MAKE CHECKLIST FEEL OPTIONAL, NOT FORCED
+- Add a subtitle like:  
+  _“Want to personalize your dashboard and unlock advanced features? Complete these quick steps.”_
+
+4. 📉 DE-EMPHASIZE VISUALLY (FOR BETTER HIERARCHY)
+- Slightly reduce the font size and vertical padding within the checklist.
+- Shrink the “Go” buttons to medium size and reduce spacing between items by ~15%.
+- Use a **secondary card style** — lighter background or subtle border to visually separate it from stat cards.
+
+5. 🎉 ADD MICRO-REWARD ON COMPLETION
+- When all checklist items are completed, show a small confetti animation or toast:
+  “✅ You’ve completed onboarding! Your dashboard is now fully personalized.”
+- After 2 seconds, fade out the checklist area.
+
+6. 🔒 (OPTIONAL) GRAY OUT FEATURES TO ENCOURAGE COMPLETION
+- For bonus UX: Lightly dim or label 1–2 advanced features (like Interview Coach) with a tag:
+  _“Unlock by completing onboarding”_ — but **do not restrict access**.
+
+📦 TECH:
+- Use the existing React or component system.
+- Ensure checklist state is synced to the backend (Supabase/Firebase) or stored persistently in local storage.
+- Use animation library or CSS for confetti effect (e.g. `react-confetti` or lightweight CSS burst).
+
+📌 NOTE:
+We’re optimizing for **low friction, fast activation, and long-term retention** — the checklist should motivate, not gatekeep.
+
