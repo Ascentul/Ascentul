@@ -1069,7 +1069,29 @@ export default function CareerPathExplorer() {
                     ))}
                   </div>
                   
-                  <Button variant="outline" className="w-full mt-4">View Full Path</Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => {
+                      // Set this path as active path
+                      setActivePath(path);
+                      // Switch to target role mode to show the full path view
+                      setExplorationMode('target');
+                      // Clear any selected node
+                      setSelectedNodeId(null);
+                      // Save this path as the generated path so it shows in target mode
+                      setGeneratedPath(path);
+                      // Scroll to the top of the page to show the full path
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      // Notify the user
+                      toast({
+                        title: "Path Loaded",
+                        description: `Now viewing the complete "${path.name}" career path.`,
+                      });
+                    }}
+                  >
+                    View Full Path
+                  </Button>
                 </CardContent>
               </Card>
             ))}
