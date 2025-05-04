@@ -53,6 +53,14 @@ interface CareerSkill {
   level: 'basic' | 'intermediate' | 'advanced';
 }
 
+interface CertificationRecommendation {
+  name: string;
+  provider: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTimeToComplete: string;
+  relevance: 'highly relevant' | 'relevant' | 'somewhat relevant';
+}
+
 interface CareerNode {
   id: string;
   title: string;
