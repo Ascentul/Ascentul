@@ -732,18 +732,16 @@ const Interview = () => {
               </div>
             </div>
             
-            <Card>
-              <CardContent className="pt-6">
-                <AdzunaJobSearch 
-                  onSelectJob={(jobInfo) => {
-                    // When a job is selected from search results
-                    // Store the job info and open the application wizard with pre-filled job info
-                    setSelectedJobInfo(jobInfo);
-                    setShowApplyWizard(true);
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <div className="pt-6">
+              <AdzunaJobSearch 
+                onSelectJob={(jobInfo) => {
+                  // When a job is selected from search results
+                  // Store the job info and open the application wizard with pre-filled job info
+                  setSelectedJobInfo(jobInfo);
+                  setShowApplyWizard(true);
+                }}
+              />
+            </div>
           </div>
         </motion.div>
       )}
