@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -57,8 +57,11 @@ import {
   BookOpen,
   Plus,
   PenLine,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Form schema for university profile
 const universityProfileSchema = z.object({
@@ -90,6 +93,17 @@ const notificationSettingsSchema = z.object({
   sendCopyToAdmin: z.boolean().default(false),
   adminEmail: z.string().email('Please enter a valid email address').optional(),
 });
+
+// Interface for academic programs
+export interface AcademicProgram {
+  id: number;
+  programName: string;
+  degreeType: 'Associate' | 'Bachelor' | 'Master' | 'Doctorate' | 'Certificate';
+  departmentName: string;
+  description?: string;
+  duration?: number;
+  active: boolean;
+}
 
 // Schema for academic program
 const academicProgramSchema = z.object({
