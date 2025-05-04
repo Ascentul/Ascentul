@@ -463,7 +463,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
   });
 
   // Delete a follow-up for a specific contact
-  app.delete("/api/contacts/:contactId/followups/:followupId", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/contacts/:contactId/followups/:followupId", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.contactId);
