@@ -18,7 +18,7 @@ import AdminModelsPage from './ModelsPage';
 import OpenAILogsPage from './OpenAILogsPage';
 import EmailAdmin from './EmailAdmin';
 import UserManagement from './UserManagement';
-import Universities from './Universities';
+import UniversitiesPage from './Universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
 import {
@@ -404,7 +404,7 @@ export default function AdminDashboard() {
       case 'users':
         return <UserManagement />;
       case 'universities':
-        return <Universities />;
+        return <UniversitiesPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
