@@ -469,12 +469,16 @@ Based on your profile and the job you're targeting, I recommend highlighting:
       
       const { password: pwd, ...safeUser } = user;
       
-      // Add redirect paths based on user role for frontend to handle
+      // Add redirect paths based on user role and login type for frontend to handle
       let redirectPath;
       if (user.userType === "admin") {
         redirectPath = "/admin-dashboard";
       } else if (user.userType === "staff") {
         redirectPath = "/staff-dashboard";
+      } else if (user.userType === "university_admin" && loginType === "university") {
+        redirectPath = "/university-admin/dashboard";
+      } else if (user.userType === "university_student" && loginType === "university") {
+        redirectPath = "/university/dashboard";
       } else {
         redirectPath = "/career-dashboard";
       }
