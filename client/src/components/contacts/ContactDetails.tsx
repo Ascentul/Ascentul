@@ -110,6 +110,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const [showFollowUpForm, setShowFollowUpForm] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [editingInteraction, setEditingInteraction] = useState<ContactInteraction | null>(null);
+  const [editingFollowUp, setEditingFollowUp] = useState<FollowupAction | null>(null);
   
   // Fetch contact data
   const {
@@ -323,6 +324,36 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       toast({
         title: 'Error',
         description: 'Failed to delete follow-up. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Update follow-up mutation
+  const updateFollowUpMutation = useMutation({
+    mutationFn: async ({ followUpId, data }: { followUpId: number; data: Partial<FollowupAction> }) => {
+      return apiRequest({
+        url: `/api/contacts/${contactId}/followups/${followUpId}`,
+        method: 'PUT',
+        data: data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/followups`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      toast({
+        title: 'Follow-up updated',
+        description: 'Follow-up has been updated successfully.',
+      });
+      // Reset editing state
+      setEditingFollowUp(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update follow-up. Please try again.',
         variant: 'destructive',
       });
     },
@@ -1092,6 +1123,16 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                               )}
                             </Button>
                           )}
+                          {!followUp.completed && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => setEditingFollowUp(followUp)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          )}
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -1254,6 +1295,114 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                     </>
                   ) : (
                     'Update Interaction'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Edit Follow-up Dialog */}
+      {editingFollowUp && (
+        <Dialog open={!!editingFollowUp} onOpenChange={(open) => !open && setEditingFollowUp(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Follow-up</DialogTitle>
+              <DialogDescription>
+                Update the details of this follow-up.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Follow-up Type</label>
+                  <Select 
+                    value={editingFollowUp.type}
+                    onValueChange={(value) => {
+                      setEditingFollowUp({
+                        ...editingFollowUp,
+                        type: value
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select follow-up type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Call">Call</SelectItem>
+                      <SelectItem value="Email">Email</SelectItem>
+                      <SelectItem value="Meeting">Meeting</SelectItem>
+                      <SelectItem value="Coffee">Coffee</SelectItem>
+                      <SelectItem value="Lunch">Lunch</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Due Date</label>
+                  <Input 
+                    type="date"
+                    value={new Date(editingFollowUp.dueDate).toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const dateString = e.target.value + 'T00:00:00';
+                        const date = new Date(dateString);
+                        setEditingFollowUp({
+                          ...editingFollowUp,
+                          dueDate: date.toISOString()
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Notes</label>
+                <Textarea 
+                  placeholder="Enter details about this follow-up" 
+                  className="min-h-[100px]"
+                  value={editingFollowUp.notes || ''}
+                  onChange={(e) => {
+                    setEditingFollowUp({
+                      ...editingFollowUp,
+                      notes: e.target.value
+                    });
+                  }}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setEditingFollowUp(null)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    updateFollowUpMutation.mutate({
+                      followUpId: editingFollowUp.id,
+                      data: {
+                        type: editingFollowUp.type,
+                        dueDate: editingFollowUp.dueDate,
+                        notes: editingFollowUp.notes
+                      }
+                    });
+                  }}
+                  disabled={updateFollowUpMutation.isPending}
+                >
+                  {updateFollowUpMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Follow-up'
                   )}
                 </Button>
               </div>
