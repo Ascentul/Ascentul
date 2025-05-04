@@ -235,8 +235,9 @@ function App() {
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
 
   // Only redirect root path to home if not trying to access sign-in
-  if ((location === "/" || location === "") && !isSignInRoute) {
-    // Just navigate to /home for consistency
+  if (location === "/" || location === "") {
+    // Just navigate to /home for consistency, 
+    // the sign-in specific routing is handled below in isSignInRoute check
     navigate("/home");
     return null;
   }
@@ -366,7 +367,7 @@ function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/home" component={Home} />
-          <Route path="/sign-in" component={SignIn} />
+          {/* Sign-in route already handled above */}
           <Route path="/sign-up" component={SignUp} />
           <Route path="/admin-login" component={AdminLogin} />
           <Route path="/staff-login" component={StaffLogin} />
