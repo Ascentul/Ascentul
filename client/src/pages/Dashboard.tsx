@@ -620,7 +620,11 @@ export default function Dashboard() {
       </motion.div>
       
       {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
-      {user && <GetStartedChecklist userId={user.id} profileCompletion={calculateProfileCompletion(careerData)} />}
+      {user && <GetStartedChecklist 
+        userId={user.id} 
+        profileCompletion={calculateProfileCompletion(careerData)}
+        hasGoals={Array.isArray(goals) && goals.length > 0}
+      />}
       
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 
