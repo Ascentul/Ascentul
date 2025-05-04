@@ -28,7 +28,7 @@ import pdfTestRouter from "./routes/pdf-test";
 import userRoleRouter from "./routes/user-role";
 import academicProgramsRouter from "./routes/academic-programs";
 // Import mail router for email functionality
-import mailRouter from "./routes/mail.js";
+import mailRouter from "./routes/mail";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -4647,7 +4647,11 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
     }
   });
 
-  app.use(apiRouter);
+  // Mount apiRouter at /api prefix
+  app.use("/api", apiRouter);
+
+  // Register routes for mail functionality
+  app.use("/api/mail", mailRouter);
 
   // Register career path routes
   registerCareerPathRoutes(app);
