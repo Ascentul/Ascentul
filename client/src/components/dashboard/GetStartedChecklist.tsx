@@ -87,8 +87,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const [showChecklist, setShowChecklist] = useState(true);
   // State to track if the checklist is loading
   const [isLoading, setIsLoading] = useState(true);
-  // State to track if the review item is unlocked
-  const [reviewUnlocked, setReviewUnlocked] = useState(false);
+  // State to track if the review item is unlocked (always true now)
+  const [reviewUnlocked, setReviewUnlocked] = useState(true);
   // State for confetti animation
   const [showConfetti, setShowConfetti] = useState(false);
   // Track if we just completed all tasks
@@ -222,10 +222,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const completedCount = checklistItems.filter(item => item.completed).length;
   const progressPercentage = (completedCount / checklistItems.length) * 100;
 
-  // Check if review should be unlocked (3+ items completed)
-  useEffect(() => {
-    setReviewUnlocked(completedCount >= 3);
-  }, [completedCount]);
+  // We're always showing the review option now, so no need to check for unlocking
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
@@ -337,52 +334,47 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
               </div>
             ))}
             
-            {/* Review item - only show if 3+ tasks are completed */}
-            {reviewUnlocked && (
-              <div 
-                className={`flex items-start p-2.5 rounded-md border transition-colors ${
-                  reviewItem.completed 
-                    ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900' 
-                    : 'border-border/60 hover:bg-muted/50'
-                }`}
+            {/* Review item - now showing for all users from the start */}
+            <div 
+              className={`flex items-start p-2.5 rounded-md border transition-colors ${
+                reviewItem.completed 
+                  ? 'border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900' 
+                  : 'border-border/60 hover:bg-muted/50'
+              }`}
+            >
+              <button 
+                className="flex-shrink-0 mt-0.5"
+                onClick={toggleReviewCompletion}
+                aria-label={`Mark ${reviewItem.title} as ${reviewItem.completed ? 'incomplete' : 'complete'}`}
               >
-                <button 
-                  className="flex-shrink-0 mt-0.5"
-                  onClick={toggleReviewCompletion}
-                  aria-label={`Mark ${reviewItem.title} as ${reviewItem.completed ? 'incomplete' : 'complete'}`}
-                >
-                  {reviewItem.completed ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-                
-                <div className="ml-2.5 flex-grow">
-                  <div className="flex items-center">
-                    <h3 className={`text-sm font-medium ${
-                      reviewItem.completed ? 'text-green-700 dark:text-green-400' : ''
-                    }`}>
-                      {reviewItem.title}
-                    </h3>
-                    <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
-                      Unlocked
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
+                {reviewItem.completed ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Circle className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              
+              <div className="ml-2.5 flex-grow">
+                <div className="flex items-center">
+                  <h3 className={`text-sm font-medium ${
+                    reviewItem.completed ? 'text-green-700 dark:text-green-400' : ''
+                  }`}>
+                    {reviewItem.title}
+                  </h3>
                 </div>
-                
-                <Link href={reviewItem.href}>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
-                  >
-                    {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </Link>
+                <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
               </div>
-            )}
+              
+              <Link href={reviewItem.href}>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
+                >
+                  {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardContent>
       </Card>
