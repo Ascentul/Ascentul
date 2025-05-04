@@ -16,6 +16,7 @@ import AdminOverview from './AdminOverview';
 import SupportPage from './SupportPage';
 import AdminModelsPage from './ModelsPage';
 import OpenAILogsPage from './OpenAILogsPage';
+import EmailAdmin from './EmailAdmin';
 import UserManagement from './UserManagement';
 import Universities from './Universities';
 import AnalyticsPage from './AnalyticsPage';
@@ -546,6 +547,12 @@ export default function AdminDashboard() {
             label="OpenAI Logs"
             active={activeTab === 'openai-logs'}
             onClick={() => setActiveTab('openai-logs')}
+          />
+          <SidebarItem
+            icon={<Mail className="h-5 w-5" />}
+            label="Email Management"
+            active={activeTab === 'email'}
+            onClick={() => setActiveTab('email')}
           />
           <SidebarItem
             icon={<Settings className="h-5 w-5" />}
