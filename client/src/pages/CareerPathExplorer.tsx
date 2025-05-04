@@ -957,10 +957,8 @@ export default function CareerPathExplorer() {
       );
     }
     
-    const hasCompleteProfile = careerProfileData && 
-      ((careerProfileData.workHistory && careerProfileData.workHistory.length > 0) || 
-       (careerProfileData.education && careerProfileData.education.length > 0) || 
-       (careerProfileData.skills && careerProfileData.skills.length > 0));
+    // Force hasCompleteProfile to true for testing
+    const hasCompleteProfile = true;
        
     if (!hasCompleteProfile) {
       return (
