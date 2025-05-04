@@ -620,26 +620,48 @@ export default function Dashboard() {
       </motion.div>
       
       {/* Get Started Checklist - only shown to users who haven't completed all tasks */}
-      {user && <GetStartedChecklist 
-        userId={user.id} 
-        profileCompletion={calculateProfileCompletion(careerData)}
-        hasGoals={Array.isArray(goals) && goals.length > 0}
-        hasApplications={
-          (() => {
-            // Check localStorage for applications
+      {user && (() => {
+        // Query applications from API for the checklist auto-completion
+        const { data: apiApplications } = useQuery<any[]>({
+          queryKey: ['/api/job-applications-for-checklist'],
+          queryFn: async () => {
             try {
-              const mockApps = localStorage.getItem('mockJobApplications');
-              if (mockApps) {
-                const apps = JSON.parse(mockApps);
-                return Array.isArray(apps) && apps.length > 0;
-              }
-            } catch (e) {
-              console.error('Error checking for applications:', e);
+              const response = await apiRequest('GET', '/api/job-applications');
+              if (!response.ok) throw new Error(`API error: ${response.status}`);
+              return await response.json();
+            } catch (error) {
+              console.error('Error fetching applications for checklist:', error);
+              return [];
             }
-            return false;
-          })()
+          },
+          staleTime: 1000 * 60 * 5, // 5 minutes
+        });
+        
+        // Check for applications from localStorage
+        let hasLocalApplications = false;
+        try {
+          const mockApps = localStorage.getItem('mockJobApplications');
+          if (mockApps) {
+            const apps = JSON.parse(mockApps);
+            hasLocalApplications = Array.isArray(apps) && apps.length > 0;
+          }
+        } catch (e) {
+          console.error('Error checking for applications in localStorage:', e);
         }
-      />}
+        
+        // Determine if user has any applications
+        const hasApiApplications = Array.isArray(apiApplications) && apiApplications.length > 0;
+        const hasAnyApplications = hasLocalApplications || hasApiApplications;
+        
+        return (
+          <GetStartedChecklist 
+            userId={user.id} 
+            profileCompletion={calculateProfileCompletion(careerData)}
+            hasGoals={Array.isArray(goals) && goals.length > 0}
+            hasApplications={hasAnyApplications}
+          />
+        );
+      })()}
       
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 
