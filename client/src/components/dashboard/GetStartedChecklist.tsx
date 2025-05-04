@@ -130,17 +130,13 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
           
           setShowChecklist(!allCompleted);
         } else {
-          // Mock some random completion (for demo)
-          // In production, this would be based on actual user data
-          const mockCompletedCount = Math.floor(Math.random() * 3); // 0-2 random completed items
-          
-          // Randomly mark some items as completed for the demo
+          // All items should be unchecked for new users
           const updatedItems = [...checklistItems];
-          for (let i = 0; i < mockCompletedCount; i++) {
-            if (i < updatedItems.length) {
-              updatedItems[i].completed = true;
-            }
-          }
+          
+          // Ensure all items are marked as not completed
+          updatedItems.forEach(item => {
+            item.completed = false;
+          });
           
           setChecklistItems(updatedItems);
           
