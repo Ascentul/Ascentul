@@ -63,11 +63,19 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
         description: "You have been logged in successfully.",
       });
       
-      // Redirect based on user type
-      if (user.userType === 'regular') {
-        window.location.href = '/dashboard';
+      // Redirect based on user type with proper handling for admin users
+      if (user.userType === 'admin') {
+        console.log("Redirecting admin user to admin dashboard");
+        window.location.href = '/admin';
+      } else if (user.userType === 'university_admin') {
+        console.log("Redirecting university admin to university dashboard");
+        window.location.href = '/university-admin/dashboard';
+      } else if (user.userType === 'university_student') {
+        console.log("Redirecting university student to career dashboard");
+        window.location.href = '/career-dashboard';
       } else {
-        window.location.href = '/university';
+        console.log("Redirecting regular user to dashboard");
+        window.location.href = '/dashboard';
       }
       
       if (onSuccess) {

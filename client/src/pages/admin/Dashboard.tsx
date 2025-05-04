@@ -509,18 +509,20 @@ export default function AdminDashboard() {
             active={activeTab === 'users'}
             onClick={() => setActiveTab('users')}
           />
-          {/* Use a standard button for Universities, no Link component */}
-          <button
-              className={`flex items-center w-full py-2 px-3 rounded-md text-sm ${
-                isUniversitiesRoute
-                ? "bg-accent text-accent-foreground font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-              }`}
-              onClick={() => window.location.href = "/admin/universities"}
-            >
-              <span className="mr-3"><Building className="h-5 w-5" /></span>
-              <span>Universities</span>
-          </button>
+          {/* Use SidebarItem like other tabs for consistency */}
+          <SidebarItem
+            icon={<Building className="h-5 w-5" />}
+            label="Universities"
+            active={isUniversitiesRoute}
+            onClick={() => {
+              // Navigate to the universities page using window.location.assign
+              // This is more reliable than href in some cases
+              window.location.assign("/admin/universities");
+              
+              // Add a console log for debugging
+              console.log("Attempting to navigate to /admin/universities");
+            }}
+          />
           <SidebarItem
             icon={<Activity className="h-5 w-5" />}
             label="Analytics"
