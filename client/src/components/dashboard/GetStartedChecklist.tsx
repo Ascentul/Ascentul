@@ -23,11 +23,12 @@ interface ChecklistItem {
 
 interface GetStartedChecklistProps {
   userId: number;
-  profileCompletion?: number; // Add profile completion percentage
+  profileCompletion?: number; // Profile completion percentage
+  hasGoals?: boolean; // Whether user has any career goals
 }
 
 // Main component
-export function GetStartedChecklist({ userId, profileCompletion = 0 }: GetStartedChecklistProps) {
+export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = false }: GetStartedChecklistProps) {
   const { toast } = useToast();
   
   // State to track checklist items
@@ -248,6 +249,34 @@ export function GetStartedChecklist({ userId, profileCompletion = 0 }: GetStarte
       }
     }
   }, [profileCompletion, toast, reviewItem.completed, saveProgress, checklistItems]);
+  
+  // Auto-complete the career goal checklist item when user has created at least one goal
+  useEffect(() => {
+    if (hasGoals) {
+      // Find career goal checklist item
+      const careerGoalItem = checklistItems.find(item => item.id === 'career-goal');
+      
+      // If it exists and is not already marked as completed, mark it as completed
+      if (careerGoalItem && !careerGoalItem.completed) {
+        setChecklistItems(prevItems => {
+          const updatedItems = prevItems.map(item => 
+            item.id === 'career-goal' ? { ...item, completed: true } : item
+          );
+          
+          // Save updated progress to localStorage
+          saveProgress(updatedItems, reviewItem.completed);
+          
+          // Show a success toast
+          toast({
+            title: "Career goal added!",
+            description: "✅ You've created your first career goal. Keep going!",
+          });
+          
+          return updatedItems;
+        });
+      }
+    }
+  }, [hasGoals, toast, reviewItem.completed, saveProgress, checklistItems]);
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
