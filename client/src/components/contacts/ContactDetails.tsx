@@ -1384,7 +1384,8 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
               <h3 className="text-lg font-medium">Notes</h3>
               <Button 
                 onClick={() => {
-                  setNewNoteText(""); 
+                  setNewNoteText("");
+                  setEditingNote(null); 
                   setIsEditing(true);
                 }} 
                 size="sm"
@@ -1441,6 +1442,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <Button 
                   onClick={() => {
                     setNewNoteText("");
+                    setEditingNote(null);
                     setIsEditing(true);
                   }} 
                   variant="outline" 
