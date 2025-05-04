@@ -509,18 +509,17 @@ export default function AdminDashboard() {
             active={activeTab === 'users'}
             onClick={() => setActiveTab('users')}
           />
-          <Link href="/admin/universities">
-            <button
+          <button
               className={`flex items-center w-full py-2 px-3 rounded-md text-sm ${
                 isUniversitiesRoute
                   ? "bg-accent text-accent-foreground font-medium"
                   : "text-foreground/70 hover:bg-muted/80"
               }`}
+              onClick={() => setLocation("/admin/universities")}
             >
               <span className="mr-3"><Building className="h-5 w-5" /></span>
               <span>Universities</span>
             </button>
-          </Link>
           <SidebarItem
             icon={<Activity className="h-5 w-5" />}
             label="Analytics"
