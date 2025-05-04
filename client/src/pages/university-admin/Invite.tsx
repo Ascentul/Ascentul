@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+
 import { 
   Mail, 
   Users, 
@@ -42,8 +44,20 @@ import {
   Check, 
   Plus, 
   Trash2,
-  Upload
+  Upload,
+  Loader2
 } from 'lucide-react';
+
+// Interface for academic program data from the API
+interface AcademicProgram {
+  id: number;
+  programName: string;
+  degreeType: string;
+  departmentName: string;
+  description?: string;
+  duration?: number;
+  active: boolean;
+}
 
 // Form schema for inviting students
 const inviteFormSchema = z.object({
@@ -71,6 +85,12 @@ export default function Invite() {
   const [isCopied, setIsCopied] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  
+  // Fetch academic programs data from the API
+  const { data: programs, isLoading, error } = useQuery<AcademicProgram[]>({
+    queryKey: ['/academic-programs'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteFormSchema),
@@ -239,18 +259,52 @@ export default function Invite() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectGroup>
-                                <SelectLabel>Undergraduate</SelectLabel>
-                                <SelectItem value="cs-bs">Computer Science (BS)</SelectItem>
-                                <SelectItem value="eng-bs">Engineering (BS)</SelectItem>
-                                <SelectItem value="bus-bs">Business Administration (BS)</SelectItem>
-                              </SelectGroup>
-                              <SelectGroup>
-                                <SelectLabel>Graduate</SelectLabel>
-                                <SelectItem value="cs-ms">Computer Science (MS)</SelectItem>
-                                <SelectItem value="eng-ms">Engineering (MS)</SelectItem>
-                                <SelectItem value="mba">MBA</SelectItem>
-                              </SelectGroup>
+                              {isLoading ? (
+                                <div className="flex items-center justify-center py-6">
+                                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                              ) : error ? (
+                                <div className="flex items-center justify-center py-6 text-destructive">
+                                  <AlertCircle className="h-5 w-5 mr-2" />
+                                  <span>Failed to load programs</span>
+                                </div>
+                              ) : !programs || programs.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                                  <p>No programs found</p>
+                                  <p className="text-xs mt-1">Add programs in Settings</p>
+                                </div>
+                              ) : (
+                                <>
+                                  <SelectGroup>
+                                    <SelectLabel>Undergraduate Programs</SelectLabel>
+                                    {programs
+                                      .filter(program => program.active && 
+                                        ["Associate", "Bachelor"].includes(program.degreeType))
+                                      .map(program => (
+                                        <SelectItem 
+                                          key={program.id} 
+                                          value={program.id.toString()}>
+                                          {program.programName} ({program.degreeType})
+                                        </SelectItem>
+                                      ))
+                                    }
+                                  </SelectGroup>
+                                  <SelectGroup>
+                                    <SelectLabel>Graduate Programs</SelectLabel>
+                                    {programs
+                                      .filter(program => program.active && 
+                                        ["Master", "Doctorate", "Certificate"].includes(program.degreeType))
+                                      .map(program => (
+                                        <SelectItem 
+                                          key={program.id} 
+                                          value={program.id.toString()}>
+                                          {program.programName} ({program.degreeType})
+                                        </SelectItem>
+                                      ))
+                                    }
+                                  </SelectGroup>
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
