@@ -55,7 +55,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       title: 'Track your first application',
       description: 'Start managing your job applications',
       completed: false, // Ensure this starts as false for new users
-      href: '/application_tracker',
+      href: '/interviews',
       icon: <FileText className="h-4 w-4 text-blue-500" />
     },
     {

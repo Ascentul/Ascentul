@@ -99,7 +99,7 @@ function InterviewsRedirect() {
   const queryParams = window.location.search;
   
   useEffect(() => {
-    navigate(`/application_tracker${queryParams}`);
+    navigate(`/interviews${queryParams}`);
   }, [navigate, queryParams]);
   
   return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
@@ -537,14 +537,14 @@ function App() {
             <Apply />
           </CareerRoute>
         </Route>
-        <Route path="/application_tracker">
+        <Route path="/interviews">
           <CareerRoute>
             <Interview />
           </CareerRoute>
         </Route>
         
         {/* Redirect old paths to new paths */}
-        <Route path="/interviews">
+        <Route path="/application_tracker">
           <CareerRoute>
             <InterviewsRedirect />
           </CareerRoute>
