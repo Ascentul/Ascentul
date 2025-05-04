@@ -38,6 +38,7 @@ import SupportPage from "@/pages/admin/SupportPage";
 import AdminModelsPage from "@/pages/admin/ModelsPage";
 import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
 import EmailAdmin from "@/pages/admin/EmailAdmin";
+import UniversitiesPage from "@/pages/admin/Universities";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
