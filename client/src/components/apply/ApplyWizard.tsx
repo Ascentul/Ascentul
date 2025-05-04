@@ -27,7 +27,6 @@ const applicationSchema = z.object({
   jobDescription: z.string().optional(),
   status: z.string().default("Not Started"),
   notes: z.string().optional(),
-  aiAssisted: z.boolean().default(false),
 });
 
 type ApplicationFormValues = z.infer<typeof applicationSchema>;
@@ -63,7 +62,6 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
       applicationDate: new Date().toISOString().split('T')[0],
       status: "Not Started",
       notes: "",
-      aiAssisted: true,
     }
   });
 
@@ -216,7 +214,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
     <>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-lg font-semibold">Application Agent</h3>
+          <h3 className="text-lg font-semibold">Track Application</h3>
           <p className="text-sm text-muted-foreground">
             {step === 1 && "Start by adding job details or import from a job board."}
             {step === 2 && "Select or upload a resume for this application."}
@@ -493,28 +491,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="aiAssisted"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 mt-1"
-                      checked={field.value}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>AI Assistant Enabled</FormLabel>
-                    <FormDescription>
-                      Get AI-powered insights and suggestions for this application.
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+
             
             <div className="flex justify-between w-full mt-6">
               <Button type="button" variant="outline" onClick={() => setStep(2)}>
