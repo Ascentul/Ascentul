@@ -77,6 +77,16 @@ import UniversityAdminDashboard from "@/pages/university/AdminDashboard";
 import StudyPlan from "@/pages/university/StudyPlan";
 import LearningModules from "@/pages/university/LearningModules";
 
+// University Admin Components
+import UniversityAdminLayout from "@/layouts/UniversityAdminLayout";
+import { 
+  Dashboard as UniAdminDashboard,
+  Students as UniAdminStudents,
+  Invite as UniAdminInvite,
+  Usage as UniAdminUsage,
+  Settings as UniAdminSettings
+} from "@/pages/university-admin";
+
 // University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
