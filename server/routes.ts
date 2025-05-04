@@ -475,11 +475,11 @@ Based on your profile and the job you're targeting, I recommend highlighting:
         redirectPath = "/admin-dashboard";
       } else if (user.userType === "staff") {
         redirectPath = "/staff-dashboard";
-      } else if (user.userType === "university_admin" && loginType === "university") {
+      } else if (user.userType === "university_admin") {
+        // University admins always go to the admin dashboard regardless of login type
         redirectPath = "/university-admin/dashboard";
-      } else if (user.userType === "university_student" && loginType === "university") {
-        redirectPath = "/university/dashboard";
       } else {
+        // All other users (including university_student) go to the regular career dashboard
         redirectPath = "/career-dashboard";
       }
       
