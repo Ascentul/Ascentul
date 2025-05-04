@@ -76,7 +76,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }: { 
       email: string; 
       password: string; 
-      loginType?: 'staff' | 'admin' 
+      loginType?: 'staff' | 'admin' | 'university' | 'regular'
     }) => {
       const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
       const data = await res.json();
@@ -125,7 +125,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string, loginType?: 'staff' | 'admin') => {
+  const login = async (email: string, password: string, loginType?: 'staff' | 'admin' | 'university' | 'regular') => {
     // Clear any logout flag that might be set
     localStorage.removeItem('auth-logout');
     
