@@ -32,6 +32,18 @@ import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
+// Redirect component for /interviews → /application_tracker
+function InterviewsRedirect() {
+  const [, navigate] = useLocation();
+  const queryParams = window.location.search;
+  
+  useEffect(() => {
+    navigate(`/application_tracker${queryParams}`);
+  }, [navigate, queryParams]);
+  
+  return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
+}
+
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
@@ -514,9 +526,16 @@ function App() {
             <Apply />
           </CareerRoute>
         </Route>
-        <Route path="/interviews">
+        <Route path="/application_tracker">
           <CareerRoute>
             <Interview />
+          </CareerRoute>
+        </Route>
+        
+        {/* Redirect old /interviews path to the new /application_tracker path */}
+        <Route path="/interviews">
+          <CareerRoute>
+            <InterviewsRedirect />
           </CareerRoute>
         </Route>
         <Route path="/work-history">
