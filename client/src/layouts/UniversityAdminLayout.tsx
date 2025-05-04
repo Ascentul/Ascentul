@@ -12,14 +12,11 @@ import {
   Settings,
   LogOut,
   School,
-  Bell,
   BookOpen,
-  CalendarDays,
   MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 interface UniversityAdminLayoutProps {
@@ -85,8 +82,6 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
     },
   ];
   
-  // No additional tools for university admins
-  
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Mobile Sidebar Toggle */}
@@ -146,8 +141,6 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
               </Link>
             ))}
           </div>
-          
-          {/* No additional tools section */}
         </nav>
         
         {/* User Section */}
