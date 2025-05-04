@@ -772,14 +772,15 @@ export default function CareerPathExplorer() {
       {/* Job Title Search - Only show in 'target' mode */}
       {explorationMode === 'target' && (
         <div className="mb-6 mt-6 space-y-2">
-          <Label htmlFor="job-title-search">Quick Career Path Generator</Label>
-          <div className="flex gap-2 items-center">
-            <div className="flex-1">
+          <Label htmlFor="job-title-search" className="text-sm sm:text-base">Quick Career Path Generator</Label>
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+            <div className="flex-1 w-full">
               <Input
                 id="job-title-search"
                 placeholder="Enter a job title (e.g., Software Engineer, Data Scientist)"
                 value={jobTitle}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setJobTitle(e.target.value)}
+                className="text-sm sm:text-base"
               />
             </div>
             <Button 
@@ -888,16 +889,67 @@ export default function CareerPathExplorer() {
       {/* Career Path Visualization - Only shown after search in target mode */}
       {explorationMode === 'target' && generatedPath && (
         <div className="relative mt-8">
-          <h2 className="text-2xl font-bold mb-6">Career Path Progression</h2>
-          <div className="relative mx-14">
-            <div className="absolute left-[-40px] top-1/2 -translate-y-1/2 z-10">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Career Path Progression</h2>
+          {/* Mobile view - Stacked cards for small screens */}
+          <div className="sm:hidden space-y-4 pb-10">
+            {activePath.nodes.map((node, index) => (
+              <motion.div 
+                key={node.id}
+                className={cn(
+                  "cursor-pointer transition-all relative",
+                  selectedNodeId === node.id ? "scale-[1.02]" : "hover:scale-[1.02]"
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+                onClick={() => handleNodeClick(node.id)}
+              >
+                <Card className={cn(
+                  "shadow-md",
+                  selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
+                )}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="mt-1">
+                        {node.icon}
+                      </div>
+                      <Badge className={LevelBadgeColors[node.level]}>
+                        {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
+                      </Badge>
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">{node.title}</h3>
+                    <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
+                    <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs mt-2", 
+                      GrowthIndicators[node.growthPotential].color
+                    )}>
+                      {GrowthIndicators[node.growthPotential].icon}
+                      {GrowthIndicators[node.growthPotential].text}
+                    </div>
+                  </CardContent>
+                </Card>
+                {index < activePath.nodes.length - 1 && (
+                  <div className="flex justify-center my-2">
+                    <div className="rotate-90 text-gray-400">
+                      <ArrowRight className="h-5 w-5" />
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+          
+          {/* Tablet/Desktop view - Horizontal scrolling */}
+          <div className="relative mx-4 sm:mx-14 hidden sm:block">
+            <div className="absolute left-[-30px] sm:left-[-40px] top-1/2 -translate-y-1/2 z-10">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => handleScroll('left')}
-                className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
               >
-                <ChevronLeft className="h-6 w-6" />
+                <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6" />
               </Button>
             </div>
             
@@ -916,7 +968,7 @@ export default function CareerPathExplorer() {
               {activePath.nodes.map((node, index) => (
                 <div 
                   key={node.id}
-                  className="flex flex-col items-center min-w-[250px] first:pl-4"
+                  className="flex flex-col items-center min-w-[230px] sm:min-w-[250px] first:pl-4"
                 >
                   <motion.div 
                     className={cn(
@@ -929,7 +981,7 @@ export default function CareerPathExplorer() {
                     onClick={() => handleNodeClick(node.id)}
                   >
                     <Card className={cn(
-                      "w-60 shadow-md",
+                      "w-[230px] sm:w-60 shadow-md",
                       selectedNodeId === node.id ? "border-primary ring-1 ring-primary" : ""
                     )}>
                       <CardContent className="p-4">
@@ -941,7 +993,7 @@ export default function CareerPathExplorer() {
                             {node.level.charAt(0).toUpperCase() + node.level.slice(1)}
                           </Badge>
                         </div>
-                        <h3 className="font-bold text-lg mb-1">{node.title}</h3>
+                        <h3 className="font-bold text-base sm:text-lg mb-1">{node.title}</h3>
                         <div className="text-sm text-muted-foreground mb-2">{node.salaryRange}</div>
                         <div className="text-xs text-muted-foreground">Experience: {node.yearsExperience}</div>
                         <div className={cn(
@@ -963,14 +1015,14 @@ export default function CareerPathExplorer() {
               ))}
             </div>
             
-            <div className="absolute right-[-40px] top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute right-[-30px] sm:right-[-40px] top-1/2 -translate-y-1/2 z-10">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => handleScroll('right')}
-                className="h-10 w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white shadow-md hover:bg-gray-100"
               >
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6" />
               </Button>
             </div>
           </div>
@@ -979,18 +1031,18 @@ export default function CareerPathExplorer() {
       
       {explorationMode === 'target' && !generatedPath && (
         <motion.div 
-          className="text-center py-16 px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full"
+          className="text-center py-10 sm:py-16 px-4 sm:px-6 mt-6 bg-gradient-to-b from-white to-blue-50 rounded-xl shadow-md shadow-gray-200 border border-gray-100 w-full"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <MapPin className="h-10 w-10 text-blue-500" />
+          <div className="bg-white w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-sm">
+            <MapPin className="h-8 w-8 sm:h-10 sm:w-10 text-blue-500" />
           </div>
-          <h3 className="text-2xl font-medium mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h3 className="text-xl sm:text-2xl font-medium mb-2 sm:mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             You haven't generated any career paths yet
           </h3>
-          <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+          <p className="text-neutral-500 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
             Enter a job title above and click "Generate" to explore a personalized career progression path.
           </p>
           <Button 
@@ -1000,10 +1052,10 @@ export default function CareerPathExplorer() {
                 searchInput.focus();
               }
             }}
-            size="lg" 
+            size="default" 
             className="bg-[#1333c2] hover:bg-[#0f2aae] text-white shadow-sm hover:shadow-lg transition-all"
           >
-            <Plus className="mr-2 h-5 w-5" />
+            <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
             Generate My First Path
           </Button>
         </motion.div>
@@ -1014,31 +1066,31 @@ export default function CareerPathExplorer() {
         <DrawerContent className="max-h-[90vh]">
           {selectedNode && (
             <>
-              <DrawerHeader className="px-6">
-                <div className="flex items-center gap-3 mb-1">
+              <DrawerHeader className="px-4 sm:px-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-1">
                   {selectedNode.icon}
-                  <DrawerTitle className="text-2xl">{selectedNode.title}</DrawerTitle>
+                  <DrawerTitle className="text-xl sm:text-2xl">{selectedNode.title}</DrawerTitle>
                 </div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Badge className={LevelBadgeColors[selectedNode.level]}>
                     {selectedNode.level.charAt(0).toUpperCase() + selectedNode.level.slice(1)} Level
                   </Badge>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground hidden sm:inline">·</span>
                   <span className="text-muted-foreground">{selectedNode.salaryRange}</span>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground hidden sm:inline">·</span>
                   <span className="text-muted-foreground">{selectedNode.yearsExperience} experience</span>
                 </div>
-                <DrawerDescription>
+                <DrawerDescription className="text-sm sm:text-base">
                   Explore this role's requirements, growth potential, and recommended certifications
                 </DrawerDescription>
               </DrawerHeader>
               
-              <div className="px-6 pb-6">
+              <div className="px-4 sm:px-6 pb-6">
                 <Tabs defaultValue="overview" className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="skills">Skills & Requirements</TabsTrigger>
-                    <TabsTrigger value="certifications">Certifications</TabsTrigger>
+                    <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+                    <TabsTrigger value="skills" className="text-xs sm:text-sm">Skills & Reqs</TabsTrigger>
+                    <TabsTrigger value="certifications" className="text-xs sm:text-sm">Certifications</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="overview" className="mt-4 space-y-4">
@@ -1152,9 +1204,9 @@ export default function CareerPathExplorer() {
                 </Tabs>
               </div>
               
-              <DrawerFooter className="px-6 pt-0 flex flex-row items-center justify-between gap-2 pb-10">
+              <DrawerFooter className="px-4 sm:px-6 pt-0 flex flex-col sm:flex-row items-center justify-between gap-2 pb-10">
                 <Button 
-                  className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4"
+                  className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4 w-full sm:w-auto"
                   size="sm"
                   disabled={isCreatingGoal}
                   onClick={async () => {
@@ -1254,7 +1306,7 @@ export default function CareerPathExplorer() {
                 </Button>
 
                 <DrawerClose asChild>
-                  <Button variant="outline" size="sm">Close</Button>
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">Close</Button>
                 </DrawerClose>
               </DrawerFooter>
             </>
