@@ -75,7 +75,9 @@ import {
   FileText,
   BarChart,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Download,
+  UserCircle
 } from 'lucide-react';
 
 // Define student data type
@@ -206,6 +208,7 @@ export default function StudentManagement() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAnalyticsDialogOpen, setIsAnalyticsDialogOpen] = useState(false);
 
   // Filter students based on search query and status filter
   const filteredStudents = students.filter(student => {
@@ -463,7 +466,10 @@ export default function StudentManagement() {
                             <FileText className="mr-2 h-4 w-4" />
                             View Resume
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedStudent(student);
+                            setIsAnalyticsDialogOpen(true);
+                          }}>
                             <BarChart className="mr-2 h-4 w-4" />
                             View Analytics
                           </DropdownMenuItem>
@@ -841,6 +847,143 @@ export default function StudentManagement() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {/* Student Analytics Dialog */}
+      {selectedStudent && (
+        <Dialog open={isAnalyticsDialogOpen} onOpenChange={setIsAnalyticsDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Student Analytics</DialogTitle>
+              <DialogDescription>
+                Detailed analytics and insights for {selectedStudent.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Platform Usage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">8.3 hrs</div>
+                    <p className="text-xs text-muted-foreground">+12% from last month</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Career Growth</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">+24%</div>
+                    <p className="text-xs text-muted-foreground">Since first assessment</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Skills Acquired</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">7</div>
+                    <p className="text-xs text-muted-foreground">2 in progress</p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Activity Timeline</h3>
+                <div className="relative">
+                  <div className="absolute h-full w-px bg-border left-7 top-0"></div>
+                  <ul className="space-y-4">
+                    <li className="flex gap-4">
+                      <div className="relative mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <FileText className="h-3 w-3" />
+                        <span className="sr-only">Resume</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Updated Resume</p>
+                        <p className="text-sm text-muted-foreground">May 3, 2025 at 2:45 PM</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-4">
+                      <div className="relative mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <UserCircle className="h-3 w-3" />
+                        <span className="sr-only">Profile</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Completed LinkedIn Profile Review</p>
+                        <p className="text-sm text-muted-foreground">May 1, 2025 at 10:30 AM</p>
+                      </div>
+                    </li>
+                    <li className="flex gap-4">
+                      <div className="relative mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <MessageSquare className="h-3 w-3" />
+                        <span className="sr-only">Interview</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Completed Mock Interview Session</p>
+                        <p className="text-sm text-muted-foreground">Apr 28, 2025 at 3:15 PM</p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Skills Development</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Resume Building</span>
+                      <span className="text-sm text-muted-foreground">90%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: '90%' }}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Interview Preparation</span>
+                      <span className="text-sm text-muted-foreground">75%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: '75%' }}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Networking</span>
+                      <span className="text-sm text-muted-foreground">60%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: '60%' }}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Job Application Strategy</span>
+                      <span className="text-sm text-muted-foreground">45%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-secondary">
+                      <div className="h-2 rounded-full bg-primary" style={{ width: '45%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAnalyticsDialogOpen(false)}>
+                Close
+              </Button>
+              <Button>
+                <Download className="mr-2 h-4 w-4" />
+                Export Report
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
       
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
