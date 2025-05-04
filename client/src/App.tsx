@@ -514,7 +514,7 @@ function App() {
             <Apply />
           </CareerRoute>
         </Route>
-        <Route path="/interviews">
+        <Route path="/application-tracker">
           <CareerRoute>
             <Interview />
           </CareerRoute>

@@ -511,7 +511,7 @@ export default function Dashboard() {
                   </div>
                 </Link>
                 
-                <Link href="/interviews?create=true" className="w-full">
+                <Link href="/application-tracker?create=true" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
                       <Users className="h-5 w-5 text-green-500" />
@@ -928,7 +928,7 @@ export default function Dashboard() {
                     <div className="text-center py-8 text-neutral-500">
                       <Calendar className="mx-auto h-10 w-10 text-neutral-300 mb-2" />
                       <p>No upcoming interviews scheduled</p>
-                      <Link href="/interviews?create=true">
+                      <Link href="/application-tracker?create=true">
                         <Button variant="link" className="text-xs mt-2">
                           Schedule an interview
                         </Button>
