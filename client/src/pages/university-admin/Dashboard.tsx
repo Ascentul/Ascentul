@@ -1,36 +1,34 @@
-import { useEffect, useState } from 'react';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+  Avatar, 
+  AvatarFallback, 
+  AvatarImage 
+} from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/lib/useUserData';
+} from "@/components/ui/tabs";
+import { useUser } from "@/lib/useUserData";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { 
   Users, 
-  GraduationCap,
-  Calendar,
-  BarChart,
-  Activity,
-  Clock,
-  User,
-  UserPlus,
-  Bell,
-  Settings
+  GraduationCap, 
+  CalendarDays, 
+  TrendingUp, 
+  Bell, 
+  FileText, 
+  BookOpen, 
+  Activity, 
+  Calendar, 
+  Mail, 
+  MessageSquare 
 } from 'lucide-react';
-import { format } from 'date-fns';
 
-// Define types for university data
+// Mock data for the dashboard
 interface UniversityStats {
   totalStudents: number;
   activeStudents: number;
@@ -48,314 +46,327 @@ interface RecentLogin {
   profileImage?: string;
 }
 
-export default function UniversityAdminDashboard() {
+// Data for charts
+const usageData = [
+  { name: 'Jan', logins: 1200, activities: 3400 },
+  { name: 'Feb', logins: 1350, activities: 3800 },
+  { name: 'Mar', logins: 1500, activities: 4200 },
+  { name: 'Apr', logins: 1650, activities: 4600 },
+  { name: 'May', logins: 1800, activities: 5000 },
+];
+
+const featureUsageData = [
+  { name: 'Resume Builder', value: 420 },
+  { name: 'Career Paths', value: 350 },
+  { name: 'Interview Prep', value: 280 },
+  { name: 'AI Coaching', value: 250 },
+  { name: 'Job Search', value: 200 },
+];
+
+const COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd'];
+
+export default function Dashboard() {
   const { user } = useUser();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<UniversityStats | null>(null);
-  
-  useEffect(() => {
-    // Simulate fetching university stats from API
-    const fetchStats = async () => {
-      try {
-        // In a real implementation, this would be an API call
-        // Hardcoded data for now based on admin user's university
-        const universityName = user?.universityName || 'Demo University';
-        
-        // Demo data
-        const mockStats: UniversityStats = {
-          totalStudents: 120,
-          activeStudents: 98,
-          totalSeats: 150,
-          contractExpirationDate: '2025-08-31',
-          avgEngagementScore: 76,
-          recentLogins: [
-            {
-              id: 1,
-              studentName: 'Emma Thompson',
-              email: 'emma.t@university.edu',
-              lastLoginTime: '2025-05-04T09:42:15',
-            },
-            {
-              id: 2,
-              studentName: 'Marcus Chen',
-              email: 'mchen@university.edu',
-              lastLoginTime: '2025-05-03T16:23:47',
-            },
-            {
-              id: 3,
-              studentName: 'Sofia Rodriguez',
-              email: 's.rodriguez@university.edu',
-              lastLoginTime: '2025-05-03T14:05:22',
-            },
-            {
-              id: 4,
-              studentName: 'James Wilson',
-              email: 'jwilson@university.edu',
-              lastLoginTime: '2025-05-02T10:31:08',
-            },
-            {
-              id: 5,
-              studentName: 'Priya Patel',
-              email: 'ppatel@university.edu',
-              lastLoginTime: '2025-05-01T08:15:33',
-            }
-          ]
-        };
-        
-        setStats(mockStats);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to fetch university stats:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load university statistics. Please try again later.',
-          variant: 'destructive'
-        });
-        setIsLoading(false);
+
+  // Mock stats for the university
+  const mockStats: UniversityStats = {
+    totalStudents: 1500,
+    activeStudents: 1280,
+    totalSeats: 2000,
+    contractExpirationDate: 'May 15, 2026',
+    avgEngagementScore: 7.8,
+    recentLogins: [
+      {
+        id: 1,
+        studentName: 'Emma Johnson',
+        email: 'emma.johnson@stanford.edu',
+        lastLoginTime: '2 minutes ago',
+        profileImage: 'https://i.pravatar.cc/150?img=1'
+      },
+      {
+        id: 2,
+        studentName: 'Michael Chang',
+        email: 'michael.chang@stanford.edu',
+        lastLoginTime: '15 minutes ago',
+        profileImage: 'https://i.pravatar.cc/150?img=2'
+      },
+      {
+        id: 3,
+        studentName: 'Sophia Martinez',
+        email: 'sophia.martinez@stanford.edu',
+        lastLoginTime: '37 minutes ago',
+        profileImage: 'https://i.pravatar.cc/150?img=3'
+      },
+      {
+        id: 4,
+        studentName: 'James Wilson',
+        email: 'james.wilson@stanford.edu',
+        lastLoginTime: '1 hour ago',
+        profileImage: 'https://i.pravatar.cc/150?img=4'
+      },
+      {
+        id: 5,
+        studentName: 'Olivia Brown',
+        email: 'olivia.brown@stanford.edu',
+        lastLoginTime: '2 hours ago',
+        profileImage: 'https://i.pravatar.cc/150?img=5'
       }
-    };
-    
-    fetchStats();
-  }, [user, toast]);
-  
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Error state if stats couldn't be loaded
-  if (!stats) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="mb-4">
-          <Activity className="h-12 w-12 text-red-500" />
-        </div>
-        <h3 className="text-xl font-semibold mb-2">Unable to Load Dashboard Data</h3>
-        <p className="text-muted-foreground mb-4 max-w-md">
-          We encountered an issue while loading your university statistics. Please try refreshing the page.
-        </p>
-        <Button 
-          onClick={() => window.location.reload()}
-          variant="outline"
-        >
-          Refresh Page
-        </Button>
-      </div>
-    );
-  }
-  
-  // Calculate seat usage percentage
-  const seatUsagePercentage = Math.round((stats.activeStudents / stats.totalSeats) * 100);
-  
-  // Format expiration date for display
-  const formattedExpirationDate = new Date(stats.contractExpirationDate).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-  
-  // Calculate days until expiration
-  const today = new Date();
-  const expirationDate = new Date(stats.contractExpirationDate);
-  const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  
+    ]
+  };
+
+  // Function to get initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">University Dashboard</h1>
         <p className="text-muted-foreground">
-          Overview of your university's Ascentul platform usage and student activity.
+          Overview of {user?.universityName || 'Stanford University'}'s platform usage and student engagement.
         </p>
       </div>
-      
-      {/* Stats Cards */}
+
+      {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Students
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalStudents}</div>
+            <div className="text-2xl font-bold">{mockStats.totalStudents}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.activeStudents} active this month
+              {Math.round((mockStats.activeStudents / mockStats.totalStudents) * 100)}% active this month
             </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Seat Usage</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              License Utilization
+            </CardTitle>
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeStudents} / {stats.totalSeats}</div>
-            <div className="mt-2 space-y-1">
-              <Progress value={seatUsagePercentage} />
-              <p className="text-xs text-muted-foreground">{seatUsagePercentage}% of allocated seats</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Contract Expiration</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formattedExpirationDate}</div>
+            <div className="text-2xl font-bold">{mockStats.totalStudents}/{mockStats.totalSeats}</div>
             <p className="text-xs text-muted-foreground">
-              {daysUntilExpiration} days remaining
+              {Math.round((mockStats.totalStudents / mockStats.totalSeats) * 100)}% of licensed seats used
             </p>
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Engagement Score</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Contract Expiration
+            </CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.avgEngagementScore}/100</div>
-            <div className="mt-2 space-y-1">
-              <Progress value={stats.avgEngagementScore} className="bg-muted" />
-              <p className="text-xs text-muted-foreground">Based on platform activity</p>
+            <div className="text-2xl font-bold">{mockStats.contractExpirationDate}</div>
+            <p className="text-xs text-muted-foreground">
+              One year institutional license
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Avg. Engagement Score
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockStats.avgEngagementScore}</div>
+            <p className="text-xs text-muted-foreground">
+              +12% from last month
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Platform Usage</CardTitle>
+            <CardDescription>
+              Monthly logins and activities over the last 5 months
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={usageData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="logins" stroke="#8884d8" strokeWidth={2} />
+                  <Line type="monotone" dataKey="activities" stroke="#82ca9d" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>Feature Usage</CardTitle>
+            <CardDescription>
+              Most popular features among students
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={featureUsageData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {featureUsageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
-      
-      {/* Tabs Section */}
-      <Tabs defaultValue="recent-activity" className="space-y-4">
-        <TabsList className="bg-card border">
-          <TabsTrigger value="recent-activity" className="data-[state=active]:bg-white">Recent Activity</TabsTrigger>
-          <TabsTrigger value="student-stats" className="data-[state=active]:bg-white">Student Statistics</TabsTrigger>
-          <TabsTrigger value="resources" className="data-[state=active]:bg-white">Popular Resources</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="recent-activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Student Logins</CardTitle>
-              <CardDescription>
-                The latest platform activity from your students.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {stats.recentLogins.map((login) => (
-                  <div key={login.id} className="flex items-center">
-                    <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium leading-none">{login.studentName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          <Clock className="inline-block h-3 w-3 mr-1" />
-                          {format(new Date(login.lastLoginTime), 'MMM d, h:mm a')}
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{login.email}</p>
-                    </div>
+
+      {/* Recent Activity */}
+      <div className="grid gap-4 md:grid-cols-7">
+        {/* Recent Logins */}
+        <Card className="md:col-span-4">
+          <CardHeader>
+            <CardTitle>Recent Student Logins</CardTitle>
+            <CardDescription>
+              Students who recently accessed the platform
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {mockStats.recentLogins.map(login => (
+                <div key={login.id} className="flex items-center">
+                  <Avatar className="h-9 w-9 mr-3">
+                    <AvatarImage src={login.profileImage} alt={login.studentName} />
+                    <AvatarFallback>{getInitials(login.studentName)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">{login.studentName}</p>
+                    <p className="text-sm text-muted-foreground">{login.email}</p>
                   </div>
-                ))}
+                  <div className="text-sm text-muted-foreground">{login.lastLoginTime}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events & Notifications */}
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+            <CardDescription>
+              Recent alerts and upcoming events
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="mr-3 mt-0.5">
+                  <Bell className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">License Renewal Reminder</p>
+                  <p className="text-sm text-muted-foreground">Your institutional license expires in 375 days</p>
+                </div>
               </div>
               
-              <div className="mt-6 text-center">
-                <Button variant="outline" size="sm">
-                  View All Activity
-                </Button>
+              <div className="flex items-start">
+                <div className="mr-3 mt-0.5">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Monthly Usage Report</p>
+                  <p className="text-sm text-muted-foreground">May 2025 report has been generated</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="student-stats" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Student Usage Statistics</CardTitle>
-              <CardDescription>
-                Detailed metrics on how students are using the platform.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <BarChart className="mx-auto h-10 w-10 mb-2" />
-                <p>Detailed student statistics will be displayed here.</p>
-                <p className="text-sm">This section is under development.</p>
+              
+              <div className="flex items-start">
+                <div className="mr-3 mt-0.5">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Career Fair Scheduled</p>
+                  <p className="text-sm text-muted-foreground">May 15, 2025 - Reminder sent to all students</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="resources" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Most Accessed Resources</CardTitle>
-              <CardDescription>
-                The learning materials and tools your students use most.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[300px] flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <Activity className="mx-auto h-10 w-10 mb-2" />
-                <p>Resource usage analytics will be displayed here.</p>
-                <p className="text-sm">This section is under development.</p>
+              
+              <div className="flex items-start">
+                <div className="mr-3 mt-0.5">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">New Learning Module Available</p>
+                  <p className="text-sm text-muted-foreground">Interview Preparation course now available</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
+              
+              <div className="flex items-start">
+                <div className="mr-3 mt-0.5">
+                  <Activity className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Engagement Milestone</p>
+                  <p className="text-sm text-muted-foreground">Over 1,000 resumes created this month!</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Quick Actions */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Button 
-            variant="outline" 
-            className="justify-start h-auto py-3"
-            onClick={() => window.location.href = '/university-admin/invite'}
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            <div className="text-left">
-              <div className="font-medium">Invite Students</div>
-              <div className="text-xs text-muted-foreground">Add new students to the platform</div>
-            </div>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="justify-start h-auto py-3"
-            onClick={() => window.location.href = '/university-admin/announcements'}
-          >
-            <Bell className="mr-2 h-4 w-4" />
-            <div className="text-left">
-              <div className="font-medium">Create Announcement</div>
-              <div className="text-xs text-muted-foreground">Send notifications to all students</div>
-            </div>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="justify-start h-auto py-3"
-            onClick={() => window.location.href = '/university-admin/settings'}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            <div className="text-left">
-              <div className="font-medium">University Settings</div>
-              <div className="text-xs text-muted-foreground">Manage account preferences</div>
-            </div>
-          </Button>
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2">
+          <Mail className="h-6 w-6" />
+          <span>Email All Students</span>
+        </Button>
+        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2" variant="outline">
+          <FileText className="h-6 w-6" />
+          <span>Download Reports</span>
+        </Button>
+        <Button className="h-auto py-4 flex flex-col items-center justify-center gap-2" variant="outline">
+          <MessageSquare className="h-6 w-6" />
+          <span>Support Chat</span>
+        </Button>
       </div>
     </div>
   );

@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { 
   Card, 
   CardContent, 
@@ -7,648 +10,607 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/lib/useUserData';
 import { 
-  Settings, 
+  AlertCircle, 
+  Check, 
+  Trash2, 
   Upload, 
-  Shield, 
-  Bell, 
-  Palette, 
+  Lock, 
+  Globe, 
   Mail, 
-  Key, 
-  Users, 
-  School, 
-  CreditCard,
-  Calendar
+  BellRing, 
+  Users,
+  Building,
+  GraduationCap
 } from 'lucide-react';
 
-export default function UniversitySettingsPage() {
-  const { user } = useUser();
+// Form schema for university profile
+const universityProfileSchema = z.object({
+  universityName: z.string().min(1, 'University name is required'),
+  description: z.string().optional(),
+  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  contactEmail: z.string().email('Please enter a valid email address'),
+  logo: z.any().optional(),
+  primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Please enter a valid hex color code'),
+  secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, 'Please enter a valid hex color code').optional(),
+});
+
+// Schema for integration settings
+const integrationSettingsSchema = z.object({
+  lmsEnabled: z.boolean().default(false),
+  lmsApiKey: z.string().optional(),
+  lmsUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  ssoEnabled: z.boolean().default(false),
+  ssoProvider: z.string().optional(),
+  ssoClientId: z.string().optional(),
+  ssoClientSecret: z.string().optional(),
+});
+
+// Schema for notification settings
+const notificationSettingsSchema = z.object({
+  emailNotifications: z.boolean().default(true),
+  studentActivityDigest: z.boolean().default(true),
+  usageReports: z.boolean().default(true),
+  sendCopyToAdmin: z.boolean().default(false),
+  adminEmail: z.string().email('Please enter a valid email address').optional(),
+});
+
+export default function Settings() {
   const { toast } = useToast();
-  
-  // University profile state
-  const [universityName, setUniversityName] = useState(user?.universityName || 'Demo University');
-  const [websiteUrl, setWebsiteUrl] = useState('https://university.edu');
-  const [description, setDescription] = useState('A leading institution dedicated to preparing students for successful careers in a rapidly evolving global marketplace.');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#1333c2');
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // Notification settings
-  const [emailNotifications, setEmailNotifications] = useState({
-    studentActivity: true,
-    weeklyReports: true,
-    systemUpdates: true,
-    accountAlerts: true,
+  const { user } = useUser();
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
+  // University profile form
+  const profileForm = useForm<z.infer<typeof universityProfileSchema>>({
+    resolver: zodResolver(universityProfileSchema),
+    defaultValues: {
+      universityName: user?.universityName || 'Stanford University',
+      description: 'Stanford University is a leading research and teaching institution located in Stanford, California. Established in 1885, Stanford is dedicated to providing an innovative and transformational education that prepares students to be creative citizens and leaders.',
+      website: 'https://www.stanford.edu',
+      contactEmail: 'career-services@stanford.edu',
+      primaryColor: '#8C1515',
+      secondaryColor: '#2F2424',
+    },
   });
-  
-  // License information
-  const licenseInfo = {
-    plan: 'Enterprise',
-    seatsAllocated: 150,
-    contractStart: '2024-09-01',
-    contractEnd: '2025-08-31',
-    contactEmail: 'licensing@ascentul.com',
-    accountManager: 'Sarah Johnson',
-  };
-  
-  // Handle saving university profile
-  const handleSaveProfile = () => {
-    setIsSaving(true);
-    
-    // Simulate API call to save university profile
-    setTimeout(() => {
-      setIsSaving(false);
-      
-      toast({
-        title: 'Settings saved',
-        description: 'Your university profile has been updated successfully.',
-      });
-    }, 1500);
-  };
-  
-  // Handle file upload for university logo
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      
-      // In a real implementation, you would upload the file to a server
-      // and get back a URL to the uploaded image
-      
-      // Simulate file upload
-      toast({
-        title: 'Logo uploaded',
-        description: 'Your university logo has been updated.',
-      });
-      
-      // Create a temporary URL for the preview
-      const tempUrl = URL.createObjectURL(file);
-      setLogoUrl(tempUrl);
+
+  // Integration settings form
+  const integrationForm = useForm<z.infer<typeof integrationSettingsSchema>>({
+    resolver: zodResolver(integrationSettingsSchema),
+    defaultValues: {
+      lmsEnabled: true,
+      lmsApiKey: 'lms_api_key_123456789',
+      lmsUrl: 'https://canvas.stanford.edu',
+      ssoEnabled: true,
+      ssoProvider: 'SAML',
+      ssoClientId: 'stanford_sso_client_123',
+      ssoClientSecret: '••••••••••••••••',
+    },
+  });
+
+  // Notification settings form
+  const notificationForm = useForm<z.infer<typeof notificationSettingsSchema>>({
+    resolver: zodResolver(notificationSettingsSchema),
+    defaultValues: {
+      emailNotifications: true,
+      studentActivityDigest: true,
+      usageReports: true,
+      sendCopyToAdmin: true,
+      adminEmail: 'admin@stanford.edu',
+    },
+  });
+
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogoPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
-  
+
+  // Form submission handlers
+  const onProfileSubmit = (data: z.infer<typeof universityProfileSchema>) => {
+    console.log('Profile data:', data);
+    toast({
+      title: 'Profile updated',
+      description: 'University profile settings have been saved.',
+    });
+  };
+
+  const onIntegrationSubmit = (data: z.infer<typeof integrationSettingsSchema>) => {
+    console.log('Integration data:', data);
+    toast({
+      title: 'Integration settings updated',
+      description: 'Integration settings have been saved.',
+    });
+  };
+
+  const onNotificationSubmit = (data: z.infer<typeof notificationSettingsSchema>) => {
+    console.log('Notification data:', data);
+    toast({
+      title: 'Notification settings updated',
+      description: 'Notification preferences have been saved.',
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">University Settings</h1>
         <p className="text-muted-foreground">
-          Manage your university's profile, branding, and platform configuration.
+          Manage your university's profile, integrations, and notification preferences.
         </p>
       </div>
-      
+
       <Tabs defaultValue="profile" className="space-y-4">
-        <TabsList className="bg-card border">
-          <TabsTrigger value="profile" className="data-[state=active]:bg-white">
-            <School className="h-4 w-4 mr-2" />
+        <TabsList>
+          <TabsTrigger value="profile" className="flex items-center">
+            <Building className="mr-2 h-4 w-4" />
             University Profile
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="data-[state=active]:bg-white">
-            <Bell className="h-4 w-4 mr-2" />
+          <TabsTrigger value="integrations" className="flex items-center">
+            <Globe className="mr-2 h-4 w-4" />
+            Integrations
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center">
+            <BellRing className="mr-2 h-4 w-4" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="admins" className="data-[state=active]:bg-white">
-            <Users className="h-4 w-4 mr-2" />
-            Admin Users
-          </TabsTrigger>
-          <TabsTrigger value="subscription" className="data-[state=active]:bg-white">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Subscription
-          </TabsTrigger>
         </TabsList>
-        
+
         {/* University Profile Tab */}
-        <TabsContent value="profile">
+        <TabsContent value="profile" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>University Profile</CardTitle>
               <CardDescription>
-                Manage your university's information and branding as it appears to students.
+                Manage your university's profile information and branding.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="university-name">University Name</Label>
-                  <Input 
-                    id="university-name" 
-                    value={universityName}
-                    onChange={(e) => setUniversityName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="website">University Website</Label>
-                  <Input 
-                    id="website" 
-                    type="url"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <Label htmlFor="description">Description</Label>
-                <Textarea 
-                  id="description" 
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  This description will be displayed to students in the university portal.
-                </p>
-              </div>
-              
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <Label>University Logo</Label>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20 rounded-md">
-                      {logoUrl ? (
-                        <AvatarImage src={logoUrl} alt="University logo" />
-                      ) : (
-                        <AvatarFallback className="rounded-md bg-primary/10 text-primary text-xl">
-                          {universityName.charAt(0)}
-                        </AvatarFallback>
+            <CardContent>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* University Name */}
+                    <FormField
+                      control={profileForm.control}
+                      name="universityName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>University Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter university name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </Avatar>
-                    <div>
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        id="logo-upload"
-                        className="hidden"
-                        onChange={handleLogoUpload}
+                    />
+
+                    {/* Contact Email */}
+                    <FormField
+                      control={profileForm.control}
+                      name="contactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter contact email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Website */}
+                    <FormField
+                      control={profileForm.control}
+                      name="website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://www.example.edu" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Logo Upload */}
+                    <div className="space-y-2">
+                      <FormLabel>University Logo</FormLabel>
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center overflow-hidden">
+                          {logoPreview ? (
+                            <img src={logoPreview} alt="University logo" className="w-full h-full object-contain" />
+                          ) : (
+                            <GraduationCap className="h-8 w-8 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div>
+                          <Button type="button" variant="outline" size="sm" asChild>
+                            <label className="cursor-pointer">
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Logo
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handleLogoUpload}
+                              />
+                            </label>
+                          </Button>
+                          <FormDescription className="text-xs mt-1">
+                            PNG, JPG or SVG (max. 2MB)
+                          </FormDescription>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* University Description */}
+                  <FormField
+                    control={profileForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter a brief description of your university"
+                            className="min-h-32"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Color Theme */}
+                  <div className="space-y-2">
+                    <FormLabel>Brand Colors</FormLabel>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={profileForm.control}
+                        name="primaryColor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded border" 
+                                style={{ backgroundColor: field.value }}
+                              />
+                              <FormControl>
+                                <Input placeholder="#000000" {...field} />
+                              </FormControl>
+                            </div>
+                            <FormDescription>Primary Color</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                      <Button 
-                        variant="outline" 
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        className="mb-2"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Logo
-                      </Button>
-                      <p className="text-xs text-muted-foreground">
-                        PNG, JPG or SVG, recommended size 512x512px
-                      </p>
+                      <FormField
+                        control={profileForm.control}
+                        name="secondaryColor"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-6 h-6 rounded border" 
+                                style={{ backgroundColor: field.value }}
+                              />
+                              <FormControl>
+                                <Input placeholder="#000000" {...field} />
+                              </FormControl>
+                            </div>
+                            <FormDescription>Secondary Color</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <Label htmlFor="primary-color">Brand Color</Label>
-                  <div className="flex gap-2">
-                    <div 
-                      className="h-10 w-10 rounded border"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <Input 
-                      id="primary-color" 
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="w-full h-10"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    This color will be used as the primary accent throughout the platform.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <Label>Student Portal Features</Label>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Resume Studio</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow students to create and edit resumes
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>AI Coach</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Provide AI-powered career guidance and interview practice
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Career Path Explorer</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enable exploration of potential career paths
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Job Application Tracker</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Track job applications and interview progress
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
+
+                  <Button type="submit">Save University Profile</Button>
+                </form>
+              </Form>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline">Cancel</Button>
-              <Button 
-                onClick={handleSaveProfile}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>Save Changes</>
-                )}
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
-        
-        {/* Notifications Tab */}
-        <TabsContent value="notifications">
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
+              <CardTitle>LMS Integration</CardTitle>
               <CardDescription>
-                Configure how and when you receive notifications about platform activity.
+                Connect with your Learning Management System (Canvas, Blackboard, etc.)
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Email Notifications</h3>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Student Activity</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive updates when students complete important tasks
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={emailNotifications.studentActivity}
-                      onCheckedChange={(checked) => 
-                        setEmailNotifications({ ...emailNotifications, studentActivity: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Weekly Summary Reports</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get a weekly summary of platform usage and student engagement
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={emailNotifications.weeklyReports}
-                      onCheckedChange={(checked) => 
-                        setEmailNotifications({ ...emailNotifications, weeklyReports: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>System Updates</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Be notified about new features and platform updates
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={emailNotifications.systemUpdates}
-                      onCheckedChange={(checked) => 
-                        setEmailNotifications({ ...emailNotifications, systemUpdates: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Account Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive alerts about account status and subscription changes
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={emailNotifications.accountAlerts}
-                      onCheckedChange={(checked) => 
-                        setEmailNotifications({ ...emailNotifications, accountAlerts: checked })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Notification Emails</h3>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="primary-email">Primary Contact Email</Label>
-                    <Input id="primary-email" type="email" defaultValue="admin@university.edu" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="secondary-email">Secondary Contact Email (Optional)</Label>
-                    <Input id="secondary-email" type="email" placeholder="Enter secondary email" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Student Notifications</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Allow Custom Announcements</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send custom announcements to all students
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Career Event Reminders</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send reminders to students about upcoming career events
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button className="ml-auto">Save Notification Settings</Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        {/* Admin Users Tab */}
-        <TabsContent value="admins">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin User Management</CardTitle>
-              <CardDescription>
-                Manage administrators who have access to the university portal.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Current Administrators</h3>
-                <Button size="sm">
-                  <Users className="h-4 w-4 mr-2" />
-                  Add Admin
-                </Button>
-              </div>
-              
-              <div className="border rounded-lg divide-y">
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">John Doe</p>
-                      <p className="text-sm text-muted-foreground">john.doe@university.edu</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge>Primary Admin</Badge>
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </div>
-                </div>
-                
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>JC</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">Jane Cooper</p>
-                      <p className="text-sm text-muted-foreground">j.cooper@university.edu</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Admin</Badge>
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </div>
-                </div>
-                
-                <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>RM</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">Robert Miller</p>
-                      <p className="text-sm text-muted-foreground">r.miller@university.edu</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">Admin</Badge>
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Admin Permissions</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Student Data Access</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow admins to view and manage student data
-                      </p>
-                    </div>
-                    <Select defaultValue="full">
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select permission" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full">Full Access</SelectItem>
-                        <SelectItem value="limited">Limited Access</SelectItem>
-                        <SelectItem value="none">No Access</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>University Settings</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow admins to modify university settings
-                      </p>
-                    </div>
-                    <Select defaultValue="primary_only">
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select permission" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full">All Admins</SelectItem>
-                        <SelectItem value="primary_only">Primary Admin Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <Label>Invite Students</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Allow admins to invite new students to the platform
-                      </p>
-                    </div>
-                    <Select defaultValue="full">
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select permission" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full">All Admins</SelectItem>
-                        <SelectItem value="primary_only">Primary Admin Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button className="ml-auto">Save Admin Settings</Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        {/* Subscription Tab */}
-        <TabsContent value="subscription">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription & Billing</CardTitle>
-              <CardDescription>
-                Manage your subscription plan, billing information, and seat allocation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="rounded-lg border p-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <Badge className="mb-2 bg-primary/20 text-primary border-primary/20 hover:bg-primary/20">
-                      {licenseInfo.plan}
-                    </Badge>
-                    <h3 className="text-xl font-bold">University Enterprise Plan</h3>
-                    <p className="text-muted-foreground">
-                      {licenseInfo.seatsAllocated} seat license • Renewed annually
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline">View Invoice</Button>
-                    <Button>Manage Subscription</Button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="text-lg font-medium">Contract Period</h3>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Start Date</p>
-                        <p className="font-medium">{new Date(licenseInfo.contractStart).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">End Date</p>
-                        <p className="font-medium">{new Date(licenseInfo.contractEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-sm text-muted-foreground">Time Remaining</p>
-                      <p className="font-medium">{Math.ceil((new Date(licenseInfo.contractEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="text-lg font-medium">Seat Allocation</h3>
-                  </div>
-                  <div className="rounded-lg border p-4">
+            <CardContent>
+              <Form {...integrationForm}>
+                <form onSubmit={integrationForm.handleSubmit(onIntegrationSubmit)} className="space-y-6">
+                  <FormField
+                    control={integrationForm.control}
+                    name="lmsEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Enable LMS Integration</FormLabel>
+                          <FormDescription>
+                            Sync student data with your Learning Management System
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {integrationForm.watch('lmsEnabled') && (
                     <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <p className="text-sm font-medium">Used Seats</p>
-                          <p className="text-sm">98 / {licenseInfo.seatsAllocated}</p>
+                      <FormField
+                        control={integrationForm.control}
+                        name="lmsUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>LMS URL</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://canvas.yourschool.edu" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={integrationForm.control}
+                        name="lmsApiKey"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>LMS API Key</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter API key" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                              This key will be used to authenticate with your LMS
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  <FormField
+                    control={integrationForm.control}
+                    name="ssoEnabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Enable Single Sign-On</FormLabel>
+                          <FormDescription>
+                            Allow students to login with your university's authentication system
+                          </FormDescription>
                         </div>
-                        <div className="h-2 rounded-full bg-gray-200">
-                          <div 
-                            className="h-2 rounded-full bg-primary" 
-                            style={{ width: `${(98 / licenseInfo.seatsAllocated) * 100}%` }}
-                          ></div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {integrationForm.watch('ssoEnabled') && (
+                    <div className="space-y-4">
+                      <FormField
+                        control={integrationForm.control}
+                        name="ssoProvider"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>SSO Provider</FormLabel>
+                            <FormControl>
+                              <Input placeholder="SAML, OAuth, etc." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={integrationForm.control}
+                          name="ssoClientId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Client ID</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter client ID" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={integrationForm.control}
+                          name="ssoClientSecret"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Client Secret</FormLabel>
+                              <FormControl>
+                                <div className="flex">
+                                  <Input
+                                    type="password"
+                                    placeholder="••••••••••••••••"
+                                    {...field}
+                                    className="rounded-r-none"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="rounded-l-none"
+                                  >
+                                    <Lock className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button type="submit">Save Integration Settings</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Notifications Tab */}
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>
+                Manage email notifications and reports for your university
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...notificationForm}>
+                <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
+                  <FormField
+                    control={notificationForm.control}
+                    name="emailNotifications"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Email Notifications</FormLabel>
+                          <FormDescription>
+                            Receive email notifications about important updates
+                          </FormDescription>
                         </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <Button variant="link" className="p-0 h-auto text-sm">Request More Seats</Button>
-                        <Button variant="link" className="p-0 h-auto text-sm">View Usage History</Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <h3 className="text-lg font-medium">Billing & Contact Information</h3>
-                </div>
-                <div className="rounded-lg border p-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Account Manager</p>
-                      <p className="font-medium">{licenseInfo.accountManager}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Billing Contact Email</p>
-                      <p className="font-medium">{licenseInfo.contactEmail}</p>
-                    </div>
-                  </div>
-                  <Button variant="link" className="p-0 h-auto text-sm mt-4">Update Billing Information</Button>
-                </div>
-              </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={notificationForm.control}
+                    name="studentActivityDigest"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Student Activity Digest</FormLabel>
+                          <FormDescription>
+                            Receive weekly summaries of student activity
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={notificationForm.control}
+                    name="usageReports"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Monthly Usage Reports</FormLabel>
+                          <FormDescription>
+                            Receive monthly reports on platform usage and student engagement
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={notificationForm.control}
+                    name="sendCopyToAdmin"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Send Copy to Administrator</FormLabel>
+                          <FormDescription>
+                            Send a copy of all notifications to the administrator email
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {notificationForm.watch('sendCopyToAdmin') && (
+                    <FormField
+                      control={notificationForm.control}
+                      name="adminEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Administrator Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="admin@example.edu" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  <Button type="submit">Save Notification Settings</Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>

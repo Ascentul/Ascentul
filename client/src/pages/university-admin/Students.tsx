@@ -1,25 +1,72 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Avatar, 
+  AvatarFallback, 
+  AvatarImage 
+} from '@/components/ui/avatar';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, UserPlus, Download, Filter, RefreshCw } from 'lucide-react';
+  Check,
+  MoreHorizontal,
+  Search,
+  UserPlus,
+  Filter,
+  Calendar,
+  Mail,
+  AlertCircle,
+  Ban,
+  MessageSquare,
+  ArrowUpDown,
+  Trash2,
+  FileText,
+  BarChart,
+  Eye,
+  ExternalLink
+} from 'lucide-react';
 
-// Define student data structure
+// Define student data type
 interface Student {
   id: number;
   name: string;
@@ -30,112 +77,241 @@ interface Student {
   profileImage?: string;
 }
 
+// Mock data for students
+const mockStudents: Student[] = [
+  {
+    id: 1,
+    name: 'Jane Smith',
+    email: 'jane.smith@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-03',
+    progress: 78,
+    profileImage: 'https://i.pravatar.cc/150?img=1'
+  },
+  {
+    id: 2,
+    name: 'Michael Johnson',
+    email: 'michael.johnson@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-03',
+    progress: 65,
+    profileImage: 'https://i.pravatar.cc/150?img=2'
+  },
+  {
+    id: 3,
+    name: 'Emily Davis',
+    email: 'emily.davis@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-02',
+    progress: 92,
+    profileImage: 'https://i.pravatar.cc/150?img=3'
+  },
+  {
+    id: 4,
+    name: 'Daniel Brown',
+    email: 'daniel.brown@stanford.edu',
+    status: 'inactive',
+    lastLogin: '2025-04-28',
+    progress: 45,
+    profileImage: 'https://i.pravatar.cc/150?img=4'
+  },
+  {
+    id: 5,
+    name: 'Sophia Wilson',
+    email: 'sophia.wilson@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-03',
+    progress: 85,
+    profileImage: 'https://i.pravatar.cc/150?img=5'
+  },
+  {
+    id: 6,
+    name: 'Ethan Martinez',
+    email: 'ethan.martinez@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-01',
+    progress: 70,
+    profileImage: 'https://i.pravatar.cc/150?img=6'
+  },
+  {
+    id: 7,
+    name: 'Olivia Anderson',
+    email: 'olivia.anderson@stanford.edu',
+    status: 'inactive',
+    lastLogin: '2025-04-25',
+    progress: 30,
+    profileImage: 'https://i.pravatar.cc/150?img=7'
+  },
+  {
+    id: 8,
+    name: 'Noah Taylor',
+    email: 'noah.taylor@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-02',
+    progress: 88,
+    profileImage: 'https://i.pravatar.cc/150?img=8'
+  },
+  {
+    id: 9,
+    name: 'Ava Thomas',
+    email: 'ava.thomas@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-03',
+    progress: 74,
+    profileImage: 'https://i.pravatar.cc/150?img=9'
+  },
+  {
+    id: 10,
+    name: 'William Garcia',
+    email: 'william.garcia@stanford.edu',
+    status: 'active',
+    lastLogin: '2025-05-02',
+    progress: 82,
+    profileImage: 'https://i.pravatar.cc/150?img=10'
+  },
+];
+
 export default function StudentManagement() {
+  const { toast } = useToast();
+  const [students, setStudents] = useState<Student[]>(mockStudents);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Mock data for student list
-  const students: Student[] = [
-    {
-      id: 1,
-      name: 'Emma Thompson',
-      email: 'emma.t@university.edu',
-      status: 'active',
-      lastLogin: '2025-05-03T16:23:47',
-      progress: 68,
-    },
-    {
-      id: 2,
-      name: 'Marcus Chen',
-      email: 'mchen@university.edu',
-      status: 'active',
-      lastLogin: '2025-05-03T14:05:22',
-      progress: 92,
-    },
-    {
-      id: 3,
-      name: 'Sofia Rodriguez',
-      email: 's.rodriguez@university.edu',
-      status: 'active',
-      lastLogin: '2025-05-02T10:31:08',
-      progress: 45,
-    },
-    {
-      id: 4,
-      name: 'James Wilson',
-      email: 'jwilson@university.edu',
-      status: 'inactive',
-      lastLogin: '2025-04-25T08:15:33',
-      progress: 23,
-    },
-    {
-      id: 5,
-      name: 'Priya Patel',
-      email: 'ppatel@university.edu',
-      status: 'active',
-      lastLogin: '2025-05-01T11:42:19',
-      progress: 71,
-    },
-  ];
+  // Filter students based on search query and status filter
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           student.email.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
-  // Filter students based on search query
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Handle student profile view
+  const handleViewStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setIsViewDialogOpen(true);
+  };
+
+  // Handle student deletion
+  const handleDeleteStudent = (studentId: number) => {
+    setStudents(students.filter(student => student.id !== studentId));
+    setIsDeleteDialogOpen(false);
+    
+    toast({
+      title: 'Student Removed',
+      description: 'The student has been removed from the platform.',
+    });
+  };
+
+  // Function to reset a student's password
+  const handleResetPassword = (studentId: number) => {
+    toast({
+      title: 'Password Reset Link Sent',
+      description: 'A password reset link has been sent to the student\'s email.',
+    });
+  };
+
+  // Function to deactivate a student
+  const handleDeactivateStudent = (studentId: number) => {
+    setStudents(students.map(student => 
+      student.id === studentId 
+        ? { ...student, status: 'inactive' as 'inactive' } 
+        : student
+    ));
+    
+    toast({
+      title: 'Student Deactivated',
+      description: 'The student account has been deactivated.',
+    });
+  };
+
+  // Function to activate a student
+  const handleActivateStudent = (studentId: number) => {
+    setStudents(students.map(student => 
+      student.id === studentId 
+        ? { ...student, status: 'active' as 'active' } 
+        : student
+    ));
+    
+    toast({
+      title: 'Student Activated',
+      description: 'The student account has been activated.',
+    });
+  };
+  
+  // Function to get the initials from a name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Student Management</h1>
         <p className="text-muted-foreground">
-          View, manage, and track your university's students on the Ascentul platform.
+          View, manage, and monitor student accounts and their platform activity.
         </p>
       </div>
-
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
+      
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            type="search"
-            placeholder="Search students..."
-            className="pl-8 w-full"
+            placeholder="Search by name or email..."
+            className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm" className="h-9">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="h-9">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button size="sm" className="h-9">
+        
+        <div className="flex gap-2 flex-wrap">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                {statusFilter === 'all' ? 'All Students' : 
+                 statusFilter === 'active' ? 'Active' : 'Inactive'}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                {statusFilter === 'all' && <Check className="mr-2 h-4 w-4" />}
+                All Students
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('active')}>
+                {statusFilter === 'active' && <Check className="mr-2 h-4 w-4" />}
+                Active
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
+                {statusFilter === 'inactive' && <Check className="mr-2 h-4 w-4" />}
+                Inactive
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Student
           </Button>
         </div>
       </div>
-
+      
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Students ({filteredStudents.length})</CardTitle>
-          <CardDescription>
-            Manage students enrolled in your university's Ascentul program.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Student</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead>Progress</TableHead>
@@ -143,66 +319,397 @@ export default function StudentManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStudents.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={student.profileImage} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                          {student.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div>{student.name}</div>
-                        <div className="text-xs text-muted-foreground">{student.email}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        student.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {student.status === 'active' ? 'Active' : 'Inactive'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(student.lastLogin).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-full max-w-24 rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{ width: `${student.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs">{student.progress}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      View
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      Edit
-                    </Button>
+              {filteredStudents.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                    No students found matching your criteria.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredStudents.map(student => (
+                  <TableRow key={student.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={student.profileImage} alt={student.name} />
+                          <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{student.name}</div>
+                          <div className="text-sm text-muted-foreground">{student.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={student.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                        {student.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        {student.lastLogin}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="w-full bg-secondary rounded-full h-2 mr-2">
+                          <div
+                            className={`h-2 rounded-full ${
+                              student.progress >= 70 
+                                ? 'bg-green-500' 
+                                : student.progress >= 40 
+                                ? 'bg-yellow-500' 
+                                : 'bg-red-500'
+                            }`}
+                            style={{ width: `${student.progress}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium">{student.progress}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleViewStudent(student)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Send Email
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Message
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                            <FileText className="mr-2 h-4 w-4" />
+                            View Resume
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <BarChart className="mr-2 h-4 w-4" />
+                            View Analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleResetPassword(student.id)}>
+                            <AlertCircle className="mr-2 h-4 w-4" />
+                            Reset Password
+                          </DropdownMenuItem>
+                          {student.status === 'active' ? (
+                            <DropdownMenuItem onClick={() => handleDeactivateStudent(student.id)}>
+                              <Ban className="mr-2 h-4 w-4" />
+                              Deactivate Account
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => handleActivateStudent(student.id)}>
+                              <Check className="mr-2 h-4 w-4" />
+                              Activate Account
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Remove Student
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
+        <CardFooter className="flex items-center justify-between border-t p-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredStudents.length} of {students.length} students
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+            >
+              Next
+            </Button>
+          </div>
+        </CardFooter>
       </Card>
+      
+      {/* Student Profile View Dialog */}
+      {selectedStudent && (
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Student Profile</DialogTitle>
+              <DialogDescription>
+                Detailed information about {selectedStudent.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="col-span-1 flex flex-col items-center gap-4">
+                <Avatar className="h-28 w-28">
+                  <AvatarImage src={selectedStudent.profileImage} alt={selectedStudent.name} />
+                  <AvatarFallback className="text-2xl">{getInitials(selectedStudent.name)}</AvatarFallback>
+                </Avatar>
+                
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">{selectedStudent.name}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedStudent.email}</p>
+                  <div className="mt-2">
+                    <Badge variant={selectedStudent.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                      {selectedStudent.status}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="w-full space-y-2">
+                  <Button variant="outline" className="w-full" size="sm">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Email
+                  </Button>
+                  <Button variant="outline" className="w-full" size="sm">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Message
+                  </Button>
+                  <Button variant="outline" className="w-full" size="sm">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View in LMS
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="col-span-2">
+                <Tabs defaultValue="overview">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+                    <TabsTrigger value="progress" className="flex-1">Progress</TabsTrigger>
+                    <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="overview" className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Student ID</p>
+                        <p className="text-sm text-muted-foreground">STU-{selectedStudent.id.toString().padStart(6, '0')}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Joined Date</p>
+                        <p className="text-sm text-muted-foreground">Jan 10, 2025</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Last Login</p>
+                        <p className="text-sm text-muted-foreground">{selectedStudent.lastLogin}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Degree Program</p>
+                        <p className="text-sm text-muted-foreground">Bachelor of Science in Computer Science</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Graduation Year</p>
+                        <p className="text-sm text-muted-foreground">2026</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Career Interest</p>
+                        <p className="text-sm text-muted-foreground">Software Development, Data Science</p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2">
+                      <h4 className="text-sm font-medium mb-2">Progress Overview</h4>
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Profile Completion</span>
+                            <span className="font-medium">{selectedStudent.progress}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${
+                                selectedStudent.progress >= 70 
+                                  ? 'bg-green-500' 
+                                  : selectedStudent.progress >= 40 
+                                  ? 'bg-yellow-500' 
+                                  : 'bg-red-500'
+                              }`}
+                              style={{ width: `${selectedStudent.progress}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Resume Completion</span>
+                            <span className="font-medium">85%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-green-500"
+                              style={{ width: '85%' }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span>Career Path Exploration</span>
+                            <span className="font-medium">65%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-yellow-500"
+                              style={{ width: '65%' }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="progress" className="pt-4">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium">Career Development Progress</h4>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <div>
+                            <h5 className="font-medium">Resume Building</h5>
+                            <p className="text-sm text-muted-foreground">Last updated: Apr 28, 2025</p>
+                          </div>
+                          <Badge variant="outline">Completed</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <div>
+                            <h5 className="font-medium">LinkedIn Profile Optimization</h5>
+                            <p className="text-sm text-muted-foreground">Last updated: May 1, 2025</p>
+                          </div>
+                          <Badge variant="outline">In Progress</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <div>
+                            <h5 className="font-medium">Mock Interview Sessions</h5>
+                            <p className="text-sm text-muted-foreground">2 of 5 completed</p>
+                          </div>
+                          <Badge variant="outline">In Progress</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <div>
+                            <h5 className="font-medium">Career Path Exploration</h5>
+                            <p className="text-sm text-muted-foreground">3 paths explored</p>
+                          </div>
+                          <Badge variant="outline">In Progress</Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pb-2">
+                          <div>
+                            <h5 className="font-medium">Job Application Tracking</h5>
+                            <p className="text-sm text-muted-foreground">0 applications tracked</p>
+                          </div>
+                          <Badge variant="outline">Not Started</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="activity" className="pt-4">
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium">Recent Activity</h4>
+                      
+                      <div className="space-y-4">
+                        <div className="border-l-2 border-primary pl-4 pb-4 relative">
+                          <div className="absolute w-2 h-2 bg-primary rounded-full -left-[5px] top-[7px]"></div>
+                          <p className="text-sm font-medium">Updated Resume</p>
+                          <p className="text-xs text-muted-foreground">May 3, 2025 at 2:45 PM</p>
+                        </div>
+                        
+                        <div className="border-l-2 border-primary pl-4 pb-4 relative">
+                          <div className="absolute w-2 h-2 bg-primary rounded-full -left-[5px] top-[7px]"></div>
+                          <p className="text-sm font-medium">Completed LinkedIn Profile Review</p>
+                          <p className="text-xs text-muted-foreground">May 1, 2025 at 10:30 AM</p>
+                        </div>
+                        
+                        <div className="border-l-2 border-primary pl-4 pb-4 relative">
+                          <div className="absolute w-2 h-2 bg-primary rounded-full -left-[5px] top-[7px]"></div>
+                          <p className="text-sm font-medium">Started Mock Interview Session</p>
+                          <p className="text-xs text-muted-foreground">Apr 28, 2025 at 3:15 PM</p>
+                        </div>
+                        
+                        <div className="border-l-2 border-primary pl-4 pb-4 relative">
+                          <div className="absolute w-2 h-2 bg-primary rounded-full -left-[5px] top-[7px]"></div>
+                          <p className="text-sm font-medium">Explored Software Engineering Career Path</p>
+                          <p className="text-xs text-muted-foreground">Apr 25, 2025 at 11:20 AM</p>
+                        </div>
+                        
+                        <div className="border-l-2 border-primary pl-4 relative">
+                          <div className="absolute w-2 h-2 bg-primary rounded-full -left-[5px] top-[7px]"></div>
+                          <p className="text-sm font-medium">Completed Career Assessment</p>
+                          <p className="text-xs text-muted-foreground">Apr 22, 2025 at 9:45 AM</p>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Removal</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove {selectedStudent?.name} from the platform? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => selectedStudent && handleDeleteStudent(selectedStudent.id)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Remove Student
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
