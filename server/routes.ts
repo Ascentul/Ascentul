@@ -27,6 +27,7 @@ import debugRouter from "./routes/debug";
 import pdfTestRouter from "./routes/pdf-test";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
+import { generateCareerPaths, CareerPath } from "./ai-career-paths";
 import { 
   insertUserSchema, 
   insertGoalSchema, 
