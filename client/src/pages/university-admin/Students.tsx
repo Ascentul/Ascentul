@@ -538,14 +538,6 @@ export default function StudentManagement() {
                             Message
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => {
-                            setSelectedStudent(student);
-                            setIsAnalyticsDialogOpen(true);
-                          }}>
-                            <BarChart className="mr-2 h-4 w-4" />
-                            View Analytics
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleResetPassword(student.id)}>
                             <AlertCircle className="mr-2 h-4 w-4" />
                             Reset Password
