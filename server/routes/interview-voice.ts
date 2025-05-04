@@ -236,7 +236,7 @@ Remember, your user is practicing for a real-world job interview and deserves na
 /**
  * Generate a relevant interview question based on job details and conversation history
  */
-router.post('/generate-question', requireAuth, async (req: Request, res: Response) => {
+router.post('/generate-question', requireLoginFallback, async (req: Request, res: Response) => {
   try {
     // Log the start of question generation
     logRequest('generate-question', 'Generate question request received');
@@ -354,7 +354,7 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
 /**
  * Analyze a user's interview response and provide feedback
  */
-router.post('/analyze-response', requireAuth, async (req: Request, res: Response) => {
+router.post('/analyze-response', requireLoginFallback, async (req: Request, res: Response) => {
   try {
     // Log the start of analysis process
     logRequest('analyze-response', 'Analyze response request received');
@@ -550,7 +550,7 @@ router.post('/analyze-response', requireAuth, async (req: Request, res: Response
 /**
  * Transcribe speech audio to text
  */
-router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
+router.post('/transcribe', requireLoginFallback, async (req: Request, res: Response) => {
   try {
     // Log the start of the transcription process
     logRequest('transcribe', 'Transcription request received');
@@ -869,7 +869,7 @@ router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
 /**
  * Convert text to speech using OpenAI's API
  */
-router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) => {
+router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: Response) => {
   try {
     // Log the start of the TTS process
     logRequest('text-to-speech', 'Text-to-speech request received');
