@@ -298,8 +298,81 @@ The Ascentul Team`;
   });
 }
 
+/**
+ * Send a university administrator invitation email
+ * @param email Recipient email address
+ * @param inviteToken The token for verifying and accepting the invitation
+ * @param universityName Name of the university
+ * @returns Promise that resolves with Mailgun API response
+ */
+async function sendUniversityInviteEmail(
+  email: string,
+  inviteToken: string,
+  universityName: string
+): Promise<MessagesSendResult> {
+  const subject = `Invitation to Join Ascentul as University Administrator`;
+  const verifyUrl = `https://app.ascentul.io/verify-invite/${inviteToken}`;
+  
+  // Plain text email version
+  const text = `Hello,
+
+You have been invited to join Ascentul as a University Administrator for ${universityName}.
+
+To accept this invitation, please click the link below:
+${verifyUrl}
+
+This invitation will expire in 7 days.
+
+Best regards,
+The Ascentul Team`;
+
+  // HTML email version with styling
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
+      </div>
+      
+      <h1 style="color: #1333c2; font-size: 24px; margin-bottom: 20px;">University Administrator Invitation</h1>
+      
+      <p>Hello,</p>
+      
+      <p>You have been invited to join Ascentul as a <strong>University Administrator</strong> for <strong>${universityName}</strong>.</p>
+      
+      <div style="background-color: #f5f7ff; border-left: 4px solid #1333c2; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; font-size: 16px;">As a University Administrator, you'll be able to manage university-specific resources, student access, and reporting.</p>
+      </div>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verifyUrl}" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+      </div>
+      
+      <p style="font-size: 14px; color: #666;">This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.</p>
+      
+      <p>Best regards,<br>The Ascentul Team</p>
+      
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+        <p>© 2024 Ascentul, Inc. All rights reserved.</p>
+        <p>
+          <a href="https://ascentul.io/privacy" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Privacy Policy</a> | 
+          <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> | 
+          <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
+        </p>
+      </div>
+    </div>
+  `;
+  
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html
+  });
+}
+
 export {
   sendEmail,
   sendWelcomeEmail,
-  sendApplicationUpdateEmail
+  sendApplicationUpdateEmail,
+  sendUniversityInviteEmail
 };
