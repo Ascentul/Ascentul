@@ -3,6 +3,7 @@ import { useUser } from '@/lib/useUserData';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useLocation } from 'wouter';
 
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +19,16 @@ import { z } from 'zod';
 export default function Account() {
   const { user } = useUser();
   const { toast } = useToast();
+  const [location] = useLocation();
+  
+  // Parse query parameters to get the active tab
+  const getInitialTabValue = () => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    return tabParam === 'career' || tabParam === 'subscription' || tabParam === 'security'
+      ? tabParam
+      : 'profile';
+  };
   
   // Handle section editing for career profile sections
   const handleEditSection = (sectionId: string) => {
@@ -48,11 +59,15 @@ export default function Account() {
     <div className="container max-w-5xl py-8">
       <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue={getInitialTabValue()} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
             Profile
+          </TabsTrigger>
+          <TabsTrigger value="career" className="flex items-center">
+            <Building className="mr-2 h-4 w-4" />
+            Career
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
@@ -279,6 +294,46 @@ export default function Account() {
             </CardHeader>
             <CardContent>
               <p>This section is coming soon.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="career" className="space-y-6">
+          {/* Profile Completion Tracker */}
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <CardTitle>Career Profile</CardTitle>
+              <CardDescription>Complete your career profile to maximize your opportunities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  {Math.round(completionPercentage)}% Complete
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {profileSections.filter(section => section.completed).length}/{profileSections.length} Sections
+                </span>
+              </div>
+              <Progress value={completionPercentage} className="h-2 mb-4" />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                {profileSections.map((section) => (
+                  <Card key={section.id} className={`border ${section.completed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">{section.title}</CardTitle>
+                        {section.completed ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Button variant="outline" size="sm" onClick={() => handleEditSection(section.id)}>
+                            <Edit className="h-4 w-4 mr-1" /> Add
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
