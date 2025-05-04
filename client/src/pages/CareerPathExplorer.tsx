@@ -778,6 +778,7 @@ export default function CareerPathExplorer() {
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
   const [roleCertifications, setRoleCertifications] = useState<Record<string, CertificationRecommendation[]>>({});
   const [isLoadingCertifications, setIsLoadingCertifications] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Job title search
@@ -1340,10 +1341,13 @@ export default function CareerPathExplorer() {
             
             <div className="px-4 sm:px-6 pb-6">
               <Tabs 
-                defaultValue="certifications" 
+                defaultValue="overview" 
                 className="w-full"
-                // When tab changes to certifications, ensure we have up-to-date data
+                value={activeTab}
+                // When tab changes, update state and ensure we have up-to-date data
                 onValueChange={(value) => {
+                  setActiveTab(value);
+                  
                   if (value === "certifications" && selectedNode) {
                     // If we don't have certifications yet for this node, fetch them
                     if (!roleCertifications[selectedNode.id] || roleCertifications[selectedNode.id].length === 0) {
