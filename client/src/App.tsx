@@ -234,8 +234,8 @@ function App() {
   const isPlanSelectionRoute = location === "/plan-selection";
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
 
-  // Root path should show home page, not redirect
-  if (location === "/" || location === "") {
+  // Only redirect root path to home if not trying to access sign-in
+  if ((location === "/" || location === "") && !isSignInRoute) {
     // Just navigate to /home for consistency
     navigate("/home");
     return null;
