@@ -97,7 +97,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Fall back to role-based redirection
         const user = data.user;
         if (user.userType === 'admin') {
-          window.location.href = '/admin-dashboard';
+          console.log("Admin user detected - redirecting to /admin");
+          window.location.href = '/admin';
         } else if (user.userType === 'staff') {
           window.location.href = '/staff-dashboard';
         } else if (user.userType === 'university_admin') {
@@ -115,7 +116,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const getRedirectPathByRole = (userType: string): string => {
     switch (userType) {
       case 'admin':
-        return '/admin-dashboard';
+        return '/admin';
       case 'staff':
         return '/staff-dashboard';
       case 'university_admin':
