@@ -647,20 +647,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
           </TabsContent>
         </Tabs>
       </CardContent>
-      <CardFooter className="flex justify-end">
-        {searchResults.length > 0 && (
-          <Button 
-            onClick={() => {
-              setShouldFetch(false);
-              setSelectedJob(null);
-              setActiveTab('search');
-            }} 
-            variant="secondary"
-          >
-            Clear Results
-          </Button>
-        )}
-      </CardFooter>
     </Card>
     
     {applicationJob && (
