@@ -12,32 +12,56 @@ const router = express.Router();
  * @access Public
  */
 router.get('/status', (req: Request, res: Response) => {
-  // Get all environment variables for debugging
-  const envKeys = Object.keys(process.env)
-    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
-    .join(', ');
-  console.log('Available environment variables (excluding secrets):', envKeys);
-  
-  // Check for Mailgun API key - try different potential environment variable names
-  const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY;
-  const mailgunApiKey = mailgunKey ? 'configured' : 'not configured';
-  
-  // Log the API key status
-  console.log('MAILGUN API KEY status:', mailgunApiKey);
-  
-  // Check for specific environment variables that might contain the API key
-  console.log('Environment variable check:');
-  console.log('- MAILGUN_API_KEY present:', process.env.MAILGUN_API_KEY ? 'Yes' : 'No');
-  console.log('- MAILGUN_KEY present:', process.env.MAILGUN_KEY ? 'Yes' : 'No');
-  console.log('- MG_API_KEY present:', process.env.MG_API_KEY ? 'Yes' : 'No');
-  
-  res.status(200).json({
-    service: 'Mailgun Email',
-    status: 'operational',
-    mailgunApiKey,
-    timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development'
-  });
+  try {
+    // Get all environment variables for debugging (excluding sensitive ones)
+    const envKeys = Object.keys(process.env)
+      .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
+      .join(', ');
+    console.log('Available environment variables (excluding secrets):', envKeys);
+    
+    // Check for Mailgun API key - try different potential environment variable names
+    const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY;
+    const hasMailgunApiKey = !!mailgunKey;
+    
+    // Check if mail domain is set
+    const mailDomain = process.env.MAILGUN_DOMAIN || 'mail.ascentul.io';
+    const hasCustomDomain = !!process.env.MAILGUN_DOMAIN;
+    
+    // Log the API key status
+    console.log('Mail service status check:');
+    console.log('- MAILGUN API KEY status:', hasMailgunApiKey ? 'configured' : 'not configured');
+    console.log('- MAILGUN_DOMAIN status:', hasCustomDomain ? 'configured' : 'using default');
+    console.log('- Default domain:', mailDomain);
+    
+    // Check for specific environment variables that might contain the API key
+    console.log('Environment variable check:');
+    console.log('- MAILGUN_API_KEY present:', process.env.MAILGUN_API_KEY ? 'Yes' : 'No');
+    console.log('- MAILGUN_KEY present:', process.env.MAILGUN_KEY ? 'Yes' : 'No');
+    console.log('- MG_API_KEY present:', process.env.MG_API_KEY ? 'Yes' : 'No');
+    
+    res.status(200).json({
+      success: true,
+      service: 'Mailgun Email',
+      configured: hasMailgunApiKey,
+      apiKey: hasMailgunApiKey,
+      domain: hasCustomDomain,
+      defaultDomain: mailDomain,
+      timestamp: new Date().toISOString(),
+      env: process.env.NODE_ENV || 'development',
+      message: hasMailgunApiKey 
+        ? 'Mail service is properly configured and operational.' 
+        : 'Mailgun API key is not set. Email functionality will not work.'
+    });
+  } catch (error: any) {
+    console.error('Error checking mail status:', error);
+    res.status(500).json({
+      success: false,
+      configured: false,
+      apiKey: false,
+      domain: false,
+      message: error.message || 'Failed to check mail status'
+    });
+  }
 });
 
 /**
