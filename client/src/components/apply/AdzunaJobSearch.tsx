@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ExternalLink, Loader2, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Loader2, Search } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [searchResults, setSearchResults] = useState<AdzunaJob[]>([]);
   const [directIsLoading, setDirectIsLoading] = useState(false);
+  const [expandedDescription, setExpandedDescription] = useState(false);
 
   // Reset search results when search params change
   useEffect(() => {
@@ -607,9 +608,36 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-2">Job Description</h3>
-                    <div className="text-gray-700 whitespace-pre-line">
-                      {selectedJob.description}
-                    </div>
+                    {selectedJob.description.length > 500 ? (
+                      <div>
+                        <div className={expandedDescription ? "text-gray-700 whitespace-pre-line" : "text-gray-700 whitespace-pre-line max-h-[300px] overflow-hidden relative"}>
+                          {selectedJob.description}
+                          {!expandedDescription && (
+                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => setExpandedDescription(!expandedDescription)}
+                          className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                        >
+                          {expandedDescription ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Show Less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Show More
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-gray-700 whitespace-pre-line">
+                        {selectedJob.description}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="mt-6">
