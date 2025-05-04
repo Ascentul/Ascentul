@@ -393,15 +393,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                 </Card>
               ))}
             </div>
-          ) : (
-            <Button 
-              variant="link" 
-              onClick={() => window.location.href = '/resume'}
-              className="mx-auto mt-8"
-            >
-              Go to Resume Builder
-            </Button>
-          )}
+          ) : null}
         </>
       )}
 
