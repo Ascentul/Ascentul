@@ -18,6 +18,7 @@ import {
   UserCog,
   Crown
 } from 'lucide-react';
+import StepDiscordInvite from './onboarding/StepDiscordInvite';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -185,11 +186,12 @@ export default function OnboardingFlow() {
     // We don't need to check user data here anymore as we get it from useUser() hook
     // The useEffect is only needed for updating progress bar
     
-    // If the user needs to set a username, we'll add a step (so 4 steps total)
+    // If the user needs to set a username, we'll add a step (so 5 steps total including Discord)
+    // Without username: 4 steps total [career, details, interests, discord]
     if (needsUsername) {
-      setProgress(step * 25);
+      setProgress(step * 20); // 5 steps total (0, 1, 2, 3, 4)
     } else {
-      setProgress(step * 33.33);
+      setProgress(step * 25); // 4 steps total (1, 2, 3, 4)
     }
   }, [step, needsUsername]);
 
@@ -328,7 +330,10 @@ export default function OnboardingFlow() {
       // If username is needed, we handle it separately
       await updateUsername();
     } else if (step === 3) {
-      // When we're on the final step (interests selection)
+      // After interests selection, move to Discord invite
+      setStep(4);
+    } else if (step === 4) {
+      // When we're on the final step (Discord invite)
       // Save onboarding data to user profile and wait for it to complete
       const success = await saveOnboardingData();
       
@@ -345,7 +350,7 @@ export default function OnboardingFlow() {
           variant: "destructive",
         });
       }
-    } else if ((needsUsername && step < 4) || (!needsUsername && step < 3)) {
+    } else if ((needsUsername && step < 5) || (!needsUsername && step < 4)) {
       setStep(step + 1);
     }
   };
@@ -815,6 +820,24 @@ export default function OnboardingFlow() {
                 onClick={handleNext}
                 disabled={data.interests.length === 0}
               >
+                Choose a Plan <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </div>
+        );
+      
+      case 4:
+        // Discord invite step
+        return (
+          <div className="space-y-6">
+            <CardContent className="pt-6">
+              <StepDiscordInvite onNext={handleNext} />
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleBack}>
+                <ChevronLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={handleNext}>
                 Choose a Plan <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
