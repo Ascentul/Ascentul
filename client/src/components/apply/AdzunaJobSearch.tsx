@@ -373,29 +373,7 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             </div>
             
             <Button 
-              onClick={(e) => {
-                console.log('Search button clicked!');
-                e.preventDefault();
-                
-                // Validate search term
-                if (!searchParams.keywords.trim()) {
-                  toast({
-                    title: "Missing information",
-                    description: "Please enter keywords for your job search",
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                
-                // Use direct fetch instead of the query
-                directFetch();
-                
-                // Also update search history
-                setSearchHistory((prev) => [
-                  { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
-                  ...prev.slice(0, 9), // Keep only the 10 most recent searches
-                ]);
-              }} 
+              onClick={handleSearch} 
               disabled={isLoading || !searchParams.keywords.trim()} 
               className="w-full mt-2"
               type="button"
