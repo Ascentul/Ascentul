@@ -1011,7 +1011,7 @@ export default function CareerPathExplorer() {
 
       {/* Role Detail Drawer */}
       <Drawer open={drawerOpen && selectedNode !== null} onOpenChange={setDrawerOpen} direction="right">
-        <DrawerContent className="h-screen max-w-[450px]">
+        <DrawerContent className="h-screen w-[30%]">
           {selectedNode && (
             <>
               <DrawerHeader className="px-6">
