@@ -1,10 +1,45 @@
 /**
  * Email API routes
  */
-import express from 'express';
-import { sendEmail, sendWelcomeEmail, sendApplicationUpdateEmail } from '../mail.js';
+import express, { Request, Response } from 'express';
+import { sendEmail, sendWelcomeEmail, sendApplicationUpdateEmail } from '../mail';
+
+// Define interface for authenticated request user
+interface AuthUser {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  userType: string;
+}
+
+// Augment Express Request interface
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+      isAuthenticated(): boolean;
+    }
+  }
+}
 
 const router = express.Router();
+
+/**
+ * @route GET /api/mail/status
+ * @description Check the status of the mail service
+ * @access Public
+ */
+router.get('/status', (req, res) => {
+  const mailgunApiKey = process.env.MAILGUN_API_KEY ? 'configured' : 'not configured';
+  
+  res.status(200).json({
+    service: 'Mailgun Email',
+    status: 'operational',
+    mailgunApiKey,
+    timestamp: new Date().toISOString()
+  });
+});
 
 /**
  * @route POST /api/mail/test
