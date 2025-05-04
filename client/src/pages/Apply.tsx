@@ -4,11 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Briefcase, ExternalLink, Search } from 'lucide-react';
 import { AdzunaJobSearch } from '@/components/apply/AdzunaJobSearch';
-import { ApplicationAssistant } from '@/components/apply/ApplicationAssistant';
 
 export default function Apply() {
-  // State for AI assistant
-  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<{
     title: string;
     company: string;
@@ -29,17 +26,17 @@ export default function Apply() {
 
   return (
     <div className="container mx-auto py-6 max-w-7xl">
-      <h1 className="text-3xl font-bold mb-8">Application Agent</h1>
+      <h1 className="text-3xl font-bold mb-8">Application Tracker</h1>
       
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              Find and Apply for Jobs
+              Find and Track Jobs
             </CardTitle>
             <CardDescription>
-              Search for jobs, get AI-powered application assistance, and apply with confidence
+              Search for jobs, track applications, and manage your job search process
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -72,13 +69,10 @@ export default function Apply() {
                         onClick={() => selectedJob.url && window.open(selectedJob.url, '_blank')}
                       >
                         <ExternalLink className="h-4 w-4" />
-                        Apply to Job
+                        Apply on Website
                       </Button>
-                      <Button
-                        onClick={() => setIsAIAssistantOpen(true)}
-                        className="flex items-center gap-1"
-                      >
-                        Get AI Application Help
+                      <Button className="flex items-center gap-1">
+                        Add to Tracker
                       </Button>
                     </div>
                   </div>
@@ -103,17 +97,6 @@ export default function Apply() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Job search component is now integrated directly in the page */}
-
-      {/* Application Assistant Component */}
-      <ApplicationAssistant
-        isOpen={isAIAssistantOpen}
-        onClose={() => setIsAIAssistantOpen(false)}
-        jobTitle={selectedJob?.title}
-        companyName={selectedJob?.company}
-        jobDescription={selectedJob?.description}
-      />
     </div>
   );
 }
