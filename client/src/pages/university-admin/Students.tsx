@@ -281,6 +281,14 @@ export default function StudentManagement() {
       .join('')
       .toUpperCase();
   };
+  
+  // Function to handle export report
+  const handleExportReport = () => {
+    toast({
+      title: 'Report Exported',
+      description: `Analytics report for ${selectedStudent?.name} has been exported successfully.`,
+    });
+  };
 
   // Setup form for adding a new student
   const form = useForm<AddStudentFormValues>({
@@ -972,15 +980,15 @@ export default function StudentManagement() {
               </div>
             </div>
             
-            <DialogFooter>
+            <div className="flex justify-end gap-2 mt-4">
               <Button variant="outline" onClick={() => setIsAnalyticsDialogOpen(false)}>
                 Close
               </Button>
-              <Button>
+              <Button onClick={handleExportReport}>
                 <Download className="mr-2 h-4 w-4" />
                 Export Report
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       )}
