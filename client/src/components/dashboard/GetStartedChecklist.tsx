@@ -31,13 +31,13 @@ interface GetStartedChecklistProps {
 export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = false }: GetStartedChecklistProps) {
   const { toast } = useToast();
   
-  // State to track checklist items
-  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
+  // Initial checklist item definitions with completed explicitly set to false for clarity
+  const initialChecklistItems: ChecklistItem[] = [
     {
       id: 'career-profile',
       title: 'Complete your career profile',
       description: 'Add your work history, education, and skills',
-      completed: false,
+      completed: false, // Ensure this starts as false for new users
       href: '/account',
       icon: <Briefcase className="h-4 w-4 text-primary" />
     },
@@ -45,7 +45,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       id: 'career-goal',
       title: 'Set your first career goal',
       description: 'Define what you want to achieve next',
-      completed: false,
+      completed: false, // Ensure this starts as false for new users
       href: '/goals',
       icon: <CheckCircle className="h-4 w-4 text-green-500" />
     },
@@ -53,7 +53,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       id: 'job-application',
       title: 'Track your first application',
       description: 'Start managing your job applications',
-      completed: false,
+      completed: false, // Ensure this starts as false for new users
       href: '/application_tracker',
       icon: <FileText className="h-4 w-4 text-blue-500" />
     },
@@ -61,7 +61,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       id: 'linkedin-profile',
       title: 'Analyze your LinkedIn profile',
       description: 'Get AI-powered insights for improvement',
-      completed: false,
+      completed: false, // Ensure this starts as false for new users
       href: '/linkedin-optimizer',
       icon: <Linkedin className="h-4 w-4 text-blue-600" />
     },
@@ -69,21 +69,26 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
       id: 'network-contact',
       title: 'Add 1 contact to the Network Hub',
       description: 'Start building your professional network',
-      completed: false,
+      completed: false, // Ensure this starts as false for new users
       href: '/network-hub',
       icon: <Users className="h-4 w-4 text-indigo-500" />
     }
-  ]);
+  ];
+  
+  // State to track checklist items - initialized with all items unchecked
+  const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>(initialChecklistItems);
 
-  // State for review item (6th item)
-  const [reviewItem, setReviewItem] = useState<ChecklistItem>({
+  // State for review item (6th item) - explicitly set to unchecked for clarity
+  const initialReviewItem: ChecklistItem = {
     id: 'leave-review',
     title: 'Leave a quick review',
     description: 'Tell us what you think about Ascentul',
-    completed: false,
+    completed: false, // Ensure this starts as false for new users
     href: '/feedback',
     icon: <Star className="h-4 w-4 text-yellow-500" />
-  });
+  };
+  
+  const [reviewItem, setReviewItem] = useState<ChecklistItem>(initialReviewItem);
 
   // State to track whether the checklist should be shown
   const [showChecklist, setShowChecklist] = useState(true);
@@ -132,18 +137,22 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
           
           setShowChecklist(!allCompleted);
         } else {
-          // All items should be unchecked for new users
-          const updatedItems = [...checklistItems];
+          // For new users, create a fresh checklist with all items unchecked
+          const freshItems = checklistItems.map(item => ({
+            ...item,
+            completed: false
+          }));
           
-          // Ensure all items are marked as not completed
-          updatedItems.forEach(item => {
-            item.completed = false;
-          });
+          setChecklistItems(freshItems);
           
-          setChecklistItems(updatedItems);
+          // Ensure review item is also unchecked
+          setReviewItem(prev => ({
+            ...prev,
+            completed: false
+          }));
           
-          // Save initial progress to localStorage
-          saveProgress(updatedItems, false);
+          // Save initial progress to localStorage (all unchecked)
+          saveProgress(freshItems, false);
         }
       } catch (error) {
         console.error('Error loading checklist progress:', error);
@@ -222,9 +231,12 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
 
   // We're always showing the review option now, so no need to check for unlocking
   
-  // Auto-complete the career profile checklist item when profile completion reaches 100%
+  // We'll leave this for when the user comes back to the dashboard after completing a profile
+  // but we won't auto-check for new users
   useEffect(() => {
-    if (profileCompletion === 100) {
+    // Only auto-complete if this is NOT a new user (has saved progress)
+    // and profile completion reaches 100%
+    if (profileCompletion === 100 && localStorage.getItem(`checklist_progress_${userId}`)) {
       // Find career profile checklist item
       const careerProfileItem = checklistItems.find(item => item.id === 'career-profile');
       
@@ -248,11 +260,14 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
         });
       }
     }
-  }, [profileCompletion, toast, reviewItem.completed, saveProgress, checklistItems]);
+  }, [profileCompletion, toast, reviewItem.completed, saveProgress, checklistItems, userId]);
   
   // Auto-complete the career goal checklist item when user has created at least one goal
+  // but only if this is not a new user session
   useEffect(() => {
-    if (hasGoals) {
+    // Only auto-complete if this is NOT a new user (has saved progress)
+    // and user has goals
+    if (hasGoals && localStorage.getItem(`checklist_progress_${userId}`)) {
       // Find career goal checklist item
       const careerGoalItem = checklistItems.find(item => item.id === 'career-goal');
       
@@ -276,7 +291,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0, hasGoals = 
         });
       }
     }
-  }, [hasGoals, toast, reviewItem.completed, saveProgress, checklistItems]);
+  }, [hasGoals, toast, reviewItem.completed, saveProgress, checklistItems, userId]);
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
