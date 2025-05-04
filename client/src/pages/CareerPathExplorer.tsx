@@ -1152,9 +1152,10 @@ export default function CareerPathExplorer() {
                 </Tabs>
               </div>
               
-              <DrawerFooter className="px-6 pt-0">
+              <DrawerFooter className="px-6 pt-0 flex flex-row items-center justify-between gap-2">
                 <Button 
-                  className="w-full bg-[#1333c2] hover:bg-[#0f2aae] text-white"
+                  className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4"
+                  size="sm"
                   disabled={isCreatingGoal}
                   onClick={async () => {
                     // Check if we have existing goals to avoid duplicates
@@ -1253,7 +1254,7 @@ export default function CareerPathExplorer() {
                 </Button>
 
                 <DrawerClose asChild>
-                  <Button variant="ghost">Close</Button>
+                  <Button variant="outline" size="sm">Close</Button>
                 </DrawerClose>
               </DrawerFooter>
             </>
