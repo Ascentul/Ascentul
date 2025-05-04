@@ -64,36 +64,78 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       
       console.log('Directly fetching from:', `/api/adzuna/jobs?${params.toString()}`);
       
+      const timeout = setTimeout(() => {
+        // Show a loading message if it's taking longer than expected
+        toast({
+          title: "Searching...",
+          description: "This may take a moment to connect to the job database",
+        });
+      }, 3000);
+      
       const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+      clearTimeout(timeout);
+      
       console.log('Direct fetch response status:', response.status);
       
+      // Check if response is ok
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API error in direct fetch:', errorText);
-        throw new Error(`Failed to fetch jobs: ${errorText}`);
+        let errorMessage = "Failed to fetch job listings";
+        try {
+          const errorData = await response.json();
+          console.error('API error in direct fetch:', errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If we can't parse as JSON, try plain text
+          const errorText = await response.text();
+          console.error('API error in direct fetch:', errorText);
+          errorMessage = `${errorMessage}: ${errorText}`;
+        }
+        
+        toast({
+          title: "Search Error",
+          description: "There was a problem with the job search service. Please try again later.",
+          variant: "destructive"
+        });
+        throw new Error(errorMessage);
       }
       
+      // Parse response data
       const data = await response.json();
       console.log('Direct fetch received data:', data);
       
-      if (data.results) {
+      // Check if there's an error field in the response
+      if (data.error) {
+        toast({
+          title: "Search Error",
+          description: data.error || "Failed to fetch job listings",
+          variant: "destructive"
+        });
+        throw new Error(data.error);
+      }
+      
+      // Check if results exist and have items
+      if (data.results && Array.isArray(data.results) && data.results.length > 0) {
         setSearchResults(data.results);
         // Automatically switch to results tab when results are available
         setActiveTab('results');
+        
+        // Show success message with count
+        toast({
+          title: "Search Complete",
+          description: `Found ${data.results.length} job listings matching your search`,
+        });
       } else {
         // If no results, show a message
+        setSearchResults([]);
+        setActiveTab('results');
         toast({
           title: "No Results Found",
-          description: "Try different keywords or location",
+          description: "Try different keywords or location, or remove filters",
         });
       }
     } catch (error) {
       console.error('Direct fetch error:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to fetch job listings. Please try again.",
-        variant: "destructive"
-      });
+      // Error message already shown in the earlier try-catch
     } finally {
       setDirectIsLoading(false);
     }
