@@ -5162,6 +5162,52 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
     }
   });
   
+  // API endpoint for generating personalized career paths based on user profile
+  apiRouter.post("/api/career-paths/generate", requireLoginFallback, async (req: Request, res: Response) => {
+    try {
+      // Get the user's profile data
+      const userId = req.session.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      console.log(`Generating personalized career paths for user ${userId}`);
+      
+      // Get profile data from the request or fetch it directly
+      let profileData = req.body.profileData;
+      
+      // If profile data wasn't provided in the request, fetch it from storage
+      if (!profileData) {
+        // Fetch the user's complete profile data
+        const user = await storage.getUser(userId);
+        const workHistory = await storage.getUserWorkHistory(userId);
+        const education = await storage.getUserEducation(userId);
+        const skills = await storage.getUserSkills(userId);
+        const certifications = await storage.getUserCertifications(userId);
+        
+        profileData = {
+          workHistory: workHistory || [],
+          education: education || [],
+          skills: skills || [],
+          certifications: certifications || [],
+          careerSummary: user?.careerSummary || '',
+        };
+        
+        console.log(`Fetched profile data: ${workHistory?.length || 0} work history items, ${education?.length || 0} education items, ${skills?.length || 0} skills, ${certifications?.length || 0} certifications`);
+      }
+      
+      // Generate career paths based on profile data
+      const paths = await generateCareerPaths(profileData);
+      
+      // Return the generated paths
+      res.status(200).json({ paths });
+    } catch (error) {
+      console.error("Error generating career paths:", error);
+      res.status(500).json({ message: "Failed to generate career paths" });
+    }
+  });
+  
   const httpServer = createServer(app);
   console.log('HTTP server created for the API and frontend');
   return httpServer;
