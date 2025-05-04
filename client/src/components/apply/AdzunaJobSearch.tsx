@@ -42,7 +42,14 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   
   // Direct fetch function (alternative approach)
   const directFetch = useCallback(async () => {
-    if (!searchParams.keywords) return;
+    if (!searchParams.keywords) {
+      toast({
+        title: "Search Error",
+        description: "Please enter keywords for your job search",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setDirectIsLoading(true);
     console.log('Direct fetch initiated with params:', searchParams);
@@ -71,13 +78,26 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       
       if (data.results) {
         setSearchResults(data.results);
+        // Automatically switch to results tab when results are available
+        setActiveTab('results');
+      } else {
+        // If no results, show a message
+        toast({
+          title: "No Results Found",
+          description: "Try different keywords or location",
+        });
       }
     } catch (error) {
       console.error('Direct fetch error:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to fetch job listings. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setDirectIsLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParams, toast]);
   
   // Fetch jobs from Adzuna API
   const { isLoading: queryIsLoading, data, error } = useQuery({
@@ -376,13 +396,15 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
               onClick={(e) => {
                 console.log('Search button clicked!');
                 e.preventDefault();
-                // Use direct fetch instead of the query
-                directFetch();
-                // Also update search history
-                setSearchHistory((prev) => [
-                  { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
-                  ...prev.slice(0, 9), // Keep only the 10 most recent searches
-                ]);
+                // Update search history
+                if (searchParams.keywords.trim()) {
+                  setSearchHistory((prev) => [
+                    { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
+                    ...prev.slice(0, 9), // Keep only the 10 most recent searches
+                  ]);
+                  // Use direct fetch instead of the query
+                  directFetch();
+                }
               }} 
               disabled={isLoading || !searchParams.keywords.trim()} 
               className="w-full mt-2"

@@ -14,6 +14,7 @@ export interface AdzunaJob {
   salary_min?: number;
   salary_max?: number;
   salary_is_predicted?: boolean;
+  contract_time?: string;
   category: {
     tag: string;
     label: string;
