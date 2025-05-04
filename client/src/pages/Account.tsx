@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import {
   User, CreditCard, ShieldCheck, Edit, Building, GraduationCap, Trophy, 
-  BookOpen, Award, Languages, MapPin, Settings
+  BookOpen, Award, Languages, MapPin, Settings, CheckCircle
 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -21,14 +21,24 @@ export default function Account() {
   const { toast } = useToast();
   const [location] = useLocation();
   
-  // Parse query parameters to get the active tab
-  const getInitialTabValue = () => {
+  // Get the active tab from URL query parameter
+  const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     return tabParam === 'career' || tabParam === 'subscription' || tabParam === 'security'
       ? tabParam
       : 'profile';
-  };
+  });
+  
+  // Listen for URL changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    
+    if (tabParam === 'career' || tabParam === 'subscription' || tabParam === 'security') {
+      setActiveTab(tabParam);
+    }
+  }, [location]);
   
   // Handle section editing for career profile sections
   const handleEditSection = (sectionId: string) => {
@@ -59,7 +69,7 @@ export default function Account() {
     <div className="container max-w-5xl py-8">
       <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
 
-      <Tabs defaultValue={getInitialTabValue()} className="w-full">
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="profile" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
