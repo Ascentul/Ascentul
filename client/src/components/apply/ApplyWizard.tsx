@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -95,7 +94,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
         const response = await fetch('/api/resumes');
         if (!response.ok) return [];
         return await response.json();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching resumes:', error);
         return [];
       }
@@ -124,7 +123,7 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
           data: applicationData,
         });
         return response;
-      } catch (error) {
+      } catch (error: any) {
         if (error.message?.includes('Authentication required')) {
           // Save to localStorage for demo mode
           console.log('Demo mode: Creating application in localStorage');
@@ -210,36 +209,73 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
     setStep(2);
   };
 
+  // If the dialog is not open, don't render anything
+  if (!isOpen) return null;
+  
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Application Agent</DialogTitle>
-          <DialogDescription>
+    <div className="rounded-lg border bg-card text-card-foreground shadow-lg p-6 max-w-[700px] max-h-[90vh] overflow-y-auto mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-lg font-semibold">Application Agent</h3>
+          <p className="text-sm text-muted-foreground">
             {step === 1 && "Start by adding job details or import from a job board."}
             {step === 2 && "Select or upload a resume for this application."}
             {step === 3 && "Review and submit your application details."}
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleClose}>
+          <span className="sr-only">Close</span>
+          ✕
+        </Button>
+      </div>
 
-        {step === 1 && (
-          <Tabs defaultValue="manual" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manual">Enter Manually</TabsTrigger>
-              <TabsTrigger value="import">Import Job</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="manual">
-              <Form {...form}>
-                <form className="space-y-4">
+      {step === 1 && (
+        <Tabs defaultValue="manual" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="manual">Enter Manually</TabsTrigger>
+            <TabsTrigger value="import">Import Job</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="manual">
+            <Form {...form}>
+              <form className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="jobTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Title*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Software Engineer" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="companyName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Acme Inc." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="jobTitle"
+                    name="jobLocation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Job Title*</FormLabel>
+                        <FormLabel>Location</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Software Engineer" {...field} />
+                          <Input placeholder="e.g. Remote, New York, NY" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -248,291 +284,259 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                   
                   <FormField
                     control={form.control}
-                    name="companyName"
+                    name="applicationDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Name*</FormLabel>
+                        <FormLabel>Date</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Acme Inc." {...field} />
+                          <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="jobLocation"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. Remote, New York, NY" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="applicationDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="jobLink"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Job URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://example.com/job-posting" 
-                            {...field}
-                            value={field.value || ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="jobDescription"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Job Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Paste the job description here..." 
-                            className="min-h-[120px]"
-                            {...field}
-                            value={field.value || ''}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="button" 
-                    className="w-full" 
-                    onClick={async () => {
-                      const result = await form.trigger(['jobTitle', 'companyName']);
-                      if (result) setStep(2);
-                    }}
-                  >
-                    Continue to Resume Selection
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="import">
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-md">
-                  <h3 className="font-medium mb-2">Import from URL</h3>
-                  <div className="flex space-x-2">
-                    <Input placeholder="Paste job URL" />
-                    <Button type="button">Import</Button>
-                  </div>
                 </div>
                 
-                <div className="mt-6">
-                  <h3 className="font-medium mb-4">Search for Jobs</h3>
-                  {/* Add our new JobSearch component */}
-                  <JobSearch onSelectJob={handleJobSelect} />
+                <FormField
+                  control={form.control}
+                  name="jobLink"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job URL</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="https://example.com/job-posting" 
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="jobDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Paste the job description here..." 
+                          className="min-h-[120px]"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="button" 
+                  className="w-full" 
+                  onClick={async () => {
+                    const result = await form.trigger(['jobTitle', 'companyName']);
+                    if (result) setStep(2);
+                  }}
+                >
+                  Continue to Resume Selection
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+          
+          <TabsContent value="import">
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-md">
+                <h3 className="font-medium mb-2">Import from URL</h3>
+                <div className="flex space-x-2">
+                  <Input placeholder="Paste job URL" />
+                  <Button type="button">Import</Button>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
-        )}
+              
+              <div className="mt-6">
+                <h3 className="font-medium mb-4">Search for Jobs</h3>
+                {/* Add our new JobSearch component */}
+                <JobSearch onSelectJob={handleJobSelect} />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {isLoadingResumes ? (
-                <div className="col-span-full flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : resumes && resumes.length > 0 ? (
-                resumes.map((resume: any) => (
-                  <Card 
-                    key={resume.id} 
-                    className={`cursor-pointer hover:border-primary transition-colors ${form.getValues('resumeId') === resume.id ? 'border-primary bg-primary/5' : ''}`}
-                    onClick={() => form.setValue('resumeId', resume.id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-medium">{resume.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        {form.getValues('resumeId') === resume.id && (
-                          <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-white text-xs">
-                            ✓
-                          </div>
-                        )}
+      {step === 2 && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {isLoadingResumes ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : resumes && resumes.length > 0 ? (
+              resumes.map((resume: any) => (
+                <Card 
+                  key={resume.id} 
+                  className={`cursor-pointer hover:border-primary transition-colors ${form.getValues('resumeId') === resume.id ? 'border-primary bg-primary/5' : ''}`}
+                  onClick={() => form.setValue('resumeId', resume.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{resume.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Last updated: {new Date(resume.updatedAt).toLocaleDateString()}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="col-span-full p-8 text-center bg-muted rounded-md">
-                  <p>No resumes found. Create one in the Resume Builder.</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => window.location.href = '/resume'}
-                  >
-                    Go to Resume Builder
-                  </Button>
+                      {form.getValues('resumeId') === resume.id && (
+                        <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-white text-xs">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full p-8 text-center bg-muted rounded-md">
+                <p>No resumes found. Create one in the Resume Builder.</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => window.location.href = '/resume'}
+                >
+                  Go to Resume Builder
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button 
+              onClick={() => setStep(3)}
+            >
+              Continue to Review
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <h3 className="font-medium">Job Details</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Job Title</Label>
+                  <p className="text-sm font-medium">{form.getValues('jobTitle')}</p>
                 </div>
-              )}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Company</Label>
+                  <p className="text-sm font-medium">{form.getValues('companyName')}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Location</Label>
+                  <p className="text-sm">{form.getValues('jobLocation') || 'Not specified'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Date</Label>
+                  <p className="text-sm">{form.getValues('applicationDate')}</p>
+                </div>
+              </div>
             </div>
             
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button 
-                onClick={() => setStep(3)}
-              >
-                Continue to Review
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Application Notes</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Add any notes about this application..." 
+                      className="min-h-[120px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Include any details you want to remember about this application.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    >
+                      <option value="Not Started">Not Started</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Applied">Applied</option>
+                      <option value="Interviewing">Interviewing</option>
+                      <option value="Offer">Offer</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </FormControl>
+                  <FormDescription>
+                    Update the status as your application progresses.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="aiAssisted"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 mt-1"
+                      checked={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>AI Assistant Enabled</FormLabel>
+                    <FormDescription>
+                      Get AI-powered insights and suggestions for this application.
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+            
+            <div className="flex justify-between w-full mt-6">
+              <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                Back
+              </Button>
+              <Button type="submit" disabled={createApplication.isPending}>
+                {createApplication.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Create Application'
+                )}
               </Button>
             </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <h3 className="font-medium">Job Details</h3>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Job Title</Label>
-                    <p className="text-sm font-medium">{form.getValues('jobTitle')}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Company</Label>
-                    <p className="text-sm font-medium">{form.getValues('companyName')}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Location</Label>
-                    <p className="text-sm">{form.getValues('jobLocation') || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Date</Label>
-                    <p className="text-sm">{form.getValues('applicationDate')}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Application Notes</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Add any notes about this application..." 
-                        className="min-h-[120px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Include any details you want to remember about this application.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value="Not Started">Not Started</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Applied">Applied</option>
-                        <option value="Interviewing">Interviewing</option>
-                        <option value="Offer">Offer</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </FormControl>
-                    <FormDescription>
-                      Update the status as your application progresses.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="aiAssisted"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 mt-1"
-                        checked={field.value}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>AI Assistant Enabled</FormLabel>
-                      <FormDescription>
-                        Get AI-powered insights and suggestions for this application.
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <div className="flex justify-between w-full">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
-                    Back
-                  </Button>
-                  <Button type="submit" disabled={createApplication.isPending}>
-                    {createApplication.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Create Application'
-                    )}
-                  </Button>
-                </div>
-              </DialogFooter>
-            </form>
-          </Form>
-        )}
-      </DialogContent>
-    </Dialog>
+          </form>
+        </Form>
+      )}
+    </div>
   );
 }
