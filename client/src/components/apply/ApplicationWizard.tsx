@@ -359,9 +359,9 @@ export function ApplicationWizard({ isOpen, onClose, jobDetails }: ApplicationWi
         duration: 5000, // Give users a bit more time to read the message
       });
       
-      // Navigate to the interviews page which contains the application tracker
+      // Navigate to the application tracker page
       onClose();
-      setLocation('/interviews');
+      setLocation('/application-tracker');
     },
     onError: (error) => {
       console.error('Error submitting application:', error);
