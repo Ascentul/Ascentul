@@ -579,7 +579,7 @@ function App() {
             <CareerProfile />
           </CareerRoute>
         </Route>
-        <Route path="/contacts">
+        <Route path="/network-hub">
           <CareerRoute>
             <Contacts />
           </CareerRoute>
