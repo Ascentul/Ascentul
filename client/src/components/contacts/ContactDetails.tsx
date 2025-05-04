@@ -1369,14 +1369,6 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                 <p className="text-muted-foreground mt-2">
                   Schedule follow-ups to keep track of when to reconnect with this contact.
                 </p>
-                <Button 
-                  onClick={() => setShowFollowUpForm(true)} 
-                  variant="outline" 
-                  className="mt-4"
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Schedule a Follow-up
-                </Button>
               </div>
             )}
           </div>
