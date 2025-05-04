@@ -34,22 +34,147 @@ if (!apiKey) {
     chat: {
       completions: {
         create: async (params: any) => {
-          console.log('Mock OpenAI API call with params:', params);
-          return {
-            choices: [
-              {
-                message: {
-                  content: JSON.stringify({
-                    message: "This is mock AI content. Please provide an OpenAI API key for real responses.",
-                    details: "The application is running in mock mode because the OPENAI_API_KEY is not set."
-                  })
+          console.log('Mock OpenAI API call with params:', JSON.stringify(params, null, 2));
+          
+          // Prepare more intelligent mock responses based on the endpoint being used
+          // Check the messages to determine context
+          const isTextToSpeech = params.model === 'tts-1-hd';
+          const isLinkedInAnalysis = params.messages.some((m: any) => m.content && m.content.includes('LinkedIn optimization coach'));
+          const isInterviewQuestion = params.messages.some((m: any) => m.content && 
+            (m.content.includes('interview') || m.content.includes('Start the interview')));
+          const isInterviewAnalysis = params.messages.some((m: any) => m.content && 
+            m.content.includes('Please provide brief feedback on my answer'));
+          
+          if (isInterviewQuestion) {
+            // Return a mock interview question
+            return {
+              choices: [
+                {
+                  message: {
+                    content: "Tell me about your relevant experience for this position and how it has prepared you for this role."
+                  }
                 }
-              }
-            ],
-            model: "mock-gpt-4o",
-            usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+              ],
+              model: "mock-gpt-4o",
+              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+            };
+          } else if (isInterviewAnalysis) {
+            // Return mock interview analysis
+            return {
+              choices: [
+                {
+                  message: {
+                    content: "Good answer! You highlighted your key skills well. For my next question: How do you handle challenging situations in a team environment?"
+                  }
+                }
+              ],
+              model: "mock-gpt-4o",
+              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+            };
+          } else if (isLinkedInAnalysis) {
+            // If response_format is json_object
+            if (params.response_format && params.response_format.type === 'json_object') {
+              return {
+                choices: [
+                  {
+                    message: {
+                      content: JSON.stringify({
+                        overallScore: 70,
+                        sections: {
+                          headline: {
+                            score: 7,
+                            feedback: "Your headline is clear and mentions your role.",
+                            suggestion: "Add more keywords relevant to your target position."
+                          },
+                          about: {
+                            score: 6,
+                            feedback: "Good overview of your background.",
+                            suggestion: "Make it more achievement-focused."
+                          },
+                          experience: {
+                            score: 8,
+                            feedback: "Strong work history with relevant roles.",
+                            suggestions: ["Add more metrics to quantify success.", "Highlight leadership more."]
+                          },
+                          skills: {
+                            score: 7,
+                            feedback: "Good technical skills listed.",
+                            missingSkills: ["Project Management", "Team Leadership"],
+                            suggestedSkills: ["Agile Methodology", "Cross-functional Leadership"]
+                          },
+                          featured: {
+                            score: 5,
+                            feedback: "Limited featured content.",
+                            suggestions: ["Add relevant projects", "Include certifications"]
+                          },
+                          banner: {
+                            score: 6,
+                            feedback: "Basic professional banner.",
+                            suggestion: "Use a banner that relates to your industry."
+                          }
+                        },
+                        recruiterPerspective: "This is a solid profile that shows relevant experience but could be more distinctive.",
+                        actionPlan: {
+                          highPriority: ["Improve headline with keywords", "Add metrics to experience"],
+                          mediumPriority: ["Update banner image", "Add featured projects"],
+                          lowPriority: ["Reorder skills list", "Update profile photo"]
+                        }
+                      })
+                    }
+                  }
+                ],
+                model: "mock-gpt-4o",
+                usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+              };
+            }
+          } else {
+            // Default mock response
+            return {
+              choices: [
+                {
+                  message: {
+                    content: "This is mock AI content. The system is running in demo mode with sample responses."
+                  }
+                }
+              ],
+              model: "mock-gpt-4o",
+              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
+            };
+          }
+        }
+      }
+    },
+    audio: {
+      speech: {
+        create: async (params: any) => {
+          console.log('Mock OpenAI TTS API call with params:', params);
+          // Return a mock audio buffer (empty but satisfies the interface)
+          const mockBuffer = Buffer.from('Mock audio content');
+          return {
+            arrayBuffer: async () => mockBuffer.buffer
           };
         }
+      },
+      transcriptions: {
+        create: async (params: any) => {
+          console.log('Mock OpenAI transcription API call');
+          return {
+            text: "This is a mock transcription of user speech since the OpenAI API is in demo mode.",
+            duration: 5.2
+          };
+        }
+      }
+    },
+    images: {
+      generate: async (params: any) => {
+        console.log('Mock OpenAI image generation API call with params:', params);
+        return {
+          data: [
+            {
+              url: "https://placekitten.com/1024/1024" // Placeholder image URL
+            }
+          ]
+        };
       }
     }
   };
