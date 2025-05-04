@@ -183,6 +183,174 @@ if (!apiKey) {
   openai = new OpenAI({ apiKey });
 }
 
+// Helper function to get or create an interview assistant
+export async function getOrCreateInterviewAssistant() {
+  try {
+    if (useMockOpenAI) {
+      // Return a mock assistant ID for testing
+      console.log('Using mock assistant for interview practice');
+      return { assistantId: 'mock-assistant-id' };
+    }
+    
+    // Check for existing assistants with the tag 'interview-coach'
+    const assistantsList = await openai.beta.assistants.list({
+      order: 'desc',
+      limit: 10,
+    });
+    
+    const existingAssistant = assistantsList.data.find(
+      assistant => assistant.name === 'Interview Coach'
+    );
+    
+    if (existingAssistant) {
+      console.log('Found existing interview coach assistant');
+      return { assistantId: existingAssistant.id };
+    }
+    
+    // Create a new assistant if none exists
+    console.log('Creating new interview coach assistant');
+    const assistant = await openai.beta.assistants.create({
+      name: 'Interview Coach',
+      instructions: `You are a professional interview coach. Ask relevant questions based on the job title and company the user selects. Respond in a human, calm, coaching tone. Guide the user through the interview like a real recruiter.
+
+When beginning an interview, first introduce yourself briefly and ask an initial question related to the job role.
+Each follow-up should provide brief feedback on the user's previous answer before asking a new question.
+Make your questions specific to the job title and company when possible.
+If the user seems confused or gives a very short answer, guide them with more specific follow-up questions.
+End the interview after 5-6 questions with positive encouragement and brief overall feedback.`,
+      model: "gpt-4o",
+      tools: [{ type: "retrieval" }],
+    });
+    
+    return { assistantId: assistant.id };
+  } catch (error) {
+    console.error('Error creating/retrieving interview assistant:', error);
+    throw error;
+  }
+}
+
+// Helper function to manage interview threads
+export async function manageInterviewThread(params: {
+  threadId?: string;
+  assistantId: string;
+  jobTitle: string;
+  company: string;
+  jobDescription?: string;
+  userMessage?: string;
+}) {
+  try {
+    const { threadId, assistantId, jobTitle, company, jobDescription, userMessage } = params;
+    
+    if (useMockOpenAI) {
+      // Return mock data for testing
+      console.log('Using mock thread for interview practice');
+      return {
+        threadId: threadId || 'mock-thread-id',
+        response: userMessage 
+          ? "I'll provide feedback on that answer. For my next question: Can you describe a challenging situation you faced in your previous role and how you handled it?"
+          : `Hello! I'm your interview coach for the ${jobTitle} position at ${company}. Let's start with a common question: Can you tell me about your relevant experience for this role?`
+      };
+    }
+    
+    let thread;
+    
+    // Create or retrieve thread
+    if (threadId) {
+      // Use existing thread
+      thread = { id: threadId };
+    } else {
+      // Create a new thread with initial context
+      thread = await openai.beta.threads.create({
+        messages: [
+          {
+            role: "user",
+            content: `I'm preparing for an interview for the position of ${jobTitle} at ${company}.${jobDescription ? ` The job description is: ${jobDescription}` : ''} Please conduct a realistic practice interview with me, asking relevant questions for this specific role.`
+          }
+        ]
+      });
+    }
+    
+    // Add user message to thread if provided
+    if (userMessage) {
+      await openai.beta.threads.messages.create(
+        thread.id,
+        {
+          role: "user",
+          content: userMessage
+        }
+      );
+    }
+    
+    // Run the assistant on the thread
+    const run = await openai.beta.threads.runs.create(
+      thread.id,
+      {
+        assistant_id: assistantId,
+        instructions: `You are conducting a practice interview for a ${jobTitle} position at ${company}. Ask relevant questions and provide brief, constructive feedback on the user's responses before asking the next question. Use the 'nova' voice style - conversational, clear, and professional. Keep each response concise and focused.`,
+      }
+    );
+    
+    // Wait for the run to complete
+    let runStatus = await openai.beta.threads.runs.retrieve(
+      thread.id,
+      run.id
+    );
+    
+    // Poll for completion (with a reasonable timeout)
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds
+    
+    while (runStatus.status !== "completed" && runStatus.status !== "failed" && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(
+        thread.id,
+        run.id
+      );
+      attempts++;
+    }
+    
+    if (runStatus.status === "failed") {
+      console.error("Assistant run failed:", runStatus.last_error);
+      throw new Error(`Assistant run failed: ${runStatus.last_error?.message || "Unknown error"}`);
+    }
+    
+    if (attempts >= maxAttempts && runStatus.status !== "completed") {
+      console.error("Assistant run timed out");
+      throw new Error("Assistant run timed out");
+    }
+    
+    // Get the latest assistant message
+    const messages = await openai.beta.threads.messages.list(
+      thread.id
+    );
+    
+    // Find the last assistant message
+    const assistantMessages = messages.data.filter(msg => msg.role === "assistant");
+    const latestMessage = assistantMessages[0]; // Most recent first
+    
+    if (!latestMessage) {
+      throw new Error("No assistant message found");
+    }
+    
+    // Extract the text content
+    const textContent = latestMessage.content.find(
+      content => content.type === "text"
+    );
+    
+    if (!textContent || textContent.type !== "text") {
+      throw new Error("No text content found in assistant message");
+    }
+    
+    return {
+      threadId: thread.id,
+      response: textContent.text.value
+    };
+  } catch (error) {
+    console.error('Error managing interview thread:', error);
+    throw error;
+  }
+}
+
 // Export the OpenAI instance
 export const openaiInstance = openai;
 

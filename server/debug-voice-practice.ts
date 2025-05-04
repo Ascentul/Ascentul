@@ -1,119 +1,59 @@
-/**
- * Debug utilities for voice practice feature
- */
-
 import fs from 'fs';
 import path from 'path';
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads', 'recordings');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+/**
+ * Utility functions for logging and debugging the voice practice feature
+ * These functions help track API calls, performance, and issues
+ */
 
-// Log request details for debugging
-export function logRequest(endpoint: string, message: string, data?: any) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] [${endpoint}] ${message}`;
+// Debug flag - set to false in production
+const DEBUG_ENABLED = true;
+const SAVE_DEBUG_AUDIO = false; // Set to true only when debugging audio issues
+
+// Log request data for tracking and debugging
+export function logRequest(endpoint: string, action: string, data?: any) {
+  if (!DEBUG_ENABLED) return;
   
-  console.log(logMessage);
+  const timestamp = new Date().toISOString();
+  console.log(`[Voice Practice][${timestamp}][${endpoint}] ${action}`);
   
   if (data) {
-    try {
-      if (typeof data === 'object') {
-        // Don't log the full audio data which could be large
-        if (data.audio && typeof data.audio === 'string' && data.audio.length > 100) {
-          const sanitizedData = { ...data, audio: `<base64_data_length:${data.audio.length}>` };
-          console.log('Request data:', sanitizedData);
-        } else {
-          console.log('Request data:', data);
-        }
-      } else {
-        console.log('Request data:', data);
-      }
-    } catch (e) {
-      console.error('Error logging data:', e);
-    }
+    console.log(`[Voice Practice][${timestamp}][${endpoint}] Data:`, 
+      typeof data === 'object' ? JSON.stringify(data, null, 2) : data);
   }
 }
 
-// Log response details for debugging
-export function logResponse(endpoint: string, status: number, message: string, data?: any) {
-  const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] [${endpoint}] [${status}] ${message}`;
+// Log response data for tracking and debugging
+export function logResponse(endpoint: string, statusCode: number, message: string, data?: any) {
+  if (!DEBUG_ENABLED) return;
   
-  console.log(logMessage);
+  const timestamp = new Date().toISOString();
+  console.log(`[Voice Practice][${timestamp}][${endpoint}] Response: ${statusCode} - ${message}`);
   
   if (data) {
-    try {
-      if (typeof data === 'object') {
-        console.log('Response data:', data);
-      } else {
-        console.log('Response data:', data);
-      }
-    } catch (e) {
-      console.error('Error logging data:', e);
-    }
+    console.log(`[Voice Practice][${timestamp}][${endpoint}] Response data:`, 
+      typeof data === 'object' ? JSON.stringify(data, null, 2) : data);
   }
 }
 
-// Save audio to file for debugging
-export function saveAudioForDebugging(audio: string, endpoint: string) {
+// Save audio data for debugging purposes
+export function saveAudioForDebugging(audioData: Buffer, prefix: string) {
+  if (!DEBUG_ENABLED || !SAVE_DEBUG_AUDIO) return;
+  
   try {
-    // Ensure audio is a string
-    if (!audio || typeof audio !== 'string') {
-      console.error('Invalid audio data received');
-      return;
+    // Create debug directory if it doesn't exist
+    const debugDir = path.join(__dirname, '../debug-audio');
+    if (!fs.existsSync(debugDir)) {
+      fs.mkdirSync(debugDir, { recursive: true });
     }
     
-    // Clean the data URL prefix if present
-    let cleanedAudio = audio;
-    let fileExtension = 'webm';
+    // Save the audio file with timestamp
+    const timestamp = new Date().getTime();
+    const filePath = path.join(debugDir, `${prefix}-${timestamp}.webm`);
+    fs.writeFileSync(filePath, audioData);
     
-    if (audio.includes('base64,')) {
-      // Extract the MIME type and base64 data
-      const matches = audio.match(/^data:([^;]+);base64,(.+)$/);
-      if (matches && matches.length >= 3) {
-        const mimeType = matches[1];
-        cleanedAudio = matches[2];
-        
-        // Set file extension based on MIME type
-        if (mimeType.includes('mp3')) fileExtension = 'mp3';
-        else if (mimeType.includes('wav')) fileExtension = 'wav';
-        else if (mimeType.includes('ogg')) fileExtension = 'ogg';
-        else if (mimeType.includes('webm')) fileExtension = 'webm';
-        
-        console.log(`Extracted MIME type: ${mimeType} for debug audio`);
-      } else {
-        // If no proper match but there's a comma, split at the comma
-        cleanedAudio = audio.split(',')[1] || audio;
-        console.log('Could not extract MIME type for debug audio but split at comma');
-      }
-    }
-    
-    // Make sure uploads directory exists
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-      console.log(`Created uploads directory: ${uploadsDir}`);
-    }
-    
-    // Create a filename with timestamp
-    const timestamp = Date.now();
-    const filename = path.join(uploadsDir, `debug_${endpoint}_${timestamp}.${fileExtension}`);
-    
-    // Convert base64 to buffer and save
-    try {
-      const buffer = Buffer.from(cleanedAudio, 'base64');
-      fs.writeFileSync(filename, buffer);
-      
-      console.log(`Saved debug audio to ${filename}, size: ${buffer.length} bytes`);
-      return filename;
-    } catch (bufferError) {
-      console.error('Error converting debug audio to buffer:', bufferError);
-      return null;
-    }
-  } catch (e) {
-    console.error('Error saving audio for debugging:', e);
-    return null;
+    console.log(`[Voice Practice] Debug audio saved to ${filePath}`);
+  } catch (error) {
+    console.error('[Voice Practice] Error saving debug audio:', error);
   }
 }
