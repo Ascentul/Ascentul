@@ -60,7 +60,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Analyze your LinkedIn profile',
       description: 'Get AI-powered insights for improvement',
       completed: false,
-      href: '/linkedin-analyzer',
+      href: '/linkedin-optimizer',
       icon: <Linkedin className="h-4 w-4 text-blue-600" />
     },
     {
