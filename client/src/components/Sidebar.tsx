@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/interview') || location.startsWith('/apply') || location.startsWith('/contacts') || location.startsWith('/voice-practice')) {
+    if (location.startsWith('/application-tracker') || location.startsWith('/apply') || location.startsWith('/contacts') || location.startsWith('/voice-practice')) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/career-path')) {
       setActiveSection('career-growth');
