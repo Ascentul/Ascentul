@@ -654,7 +654,6 @@ export default function StudentManagement() {
                 <Tabs defaultValue="overview">
                   <TabsList className="w-full">
                     <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-                    <TabsTrigger value="progress" className="flex-1">Progress</TabsTrigger>
                     <TabsTrigger value="activity" className="flex-1">Activity</TabsTrigger>
                   </TabsList>
                   
@@ -687,54 +686,6 @@ export default function StudentManagement() {
                     </div>
                     
 
-                  </TabsContent>
-                  
-                  <TabsContent value="progress" className="pt-4">
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-medium">Career Development Progress</h4>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between border-b pb-2">
-                          <div>
-                            <h5 className="font-medium">Resume Building</h5>
-                            <p className="text-sm text-muted-foreground">Last updated: Apr 28, 2025</p>
-                          </div>
-                          <Badge variant="outline">Completed</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between border-b pb-2">
-                          <div>
-                            <h5 className="font-medium">LinkedIn Profile Optimization</h5>
-                            <p className="text-sm text-muted-foreground">Last updated: May 1, 2025</p>
-                          </div>
-                          <Badge variant="outline">In Progress</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between border-b pb-2">
-                          <div>
-                            <h5 className="font-medium">Mock Interview Sessions</h5>
-                            <p className="text-sm text-muted-foreground">2 of 5 completed</p>
-                          </div>
-                          <Badge variant="outline">In Progress</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between border-b pb-2">
-                          <div>
-                            <h5 className="font-medium">Career Path Exploration</h5>
-                            <p className="text-sm text-muted-foreground">3 paths explored</p>
-                          </div>
-                          <Badge variant="outline">In Progress</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pb-2">
-                          <div>
-                            <h5 className="font-medium">Job Application Tracking</h5>
-                            <p className="text-sm text-muted-foreground">0 applications tracked</p>
-                          </div>
-                          <Badge variant="outline">Not Started</Badge>
-                        </div>
-                      </div>
-                    </div>
                   </TabsContent>
                   
                   <TabsContent value="activity" className="pt-4">
