@@ -37,16 +37,24 @@ async function sendEmail({
     throw new Error('Missing required email parameters: to, subject, and text are required.');
   }
 
-  // Check for Mailgun API key
-  if (!process.env.MAILGUN_API_KEY) {
-    throw new Error('MAILGUN_API_KEY environment variable is not set.');
+  // Check for Mailgun API key - try different potential environment variable names
+  const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY || null;
+  
+  // Log all available environment variables (excluding those with sensitive names)
+  console.log('Looking for Mailgun API key...');
+  console.log('Available env vars:', Object.keys(process.env)
+    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
+    .join(', '));
+  
+  if (!mailgunKey) {
+    throw new Error('Mailgun API key environment variable is not set. Tried: MAILGUN_API_KEY, MAILGUN_KEY, MG_API_KEY');
   }
 
   try {
     // Create mailgun client with API key
     const mg = mailgun.client({
       username: 'api',
-      key: process.env.MAILGUN_API_KEY
+      key: mailgunKey
     });
 
     // Create email data object
