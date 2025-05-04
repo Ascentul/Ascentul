@@ -612,42 +612,38 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-2">Job Description</h3>
                     <div>
-                      {/* Use a ref for the job description container */}
+                      {/* Job description container with conditional height limit */}
                       <div 
-                        className={`text-gray-700 whitespace-pre-line ${
-                          !expandedDescription && selectedJob.description.length > 500 
-                            ? "max-h-[300px] overflow-hidden relative" 
-                            : ""
+                        className={`text-gray-700 whitespace-pre-line relative ${
+                          !expandedDescription ? "max-h-[300px] overflow-hidden" : ""
                         }`}
                       >
                         {selectedJob.description}
-                        {!expandedDescription && selectedJob.description.length > 500 && (
-                          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
+                        {!expandedDescription && (
+                          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
                         )}
                       </div>
                       
-                      {/* Only show toggle button for longer descriptions */}
-                      {selectedJob.description.length > 500 && (
-                        <button 
-                          onClick={() => {
-                            console.log('Toggle description', !expandedDescription);
-                            setExpandedDescription(prevState => !prevState);
-                          }}
-                          className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
-                        >
-                          {expandedDescription ? (
-                            <>
-                              <ChevronUp className="h-4 w-4 mr-1" />
-                              Show Less
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-4 w-4 mr-1" />
-                              Show More
-                            </>
-                          )}
-                        </button>
-                      )}
+                      {/* Show toggle button for all descriptions for testing */}
+                      <button 
+                        onClick={() => {
+                          console.log('Toggle description', !expandedDescription);
+                          setExpandedDescription(prevState => !prevState);
+                        }}
+                        className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                      >
+                        {expandedDescription ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Show More
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                   
