@@ -270,8 +270,107 @@ The Ascentul Team`;
   });
 }
 
+/**
+ * Send a university admin invitation email with a tokenized signup link
+ * @param {Object} options - Invitation options
+ * @param {string} options.to - Recipient email address
+ * @param {string} options.universityName - Name of the university
+ * @param {string} options.inviteToken - Secure invitation token
+ * @returns {Promise} Promise that resolves with Mailgun API response
+ */
+async function sendUniversityInviteEmail(options) {
+  const { to, universityName, inviteToken } = options;
+  
+  if (!to || !universityName || !inviteToken) {
+    throw new Error('Missing required parameters for university invite email');
+  }
+  
+  const subject = `You're Invited to Manage ${universityName} on Ascentul`;
+  
+  // URL with the invite token
+  const inviteUrl = `https://app.ascentul.io/university-register?token=${inviteToken}`;
+  
+  const text = `Hello,
+
+You've been invited to join Ascentul as the administrator for ${universityName}.
+
+Ascentul provides career development tools and resources to help your students succeed in their professional journeys. As a university administrator, you'll be able to:
+
+- Manage student accounts
+- Track career development progress
+- Access detailed analytics and reporting
+- Customize resources for your university's needs
+
+To accept this invitation and set up your account, please visit:
+${inviteUrl}
+
+This invitation link will expire in 7 days.
+
+Thank you for partnering with Ascentul to support your students' career success!
+
+Best regards,
+The Ascentul Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
+      </div>
+      
+      <h1 style="color: #1333c2; font-size: 24px; margin-bottom: 20px;">University Admin Invitation</h1>
+      
+      <p>Hello,</p>
+      
+      <p>You've been invited to join Ascentul as the administrator for <strong>${universityName}</strong>.</p>
+      
+      <div style="background-color: #f5f7ff; border-left: 4px solid #1333c2; padding: 15px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1333c2;">What You'll Be Able to Do</h3>
+        <ul style="padding-left: 20px;">
+          <li>Manage student accounts and access</li>
+          <li>Track student career development progress</li>
+          <li>Access detailed analytics and reporting</li>
+          <li>Customize resources for your university</li>
+        </ul>
+      </div>
+      
+      <p>Ascentul provides comprehensive career development tools and resources designed to help your students succeed in their professional journeys.</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${inviteUrl}" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+      </div>
+      
+      <p style="font-size: 13px;">Or copy and paste this URL into your browser:</p>
+      <p style="font-size: 13px; word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">${inviteUrl}</p>
+      
+      <p><strong>Note:</strong> This invitation link will expire in 7 days.</p>
+      
+      <p>Thank you for partnering with Ascentul to support your students' career success!</p>
+      
+      <p>Best regards,<br>The Ascentul Team</p>
+      
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+        <p>© 2024 Ascentul, Inc. All rights reserved.</p>
+        <p>
+          <a href="https://ascentul.io/privacy" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Privacy Policy</a> | 
+          <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> | 
+          <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
+        </p>
+        <p>If you received this invitation in error, please disregard this email.</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    text,
+    html
+  });
+}
+
 export {
   sendEmail,
   sendWelcomeEmail,
-  sendApplicationUpdateEmail
+  sendApplicationUpdateEmail,
+  sendUniversityInviteEmail
 };
