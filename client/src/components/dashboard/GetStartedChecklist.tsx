@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { 
@@ -247,7 +247,7 @@ export function GetStartedChecklist({ userId, profileCompletion = 0 }: GetStarte
         });
       }
     }
-  }, [profileCompletion, toast, checklistItems, reviewItem, saveProgress]);
+  }, [profileCompletion, toast, reviewItem.completed, saveProgress, checklistItems]);
 
   // Check if checklist should be hidden (all 5 primary tasks completed)
   useEffect(() => {
