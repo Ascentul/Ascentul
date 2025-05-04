@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { 
   Users, Activity, Briefcase, BarChart4, 
-  Building, Calendar, TrendingUp, BookOpen 
+  Building, Calendar, TrendingUp, BookOpen,
+  ExternalLink, ArrowRight
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   BarChart,
   Bar,
@@ -68,6 +70,33 @@ export default function AdminOverview() {
           <span className="text-sm font-medium">{new Date().toLocaleDateString()}</span>
         </div>
       </div>
+
+      {/* University Management Banner */}
+      <Card className="mb-6 bg-gradient-to-r from-blue-50 to-white border-blue-200">
+        <CardContent className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between">
+          <div>
+            <div className="flex items-center mb-2">
+              <Building className="h-6 w-6 text-blue-600 mr-2" />
+              <h3 className="text-xl font-bold text-blue-800">University Management</h3>
+            </div>
+            <p className="text-blue-700 mb-4 md:mb-0 max-w-2xl">
+              Manage your university partners, send invitation emails to University Admins, 
+              and monitor onboarding progress all in one place.
+            </p>
+          </div>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700"
+            size="lg" 
+            onClick={() => {
+              console.log("Navigating to University Management page");
+              window.location.assign("/admin/universities");
+            }}
+          >
+            Manage Universities
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Quick stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
