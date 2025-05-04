@@ -17,6 +17,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { AcademicProgram } from './Settings';
 import { Loader2 } from 'lucide-react';
 import {
@@ -99,11 +100,11 @@ export default function Usage() {
   } = useQuery({
     queryKey: ['/api/academic-programs'],
     queryFn: async () => {
-      const response = await fetch('/api/academic-programs');
+      const response = await apiRequest('GET', '/api/academic-programs');
       if (!response.ok) {
         throw new Error('Failed to fetch academic programs');
       }
-      return response.json();
+      return await response.json();
     }
   });
   
