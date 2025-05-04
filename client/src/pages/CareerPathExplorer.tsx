@@ -662,6 +662,9 @@ export default function CareerPathExplorer() {
     try {
       setIsLoadingCertifications(true);
       
+      // Log the API request details for debugging
+      console.log(`Fetching certifications for ${node.title} (${node.level}) with ${node.skills.length} skills`);
+      
       const response = await apiRequest('POST', '/api/career-certifications', {
         role: node.title,
         level: node.level,
@@ -673,13 +676,24 @@ export default function CareerPathExplorer() {
       }
       
       const data = await response.json();
+      console.log('API Response:', data);
       
-      // Update the certifications state with the new recommendations
-      setRoleCertifications(prev => ({
-        ...prev,
-        [nodeId]: data
-      }));
-      
+      // Check if we have certifications array in the response
+      if (data.certifications && Array.isArray(data.certifications)) {
+        // Update the certifications state with the new recommendations
+        setRoleCertifications(prev => ({
+          ...prev,
+          [nodeId]: data.certifications
+        }));
+        console.log(`Stored ${data.certifications.length} certifications for node ${nodeId}`);
+      } else {
+        console.error('API response missing certifications array:', data);
+        toast({
+          title: "Invalid Response Format",
+          description: "The server returned data in an unexpected format.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error fetching certification recommendations:', error);
       toast({
@@ -1137,7 +1151,19 @@ export default function CareerPathExplorer() {
             </DialogHeader>
             
             <div className="px-4 sm:px-6 pb-6">
-              <Tabs defaultValue="overview" className="w-full">
+              <Tabs 
+                defaultValue="certifications" 
+                className="w-full"
+                // When tab changes to certifications, ensure we have up-to-date data
+                onValueChange={(value) => {
+                  if (value === "certifications" && selectedNode) {
+                    // If we don't have certifications yet for this node, fetch them
+                    if (!roleCertifications[selectedNode.id] || roleCertifications[selectedNode.id].length === 0) {
+                      fetchCertificationRecommendations(selectedNode.id);
+                    }
+                  }
+                }}
+              >
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
                   <TabsTrigger value="skills" className="text-xs sm:text-sm">Skills & Reqs</TabsTrigger>
