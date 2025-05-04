@@ -890,55 +890,33 @@ export default function Settings() {
                     )}
                   />
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={programForm.control}
-                      name="degreeType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Degree Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select degree type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Associate">Associate</SelectItem>
-                              <SelectItem value="Bachelor">Bachelor</SelectItem>
-                              <SelectItem value="Master">Master</SelectItem>
-                              <SelectItem value="Doctorate">Doctorate</SelectItem>
-                              <SelectItem value="Certificate">Certificate</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={programForm.control}
-                      name="duration"
-                      render={({ field }) => (
-                        <div>
-                          <div className="text-sm font-medium">Duration (years)</div>
-                          <div className="mt-1">
-                            <Input 
-                              type="number" 
-                              min={1} 
-                              max={10} 
-                              {...field}
-                              onChange={e => field.onChange(Number(e.target.value))}
-                            />
-                          </div>
-                          <div className="mt-1 text-sm text-destructive">{programForm.formState.errors.duration?.message}</div>
-                        </div>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={programForm.control}
+                    name="degreeType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Degree Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select degree type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Associate">Associate</SelectItem>
+                            <SelectItem value="Bachelor">Bachelor</SelectItem>
+                            <SelectItem value="Master">Master</SelectItem>
+                            <SelectItem value="Doctorate">Doctorate</SelectItem>
+                            <SelectItem value="Certificate">Certificate</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   
                   <FormField
                     control={programForm.control}
