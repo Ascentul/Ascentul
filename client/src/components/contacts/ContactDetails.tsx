@@ -1674,7 +1674,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       )}
       
       {/* Add/Edit Note Dialog */}
-      <Dialog open={activeTab === "notes" && isEditing} onOpenChange={(open) => {
+      <Dialog open={isEditing} onOpenChange={(open) => {
         if (!open) {
           setIsEditing(false);
           setEditingNote(null);
