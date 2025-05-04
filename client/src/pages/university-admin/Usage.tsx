@@ -4,7 +4,8 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { AcademicProgram } from './Settings';
 import { Loader2 } from 'lucide-react';
 import {
@@ -46,8 +47,33 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  Check,
+  Info
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 // Mock data for usage statistics
 const monthlyUsageData = [
@@ -88,10 +114,94 @@ const usageBreakdown = [
   { id: 8, feature: 'Cover Letter Generator', usage: 960, change: '+18%', status: 'increase' },
 ];
 
+// Schema for the schedule report form
+const scheduleReportSchema = z.object({
+  reportName: z.string().min(1, "Report name is required"),
+  reportDescription: z.string().optional(),
+  frequency: z.enum(["once", "daily", "weekly", "monthly", "quarterly"]),
+  recipients: z.string()
+    .min(1, "Recipients are required")
+    .refine(val => {
+      // Simple email list validation with regex
+      const emails = val.split(",").map(email => email.trim());
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emails.every(email => emailRegex.test(email));
+    }, "Please enter valid emails separated by commas"),
+  dataSelection: z.object({
+    overview: z.boolean().default(true),
+    features: z.boolean().default(true),
+    programs: z.boolean().default(true),
+  }),
+});
+
+type ScheduleReportFormValues = z.infer<typeof scheduleReportSchema>;
+
 export default function Usage() {
   const [dateRange, setDateRange] = useState('last30Days');
   const [programFilter, setProgramFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const { toast } = useToast();
+  
+  // Initialize the form
+  const form = useForm<ScheduleReportFormValues>({
+    resolver: zodResolver(scheduleReportSchema),
+    defaultValues: {
+      reportName: '',
+      reportDescription: '',
+      frequency: 'monthly',
+      recipients: '',
+      dataSelection: {
+        overview: true,
+        features: true,
+        programs: true,
+      },
+    },
+  });
+  
+  // Handler for scheduling reports
+  const onScheduleReport = async (data: ScheduleReportFormValues) => {
+    setIsScheduling(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real implementation, this would be an API request:
+      // await apiRequest('POST', '/api/schedule-report', data);
+      
+      console.log('Scheduled report:', data);
+      
+      // Add to the Recent Reports section (would be done via API/DB in a real implementation)
+      const now = new Date();
+      const reportDate = now.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+      });
+      
+      // Show success toast
+      toast({
+        title: "Report Scheduled",
+        description: `"${data.reportName}" will be generated ${data.frequency === 'once' ? 'once' : data.frequency}`,
+        variant: "default",
+      });
+      
+      // Reset form and close dialog
+      form.reset();
+      setScheduleDialogOpen(false);
+    } catch (error) {
+      console.error('Error scheduling report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule the report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScheduling(false);
+    }
+  };
   
   // Function to convert data to CSV format
   const convertToCSV = (data: any[], headerMap: Record<string, string>) => {
@@ -272,7 +382,10 @@ export default function Usage() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button 
+            variant="outline" 
+            onClick={() => setScheduleDialogOpen(true)}
+          >
             <Calendar className="mr-2 h-4 w-4" />
             Schedule Report
           </Button>
@@ -707,6 +820,192 @@ export default function Usage() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Schedule Report Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Schedule New Report</DialogTitle>
+            <DialogDescription>
+              Create a scheduled report that will be automatically generated and distributed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onScheduleReport)} className="space-y-5">
+              <FormField
+                control={form.control}
+                name="reportName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Report Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Monthly Usage Summary" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="reportDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Monthly summary of platform usage and engagement metrics"
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FormField
+                  control={form.control}
+                  name="frequency"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Frequency</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select frequency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="once">Once</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="recipients"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Recipients</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="email@university.edu, dept@university.edu" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Separate multiple email addresses with commas
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="border rounded-md p-4">
+                <div className="font-medium mb-2">Data to Include</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="dataSelection.overview"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary"
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Overview Metrics
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="dataSelection.features"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary"
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Feature Analysis
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="dataSelection.programs"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary"
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Program Breakdown
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => setScheduleDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isScheduling}>
+                  {isScheduling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scheduling...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Schedule Report
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
