@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth } from '../auth';
+import { requireAuth, requireLoginFallback } from '../auth';
 import { openaiInstance } from '../openai';
 import { z } from 'zod';
 import { storage } from '../storage';
