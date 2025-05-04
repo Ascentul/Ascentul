@@ -1,6 +1,13 @@
 import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { useUser, useIsAdminUser, useIsUniversityUser, useIsStaffUser, useIsRegularUser } from '@/lib/useUserData';
+import { 
+  useUser, 
+  useIsAdminUser, 
+  useIsSystemAdmin,
+  useIsUniversityUser, 
+  useIsStaffUser, 
+  useIsRegularUser 
+} from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
 
 interface RouteGuardProps {
@@ -79,6 +86,7 @@ interface AdminRouteGuardProps {
 
 export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const { user, isLoading } = useUser();
+  const isSystemAdmin = useIsSystemAdmin();
   const [, setLocation] = useLocation();
   
   if (isLoading) {
@@ -91,14 +99,14 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   
   // Strict check: only true admin users (userType === 'admin') can access admin dashboard
   // Not university admins or any other role
-  if (!user || user.userType !== 'admin') {
+  if (!user || !isSystemAdmin) {
     // Redirect based on user type
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'staff') {
       setLocation('/staff-dashboard');
     } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
-      setLocation('/university-dashboard');
+      setLocation('/university-admin/dashboard');
     } else {
       setLocation('/career-dashboard');
     }
