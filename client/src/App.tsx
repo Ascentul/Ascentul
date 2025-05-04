@@ -32,18 +32,6 @@ import AuthTest from "@/pages/AuthTest";
 import { LoadingProvider } from "@/contexts/loading-context";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
-// Redirect component for /interviews → /application_tracker
-function InterviewsRedirect() {
-  const [, navigate] = useLocation();
-  const queryParams = window.location.search;
-  
-  useEffect(() => {
-    navigate(`/application_tracker${queryParams}`);
-  }, [navigate, queryParams]);
-  
-  return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
-}
-
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
@@ -105,6 +93,18 @@ import {
 } from "@/pages/university-admin";
 
 // University Edition Layout
+// Redirect component for /interviews → /application_tracker
+function InterviewsRedirect() {
+  const [, navigate] = useLocation();
+  const queryParams = window.location.search;
+  
+  useEffect(() => {
+    navigate(`/application_tracker${queryParams}`);
+  }, [navigate, queryParams]);
+  
+  return <div className="p-8 text-center">Redirecting to Application Tracker...</div>;
+}
+
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user } = useUser();
