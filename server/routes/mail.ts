@@ -13,12 +13,23 @@ const router = express.Router();
  */
 router.get('/status', (req: Request, res: Response) => {
   // Get all environment variables for debugging
-  const envKeys = Object.keys(process.env).filter(key => !key.includes('SECRET') && !key.includes('KEY')).join(', ');
+  const envKeys = Object.keys(process.env)
+    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
+    .join(', ');
   console.log('Available environment variables (excluding secrets):', envKeys);
   
-  // Check specifically for MAILGUN_API_KEY
-  const mailgunApiKey = process.env.MAILGUN_API_KEY ? 'configured' : 'not configured';
-  console.log('MAILGUN_API_KEY status:', mailgunApiKey);
+  // Check for Mailgun API key - try different potential environment variable names
+  const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY;
+  const mailgunApiKey = mailgunKey ? 'configured' : 'not configured';
+  
+  // Log the API key status
+  console.log('MAILGUN API KEY status:', mailgunApiKey);
+  
+  // Check for specific environment variables that might contain the API key
+  console.log('Environment variable check:');
+  console.log('- MAILGUN_API_KEY present:', process.env.MAILGUN_API_KEY ? 'Yes' : 'No');
+  console.log('- MAILGUN_KEY present:', process.env.MAILGUN_KEY ? 'Yes' : 'No');
+  console.log('- MG_API_KEY present:', process.env.MG_API_KEY ? 'Yes' : 'No');
   
   res.status(200).json({
     service: 'Mailgun Email',
@@ -32,10 +43,12 @@ router.get('/status', (req: Request, res: Response) => {
 /**
  * @route POST /api/mail/test
  * @description Send a test email to verify Mailgun configuration
- * @access Private (requires authentication)
+ * @access Public in development, Private in production
  */
 router.post('/test', async (req: Request, res: Response) => {
-  if (!req.isAuthenticated()) {
+  // In production, require authentication
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && !req.isAuthenticated()) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
@@ -48,29 +61,37 @@ router.post('/test', async (req: Request, res: Response) => {
       });
     }
 
-    // Ensure that user is available and has required properties
-    if (!req.user) {
-      return res.status(401).json({ error: 'User not found in session' });
-    }
-
-    // Use the authenticated user's email for testing
-    const { email, name } = req.user;
+    // Get recipient email from request body
+    const { recipient, name } = req.body;
+    let toEmail = recipient;
+    let toName = name;
     
-    // Extract optional recipient email from request body
-    const { recipient } = req.body;
-    const to = recipient || email;
+    // If no recipient is provided in the body, try to use authenticated user
+    if (!toEmail && req.isAuthenticated() && req.user) {
+      toEmail = req.user.email;
+      toName = req.user.name;
+    }
+    
+    // Final fallback - require an email address
+    if (!toEmail) {
+      return res.status(400).json({ 
+        error: 'No recipient email provided',
+        details: 'Please provide a recipient email address in the request body'
+      });
+    }
 
     // Send the test email
     const result = await sendEmail({
-      to,
+      to: toEmail,
       subject: '🎉 Test Email from Ascentul',
       text: 'This is a test email sent via Mailgun. If you see this, the email service is working correctly!',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Test Email from Ascentul ✅</h2>
-          <p>Hello ${name || 'there'},</p>
+          <p>Hello ${toName || 'there'},</p>
           <p>This is a test email sent via <strong>Mailgun</strong>.</p>
           <p>If you're seeing this, it means the email service is configured correctly!</p>
+          <p>Timestamp: ${new Date().toISOString()}</p>
           <p>Best regards,<br>The Ascentul Team</p>
         </div>
       `
@@ -78,7 +99,67 @@ router.post('/test', async (req: Request, res: Response) => {
     
     res.status(200).json({ 
       success: true, 
-      message: `Test email sent successfully to ${to}`,
+      message: `Test email sent successfully to ${toEmail}`,
+      details: result
+    });
+  } catch (error: any) {
+    console.error('Error sending test email:', error);
+    res.status(500).json({ 
+      error: 'Failed to send test email', 
+      details: error.message || String(error)
+    });
+  }
+});
+
+/**
+ * @route GET /api/mail/test
+ * @description Send a test email to verify Mailgun configuration (development only)
+ * @access Public in development mode
+ */
+router.get('/test', async (req: Request, res: Response) => {
+  // Only allow this in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ 
+      error: 'Not allowed in production',
+      details: 'This endpoint is only available in development mode'
+    });
+  }
+  
+  try {
+    // Make sure we have the Mailgun API key
+    if (!process.env.MAILGUN_API_KEY) {
+      return res.status(500).json({ 
+        error: 'Mailgun API key not configured',
+        details: 'The MAILGUN_API_KEY environment variable is not set.' 
+      });
+    }
+
+    // Get recipient email from query parameters
+    const toEmail = req.query.email as string || 'test@example.com';
+    const toName = req.query.name as string || 'Test User';
+    
+    console.log(`Sending test email to ${toEmail} (${toName})`);
+
+    // Send the test email
+    const result = await sendEmail({
+      to: toEmail,
+      subject: '🎉 Test Email from Ascentul',
+      text: 'This is a test email sent via Mailgun. If you see this, the email service is working correctly!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Test Email from Ascentul ✅</h2>
+          <p>Hello ${toName || 'there'},</p>
+          <p>This is a test email sent via <strong>Mailgun</strong>.</p>
+          <p>If you're seeing this, it means the email service is configured correctly!</p>
+          <p>Timestamp: ${new Date().toISOString()}</p>
+          <p>Best regards,<br>The Ascentul Team</p>
+        </div>
+      `
+    });
+    
+    res.status(200).json({ 
+      success: true, 
+      message: `Test email sent successfully to ${toEmail}`,
       details: result
     });
   } catch (error: any) {
