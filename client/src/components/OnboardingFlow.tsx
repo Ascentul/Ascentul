@@ -861,7 +861,7 @@ export default function OnboardingFlow() {
         
         <div className="mb-8">
           <div className="flex justify-between text-sm mb-2">
-            <span>Step {step} of 3</span>
+            <span>Step {step} of {needsUsername ? '5' : '4'}</span>
             <span>{progress}%</span>
           </div>
           <Progress value={progress} className="h-2" />
