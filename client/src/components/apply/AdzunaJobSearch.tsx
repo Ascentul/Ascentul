@@ -608,14 +608,17 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                   
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold mb-2">Job Description</h3>
-                    {selectedJob.description.length > 500 ? (
-                      <div>
-                        <div className={expandedDescription ? "text-gray-700 whitespace-pre-line" : "text-gray-700 whitespace-pre-line max-h-[300px] overflow-hidden relative"}>
-                          {selectedJob.description}
-                          {!expandedDescription && (
-                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
-                          )}
-                        </div>
+                    <div>
+                      <div className={expandedDescription || selectedJob.description.length <= 500 
+                        ? "text-gray-700 whitespace-pre-line" 
+                        : "text-gray-700 whitespace-pre-line max-h-[300px] overflow-hidden relative"
+                      }>
+                        {selectedJob.description}
+                        {!expandedDescription && selectedJob.description.length > 500 && (
+                          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent"></div>
+                        )}
+                      </div>
+                      {selectedJob.description.length > 500 && (
                         <button 
                           onClick={() => setExpandedDescription(!expandedDescription)}
                           className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
@@ -632,12 +635,8 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                             </>
                           )}
                         </button>
-                      </div>
-                    ) : (
-                      <div className="text-gray-700 whitespace-pre-line">
-                        {selectedJob.description}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                   
                   <div className="mt-6">
