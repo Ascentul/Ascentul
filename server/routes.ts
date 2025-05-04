@@ -5181,10 +5181,10 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
       if (!profileData) {
         // Fetch the user's complete profile data
         const user = await storage.getUser(userId);
-        const workHistory = await storage.getUserWorkHistory(userId);
-        const education = await storage.getUserEducation(userId);
+        const workHistory = await storage.getWorkHistory(userId);
+        const education = await storage.getEducationHistory(userId);
         const skills = await storage.getUserSkills(userId);
-        const certifications = await storage.getUserCertifications(userId);
+        const certifications = await storage.getCertifications(userId);
         
         profileData = {
           workHistory: workHistory || [],
