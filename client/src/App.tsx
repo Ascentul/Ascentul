@@ -69,6 +69,9 @@ import {
   CareerRoute
 } from "@/components/RouteProtection";
 
+// Import the university admin route guard
+import UniversityAdminRouteGuard from "@/components/UniversityAdminRouteGuard";
+
 // User data hooks
 import { useUser, useIsUniversityAdmin } from "@/lib/useUserData";
 
@@ -384,41 +387,54 @@ function App() {
   if (isUniversityAdminRoute) {
     return (
       <Switch>
-        <Route path="/university-admin">
-          <UniversityAdminRoute>
+        <UniversityAdminRouteGuard 
+          path="/university-admin/dashboard" 
+          component={() => (
             <UniversityAdminLayout>
               <UniAdminDashboard />
             </UniversityAdminLayout>
-          </UniversityAdminRoute>
-        </Route>
-        <Route path="/university-admin/students">
-          <UniversityAdminRoute>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin" 
+          component={() => (
+            <UniversityAdminLayout>
+              <UniAdminDashboard />
+            </UniversityAdminLayout>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin/students" 
+          component={() => (
             <UniversityAdminLayout>
               <UniAdminStudents />
             </UniversityAdminLayout>
-          </UniversityAdminRoute>
-        </Route>
-        <Route path="/university-admin/invite">
-          <UniversityAdminRoute>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin/invite" 
+          component={() => (
             <UniversityAdminLayout>
               <UniAdminInvite />
             </UniversityAdminLayout>
-          </UniversityAdminRoute>
-        </Route>
-        <Route path="/university-admin/usage">
-          <UniversityAdminRoute>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin/usage" 
+          component={() => (
             <UniversityAdminLayout>
               <UniAdminUsage />
             </UniversityAdminLayout>
-          </UniversityAdminRoute>
-        </Route>
-        <Route path="/university-admin/settings">
-          <UniversityAdminRoute>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin/settings" 
+          component={() => (
             <UniversityAdminLayout>
               <UniAdminSettings />
             </UniversityAdminLayout>
-          </UniversityAdminRoute>
-        </Route>
+          )} 
+        />
       </Switch>
     );
   }
