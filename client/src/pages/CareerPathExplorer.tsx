@@ -1531,13 +1531,6 @@ export default function CareerPathExplorer() {
                       <li>Communication: {selectedNode.level === 'entry' ? 'Basic' : selectedNode.level === 'mid' ? 'Intermediate' : 'Advanced'} communication skills</li>
                     </ul>
                   </div>
-                  
-                  {/* Footer button for Skills tab - Close only */}
-                  <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 pb-4">
-                    <DialogClose asChild>
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto mx-auto">Close</Button>
-                    </DialogClose>
-                  </div>
                 </TabsContent>
                 
                 <TabsContent value="certifications" className="mt-4 space-y-4">
