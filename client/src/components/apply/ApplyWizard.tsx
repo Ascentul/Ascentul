@@ -363,13 +363,13 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
 
       {step === 2 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            {isLoadingResumes ? (
-              <div className="col-span-full flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : resumes && resumes.length > 0 ? (
-              resumes.map((resume: any) => (
+          {isLoadingResumes ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : resumes && resumes.length > 0 ? (
+            <div className="space-y-4">
+              {resumes.map((resume: any) => (
                 <Card 
                   key={resume.id} 
                   className={`cursor-pointer hover:border-primary transition-colors ${form.getValues('resumeId') === resume.id ? 'border-primary bg-primary/5' : ''}`}
@@ -391,17 +391,18 @@ export function ApplyWizard({ isOpen, onClose, jobInfo = null }: ApplyWizardProp
                     </div>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-center py-8">
               <Button 
                 variant="link" 
                 onClick={() => window.location.href = '/resume'}
-                className="mx-auto"
               >
                 Go to Resume Builder
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
 
