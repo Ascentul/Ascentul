@@ -588,6 +588,8 @@ export default function CareerPathExplorer() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const [roleCertifications, setRoleCertifications] = useState<Record<string, CertificationRecommendation[]>>({});
+  const [isLoadingCertifications, setIsLoadingCertifications] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Job title search
@@ -643,8 +645,53 @@ export default function CareerPathExplorer() {
     
     if (!isCurrentlySelected) {
       setDrawerOpen(true);
+      // Fetch AI-generated certification recommendations when a node is clicked
+      fetchCertificationRecommendations(nodeId);
     } else {
       setDrawerOpen(!drawerOpen);
+    }
+  };
+  
+  // Function to fetch AI-generated certification recommendations
+  const fetchCertificationRecommendations = async (nodeId: string) => {
+    // Skip if we already have recommendations for this node
+    if (roleCertifications[nodeId]) {
+      return;
+    }
+    
+    const node = activePath.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    
+    try {
+      setIsLoadingCertifications(true);
+      
+      const response = await apiRequest('POST', '/api/career-certifications', {
+        role: node.title,
+        level: node.level,
+        skills: node.skills
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch certification recommendations');
+      }
+      
+      const data = await response.json();
+      
+      // Update the certifications state with the new recommendations
+      setRoleCertifications(prev => ({
+        ...prev,
+        [nodeId]: data
+      }));
+      
+    } catch (error) {
+      console.error('Error fetching certification recommendations:', error);
+      toast({
+        title: "Failed to load certifications",
+        description: "There was a problem retrieving AI certification recommendations.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingCertifications(false);
     }
   };
 
@@ -1166,11 +1213,27 @@ export default function CareerPathExplorer() {
                 
                 <TabsContent value="certifications" className="mt-4 space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Recommended Certifications</h3>
-                    {roleCertifications[selectedNode.id] ? (
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">AI Recommended Certifications</h3>
+                      {isLoadingCertifications && (
+                        <div className="flex items-center">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Loading recommendations...</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {isLoadingCertifications ? (
+                      <div className="py-8 flex flex-col items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                        <p className="text-muted-foreground text-sm">
+                          Generating personalized AI certification recommendations...
+                        </p>
+                      </div>
+                    ) : roleCertifications[selectedNode.id] && roleCertifications[selectedNode.id].length > 0 ? (
                       <div className="space-y-4">
-                        {roleCertifications[selectedNode.id].map(cert => (
-                          <div key={cert.name} className="border rounded-lg p-4">
+                        {roleCertifications[selectedNode.id].map((cert, index) => (
+                          <div key={`${cert.name}-${index}`} className="border rounded-lg p-4 transition-all hover:shadow-md">
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="font-medium">{cert.name}</h4>
@@ -1202,10 +1265,25 @@ export default function CareerPathExplorer() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground">
-                        No specific certifications are recommended for this role.
-                      </p>
+                      <div className="text-center py-8 border border-dashed rounded-lg">
+                        <GraduationCap className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+                        <p className="text-muted-foreground">
+                          No AI certification recommendations available for this role yet.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-4"
+                          onClick={() => fetchCertificationRecommendations(selectedNode.id)}
+                        >
+                          Generate Recommendations
+                        </Button>
+                      </div>
                     )}
+                    
+                    <div className="mt-6 pt-3 border-t text-xs text-muted-foreground">
+                      <p>Certification recommendations are AI-generated based on current industry trends and role requirements. Always verify the relevance and accreditation status before enrolling.</p>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
