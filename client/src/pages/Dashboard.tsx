@@ -624,6 +624,21 @@ export default function Dashboard() {
         userId={user.id} 
         profileCompletion={calculateProfileCompletion(careerData)}
         hasGoals={Array.isArray(goals) && goals.length > 0}
+        hasApplications={
+          (() => {
+            // Check localStorage for applications
+            try {
+              const mockApps = localStorage.getItem('mockJobApplications');
+              if (mockApps) {
+                const apps = JSON.parse(mockApps);
+                return Array.isArray(apps) && apps.length > 0;
+              }
+            } catch (e) {
+              console.error('Error checking for applications:', e);
+            }
+            return false;
+          })()
+        }
       />}
       
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
