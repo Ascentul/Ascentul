@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail, Lock } from 'lucide-react';
+import { Loader2, Mail, Lock, School, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export default function SignInPage() {
   const [, setLocation] = useLocation();
@@ -17,6 +18,7 @@ export default function SignInPage() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [loginType, setLoginType] = useState<'regular' | 'university'>('regular');
   
   // Redirect if user is already logged in
   if (user) {
@@ -36,9 +38,10 @@ export default function SignInPage() {
       // First clear any logout flag from localStorage
       localStorage.removeItem('auth-logout');
       
-      // Use the login function from useUser hook
-      // The login function in useUserData will handle the redirection based on the server response
-      await login(loginEmail, loginPassword);
+      // Use the login function from useUser hook with the appropriate login type
+      // The university login type will be used to redirect to university-specific areas
+      const loginTypeParam = loginType === 'university' ? 'university' : undefined;
+      await login(loginEmail, loginPassword, loginTypeParam as any);
       
       toast({
         title: "Login successful!",
@@ -80,6 +83,32 @@ export default function SignInPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Login Type Toggle */}
+              <div className="mb-6">
+                <Label className="mb-2 block">Login Type</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={loginType}
+                  onValueChange={(value) => value && setLoginType(value as 'regular' | 'university')}
+                  className="bg-gray-100 rounded-md p-1 justify-stretch"
+                >
+                  <ToggleGroupItem 
+                    value="regular" 
+                    className={`flex-1 data-[state=on]:bg-white data-[state=on]:shadow-sm rounded-sm ${loginType === 'regular' ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    <span>Regular Login</span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem 
+                    value="university" 
+                    className={`flex-1 data-[state=on]:bg-white data-[state=on]:shadow-sm rounded-sm ${loginType === 'university' ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    <School className="h-4 w-4 mr-2" />
+                    <span>University Login</span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
@@ -88,7 +117,7 @@ export default function SignInPage() {
                     <Input 
                       id="login-email" 
                       type="email"
-                      placeholder="Enter your email" 
+                      placeholder={loginType === 'university' ? "Enter your university email" : "Enter your email"} 
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       className="pl-10"
@@ -114,7 +143,7 @@ export default function SignInPage() {
                 <div className="pt-2">
                   <Button type="submit" className="w-full" disabled={isLoginLoading}>
                     {isLoginLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Sign In
+                    {loginType === 'university' ? 'Sign In to University Portal' : 'Sign In'}
                   </Button>
                 </div>
               </form>
