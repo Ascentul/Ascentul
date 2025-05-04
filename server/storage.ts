@@ -105,6 +105,10 @@ export interface IStorage {
 
   // User management for scheduled tasks
   getAllActiveUsers(): Promise<User[]>;
+  
+  // Contact interaction operations
+  updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined>;
+  deleteContactInteraction(id: number): Promise<boolean>;
 
   // Career path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
@@ -4002,6 +4006,24 @@ export class MemStorage implements IStorage {
     this.networkingContacts.set(contact.id, contact);
 
     return newInteraction;
+  }
+  
+  async updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined> {
+    const interaction = this.contactInteractions.get(id);
+    if (!interaction) return undefined;
+    
+    const updatedInteraction: ContactInteraction = {
+      ...interaction,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.contactInteractions.set(id, updatedInteraction);
+    return updatedInteraction;
+  }
+  
+  async deleteContactInteraction(id: number): Promise<boolean> {
+    return this.contactInteractions.delete(id);
   }
   
   // Contact Follow-ups methods
