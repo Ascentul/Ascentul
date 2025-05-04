@@ -834,16 +834,11 @@ export default function OnboardingFlow() {
         return (
           <div className="space-y-6">
             <CardContent className="pt-6">
-              <StepDiscordInvite onNext={handleNext} />
+              <StepDiscordInvite 
+                onNext={handleNext} 
+                onSkip={handleNext} 
+              />
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext}>
-                Choose a Plan <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
           </div>
         );
       
