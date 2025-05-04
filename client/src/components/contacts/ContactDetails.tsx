@@ -42,6 +42,8 @@ import {
   Plus,
   Utensils,
   Trash,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -111,6 +113,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
   const [activeTab, setActiveTab] = useState("info");
   const [editingInteraction, setEditingInteraction] = useState<ContactInteraction | null>(null);
   const [editingFollowUp, setEditingFollowUp] = useState<FollowupAction | null>(null);
+  const [notesText, setNotesText] = useState<string>("");
   
   // Fetch contact data
   const {
@@ -381,6 +384,32 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       toast({
         title: 'Error',
         description: 'Failed to update interaction. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Update contact notes mutation
+  const updateContactNotesMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      return apiRequest({
+        url: `/api/contacts/${contactId}`,
+        method: 'PATCH',
+        data: { notes },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}`] });
+      toast({
+        title: 'Notes updated',
+        description: 'Contact notes have been updated successfully.',
+      });
+      setIsEditing(false); // Close editing mode
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update notes. Please try again.',
         variant: 'destructive',
       });
     },
@@ -1179,19 +1208,40 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
 
         {/* Notes Tab */}
         <TabsContent value="notes" className="py-4">
-          {contact.notes ? (
-            <div className="p-4 bg-muted/50 rounded-md">
-              <p className="whitespace-pre-wrap">{contact.notes}</p>
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-medium mt-4">No notes available</h3>
-              <p className="text-muted-foreground mt-2">
-                There are no notes for this contact. Edit the contact to add notes.
-              </p>
-            </div>
-          )}
+          <div className="flex flex-col space-y-4">
+            {contact.notes ? (
+              <div className="relative p-4 bg-muted/50 rounded-md">
+                <div className="absolute top-2 right-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsEditing(true)} 
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit notes</span>
+                  </Button>
+                </div>
+                <p className="whitespace-pre-wrap">{contact.notes}</p>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-medium mt-4">No notes available</h3>
+                <p className="text-muted-foreground mt-2">
+                  There are no notes for this contact.
+                </p>
+                <Button 
+                  onClick={() => setIsEditing(true)} 
+                  variant="outline" 
+                  className="mt-4"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Add Notes
+                </Button>
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -1410,6 +1460,58 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Edit Notes Dialog */}
+      <Dialog open={activeTab === "notes" && isEditing} onOpenChange={(open) => !open && setIsEditing(false)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Contact Notes</DialogTitle>
+            <DialogDescription>
+              Update notes for this contact.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Notes</label>
+              <Textarea 
+                placeholder="Enter notes about this contact" 
+                className="min-h-[200px]"
+                value={contact?.notes || ''}
+                onChange={(e) => {
+                  // We'll update the notes directly in the mutation
+                }}
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-2">
+              <Button 
+                type="button" 
+                variant="outline"
+                onClick={() => setIsEditing(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  const notesText = (document.querySelector('textarea') as HTMLTextAreaElement)?.value || '';
+                  updateContactNotesMutation.mutate(notesText);
+                }}
+                disabled={updateContactNotesMutation.isPending}
+              >
+                {updateContactNotesMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Notes'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-end pt-4">
         <Button variant="outline" onClick={onClose}>
