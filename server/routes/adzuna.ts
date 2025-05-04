@@ -17,7 +17,7 @@ const searchParamsSchema = z.object({
 });
 
 export const registerAdzunaRoutes = (app: any) => {
-  app.get('/adzuna/jobs', async (req: Request, res: Response) => {
+  app.get('/api/adzuna/jobs', async (req: Request, res: Response) => {
     try {
       const { keywords, location, remoteOnly } = searchParamsSchema.parse(req.query);
       

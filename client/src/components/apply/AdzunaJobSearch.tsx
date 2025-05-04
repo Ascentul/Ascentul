@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Loader2, Briefcase, MapPin, Calendar, ExternalLink, Clock, Building } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ExternalLink, Loader2, Search, Lightbulb } from 'lucide-react';
 import { AdzunaJob, JobSearchParams } from '@shared/adzuna';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -29,18 +28,6 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [searchResults, setSearchResults] = useState<AdzunaJob[]>([]);
   const [directIsLoading, setDirectIsLoading] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
-  const [showAssistant, setShowAssistant] = useState(false);
-  const [showApplicationWizard, setShowApplicationWizard] = useState(false);
-  const [applicationJob, setApplicationJob] = useState<{
-    id?: string;
-    title: string;
-    company: string;
-    description: string;
-    location?: string;
-    url?: string;
-  } | null>(null);
-  const [activeTab, setActiveTab] = useState('search');
 
   // Reset search results when search params change
   useEffect(() => {
@@ -52,33 +39,46 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
   useEffect(() => {
     console.log('shouldFetch state changed to:', shouldFetch);
   }, [shouldFetch]);
-
-  // Effects to run on component mount
-  useEffect(() => {
-    // Load search history from localStorage
-    const savedHistory = localStorage.getItem('adzuna_search_history');
-    if (savedHistory) {
-      try {
-        const parsed = JSON.parse(savedHistory);
-        // Convert string dates back to Date objects
-        const history = parsed.map((item: any) => ({
-          ...item,
-          timestamp: new Date(item.timestamp)
-        }));
-        setSearchHistory(history);
-      } catch (error) {
-        console.error('Failed to parse search history:', error);
+  
+  // Direct fetch function (alternative approach)
+  const directFetch = useCallback(async () => {
+    if (!searchParams.keywords) return;
+    
+    setDirectIsLoading(true);
+    console.log('Direct fetch initiated with params:', searchParams);
+    
+    try {
+      const params = new URLSearchParams();
+      params.append('keywords', searchParams.keywords);
+      if (searchParams.location) {
+        params.append('location', searchParams.location);
       }
+      params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
+      
+      console.log('Directly fetching from:', `/api/adzuna/jobs?${params.toString()}`);
+      
+      const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
+      console.log('Direct fetch response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error in direct fetch:', errorText);
+        throw new Error(`Failed to fetch jobs: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Direct fetch received data:', data);
+      
+      if (data.results) {
+        setSearchResults(data.results);
+      }
+    } catch (error) {
+      console.error('Direct fetch error:', error);
+    } finally {
+      setDirectIsLoading(false);
     }
-  }, []);
-
-  // Save search history to localStorage when it changes
-  useEffect(() => {
-    if (searchHistory.length > 0) {
-      localStorage.setItem('adzuna_search_history', JSON.stringify(searchHistory));
-    }
-  }, [searchHistory]);
-
+  }, [searchParams]);
+  
   // Fetch jobs from Adzuna API
   const { isLoading: queryIsLoading, data, error } = useQuery({
     queryKey: ['jobs', searchParams, shouldFetch],
@@ -118,26 +118,24 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     enabled: shouldFetch,
     refetchOnWindowFocus: false
   });
-
-  // Effect to process query results
-  useEffect(() => {
-    if (data?.results && Array.isArray(data.results)) {
-      setSearchResults(data.results);
-      // Clear loading state
-      setDirectIsLoading(false);
-    }
-  }, [data]);
-
-  // Toggle direct fetch approach when query fails
+  
+  // Update loading state to combine both loading indicators
+  const isLoading = queryIsLoading || directIsLoading;
+  
+  // Log any errors
   useEffect(() => {
     if (error) {
-      console.error('Error in useQuery:', error);
-      // If the query fails, try direct fetch approach
-      performDirectSearch();
+      console.error('Query error:', error);
     }
   }, [error]);
 
-  // Handler for input changes
+  // Update search results when data changes
+  useEffect(() => {
+    if (data && data.results) {
+      setSearchResults(data.results);
+    }
+  }, [data]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchParams((prev) => ({
@@ -145,61 +143,14 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
       [name]: value,
     }));
   };
-  
-  // Handler for remote only checkbox
+
   const handleRemoteOnlyChange = (checked: boolean) => {
     setSearchParams((prev) => ({
       ...prev,
       remoteOnly: checked,
     }));
   };
-  
-  // Direct search function as a fallback
-  const performDirectSearch = async () => {
-    if (!searchParams.keywords.trim()) return;
-    
-    setDirectIsLoading(true);
-    
-    const params = new URLSearchParams();
-    params.append('keywords', searchParams.keywords);
-    if (searchParams.location) {
-      params.append('location', searchParams.location);
-    }
-    params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
-    
-    console.log('Directly fetching from:', `/api/adzuna/jobs?${params.toString()}`);
-    
-    const response = await fetch(`/api/adzuna/jobs?${params.toString()}`);
-    console.log('Direct fetch response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API error in direct fetch:', errorText);
-      toast({
-        title: "Search Error",
-        description: "Failed to search for jobs. Please try again.",
-        variant: "destructive"
-      });
-      setDirectIsLoading(false);
-      return;
-    }
-    
-    const data = await response.json();
-    console.log('Direct fetch data:', data);
-    
-    if (data.results && Array.isArray(data.results)) {
-      setSearchResults(data.results);
-    } else {
-      toast({
-        title: "No Results",
-        description: "No jobs matching your criteria were found.",
-      });
-    }
-    
-    setDirectIsLoading(false);
-  };
 
-  // Handler for search button
   const handleSearch = useCallback(() => {
     // Validate inputs
     if (!searchParams.keywords.trim()) {
@@ -221,54 +172,81 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     console.log('shouldFetch should now be true');
   }, [searchParams]);
 
-  // Combined loading state
-  const isLoading = queryIsLoading || directIsLoading;
-
-  // Close assistant modal
-  const handleCloseAssistant = () => {
-    setShowAssistant(false);
-  };
-
-  // Close application wizard
-  const handleCloseWizard = () => {
-    setShowApplicationWizard(false);
-  };
-
-  // Start application process
+  // State to store selected job
+  const [selectedJob, setSelectedJob] = useState<AdzunaJob | null>(null);
+  const [showAssistant, setShowAssistant] = useState(false);
+  const [showApplicationWizard, setShowApplicationWizard] = useState(false);
+  const [applicationJob, setApplicationJob] = useState<{
+    id?: string;
+    title: string;
+    company: string;
+    description: string;
+    location?: string;
+    url?: string;
+  } | null>(null);
+  
+  // Handle starting an application
   const handleStartApplication = async (job: AdzunaJob) => {
     try {
-      // Prepare job data for application
-      const jobData = {
-        id: job.id,
+      // Open the job URL in a new tab
+      window.open(job.redirect_url, '_blank');
+      
+      // Directly create the application with "In Progress" status
+      const now = new Date().toISOString();
+      const newApplication = {
+        jobId: 0, // Local job entry from Adzuna data
         title: job.title,
+        jobTitle: job.title,
+        position: job.title,
         company: job.company.display_name,
+        companyName: job.company.display_name,
+        location: job.location.display_name || 'Remote',
+        jobLocation: job.location.display_name || 'Remote',
         description: job.description,
-        location: job.location?.display_name || 'Remote',
-        url: job.redirect_url,
+        status: 'In Progress',
+        adzunaJobId: job.id || '',
+        externalJobUrl: job.redirect_url || '',
+        jobLink: job.redirect_url || '',
+        notes: '',
+        source: 'Adzuna',
+        applicationDate: now,
+        createdAt: now,
+        updatedAt: now
       };
       
-      // Set application job
-      setApplicationJob(jobData);
+      try {
+        // Try to use the API first
+        const response = await apiRequest({
+          url: '/api/applications',
+          method: 'POST',
+          data: newApplication
+        });
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+        
+        console.log('Application created:', response);
+      } catch (error) {
+        console.error('API error, falling back to localStorage:', error);
+        
+        // Fallback to localStorage for demo mode
+        const mockId = Date.now();
+        const mockApp = {
+          id: mockId,
+          ...newApplication
+        };
+        
+        // Store application in localStorage
+        const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+        storedApplications.push(mockApp);
+        localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+        
+        // Dispatch event to notify application status change
+        window.dispatchEvent(new Event('applicationStatusChange'));
+      }
       
-      // Show application wizard
-      setShowApplicationWizard(true);
-      
-      // Send job to API to create application
-      const response = await apiRequest("POST", "/api/job-applications", {
-        title: job.title,
-        company: job.company.display_name,
-        description: job.description,
-        location: job.location?.display_name || 'Remote',
-        url: job.redirect_url,
-        status: 'active',
-        notes: '',
-        dataSource: 'adzuna',
-        sourceId: job.id,
-      });
-      
-      // Invalidate applications cache
-      queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
-      
+      // Show success toast
       toast({
         title: "Added to Application Tracker",
         description: `${job.title} at ${job.company.display_name} has been added to your tracker`,
@@ -326,6 +304,9 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
     }
     return 'Salary not specified';
   };
+
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('search');
   
   // Automatically switch to results tab when search results are received
   useEffect(() => {
@@ -392,10 +373,19 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
             </div>
             
             <Button 
-              onClick={handleSearch} 
+              onClick={(e) => {
+                console.log('Search button clicked!');
+                e.preventDefault();
+                // Use direct fetch instead of the query
+                directFetch();
+                // Also update search history
+                setSearchHistory((prev) => [
+                  { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
+                  ...prev.slice(0, 9), // Keep only the 10 most recent searches
+                ]);
+              }} 
               disabled={isLoading || !searchParams.keywords.trim()} 
               className="w-full mt-2"
-              type="button"
             >
               {isLoading ? (
                 <>
@@ -418,195 +408,230 @@ export function AdzunaJobSearch({ onSelectJob }: AdzunaJobSearchProps) {
                     onClick={() => handleSelectJob(job)}
                   >
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium text-lg">{job.title}</h3>
-                        <p className="text-sm text-gray-600">{job.company.display_name}</p>
+                      <h3 className="font-semibold text-lg">{job.title}</h3>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-6 gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartApplication(job);
+                          }}
+                        >
+                          Add to Tracker
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View
+                        </Button>
                       </div>
-                      <Badge variant={job.category.label === 'IT Jobs' ? 'default' : 'secondary'}>
-                        {job.category.label}
-                      </Badge>
                     </div>
+                    <p className="text-sm font-medium">{job.company.display_name}</p>
+                    <p className="text-sm text-gray-500">{job.location.display_name}</p>
                     
-                    <div className="mt-2 flex flex-wrap gap-3">
-                      {job.location && (
-                        <span className="text-xs flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {job.location.display_name}
-                        </span>
-                      )}
-                      
-                      {(job.salary_min || job.salary_max) && (
-                        <span className="text-xs flex items-center gap-1">
-                          <Briefcase className="h-3 w-3" />
-                          {formatSalary(job)}
-                        </span>
-                      )}
-                      
-                      {job.created && (
-                        <span className="text-xs flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(job.created).toLocaleDateString()}
-                        </span>
-                      )}
-                      
-                      {/* Note: contract_time might not be available in all jobs */}
-                      {job['contract_time'] && (
-                        <span className="text-xs flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {job['contract_time'] === 'full_time' ? 'Full-time' : 
-                           job['contract_time'] === 'part_time' ? 'Part-time' : 
-                           job['contract_time']}
-                        </span>
-                      )}
-                    </div>
+                    {(job.salary_min || job.salary_max) && (
+                      <p className="text-sm text-gray-700 mt-1">{formatSalary(job)}</p>
+                    )}
                     
-                    <p className="mt-2 text-sm line-clamp-2">{job.description}</p>
+                    <p className="mt-2 text-sm line-clamp-2 text-gray-600">{job.description}</p>
+                    
+                    <p className="text-xs text-gray-400 mt-2">
+                      Posted: {new Date(job.created).toLocaleDateString()}
+                    </p>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">No search results yet.</p>
-                <p className="text-sm text-gray-400 mt-1">Try searching for jobs first.</p>
+                {isLoading ? (
+                  <div className="flex flex-col items-center">
+                    <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                    <p>Searching for jobs...</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No job results found. Try a different search.</p>
+                )}
               </div>
             )}
           </TabsContent>
           
           <TabsContent value="history">
             {searchHistory.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Recent Searches</h3>
-                  <Button variant="outline" size="sm" onClick={clearSearchHistory}>
-                    Clear History
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
+              <>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {searchHistory.map((item, index) => (
-                    <div 
+                    <div
                       key={index}
-                      className="p-3 border rounded-md hover:bg-gray-50 cursor-pointer"
+                      className="p-3 border rounded-md hover:bg-gray-50 cursor-pointer flex justify-between items-center"
                       onClick={() => handleHistoryItemClick(item)}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{item.keywords}</p>
-                          {item.location && (
-                            <p className="text-sm text-gray-500">{item.location}</p>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-400">
-                          {item.timestamp.toLocaleDateString()}
-                        </p>
+                      <div>
+                        <p className="font-medium">{item.keywords}</p>
+                        <p className="text-sm text-gray-500">{item.location || 'No location'}</p>
                       </div>
+                      <p className="text-xs text-gray-400">
+                        {item.timestamp.toLocaleDateString()} {item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
+                <Button variant="outline" size="sm" onClick={clearSearchHistory} className="mt-4">
+                  Clear History
+                </Button>
+              </>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No search history yet.</p>
-                <p className="text-sm text-gray-400 mt-1">Your recent searches will appear here.</p>
-              </div>
+              <p className="text-center py-8 text-gray-500">No search history available</p>
             )}
           </TabsContent>
           
           <TabsContent value="job-view">
             {selectedJob ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-bold">{selectedJob.title}</h2>
-                    <p className="text-gray-600 flex items-center gap-1">
-                      <Building className="h-4 w-4" />
-                      {selectedJob.company.display_name}
-                    </p>
+              <div className="flex flex-col h-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Job Details</h3>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Apply on Adzuna
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={() => setActiveTab('results')}
+                    >
+                      Back to Results
+                    </Button>
                   </div>
-                  
-                  <Badge variant={selectedJob.category.label === 'IT Jobs' ? 'default' : 'secondary'}>
-                    {selectedJob.category.label}
-                  </Badge>
                 </div>
                 
-                <div className="flex flex-wrap gap-4 mt-3">
-                  {selectedJob.location && (
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      <span>{selectedJob.location.display_name}</span>
+                <div className="border rounded-md p-6 overflow-auto max-h-[600px]">
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold mb-2">{selectedJob.title}</h2>
+                    <div className="flex flex-wrap gap-2 mb-4 text-sm">
+                      <span className="font-medium">{selectedJob.company.display_name}</span>
+                      <span className="text-gray-500">•</span>
+                      <span className="text-gray-600">{selectedJob.location.display_name}</span>
                     </div>
-                  )}
-                  
-                  {(selectedJob.salary_min || selectedJob.salary_max) && (
-                    <div className="flex items-center gap-1">
-                      <Briefcase className="h-4 w-4 text-gray-500" />
-                      <span>{formatSalary(selectedJob)}</span>
+                    
+                    {(selectedJob.salary_min || selectedJob.salary_max) && (
+                      <div className="mb-4 p-3 bg-gray-50 rounded-md inline-block">
+                        <span className="font-medium">Salary: </span>
+                        <span>{formatSalary(selectedJob)}</span>
+                      </div>
+                    )}
+                    
+                    {selectedJob.contract_time && (
+                      <div className="mb-4">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {selectedJob.contract_time === 'full_time' ? 'Full-time' : 
+                           selectedJob.contract_time === 'part_time' ? 'Part-time' : 
+                           selectedJob.contract_time}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-2">Job Description</h3>
+                      <div className="text-gray-700 whitespace-pre-line">
+                        {selectedJob.description}
+                      </div>
                     </div>
-                  )}
-                  
-                  {selectedJob.created && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>Posted {new Date(selectedJob.created).toLocaleDateString()}</span>
+                    
+                    <div className="mt-6">
+                      <span className="text-sm text-gray-500">
+                        Posted: {new Date(selectedJob.created).toLocaleDateString()}
+                      </span>
                     </div>
-                  )}
+                  </div>
                 </div>
                 
-                <div className="mt-4 border-t pt-4">
-                  <h3 className="font-medium mb-2">Job Description</h3>
-                  <div className="prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.description }}
-                  />
-                </div>
-                
-                <div className="flex gap-2 mt-6">
-                  <Button variant="default" onClick={() => handleStartApplication(selectedJob)}>
-                    Add to Application Tracker
-                  </Button>
-                  
-                  <Button variant="outline" onClick={() => setShowAssistant(true)}>
+                <div className="mt-6 flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      if (onSelectJob) {
+                        onSelectJob({
+                          title: selectedJob.title,
+                          company: selectedJob.company.display_name,
+                          url: selectedJob.redirect_url,
+                          description: selectedJob.description,
+                          location: selectedJob.location?.display_name
+                        });
+                      }
+                      
+                      // Open AI application assistant
+                      setShowAssistant(true);
+                    }}
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
                     Get Application Help
                   </Button>
                   
-                  <Button variant="outline" asChild>
-                    <a 
-                      href={selectedJob.redirect_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1"
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleStartApplication(selectedJob)}
                     >
-                      <ExternalLink className="h-4 w-4" />
-                      Apply Externally
-                    </a>
-                  </Button>
+                      Add to Tracker
+                    </Button>
+                    
+                    <Button 
+                      variant="default" 
+                      onClick={() => window.open(selectedJob.redirect_url, '_blank')}
+                    >
+                      Apply on Adzuna
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">No job selected.</p>
-                <p className="text-sm text-gray-400 mt-1">Select a job from the results to view details.</p>
+                <p className="text-gray-500">No job selected. Select a job from the results to view details.</p>
               </div>
             )}
           </TabsContent>
         </Tabs>
       </CardContent>
+      <CardFooter className="flex justify-end">
+        {searchResults.length > 0 && (
+          <Button 
+            onClick={() => {
+              setShouldFetch(false);
+              setSelectedJob(null);
+              setActiveTab('search');
+            }} 
+            variant="secondary"
+          >
+            Clear Results
+          </Button>
+        )}
+      </CardFooter>
     </Card>
     
-    {showAssistant && selectedJob && (
-      <ApplicationAssistant 
-        jobTitle={selectedJob.title}
-        company={selectedJob.company.display_name}
-        description={selectedJob.description}
-        onClose={handleCloseAssistant}
+    {applicationJob && (
+      <ApplicationWizard
+        isOpen={showApplicationWizard}
+        onClose={() => setShowApplicationWizard(false)}
+        jobDetails={applicationJob}
       />
     )}
     
-    {showApplicationWizard && applicationJob && (
-      <ApplicationWizard
-        job={applicationJob}
-        onClose={handleCloseWizard}
-      />
-    )}
+    <ApplicationAssistant
+      isOpen={showAssistant}
+      onClose={() => setShowAssistant(false)}
+      jobTitle={selectedJob?.title}
+      companyName={selectedJob?.company?.display_name}
+      jobDescription={selectedJob?.description}
+    />
     </>
   );
 }

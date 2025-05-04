@@ -115,9 +115,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/interview') || location.startsWith('/apply') || location.startsWith('/voice-practice')) {
+    if (location.startsWith('/interview') || location.startsWith('/apply') || location.startsWith('/contacts') || location.startsWith('/voice-practice')) {
       setActiveSection('job-search');
-    } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/network-hub')) {
+    } else if (location.startsWith('/goals') || location.startsWith('/career-path')) {
       setActiveSection('career-growth');
     } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
       setActiveSection('portfolio');
@@ -157,6 +157,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <Search className="w-5 h-5" />,
       items: [
         { href: '/interviews', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
+        { href: '/contacts', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Ascentul CRM' },
         { href: '/voice-practice', icon: <Mic className="w-5 h-5 mr-3" />, label: 'Voice Interview Practice' },
       ]
     },
@@ -167,7 +168,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       items: [
         { href: '/goals', icon: <Target className="w-5 h-5 mr-3" />, label: 'Career Goal Tracker' },
         { href: '/career-path-explorer', icon: <GitBranch className="w-5 h-5 mr-3" />, label: 'Career Path Explorer' },
-        { href: '/network-hub', icon: <UserRound className="w-5 h-5 mr-3" />, label: 'Network Hub' },
       ]
     },
     // Removed Career Profile button - now integrated into Account page
