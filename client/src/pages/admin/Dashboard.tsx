@@ -498,78 +498,138 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="space-y-1">
-          <SidebarItem
-            icon={<BarChart className="h-5 w-5" />}
-            label="Overview"
-            active={activeTab === 'overview'}
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'overview'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('overview')}
-          />
-          <SidebarItem
-            icon={<Users className="h-5 w-5" />}
-            label="User Management"
-            active={activeTab === 'users'}
+          >
+            <span className="mr-3"><BarChart className="h-5 w-5" /></span>
+            <span>Overview</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'users'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('users')}
-          />
-          <SidebarItem
-            icon={<Building className="h-5 w-5" />}
-            label="Universities"
-            active={activeTab === 'universities'}
+          >
+            <span className="mr-3"><Users className="h-5 w-5" /></span>
+            <span>User Management</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'universities'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('universities')}
-          />
-          <SidebarItem
-            icon={<Activity className="h-5 w-5" />}
-            label="Analytics"
-            active={activeTab === 'analytics'}
+          >
+            <span className="mr-3"><Building className="h-5 w-5" /></span>
+            <span>Universities</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'analytics'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('analytics')}
-          />
-          <SidebarItem
-            icon={<HelpCircle className="h-5 w-5" />}
-            label="Support"
-            active={activeTab === 'support'}
+          >
+            <span className="mr-3"><Activity className="h-5 w-5" /></span>
+            <span>Analytics</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'support'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('support')}
-          /> {/* Added Support Sidebar Item */}
-          <SidebarItem
-            icon={<BookOpen className="h-5 w-5" />}
-            label="Content"
-            active={activeTab === 'content'}
+          >
+            <span className="mr-3"><HelpCircle className="h-5 w-5" /></span>
+            <span>Support</span>
+          </div> {/* Added Support Sidebar Item */}
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'content'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('content')}
-          />
-          <SidebarItem
-            icon={<CreditCard className="h-5 w-5" />}
-            label="Billing"
-            active={activeTab === 'billing'}
+          >
+            <span className="mr-3"><BookOpen className="h-5 w-5" /></span>
+            <span>Content</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'billing'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('billing')}
-          />
-          <SidebarItem
-            icon={<Cpu className="h-5 w-5" />}
-            label="AI Models"
-            active={activeTab === 'ai-models'}
+          >
+            <span className="mr-3"><CreditCard className="h-5 w-5" /></span>
+            <span>Billing</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'ai-models'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('ai-models')}
-          />
-          <SidebarItem
-            icon={<Activity className="h-5 w-5" />}
-            label="OpenAI Logs"
-            active={activeTab === 'openai-logs'}
+          >
+            <span className="mr-3"><Cpu className="h-5 w-5" /></span>
+            <span>AI Models</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'openai-logs'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('openai-logs')}
-          />
-          <SidebarItem
-            icon={<Mail className="h-5 w-5" />}
-            label="Email Management"
-            active={activeTab === 'email'}
+          >
+            <span className="mr-3"><Activity className="h-5 w-5" /></span>
+            <span>OpenAI Logs</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'email'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('email')}
-          />
-          <SidebarItem
-            icon={<Settings className="h-5 w-5" />}
-            label="Settings"
-            active={activeTab === 'settings'}
+          >
+            <span className="mr-3"><Mail className="h-5 w-5" /></span>
+            <span>Email Management</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'settings'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('settings')}
-          />
-          <SidebarItem
-            icon={<HelpCircle className="h-5 w-5" />}
-            label="Help"
-            active={activeTab === 'help'}
+          >
+            <span className="mr-3"><Settings className="h-5 w-5" /></span>
+            <span>Settings</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'help'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
             onClick={() => setActiveTab('help')}
-          />
+          >
+            <span className="mr-3"><HelpCircle className="h-5 w-5" /></span>
+            <span>Help</span>
+          </div>
         </nav>
 
         <div className="mt-auto pt-4">
@@ -610,28 +670,4 @@ export default function AdminDashboard() {
   );
 }
 
-function SidebarItem({
-  icon,
-  label,
-  active,
-  onClick
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-        active
-          ? "bg-[#1333c2] text-white font-medium"
-          : "text-foreground/70 hover:bg-muted/80"
-      }`}
-      onClick={onClick}
-    >
-      <span className="mr-3">{icon}</span>
-      <span>{label}</span>
-    </div>
-  );
-}
+// SidebarItem component has been removed as requested
