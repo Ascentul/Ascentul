@@ -36,15 +36,15 @@ import { apiRequest, getQueryFn } from '@/lib/queryClient';
 import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Types for career path data
@@ -1061,258 +1061,256 @@ export default function CareerPathExplorer() {
         </motion.div>
       )}
 
-      {/* Role Detail Drawer */}
-      <Drawer open={drawerOpen && selectedNode !== null} onOpenChange={setDrawerOpen}>
-        <DrawerContent className="max-h-[90vh]">
-          {selectedNode && (
-            <>
-              <DrawerHeader className="px-4 sm:px-6">
-                <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                  {selectedNode.icon}
-                  <DrawerTitle className="text-xl sm:text-2xl">{selectedNode.title}</DrawerTitle>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <Badge className={LevelBadgeColors[selectedNode.level]}>
-                    {selectedNode.level.charAt(0).toUpperCase() + selectedNode.level.slice(1)} Level
-                  </Badge>
-                  <span className="text-muted-foreground hidden sm:inline">·</span>
-                  <span className="text-muted-foreground">{selectedNode.salaryRange}</span>
-                  <span className="text-muted-foreground hidden sm:inline">·</span>
-                  <span className="text-muted-foreground">{selectedNode.yearsExperience} experience</span>
-                </div>
-                <DrawerDescription className="text-sm sm:text-base">
-                  Explore this role's requirements, growth potential, and recommended certifications
-                </DrawerDescription>
-              </DrawerHeader>
-              
-              <div className="px-4 sm:px-6 pb-6">
-                <Tabs defaultValue="overview" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-                    <TabsTrigger value="skills" className="text-xs sm:text-sm">Skills & Reqs</TabsTrigger>
-                    <TabsTrigger value="certifications" className="text-xs sm:text-sm">Certifications</TabsTrigger>
-                  </TabsList>
+      {/* Role Detail Dialog */}
+      <Dialog open={drawerOpen && selectedNode !== null} onOpenChange={setDrawerOpen}>
+        {selectedNode && (
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="px-4 sm:px-6">
+              <div className="flex items-center gap-2 sm:gap-3 mb-1">
+                {selectedNode.icon}
+                <DialogTitle className="text-xl sm:text-2xl">{selectedNode.title}</DialogTitle>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge className={LevelBadgeColors[selectedNode.level]}>
+                  {selectedNode.level.charAt(0).toUpperCase() + selectedNode.level.slice(1)} Level
+                </Badge>
+                <span className="text-muted-foreground hidden sm:inline">·</span>
+                <span className="text-muted-foreground">{selectedNode.salaryRange}</span>
+                <span className="text-muted-foreground hidden sm:inline">·</span>
+                <span className="text-muted-foreground">{selectedNode.yearsExperience} experience</span>
+              </div>
+              <DialogDescription className="text-sm sm:text-base">
+                Explore this role's requirements, growth potential, and recommended certifications
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="px-4 sm:px-6 pb-6">
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+                  <TabsTrigger value="skills" className="text-xs sm:text-sm">Skills & Reqs</TabsTrigger>
+                  <TabsTrigger value="certifications" className="text-xs sm:text-sm">Certifications</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="overview" className="mt-4 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Role Description</h3>
+                    <p className="text-muted-foreground">{selectedNode.description}</p>
+                  </div>
                   
-                  <TabsContent value="overview" className="mt-4 space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Role Description</h3>
-                      <p className="text-muted-foreground">{selectedNode.description}</p>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Growth Outlook</h3>
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md", 
+                        GrowthIndicators[selectedNode.growthPotential].color,
+                        "bg-opacity-10"
+                      )}>
+                        {GrowthIndicators[selectedNode.growthPotential].icon}
+                        <span className="font-medium">{GrowthIndicators[selectedNode.growthPotential].text} Potential</span>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Growth Outlook</h3>
+                    <p className="text-muted-foreground mt-2">
+                      {selectedNode.growthPotential === 'high' && "This role has excellent growth prospects with many advancement opportunities."}
+                      {selectedNode.growthPotential === 'medium' && "This role offers good growth opportunities with moderate advancement potential."}
+                      {selectedNode.growthPotential === 'low' && "This role has reached a senior level with specialized growth focused on expertise rather than title progression."}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Compensation Details</h3>
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md", 
-                          GrowthIndicators[selectedNode.growthPotential].color,
-                          "bg-opacity-10"
-                        )}>
-                          {GrowthIndicators[selectedNode.growthPotential].icon}
-                          <span className="font-medium">{GrowthIndicators[selectedNode.growthPotential].text} Potential</span>
-                        </div>
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        <span>Salary range: {selectedNode.salaryRange}</span>
                       </div>
-                      <p className="text-muted-foreground mt-2">
-                        {selectedNode.growthPotential === 'high' && "This role has excellent growth prospects with many advancement opportunities."}
-                        {selectedNode.growthPotential === 'medium' && "This role offers good growth opportunities with moderate advancement potential."}
-                        {selectedNode.growthPotential === 'low' && "This role has reached a senior level with specialized growth focused on expertise rather than title progression."}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Compensation Details</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-primary" />
-                          <span>Salary range: {selectedNode.salaryRange}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-primary" />
-                          <span>Experience: {selectedNode.yearsExperience}</span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span>Experience: {selectedNode.yearsExperience}</span>
                       </div>
                     </div>
-                  </TabsContent>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="skills" className="mt-4 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Key Skills</h3>
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {selectedNode.skills.map(skill => (
+                        <Badge key={skill.name} className={cn("py-1.5 px-3", SkillLevelColors[skill.level])}>
+                          {skill.name} <span className="opacity-80">({skill.level})</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                   
-                  <TabsContent value="skills" className="mt-4 space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Key Skills</h3>
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {selectedNode.skills.map(skill => (
-                          <Badge key={skill.name} className={cn("py-1.5 px-3", SkillLevelColors[skill.level])}>
-                            {skill.name} <span className="opacity-80">({skill.level})</span>
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Typical Requirements</h3>
-                      <ul className="space-y-1 text-muted-foreground list-disc pl-5">
-                        <li>Education: {selectedNode.level === 'entry' ? 'Bachelor\'s degree or equivalent experience' : 'Bachelor\'s or Master\'s degree in relevant field'}</li>
-                        <li>Experience: {selectedNode.yearsExperience}</li>
-                        {selectedNode.level === 'executive' && <li>Leadership: 5+ years in senior leadership roles</li>}
-                        {selectedNode.level === 'lead' && <li>Leadership: Experience managing teams or technical projects</li>}
-                        <li>Communication: {selectedNode.level === 'entry' ? 'Basic' : selectedNode.level === 'mid' ? 'Intermediate' : 'Advanced'} communication skills</li>
-                      </ul>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="certifications" className="mt-4 space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Recommended Certifications</h3>
-                      {roleCertifications[selectedNode.id] ? (
-                        <div className="space-y-4">
-                          {roleCertifications[selectedNode.id].map(cert => (
-                            <div key={cert.name} className="border rounded-lg p-4">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-medium">{cert.name}</h4>
-                                  <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
-                                </div>
-                                <Badge className={
-                                  cert.relevance === 'highly relevant' ? 'bg-green-100 text-green-800' :
-                                  cert.relevance === 'relevant' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-amber-100 text-amber-800'
-                                }>
-                                  {cert.relevance}
-                                </Badge>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Typical Requirements</h3>
+                    <ul className="space-y-1 text-muted-foreground list-disc pl-5">
+                      <li>Education: {selectedNode.level === 'entry' ? 'Bachelor\'s degree or equivalent experience' : 'Bachelor\'s or Master\'s degree in relevant field'}</li>
+                      <li>Experience: {selectedNode.yearsExperience}</li>
+                      {selectedNode.level === 'executive' && <li>Leadership: 5+ years in senior leadership roles</li>}
+                      {selectedNode.level === 'lead' && <li>Leadership: Experience managing teams or technical projects</li>}
+                      <li>Communication: {selectedNode.level === 'entry' ? 'Basic' : selectedNode.level === 'mid' ? 'Intermediate' : 'Advanced'} communication skills</li>
+                    </ul>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="certifications" className="mt-4 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Recommended Certifications</h3>
+                    {roleCertifications[selectedNode.id] ? (
+                      <div className="space-y-4">
+                        {roleCertifications[selectedNode.id].map(cert => (
+                          <div key={cert.name} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium">{cert.name}</h4>
+                                <p className="text-sm text-muted-foreground">Provider: {cert.provider}</p>
                               </div>
-                              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                                <div className="flex items-center gap-1">
-                                  <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-muted-foreground">
-                                    {cert.difficulty} level
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-muted-foreground">
-                                    {cert.estimatedTimeToComplete}
-                                  </span>
-                                </div>
+                              <Badge className={
+                                cert.relevance === 'highly relevant' ? 'bg-green-100 text-green-800' :
+                                cert.relevance === 'relevant' ? 'bg-blue-100 text-blue-800' :
+                                'bg-amber-100 text-amber-800'
+                              }>
+                                {cert.relevance}
+                              </Badge>
+                            </div>
+                            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                              <div className="flex items-center gap-1">
+                                <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-muted-foreground">
+                                  {cert.difficulty} level
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-muted-foreground">
+                                  {cert.estimatedTimeToComplete}
+                                </span>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground">
-                          No specific certifications are recommended for this role.
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-              
-              <DrawerFooter className="px-4 sm:px-6 pt-0 flex flex-col sm:flex-row items-center justify-between gap-2 pb-10">
-                <Button 
-                  className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4 w-full sm:w-auto"
-                  size="sm"
-                  disabled={isCreatingGoal}
-                  onClick={async () => {
-                    // Check if we have existing goals to avoid duplicates
-                    try {
-                      // Show loading state
-                      setIsCreatingGoal(true);
-                      
-                      // Get existing goals
-                      const goalsResponse = await apiRequest('GET', '/api/goals');
-                      const existingGoals = await goalsResponse.json();
-                      
-                      // Check if this goal already exists (by title)
-                      const goalTitle = `Become a ${selectedNode.title}`;
-                      const isDuplicate = existingGoals.some(
-                        (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
-                      );
-                      
-                      if (isDuplicate) {
-                        toast({
-                          title: "Goal Already Exists",
-                          description: "You already have this career goal in your tracker.",
-                          variant: "default"
-                        });
-                        setIsCreatingGoal(false);
-                        return;
-                      }
-                      
-                      // Create the goal
-                      const goalData = {
-                        title: goalTitle,
-                        description: `Career goal to become a ${selectedNode.title} in the ${activePath.name} industry. Salary range: ${selectedNode.salaryRange}.`,
-                        status: "not_started",
-                        checklist: [
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Research required skills for ${selectedNode.title} role`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Identify training or certification needs`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Update resume to target this role`,
-                            completed: false
-                          },
-                          {
-                            id: crypto.randomUUID(),
-                            text: `Network with professionals in this field`,
-                            completed: false
-                          }
-                        ]
-                      };
-                      
-                      // Save the goal
-                      const response = await apiRequest('POST', '/api/goals', goalData);
-                      
-                      if (response.ok) {
-                        // Close the drawer
-                        setDrawerOpen(false);
-                        
-                        toast({
-                          title: "Career Goal Created",
-                          description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
-                          action: (
-                            <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
-                              View Goal
-                            </Button>
-                          ),
-                        });
-                      } else {
-                        throw new Error("Failed to create goal");
-                      }
-                    } catch (error) {
-                      console.error("Error creating career goal:", error);
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No specific certifications are recommended for this role.
+                      </p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+            
+            <DialogFooter className="px-4 sm:px-6 pt-0 flex flex-col sm:flex-row items-center justify-between gap-2 pb-10">
+              <Button 
+                className="bg-[#1333c2] hover:bg-[#0f2aae] text-white px-4 w-full sm:w-auto"
+                size="sm"
+                disabled={isCreatingGoal}
+                onClick={async () => {
+                  // Check if we have existing goals to avoid duplicates
+                  try {
+                    // Show loading state
+                    setIsCreatingGoal(true);
+                    
+                    // Get existing goals
+                    const goalsResponse = await apiRequest('GET', '/api/goals');
+                    const existingGoals = await goalsResponse.json();
+                    
+                    // Check if this goal already exists (by title)
+                    const goalTitle = `Become a ${selectedNode.title}`;
+                    const isDuplicate = existingGoals.some(
+                      (goal: any) => goal.title.toLowerCase() === goalTitle.toLowerCase()
+                    );
+                    
+                    if (isDuplicate) {
                       toast({
-                        title: "Error Creating Goal",
-                        description: "There was a problem creating your career goal. Please try again.",
-                        variant: "destructive"
+                        title: "Goal Already Exists",
+                        description: "You already have this career goal in your tracker.",
+                        variant: "default"
                       });
-                    } finally {
                       setIsCreatingGoal(false);
+                      return;
                     }
-                  }}
-                >
-                  {isCreatingGoal ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Goal...
-                    </>
-                  ) : (
-                    <>Set as Career Goal</>
-                  )}
-                </Button>
+                    
+                    // Create the goal
+                    const goalData = {
+                      title: goalTitle,
+                      description: `Career goal to become a ${selectedNode.title} in the ${activePath.name} industry. Salary range: ${selectedNode.salaryRange}.`,
+                      status: "not_started",
+                      checklist: [
+                        {
+                          id: crypto.randomUUID(),
+                          text: `Research required skills for ${selectedNode.title} role`,
+                          completed: false
+                        },
+                        {
+                          id: crypto.randomUUID(),
+                          text: `Identify training or certification needs`,
+                          completed: false
+                        },
+                        {
+                          id: crypto.randomUUID(),
+                          text: `Update resume to target this role`,
+                          completed: false
+                        },
+                        {
+                          id: crypto.randomUUID(),
+                          text: `Network with professionals in this field`,
+                          completed: false
+                        }
+                      ]
+                    };
+                    
+                    // Save the goal
+                    const response = await apiRequest('POST', '/api/goals', goalData);
+                    
+                    if (response.ok) {
+                      // Close the dialog
+                      setDrawerOpen(false);
+                      
+                      toast({
+                        title: "Career Goal Created",
+                        description: `"${goalTitle}" has been added to your career goals tracker. You can view it in the Career Goals section.`,
+                        action: (
+                          <Button variant="outline" size="sm" onClick={() => navigate('/goals')}>
+                            View Goal
+                          </Button>
+                        ),
+                      });
+                    } else {
+                      throw new Error("Failed to create goal");
+                    }
+                  } catch (error) {
+                    console.error("Error creating career goal:", error);
+                    toast({
+                      title: "Error Creating Goal",
+                      description: "There was a problem creating your career goal. Please try again.",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setIsCreatingGoal(false);
+                  }
+                }}
+              >
+                {isCreatingGoal ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Goal...
+                  </>
+                ) : (
+                  <>Set as Career Goal</>
+                )}
+              </Button>
 
-                <DrawerClose asChild>
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">Close</Button>
-                </DrawerClose>
-              </DrawerFooter>
-            </>
-          )}
-        </DrawerContent>
-      </Drawer>
+              <DialogClose asChild>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }
