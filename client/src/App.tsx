@@ -37,6 +37,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import SupportPage from "@/pages/admin/SupportPage";
 import AdminModelsPage from "@/pages/admin/ModelsPage";
 import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
+import EmailAdmin from "@/pages/admin/EmailAdmin";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -466,6 +467,11 @@ function App() {
         <Route path="/admin/openai-logs">
           <AdminRoute>
             <AdminOpenAILogsPage />
+          </AdminRoute>
+        </Route>
+        <Route path="/admin/email">
+          <AdminRoute>
+            <EmailAdmin />
           </AdminRoute>
         </Route>
         <Route path="/admin">
