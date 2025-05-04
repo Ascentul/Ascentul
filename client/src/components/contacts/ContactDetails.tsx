@@ -1314,36 +1314,38 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                           </div>
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           {!followUp.completed && (
                             <Button 
                               size="sm" 
-                              variant="outline"
-                              className="h-8 px-2 text-xs"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
                               onClick={() => markFollowUpCompleteMutation.mutate(followUp.id)}
                               disabled={markFollowUpCompleteMutation.isPending}
                             >
                               {markFollowUpCompleteMutation.isPending ? (
-                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                'Mark Complete'
+                                <Check className="h-3 w-3" />
                               )}
+                              <span className="sr-only">Mark complete</span>
                             </Button>
                           )}
                           {!followUp.completed && (
                             <Button 
                               size="sm" 
-                              variant="outline"
-                              className="h-8 px-2 text-xs"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
                               onClick={() => setEditingFollowUp(followUp)}
                             >
                               <Edit className="h-3 w-3" />
+                              <span className="sr-only">Edit follow-up</span>
                             </Button>
                           )}
                           <Button 
                             size="sm" 
-                            variant="outline"
-                            className="h-8 px-2 text-xs text-destructive hover:text-destructive"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive/90"
                             onClick={() => deleteFollowUpMutation.mutate(followUp.id)}
                             disabled={deleteFollowUpMutation.isPending}
                           >
@@ -1352,6 +1354,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
                             ) : (
                               <Trash className="h-3 w-3" />
                             )}
+                            <span className="sr-only">Delete follow-up</span>
                           </Button>
                         </div>
                       </div>
