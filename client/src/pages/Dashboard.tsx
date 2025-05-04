@@ -937,7 +937,7 @@ export default function Dashboard() {
                   )}
                   
                   <div className="pt-2">
-                    <Link href="/interviews">
+                    <Link href="/application-tracker">
                       <Button variant="outline" size="sm" className="w-full">
                         View All Interviews
                       </Button>

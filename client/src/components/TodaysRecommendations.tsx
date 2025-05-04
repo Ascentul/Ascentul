@@ -58,11 +58,11 @@ const getRecommendationLink = (recommendation: Recommendation) => {
     case 'goal':
       return `/goals?highlight=${recommendation.relatedEntityId}`;
     case 'interview_process':
-      return `/interviews/${recommendation.relatedEntityId}`;
+      return `/application-tracker/${recommendation.relatedEntityId}`;
     case 'interview_stage':
-      return `/interviews?stageId=${recommendation.relatedEntityId}`;
+      return `/application-tracker?stageId=${recommendation.relatedEntityId}`;
     case 'followup_action':
-      return `/interviews?actionId=${recommendation.relatedEntityId}`;
+      return `/application-tracker?actionId=${recommendation.relatedEntityId}`;
     default:
       return null;
   }
