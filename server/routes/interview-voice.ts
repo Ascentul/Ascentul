@@ -351,9 +351,10 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
     // Provide a fallback question if we can't generate one
     const fallbackQuestion = "Could you tell me about your relevant experience for this position?";
     
-    // Note that this is a fallback in the response
+    // Note that this is a fallback in the response and include both formats for compatibility
     return res.status(200).json({
       question: fallbackQuestion,
+      aiResponse: fallbackQuestion, // Add this for compatibility with client-side code
       isFallback: true
     });
   }
