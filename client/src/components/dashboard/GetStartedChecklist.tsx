@@ -63,6 +63,22 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     },
   });
   
+  // Fetch job applications to check if they've added any
+  const { data: jobApplications = [] } = useQuery({
+    queryKey: ['/api/job-applications'],
+    queryFn: async () => {
+      try {
+        return await apiRequest({
+          url: '/api/job-applications',
+          method: 'GET',
+        });
+      } catch (error) {
+        console.error('Error fetching job applications:', error);
+        return [];
+      }
+    },
+  });
+  
   // State to track checklist items
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -286,9 +302,10 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setReviewUnlocked(completedCount >= 3);
   }, [completedCount]);
 
-  // Track if we need to update the state of the contact and goal items
+  // Track if we need to update the state of the contact, goal, and application items
   const [hasUpdatedContactItem, setHasUpdatedContactItem] = useState(false);
   const [hasUpdatedGoalItem, setHasUpdatedGoalItem] = useState(false);
+  const [hasUpdatedApplicationItem, setHasUpdatedApplicationItem] = useState(false);
   
   // Update the network contact checklist item based on actual data
   useEffect(() => {
@@ -354,15 +371,48 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setHasUpdatedGoalItem(true);
   }, [userGoals, checklistItems, hasUpdatedGoalItem]);
   
+  // Update the job application checklist item based on actual data
+  useEffect(() => {
+    if (!jobApplications || !Array.isArray(jobApplications) || hasUpdatedApplicationItem) return;
+    
+    // Check if the user has added at least one application
+    const hasAtLeastOneApplication = jobApplications.length > 0;
+    
+    console.log(`User has ${jobApplications.length} job applications`);
+    
+    // We only want to update if there are applications and the item isn't already marked as completed
+    const applicationItem = checklistItems.find(item => item.id === 'job-application');
+    
+    if (hasAtLeastOneApplication && applicationItem && !applicationItem.completed) {
+      console.log('Marking job-application checklist item as completed based on actual applications');
+      
+      // Update only the job-application item based on actual data
+      setChecklistItems(prevItems => {
+        const updatedItems = prevItems.map(item => {
+          if (item.id === 'job-application') {
+            return { ...item, completed: true };
+          }
+          return item;
+        });
+        
+        return updatedItems;
+      });
+    }
+    
+    // Mark that we've processed this check to avoid further updates
+    setHasUpdatedApplicationItem(true);
+  }, [jobApplications, checklistItems, hasUpdatedApplicationItem]);
+  
   // Save progress whenever checklist items change
   useEffect(() => {
-    // Only update localStorage when we have processed both contacts and goals data
+    // Only update localStorage when we have processed contacts, goals, and applications data
     if ((hasUpdatedContactItem || !Array.isArray(networkContacts)) && 
-        (hasUpdatedGoalItem || !Array.isArray(userGoals))) {
+        (hasUpdatedGoalItem || !Array.isArray(userGoals)) &&
+        (hasUpdatedApplicationItem || !Array.isArray(jobApplications))) {
       // Save the updated progress to local storage
       saveProgress(checklistItems, reviewItem.completed);
     }
-  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, networkContacts, userGoals, userId]);
+  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, hasUpdatedApplicationItem, networkContacts, userGoals, jobApplications, userId]);
   
   // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
   // We've intentionally changed this to make sure the checklist persists
