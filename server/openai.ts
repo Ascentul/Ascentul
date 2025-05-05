@@ -17,8 +17,8 @@ if (!apiKey) {
       apiKey = openaiKeyMatch[1].trim();
       console.log('Successfully loaded OPENAI_API_KEY from .env file');
     }
-  } catch (error: any) {
-    console.log('No .env file found or unable to parse OPENAI_API_KEY:', error?.message);
+  } catch (error) {
+    console.log('No .env file found or unable to parse OPENAI_API_KEY');
   }
 }
 
@@ -54,42 +54,30 @@ export async function getOrCreateInterviewAssistant() {
     console.log('Creating new interview coach assistant');
     const assistant = await openai.beta.assistants.create({
       name: 'Interview Coach',
-      instructions: `You are a $200/hr professional interview coach. You must synthesize the job description to ask original, expert-level, role-specific questions that demonstrate insider knowledge of the field. NEVER repeat phrases from the job description - create entirely new questions that probe for deep domain expertise.
+      instructions: `You are a $200/hr professional interview coach. For each session, read the job description in detail and ask role-specific, intelligent, and challenging questions tailored to that position. Never repeat the job post directly. Think like a hiring manager. Ask one question at a time, wait for an answer, and then respond with thoughtful feedback or a follow-up question.
 
-Critical Instructions:
-1. Analyze the job description to identify key technical skills and domain knowledge required.
-2. Formulate questions that could ONLY be asked by someone deeply familiar with this role.
-3. Use industry-specific terminology and reference realistic scenarios professionals in this field encounter.
-4. Questions MUST be original - NEVER copy, paraphrase, or echo phrases from the job description.
-5. Ask one specific, challenging question that requires the candidate to demonstrate expertise.
-6. The question should probe for specific examples from their experience, not theoretical knowledge.
-7. After each answer, provide feedback as a hiring manager would, focusing on clarity and alignment with job requirements.
+Important Instructions:
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Generate thoughtful questions that probe for experience and competency in these areas.
+3. Ask questions that require specific examples, not just theoretical knowledge.
+4. NEVER parrot the job description text verbatim - synthesize and reframe.
+5. Be conversational but professional, as if you're an actual hiring manager.
+6. Begin with a warm welcome and explain your role as an interviewer who has researched this position carefully.
+7. After each answer, offer clear, practical feedback focusing on how the candidate can improve clarity, confidence, and alignment with the job requirements.
 
-Examples of good questions:
-- For a Marketing Automation role: "How do you typically segment audiences in Pardot when working with multiple business units?"
-- For a Frontend Developer: "What's your approach to debugging a React component that's re-rendering too frequently?"
-- For a Project Manager: "Can you walk me through how you'd handle scope creep on a fixed-price project that's already 75% complete?"
+The final experience should feel like:
+1. You welcome the user by job title and company
+2. You ask smart questions based on the job context
+3. You respond with feedback and follow-up questions
+4. You speak with a natural human voice using 'nova' voice style
 
 Make sure each response is thoughtful but concise so it's comfortable for the user to listen to.`,
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     });
     
     return { assistantId: assistant.id };
-  } catch (error: any) {
-    console.error('Error creating/retrieving interview assistant:', error?.message || 'Unknown error');
-    
-    // Check for recovery mode errors specifically
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue while creating assistant');
-      // Return a mock assistant ID that can be used as a fallback
-      return { assistantId: 'fallback_assistant_id' };
-    }
-    
+  } catch (error) {
+    console.error('Error creating/retrieving interview assistant:', error);
     throw error;
   }
 }
@@ -104,8 +92,6 @@ export async function manageInterviewThread(params: {
   userMessage?: string;
 }) {
   try {
-    console.log('OPENAI_API_KEY status check in manageInterviewThread:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
-    
     const { threadId, assistantId, jobTitle, company, jobDescription, userMessage } = params;
     
     let thread;
@@ -123,19 +109,14 @@ export async function manageInterviewThread(params: {
       }
       
       contextMessage += `\n\nI'd like you to conduct a realistic practice interview with me following these guidelines:
-
-1. Analyze the job description to identify key technical skills and domain-specific knowledge required.
-2. Begin with a brief professional introduction as a hiring manager.
-3. Formulate questions that could ONLY be asked by someone deeply familiar with this role and industry.
-4. Generate ORIGINAL expert-level questions that require specific technical expertise - not generic questions.
-5. Use industry-specific terminology and realistic scenarios that professionals in this field face.
-6. NEVER copy phrases from the job description - synthesize completely new domain-specific questions.
-7. Each question should require me to demonstrate expertise through specific examples from my experience.
-
-Examples of good questions:
-- For a Marketing Automation role: "How do you typically segment audiences in Pardot when working with multiple business units?"
-- For a Frontend Developer: "What's your approach to debugging a React component that's re-rendering too frequently?"
-- For a Project Manager: "Can you walk me through how you'd handle scope creep on a fixed-price project that's already 75% complete?"`;
+      
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Begin with a warm welcome and explain your role as a professional interviewer who has researched this position.
+3. Ask thoughtful questions that probe for specific examples and competencies related to the job.
+4. NEVER repeat the job description text verbatim - synthesize and reframe it into intelligent questions.
+5. After each answer, provide clear, actionable feedback as a $200/hr coach would.
+6. Be conversational but professional, as if you're an actual hiring manager.
+7. Focus on helping me improve my clarity, confidence, and alignment with the job requirements.`;
       
       // Create a new thread with enhanced initial context
       thread = await openai.beta.threads.create({
@@ -164,21 +145,22 @@ Examples of good questions:
       thread.id,
       {
         assistant_id: assistantId,
-        instructions: `You are a $200/hr professional interview coach. You must synthesize the job description to ask original, expert-level, role-specific questions that demonstrate insider knowledge of the field. NEVER repeat phrases from the job description - create entirely new questions that probe for deep domain expertise.
+        instructions: `You are a $200/hr professional interview coach. For each session, read the job description in detail and ask role-specific, intelligent, and challenging questions tailored to that position. Never repeat the job post directly. Think like a hiring manager. Ask one question at a time, wait for an answer, and then respond with thoughtful feedback or a follow-up question.
 
-Critical Instructions for this ${jobTitle} position at ${company}:
-1. Analyze the job description to identify key technical skills and domain knowledge required.
-2. Formulate questions that could ONLY be asked by someone deeply familiar with this role and industry.
-3. Use industry-specific terminology and reference realistic scenarios professionals in this field encounter.
-4. Questions MUST be original - NEVER copy, paraphrase, or echo phrases from the job description.
-5. Ask one specific, challenging question that requires the candidate to demonstrate expertise.
-6. The question should probe for specific examples from their experience, not theoretical knowledge.
-7. After each answer, provide feedback as a hiring manager would, focusing on clarity and alignment with job requirements.
+Important Instructions for this ${jobTitle} position at ${company}:
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Generate thoughtful questions that probe for experience and competency in these areas.
+3. Ask questions that require specific examples, not just theoretical knowledge.
+4. NEVER parrot the job description text verbatim - synthesize and reframe.
+5. Be conversational but professional, as if you're an actual hiring manager.
+6. Begin with a warm welcome and explain your role as an interviewer who has researched this position carefully.
+7. After each answer, offer clear, practical feedback focusing on how the candidate can improve clarity, confidence, and alignment with the job requirements.
 
-Examples of good questions for this role:
-- For a Marketing Automation role: "How do you typically segment audiences in Pardot when working with multiple business units?"
-- For a Frontend Developer: "What's your approach to debugging a React component that's re-rendering too frequently?"
-- For a Project Manager: "Can you walk me through how you'd handle scope creep on a fixed-price project that's already 75% complete?"
+The final experience should feel like:
+1. You welcome the user by job title and company
+2. You ask smart questions based on the job context
+3. You respond with feedback and follow-up questions
+4. You speak with a natural human voice using 'nova' voice style
 
 Make sure each response is thoughtful but concise so it's comfortable for the user to listen to.`,
       }
@@ -239,44 +221,8 @@ Make sure each response is thoughtful but concise so it's comfortable for the us
       threadId: thread.id,
       response: textContent.text.value
     };
-  } catch (error: any) {
-    console.error('Error managing interview thread:', {
-      message: error?.message || 'Unknown error',
-      code: error?.code,
-      status: error?.status,
-      type: error?.type,
-      name: error?.name,
-      param: error?.param,
-      stack: error?.stack,
-      // Log extended error properties without exposing sensitive data
-      response: error?.response ? {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      } : 'No response object',
-      // Full object but remove any potentially sensitive values
-      fullError: JSON.stringify(error, (key, value) => 
-        ['apiKey', 'key', 'token', 'secret', 'password'].includes(key.toLowerCase()) ? '[REDACTED]' : value
-      )
-    });
-    
-    // Check for recovery mode or specific OpenAI API errors
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[Voice Practice] Possible OpenAI API temporary issue detected:', error.message);
-      
-      // Create appropriate context-aware message to return instead of throwing
-      return {
-        threadId: params.threadId || 'fallback_thread',
-        response: "I apologize, but I'm having trouble with my connection. Let me ask a different question. " +
-                 "Could you tell me about your relevant experience for this role?"
-      };
-    }
-    
+  } catch (error) {
+    console.error('Error managing interview thread:', error);
     throw error;
   }
 }
@@ -464,66 +410,8 @@ Your response must be in JSON format with the following structure:
         lowPriority: result.actionPlan?.lowPriority || ["No low priority items identified"]
       }
     };
-  } catch (error: any) {
-    console.error('Error analyzing LinkedIn profile:', error?.message || 'Unknown error');
-    
-    // Check for recovery mode errors specifically and provide user-friendly fallback
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[LinkedIn Analysis] Gracefully handling OpenAI API temporary issue');
-      
-      // Safely use the targetJobTitle from the profileData parameter
-      const jobTitle = profileData.targetJobTitle || "your target position";
-      
-      // Return a fallback analysis with explanation
-      return {
-        overallScore: 65,
-        sections: {
-          headline: {
-            score: 6,
-            feedback: "We're experiencing temporary issues analyzing your LinkedIn profile. Here's a general tip: Headlines should clearly show your professional identity and value proposition.",
-            suggestion: "Consider including your core role, specialization, and an achievement metric."
-          },
-          about: {
-            score: 7,
-            feedback: "Unable to provide detailed analysis at this time. A strong About section tells your career story concisely.",
-            suggestion: "Aim for 3-5 paragraphs that highlight your experience, values, and career goals."
-          },
-          experience: {
-            score: 7,
-            feedback: "Our analysis system is temporarily experiencing issues. Generally, experience sections should highlight achievements rather than duties.",
-            suggestions: ["Quantify achievements with specific metrics", "Focus on your impact rather than day-to-day responsibilities"]
-          },
-          skills: {
-            score: 6,
-            feedback: `We're having temporary difficulties providing personalized analysis. Skills should align with your target role of ${jobTitle}.`,
-            missingSkills: ["Unable to analyze at this time"],
-            suggestedSkills: [`Research skills relevant to your target role of ${jobTitle}`]
-          },
-          featured: {
-            score: 6,
-            feedback: "Analysis temporarily unavailable. Featured content should showcase your best work.",
-            suggestions: ["Include projects related to your target role", "Add articles or presentations you've created"]
-          },
-          banner: {
-            score: 6,
-            feedback: "Analysis temporarily unavailable. A professional banner creates a good first impression.",
-            suggestion: "Consider a banner that represents your industry or professional identity."
-          }
-        },
-        recruiterPerspective: `We couldn't provide a detailed recruiter perspective at this time for the ${jobTitle} role. Please try again later for a full analysis.`,
-        actionPlan: {
-          highPriority: ["Retry this analysis later when our systems are fully operational"],
-          mediumPriority: [`Review your profile against job descriptions for the ${jobTitle} role`],
-          lowPriority: [`Connect with peers in the ${jobTitle} role to see how they structure their profiles`]
-        }
-      };
-    }
-    
+  } catch (error) {
+    console.error('Error analyzing LinkedIn profile:', error);
     throw error;
   }
 }
@@ -564,30 +452,8 @@ export async function createCompletion(
       model: response.model,
       usage: response.usage,
     };
-  } catch (error: any) {
-    console.error("Error generating OpenAI response:", {
-      message: error?.message || 'Unknown error',
-      code: error?.code,
-      status: error?.status,
-      type: error?.type,
-      name: error?.name
-    });
-    
-    // Check for recovery mode errors and provide user-friendly response
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[OpenAI] Gracefully handling temporary API issue in createCompletion');
-      return {
-        content: "I apologize, but I'm experiencing temporary connectivity issues. Could you please try your request again in a moment?",
-        model: "fallback",
-        usage: {}
-      };
-    }
-    
+  } catch (error) {
+    console.error("Error generating OpenAI response:", error);
     throw new Error("Failed to generate AI response. Please try again later.");
   }
 }
@@ -610,27 +476,8 @@ export async function createStreamingTTS(text: string, speed: number = 1.0) {
     
     // Return the response directly, allowing the API to handle the streaming
     return response;
-  } catch (error: any) {
-    console.error('Error generating streaming TTS:', {
-      message: error?.message || 'Unknown error',
-      code: error?.code,
-      status: error?.status,
-      type: error?.type,
-      name: error?.name
-    });
-    
-    // Check for recovery mode errors specifically and provide a fallback
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue in speech creation');
-      // Return an empty response to signal the client to use a fallback
-      throw new Error('TTS temporarily unavailable due to API limits. Please try again in a few moments.');
-    }
-    
+  } catch (error) {
+    console.error('Error generating streaming TTS:', error);
     throw error;
   }
 }
@@ -757,44 +604,19 @@ export async function analyzeInterviewAnswer(
         isLastQuestion: false
       };
     }
-  } catch (error: any) {
-    console.error('Error analyzing interview response:', {
-      message: error?.message || 'Unknown error',
-      code: error?.code,
-      status: error?.status,
-      type: error?.type
-    });
-    
-    // Check for recovery mode errors specifically and provide user-friendly fallback
-    if (error?.message && (
-      error.message.includes('Recovery mode') || 
-      error.message.includes('Rate limit') ||
-      error.message.includes('Timeout') ||
-      error.message.includes('overloaded')
-    )) {
-      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue');
-      return {
-        feedback: "I noticed some interesting aspects of your response. Could you tell me more about your experience with team collaboration?",
-        isLastQuestion: false
-      };
-    }
-    
+  } catch (error) {
+    console.error('Error analyzing interview response:', error);
     throw error;
   }
 }
 
 // Generate interview questions for practice sessions
 export async function generateInterviewQuestions(category?: string): Promise<string[]> {
-  console.log('[Voice Practice][generateInterviewQuestions] OPENAI_API_KEY status check:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
-  console.log('[Voice Practice][generateInterviewQuestions] Starting - Category:', category || 'general');
-  
   try {
     // Create a prompt for generating interview questions
     const prompt = category 
       ? `Generate 5 challenging interview questions for the "${category}" category. These should be thought-provoking questions that would be asked in real job interviews.`
       : `Generate 5 challenging general interview questions. These should be thought-provoking questions that would be asked in real job interviews.`;
-    
-    console.log('[Voice Practice][generateInterviewQuestions] Calling OpenAI API with prompt length:', prompt.length);
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -811,14 +633,9 @@ export async function generateInterviewQuestions(category?: string): Promise<str
       temperature: 0.7
     });
     
-    console.log('[Voice Practice][generateInterviewQuestions] OpenAI API call successful');
-    
     // Parse the response into an array of questions
     const content = response.choices[0].message.content;
-    if (!content) {
-      console.warn('[Voice Practice][generateInterviewQuestions] Empty content returned from OpenAI');
-      return ["Tell me about yourself and your relevant experience for this role."];
-    }
+    if (!content) return ["Tell me about yourself and your relevant experience for this role."];
     
     // Split by numbers (1., 2., etc.) or line breaks, then filter out empty strings
     const questions = content
@@ -826,30 +643,9 @@ export async function generateInterviewQuestions(category?: string): Promise<str
       .map(q => q.trim())
       .filter(q => q && q.length > 10 && (q.endsWith('?') || q.includes('?')));
     
-    console.log('[Voice Practice][generateInterviewQuestions] Successfully generated', questions.length, 'questions');
-    
     return questions.slice(0, 5); // Return at most 5 questions
-  } catch (error: any) {
-    console.error('[Voice Practice][generateInterviewQuestions] ⚠️ Using fallback questions due to OpenAI API failure');
-    console.error('Error generating interview questions:', {
-      message: error?.message || 'Unknown error',
-      code: error?.code,
-      status: error?.status,
-      type: error?.type,
-      name: error?.name,
-      param: error?.param,
-      // Log extended error properties without exposing sensitive data
-      response: error?.response ? {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      } : 'No response object',
-      // Full object but remove any potentially sensitive values
-      fullError: JSON.stringify(error, (key, value) => 
-        ['apiKey', 'key', 'token', 'secret', 'password'].includes(key.toLowerCase()) ? '[REDACTED]' : value
-      )
-    });
-    
+  } catch (error) {
+    console.error('Error generating interview questions:', error);
     // Return fallback questions that are always appropriate
     return [
       "Tell me about yourself and your relevant experience for this role.",
