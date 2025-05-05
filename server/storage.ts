@@ -489,6 +489,7 @@ export class MemStorage implements IStorage {
   private applicationWizardSteps: Map<number, ApplicationWizardStep>;
   private networkingContacts: Map<number, NetworkingContact>;
   private contactInteractions: Map<number, ContactInteraction>;
+  private userReviews: Map<number, UserReview>;
 
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -521,7 +522,6 @@ export class MemStorage implements IStorage {
   private projectIdCounter: number;
   private networkingContactIdCounter: number;
   private contactInteractionIdCounter: number;
-  private userReviews: Map<number, UserReview>;
   private userReviewIdCounter: number;
 
   public sessionStore: session.Store;
