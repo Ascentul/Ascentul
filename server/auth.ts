@@ -73,8 +73,7 @@ export function requireAuth(req: Request, res: Response, next: () => void) {
 // Check if user is an admin
 export function isAdmin(req: Request): boolean {
   // Check both userType (for backward compatibility) and role field
-  return req.user?.user_type === 'admin' || 
-         req.user?.userType === 'admin' || 
+  return req.user?.userType === 'admin' || 
          req.user?.role === 'admin' || 
          req.user?.role === 'super_admin';
 }

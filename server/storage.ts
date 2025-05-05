@@ -4141,6 +4141,150 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // Critical missing methods that are causing errors
+  
+  async getResumes(userId: number): Promise<Resume[]> {
+    try {
+      const result = await db.select().from(resumes).where(eq(resumes.userId, userId))
+        .orderBy(desc(resumes.updatedAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching resumes from database:", error);
+      return [];
+    }
+  }
+  
+  // Alias for getResumes for clarity and API consistency
+  async getResumesByUserId(userId: number): Promise<Resume[]> {
+    return this.getResumes(userId);
+  }
+  
+  async getGoals(userId: number): Promise<Goal[]> {
+    try {
+      const result = await db.select().from(goals).where(eq(goals.userId, userId))
+        .orderBy(desc(goals.updatedAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching goals from database:", error);
+      return [];
+    }
+  }
+  
+  async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {
+    try {
+      // Join userAchievements with achievements to get complete achievement data
+      const result = await db
+        .select({
+          id: achievements.id,
+          name: achievements.name,
+          description: achievements.description,
+          icon: achievements.icon,
+          xpValue: achievements.xpValue,
+          category: achievements.category,
+          createdAt: achievements.createdAt,
+          updatedAt: achievements.updatedAt,
+          earnedAt: userAchievements.earnedAt
+        })
+        .from(userAchievements)
+        .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
+        .where(eq(userAchievements.userId, userId))
+        .orderBy(desc(userAchievements.earnedAt));
+      
+      return result as unknown as (Achievement & { earnedAt: Date })[];
+    } catch (error) {
+      console.error("Error fetching user achievements from database:", error);
+      return [];
+    }
+  }
+  
+  async getAiCoachConversations(userId: number): Promise<AiCoachConversation[]> {
+    try {
+      const result = await db
+        .select()
+        .from(aiCoachConversations)
+        .where(eq(aiCoachConversations.userId, userId))
+        .orderBy(desc(aiCoachConversations.updatedAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching AI coach conversations from database:", error);
+      return [];
+    }
+  }
+  
+  async getUserStatistics(userId: number): Promise<{
+    activeGoals: number;
+    achievementsCount: number;
+    resumesCount: number;
+    pendingTasks: number;
+    upcomingInterviews: number;
+    monthlyXp: { month: string; xp: number }[];
+  }> {
+    try {
+      // Count active goals
+      const activeGoalsCount = await db
+        .select({ count: sql`count(*)` })
+        .from(goals)
+        .where(eq(goals.userId, userId))
+        .where(eq(goals.status, 'active'));
+      
+      // Count achievements
+      const achievementsCount = await db
+        .select({ count: sql`count(*)` })
+        .from(userAchievements)
+        .where(eq(userAchievements.userId, userId));
+      
+      // Count resumes
+      const resumesCount = await db
+        .select({ count: sql`count(*)` })
+        .from(resumes)
+        .where(eq(resumes.userId, userId));
+      
+      // TODO: Implement pending tasks and upcoming interviews counts
+      
+      // Get monthly XP data (last 6 months)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const xpHistoryData = await db
+        .select()
+        .from(xpHistory)
+        .where(eq(xpHistory.userId, userId))
+        .where(sql`created_at >= ${sixMonthsAgo}`)
+        .orderBy(xpHistory.createdAt);
+      
+      // Process XP history data into monthly aggregates
+      const monthlyXpMap = new Map<string, number>();
+      
+      for (const record of xpHistoryData) {
+        const date = new Date(record.createdAt);
+        const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+        const currentXp = monthlyXpMap.get(monthKey) || 0;
+        monthlyXpMap.set(monthKey, currentXp + record.amount);
+      }
+      
+      const monthlyXp = Array.from(monthlyXpMap.entries()).map(([month, xp]) => ({ month, xp }));
+      
+      return {
+        activeGoals: Number(activeGoalsCount[0]?.count || 0),
+        achievementsCount: Number(achievementsCount[0]?.count || 0),
+        resumesCount: Number(resumesCount[0]?.count || 0),
+        pendingTasks: 0, // TODO: Implement
+        upcomingInterviews: 0, // TODO: Implement
+        monthlyXp
+      };
+    } catch (error) {
+      console.error("Error fetching user statistics from database:", error);
+      return {
+        activeGoals: 0,
+        achievementsCount: 0,
+        resumesCount: 0,
+        pendingTasks: 0,
+        upcomingInterviews: 0,
+        monthlyXp: []
+      };
+    }
+  }
+  
   // Method to test the database connection (can be called after constructor)
   async testDatabaseConnection(): Promise<boolean> {
     try {
