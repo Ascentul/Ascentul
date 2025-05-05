@@ -16,6 +16,7 @@ console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'present' : 'missing')
 declare module "express-session" {
   interface SessionData {
     userId?: number;
+    role?: string;
   }
 }
 
