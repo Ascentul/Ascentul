@@ -647,17 +647,16 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                     : 'border-border/60 hover:bg-muted/50'
                 }`}
               >
-                <button 
-                  className="flex-shrink-0 mt-0.5"
-                  onClick={() => toggleItemCompletion(item.id)}
-                  aria-label={`Mark ${item.title} as ${item.completed ? 'incomplete' : 'complete'}`}
+                <div 
+                  className="flex-shrink-0 mt-0.5 cursor-default" 
+                  aria-label={`${item.title} is ${item.completed ? 'complete' : 'incomplete'}`}
                 >
                   {item.completed ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground" />
+                    <Circle className="h-4 w-4 text-muted-foreground opacity-60" />
                   )}
-                </button>
+                </div>
                 
                 <div className="ml-2.5 flex-grow">
                   <h3 className={`text-sm font-medium ${
@@ -688,17 +687,17 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   : 'border-border/60 hover:bg-muted/50'
               }`}
             >
-              <button 
-                className="flex-shrink-0 mt-0.5"
+              <div 
+                className="flex-shrink-0 mt-0.5 cursor-pointer" 
                 onClick={toggleReviewCompletion}
-                aria-label={`Mark ${reviewItem.title} as ${reviewItem.completed ? 'incomplete' : 'complete'}`}
+                aria-label={`Open review for ${reviewItem.title}`}
               >
                 {reviewItem.completed ? (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 ) : (
-                  <Circle className="h-4 w-4 text-muted-foreground" />
+                  <Circle className="h-4 w-4 text-muted-foreground hover:text-muted-foreground/80" />
                 )}
-              </button>
+              </div>
               
               <div className="ml-2.5 flex-grow">
                 <div className="flex items-center">
