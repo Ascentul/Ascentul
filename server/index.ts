@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { sessionStore } from "./session-store";
+import { devTokenAuthBypass } from "./auth";
 import path from "path";
 
 // Log all environment variables for debugging (masking sensitive values)
@@ -45,6 +46,9 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Add dev token auth bypass middleware (only works in development)
+app.use(devTokenAuthBypass);
 
 app.use((req, res, next) => {
   const start = Date.now();

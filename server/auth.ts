@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 
 // Add type for augmenting Express Request
@@ -19,6 +19,17 @@ declare global {
 
 // Middleware to check if user is authenticated
 export function requireAuth(req: Request, res: Response, next: () => void) {
+  // Check for dev token first
+  const devToken = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (process.env.NODE_ENV === 'development' && devToken === 'dev_token') {
+    console.warn('DEV MODE: Bypassing auth with dev_token in requireAuth');
+    req.session = req.session || {};
+    req.session.userId = 2; // Using demo user ID
+    
+    // Continue with normal auth flow which will now succeed
+  }
+  
   console.log("Checking auth. Session:", req.session?.userId ? "Has userId" : "No userId");
   
   if (!req.session || !req.session.userId) {
@@ -78,6 +89,37 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
       });
     }
     next();
+  }
+}
+
+// Dev Token Auth Bypass middleware
+// This middleware checks for the dev_token in Authorization header and bypasses auth in development
+export function devTokenAuthBypass(req: Request, res: Response, next: NextFunction) {
+  const devToken = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (process.env.NODE_ENV === 'development' && devToken === 'dev_token') {
+    console.warn('DEV MODE: Bypassing auth with dev_token');
+    req.session = req.session || {};
+    req.session.userId = 2; // Using demo user ID
+    
+    // Fetch user data and attach to request if needed
+    if (!req.user) {
+      storage.getUser(req.session.userId)
+        .then(user => {
+          if (user) {
+            req.user = user;
+          }
+          next();
+        })
+        .catch(err => {
+          console.error("Dev token auth: Error fetching user:", err);
+          next(); // Continue anyway
+        });
+    } else {
+      next();
+    }
+  } else {
+    next(); // Continue to normal auth flow
   }
 }
 
