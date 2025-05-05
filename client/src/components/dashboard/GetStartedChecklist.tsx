@@ -706,9 +706,6 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   }`}>
                     {reviewItem.title}
                   </h3>
-                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
-                    Unlocked
-                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
               </div>
