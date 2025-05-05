@@ -134,7 +134,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Create a resume draft',
       description: 'Start building your professional resume',
       completed: false,
-      href: '/resumes',
+      href: '/resume',
       icon: <FileText className="h-4 w-4 text-orange-500" />
     },
     {
