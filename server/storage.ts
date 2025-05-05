@@ -624,73 +624,11 @@ export class MemStorage implements IStorage {
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // Initialize sample work history for Alex (user id 1) and user id 2
-    const sampleWorkHistory: InsertWorkHistory[] = [
-      {
-        company: "TechCorp Inc.",
-        position: "Senior Software Engineer",
-        startDate: new Date(2021, 3, 1), // April 1, 2021
-        endDate: null, // Current job
-        currentJob: true,
-        location: "San Francisco, CA",
-        description: "Full-stack development with React, Node.js, and PostgreSQL. Lead a team of 5 developers working on the company's flagship product.",
-        achievements: [
-          "Reduced page load time by 45% through code optimization and CDN integration",
-          "Implemented CI/CD pipeline reducing deployment time from hours to minutes",
-          "Led migration from legacy codebase to modern React architecture"
-        ]
-      },
-      {
-        company: "WebSolutions LLC",
-        position: "Frontend Developer",
-        startDate: new Date(2019, 5, 15), // June 15, 2019
-        endDate: new Date(2021, 2, 31), // March 31, 2021
-        currentJob: false,
-        location: "Boston, MA",
-        description: "Focused on building responsive user interfaces with React, Redux, and Tailwind CSS.",
-        achievements: [
-          "Designed and implemented the company's component library used by 20+ projects",
-          "Mentored 3 junior developers",
-          "Improved test coverage from 45% to 85% using Jest and React Testing Library"
-        ]
-      },
-      {
-        company: "StartupX",
-        position: "Junior Web Developer",
-        startDate: new Date(2018, 1, 1), // February 1, 2018
-        endDate: new Date(2019, 5, 1), // June 1, 2019
-        currentJob: false,
-        location: "Remote",
-        description: "Worked on a variety of client projects involving e-commerce platforms and content management systems.",
-        achievements: [
-          "Built custom e-commerce solutions for 5 different clients",
-          "Integrated payment gateways and shipping APIs",
-          "Developed responsive designs that increased mobile conversions by 30%"
-        ]
-      }
-    ];
-
-    // Add sample work history records
-    sampleWorkHistory.forEach(workHistoryItem => {
-      // Add for user 1 (Alex)
-      this.workHistory.set(this.workHistoryIdCounter, {
-        ...workHistoryItem,
-        id: this.workHistoryIdCounter++,
-        userId: 1, // For alex
-        createdAt: twoDaysAgo
-      });
-      
-      // Also add for user 2 (test user)
-      this.workHistory.set(this.workHistoryIdCounter, {
-        ...workHistoryItem,
-        id: this.workHistoryIdCounter++,
-        userId: 2, // For test user
-        createdAt: twoDaysAgo
-      });
-    });
+    // No initial work history - users should enter their own work history
+    const sampleWorkHistory: InsertWorkHistory[] = [];
     
-    console.log(`Initialized ${sampleWorkHistory.length} work history items for user ID 1`);
-    console.log(`Initialized ${sampleWorkHistory.length} work history items for user ID 2`);
+    // Skip adding sample work history records as per requirements
+    console.log(`No default work history items initialized - users will add their own data`);
 
     // Initialize sample education history for alex (user id 1)
     const sampleEducation: InsertEducationHistory[] = [
