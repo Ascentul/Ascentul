@@ -265,30 +265,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       console.log("Created sample user:", sampleUser.id);
       
-      // Add sample goals
-      await storage.createGoal(sampleUser.id, {
-        title: "Update LinkedIn Profile",
-        description: "Add recent projects and update skills",
-        status: "in_progress",
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-        xpReward: 100
-      });
-      
-      await storage.createGoal(sampleUser.id, {
-        title: "Complete Python Course",
-        description: "Finish advanced modules and final project",
-        status: "active",
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
-        xpReward: 200
-      });
-      
-      await storage.createGoal(sampleUser.id, {
-        title: "Prepare for Technical Interview",
-        description: "Practice algorithm questions and system design",
-        status: "on-track",
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 1 month from now
-        xpReward: 250
-      });
+      // No sample goals are added by default to ensure new users
+      // can complete the "Set your first career goal" checklist item
       
       // Add some XP to the sample user
       await storage.addUserXP(sampleUser.id, 2450, "initial_setup", "Initial user setup");
