@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import { 
   CheckCircle, Circle, Briefcase, Users, FileText, 
-  Linkedin, Star, ChevronRight, X, Sparkles
+  Linkedin, Star, ChevronRight, X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -94,56 +94,6 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   // Track if we just completed all tasks
   const [justCompleted, setJustCompleted] = useState(false);
 
-  // Fetch user's checklist progress from localStorage (or API in the future)
-  useEffect(() => {
-    // Simulate loading
-    setIsLoading(true);
-    
-    // In a real app, you would fetch this data from your API
-    // For now, simulate by checking localStorage
-    setTimeout(() => {
-      try {
-        // Check if we have stored progress
-        const storedProgress = localStorage.getItem(`checklist_progress_${userId}`);
-        
-        if (storedProgress) {
-          const parsedProgress = JSON.parse(storedProgress);
-          
-          // Update the checklist items with the stored progress
-          setChecklistItems(prevItems => 
-            prevItems.map(item => ({
-              ...item,
-              completed: parsedProgress.items && parsedProgress.items[item.id] || false
-            }))
-          );
-          
-          // Check if review is completed
-          setReviewItem(prev => ({
-            ...prev,
-            completed: parsedProgress.reviewCompleted || false
-          }));
-          
-          // Only hide the checklist if explicitly dismissed by the user
-          // This ensures the checklist persists for all users until they explicitly dismiss it
-          setShowChecklist(!parsedProgress.explicitlyDismissed);
-        } else {
-          // For new users, we show all items as incomplete (no random demo completion)
-          // This ensures all new users see the complete checklist
-          
-          // Save initial progress to localStorage (all items incomplete)
-          saveProgress(checklistItems, false, false);
-          
-          // Ensure checklist is visible
-          setShowChecklist(true);
-        }
-      } catch (error) {
-        console.error('Error loading checklist progress:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 500);
-  }, [userId]);
-
   // Save progress to localStorage (or API in the future)
   const saveProgress = (items: ChecklistItem[], reviewCompleted: boolean, explicitlyDismissed: boolean = false) => {
     try {
@@ -172,6 +122,88 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     }
   };
 
+  // Helper function to handle new user initialization
+  const handleNewUser = () => {
+    console.log("No stored progress found - initializing new user checklist");
+    
+    // Ensure we have a clean slate for the checklist items
+    const freshItems = checklistItems.map(item => ({ ...item, completed: false }));
+    setChecklistItems(freshItems);
+    
+    // Reset review item
+    setReviewItem(prev => ({ ...prev, completed: false }));
+    
+    // Initialize localStorage with a delay to ensure state is updated
+    setTimeout(() => {
+      saveProgress(freshItems, false, false);
+      console.log("Saved initial checklist state for new user");
+    }, 300);
+    
+    // Always show checklist for new users
+    setShowChecklist(true);
+    console.log("Checklist visibility explicitly set to TRUE for new user");
+  };
+
+  // Fetch user's checklist progress from localStorage (or API in the future)
+  useEffect(() => {
+    // Simulate loading
+    setIsLoading(true);
+    console.log("Initializing checklist for user ID:", userId);
+    
+    // In a real app, you would fetch this data from your API
+    // For now, simulate by checking localStorage
+    setTimeout(() => {
+      try {
+        // Check if we have stored progress
+        const storedProgress = localStorage.getItem(`checklist_progress_${userId}`);
+        console.log("Checklist initialization - stored progress found:", !!storedProgress);
+        
+        if (storedProgress) {
+          try {
+            const parsedProgress = JSON.parse(storedProgress);
+            console.log("Parsed progress:", {
+              hasItems: !!parsedProgress.items,
+              reviewCompleted: parsedProgress.reviewCompleted || false,
+              explicitlyDismissed: parsedProgress.explicitlyDismissed || false
+            });
+            
+            // Update the checklist items with the stored progress
+            setChecklistItems(prevItems => {
+              const updatedItems = prevItems.map(item => ({
+                ...item,
+                completed: parsedProgress.items && parsedProgress.items[item.id] || false
+              }));
+              console.log("Updated items:", updatedItems.map(i => ({ id: i.id, completed: i.completed })));
+              return updatedItems;
+            });
+            
+            // Check if review is completed
+            setReviewItem(prev => ({
+              ...prev,
+              completed: parsedProgress.reviewCompleted || false
+            }));
+            
+            // Only hide the checklist if explicitly dismissed by the user
+            // This ensures the checklist persists for all users until they explicitly dismiss it
+            setShowChecklist(!parsedProgress.explicitlyDismissed);
+            console.log("Setting showChecklist to:", !parsedProgress.explicitlyDismissed);
+          } catch (parseError) {
+            console.error("Failed to parse stored progress, treating as new user:", parseError);
+            handleNewUser();
+          }
+        } else {
+          handleNewUser();
+        }
+      } catch (error) {
+        console.error('Error loading checklist progress:', error);
+        // Safety fallback - ensure checklist shows up even on error
+        setShowChecklist(true);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 500);
+  }, [userId]);
+
   // Toggle item completion
   const toggleItemCompletion = (id: string) => {
     setChecklistItems(prevItems => {
@@ -193,9 +225,6 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
           title: "Onboarding progress!",
           description: "✅ You've completed all main tasks! Continue using Ascentul to unlock more features.",
         });
-        
-        // We no longer hide the checklist automatically - the user must explicitly dismiss it
-        // Instead, show confetti and let them know they've completed all primary tasks
       }
       
       return updatedItems;
@@ -231,9 +260,13 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       // Check if user has explicitly chosen to dismiss the checklist
       const storedProgress = localStorage.getItem(`checklist_progress_${userId}`);
       if (storedProgress) {
-        const parsedProgress = JSON.parse(storedProgress);
-        if (parsedProgress.explicitlyDismissed) {
-          setShowChecklist(false);
+        try {
+          const parsedProgress = JSON.parse(storedProgress);
+          if (parsedProgress.explicitlyDismissed) {
+            setShowChecklist(false);
+          }
+        } catch (error) {
+          console.error("Error parsing storage during auto-hide check:", error);
         }
       }
     }
