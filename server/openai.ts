@@ -409,8 +409,10 @@ export async function createCompletion(
       max_tokens: 800,
     });
 
+    const content = response.choices[0].message.content;
+    
     return {
-      content: response.choices[0].message.content,
+      content: content !== null ? content : "",
       model: response.model,
       usage: response.usage,
     };

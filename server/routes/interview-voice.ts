@@ -535,6 +535,11 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
         
         const feedback = completion.choices[0].message.content;
         
+        if (feedback === null) {
+          logResponse('analyze-response', 500, 'Empty feedback received from OpenAI');
+          return res.status(500).json({ error: 'Failed to generate feedback', details: 'No content received from AI' });
+        }
+        
         logResponse('analyze-response', 200, 'Successfully generated final feedback', {
           feedbackLength: feedback.length,
           feedbackExcerpt: feedback.substring(0, 50) + (feedback.length > 50 ? '...' : '')
@@ -643,6 +648,11 @@ With some refinement, your interview performance would be even stronger.
         });
         
         const aiResponse = completion.choices[0].message.content;
+        
+        if (aiResponse === null) {
+          logResponse('analyze-response', 500, 'Empty AI response received from OpenAI');
+          return res.status(500).json({ error: 'Failed to generate AI response', details: 'No content received from AI' });
+        }
         
         logResponse('analyze-response', 200, 'Successfully generated AI response', {
           aiResponseLength: aiResponse.length,
@@ -882,14 +892,23 @@ router.post('/transcribe', requireLoginFallback, async (req: Request, res: Respo
           textLength: transcribedText.length,
           excerpt: excerpt
         });
-      } else if (transcription && typeof transcription === 'object' && 'text' in transcription) {
+      } else if (transcription && typeof transcription === 'object') {
         // Handle object response format (for compatibility)
-        transcribedText = transcription.text;
-        const excerpt = transcribedText.substring(0, 50) + (transcribedText.length > 50 ? '...' : '');
-        logResponse('transcribe', 200, 'Transcription completed successfully (object format)', {
-          textLength: transcribedText.length,
-          excerpt: excerpt
-        });
+        // Check if 'text' property exists and is a string
+        if ('text' in transcription && typeof (transcription as any).text === 'string') {
+          transcribedText = (transcription as any).text;
+          const excerpt = transcribedText.substring(0, 50) + (transcribedText.length > 50 ? '...' : '');
+          logResponse('transcribe', 200, 'Transcription completed successfully (object format)', {
+            textLength: transcribedText.length,
+            excerpt: excerpt
+          });
+        } else {
+          logResponse('transcribe', 500, 'Object transcription missing text property');
+          return res.status(500).json({
+            error: 'Invalid transcription result',
+            details: 'The transcription service returned an invalid object format. Please try again.'
+          });
+        }
       } else {
         // Handle unexpected response format (neither string nor object with text property)
         logResponse('transcribe', 500, 'Unexpected transcription format from OpenAI API', {
