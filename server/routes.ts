@@ -2762,6 +2762,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { url, profileText, targetJobTitle } = req.body;
       
+      console.log("LinkedIn Optimizer received request:", {
+        url,
+        profileTextLength: profileText ? profileText.length : 0,
+        targetJobTitle
+      });
+
+      // For development/testing mode, return mock data to avoid calling OpenAI
+      if (process.env.NODE_ENV === 'development') {
+        const mockAnalysis = {
+          overallScore: 7.2,
+          sections: {
+            headline: {
+              score: 6,
+              feedback: "Your headline is functional but not optimized for the target role.",
+              suggestion: "Dynamic Full Stack Developer specializing in React and Node.js | Building scalable solutions for modern business challenges"
+            },
+            about: {
+              score: 7,
+              feedback: "Your about section covers the basics but lacks specific achievements.",
+              suggestion: "Include more quantifiable results and specific technologies you've worked with."
+            },
+            experience: {
+              score: 8,
+              feedback: "Good experience section with clear responsibilities.",
+              suggestions: ["Add more measurable achievements", "Highlight leadership moments"]
+            },
+            skills: {
+              score: 7,
+              feedback: "Good technical skills but missing some relevant ones for the target role.",
+              missingSkills: ["CI/CD", "Docker", "Kubernetes"],
+              suggestedSkills: ["Cloud Architecture", "DevOps", "System Design"]
+            },
+            featured: {
+              score: 5,
+              feedback: "Your featured section is underutilized.",
+              suggestions: ["Add a recent project with code samples", "Include a technical blog post"]
+            },
+            banner: {
+              score: 6,
+              feedback: "Generic banner that doesn't highlight your professional brand.",
+              suggestion: "Use a banner that reflects your technical specialty or shows you in a professional setting."
+            }
+          },
+          recruiterPerspective: "From a recruiter's perspective, your profile shows solid experience but doesn't immediately stand out among other candidates for senior roles. Adding more specific achievements and technical depth would strengthen your candidacy.",
+          actionPlan: {
+            highPriority: [
+              "Rewrite headline to be more specific to your target role",
+              "Add measurable results to your most recent position"
+            ],
+            mediumPriority: [
+              "Update your featured section with relevant projects",
+              "Add missing technical skills"
+            ],
+            lowPriority: [
+              "Improve your banner image",
+              "Request more recommendations from colleagues"
+            ]
+          }
+        };
+        console.log("Returning mock LinkedIn analysis in dev mode");
+        return res.status(200).json(mockAnalysis);
+      }
+      
       // Validate input
       if ((!url && !profileText) || !targetJobTitle) {
         return res.status(400).json({ 
