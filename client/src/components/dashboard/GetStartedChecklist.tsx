@@ -79,6 +79,22 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     },
   });
   
+  // Fetch user resumes to check if they've created any
+  const { data: userResumes = [] } = useQuery({
+    queryKey: ['/api/resumes'],
+    queryFn: async () => {
+      try {
+        return await apiRequest({
+          url: '/api/resumes',
+          method: 'GET',
+        });
+      } catch (error) {
+        console.error('Error fetching user resumes:', error);
+        return [];
+      }
+    },
+  });
+  
   // State to track checklist items
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -302,10 +318,11 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setReviewUnlocked(completedCount >= 3);
   }, [completedCount]);
 
-  // Track if we need to update the state of the contact, goal, and application items
+  // Track if we need to update the state of the contact, goal, application, and resume items
   const [hasUpdatedContactItem, setHasUpdatedContactItem] = useState(false);
   const [hasUpdatedGoalItem, setHasUpdatedGoalItem] = useState(false);
   const [hasUpdatedApplicationItem, setHasUpdatedApplicationItem] = useState(false);
+  const [hasUpdatedResumeItem, setHasUpdatedResumeItem] = useState(false);
   
   // Update the network contact checklist item based on actual data
   useEffect(() => {
@@ -403,16 +420,51 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setHasUpdatedApplicationItem(true);
   }, [jobApplications, checklistItems, hasUpdatedApplicationItem]);
   
+  // Update the resume checklist item based on actual data
+  useEffect(() => {
+    if (!userResumes || !Array.isArray(userResumes) || hasUpdatedResumeItem) return;
+    
+    // Check if the user has created at least one resume
+    const hasAtLeastOneResume = userResumes.length > 0;
+    
+    console.log(`User has ${userResumes.length} resumes`);
+    
+    // We only want to update if there are resumes and the item isn't already marked as completed
+    const resumeItem = checklistItems.find(item => item.id === 'resume-creation');
+    
+    if (hasAtLeastOneResume && resumeItem && !resumeItem.completed) {
+      console.log('Marking resume-creation checklist item as completed based on actual resumes');
+      
+      // Update only the resume-creation item based on actual data
+      setChecklistItems(prevItems => {
+        const updatedItems = prevItems.map(item => {
+          if (item.id === 'resume-creation') {
+            return { ...item, completed: true };
+          }
+          return item;
+        });
+        
+        return updatedItems;
+      });
+    }
+    
+    // Mark that we've processed this check to avoid further updates
+    setHasUpdatedResumeItem(true);
+  }, [userResumes, checklistItems, hasUpdatedResumeItem]);
+  
   // Save progress whenever checklist items change
   useEffect(() => {
-    // Only update localStorage when we have processed contacts, goals, and applications data
+    // Only update localStorage when we have processed contacts, goals, applications, and resume data
     if ((hasUpdatedContactItem || !Array.isArray(networkContacts)) && 
         (hasUpdatedGoalItem || !Array.isArray(userGoals)) &&
-        (hasUpdatedApplicationItem || !Array.isArray(jobApplications))) {
+        (hasUpdatedApplicationItem || !Array.isArray(jobApplications)) &&
+        (hasUpdatedResumeItem || !Array.isArray(userResumes))) {
       // Save the updated progress to local storage
       saveProgress(checklistItems, reviewItem.completed);
     }
-  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, hasUpdatedApplicationItem, networkContacts, userGoals, jobApplications, userId]);
+  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, 
+      hasUpdatedApplicationItem, hasUpdatedResumeItem, networkContacts, userGoals, 
+      jobApplications, userResumes, userId]);
   
   // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
   // We've intentionally changed this to make sure the checklist persists
