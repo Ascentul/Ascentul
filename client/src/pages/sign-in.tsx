@@ -23,7 +23,7 @@ export default function SignInPage() {
   // Redirect if user is already logged in
   if (user) {
     if (user.userType === 'regular') {
-      setLocation('/');
+      setLocation('/dashboard');
     } else {
       setLocation('/university');
     }

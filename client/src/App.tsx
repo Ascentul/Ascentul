@@ -235,6 +235,13 @@ function App() {
   const isPlanSelectionRoute = location === "/plan-selection";
   const isBillingCycleRoute = location.startsWith("/billing-cycle");
 
+  // Root path redirects to sign-in using useEffect to avoid render loop
+  useEffect(() => {
+    if (location === "/") {
+      navigate("/sign-in");
+    }
+  }, [location, navigate]);
+
   // Authentication routes always take precedence
   if (isSignInRoute || isSignUpRoute || location === "/admin-login" || location === "/staff-login" || location === "/staff-signup") {
     return (
@@ -248,11 +255,7 @@ function App() {
     );
   }
 
-  // Only redirect root path to home if not trying to access an auth page
-  if (location === "/" || location === "") {
-    navigate("/home");
-    return null;
-  }
+  // Root redirect is handled above
 
   // Payment Portal Routes with layout
   if (isPaymentPortalRoute) {
