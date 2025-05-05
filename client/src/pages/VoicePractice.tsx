@@ -474,31 +474,35 @@ export default function VoicePractice() {
   const generateQuestionMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
+        // If OpenAI API isn't available, show error to user rather than using mock
+        if (!process.env.OPENAI_API_KEY) {
+          throw new Error('OpenAI API configuration missing');
+        }
+        
         const response = await apiRequest('POST', '/api/interview/generate-question', data);
         
         // Even if the response isn't okay, try to parse the body
         // as the server might still return a valid fallback response with non-200 status
         const responseBody = await response.json();
         
-        // If the response body contains an error and no fallback
-        if (!response.ok && !responseBody.question && !responseBody.aiResponse) {
-          throw new Error(`Failed to generate question: ${response.status}`);
+        // Check if server provided a response with actual content
+        if (!responseBody.question && !responseBody.aiResponse) {
+          throw new Error(`Failed to generate question: ${response.status} - No question content returned`);
         }
         
         return responseBody;
       } catch (error) {
         console.error("Error in generate question mutation:", error);
         
-        // Create a guaranteed job-specific fallback response here
-        // This ensures we always have something relevant to show the user
-        const jobSpecificQuestion = `Could you tell me about your experience that's relevant to the ${selectedJobDetails!.title} position at ${selectedJobDetails!.company}? In particular, I'm interested in how your skills align with ${selectedJobDetails!.description.substring(0, 60)}...`;
+        // Let the user know about the error
+        toast({
+          title: "OpenAI API Error",
+          description: "Unable to connect to OpenAI. Please check your API key configuration.",
+          variant: "destructive"
+        });
         
-        return {
-          question: jobSpecificQuestion,
-          aiResponse: jobSpecificQuestion,
-          isFallback: true,
-          localFallback: true // mark that this was generated client-side
-        };
+        // Rethrow to trigger the onError handler
+        throw error;
       }
     },
     onSuccess: (data) => {
@@ -571,11 +575,24 @@ export default function VoicePractice() {
   // Mutation for analyzing responses
   const analyzeResponseMutation = useMutation({
     mutationFn: async (data: any) => {
+      // If OpenAI API isn't available, show error to user
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API configuration missing');
+      }
+
       const response = await apiRequest('POST', '/api/interview/analyze-response', data);
       if (!response.ok) {
         throw new Error(`Failed to analyze response: ${response.status}`);
       }
-      return await response.json();
+      
+      const responseData = await response.json();
+      
+      // Verify we got actual content back
+      if (!responseData.aiResponse && !responseData.feedback) {
+        throw new Error('No valid response content received from OpenAI');
+      }
+      
+      return responseData;
     },
     onSuccess: (data) => {
       // Check if this is the last question and we have feedback
@@ -633,6 +650,11 @@ export default function VoicePractice() {
       // Set status to speaking while fetching audio
       setStatus('speaking');
       
+      // If OpenAI API isn't available, show error to user
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API configuration missing');
+      }
+      
       const response = await apiRequest('POST', '/api/interview/text-to-speech', {
         text: data.text,
         voice: 'nova' // Using Nova voice for consistency
@@ -642,7 +664,14 @@ export default function VoicePractice() {
         throw new Error(`Failed to convert text to speech: ${response.status}`);
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      
+      // Verify we got actual audio content back
+      if (!responseData.audio) {
+        throw new Error('No audio data received from OpenAI');
+      }
+      
+      return responseData;
     },
     onSuccess: (data) => {
       if (data.audio) {
