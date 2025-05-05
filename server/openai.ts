@@ -42,7 +42,7 @@ export async function getOrCreateInterviewAssistant() {
     });
     
     const existingAssistant = assistantsList.data.find(
-      assistant => assistant.name === 'Interview Coach'
+      assistant => assistant.name === 'Interview Coach' && assistant.model === 'gpt-4o'
     );
     
     if (existingAssistant) {
