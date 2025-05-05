@@ -41,7 +41,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const contacts = await storage.getContactsNeedingFollowUp(userId);
+      const contacts = await storage.getContactsNeedingFollowup(userId);
       res.json(contacts);
     } catch (error) {
       console.error("Error fetching contacts needing follow-up:", error);

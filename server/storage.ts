@@ -4278,8 +4278,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(networkingContacts.userId, userId))
       .where(eq(networkingContacts.status, "active"))
       .where(sql`${networkingContacts.followUpDate} IS NOT NULL`)
-      .where(sql`${networkingContacts.followUpDate} <= ${now}`)
+      .where(sql`${networkingContacts.followUpDate} <= now()`)
       .orderBy(networkingContacts.followUpDate);
+  }
+  
+  // Alias for backward compatibility
+  async getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]> {
+    return this.getContactsNeedingFollowup(userId);
   }
   
   // Contact Interaction methods
