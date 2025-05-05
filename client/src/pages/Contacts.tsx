@@ -152,43 +152,13 @@ export default function Contacts() {
     },
   });
   
-  // Delete contact mutation
+  // Delete contact mutation - handles the actual server-side deletion
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
-      console.log(`Attempting to delete contact with ID: ${contactId}`);
+      console.log(`Executing deletion for contact ID: ${contactId}`);
       
-      // Find the contact to be deleted
-      const existingContact = contacts.find(contact => contact.id === contactId);
-      
-      if (!existingContact) {
-        console.log(`Contact ID ${contactId} doesn't exist in local state, skipping deletion`);
-        return { success: true, skipped: true };
-      }
-      
-      // Save the contact name for success messaging
-      const contactName = existingContact.fullName;
-      
-      // IMPORTANT: Make a copy of the full contact object before deletion
-      // so we can restore it if needed
-      const contactBackup = {...existingContact};
-      
-      // IMMEDIATELY update the UI by filtering out this contact
-      // First for the main contacts query
-      console.log("Optimistically removing contact from UI:", contactId);
-      queryClient.setQueryData(['/api/contacts'], (oldData: NetworkingContact[] | undefined) => {
-        if (!oldData || !Array.isArray(oldData)) return [];
-        return oldData.filter(contact => contact.id !== contactId);
-      });
-      
-      // Also update any other contact-related queries with the same filter
-      queryClient.setQueryData(['/api/contacts/need-followup'], (oldData: any) => {
-        if (!oldData || !Array.isArray(oldData)) return [];
-        return oldData.filter(contact => contact.id !== contactId);
-      });
-      
-      // We'll wrap everything in a try/catch to handle ALL errors
       try {
-        // Try to DELETE the contact from the API (but we've already updated the UI)
+        // Send the DELETE request to the API
         const response = await fetch(`/api/contacts/${contactId}`, {
           method: 'DELETE',
           credentials: 'include',
@@ -202,75 +172,50 @@ export default function Contacts() {
         // Even if we get a non-200 status, we'll still count it as success in certain cases
         if (response.status === 204 || response.status === 200) {
           console.log(`Contact ID ${contactId} successfully deleted from API`);
-          // Success - contact was deleted both in UI and API
-          return { success: true, contactName };
+          return { success: true };
         } 
         else if (response.status === 404) {
           // 404 means the contact doesn't exist anymore, which is fine
           console.log(`Contact ID ${contactId} returned 404, handling as success`);
-          return { success: true, notFound: true, contactName };
+          return { success: true, notFound: true };
         }
         else {
-          // For other status codes, still return success since we've removed it from UI
-          // This prevents error toast while still logging the issue
+          // For other status codes, still return success since we've already updated the UI
           console.warn(`Contact deletion returned unexpected status ${response.status}`);
-          return { success: true, contactName, apiStatus: response.status };
+          return { success: true, apiStatus: response.status };
         }
       } catch (error: any) {
         console.error(`Error deleting contact with ID ${contactId}:`, error);
         
-        // KEEP the optimistic UI update even on error
-        // The user experience is better if the contact simply disappears
-        return { success: true, contactName, networkError: true };
+        // Return partial success - we'll keep the contact removed from UI
+        // but notify in logs that the server-side delete had issues
+        return { success: true, networkError: true };
       }
     },
-    onSuccess: (result: any) => {
+    onSuccess: (result: any, variables: number) => {
       console.log('Contact delete mutation completed successfully', result);
       
       // Refresh all contact-related data to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
       
-      // Show appropriate toast based on the result
-      const contactName = result?.contactName || 'The contact';
+      // We no longer need to show toasts here - they're already shown in handleDeleteContact
+      // but we'll keep the logging for reference
       
       if (result?.networkError) {
-        // For network errors we still consider it a success from the UI perspective
-        // but show a slightly different message
-        toast({
-          title: 'Contact removed',
-          description: `${contactName} has been removed from your network.`,
-        });
-        
         // Log the network issue for tracking purposes
         console.warn('Network issue during contact deletion, but UI was updated');
       }
       else if (result?.notFound) {
-        toast({
-          title: 'Contact already removed',
-          description: `${contactName} has already been removed from your network.`,
-        });
-      } 
-      else if (result?.skipped) {
-        toast({
-          title: 'Contact not found',
-          description: 'This contact has already been removed from your network.',
-        });
+        console.log('Contact was already removed');
       } 
       else if (result?.apiStatus && result.apiStatus !== 200 && result.apiStatus !== 204) {
-        // For unexpected API status codes, still show success but log the issue
+        // For unexpected API status codes, log the issue
         console.warn(`API returned unusual status ${result.apiStatus} for contact deletion`);
-        toast({
-          title: 'Contact removed',
-          description: `${contactName} has been removed from your network.`,
-        });
       }
       else {
         // Normal success case
-        toast({
-          title: 'Contact deleted',
-          description: `${contactName} has been removed from your network.`,
-        });
+        console.log('Contact successfully deleted from server');
       }
       
       // Always close any open dialogs
@@ -302,7 +247,18 @@ export default function Contacts() {
       
       // First immediately update the UI to remove the contact from the display
       // This ensures the contact is removed visually even if the API call is slow
-      queryClient.setQueryData(['/api/contacts'], (oldData: any) => {
+      const contactQueryKey = ['/api/contacts', searchQuery, relationshipFilter];
+      
+      // First update main contacts tab
+      queryClient.setQueryData(contactQueryKey, (oldData: any) => {
+        if (Array.isArray(oldData)) {
+          return oldData.filter(c => c.id !== contactId);
+        }
+        return oldData;
+      });
+      
+      // Also update any other contact-related queries in other tabs
+      queryClient.setQueryData(['/api/contacts/need-followup'], (oldData: any) => {
         if (Array.isArray(oldData)) {
           return oldData.filter(c => c.id !== contactId);
         }
