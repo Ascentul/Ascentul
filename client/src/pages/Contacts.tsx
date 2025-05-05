@@ -154,41 +154,68 @@ export default function Contacts() {
   const deleteContactMutation = useMutation({
     mutationFn: async (contactId: number) => {
       console.log(`Attempting to delete contact with ID: ${contactId}`);
+      
+      // Always check if contact exists in local state first
+      const contactExists = contacts.some(contact => contact.id === contactId);
+      
+      if (!contactExists) {
+        console.log(`Contact ID ${contactId} doesn't exist in local state, skipping deletion`);
+        return { success: true, skipped: true };
+      }
+      
       try {
-        const response = await apiRequest<void>({
+        // Try to DELETE the contact from the API
+        const response = await apiRequest({
           url: `/api/contacts/${contactId}`,
           method: 'DELETE',
         });
         console.log(`Delete contact response:`, response);
-        return response;
+        return { success: true };
       } catch (error: any) {
         console.error(`Error deleting contact with ID ${contactId}:`, error);
         
         // Special handling for "Contact not found" errors (404)
         if (error.status === 404) {
-          // Handle this gracefully instead of showing an error
+          console.log(`Contact ID ${contactId} returned 404, handling gracefully`);
+          
+          // Still refresh the data
           queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-          toast({
-            title: 'Contact already deleted',
-            description: 'This contact has already been removed from your network.',
-          });
-          setSelectedContactId(null);
-          // Return instead of throwing to prevent onError from firing
-          return null;
+          
+          // Return a success result - don't throw error for this case
+          return { success: true, notFound: true };
         }
         
+        // Let other errors propagate to onError handler
         throw error;
       }
     },
-    onSuccess: () => {
-      console.log('Contact deleted successfully');
+    onSuccess: (result: any) => {
+      console.log('Contact delete mutation completed successfully');
+      
+      // Refresh all contact-related data
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
-      toast({
-        title: 'Contact deleted',
-        description: 'The contact has been removed from your network.',
-      });
+      
+      // Show appropriate toast based on the result
+      if (result?.notFound) {
+        toast({
+          title: 'Contact already deleted',
+          description: 'This contact has already been removed from your network.',
+        });
+      } else if (result?.skipped) {
+        toast({
+          title: 'Contact not found',
+          description: 'This contact has already been removed from your network.',
+        });
+      } else {
+        toast({
+          title: 'Contact deleted',
+          description: 'The contact has been removed from your network.',
+        });
+      }
+      
+      // Always close any open dialogs
       setSelectedContactId(null);
     },
     onError: (error: any) => {
@@ -206,24 +233,10 @@ export default function Contacts() {
     setSelectedContactId(contactId);
   };
 
-  // Handle contact deletion with improved error handling
+  // Handle contact deletion with confirmation
   const handleDeleteContact = (contactId: number) => {
-    // First check if the contact still exists in our local state
-    const contactExists = contacts.some(contact => contact.id === contactId);
-    
-    if (!contactExists) {
-      toast({
-        title: 'Error',
-        description: 'This contact no longer exists. The contacts list will refresh.',
-        variant: 'destructive',
-      });
-      
-      // Refresh the contacts list to sync with server state
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-      return;
-    }
-    
     if (window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+      // The actual deletion logic with error handling is in the mutation
       deleteContactMutation.mutate(contactId);
     }
   };
