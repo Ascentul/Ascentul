@@ -321,44 +321,73 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       }
     }
     
-    // GUARANTEED FALLBACK IMPLEMENTATION - Use reliable responses that work 100% of the time
-    console.log('[Interview Voice] Using guaranteed reliable fallback response for interview questions');
+    // When the Assistants API fails, we need to use the Chat Completions API as backup
+    console.log('[Interview Voice] Assistants API unavailable, falling back to Chat Completions API');
+    
+    // Check if the OpenAI API key is set
+    if (!process.env.OPENAI_API_KEY) {
+      logResponse('generate-question', 500, 'OpenAI API key missing');
+      return res.status(500).json({ error: 'OpenAI API configuration is missing' });
+    }
     
     try {
-      // Select an appropriate question based on conversation context and coaching persona
-      let fallbackQuestion = `As your interview coach, I'd like to start by exploring your experience. Could you walk me through your background working as a ${jobTitle} or in similar roles? I'm particularly interested in how your experience aligns with what ${company} is looking for.`;
+      // Generate a dynamic system prompt
+      const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
       
-      if (conversation && conversation.length >= 2) {
-        // This would be the second or later question with premium coaching style
-        const possibleFollowUps = [
-          `I'd like to focus on your expertise now. What specific skills and strengths would you bring to this ${jobTitle} position at ${company} that make you stand out from other candidates?`,
-          `Let's discuss how you handle challenges. Could you share a particularly difficult situation you faced in your previous role and walk me through your approach to resolving it?`,
-          `I'm curious about your motivation. What specifically interests you about this ${jobTitle} position at ${company}, and how does it align with your career goals?`,
-          `In a rapidly evolving industry, staying current is critical. How do you stay up-to-date with trends and developments relevant to this role? Could you share a specific example?`,
-          `Problem-solving is essential for this position. Could you walk me through your typical approach when faced with a complex challenge? I'd love to hear about a specific example that demonstrates your methodology.`,
-          `Let's discuss your leadership capabilities. Tell me about a time when you took initiative or led a team through a challenging situation. What was your approach and what was the outcome?`,
-          `Team dynamics are important at ${company}. Could you describe how you've successfully navigated a disagreement with a colleague or manager in the past? What did you learn from that experience?`,
-          `I'm interested in understanding what drives you professionally. What do you consider your most significant professional achievement to date, and why does it matter to you?`
-        ];
+      // Create messages array for OpenAI
+      const messages: OpenAIMessage[] = [
+        {
+          role: 'system',
+          content: systemPrompt
+        }
+      ];
+      
+      // Add conversation history if available
+      if (conversation && conversation.length > 0) {
+        conversation.forEach(msg => {
+          messages.push({
+            role: msg.role === 'assistant' ? 'assistant' : 'user',
+            content: msg.content
+          });
+        });
         
-        // Use the conversation length as a simple way to select different questions
-        const questionIndex = Math.floor((conversation.length / 2) % possibleFollowUps.length);
-        fallbackQuestion = possibleFollowUps[questionIndex];
+        // Add a message requesting the next question
+        messages.push({
+          role: 'user',
+          content: 'Please provide feedback on my last answer and ask your next interview question.'
+        });
+      } else {
+        // First question - add a message asking to start the interview
+        messages.push({
+          role: 'user',
+          content: `Please start the interview for the ${jobTitle} position at ${company}.`
+        });
       }
       
-      console.log('[Interview Voice] Returning reliable fallback question:', fallbackQuestion);
-      
-      // Log success for debugging
-      logResponse('generate-question', 200, 'Generated reliable fallback interview question', {
-        responseLength: fallbackQuestion.length,
-        responseExcerpt: fallbackQuestion.substring(0, 50) + (fallbackQuestion.length > 50 ? '...' : '')
+      // Call OpenAI's API for chat completions
+      const response = await openaiInstance.chat.completions.create({
+        model: 'gpt-4o',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 500
       });
       
-      // Return the response with both formats for maximum compatibility with client code
+      const question = response.choices[0].message.content;
+      
+      if (!question) {
+        throw new Error('OpenAI returned an empty response');
+      }
+      
+      // Log successful response
+      logResponse('generate-question', 200, 'Question generated successfully via chat completions', {
+        responseLength: question.length,
+        responseExcerpt: question.substring(0, 50) + (question.length > 50 ? '...' : '')
+      });
+      
+      // Return the question to the client
       return res.status(200).json({ 
-        question: fallbackQuestion,
-        aiResponse: fallbackQuestion,
-        isFallback: true
+        question: question,
+        aiResponse: question
       });
     } catch (fallbackError) {
       // Even our fallback had an error, use the most basic response
@@ -486,55 +515,13 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
       });
       
       try {
-        // Mock response for reliability in demo mode
-        const shouldUseMockResponse = true; // Always use mock in development for reliability
-        
-        if (shouldUseMockResponse) {
-          console.log('[Interview Voice] Using guaranteed mock response for interview feedback');
-          
-          // Generate a realistic-looking feedback response
-          const mockFeedback = `
-# Interview Feedback for ${jobTitle} Position at ${company}
-
-## Overall Impression
-You demonstrated good communication skills and a solid understanding of the role. Your answers were generally clear and structured, showing enthusiasm for the position.
-
-## Strengths
-- You articulated your relevant experience well
-- You showed good understanding of the technical requirements
-- Your examples demonstrated problem-solving abilities
-- You communicated clearly and professionally
-
-## Areas for Improvement
-- Some answers could be more concise and focused
-- Consider using the STAR method (Situation, Task, Action, Result) more consistently
-- Provide more quantifiable achievements and metrics
-- Prepare more specific examples relevant to this role
-
-## Recommendations
-1. Practice structuring your answers with a clear beginning, middle, and end
-2. Research more about ${company}'s specific products/services and reference them
-3. Prepare 2-3 strong examples that highlight your most relevant skills
-4. Work on connecting your past achievements directly to this role's requirements
-5. Develop a stronger closing statement that reinforces your interest and fit
-
-With some refinement in these areas, your interview performance would be even stronger. The technical knowledge you demonstrated is valuable, and with more focused preparation, you would make an excellent candidate.
-`;
-          
-          // Log success for debugging
-          logResponse('analyze-response', 200, 'Successfully generated mock interview feedback', {
-            feedbackLength: mockFeedback.length,
-            feedbackExcerpt: mockFeedback.substring(0, 50) + (mockFeedback.length > 50 ? '...' : '')
-          });
-          
-          // Return the mock feedback
-          return res.status(200).json({ 
-            feedback: mockFeedback, 
-            isLastQuestion: true 
-          });
+        // Check if OpenAI API key is available before attempting API call
+        if (!process.env.OPENAI_API_KEY) {
+          logResponse('analyze-response', 500, 'OpenAI API key missing');
+          return res.status(500).json({ error: 'OpenAI API configuration is missing' });
         }
         
-        // If we're not using the mock response, proceed with OpenAI
+        // Only use real OpenAI API responses
         // Call OpenAI to generate comprehensive, natural-sounding feedback
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
