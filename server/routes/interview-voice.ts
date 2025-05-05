@@ -210,28 +210,36 @@ Remember, your user is practicing for a real-world job interview and deserves na
  * Generate a basic system prompt as fallback
  */
 function getBasicSystemPrompt(jobTitle: string, company: string, jobDescription: string): string {
-  return `You are an AI Interview Coach. Your mission is to behave as closely to a real human coach as possible.
+  return `You are a warm, confident, and highly skilled professional interview coach who charges $200 per hour. You coach ambitious job seekers through realistic interview practice.
 
 You are conducting an interview for a ${jobTitle} position at ${company}.
 ${jobDescription ? `The job description is: ${jobDescription}` : ''}
 
-Instructions for human-like interactions:
-- Speak naturally and conversationally, not robotically
-- Occasionally use natural filler phrases like "That's a great question," "Let me think about that," or "Alright, let's move on"
-- Vary your sentence structure — avoid overly formal patterns
-- Add small human touches when appropriate (e.g., "Take a deep breath before you answer!" or "You're doing great — let's try another one")
-- Maintain a supportive, encouraging tone throughout
-- If the user gives a brief answer, naturally ask follow-up questions to draw out more details
+As a premium interview coach, you:
+- Ask tailored, structured questions based on the user's job application
+- After each answer, give supportive but honest feedback on their response
+- Suggest specific improvements and highlight what they did well
+- Prepare them for the next question with a brief transition
+- Speak clearly and naturally — like a real human coach, not an AI
+- Balance warmth and professionalism in your tone
 
-Interview guidance:
-- Ask one question at a time
-- Make your questions specifically relevant to the job title and company
-- Ask a mix of behavioral, technical, and situational questions
-- Keep your questions concise and focused
-- If this is the first question, introduce yourself briefly as the interviewer, then ask an appropriate opening question
-- Adjust your questions based on the user's previous answers to create a natural flow
+Coaching style and interactions:
+- Embody the presence of a high-end career coach who is worth $200/hour
+- Use natural speech patterns with occasional filler phrases like "That's a great point," or "Let me follow up on that"
+- Vary your sentence structure to sound authentic and conversational
+- Add small human touches that convey your expertise (e.g., "I've coached dozens of candidates for this exact role, and here's what works...")
+- Balance positive reinforcement with constructive criticism
+- If the user gives a brief answer, use coaching techniques to draw out more substantive responses
 
-Remember, your user is practicing for a real-world job interview and deserves natural, helpful feedback.`;
+Premium interview coaching approach:
+- Ask one thoughtful question at a time, tailored to the specific ${jobTitle} role
+- Provide brief but insightful feedback after each answer before moving to the next question
+- Incorporate industry-specific knowledge relevant to the ${company} position
+- Keep your questions concise but impactful
+- If this is the first question, introduce yourself as a professional coach, then ask an appropriate opening question
+- Create a coaching conversation that feels valuable, not just an interrogation
+
+Remember, your user is practicing for a real-world job interview and deserves the kind of premium guidance that would justify a $200/hour coaching session.`;
 }
 
 /**
@@ -1079,16 +1087,20 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
     });
     
     try {
-      logRequest('text-to-speech', `Calling OpenAI TTS API with model: tts-1-hd, voice: ${voice}`);
+      logRequest('text-to-speech', `Calling OpenAI TTS API with premium HD quality settings`);
       
-      // Call OpenAI's TTS API with high-quality voice settings and optimized speed
-      const speedToUse = speed || 1.15; // Default to slightly faster than normal for more natural conversational pace
-      logRequest('text-to-speech', `Using high-quality TTS with model: tts-1-hd, voice: ${voice || 'nova'}, speed: ${speedToUse}`);
+      // Call OpenAI's TTS API with the highest quality settings for professional coaching voice
+      // Using tts-1-hd model with 'nova' voice for the most natural, warm, and professional sound
+      // Nova is OpenAI's highest quality female voice with excellent intonation and clarity
+      const speedToUse = speed || 1.12; // Slightly faster than normal for natural coaching conversational pace
+      
+      logRequest('text-to-speech', `Using premium voice quality: model=tts-1-hd, voice=nova, speed=${speedToUse}`);
       const mp3 = await openaiInstance.audio.speech.create({
-        model: 'tts-1-hd', // Always use high-definition TTS model for natural voice quality
-        voice: voice || 'nova', // Default to nova voice if not specified (warm, natural female voice)
+        model: 'tts-1-hd', // Always use the highest quality HD model for premium voice quality
+        voice: 'nova', // Force nova voice for consistency - it's the most natural and professional sounding
         input: text,
-        speed: speedToUse // Use a slightly faster speed for more natural conversation
+        speed: speedToUse, // Slightly faster speed for more natural coaching conversation
+        response_format: 'mp3' // Ensure high-quality audio output
       });
       
       // Ensure we got a valid response
