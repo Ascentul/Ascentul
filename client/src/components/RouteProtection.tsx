@@ -67,12 +67,15 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
   }
   
   // Staff users should be redirected to their dashboard
-  if (user.userType === 'staff') {
+  // Check both role and userType fields
+  if (user.role === 'staff' || user.userType === 'staff') {
+    console.log("Career route check - redirecting staff user to staff dashboard. Role:", user.role, "Type:", user.userType);
     setLocation('/staff-dashboard');
     return null;
   }
   
   // Admins, university users, and regular users should have access to career features
+  console.log("Career route access granted for user with role:", user.role, "type:", user.userType);
   return <>{children}</>;
 }
 
@@ -141,19 +144,29 @@ export function UniversityRouteGuard({ children }: UniversityRouteGuardProps) {
   }
   
   // Allow university students and university admins to access university features
-  if (!user || (user.userType !== 'university_student' && user.userType !== 'university_admin')) {
-    // Redirect based on user type
+  // Check both role and userType fields
+  if (!user || (
+    user.role !== 'university_user' && 
+    user.role !== 'university_admin' && 
+    user.userType !== 'university_student' && 
+    user.userType !== 'university_admin'
+  )) {
+    console.log("University route check failed - redirecting. User role:", user?.role, "User type:", user?.userType);
+    
+    // Redirect based on user type and role
     if (!user) {
       setLocation('/sign-in');
-    } else if (user.userType === 'admin') {
-      setLocation('/admin-dashboard');
-    } else if (user.userType === 'staff') {
+    } else if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
+      setLocation('/admin');
+    } else if (user.role === 'staff' || user.userType === 'staff') {
       setLocation('/staff-dashboard');
     } else {
       setLocation('/career-dashboard');
     }
     return null;
   }
+  
+  console.log("University route access granted for user with role:", user?.role, "type:", user?.userType);
   
   return <>{children}</>;
 }
@@ -215,7 +228,7 @@ interface UniversityAdminRouteGuardProps {
 
 export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuardProps) {
   const { user, isLoading } = useUser();
-  const isUniversityAdmin = user?.userType === 'university_admin';
+  // Remove the isUniversityAdmin variable as we'll check both role and userType directly
   const [, setLocation] = useLocation();
   
   if (isLoading) {
@@ -255,7 +268,6 @@ export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuar
 
 export function UniversityAdminRoute({ children }: { children: ReactNode }) {
   // We now have a separate UniversityAdminRouteGuard component
-  // This is now just a wrapper that passes children to the actual component
-  // This exists for backward compatibility with existing code
-  return <>{children}</>;
+  // Make sure this route is actually guarded
+  return <UniversityAdminRouteGuard>{children}</UniversityAdminRouteGuard>;
 }
