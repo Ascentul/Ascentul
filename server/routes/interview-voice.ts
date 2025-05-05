@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requireLoginFallback } from '../auth';
-import { openaiInstance, getOrCreateInterviewAssistant, manageInterviewThread } from '../openai';
+import { requireAuth } from '../auth';
+import { openaiInstance } from '../openai';
 import { z } from 'zod';
 import { storage } from '../storage';
 import fs from 'fs';
@@ -41,8 +41,7 @@ const generateQuestionSchema = z.object({
     role: z.enum(['assistant', 'user']),
     content: z.string(),
     timestamp: z.date().or(z.string())
-  })).optional().default([]),
-  threadId: z.string().optional() // Optional thread ID for continuing conversations
+  })).optional().default([])
 });
 
 // Schema for interview response analysis request
@@ -236,9 +235,8 @@ Remember, your user is practicing for a real-world job interview and deserves na
 
 /**
  * Generate a relevant interview question based on job details and conversation history
- * Uses OpenAI Assistants API for more contextual and thread-aware responses
  */
-router.post('/generate-question', requireLoginFallback, async (req: Request, res: Response) => {
+router.post('/generate-question', requireAuth, async (req: Request, res: Response) => {
   try {
     // Log the start of question generation
     logRequest('generate-question', 'Generate question request received');
@@ -253,109 +251,102 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       });
     }
     
-    const { jobTitle, company, jobDescription, conversation, threadId } = validationResult.data;
+    const { jobTitle, company, jobDescription, conversation } = validationResult.data;
     
     logRequest('generate-question', 'Valid request data received', {
       jobTitle,
       company,
       hasJobDescription: !!jobDescription,
-      conversationLength: conversation.length,
-      hasExistingThread: !!threadId
+      conversationLength: conversation.length
     });
     
-    // Check if we should use the new OpenAI assistants API or fallback to the old implementation
-    const useAssistantsAPI = true; // Set to true to use the new assistants API
+    // Generate dynamic system prompt with user profile data
+    const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
     
-    if (useAssistantsAPI) {
-      try {
-        // Get or create an interview assistant
-        const { assistantId } = await getOrCreateInterviewAssistant();
-        
-        logRequest('generate-question', 'Using assistant', { assistantId });
-        
-        // Use the thread management function to handle the interview
-        const { threadId: newThreadId, response } = await manageInterviewThread({
-          threadId, // Will be undefined for new threads
-          assistantId,
-          jobTitle,
-          company,
-          jobDescription,
-          // Only pass user message for continued conversations, not for the initial question
-          userMessage: conversation.length > 0 ? conversation[conversation.length - 1].content : undefined
-        });
-        
-        // Log successful response
-        logResponse('generate-question', 200, 'Question generated successfully via assistant', {
-          threadId: newThreadId,
-          responseLength: response.length,
-          excerpt: response.substring(0, 50) + (response.length > 50 ? '...' : '')
-        });
-        
-        // Return the question and thread ID to the client
-        return res.status(200).json({ 
-          question: response,
-          threadId: newThreadId
-        });
-      } catch (assistantError) {
-        console.error('Error using OpenAI Assistants API:', assistantError);
-        logResponse('generate-question', 500, 'Error using OpenAI Assistants API, falling back to mock', {
-          errorMessage: typeof assistantError === 'object' ? assistantError.message || 'Unknown error' : String(assistantError)
-        });
-        // Fall through to the mock/fallback implementation
+    // Prepare conversation history for OpenAI in the expected format
+    const messages: OpenAIMessage[] = [
+      {
+        role: 'system',
+        content: systemPrompt
       }
-    }
+    ];
     
-    // FALLBACK IMPLEMENTATION - Use mock responses or legacy approach
-    console.log('[Interview Voice] Using guaranteed mock response for interview questions');
-    
-    // Select an appropriate question based on conversation context
-    let mockQuestion = "Tell me about your experience working as a " + jobTitle + " or in similar roles.";
-    
-    if (conversation.length >= 2) {
-      // This would be the second or later question
-      const possibleFollowUps = [
-        `What specific skills do you bring to this ${jobTitle} position at ${company}?`,
-        `Can you describe a challenging situation you faced in your previous role and how you handled it?`,
-        `What interests you most about this ${jobTitle} position at our company?`,
-        `How do you stay current with industry trends relevant to this role?`,
-        `Describe your approach to problem-solving when faced with a difficult challenge.`
-      ];
+    // Add conversation history
+    conversation.forEach((message, index) => {
+      messages.push({
+        role: message.role,
+        content: message.content
+      });
       
-      // Use the conversation length as a simple way to select different questions
-      const questionIndex = (conversation.length / 2) % possibleFollowUps.length;
-      mockQuestion = possibleFollowUps[Math.floor(questionIndex)];
+      // Log conversation history for debugging
+      logRequest('generate-question', `Conversation message ${index}`, {
+        role: message.role,
+        contentLength: message.content.length,
+        excerpt: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
+      });
+    });
+    
+    // If this is a new conversation, add a prompt to start the interview
+    if (conversation.length === 0) {
+      const startPrompt = `Start the interview for a ${jobTitle} position at ${company}.`;
+      messages.push({
+        role: 'user',
+        content: startPrompt
+      });
+      logRequest('generate-question', 'Starting new interview', { prompt: startPrompt });
+    } else {
+      // If we already have conversation, ask the AI to continue with next question
+      const continuePrompt = 'Please ask the next interview question based on our conversation so far.';
+      messages.push({
+        role: 'user',
+        content: continuePrompt
+      });
+      logRequest('generate-question', 'Continuing existing interview', { prompt: continuePrompt });
     }
     
-    console.log('[Interview Voice] Returning mock question:', mockQuestion);
-    
-    // Log success for debugging
-    logResponse('generate-question', 200, 'Successfully generated mock interview question', {
-      responseLength: mockQuestion.length,
-      responseExcerpt: mockQuestion
+    logRequest('generate-question', 'Calling OpenAI API', {
+      model: 'gpt-4o',
+      messageCount: messages.length,
+      isNewConversation: conversation.length === 0
     });
     
-    // Return the mock response with both formats for compatibility
-    return res.status(200).json({ 
-      question: mockQuestion,
-      aiResponse: mockQuestion
-    });
-  } catch (error) {
-    console.error('Error generating interview question:', error);
-    
-    // Log the error
-    logResponse('generate-question', 500, 'Error generating question', {
-      errorMessage: typeof error === 'object' ? error.message || 'Unknown error' : String(error),
-      stack: typeof error === 'object' && error.stack ? error.stack : 'No stack trace available'
-    });
-    
-    // Provide a fallback question if we can't generate one
-    const fallbackQuestion = "Could you tell me about your relevant experience for this position?";
-    
-    // Note that this is a fallback in the response and include both formats for compatibility
-    return res.status(200).json({
-      question: fallbackQuestion,
-      aiResponse: fallbackQuestion, // Add this for compatibility with client-side code
-      isFallback: true
+    try {
+      // Call OpenAI to generate a question with optimized parameters for natural conversation
+      const completion = await openaiInstance.chat.completions.create({
+        model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        messages: messages,
+        temperature: 0.72, // Higher creativity for more varied, natural-sounding questions
+        max_tokens: 300, // Keep responses concise but allow for context
+        presence_penalty: 0.4, // Reduce repetitiveness in phrasing
+        frequency_penalty: 0.35, // Encourage more diverse vocabulary
+        stream: false // Using non-streaming for reliability in this version
+      });
+      
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Log the generated question for debugging
+      logResponse('generate-question', 200, 'Successfully generated interview question', {
+        responseLength: aiResponse.length,
+        responseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
+      });
+      
+      // Return the question as aiResponse to match the analyze-response endpoint format
+      return res.status(200).json({ 
+        question: aiResponse, // Keep for backward compatibility
+        aiResponse: aiResponse // Add this field to match analyze-response format
+      });
+    } catch (openaiError: any) {
+      logResponse('generate-question', 500, 'OpenAI API error', openaiError);
+      return res.status(500).json({ 
+        error: 'Failed to generate interview question', 
+        details: openaiError.message || 'Unknown error with OpenAI API'
+      });
+    }
+  } catch (error: any) {
+    logResponse('generate-question', 500, 'Error generating interview question', error);
+    return res.status(500).json({ 
+      error: 'Failed to generate interview question',
+      details: error.message || 'Unknown error'
     });
   }
 });
@@ -363,7 +354,7 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
 /**
  * Analyze a user's interview response and provide feedback
  */
-router.post('/analyze-response', requireLoginFallback, async (req: Request, res: Response) => {
+router.post('/analyze-response', requireAuth, async (req: Request, res: Response) => {
   try {
     // Log the start of analysis process
     logRequest('analyze-response', 'Analyze response request received');
@@ -439,55 +430,6 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
       });
       
       try {
-        // Mock response for reliability in demo mode
-        const shouldUseMockResponse = true; // Always use mock in development for reliability
-        
-        if (shouldUseMockResponse) {
-          console.log('[Interview Voice] Using guaranteed mock response for interview feedback');
-          
-          // Generate a realistic-looking feedback response
-          const mockFeedback = `
-# Interview Feedback for ${jobTitle} Position at ${company}
-
-## Overall Impression
-You demonstrated good communication skills and a solid understanding of the role. Your answers were generally clear and structured, showing enthusiasm for the position.
-
-## Strengths
-- You articulated your relevant experience well
-- You showed good understanding of the technical requirements
-- Your examples demonstrated problem-solving abilities
-- You communicated clearly and professionally
-
-## Areas for Improvement
-- Some answers could be more concise and focused
-- Consider using the STAR method (Situation, Task, Action, Result) more consistently
-- Provide more quantifiable achievements and metrics
-- Prepare more specific examples relevant to this role
-
-## Recommendations
-1. Practice structuring your answers with a clear beginning, middle, and end
-2. Research more about ${company}'s specific products/services and reference them
-3. Prepare 2-3 strong examples that highlight your most relevant skills
-4. Work on connecting your past achievements directly to this role's requirements
-5. Develop a stronger closing statement that reinforces your interest and fit
-
-With some refinement in these areas, your interview performance would be even stronger. The technical knowledge you demonstrated is valuable, and with more focused preparation, you would make an excellent candidate.
-`;
-          
-          // Log success for debugging
-          logResponse('analyze-response', 200, 'Successfully generated mock interview feedback', {
-            feedbackLength: mockFeedback.length,
-            feedbackExcerpt: mockFeedback.substring(0, 50) + (mockFeedback.length > 50 ? '...' : '')
-          });
-          
-          // Return the mock feedback
-          return res.status(200).json({ 
-            feedback: mockFeedback, 
-            isLastQuestion: true 
-          });
-        }
-        
-        // If we're not using the mock response, proceed with OpenAI
         // Call OpenAI to generate comprehensive, natural-sounding feedback
         const completion = await openaiInstance.chat.completions.create({
           model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -513,34 +455,9 @@ With some refinement in these areas, your interview performance would be even st
         });
       } catch (openaiError: any) {
         logResponse('analyze-response', 500, 'OpenAI API error during feedback generation', openaiError);
-        
-        // Always provide a fallback response regardless of the error
-        console.log('[Interview Voice] Providing fallback response due to error in analyze-response');
-        const mockFeedback = `
-# Interview Feedback for ${jobTitle}
-
-## Overall Impression
-You demonstrated good communication skills in this interview. Your answers showed enthusiasm for the position.
-
-## Strengths
-- You articulated your relevant experience well
-- You showed understanding of the technical requirements
-
-## Areas for Improvement
-- Consider using the STAR method more consistently
-- Provide more specific examples relevant to this role
-
-## Recommendations
-1. Practice structuring your answers more clearly
-2. Research more about ${company}'s specific needs
-3. Prepare stronger examples that highlight your relevant skills
-
-With some refinement, your interview performance would be even stronger.
-`;
-        
-        return res.status(200).json({ 
-          feedback: mockFeedback, 
-          isLastQuestion: true 
+        return res.status(500).json({ 
+          error: 'Failed to generate interview feedback', 
+          details: openaiError.message || 'Unknown error with OpenAI API'
         });
       }
     } else {
@@ -587,43 +504,6 @@ With some refinement, your interview performance would be even stronger.
       });
       
       try {
-        // Mock response for testing purposes (regardless of API key status)
-        // This ensures the feature works in development mode even when OpenAI API is unavailable
-        const shouldUseMockResponse = true; // Always use mock in development for reliability
-        
-        if (shouldUseMockResponse) {
-          console.log('[Interview Voice] Using guaranteed mock response for ongoing interview');
-          
-          // Create mock responses based on conversation context
-          const possibleResponses = [
-            `That's a good response. You've highlighted your relevant experience well. Let me ask you another question: How do you handle stressful situations or tight deadlines in a work environment?`,
-            `Thank you for sharing that. Your approach seems well-thought-out. For my next question: Can you tell me about a time when you had to resolve a conflict within a team?`,
-            `I appreciate your detailed answer. You clearly have experience in this area. Now, could you describe how you prioritize tasks when managing multiple projects simultaneously?`,
-            `That's helpful context. You've demonstrated good problem-solving skills there. My next question is: What do you consider your greatest professional achievement so far, and why?`,
-            `Thank you for explaining that approach. It gives me a good sense of your working style. Let me ask: How do you stay updated with the latest trends and developments in your field?`
-          ];
-          
-          // Select a response based on conversation length for variety
-          // This will cycle through different questions as the conversation progresses
-          const responseIndex = (conversation.length / 2) % possibleResponses.length;
-          const mockResponse = possibleResponses[Math.floor(responseIndex)];
-          
-          console.log('[Interview Voice] Returning mock ongoing interview response');
-          
-          // Log success for debugging
-          logResponse('analyze-response', 200, 'Successfully generated mock ongoing AI response', {
-            mockResponseLength: mockResponse.length,
-            mockResponseExcerpt: mockResponse
-          });
-          
-          // Return the mock response
-          return res.status(200).json({ 
-            isLastQuestion: false,
-            aiResponse: mockResponse
-          });
-        }
-        
-        // If we're not using the mock response, proceed with OpenAI
         // Generate the next AI response with enhanced human-like conversation parameters
         // Currently OpenAI's streaming requires a different handling approach
         // For now, we'll use non-streaming to ensure reliability, but we'll prioritize
@@ -652,16 +532,9 @@ With some refinement, your interview performance would be even stronger.
         });
       } catch (openaiError: any) {
         logResponse('analyze-response', 500, 'OpenAI API error during response generation', openaiError);
-        
-        // Always provide a fallback response regardless of the error
-        // This ensures the feature works even when OpenAI has problems
-        console.log('[Interview Voice] Providing fallback response for ongoing interview due to error');
-        
-        const fallbackResponse = `Thank you for that answer. Let me ask you another question: What would you say are your greatest strengths that make you a good fit for this ${jobTitle} position at ${company}?`;
-        
-        return res.status(200).json({ 
-          isLastQuestion: false,
-          aiResponse: fallbackResponse
+        return res.status(500).json({ 
+          error: 'Failed to generate interview response', 
+          details: openaiError.message || 'Unknown error with OpenAI API'
         });
       }
     }
@@ -677,7 +550,7 @@ With some refinement, your interview performance would be even stronger.
 /**
  * Transcribe speech audio to text
  */
-router.post('/transcribe', requireLoginFallback, async (req: Request, res: Response) => {
+router.post('/transcribe', requireAuth, async (req: Request, res: Response) => {
   try {
     // Log the start of the transcription process
     logRequest('transcribe', 'Transcription request received');
@@ -996,7 +869,7 @@ router.post('/transcribe', requireLoginFallback, async (req: Request, res: Respo
 /**
  * Convert text to speech using OpenAI's API
  */
-router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: Response) => {
+router.post('/text-to-speech', requireAuth, async (req: Request, res: Response) => {
   try {
     // Log the start of the TTS process
     logRequest('text-to-speech', 'Text-to-speech request received');

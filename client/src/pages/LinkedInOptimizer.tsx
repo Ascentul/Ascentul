@@ -342,32 +342,10 @@ function LinkedInOptimizer() {
     mutationFn: async (data: LinkedInProfileData) => {
       const response = await apiRequest("POST", "/api/linkedin-optimizer/analyze", data);
       if (!response.ok) {
-        // Safer error handling for non-JSON responses
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const error = await response.json();
-            throw new Error(error.message || "Failed to analyze LinkedIn profile");
-          } else {
-            // Handle non-JSON response
-            const text = await response.text();
-            const errorMessage = text.length > 100 ? 
-              "Server returned an invalid response format. Please try again later." : 
-              text;
-            throw new Error(errorMessage);
-          }
-        } catch (parseError) {
-          console.error("Error parsing response:", parseError);
-          throw new Error("Unable to process the server response. Please try again later.");
-        }
+        const error = await response.json();
+        throw new Error(error.message || "Failed to analyze LinkedIn profile");
       }
-      
-      try {
-        return await response.json();
-      } catch (jsonError) {
-        console.error("Error parsing JSON:", jsonError);
-        throw new Error("The server returned an invalid response format. Please try again later.");
-      }
+      return response.json();
     },
     onSuccess: (data) => {
       setResults(data);

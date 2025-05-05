@@ -473,22 +473,14 @@ export default function VoicePractice() {
   // Mutation for generating interview questions
   const generateQuestionMutation = useMutation({
     mutationFn: async (data: any) => {
-      try {
-        const response = await apiRequest('POST', '/api/interview/generate-question', data);
-        if (!response.ok) {
-          throw new Error(`Failed to generate question: ${response.status}`);
-        }
-        return await response.json();
-      } catch (error) {
-        console.error("Error in generate question mutation:", error);
-        throw error;
+      const response = await apiRequest('POST', '/api/interview/generate-question', data);
+      if (!response.ok) {
+        throw new Error(`Failed to generate question: ${response.status}`);
       }
+      return await response.json();
     },
     onSuccess: (data) => {
-      console.log("Generate question response:", data);
-      // Check all possible response formats
-      const question = data.aiResponse || data.question || 
-                       (typeof data === 'string' ? data : "Could you tell me about your relevant experience for this position?");
+      const question = data.aiResponse || data.question;
       
       // Create a new message for the assistant's question
       const newMessage: ConversationMessage = {
