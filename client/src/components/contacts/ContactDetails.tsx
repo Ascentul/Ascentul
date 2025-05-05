@@ -628,13 +628,26 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <AlertCircle className="h-8 w-8 text-destructive" />
-        <p className="mt-2 text-lg font-medium">Error loading contact</p>
+        <p className="mt-2 text-lg font-medium">Contact Not Found</p>
         <p className="mt-1 text-muted-foreground">
-          There was a problem fetching the contact details. Please try again.
+          This contact may have been deleted or doesn't exist anymore.
         </p>
-        <Button onClick={onClose} className="mt-4" variant="outline">
-          Close
-        </Button>
+        <div className="flex gap-2 mt-4">
+          <Button 
+            onClick={() => {
+              // Refresh the contacts list to sync with server state
+              queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+              onClose();
+            }} 
+            className="mt-4" 
+            variant="default"
+          >
+            Refresh Contacts
+          </Button>
+          <Button onClick={onClose} className="mt-4" variant="outline">
+            Close
+          </Button>
+        </div>
       </div>
     );
   }
