@@ -383,13 +383,19 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       if (!completion.choices || !completion.choices[0] || !completion.choices[0].message || 
           !completion.choices[0].message.content) {
         const errorMsg = 'Unexpected OpenAI response format';
+        
+        // Log detailed information about the missing content
+        console.error("❌ No message content returned from OpenAI:", completion);
+        
         logResponse('generate-question', 500, errorMsg, {
           unexpectedFormat: true,
           responseStructure: JSON.stringify(completion)
         });
+        
+        // Return a more detailed error response with the completion data
         return res.status(500).json({ 
-          error: 'Failed to generate interview question', 
-          details: errorMsg
+          error: 'OpenAI returned no question', 
+          details: completion
         });
       }
       

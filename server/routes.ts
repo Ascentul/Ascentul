@@ -20,7 +20,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
-import { registerInterviewVoiceRoutes } from "./routes/interview-voice";
+// Voice Interview routes removed
 import { registerCareerDataRoutes } from "./career-data";
 import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
@@ -4638,7 +4638,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerAdzunaRoutes(apiRouter);
   registerApplicationRoutes(apiRouter, storage);
   registerApplicationInterviewRoutes(apiRouter, storage);
-  registerInterviewVoiceRoutes(apiRouter);
+  // Voice Interview routes removed
   
   // We've already registered models routes above with registerModelsRoutes(app);
   
