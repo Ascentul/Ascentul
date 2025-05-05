@@ -489,11 +489,13 @@ export default function VoicePractice() {
       } catch (error) {
         console.error("Error in generate question mutation:", error);
         
-        // Create a guaranteed fallback response here
-        // This ensures we always have something to show the user
+        // Create a guaranteed job-specific fallback response here
+        // This ensures we always have something relevant to show the user
+        const jobSpecificQuestion = `Could you tell me about your experience that's relevant to the ${selectedJobDetails!.title} position at ${selectedJobDetails!.company}? In particular, I'm interested in how your skills align with ${selectedJobDetails!.description.substring(0, 60)}...`;
+        
         return {
-          question: "Could you tell me about your relevant experience for this position?",
-          aiResponse: "Could you tell me about your relevant experience for this position?",
+          question: jobSpecificQuestion,
+          aiResponse: jobSpecificQuestion,
           isFallback: true,
           localFallback: true // mark that this was generated client-side
         };
@@ -513,7 +515,7 @@ export default function VoicePractice() {
       
       // Robust checking for all possible response formats
       const question = data.aiResponse || data.question || 
-                       (typeof data === 'string' ? data : "Could you tell me about your relevant experience for this position?");
+                       (typeof data === 'string' ? data : `Could you tell me about your experience that's relevant to the ${selectedJobDetails!.title} position at ${selectedJobDetails!.company}, particularly as it relates to ${selectedJobDetails!.description.substring(0, 50)}...?`);
       
       // Create a new message for the assistant's question
       const newMessage: ConversationMessage = {
@@ -536,8 +538,8 @@ export default function VoicePractice() {
     onError: (error) => {
       logVoiceEvent('GenerateQuestionError', 'Error generating question', error);
       
-      // Create a guaranteed fallback message
-      const fallbackQuestion = "Could you tell me about your experience that's relevant to this position?";
+      // Create a job-specific fallback message, even for error cases
+      const fallbackQuestion = `Could you tell me about your experience that's relevant to the ${selectedJobDetails!.title} position at ${selectedJobDetails!.company}? In particular, I'm interested in how your skills relate to ${selectedJobDetails!.description.substring(0, 60)}...`;
       
       // Add the fallback question to the conversation
       const fallbackMessage: ConversationMessage = {
