@@ -400,22 +400,27 @@ export function useUserXPHistory() {
 // User type helper hooks
 export function useIsRegularUser() {
   const { user } = useUser();
-  return !!user && user.userType === 'regular';
+  return !!user && (user.role === 'user' || user.userType === 'regular');
 }
 
 export function useIsUniversityStudent() {
   const { user } = useUser();
-  return !!user && user.userType === 'university_student';
+  return !!user && (user.role === 'university_user' || user.userType === 'university_student');
 }
 
 export function useIsUniversityAdmin() {
   const { user } = useUser();
-  return !!user && user.userType === 'university_admin';
+  return !!user && (user.role === 'university_admin' || user.userType === 'university_admin');
 }
 
 export function useIsUniversityUser() {
   const { user } = useUser();
-  return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
+  return !!user && (
+    user.role === 'university_user' || 
+    user.role === 'university_admin' || 
+    user.userType === 'university_student' || 
+    user.userType === 'university_admin'
+  );
 }
 
 // Check for any admin-like capabilities (broader definition, includes university admins)
