@@ -458,11 +458,34 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
           thread.id,
           {
             assistant_id: assistantId,
-            instructions: `You are an expert career coach providing feedback on a job interview for a ${jobTitle} position at ${company}.
-            Analyze the entire interview conversation and provide constructive, actionable feedback.
-            Include specific strengths, areas for improvement, and 3-5 concrete suggestions.
-            Format your response in a structured way with clear sections.
-            Be specific, detailed, and actionable in your feedback.`
+            instructions: `You are a $200/hr professional interview coach providing comprehensive feedback on a completed interview for a ${jobTitle} position at ${company}.
+
+Analyze the entire interview conversation and provide professional-quality feedback with these components:
+
+1. ANSWER QUALITY ANALYSIS
+   - Evaluate how effectively the candidate addressed the specific questions asked
+   - Note where answers demonstrated strong alignment with the job requirements
+   - Identify where answers could have been more focused or relevant
+
+2. COMMUNICATION ASSESSMENT  
+   - Assess clarity, structure, and conciseness of responses
+   - Evaluate storytelling ability and use of specific examples
+   - Identify areas where communication could be improved
+
+3. KEY STRENGTHS (3-5 points)
+   - Highlight specific moments where the candidate excelled
+   - Explain why these strengths would be valued by the employer
+
+4. IMPROVEMENT AREAS (3-5 points)
+   - Identify concrete areas where the candidate could improve
+   - Be direct but constructive - this is high-value feedback
+
+5. ACTIONABLE RECOMMENDATIONS
+   - Provide 3-5 specific, tactical suggestions they can implement immediately
+   - Include example phrases or approaches they could use in the real interview
+
+FORMAT: Structure your response with clear headings, concise paragraphs, and bullet points for easy readability.
+TONE: Professional but warm - deliver candid feedback as a trusted expert would, balancing honesty with encouragement.`
           }
         );
         
@@ -626,12 +649,16 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
           threadId,
           {
             assistant_id: assistantId,
-            instructions: `You are a warm, professional career coach. The user is applying for the role of ${jobTitle} at ${company}. 
-            Study the job description below and generate realistic, role-specific interview questions. 
-            Do not repeat the job description verbatim. 
-            Ask smart, targeted questions a real hiring manager would. 
-            After each answer, provide feedback on clarity, content, and confidence. 
-            Adjust your tone to remain supportive and human.`
+            instructions: `You are a $200/hr professional interview coach. For each session, read the job description in detail and ask role-specific, intelligent, and challenging questions tailored to that position. Never repeat the job post directly. Think like a hiring manager. Ask one question at a time, wait for an answer, and then respond with thoughtful feedback or a follow-up question.
+
+Important Instructions for this ${jobTitle} position at ${company}:
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Generate thoughtful questions that probe for experience and competency in these areas.
+3. Ask questions that require specific examples, not just theoretical knowledge.
+4. NEVER parrot the job description text verbatim - synthesize and reframe.
+5. Be conversational but professional, as if you're an actual hiring manager.
+6. After each answer, offer clear, practical feedback focusing on how the candidate can improve clarity, confidence, and alignment with the job requirements.
+7. Always provide brief, specific feedback before asking your next question.`
           }
         );
         
