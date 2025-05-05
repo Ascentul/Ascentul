@@ -427,39 +427,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { password: pwd, ...safeUser } = user;
       
-      // Add redirect paths based on user role and login type for frontend to handle
-      // Use the role-based redirect mapping
-      const routeMap: Record<string, string> = {
-        user: '/dashboard',
-        university_user: '/university',
-        university_admin: '/university-admin',
-        staff: '/staff-dashboard',
-        super_admin: '/admin',
-        admin: '/admin'
-      };
+      // Import the redirectByRole utility directly
+      const { getRedirectByRole } = require('./utils/redirectByRole');
       
       // Store the role in the session to be used by auth middleware
       req.session.role = user.role || 'user';
       
-      // Determine redirectPath based on userType for backward compatibility
-      // and also consider the role field for future use
-      let redirectPath;
-      
-      // First try to use the role field if it exists and has a valid mapping
-      if (user.role && user.role in routeMap) {
-        redirectPath = routeMap[user.role];
-      } else {
-        // Fall back to userType-based routing
-        if (user.userType === "admin") {
-          redirectPath = "/admin"; 
-        } else if (user.userType === "staff") {
-          redirectPath = "/staff-dashboard";
-        } else if (user.userType === "university_admin") {
-          redirectPath = "/university-admin/dashboard";
-        } else {
-          redirectPath = "/dashboard";
-        }
-      }
+      // Use the utility function to determine redirect path
+      const redirectPath = getRedirectByRole(user.role || 'user');
       
       res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
@@ -637,10 +612,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return user without password
       const { password: pwd, ...safeUser } = newUser;
       
+      // Import the redirectByRole utility directly
+      const { getRedirectByRole } = require('./utils/redirectByRole');
+      
+      // Store the role in the session
+      req.session.role = "staff";
+      
       return res.status(201).json({
         success: true,
         user: safeUser,
-        redirectPath: "/staff-dashboard" // Direct staff to staff dashboard
+        redirectPath: getRedirectByRole("staff")
       });
     } catch (error) {
       console.error("Staff registration error:", error);
