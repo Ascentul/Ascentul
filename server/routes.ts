@@ -31,6 +31,8 @@ import academicProgramsRouter from "./routes/academic-programs";
 import mailRouter from "./routes/mail";
 // Import university invites router
 import universityInvitesRouter from "./routes/university-invites";
+// Import reviews router
+import reviewsRouter from "./routes/reviews";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -206,6 +208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register university invites router
   apiRouter.use('/university-invites', universityInvitesRouter);
+  
+  // Register reviews router
+  apiRouter.use('/reviews', reviewsRouter);
   
   // Create admin and sample users at startup
   try {
