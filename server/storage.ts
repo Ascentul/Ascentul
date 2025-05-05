@@ -4270,16 +4270,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getContactsNeedingFollowup(userId: number): Promise<NetworkingContact[]> {
-    const now = new Date();
+    // Use raw SQL query to avoid potential SQL syntax issues with the ORM
+    const result = await pool.query(`
+      SELECT * FROM networking_contacts 
+      WHERE user_id = $1 
+      AND status = 'active' 
+      AND follow_up_date IS NOT NULL 
+      AND follow_up_date <= CURRENT_TIMESTAMP
+      ORDER BY follow_up_date ASC
+    `, [userId]);
     
-    return db
-      .select()
-      .from(networkingContacts)
-      .where(eq(networkingContacts.userId, userId))
-      .where(eq(networkingContacts.status, "active"))
-      .where(sql`${networkingContacts.followUpDate} IS NOT NULL`)
-      .where(sql`${networkingContacts.followUpDate} <= now()`)
-      .orderBy(networkingContacts.followUpDate);
+    return result.rows;
   }
   
   // Alias for backward compatibility
