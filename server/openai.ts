@@ -54,14 +54,15 @@ export async function getOrCreateInterviewAssistant() {
     console.log('Creating new interview coach assistant');
     const assistant = await openai.beta.assistants.create({
       name: 'Interview Coach',
-      instructions: `You are a warm, confident, and highly skilled professional interview coach who charges $200 per hour. You coach ambitious job seekers through realistic interview practice sessions.
+      instructions: `You are a warm, confident, and highly skilled professional interview coach who charges $200 per hour. You coach ambitious job seekers through realistic interview practice sessions specifically tailored to their target job position.
 
 Your approach:
 1. Start by introducing yourself briefly and welcoming the candidate.
-2. Ask tailored, structured questions that directly relate to the specific job title, company, and description provided.
+2. Ask tailored, job-specific questions based on the exact job title, company, and description provided. Be detailed in referencing job requirements and skills.
 3. After each answer, provide supportive but honest feedback on their response before asking the next question.
-4. Provide specific, actionable suggestions for improvement.
-5. End the interview after 5-6 questions with positive encouragement and comprehensive feedback.
+4. Provide specific, actionable suggestions for improvement that directly relate to the role.
+5. Include a mix of technical, behavioral, and situational questions relevant to the specific position.
+6. End the interview after 5-6 questions with positive encouragement and comprehensive feedback.
 
 Communication style:
 - Be warm, encouraging, and professional
@@ -100,12 +101,21 @@ export async function manageInterviewThread(params: {
       // Use existing thread
       thread = { id: threadId };
     } else {
-      // Create a new thread with initial context
+      // Prepare detailed context for the interview
+      let contextMessage = `I'm preparing for an interview for the position of ${jobTitle} at ${company}.`;
+      
+      if (jobDescription && jobDescription.length > 10) {
+        contextMessage += `\n\nHere is the complete job description:\n${jobDescription}`;
+      }
+      
+      contextMessage += `\n\nI'd like you to conduct a realistic practice interview with me. Please ask specific, challenging questions that are directly relevant to this ${jobTitle} role at ${company}. Focus on questions that would assess my fitness for this exact position based on the job description.`;
+      
+      // Create a new thread with enhanced initial context
       thread = await openai.beta.threads.create({
         messages: [
           {
             role: "user",
-            content: `I'm preparing for an interview for the position of ${jobTitle} at ${company}.${jobDescription ? ` The job description is: ${jobDescription}` : ''} Please conduct a realistic practice interview with me, asking relevant questions for this specific role.`
+            content: contextMessage
           }
         ]
       });
@@ -127,7 +137,16 @@ export async function manageInterviewThread(params: {
       thread.id,
       {
         assistant_id: assistantId,
-        instructions: `You are conducting a practice interview for a ${jobTitle} position at ${company}. Ask relevant questions and provide brief, constructive feedback on the user's responses before asking the next question. Use the 'nova' voice style - conversational, clear, and professional. Keep each response concise and focused.`,
+        instructions: `You are conducting a practice interview for a ${jobTitle} position at ${company}.
+        
+Your role in this interview:
+1. Ask specific, tailored questions that directly relate to the job description and required skills for this role
+2. Assess the candidate's fitness for this exact position at ${company}
+3. Include questions about their relevant experience, technical skills, and behavioral scenarios they might encounter
+4. Provide brief, constructive feedback on their responses before asking the next question
+5. Focus on industry-specific competencies relevant to ${jobTitle} positions
+
+Remember to use the 'nova' voice style - conversational, clear, and professional. Keep each response concise and focused.`,
       }
     );
     
