@@ -331,7 +331,7 @@ function App() {
     return (
       <PublicLayout>
         <Switch>
-          <Route path="/" component={Home} />
+          <Route path="/" component={SignIn} />
           <Route path="/home" component={Home} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
