@@ -168,38 +168,46 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       ? achievements.join("\n- ")
       : "Not available";
     
-    // Construct the dynamic system prompt with human-like interaction instructions
-    return `You are an AI Interview Coach. Your mission is to behave as closely to a real human coach as possible.
+    // Construct the dynamic system prompt with premium coaching instructions
+    return `You are a warm, confident, and highly skilled professional interview coach who charges $200 per hour. You coach ambitious job seekers through realistic interview practice.
 
-The user is interviewing for:
+The candidate is interviewing for:
 - Job Title: ${jobTitle}
 - Company: ${company}
 - Job Description: ${jobDescription}
 
-The user's background is:
+The candidate's background is:
 - Work History: ${workHistorySummary}
 - Education: ${educationSummary}
 - Skills: ${skillsSummary}
 - Achievements: ${achievementsSummary}
 
-Instructions for human-like interactions:
-- Speak naturally and conversationally, not robotically
-- Occasionally use natural filler phrases like "That's a great question," "Let me think about that," or "Alright, let's move on"
-- Vary your sentence structure — avoid overly formal patterns or repetitive feedback formats
-- Add small human touches when appropriate (e.g., "Take a deep breath before you answer!" or "You're doing great — let's try another one")
-- Maintain a supportive, encouraging tone throughout
-- If the user gives a brief answer, naturally ask follow-up questions to draw out more details
+As a premium interview coach, you:
+- Ask tailored, structured questions based on the candidate's profile and the specific job
+- After each answer, give supportive but honest feedback that feels valuable
+- Suggest specific improvements and highlight strengths with precision
+- Prepare the candidate for the next question with a brief professional transition
+- Speak clearly and naturally — like a real human coach, not an AI
+- Balance warmth and professionalism in your tone to build rapport and confidence
 
-Interview coaching guidance:
-- Conduct a realistic mock interview that feels like talking to a real person
-- Ask specific, role-relevant, and company-contextual questions based on the job description
-- Adapt difficulty and topics based on the user's answers
-- After each answer, provide personalized feedback (Strengths and Areas for Improvement)
-- Maintain a supportive but challenging tone
-- Ask one question at a time and keep your questions concise and focused
-- If this is the first question, introduce yourself briefly as the interviewer and then ask an appropriate opening question
+Coaching style and interactions:
+- Embody the presence of a high-end career coach who is worth $200/hour
+- Use natural speech patterns with occasional phrases like "That's exactly the kind of example that makes an impact," or "Let me challenge you a bit more on that point"
+- Vary your sentence structure to sound authentic and conversational
+- Add small human touches that convey your expertise (e.g., "In my experience coaching senior candidates for ${company}, I've noticed that...")
+- Balance positive reinforcement with constructive criticism
+- If the candidate gives a brief answer, use coaching techniques to draw out more substantive responses
 
-Remember, your user is practicing for a real-world job interview and deserves natural, helpful feedback that makes them feel comfortable and confident.`;
+Premium interview coaching approach:
+- Ask one thoughtful question at a time, tailored to the specific ${jobTitle} role
+- Provide brief but insightful feedback after each answer before moving to the next question
+- Incorporate industry-specific knowledge relevant to the ${company} position
+- Keep your questions concise but impactful
+- If this is the first question, introduce yourself as a professional coach, then ask an appropriate opening question
+- Create a coaching conversation that feels valuable, not just an interrogation
+- Maintain a balance between challenge and support that reflects your premium coaching expertise
+
+Remember, you're providing the kind of premium coaching experience that ambitious professionals would pay $200/hour to receive.`;
   } catch (error) {
     console.error("Error generating dynamic system prompt:", error);
     return getBasicSystemPrompt(jobTitle, company, jobDescription);
@@ -317,20 +325,20 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
     console.log('[Interview Voice] Using guaranteed reliable fallback response for interview questions');
     
     try {
-      // Select an appropriate question based on conversation context
-      let fallbackQuestion = "Tell me about your experience working as a " + jobTitle + " or in similar roles.";
+      // Select an appropriate question based on conversation context and coaching persona
+      let fallbackQuestion = `As your interview coach, I'd like to start by exploring your experience. Could you walk me through your background working as a ${jobTitle} or in similar roles? I'm particularly interested in how your experience aligns with what ${company} is looking for.`;
       
       if (conversation && conversation.length >= 2) {
-        // This would be the second or later question
+        // This would be the second or later question with premium coaching style
         const possibleFollowUps = [
-          `What specific skills do you bring to this ${jobTitle} position at ${company}?`,
-          `Can you describe a challenging situation you faced in your previous role and how you handled it?`,
-          `What interests you most about this ${jobTitle} position at our company?`,
-          `How do you stay current with industry trends relevant to this role?`,
-          `Describe your approach to problem-solving when faced with a difficult challenge.`,
-          `Tell me about a time when you demonstrated leadership in your previous position.`,
-          `How would you handle a disagreement with a team member?`,
-          `What do you consider your greatest professional achievement?`
+          `I'd like to focus on your expertise now. What specific skills and strengths would you bring to this ${jobTitle} position at ${company} that make you stand out from other candidates?`,
+          `Let's discuss how you handle challenges. Could you share a particularly difficult situation you faced in your previous role and walk me through your approach to resolving it?`,
+          `I'm curious about your motivation. What specifically interests you about this ${jobTitle} position at ${company}, and how does it align with your career goals?`,
+          `In a rapidly evolving industry, staying current is critical. How do you stay up-to-date with trends and developments relevant to this role? Could you share a specific example?`,
+          `Problem-solving is essential for this position. Could you walk me through your typical approach when faced with a complex challenge? I'd love to hear about a specific example that demonstrates your methodology.`,
+          `Let's discuss your leadership capabilities. Tell me about a time when you took initiative or led a team through a challenging situation. What was your approach and what was the outcome?`,
+          `Team dynamics are important at ${company}. Could you describe how you've successfully navigated a disagreement with a colleague or manager in the past? What did you learn from that experience?`,
+          `I'm interested in understanding what drives you professionally. What do you consider your most significant professional achievement to date, and why does it matter to you?`
         ];
         
         // Use the conversation length as a simple way to select different questions
@@ -378,8 +386,8 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       // LAST RESORT FALLBACK - This should ALWAYS work
       console.log('[Interview Voice] Using last resort emergency fallback response');
       
-      // Use the simplest possible fallback with no variable substitution to avoid any potential errors
-      const emergencyFallback = "Could you tell me about your relevant experience for this position?";
+      // Use a coaching-style fallback with no variable substitution to avoid any potential errors
+      const emergencyFallback = "As your interview coach, I'd like to understand your professional background better. Could you share some of your relevant experience for this position? Focus on skills and accomplishments that best showcase your qualifications.";
       
       // Include multiple response formats for maximum compatibility with client-side code
       return res.status(200).json({
