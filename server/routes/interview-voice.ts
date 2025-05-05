@@ -11,16 +11,16 @@ import { logRequest, logResponse, saveAudioForDebugging } from '../debug-voice-p
 interface WorkHistoryItem {
   company: string;
   position: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | Date;
+  endDate: string | Date;
   description: string;
 }
 
 interface EducationItem {
   institution: string;
   degree: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | Date;
+  endDate: string | Date;
   achievements: string[];
 }
 
@@ -112,7 +112,7 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       }
       
       try {
-        const userEducation = await storage.getEducation(userId);
+        const userEducation = await storage.getEducationHistory(userId);
         if (userEducation && userEducation.length > 0) {
           // Format education items to match the expected structure
           education = userEducation.map(item => ({
@@ -128,7 +128,7 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       }
       
       try {
-        const userSkills = await storage.getSkills(userId);
+        const userSkills = await storage.getUserSkills(userId);
         if (userSkills && userSkills.length > 0) {
           // Extract skill names to create a string array
           skills = userSkills.map(skill => skill.name);
@@ -138,7 +138,7 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       }
       
       try {
-        const userAchievements = await storage.getAchievements(userId);
+        const userAchievements = await storage.getAchievements();
         if (userAchievements && userAchievements.length > 0) {
           // Extract achievement descriptions to create a string array
           achievements = userAchievements.map(achievement => achievement.description);
@@ -518,21 +518,27 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
         let feedback = '';
         const content = feedbackMessage.content[0];
         
-        // Handle the different potential response formats
+        // Handle the different potential response formats with proper type checking
         if ('text' in content) {
           // Handle text content when directly accessible
           feedback = typeof content.text === 'object' 
             ? content.text.value 
             : String(content.text);
-        } else if ('type' in content && content.type === 'text' && 'text' in content) {
-          // Handle typed text content (newer API response format)
-          feedback = typeof content.text === 'object'
-            ? content.text.value
-            : String(content.text);
         } else {
-          // Log the content for debugging and provide a meaningful error
-          console.error("Unexpected content format from OpenAI:", JSON.stringify(content, null, 2));
-          throw new Error("Unsupported response content type from assistant");
+          // For newer API formats, we need to check the structure carefully
+          // First, convert to 'any' type to bypass strict type checking
+          const anyContent = content as any;
+          
+          // Now safely check for properties
+          if (anyContent && anyContent.type && anyContent.text) {
+            feedback = typeof anyContent.text === 'object'
+              ? anyContent.text.value
+              : String(anyContent.text);
+          } else {
+            // Log the content for debugging and provide a meaningful error
+            console.error("Unexpected content format from OpenAI:", JSON.stringify(content, null, 2));
+            throw new Error("Unsupported response content type from assistant");
+          }
         }
         
         logResponse('analyze-response', 200, 'Successfully generated final feedback via assistant', {
@@ -680,17 +686,28 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
         // Extract the text content safely handling different content types
         let aiResponse = '';
         const content = responseMessage.content[0];
+        
+        // Handle the different potential response formats with proper type checking
         if ('text' in content) {
-          // Handle text content
+          // Handle text content when directly accessible
           aiResponse = typeof content.text === 'object' 
             ? content.text.value 
-            : content.text;
-        } else if (content.type === 'text') {
-          // Alternative text content format
-          aiResponse = content.text.value;
+            : String(content.text);
         } else {
-          // Fallback for other content types
-          throw new Error("Unsupported response content type from assistant");
+          // For newer API formats, we need to check the structure carefully
+          // First, convert to 'any' type to bypass strict type checking
+          const anyContent = content as any;
+          
+          // Now safely check for properties
+          if (anyContent && anyContent.type && anyContent.text) {
+            aiResponse = typeof anyContent.text === 'object'
+              ? anyContent.text.value
+              : String(anyContent.text);
+          } else {
+            // Log the content for debugging and provide a meaningful error
+            console.error("Unexpected content format from OpenAI:", JSON.stringify(content, null, 2));
+            throw new Error("Unsupported response content type from assistant");
+          }
         }
         
         logResponse('analyze-response', 200, 'Successfully generated next question via assistant', {
