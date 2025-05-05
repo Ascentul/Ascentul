@@ -1128,27 +1128,27 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
       audioUrl
     });
     
+    let mp3;
+    let buffer;
+    
     try {
       logRequest('text-to-speech', `Calling OpenAI TTS API with premium HD quality settings`);
       
-      // Call OpenAI's TTS API with the highest quality settings for professional coaching voice
-      // Using tts-1-hd model with 'nova' voice for the most natural, warm, and professional sound
-      // Nova is OpenAI's highest quality female voice with excellent intonation and clarity
-      const speedToUse = speed || 1.12; // Slightly faster than normal for natural coaching conversational pace
+      // Call OpenAI's TTS API with the highest quality settings
+      const speedToUse = speed || 1.12; // Slightly faster for natural conversation pace
       
       logRequest('text-to-speech', `Using premium voice quality: model=tts-1-hd, voice=nova, speed=${speedToUse}`);
       
-      const mp3 = await openaiInstance.audio.speech.create({
-        model: 'tts-1-hd', // Always use the highest quality HD model for premium voice quality
-        voice: 'nova', // Force nova voice for consistency - it's the most natural and professional sounding
+      mp3 = await openaiInstance.audio.speech.create({
+        model: 'tts-1-hd', // Use the highest quality HD model
+        voice: 'nova',     // Nova voice for consistency
         input: text,
-        speed: speedToUse, // Slightly faster speed for more natural coaching conversation
-        response_format: 'mp3' // Ensure high-quality audio output
+        speed: speedToUse,
+        response_format: 'mp3'
       });
       
-      // Ensure we got a valid response
       if (!mp3) {
-        logResponse('text-to-speech', 500, 'OpenAI TTS API returned null or undefined response');
+        logResponse('text-to-speech', 500, 'OpenAI TTS API returned null response');
         return res.status(500).json({ 
           error: 'Empty response from text-to-speech API',
           details: 'The TTS service returned an empty response. Please try again.'
@@ -1158,45 +1158,31 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
       logRequest('text-to-speech', 'OpenAI TTS API call successful, processing response...');
       
       // Convert response to Buffer
-      let buffer: Buffer;
-      try {
-        buffer = Buffer.from(await mp3.arrayBuffer());
-        logRequest('text-to-speech', `Converted audio to buffer, size: ${buffer.length} bytes`);
-        
-        if (buffer.length === 0) {
-          logResponse('text-to-speech', 500, 'Empty buffer created from API response');
-          return res.status(500).json({ 
-            error: 'Empty audio content',
-            details: 'The generated audio was empty. Please try again.'
-          });
-        }
-      } catch (bufferError: any) {
-        logResponse('text-to-speech', 500, 'Error processing audio response', bufferError);
+      buffer = Buffer.from(await mp3.arrayBuffer());
+      logRequest('text-to-speech', `Converted audio to buffer, size: ${buffer.length} bytes`);
+      
+      if (buffer.length === 0) {
+        logResponse('text-to-speech', 500, 'Empty buffer created from API response');
         return res.status(500).json({ 
-          error: 'Failed to process audio response',
-          details: bufferError.message || 'Unknown error processing audio data'
+          error: 'Empty audio content',
+          details: 'The generated audio was empty. Please try again.'
         });
       }
       
       // Save audio file to disk
-      try {
-        fs.writeFileSync(audioPath, buffer);
-        logRequest('text-to-speech', 'Successfully saved audio file to disk');
-        
-        // Verify file exists and has the right size
-        const stats = fs.statSync(audioPath);
-        logRequest('text-to-speech', 'Audio file stats', {
-          size: stats.size,
-          created: stats.birthtime
-        });
-        
-        if (stats.size === 0) {
-          logResponse('text-to-speech', 500, 'Generated empty audio file', { path: audioPath });
-          return res.status(500).json({ error: 'Generated audio file is empty. Please try again.' });
-        }
-      } catch (fileError) {
-        logResponse('text-to-speech', 500, 'Error saving audio file to disk', fileError);
-        return res.status(500).json({ error: 'Failed to save generated audio file' });
+      fs.writeFileSync(audioPath, buffer);
+      logRequest('text-to-speech', 'Successfully saved audio file to disk');
+      
+      // Verify file exists and has the right size
+      const stats = fs.statSync(audioPath);
+      logRequest('text-to-speech', 'Audio file stats', {
+        size: stats.size,
+        created: stats.birthtime
+      });
+      
+      if (stats.size === 0) {
+        logResponse('text-to-speech', 500, 'Generated empty audio file', { path: audioPath });
+        return res.status(500).json({ error: 'Generated audio file is empty. Please try again.' });
       }
       
       // Log successful response
@@ -1212,6 +1198,7 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
         success: true,
         size: buffer.length
       });
+      
     } catch (ttsError: any) {
       logResponse('text-to-speech', 500, 'Error generating speech', ttsError);
       
