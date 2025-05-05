@@ -126,7 +126,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Track your first application',
       description: 'Start managing your job applications',
       completed: false,
-      href: '/job-applications',
+      href: '/application-tracker',
       icon: <FileText className="h-4 w-4 text-blue-500" />
     },
     {
