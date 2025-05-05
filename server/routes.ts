@@ -58,7 +58,7 @@ import {
   insertApplicationWizardStepSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
