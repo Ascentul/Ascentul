@@ -161,8 +161,22 @@ export default function Contacts() {
         });
         console.log(`Delete contact response:`, response);
         return response;
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error deleting contact with ID ${contactId}:`, error);
+        
+        // Special handling for "Contact not found" errors (404)
+        if (error.status === 404) {
+          // Handle this gracefully instead of showing an error
+          queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+          toast({
+            title: 'Contact already deleted',
+            description: 'This contact has already been removed from your network.',
+          });
+          setSelectedContactId(null);
+          // Return instead of throwing to prevent onError from firing
+          return null;
+        }
+        
         throw error;
       }
     },
@@ -181,7 +195,7 @@ export default function Contacts() {
       console.error('Contact deletion error details:', error);
       toast({
         title: 'Error',
-        description: `Failed to delete the contact: ${error?.message || 'Unknown error'}`,
+        description: `Failed to delete the contact. Please try again.`,
         variant: 'destructive',
       });
     },
