@@ -11,7 +11,7 @@ import WorkHistory from "@/pages/WorkHistory";
 import EducationHistory from "@/pages/EducationHistory";
 import Achievements from "@/pages/Achievements";
 import AICoach from "@/pages/AICoach";
-import LinkedInOptimizer from "@/pages/LinkedInOptimizer";
+// LinkedIn Optimizer removed
 import CareerPathExplorer from "@/pages/CareerPathExplorer";
 import Projects from "@/pages/Projects";
 import CanvaEditor from "@/pages/CanvaEditor";
