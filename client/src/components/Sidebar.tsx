@@ -115,7 +115,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   
   // Auto-detect the current section based on location
   useEffect(() => {
-    if (location.startsWith('/application-tracker') || location.startsWith('/apply') || location.startsWith('/voice-practice')) {
+    if (location.startsWith('/application-tracker') || location.startsWith('/apply')) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/contacts')) {
       setActiveSection('career-growth');
@@ -157,7 +157,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       icon: <Search className="w-5 h-5" />,
       items: [
         { href: '/application-tracker', icon: <Briefcase className="w-5 h-5 mr-3" />, label: 'Application Tracker' },
-        { href: '/voice-practice', icon: <Mic className="w-5 h-5 mr-3" />, label: 'Voice Interview Practice' },
       ]
     },
     {

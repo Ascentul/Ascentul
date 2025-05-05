@@ -561,11 +561,7 @@ function App() {
             <Contacts />
           </CareerRoute>
         </Route>
-        <Route path="/voice-practice">
-          <CareerRoute>
-            <VoicePractice />
-          </CareerRoute>
-        </Route>
+        {/* Voice Interview Practice route removed */}
         <Route path="/canva-editor">
           <CareerRoute>
             <CanvaEditor />
