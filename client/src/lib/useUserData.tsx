@@ -92,12 +92,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
       
       // Use the redirect path provided by the server, or fall back to role-based redirect
       if (data.redirectPath) {
+        console.log("Using server provided redirectPath:", data.redirectPath);
         window.location.href = data.redirectPath;
       } else {
         // Fall back to role-based redirection
         const user = data.user;
-        if (user.userType === 'admin') {
-          console.log("Admin user detected - redirecting to /admin");
+        
+        // Check role first for more accurate routing
+        if (user.role === 'super_admin' || user.role === 'admin') {
+          console.log("Admin/SuperAdmin role detected - redirecting to /admin");
+          window.location.href = '/admin';
+        } 
+        // Fall back to userType if role isn't definitive
+        else if (user.userType === 'admin') {
+          console.log("Admin userType detected - redirecting to /admin");
           window.location.href = '/admin';
         } else if (user.userType === 'staff') {
           window.location.href = '/staff-dashboard';
@@ -112,9 +120,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Helper function to determine the redirect path based on user role
-  const getRedirectPathByRole = (userType: string): string => {
-    switch (userType) {
+  // Helper function to determine the redirect path based on user role or userType
+  const getRedirectPathByRole = (user: User): string => {
+    // First check the role field which is more specific
+    if (user.role === 'super_admin' || user.role === 'admin') {
+      return '/admin';
+    }
+    
+    // Fall back to userType if role doesn't give a definitive answer
+    switch (user.userType) {
       case 'admin':
         return '/admin';
       case 'staff':
@@ -393,18 +407,34 @@ export function useIsUniversityUser() {
 // Check for any admin-like capabilities (broader definition, includes university admins)
 export function useIsAdminUser() {
   const { user } = useUser();
-  return !!user && (user.userType === 'admin' || user.id === 1);
+  return !!user && (
+    user.role === 'super_admin' || 
+    user.role === 'admin' ||
+    user.userType === 'admin' || 
+    user.id === 1
+  );
 }
 
 // Check specifically for Ascentul system administrators
 export function useIsSystemAdmin() {
   const { user } = useUser();
-  return !!user && (user.userType === 'admin' || user.id === 1);
+  return !!user && (
+    user.role === 'super_admin' || 
+    user.role === 'admin' ||
+    user.userType === 'admin' || 
+    user.id === 1
+  );
 }
 
 export function useIsStaffUser() {
   const { user } = useUser();
-  return !!user && (user.userType === 'staff' || user.userType === 'admin');
+  return !!user && (
+    user.role === 'staff' || 
+    user.role === 'admin' || 
+    user.role === 'super_admin' ||
+    user.userType === 'staff' || 
+    user.userType === 'admin'
+  );
 }
 
 // Subscription helper hooks
