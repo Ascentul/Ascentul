@@ -539,11 +539,7 @@ function App() {
             <AICoach />
           </CareerRoute>
         </Route>
-        <Route path="/linkedin-optimizer">
-          <CareerRoute>
-            <LinkedInOptimizer />
-          </CareerRoute>
-        </Route>
+        {/* LinkedIn Optimizer route removed */}
         <Route path="/career-path-explorer">
           <CareerRoute>
             <CareerPathExplorer />
