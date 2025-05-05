@@ -47,6 +47,9 @@ import {
   aiCoachMessages,
   type AiCoachMessage,
   type InsertAiCoachMessage,
+  userReviews,
+  type UserReview,
+  type InsertUserReview,
   xpHistory,
   type XpHistory,
   type InsertXpHistory,
@@ -322,6 +325,10 @@ export interface IStorage {
   // Career Mentor Chat operations
   getMentorChatConversations(userId: number): Promise<MentorChatConversation[]>;
   getMentorChatConversation(id: number): Promise<MentorChatConversation | undefined>;
+  
+  // User Reviews operations
+  getUserReviews(userId: number): Promise<UserReview[]>;
+  createUserReview(userId: number, review: InsertUserReview): Promise<UserReview>;
   createMentorChatConversation(userId: number, conversation: InsertMentorChatConversation): Promise<MentorChatConversation>;
   getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]>;
   
@@ -514,6 +521,8 @@ export class MemStorage implements IStorage {
   private projectIdCounter: number;
   private networkingContactIdCounter: number;
   private contactInteractionIdCounter: number;
+  private userReviews: Map<number, UserReview>;
+  private userReviewIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -550,6 +559,7 @@ export class MemStorage implements IStorage {
     this.applicationWizardSteps = new Map();
     this.networkingContacts = new Map();
     this.contactInteractions = new Map();
+    this.userReviews = new Map();
 
     this.userIdCounter = 1;
     this.goalIdCounter = 1;

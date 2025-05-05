@@ -1074,3 +1074,22 @@ export const insertContactInteractionSchema = createInsertSchema(contactInteract
 export type ContactInteraction = typeof contactInteractions.$inferSelect;
 export type InsertContactInteraction = z.infer<typeof insertContactInteractionSchema>;
 export type InsertNetworkingContact = z.infer<typeof insertNetworkingContactSchema>;
+
+// User Reviews model
+export const userReviews = pgTable("user_reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  rating: integer("rating").notNull(),
+  feedback: text("feedback"),
+  source: text("source").notNull().default("checklist"), // Source of the review (checklist, campaign, etc.)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
+export type UserReview = typeof userReviews.$inferSelect;
+export type InsertUserReview = z.infer<typeof insertUserReviewSchema>;
