@@ -37,8 +37,8 @@ export function logResponse(endpoint: string, statusCode: number, message: strin
 }
 
 // Save audio data for debugging purposes
-export function saveAudioForDebugging(audioData: string | Buffer, prefix: string): string | null {
-  if (!DEBUG_ENABLED || !SAVE_DEBUG_AUDIO) return null;
+export function saveAudioForDebugging(audioData: Buffer, prefix: string) {
+  if (!DEBUG_ENABLED || !SAVE_DEBUG_AUDIO) return;
   
   try {
     // Create debug directory if it doesn't exist
@@ -47,18 +47,13 @@ export function saveAudioForDebugging(audioData: string | Buffer, prefix: string
       fs.mkdirSync(debugDir, { recursive: true });
     }
     
-    // Convert string to Buffer if needed
-    const buffer = Buffer.isBuffer(audioData) ? audioData : Buffer.from(audioData);
-    
     // Save the audio file with timestamp
     const timestamp = new Date().getTime();
     const filePath = path.join(debugDir, `${prefix}-${timestamp}.webm`);
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(filePath, audioData);
     
     console.log(`[Voice Practice] Debug audio saved to ${filePath}`);
-    return filePath;
   } catch (error) {
     console.error('[Voice Practice] Error saving debug audio:', error);
-    return null;
   }
 }

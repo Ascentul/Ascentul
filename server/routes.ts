@@ -58,7 +58,7 @@ import {
   insertApplicationWizardStepSchema,
   type User
 } from "@shared/schema";
-import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis, createStreamingTTS } from "./openai";
+import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse, analyzeLinkedInProfile, LinkedInProfileAnalysis } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";
 import { generateSkillStackerPlan, generatePlanRequestSchema } from "./skill-stacker";
@@ -4683,10 +4683,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerAdzunaRoutes(apiRouter);
   registerApplicationRoutes(apiRouter, storage);
   registerApplicationInterviewRoutes(apiRouter, storage);
-  
-  // Get the interview voice router and mount it directly to avoid route conflicts
-  const interviewVoiceRouter = registerInterviewVoiceRoutes(apiRouter);
-  apiRouter.use('/interview', interviewVoiceRouter);
+  registerInterviewVoiceRoutes(apiRouter);
   
   // We've already registered models routes above with registerModelsRoutes(app);
   
