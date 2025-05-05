@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { CalendarIcon, Plus, X, CheckSquare, Square } from 'lucide-react';
+import { CalendarIcon, Plus, X, CheckSquare, Square, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 import {
@@ -31,6 +31,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { goalTemplates } from '@/components/goals/GoalTemplates';
@@ -152,6 +163,30 @@ export default function GoalForm({ goal, templateId, onSuccess }: GoalFormProps)
       toast({
         title: 'Error',
         description: `Failed to update goal: ${error.message}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete goal mutation
+  const deleteGoalMutation = useMutation({
+    mutationFn: async () => {
+      if (!goal?.id) throw new Error("No goal selected for deletion");
+      return apiRequest('DELETE', `/api/goals/${goal.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
+      toast({
+        title: 'Goal Deleted',
+        description: 'Your career goal has been deleted successfully',
+      });
+      if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to delete goal: ${error.message}`,
         variant: 'destructive',
       });
     },
@@ -352,7 +387,50 @@ export default function GoalForm({ goal, templateId, onSuccess }: GoalFormProps)
           }}
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-between">
+          {/* Only show Delete button for existing goals */}
+          {goal?.id ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="text-destructive border-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Goal
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this goal and all associated progress. 
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteGoalMutation.mutate()}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {deleteGoalMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Goal"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <div>{/* Empty div to maintain spacing when no delete button */}</div>
+          )}
+          
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : goal ? 'Update Goal' : 'Create Goal'}
           </Button>
