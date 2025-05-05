@@ -142,7 +142,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       title: 'Add 1 contact to the Network Hub',
       description: 'Start building your professional network',
       completed: false,
-      href: '/network',
+      href: '/contacts',
       icon: <Users className="h-4 w-4 text-indigo-500" />
     }
   ]);
