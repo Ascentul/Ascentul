@@ -238,6 +238,13 @@ Remember, your user is practicing for a real-world job interview and deserves na
  */
 router.post('/generate-question', requireAuth, async (req: Request, res: Response) => {
   try {
+    // Log request information at the start
+    console.log("🎯 /generate-question request received", { 
+      jobTitle: req.body.jobTitle, 
+      company: req.body.company, 
+      userId: req.session?.userId 
+    });
+    
     // Log the start of question generation
     logRequest('generate-question', 'Generate question request received');
     
@@ -360,6 +367,9 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
         frequency_penalty: 0.35, // Encourage more diverse vocabulary
         stream: false // Using non-streaming for reliability in this version
       });
+      
+      // Add detailed logging of the OpenAI response
+      console.log("✅ OpenAI response:", JSON.stringify(completion, null, 2));
       
       // ✅ Log after successful OpenAI call
       logRequest('generate-question', 'OpenAI API call successful', {
