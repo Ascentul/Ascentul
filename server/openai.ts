@@ -31,19 +31,21 @@ if (!apiKey) {
   
   // Create a mock OpenAI instance
   openai = {
+    _isMockMode: true,
     chat: {
       completions: {
         create: async (params: any) => {
           console.log('Mock OpenAI API call with params:', params);
           return {
+            id: "mockcompletion-" + Date.now(),
             choices: [
               {
                 message: {
-                  content: JSON.stringify({
-                    message: "This is mock AI content. Please provide an OpenAI API key for real responses.",
-                    details: "The application is running in mock mode because the OPENAI_API_KEY is not set."
-                  })
-                }
+                  role: "assistant",
+                  content: "This is a mock interview question. Please provide an OpenAI API key for real AI-generated questions."
+                },
+                finish_reason: "stop",
+                index: 0
               }
             ],
             model: "mock-gpt-4o",

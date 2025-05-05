@@ -333,6 +333,23 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       // ✅ Log right before OpenAI call
       logRequest('generate-question', 'Calling OpenAI API now');
       
+      // Log the actual OpenAI instance we're using
+      console.log('OpenAI instance type:', typeof openaiInstance);
+      console.log('OpenAI instance has chat.completions?', 
+                  openaiInstance && typeof openaiInstance === 'object' && 
+                  openaiInstance.chat && openaiInstance.chat.completions ? 'Yes' : 'No');
+      
+      // Additional validation to handle mock mode
+      if (!openaiInstance || typeof openaiInstance !== 'object' || 
+          !openaiInstance.chat || !openaiInstance.chat.completions) {
+        throw new Error('OpenAI instance is not properly initialized');
+      }
+      
+      // Check if we're in mock mode and log it
+      if (openaiInstance._isMockMode === true) {
+        console.log('WARNING: Using mock OpenAI mode!');
+      }
+      
       // Call OpenAI to generate a question with optimized parameters for natural conversation
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -370,6 +387,12 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       
       // Log the generated question for debugging
       logResponse('generate-question', 200, 'Successfully generated interview question', {
+        responseLength: aiResponse.length,
+        responseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
+      });
+      
+      // Add logging to check the actual response being returned
+      console.log('Successful question generation - returning response:', {
         responseLength: aiResponse.length,
         responseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
       });
