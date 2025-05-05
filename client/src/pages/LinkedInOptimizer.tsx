@@ -340,42 +340,43 @@ function LinkedInOptimizer() {
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: LinkedInProfileData) => {
-      // Using direct fetch for debugging purposes
-      const url = "/api/linkedin-optimizer/analyze";
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(import.meta.env.DEV ? { "Authorization": "Bearer dev_token" } : {})
-        },
-        body: JSON.stringify(data),
-        credentials: "include"
-      });
-      
-      // Debug the raw response
-      const text = await response.text();
-      console.log("🔍 Debug Response Text:", text);
-      
-      // Check content type and handle accordingly
-      const contentType = response.headers.get('Content-Type');
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          // Parse the text as JSON
-          const data = JSON.parse(text);
+      try {
+        // Using direct fetch for debugging purposes
+        const url = "/api/linkedin-optimizer/analyze";
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(import.meta.env.DEV ? { "Authorization": "Bearer dev_token" } : {})
+          },
+          body: JSON.stringify(data),
+          credentials: "include"
+        });
+        
+        // Check if we received JSON as expected
+        const contentType = response.headers.get('Content-Type') || '';
+        
+        if (!contentType.includes('application/json')) {
+          const fallbackText = await response.text(); // Get raw text/HTML for inspection
+          console.error("❌ Expected JSON, but got:", contentType);
+          console.error("Response preview:", fallbackText.slice(0, 300)); // Show first part of HTML
           
-          // Check for error response
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to analyze LinkedIn profile");
-          }
-          
-          return data;
-        } catch (parseError) {
-          console.error("JSON Parse Error:", parseError);
-          throw new Error("Failed to parse response as JSON");
+          throw new Error("LinkedIn may have blocked the request. Please try again later or check your profile URL.");
         }
-      } else {
-        console.error("Expected JSON, got:", contentType);
-        throw new Error(`Expected JSON response, got ${contentType || "unknown content type"}`);
+        
+        // Now we can safely parse the JSON
+        const responseData = await response.json();
+        console.log("✅ Analysis Data:", responseData);
+        
+        // Check for error status
+        if (!response.ok) {
+          throw new Error(responseData.message || "Failed to analyze LinkedIn profile");
+        }
+        
+        return responseData;
+      } catch (err) {
+        console.error("Error in LinkedIn Optimizer:", err);
+        throw new Error(err.message || "Something went wrong analyzing your LinkedIn profile.");
       }
     },
     onSuccess: (data) => {
