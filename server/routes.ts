@@ -4683,7 +4683,10 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   registerAdzunaRoutes(apiRouter);
   registerApplicationRoutes(apiRouter, storage);
   registerApplicationInterviewRoutes(apiRouter, storage);
-  registerInterviewVoiceRoutes(apiRouter);
+  
+  // Get the interview voice router and mount it directly to avoid route conflicts
+  const interviewVoiceRouter = registerInterviewVoiceRoutes(apiRouter);
+  apiRouter.use('/interview', interviewVoiceRouter);
   
   // We've already registered models routes above with registerModelsRoutes(app);
   

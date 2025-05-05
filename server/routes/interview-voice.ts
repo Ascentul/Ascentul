@@ -1239,5 +1239,6 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
 });
 
 export const registerInterviewVoiceRoutes = (app: Router) => {
-  app.use('/api/interview', router);
+  // Export the router directly to avoid route conflicts
+  return router;
 };
