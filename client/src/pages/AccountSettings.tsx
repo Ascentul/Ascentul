@@ -88,7 +88,7 @@ export default function AccountSettings() {
   const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
   
   // Track the current active tab
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('career');
   
   // Track overall page loading state - combines user and career data loading
   const isPageLoading = userLoading || (activeTab === 'career' && careerDataLoading);
@@ -330,7 +330,7 @@ export default function AccountSettings() {
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
       
       <Tabs 
-        defaultValue="profile" 
+        defaultValue="career" 
         className="space-y-8"
         onValueChange={(value) => {
           console.log(`Tab changed to: ${value}`);
@@ -338,13 +338,13 @@ export default function AccountSettings() {
         }}
       >
         <TabsList className="flex flex-wrap">
-          <TabsTrigger value="profile" className="flex items-center">
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </TabsTrigger>
           <TabsTrigger value="career" className="flex items-center">
             <Briefcase className="mr-2 h-4 w-4" />
             Career
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex items-center">
+            <User className="mr-2 h-4 w-4" />
+            Profile
           </TabsTrigger>
           <TabsTrigger value="subscription" className="flex items-center">
             <CreditCard className="mr-2 h-4 w-4" />
