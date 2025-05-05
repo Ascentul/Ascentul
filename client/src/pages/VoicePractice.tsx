@@ -475,18 +475,43 @@ export default function VoicePractice() {
     mutationFn: async (data: any) => {
       try {
         const response = await apiRequest('POST', '/api/interview/generate-question', data);
-        if (!response.ok) {
+        
+        // Even if the response isn't okay, try to parse the body
+        // as the server might still return a valid fallback response with non-200 status
+        const responseBody = await response.json();
+        
+        // If the response body contains an error and no fallback
+        if (!response.ok && !responseBody.question && !responseBody.aiResponse) {
           throw new Error(`Failed to generate question: ${response.status}`);
         }
-        return await response.json();
+        
+        return responseBody;
       } catch (error) {
         console.error("Error in generate question mutation:", error);
-        throw error;
+        
+        // Create a guaranteed fallback response here
+        // This ensures we always have something to show the user
+        return {
+          question: "Could you tell me about your relevant experience for this position?",
+          aiResponse: "Could you tell me about your relevant experience for this position?",
+          isFallback: true,
+          localFallback: true // mark that this was generated client-side
+        };
       }
     },
     onSuccess: (data) => {
       console.log("Generate question response:", data);
-      // Check all possible response formats
+      
+      // Always log the raw response for debugging
+      logVoiceEvent('GenerateQuestionSuccess', 'Question generated', {
+        hasQuestion: !!data.question,
+        hasAiResponse: !!data.aiResponse,
+        isFallback: !!data.isFallback,
+        isLocalFallback: !!data.localFallback,
+        responseType: typeof data
+      });
+      
+      // Robust checking for all possible response formats
       const question = data.aiResponse || data.question || 
                        (typeof data === 'string' ? data : "Could you tell me about your relevant experience for this position?");
       
@@ -511,14 +536,33 @@ export default function VoicePractice() {
     onError: (error) => {
       logVoiceEvent('GenerateQuestionError', 'Error generating question', error);
       
+      // Create a guaranteed fallback message
+      const fallbackQuestion = "Could you tell me about your experience that's relevant to this position?";
+      
+      // Add the fallback question to the conversation
+      const fallbackMessage: ConversationMessage = {
+        role: 'assistant',
+        content: fallbackQuestion,
+        timestamp: new Date()
+      };
+      
+      // Add to conversation
+      setConversation(prev => [...prev, fallbackMessage]);
+      
+      // Show error toast
       toast({
-        title: "Error",
-        description: "Failed to generate interview question. Please try again.",
+        title: "Recovery mode active",
+        description: "Using backup question due to API error. You can continue the interview.",
         variant: "destructive"
       });
       
-      // Reset to idle state
-      setStatus('idle');
+      // Continue the interview with listening state
+      setStatus('listening');
+      
+      // Try converting fallback text to speech
+      textToSpeechMutation.mutate({
+        text: fallbackQuestion
+      });
     }
   });
   

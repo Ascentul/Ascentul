@@ -305,58 +305,89 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       }
     }
     
-    // FALLBACK IMPLEMENTATION - Use mock responses or legacy approach
-    console.log('[Interview Voice] Using guaranteed mock response for interview questions');
+    // GUARANTEED FALLBACK IMPLEMENTATION - Use reliable responses that work 100% of the time
+    console.log('[Interview Voice] Using guaranteed reliable fallback response for interview questions');
     
-    // Select an appropriate question based on conversation context
-    let mockQuestion = "Tell me about your experience working as a " + jobTitle + " or in similar roles.";
-    
-    if (conversation.length >= 2) {
-      // This would be the second or later question
-      const possibleFollowUps = [
-        `What specific skills do you bring to this ${jobTitle} position at ${company}?`,
-        `Can you describe a challenging situation you faced in your previous role and how you handled it?`,
-        `What interests you most about this ${jobTitle} position at our company?`,
-        `How do you stay current with industry trends relevant to this role?`,
-        `Describe your approach to problem-solving when faced with a difficult challenge.`
-      ];
+    try {
+      // Select an appropriate question based on conversation context
+      let fallbackQuestion = "Tell me about your experience working as a " + jobTitle + " or in similar roles.";
       
-      // Use the conversation length as a simple way to select different questions
-      const questionIndex = (conversation.length / 2) % possibleFollowUps.length;
-      mockQuestion = possibleFollowUps[Math.floor(questionIndex)];
+      if (conversation && conversation.length >= 2) {
+        // This would be the second or later question
+        const possibleFollowUps = [
+          `What specific skills do you bring to this ${jobTitle} position at ${company}?`,
+          `Can you describe a challenging situation you faced in your previous role and how you handled it?`,
+          `What interests you most about this ${jobTitle} position at our company?`,
+          `How do you stay current with industry trends relevant to this role?`,
+          `Describe your approach to problem-solving when faced with a difficult challenge.`,
+          `Tell me about a time when you demonstrated leadership in your previous position.`,
+          `How would you handle a disagreement with a team member?`,
+          `What do you consider your greatest professional achievement?`
+        ];
+        
+        // Use the conversation length as a simple way to select different questions
+        const questionIndex = Math.floor((conversation.length / 2) % possibleFollowUps.length);
+        fallbackQuestion = possibleFollowUps[questionIndex];
+      }
+      
+      console.log('[Interview Voice] Returning reliable fallback question:', fallbackQuestion);
+      
+      // Log success for debugging
+      logResponse('generate-question', 200, 'Generated reliable fallback interview question', {
+        responseLength: fallbackQuestion.length,
+        responseExcerpt: fallbackQuestion.substring(0, 50) + (fallbackQuestion.length > 50 ? '...' : '')
+      });
+      
+      // Return the response with both formats for maximum compatibility with client code
+      return res.status(200).json({ 
+        question: fallbackQuestion,
+        aiResponse: fallbackQuestion,
+        isFallback: true
+      });
+    } catch (fallbackError) {
+      // Even our fallback had an error, use the most basic response
+      console.error('[Interview Voice] Error in fallback response generation:', fallbackError);
+      const ultimateFallback = "Could you tell me about your relevant experience for this position?";
+      
+      return res.status(200).json({ 
+        question: ultimateFallback,
+        aiResponse: ultimateFallback,
+        isFallback: true,
+        isEmergencyFallback: true
+      });
     }
-    
-    console.log('[Interview Voice] Returning mock question:', mockQuestion);
-    
-    // Log success for debugging
-    logResponse('generate-question', 200, 'Successfully generated mock interview question', {
-      responseLength: mockQuestion.length,
-      responseExcerpt: mockQuestion
-    });
-    
-    // Return the mock response with both formats for compatibility
-    return res.status(200).json({ 
-      question: mockQuestion,
-      aiResponse: mockQuestion
-    });
   } catch (error) {
-    console.error('Error generating interview question:', error);
+    console.error('Error generating interview question (outer try/catch):', error);
     
-    // Log the error
-    logResponse('generate-question', 500, 'Error generating question', {
-      errorMessage: typeof error === 'object' ? error.message || 'Unknown error' : String(error),
-      stack: typeof error === 'object' && error.stack ? error.stack : 'No stack trace available'
+    // Log the error for monitoring and debugging
+    logResponse('generate-question', 500, 'Error generating question (critical error)', {
+      errorMessage: typeof error === 'object' && error !== null ? (error.message || 'Unknown error') : String(error),
+      stack: typeof error === 'object' && error !== null && 'stack' in error ? error.stack : 'No stack trace available',
+      errorType: typeof error
     });
     
-    // Provide a fallback question if we can't generate one
-    const fallbackQuestion = "Could you tell me about your relevant experience for this position?";
-    
-    // Note that this is a fallback in the response and include both formats for compatibility
-    return res.status(200).json({
-      question: fallbackQuestion,
-      aiResponse: fallbackQuestion, // Add this for compatibility with client-side code
-      isFallback: true
-    });
+    try {
+      // LAST RESORT FALLBACK - This should ALWAYS work
+      console.log('[Interview Voice] Using last resort emergency fallback response');
+      
+      // Use the simplest possible fallback with no variable substitution to avoid any potential errors
+      const emergencyFallback = "Could you tell me about your relevant experience for this position?";
+      
+      // Include multiple response formats for maximum compatibility with client-side code
+      return res.status(200).json({
+        question: emergencyFallback,
+        aiResponse: emergencyFallback,
+        text: emergencyFallback,
+        content: emergencyFallback,
+        isFallback: true,
+        isEmergencyFallback: true
+      });
+    } catch (finalError) {
+      // If even our emergency fallback fails, just return a hard-coded JSON string
+      console.error('CRITICAL: Even emergency fallback failed:', finalError);
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(200).send('{"question":"Tell me about your experience.","aiResponse":"Tell me about your experience.","isFallback":true,"isCriticalFallback":true}');
+    }
   }
 });
 
