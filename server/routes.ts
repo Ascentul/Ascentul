@@ -197,6 +197,48 @@ async function validateUserAccess(req: Request, res: Response, next: () => void)
 export async function registerRoutes(app: Express): Promise<Server> {
   const apiRouter = express.Router();
   
+  // Health check endpoint (available at /api/health)
+  apiRouter.get("/health", async (req: Request, res: Response) => {
+    try {
+      // Check storage health
+      const storageHealth = await checkStorageHealth();
+      
+      // Check database connection if using database storage
+      const dbStatus = storageHealth.type === 'database' 
+        ? (storageHealth.status === 'healthy' ? 'connected' : 'error') 
+        : 'not_used';
+      
+      // Determine overall status
+      const status = storageHealth.status === 'healthy' ? 'healthy' : 
+                    storageHealth.status === 'degraded' ? 'degraded' : 'failing';
+      
+      res.json({
+        status,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development',
+        services: {
+          database: {
+            status: dbStatus,
+            type: storageHealth.type,
+            details: storageHealth.details
+          },
+          session: {
+            type: storageHealth.type === 'database' ? 'postgresql' : 'memory',
+            persistent: storageHealth.type === 'database'
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(500).json({
+        status: 'critical',
+        error: (error as Error).message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
   // Register user role router for admin access
   apiRouter.use('/user-role', userRoleRouter);
   
