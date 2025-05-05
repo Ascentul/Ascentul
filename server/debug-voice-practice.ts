@@ -53,10 +53,12 @@ export function saveAudioForDebugging(audioData: string | Buffer, prefix: string
     // Save the audio file with timestamp
     const timestamp = new Date().getTime();
     const filePath = path.join(debugDir, `${prefix}-${timestamp}.webm`);
-    fs.writeFileSync(filePath, audioData);
+    fs.writeFileSync(filePath, buffer);
     
     console.log(`[Voice Practice] Debug audio saved to ${filePath}`);
+    return filePath;
   } catch (error) {
     console.error('[Voice Practice] Error saving debug audio:', error);
+    return null;
   }
 }
