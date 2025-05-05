@@ -75,8 +75,21 @@ Make sure each response is thoughtful but concise so it's comfortable for the us
     });
     
     return { assistantId: assistant.id };
-  } catch (error) {
-    console.error('Error creating/retrieving interview assistant:', error);
+  } catch (error: any) {
+    console.error('Error creating/retrieving interview assistant:', error?.message || 'Unknown error');
+    
+    // Check for recovery mode errors specifically
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue while creating assistant');
+      // Return a mock assistant ID that can be used as a fallback
+      return { assistantId: 'fallback_assistant_id' };
+    }
+    
     throw error;
   }
 }
@@ -451,8 +464,66 @@ Your response must be in JSON format with the following structure:
         lowPriority: result.actionPlan?.lowPriority || ["No low priority items identified"]
       }
     };
-  } catch (error) {
-    console.error('Error analyzing LinkedIn profile:', error);
+  } catch (error: any) {
+    console.error('Error analyzing LinkedIn profile:', error?.message || 'Unknown error');
+    
+    // Check for recovery mode errors specifically and provide user-friendly fallback
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[LinkedIn Analysis] Gracefully handling OpenAI API temporary issue');
+      
+      // Safely use the targetJobTitle from the profileData parameter
+      const jobTitle = profileData.targetJobTitle || "your target position";
+      
+      // Return a fallback analysis with explanation
+      return {
+        overallScore: 65,
+        sections: {
+          headline: {
+            score: 6,
+            feedback: "We're experiencing temporary issues analyzing your LinkedIn profile. Here's a general tip: Headlines should clearly show your professional identity and value proposition.",
+            suggestion: "Consider including your core role, specialization, and an achievement metric."
+          },
+          about: {
+            score: 7,
+            feedback: "Unable to provide detailed analysis at this time. A strong About section tells your career story concisely.",
+            suggestion: "Aim for 3-5 paragraphs that highlight your experience, values, and career goals."
+          },
+          experience: {
+            score: 7,
+            feedback: "Our analysis system is temporarily experiencing issues. Generally, experience sections should highlight achievements rather than duties.",
+            suggestions: ["Quantify achievements with specific metrics", "Focus on your impact rather than day-to-day responsibilities"]
+          },
+          skills: {
+            score: 6,
+            feedback: `We're having temporary difficulties providing personalized analysis. Skills should align with your target role of ${jobTitle}.`,
+            missingSkills: ["Unable to analyze at this time"],
+            suggestedSkills: [`Research skills relevant to your target role of ${jobTitle}`]
+          },
+          featured: {
+            score: 6,
+            feedback: "Analysis temporarily unavailable. Featured content should showcase your best work.",
+            suggestions: ["Include projects related to your target role", "Add articles or presentations you've created"]
+          },
+          banner: {
+            score: 6,
+            feedback: "Analysis temporarily unavailable. A professional banner creates a good first impression.",
+            suggestion: "Consider a banner that represents your industry or professional identity."
+          }
+        },
+        recruiterPerspective: `We couldn't provide a detailed recruiter perspective at this time for the ${jobTitle} role. Please try again later for a full analysis.`,
+        actionPlan: {
+          highPriority: ["Retry this analysis later when our systems are fully operational"],
+          mediumPriority: [`Review your profile against job descriptions for the ${jobTitle} role`],
+          lowPriority: [`Connect with peers in the ${jobTitle} role to see how they structure their profiles`]
+        }
+      };
+    }
+    
     throw error;
   }
 }
@@ -493,8 +564,30 @@ export async function createCompletion(
       model: response.model,
       usage: response.usage,
     };
-  } catch (error) {
-    console.error("Error generating OpenAI response:", error);
+  } catch (error: any) {
+    console.error("Error generating OpenAI response:", {
+      message: error?.message || 'Unknown error',
+      code: error?.code,
+      status: error?.status,
+      type: error?.type,
+      name: error?.name
+    });
+    
+    // Check for recovery mode errors and provide user-friendly response
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[OpenAI] Gracefully handling temporary API issue in createCompletion');
+      return {
+        content: "I apologize, but I'm experiencing temporary connectivity issues. Could you please try your request again in a moment?",
+        model: "fallback",
+        usage: {}
+      };
+    }
+    
     throw new Error("Failed to generate AI response. Please try again later.");
   }
 }
@@ -517,8 +610,27 @@ export async function createStreamingTTS(text: string, speed: number = 1.0) {
     
     // Return the response directly, allowing the API to handle the streaming
     return response;
-  } catch (error) {
-    console.error('Error generating streaming TTS:', error);
+  } catch (error: any) {
+    console.error('Error generating streaming TTS:', {
+      message: error?.message || 'Unknown error',
+      code: error?.code,
+      status: error?.status,
+      type: error?.type,
+      name: error?.name
+    });
+    
+    // Check for recovery mode errors specifically and provide a fallback
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue in speech creation');
+      // Return an empty response to signal the client to use a fallback
+      throw new Error('TTS temporarily unavailable due to API limits. Please try again in a few moments.');
+    }
+    
     throw error;
   }
 }
