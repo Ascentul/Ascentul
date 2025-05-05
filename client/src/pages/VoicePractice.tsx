@@ -473,14 +473,40 @@ export default function VoicePractice() {
   // Mutation for generating interview questions
   const generateQuestionMutation = useMutation({
     mutationFn: async (data: any) => {
+      logVoiceEvent('GenerateQuestion', 'Making API request to generate interview question', {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        conversationLength: data.conversation.length
+      });
+      
       const response = await apiRequest('POST', '/api/interview/generate-question', data);
       if (!response.ok) {
         throw new Error(`Failed to generate question: ${response.status}`);
       }
-      return await response.json();
+      
+      const responseData = await response.json();
+      
+      // Check if we received a mock response (happens when OpenAI API key is missing/invalid)
+      if (responseData.aiResponse && 
+          responseData.aiResponse.includes("mock") && 
+          responseData.aiResponse.includes("OpenAI API key")) {
+        logVoiceEvent('GenerateQuestion', 'Received mock response from server', {
+          isMockResponse: true,
+          responseExcerpt: responseData.aiResponse.substring(0, 100)
+        });
+        
+        throw new Error('OpenAI API key is missing or invalid. The server is running in mock mode.');
+      }
+      
+      return responseData;
     },
     onSuccess: (data) => {
       const question = data.aiResponse || data.question;
+      
+      logVoiceEvent('GenerateQuestion', 'Successfully received AI response', {
+        responseLength: question.length,
+        responseExcerpt: question.substring(0, 50) + '...'
+      });
       
       // Create a new message for the assistant's question
       const newMessage: ConversationMessage = {
@@ -503,11 +529,24 @@ export default function VoicePractice() {
     onError: (error) => {
       logVoiceEvent('GenerateQuestionError', 'Error generating question', error);
       
-      toast({
-        title: "Error",
-        description: "Failed to generate interview question. Please try again.",
-        variant: "destructive"
-      });
+      // Check if this is a mock mode error
+      if (error instanceof Error && error.message.includes('mock mode')) {
+        toast({
+          title: "OpenAI API Key Required",
+          description: "The Voice Practice feature requires a valid OpenAI API key. Please contact support to set up your API key.",
+          variant: "destructive",
+          duration: 10000
+        });
+        
+        // End the interview
+        setIsInterviewActive(false);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to generate interview question. Please try again.",
+          variant: "destructive"
+        });
+      }
       
       // Reset to idle state
       setStatus('idle');
@@ -517,15 +556,42 @@ export default function VoicePractice() {
   // Mutation for analyzing responses
   const analyzeResponseMutation = useMutation({
     mutationFn: async (data: any) => {
+      logVoiceEvent('AnalyzeResponse', 'Making API request to analyze response', {
+        jobTitle: data.jobTitle,
+        company: data.company,
+        conversationLength: data.conversation.length,
+        userResponseLength: data.userResponse.length
+      });
+      
       const response = await apiRequest('POST', '/api/interview/analyze-response', data);
       if (!response.ok) {
         throw new Error(`Failed to analyze response: ${response.status}`);
       }
-      return await response.json();
+      
+      const responseData = await response.json();
+      
+      // Check if we received a mock response (happens when OpenAI API key is missing/invalid)
+      if (responseData.aiResponse && 
+          responseData.aiResponse.includes("mock") && 
+          responseData.aiResponse.includes("OpenAI API key")) {
+        logVoiceEvent('AnalyzeResponse', 'Received mock response from server', {
+          isMockResponse: true,
+          responseExcerpt: responseData.aiResponse.substring(0, 100)
+        });
+        
+        throw new Error('OpenAI API key is missing or invalid. The server is running in mock mode.');
+      }
+      
+      return responseData;
     },
     onSuccess: (data) => {
       // Check if this is the last question and we have feedback
       if (data.isLastQuestion && data.feedback) {
+        logVoiceEvent('AnalyzeResponse', 'Received final feedback', {
+          feedbackLength: data.feedback.length,
+          feedbackExcerpt: data.feedback.substring(0, 50) + '...'
+        });
+        
         // Set feedback text
         setFeedback(data.feedback);
         
@@ -543,6 +609,11 @@ export default function VoicePractice() {
       
       // For ongoing interview, get assistant's response and add to conversation
       if (data.aiResponse) {
+        logVoiceEvent('AnalyzeResponse', 'Received AI response for next question', {
+          responseLength: data.aiResponse.length,
+          responseExcerpt: data.aiResponse.substring(0, 50) + '...'
+        });
+        
         // Create a message for the assistant
         const newMessage: ConversationMessage = {
           role: 'assistant',
@@ -562,14 +633,28 @@ export default function VoicePractice() {
     onError: (error) => {
       logVoiceEvent('AnalyzeResponseError', 'Error analyzing response', error);
       
-      toast({
-        title: "Error",
-        description: "Failed to analyze your response. Please try again.",
-        variant: "destructive"
-      });
-      
-      // Reset to listening state
-      setStatus('listening');
+      // Check if this is a mock mode error
+      if (error instanceof Error && error.message.includes('mock mode')) {
+        toast({
+          title: "OpenAI API Key Required",
+          description: "The Voice Practice feature requires a valid OpenAI API key. Please contact support to set up your API key.",
+          variant: "destructive",
+          duration: 10000
+        });
+        
+        // End the interview
+        setIsInterviewActive(false);
+        setStatus('idle');
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to analyze your response. Please try again.",
+          variant: "destructive"
+        });
+        
+        // Reset to listening state
+        setStatus('listening');
+      }
     }
   });
   
@@ -578,6 +663,11 @@ export default function VoicePractice() {
     mutationFn: async (data: { text: string }) => {
       // Set status to speaking while fetching audio
       setStatus('speaking');
+      
+      logVoiceEvent('TextToSpeech', 'Making API request for text-to-speech', {
+        textLength: data.text.length,
+        textExcerpt: data.text.substring(0, 50) + '...'
+      });
       
       const response = await apiRequest('POST', '/api/interview/text-to-speech', {
         text: data.text,
@@ -588,7 +678,22 @@ export default function VoicePractice() {
         throw new Error(`Failed to convert text to speech: ${response.status}`);
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      
+      // Check if we received a mock response
+      if (responseData.error && 
+          typeof responseData.error === 'string' && 
+          responseData.error.includes("mock mode")) {
+        logVoiceEvent('TextToSpeech', 'Received mock response from server', {
+          isMockResponse: true,
+          errorMessage: responseData.error
+        });
+        
+        // Don't throw an error, just return without audio so we can use the browser's built-in TTS
+        return responseData;
+      }
+      
+      return responseData;
     },
     onSuccess: (data) => {
       if (data.audio) {
@@ -922,6 +1027,13 @@ export default function VoicePractice() {
         
         <TabsContent value="interview">
           <div className="space-y-6">
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>OpenAI API Key Required</AlertTitle>
+              <AlertDescription>
+                This Voice Practice feature requires a valid OpenAI API key to work properly. If you experience errors with generating questions or speech, please contact support to ensure your API key is configured.
+              </AlertDescription>
+            </Alert>
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Practice for your interviews</CardTitle>
