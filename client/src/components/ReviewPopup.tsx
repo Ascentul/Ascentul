@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from 'react-hook-form';
 import { apiRequest } from '@/lib/queryClient';
+import { useUser } from '@/lib/useUserData';
 
 interface ReviewPopupProps {
   isOpen: boolean;
@@ -16,20 +19,30 @@ interface ReviewPopupProps {
 interface ReviewFormData {
   rating: number;
   feedback: string;
+  name: string;
 }
 
 export function ReviewPopup({ isOpen, onClose, onSubmitSuccess }: ReviewPopupProps) {
   const { toast } = useToast();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ReviewFormData>({
     defaultValues: {
       rating: 0,
-      feedback: ''
+      feedback: '',
+      name: user?.name || ''
     }
   });
+  
+  // Update name field when user data changes or loads
+  useEffect(() => {
+    if (user?.name) {
+      setValue('name', user.name);
+    }
+  }, [user, setValue]);
 
   const onSubmit = async (data: ReviewFormData) => {
     if (rating === 0) {
@@ -46,7 +59,8 @@ export function ReviewPopup({ isOpen, onClose, onSubmitSuccess }: ReviewPopupPro
       
       const response = await apiRequest('POST', '/api/review/submit', {
         rating,
-        feedback: data.feedback
+        feedback: data.feedback,
+        name: data.name
       });
       
       if (response.ok) {
@@ -139,12 +153,24 @@ export function ReviewPopup({ isOpen, onClose, onSubmitSuccess }: ReviewPopupPro
               </div>
               
               {/* Feedback Textarea */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <Textarea
                   {...register('feedback')}
                   placeholder="Share your thoughts (optional)"
                   className="resize-none"
                   rows={4}
+                />
+              </div>
+              
+              {/* Name Field */}
+              <div className="mb-6">
+                <Label htmlFor="name" className="block text-sm font-medium mb-1">
+                  Name (used in testimonial)
+                </Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="Your name"
                 />
               </div>
               
