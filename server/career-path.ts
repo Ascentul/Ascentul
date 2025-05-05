@@ -3,12 +3,7 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import session from "express-session";
 
-// Add session type declaration for TypeScript
-declare module "express-session" {
-  interface SessionData {
-    userId?: number;
-  }
-}
+// Session type declaration is now centralized in index.ts
 
 if (!process.env.OPENAI_API_KEY) {
   console.warn("Warning: OPENAI_API_KEY is not set. Career path features will not work properly.");

@@ -16,11 +16,7 @@ declare global {
       } | null;
     }
     
-    // Extend session type to include role
-    interface SessionData {
-      userId?: number;
-      role?: string;
-    }
+    // Role is now defined in index.ts SessionData interface
   }
 }
 
