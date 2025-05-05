@@ -192,8 +192,23 @@ export default function Contacts() {
     setSelectedContactId(contactId);
   };
 
-  // Handle contact deletion
+  // Handle contact deletion with improved error handling
   const handleDeleteContact = (contactId: number) => {
+    // First check if the contact still exists in our local state
+    const contactExists = contacts.some(contact => contact.id === contactId);
+    
+    if (!contactExists) {
+      toast({
+        title: 'Error',
+        description: 'This contact no longer exists. The contacts list will refresh.',
+        variant: 'destructive',
+      });
+      
+      // Refresh the contacts list to sync with server state
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      return;
+    }
+    
     if (window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
       deleteContactMutation.mutate(contactId);
     }
