@@ -216,29 +216,38 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
       const userId = (req as any).user?.id;
       const contactId = parseInt(req.params.id);
       
+      console.log(`Delete contact request: Contact ID=${contactId}, User ID=${userId}`);
+      
       if (!userId) {
+        console.log("Delete contact rejected: Unauthorized");
         return res.status(401).json({ message: "Unauthorized" });
       }
       
       if (isNaN(contactId)) {
+        console.log(`Delete contact rejected: Invalid contact ID format: ${req.params.id}`);
         return res.status(400).json({ message: "Invalid contact ID" });
       }
       
       // Make sure the contact exists and belongs to the user
       const existingContact = await storage.getNetworkingContact(contactId);
+      console.log(`Looking up contact ID=${contactId}, found:`, existingContact ? "Contact exists" : "Contact not found");
       
       if (!existingContact) {
+        console.log(`Delete contact rejected: Contact ID=${contactId} not found in storage`);
         return res.status(404).json({ message: "Contact not found" });
       }
       
       if (existingContact.userId !== userId) {
+        console.log(`Delete contact rejected: Contact belongs to user ${existingContact.userId}, not current user ${userId}`);
         return res.status(403).json({ message: "Access denied" });
       }
       
       // Delete the contact
-      await storage.deleteNetworkingContact(contactId);
+      const result = await storage.deleteNetworkingContact(contactId);
+      console.log(`Delete contact result for ID=${contactId}:`, result ? "Success" : "Failed");
       
       res.status(204).end();
+      console.log(`Contact ID=${contactId} successfully deleted`);
     } catch (error) {
       console.error("Error deleting contact:", error);
       res.status(500).json({ message: "Failed to delete contact" });
