@@ -75,6 +75,11 @@ export async function apiRequest<T>(
     headers["Content-Type"] = "application/json";
   }
   
+  // Add dev token authorization header (for development mode)
+  if (import.meta.env.DEV) {
+    headers["Authorization"] = "Bearer dev_token";
+  }
+  
   // Check if user is logged out from localStorage
   const isLoggedOut = localStorage.getItem('auth-logout') === 'true';
   if (isLoggedOut && url !== '/auth/login') {
@@ -114,9 +119,14 @@ export const getQueryFn = <T>(options?: { on401?: UnauthorizedBehavior }) => {
   const { on401: unauthorizedBehavior = "throw" } = options || {};
   
   // Return the actual query function
-  return async ({ queryKey }: { queryKey: string[] }): Promise<T | null> => {
+  return async ({ queryKey }: any): Promise<T | null> => {
     // Create headers object
     const headers: Record<string, string> = {};
+    
+    // Add dev token authorization header (for development mode)
+    if (import.meta.env.DEV) {
+      headers["Authorization"] = "Bearer dev_token";
+    }
     
     // Check if user is logged out from localStorage
     const isLoggedOut = localStorage.getItem('auth-logout') === 'true';
@@ -141,7 +151,7 @@ export const getQueryFn = <T>(options?: { on401?: UnauthorizedBehavior }) => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn<any>({ on401: "throw" }) as any,
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
