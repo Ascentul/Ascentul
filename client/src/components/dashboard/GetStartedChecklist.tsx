@@ -47,6 +47,22 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     },
   });
   
+  // Fetch user goals to check if they've created any
+  const { data: userGoals = [] } = useQuery({
+    queryKey: ['/api/goals'],
+    queryFn: async () => {
+      try {
+        return await apiRequest({
+          url: '/api/goals',
+          method: 'GET',
+        });
+      } catch (error) {
+        console.error('Error fetching user goals:', error);
+        return [];
+      }
+    },
+  });
+  
   // State to track checklist items
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
     {
@@ -270,8 +286,9 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setReviewUnlocked(completedCount >= 3);
   }, [completedCount]);
 
-  // Track if we need to update the state of the contact item
+  // Track if we need to update the state of the contact and goal items
   const [hasUpdatedContactItem, setHasUpdatedContactItem] = useState(false);
+  const [hasUpdatedGoalItem, setHasUpdatedGoalItem] = useState(false);
   
   // Update the network contact checklist item based on actual data
   useEffect(() => {
@@ -305,14 +322,47 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setHasUpdatedContactItem(true);
   }, [networkContacts, checklistItems, hasUpdatedContactItem]);
   
+  // Update the career goal checklist item based on actual data
+  useEffect(() => {
+    if (!userGoals || !Array.isArray(userGoals) || hasUpdatedGoalItem) return;
+    
+    // Check if the user has created at least one goal
+    const hasAtLeastOneGoal = userGoals.length > 0;
+    
+    console.log(`User has ${userGoals.length} career goals`);
+    
+    // We only want to update if there are goals and the item isn't already marked as completed
+    const goalItem = checklistItems.find(item => item.id === 'career-goal');
+    
+    if (hasAtLeastOneGoal && goalItem && !goalItem.completed) {
+      console.log('Marking career-goal checklist item as completed based on actual goals');
+      
+      // Update only the career-goal item based on actual data
+      setChecklistItems(prevItems => {
+        const updatedItems = prevItems.map(item => {
+          if (item.id === 'career-goal') {
+            return { ...item, completed: true };
+          }
+          return item;
+        });
+        
+        return updatedItems;
+      });
+    }
+    
+    // Mark that we've processed this check to avoid further updates
+    setHasUpdatedGoalItem(true);
+  }, [userGoals, checklistItems, hasUpdatedGoalItem]);
+  
   // Save progress whenever checklist items change
   useEffect(() => {
-    // Only update localStorage when we have contacts data and have processed it
-    if (hasUpdatedContactItem && Array.isArray(networkContacts)) {
+    // Only update localStorage when we have processed both contacts and goals data
+    if ((hasUpdatedContactItem || !Array.isArray(networkContacts)) && 
+        (hasUpdatedGoalItem || !Array.isArray(userGoals))) {
       // Save the updated progress to local storage
       saveProgress(checklistItems, reviewItem.completed);
     }
-  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, networkContacts, userId]);
+  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, networkContacts, userGoals, userId]);
   
   // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
   // We've intentionally changed this to make sure the checklist persists
