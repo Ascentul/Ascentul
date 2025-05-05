@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from '@/components/Confetti';
+import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Define checklist item interface
 interface ChecklistItem {
@@ -28,6 +30,22 @@ interface GetStartedChecklistProps {
 // Main component
 export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const { toast } = useToast();
+  
+  // Fetch network contacts to check if the user has added any
+  const { data: networkContacts = [] } = useQuery({
+    queryKey: ['/api/contacts'],
+    queryFn: async () => {
+      try {
+        return await apiRequest({
+          url: '/api/contacts',
+          method: 'GET',
+        });
+      } catch (error) {
+        console.error('Error fetching network contacts:', error);
+        return [];
+      }
+    },
+  });
   
   // State to track checklist items
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([
@@ -252,6 +270,50 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setReviewUnlocked(completedCount >= 3);
   }, [completedCount]);
 
+  // Track if we need to update the state of the contact item
+  const [hasUpdatedContactItem, setHasUpdatedContactItem] = useState(false);
+  
+  // Update the network contact checklist item based on actual data
+  useEffect(() => {
+    if (!networkContacts || !Array.isArray(networkContacts) || hasUpdatedContactItem) return;
+    
+    // Check if the user has added at least one contact
+    const hasAtLeastOneContact = networkContacts.length > 0;
+    
+    console.log(`User has ${networkContacts.length} contacts in the Network Hub`);
+    
+    // We only want to update if there are contacts and the item isn't already marked as completed
+    const contactItem = checklistItems.find(item => item.id === 'network-contact');
+    
+    if (hasAtLeastOneContact && contactItem && !contactItem.completed) {
+      console.log('Marking network-contact checklist item as completed based on actual contacts');
+      
+      // Update only the network-contact item based on actual data
+      setChecklistItems(prevItems => {
+        const updatedItems = prevItems.map(item => {
+          if (item.id === 'network-contact') {
+            return { ...item, completed: true };
+          }
+          return item;
+        });
+        
+        return updatedItems;
+      });
+    }
+    
+    // Mark that we've processed this check to avoid further updates
+    setHasUpdatedContactItem(true);
+  }, [networkContacts, checklistItems, hasUpdatedContactItem]);
+  
+  // Save progress whenever checklist items change
+  useEffect(() => {
+    // Only update localStorage when we have contacts data and have processed it
+    if (hasUpdatedContactItem && Array.isArray(networkContacts)) {
+      // Save the updated progress to local storage
+      saveProgress(checklistItems, reviewItem.completed);
+    }
+  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, networkContacts, userId]);
+  
   // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
   // We've intentionally changed this to make sure the checklist persists
   useEffect(() => {
