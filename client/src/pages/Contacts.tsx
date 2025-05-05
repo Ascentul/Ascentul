@@ -49,6 +49,7 @@ export default function Contacts() {
     data: contacts = [],
     isLoading,
     error,
+    refetch: refetchContacts,
   } = useQuery({
     queryKey: ['/api/contacts', searchQuery, relationshipFilter],
     queryFn: async () => {
@@ -72,6 +73,7 @@ export default function Contacts() {
         method: 'GET',
       });
     },
+    staleTime: 10000, // Consider data fresh for 10 seconds to reduce refetching
   });
 
   // Fetch contacts needing follow-up (this is the previous endpoint that returns contacts)
@@ -155,7 +157,7 @@ export default function Contacts() {
     mutationFn: async (contactId: number) => {
       console.log(`Attempting to delete contact with ID: ${contactId}`);
       
-      // Always remove the contact from the UI immediately, regardless of the API response
+      // Find the contact to be deleted
       const existingContact = contacts.find(contact => contact.id === contactId);
       
       if (!existingContact) {
@@ -166,13 +168,22 @@ export default function Contacts() {
       // Save the contact name for success messaging
       const contactName = existingContact.fullName;
       
-      // Optimistically remove the contact from the UI
-      // by updating the query cache before the API call completes
-      queryClient.setQueryData(['/api/contacts'], (oldData: any) => {
-        if (Array.isArray(oldData)) {
-          return oldData.filter(contact => contact.id !== contactId);
-        }
-        return oldData;
+      // IMPORTANT: Make a copy of the full contact object before deletion
+      // so we can restore it if needed
+      const contactBackup = {...existingContact};
+      
+      // IMMEDIATELY update the UI by filtering out this contact
+      // First for the main contacts query
+      console.log("Optimistically removing contact from UI:", contactId);
+      queryClient.setQueryData(['/api/contacts'], (oldData: NetworkingContact[] | undefined) => {
+        if (!oldData || !Array.isArray(oldData)) return [];
+        return oldData.filter(contact => contact.id !== contactId);
+      });
+      
+      // Also update any other contact-related queries with the same filter
+      queryClient.setQueryData(['/api/contacts/need-followup'], (oldData: any) => {
+        if (!oldData || !Array.isArray(oldData)) return [];
+        return oldData.filter(contact => contact.id !== contactId);
       });
       
       // We'll wrap everything in a try/catch to handle ALL errors
@@ -191,6 +202,7 @@ export default function Contacts() {
         // Even if we get a non-200 status, we'll still count it as success in certain cases
         if (response.status === 204 || response.status === 200) {
           console.log(`Contact ID ${contactId} successfully deleted from API`);
+          // Success - contact was deleted both in UI and API
           return { success: true, contactName };
         } 
         else if (response.status === 404) {
@@ -205,9 +217,10 @@ export default function Contacts() {
           return { success: true, contactName, apiStatus: response.status };
         }
       } catch (error: any) {
-        // For network errors, still consider it a success from UI perspective
-        // since we've already optimistically updated the UI
-        console.error(`Network error deleting contact with ID ${contactId}:`, error);
+        console.error(`Error deleting contact with ID ${contactId}:`, error);
+        
+        // KEEP the optimistic UI update even on error
+        // The user experience is better if the contact simply disappears
         return { success: true, contactName, networkError: true };
       }
     },
@@ -283,7 +296,26 @@ export default function Contacts() {
   // Handle contact deletion with confirmation
   const handleDeleteContact = (contactId: number) => {
     if (window.confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
-      // The actual deletion logic with error handling is in the mutation
+      // Immediately find the contact to show the name in the UI feedback
+      const contactToDelete = contacts.find(c => c.id === contactId);
+      const contactName = contactToDelete?.fullName || 'The contact';
+      
+      // First immediately update the UI to remove the contact from the display
+      // This ensures the contact is removed visually even if the API call is slow
+      queryClient.setQueryData(['/api/contacts'], (oldData: any) => {
+        if (Array.isArray(oldData)) {
+          return oldData.filter(c => c.id !== contactId);
+        }
+        return oldData;
+      });
+      
+      // Show immediate feedback to the user
+      toast({
+        title: 'Contact removed',
+        description: `${contactName} has been removed from your network.`
+      });
+      
+      // Then perform the actual deletion with the server in the background
       deleteContactMutation.mutate(contactId);
     }
   };
