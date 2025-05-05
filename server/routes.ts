@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, checkStorageHealth } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import crypto from "crypto";
