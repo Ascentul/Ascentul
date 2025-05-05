@@ -56,12 +56,12 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       icon: <FileText className="h-4 w-4 text-blue-500" />
     },
     {
-      id: 'linkedin-profile',
-      title: 'Analyze your LinkedIn profile',
-      description: 'Get AI-powered insights for improvement',
+      id: 'resume-creation',
+      title: 'Create a resume draft',
+      description: 'Start building your professional resume',
       completed: false,
-      href: '/linkedin-optimizer',
-      icon: <Linkedin className="h-4 w-4 text-blue-600" />
+      href: '/resumes',
+      icon: <FileText className="h-4 w-4 text-orange-500" />
     },
     {
       id: 'network-contact',
@@ -156,7 +156,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   }, [userId]);
 
   // Save progress to localStorage (or API in the future)
-  const saveProgress = (items: ChecklistItem[], reviewCompleted: boolean) => {
+  const saveProgress = (items: ChecklistItem[], reviewCompleted: boolean, explicitlyDismissed: boolean = false) => {
     try {
       const progressData = {
         userId,
@@ -165,6 +165,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
           return acc;
         }, {} as Record<string, boolean>),
         reviewCompleted,
+        explicitlyDismissed,
         lastUpdated: new Date().toISOString()
       };
       
@@ -192,14 +193,12 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         setShowConfetti(true);
         
         toast({
-          title: "Onboarding complete!",
-          description: "✅ You've completed onboarding! Your dashboard is now fully personalized.",
+          title: "Onboarding progress!",
+          description: "✅ You've completed all main tasks! Continue using Ascentul to unlock more features.",
         });
         
-        // Hide checklist after 2 seconds
-        setTimeout(() => {
-          setShowChecklist(false);
-        }, 2000);
+        // We no longer hide the checklist automatically - the user must explicitly dismiss it
+        // Instead, show confetti and let them know they've completed all primary tasks
       }
       
       return updatedItems;
@@ -227,26 +226,37 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     setReviewUnlocked(completedCount >= 3);
   }, [completedCount]);
 
-  // Check if checklist should be hidden (all 5 primary tasks completed)
+  // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
+  // We've intentionally changed this to make sure the checklist persists
   useEffect(() => {
-    if (completedCount >= 5 && !justCompleted) {
-      // Give a short delay before hiding to allow for animation
-      const timer = setTimeout(() => {
-        setShowChecklist(false);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
+    // If all tasks completed and review completed, check if user has explicitly dismissed
+    if (completedCount >= 5 && reviewItem.completed && !justCompleted) {
+      // Check if user has explicitly chosen to dismiss the checklist
+      const storedProgress = localStorage.getItem(`checklist_progress_${userId}`);
+      if (storedProgress) {
+        const parsedProgress = JSON.parse(storedProgress);
+        if (parsedProgress.explicitlyDismissed) {
+          setShowChecklist(false);
+        }
+      }
     }
-  }, [completedCount, justCompleted]);
+  }, [completedCount, reviewItem.completed, justCompleted, userId]);
 
   // If checklist is hidden, don't render anything
   if (!showChecklist) return null;
 
   // Dismiss checklist permanently (if user clicks X)
   const dismissChecklist = () => {
-    // Mark all items as completed to hide the checklist
-    const allCompleted = checklistItems.map(item => ({ ...item, completed: true }));
-    saveProgress(allCompleted, true);
+    // We don't mark all items as completed, instead we track explicit dismissal
+    saveProgress(checklistItems, reviewItem.completed, true);
+    
+    // Show a toast to inform the user they can find this checklist on the dashboard later
+    toast({
+      title: "Checklist hidden",
+      description: "You can always find this checklist in your dashboard until all tasks are completed."
+    });
+    
+    // Hide the checklist without marking everything as complete
     setShowChecklist(false);
   };
 
