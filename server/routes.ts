@@ -13,6 +13,7 @@ import { registerSkillsRoutes } from "./skills";
 import { registerLanguagesRoutes } from "./languages";
 import { registerContactsRoutes } from "./contacts";
 import { registerJobRoutes } from "./routes/jobs";
+import { getRedirectByRole } from "./utils/redirectByRole";
 import { registerJobsAIRoutes } from "./routes/jobs-ai";
 import { registerAdzunaRoutes } from "./routes/adzuna";
 import { registerApplicationRoutes } from "./routes/applications";
@@ -427,8 +428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { password: pwd, ...safeUser } = user;
       
-      // Import the redirectByRole utility directly
-      const { getRedirectByRole } = require('./utils/redirectByRole');
+      // Use the imported getRedirectByRole utility from the top
       
       // Store the role in the session to be used by auth middleware
       req.session.role = user.role || 'user';
@@ -613,8 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return user without password
       const { password: pwd, ...safeUser } = newUser;
       
-      // Import the redirectByRole utility directly
-      const { getRedirectByRole } = require('./utils/redirectByRole');
+      // Use the already imported getRedirectByRole utility
       
       // Store the role in the session
       req.session.role = "staff";
