@@ -90,14 +90,15 @@ export default function AccountSettings() {
   // Track the current active tab
   const [activeTab, setActiveTab] = useState('profile');
   
-  // Refresh career data on component mount and whenever the tab changes to "career"
+  // No need to force refresh on component mount - rely on React Query's caching
+  // This prevents the white flash by not removing cached data
   useEffect(() => {
-    // Force a refresh of career data when the component mounts 
-    // by removing the query from cache and refetching
-    queryClient.removeQueries({ queryKey: ['/api/career-data'] });
-    refetchCareerData().then(() => {
-      console.log('Career data refreshed on component mount');
-    });
+    // Only refetch if the data is stale, which React Query handles automatically
+    // We don't need to manually removeQueries
+    if (!careerData) {
+      console.log('Career data not found in cache, fetching');
+      refetchCareerData();
+    }
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -408,10 +409,8 @@ export default function AccountSettings() {
               size="sm"
               className="flex items-center"
               onClick={() => {
-                // Force a complete refresh by completely removing the query from cache
-                queryClient.removeQueries({ queryKey: ['/api/career-data'] });
-                
-                // Then trigger a refetch
+                // Only trigger a refetch without removing query from cache
+                // This maintains the UI while fetching fresh data
                 refetchCareerData().then(() => {
                   toast({
                     title: "Career data refreshed",
@@ -426,8 +425,59 @@ export default function AccountSettings() {
           </div>
           
           {careerDataLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="space-y-6">
+              {/* Profile Completion Skeleton */}
+              <div className="mb-6 border border-gray-200 rounded-md p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
+                  <span className="text-sm font-medium animate-pulse bg-gray-200 w-12 h-6 rounded flex items-center justify-center">--%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div className="bg-gray-300 h-2.5 rounded-full animate-pulse w-1/2"></div>
+                </div>
+              </div>
+              
+              {/* Work History Skeleton */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Work History</CardTitle>
+                    <CardDescription>Your professional experience</CardDescription>
+                  </div>
+                  <div className="animate-pulse h-9 w-24 bg-gray-200 rounded-md"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="animate-pulse flex flex-col gap-2">
+                        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-100 rounded w-full"></div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Education Skeleton */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Education</CardTitle>
+                    <CardDescription>Your academic background</CardDescription>
+                  </div>
+                  <div className="animate-pulse h-9 w-24 bg-gray-200 rounded-md"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="animate-pulse flex flex-col gap-2">
+                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-100 rounded w-full"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <>
