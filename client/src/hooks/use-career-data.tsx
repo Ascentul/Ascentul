@@ -63,19 +63,14 @@ export function useCareerData() {
     queryKey: ['/api/career-data'],
     queryFn: async ({ queryKey }) => {
       try {
-        // Use cache-busting URL parameter to ensure we always get fresh data
-        const timestamp = new Date().getTime();
-        const url = `${queryKey[0]}?t=${timestamp}`;
+        // Only use a timestamp when explicitly requesting fresh data
+        // This allows React Query's caching to work properly during navigation
+        const url = queryKey[0];
         
-        console.log(`Fetching career data from ${url} at ${new Date().toISOString()}`);
+        console.log(`Fetching career data from ${url}`);
         
         const response = await fetch(url, {
           credentials: "include",
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
         });
         
         if (!response.ok) {
@@ -170,9 +165,9 @@ export function useCareerData() {
     // Disable automatic refetching on window focus to prevent unwanted refreshes
     // while editing form data, but allow manual refreshes with refetch()
     refetchOnWindowFocus: false,
-    // Better cache settings to ensure fresher data
-    staleTime: 0, // Consider data stale immediately for max freshness
-    gcTime: 1 * 60 * 1000, // 1 minute - shorter cache time (renamed from cacheTime in v5)
+    // Optimize cache settings to reduce white flashes during navigation
+    staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh for 5 minutes
+    gcTime: 10 * 60 * 1000,   // 10 minutes - keep in cache for 10 minutes (renamed from cacheTime in v5)
     retry: 1 // Only retry once on failure to prevent excessive requests
   });
 

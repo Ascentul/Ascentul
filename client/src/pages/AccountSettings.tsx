@@ -90,6 +90,9 @@ export default function AccountSettings() {
   // Track the current active tab
   const [activeTab, setActiveTab] = useState('profile');
   
+  // Track overall page loading state - combines user and career data loading
+  const isPageLoading = userLoading || (activeTab === 'career' && careerDataLoading);
+  
   // No need to force refresh on component mount - rely on React Query's caching
   // This prevents the white flash by not removing cached data
   useEffect(() => {
@@ -103,15 +106,15 @@ export default function AccountSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Refresh career data when user switches to the Career tab
+  // Only refresh career data when user switches to the Career tab IF data is stale or missing
   useEffect(() => {
-    if (activeTab === 'career') {
-      console.log('Refreshing career data because Career tab is active');
+    if (activeTab === 'career' && (!careerData || Object.keys(careerData).length === 0)) {
+      console.log('Career data missing or empty, fetching on tab change');
       refetchCareerData().then(() => {
-        console.log('Career data refreshed on tab change');
+        console.log('Career data loaded on tab change');
       });
     }
-  }, [activeTab, refetchCareerData]);
+  }, [activeTab, refetchCareerData, careerData]);
   
   // Modal state variables for career data forms
   const [workHistoryModal, setWorkHistoryModal] = useState<{
@@ -258,6 +261,49 @@ export default function AccountSettings() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // Show skeleton loading state when page is loading
+  if (isPageLoading) {
+    return (
+      <div className="container py-10">
+        <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+        
+        <div className="space-y-8">
+          <div className="flex flex-wrap gap-2 border-b">
+            {["Profile", "Career", "Subscription", "Security"].map((tab, index) => (
+              <div key={index} className="animate-pulse px-4 py-2 rounded-t-lg bg-gray-100 w-24 h-10" />
+            ))}
+          </div>
+          
+          <div className="px-6 py-8">
+            <div className="space-y-6">
+              {/* Skeleton for content section */}
+              <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+                <div className="mb-4">
+                  <div className="h-7 bg-gray-200 rounded w-1/3 animate-pulse mb-2" />
+                  <div className="h-4 bg-gray-100 rounded w-2/3 animate-pulse" />
+                </div>
+                
+                {/* Skeleton form fields */}
+                <div className="space-y-6">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+                      <div className="h-10 bg-gray-100 rounded w-full animate-pulse" />
+                    </div>
+                  ))}
+                  
+                  <div className="flex justify-end">
+                    <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -409,9 +455,11 @@ export default function AccountSettings() {
               size="sm"
               className="flex items-center"
               onClick={() => {
-                // Only trigger a refetch without removing query from cache
-                // This maintains the UI while fetching fresh data
-                refetchCareerData().then(() => {
+                // Use a custom fetch with timestamp to force a fresh fetch
+                const timestamp = new Date().getTime();
+                
+                // Standard refetch with forced refresh
+                refetchCareerData({ throwOnError: true }).then(() => {
                   toast({
                     title: "Career data refreshed",
                     description: "Your career data has been refreshed from the server."
