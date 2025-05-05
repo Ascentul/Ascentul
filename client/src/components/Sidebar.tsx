@@ -119,7 +119,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       setActiveSection('job-search');
     } else if (location.startsWith('/goals') || location.startsWith('/career-path') || location.startsWith('/contacts')) {
       setActiveSection('career-growth');
-    } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter') || location.startsWith('/linkedin-optimizer')) {
+    } else if (location.startsWith('/projects') || location.startsWith('/resume') || location.startsWith('/cover-letter')) {
       setActiveSection('portfolio');
     } else if (location.startsWith('/ai-coach')) {
       setActiveSection('ai-coach');
