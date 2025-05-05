@@ -122,20 +122,20 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       icon: <CheckCircle className="h-4 w-4 text-green-500" />
     },
     {
-      id: 'job-application',
-      title: 'Track your first application',
-      description: 'Start managing your job applications',
-      completed: false,
-      href: '/application-tracker',
-      icon: <FileText className="h-4 w-4 text-blue-500" />
-    },
-    {
       id: 'resume-creation',
       title: 'Create a resume draft',
       description: 'Start building your professional resume',
       completed: false,
       href: '/resume',
       icon: <FileText className="h-4 w-4 text-orange-500" />
+    },
+    {
+      id: 'job-application',
+      title: 'Track your first application',
+      description: 'Start managing your job applications',
+      completed: false,
+      href: '/application-tracker',
+      icon: <FileText className="h-4 w-4 text-blue-500" />
     },
     {
       id: 'network-contact',
