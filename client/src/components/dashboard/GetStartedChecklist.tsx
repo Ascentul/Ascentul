@@ -667,15 +667,17 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   <p className="text-xs text-muted-foreground">{item.description}</p>
                 </div>
                 
-                <Link href={item.href}>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
-                  >
-                    {item.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </Link>
+                {!item.completed && (
+                  <Link href={item.href}>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
+                    >
+                      Go <ChevronRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             ))}
             
@@ -710,14 +712,16 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                 <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
               </div>
               
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
-                onClick={toggleReviewCompletion}
-              >
-                {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
-              </Button>
+              {!reviewItem.completed && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
+                  onClick={toggleReviewCompletion}
+                >
+                  Go <ChevronRight className="ml-1 h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
