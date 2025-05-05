@@ -134,7 +134,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('auth-logout');
     
     const result = await loginMutation.mutateAsync({ email, password, loginType });
-    return result.user;
+    // Return the full result object including redirectPath
+    return result;
   };
 
   const logout = () => {

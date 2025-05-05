@@ -33,7 +33,8 @@ export default function AdminLoginPage() {
       localStorage.removeItem('auth-logout');
       
       // Use the login function from useUser hook with a special 'admin' indicator
-      const user = await login(loginUsername, loginPassword, 'admin');
+      const result = await login(loginUsername, loginPassword, 'admin');
+      const { user, redirectPath } = result;
       
       // Check if the logged-in user is an admin - this is a fallback
       // in case the server doesn't handle the login type correctly
@@ -55,9 +56,12 @@ export default function AdminLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // The redirect will be handled by useUserData.tsx, but this is a fallback
-      // in case the server doesn't provide a redirectPath
-      if (!user.redirectPath) {
+      // The redirect should be handled by useUserData.tsx, but this is a fallback
+      if (redirectPath) {
+        window.location.href = redirectPath;
+      } else {
+        // If no redirectPath is provided, default to /admin
+        console.log("No redirectPath provided, defaulting to /admin");
         window.location.href = '/admin';
       }
     } catch (error) {
