@@ -241,15 +241,25 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
     // Log the start of question generation
     logRequest('generate-question', 'Generate question request received');
     
+    // Validate the request data
     const validationResult = generateQuestionSchema.safeParse(req.body);
     
+    // ✅ Log whether validation passes
     if (!validationResult.success) {
-      logResponse('generate-question', 400, 'Invalid request data', validationResult.error.format());
+      logResponse('generate-question', 400, 'Validation failed', {
+        validationErrors: validationResult.error.format(),
+        errorMessage: 'Request validation failed - check input format'
+      });
       return res.status(400).json({ 
         error: 'Invalid request data', 
         details: validationResult.error.format() 
       });
     }
+    
+    // ✅ Log validation success
+    logRequest('generate-question', 'Validation passed successfully', {
+      validationSuccess: true
+    });
     
     const { jobTitle, company, jobDescription, conversation } = validationResult.data;
     
@@ -257,11 +267,18 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       jobTitle,
       company,
       hasJobDescription: !!jobDescription,
+      jobDescriptionLength: jobDescription?.length || 0,
       conversationLength: conversation.length
     });
     
     // Generate dynamic system prompt with user profile data
     const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
+    
+    // ✅ Log the system prompt length and excerpt
+    logRequest('generate-question', 'System prompt generated', {
+      systemPromptLength: systemPrompt.length,
+      systemPromptExcerpt: systemPrompt.substring(0, 100) + (systemPrompt.length > 100 ? '...' : '')
+    });
     
     // Prepare conversation history for OpenAI in the expected format
     const messages: OpenAIMessage[] = [
@@ -304,13 +321,18 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
       logRequest('generate-question', 'Continuing existing interview', { prompt: continuePrompt });
     }
     
-    logRequest('generate-question', 'Calling OpenAI API', {
+    // ✅ Log the final messages array being sent to OpenAI
+    logRequest('generate-question', 'Preparing OpenAI API call', {
       model: 'gpt-4o',
       messageCount: messages.length,
-      isNewConversation: conversation.length === 0
+      isNewConversation: conversation.length === 0,
+      messagesTotal: JSON.stringify(messages.map(m => ({ role: m.role, contentLength: m.content.length })))
     });
     
     try {
+      // ✅ Log right before OpenAI call
+      logRequest('generate-question', 'Calling OpenAI API now');
+      
       // Call OpenAI to generate a question with optimized parameters for natural conversation
       const completion = await openaiInstance.chat.completions.create({
         model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -321,6 +343,28 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
         frequency_penalty: 0.35, // Encourage more diverse vocabulary
         stream: false // Using non-streaming for reliability in this version
       });
+      
+      // ✅ Log after successful OpenAI call
+      logRequest('generate-question', 'OpenAI API call successful', {
+        completionId: completion.id,
+        model: completion.model,
+        usage: completion.usage,
+        finishReason: completion.choices[0].finish_reason
+      });
+      
+      // ✅ Check for unexpected response format
+      if (!completion.choices || !completion.choices[0] || !completion.choices[0].message || 
+          !completion.choices[0].message.content) {
+        const errorMsg = 'Unexpected OpenAI response format';
+        logResponse('generate-question', 500, errorMsg, {
+          unexpectedFormat: true,
+          responseStructure: JSON.stringify(completion)
+        });
+        return res.status(500).json({ 
+          error: 'Failed to generate interview question', 
+          details: errorMsg
+        });
+      }
       
       const aiResponse = completion.choices[0].message.content;
       
@@ -336,14 +380,56 @@ router.post('/generate-question', requireAuth, async (req: Request, res: Respons
         aiResponse: aiResponse // Add this field to match analyze-response format
       });
     } catch (openaiError: any) {
-      logResponse('generate-question', 500, 'OpenAI API error', openaiError);
+      // ✅ Enhanced error logging for OpenAI errors
+      const errorDetails: any = {
+        message: openaiError.message || 'Unknown OpenAI error',
+        statusCode: openaiError.response?.status,
+        responseData: openaiError.response?.data || {},
+        stack: openaiError.stack,
+      };
+      
+      // ✅ Check if error is related to authentication
+      const isAuthError = 
+        errorDetails.statusCode === 401 || 
+        errorDetails.statusCode === 403 || 
+        (errorDetails.message && errorDetails.message.toLowerCase().includes('api key'));
+      
+      // ✅ Check if error is related to input validation
+      const isInputError = 
+        errorDetails.statusCode === 400 || 
+        errorDetails.statusCode === 422 ||
+        (errorDetails.responseData && errorDetails.responseData.error && 
+         errorDetails.responseData.error.type === 'invalid_request_error');
+      
+      // ✅ Include specific warning for API key issues
+      if (errorDetails.message && errorDetails.message.toLowerCase().includes('api key')) {
+        console.warn('⚠️ OPENAI API KEY ISSUE DETECTED: The API key may be invalid, revoked, or missing');
+        errorDetails.keyIssue = true;
+      }
+      
+      logResponse('generate-question', 500, 'OpenAI API error', {
+        ...errorDetails,
+        isAuthError,
+        isInputError,
+        errorType: isAuthError ? 'authentication' : isInputError ? 'invalid_input' : 'service_error'
+      });
+      
       return res.status(500).json({ 
         error: 'Failed to generate interview question', 
         details: openaiError.message || 'Unknown error with OpenAI API'
       });
     }
   } catch (error: any) {
-    logResponse('generate-question', 500, 'Error generating interview question', error);
+    // ✅ Enhanced error logging for general errors
+    const errorDetails = {
+      message: error.message || 'Unknown error',
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    };
+    
+    logResponse('generate-question', 500, 'General error generating interview question', errorDetails);
+    
     return res.status(500).json({ 
       error: 'Failed to generate interview question',
       details: error.message || 'Unknown error'
