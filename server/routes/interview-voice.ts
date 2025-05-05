@@ -96,36 +96,52 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
     try {
       // Fetch user data from storage if available
       try {
-        const userWorkHistory = await storage.getUserWorkHistory(userId);
+        const userWorkHistory = await storage.getWorkHistory(userId);
         if (userWorkHistory && userWorkHistory.length > 0) {
-          workHistory = userWorkHistory;
+          // Format work history items to match the expected structure
+          workHistory = userWorkHistory.map(item => ({
+            company: item.company || "",
+            position: item.position || "",
+            startDate: item.startDate || "",
+            endDate: item.endDate || "Present",
+            description: item.description || ""
+          }));
         }
       } catch (err) {
         console.log("Work history not available in storage");
       }
       
       try {
-        const userEducation = await storage.getUserEducation(userId);
+        const userEducation = await storage.getEducation(userId);
         if (userEducation && userEducation.length > 0) {
-          education = userEducation;
+          // Format education items to match the expected structure
+          education = userEducation.map(item => ({
+            institution: item.institution || "",
+            degree: item.degree || "",
+            startDate: item.startDate || "",
+            endDate: item.endDate || "Present",
+            achievements: Array.isArray(item.achievements) ? item.achievements : []
+          }));
         }
       } catch (err) {
         console.log("Education not available in storage");
       }
       
       try {
-        const userSkills = await storage.getUserSkills(userId);
+        const userSkills = await storage.getSkills(userId);
         if (userSkills && userSkills.length > 0) {
-          skills = userSkills;
+          // Extract skill names to create a string array
+          skills = userSkills.map(skill => skill.name);
         }
       } catch (err) {
         console.log("Skills not available in storage");
       }
       
       try {
-        const userAchievements = await storage.getUserAchievements(userId);
+        const userAchievements = await storage.getAchievements(userId);
         if (userAchievements && userAchievements.length > 0) {
-          achievements = userAchievements;
+          // Extract achievement descriptions to create a string array
+          achievements = userAchievements.map(achievement => achievement.description);
         }
       } catch (err) {
         console.log("Achievements not available in storage");
@@ -398,70 +414,129 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
     if (isLastQuestion) {
       logRequest('analyze-response', 'Generating comprehensive interview feedback');
       
-      // Generate comprehensive feedback for the entire interview
-      const feedbackMessages: OpenAIMessage[] = [
-        {
-          role: 'system',
-          content: `You are an expert career coach providing feedback on a job interview for a ${jobTitle} position at ${company}.
-          Analyze the entire interview conversation and provide constructive, actionable feedback.
-          Include specific strengths, areas for improvement, and 3-5 concrete suggestions.
-          Format your response in a structured way with clear sections.
-          
-          Base your feedback on these details about the job and candidate:
-          ${systemPrompt}`
-        }
-      ];
-      
-      // Add conversation history
-      conversation.forEach(message => {
-        feedbackMessages.push({
-          role: message.role,
-          content: message.content
-        });
-      });
-      
-      // Add the final user response
-      feedbackMessages.push({
-        role: 'user',
-        content: userResponse
-      });
-      
-      feedbackMessages.push({
-        role: 'user',
-        content: 'Please provide comprehensive feedback on my interview performance.'
-      });
-      
-      logRequest('analyze-response', 'Calling OpenAI API for feedback generation', {
-        messageCount: feedbackMessages.length
-      });
-      
       try {
         // Check if OpenAI API key is available before attempting API call
         if (!process.env.OPENAI_API_KEY) {
           logResponse('analyze-response', 500, 'OpenAI API key missing');
-          return res.status(500).json({ error: 'OpenAI API configuration is missing' });
+          return res.status(500).json({ 
+            error: 'OpenAI API configuration is missing',
+            details: 'The OpenAI API key is required for interview functionality.'
+          });
         }
         
-        // Only use real OpenAI API responses
-        // Call OpenAI to generate comprehensive, natural-sounding feedback
-        const completion = await openaiInstance.chat.completions.create({
-          model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          messages: feedbackMessages,
-          temperature: 0.7, // Balanced creativity for natural language
-          max_tokens: 1000, // Allow for detailed feedback
-          presence_penalty: 0.4, // Reduce repetitiveness
-          frequency_penalty: 0.3, // Encourage more diverse vocabulary and natural phrasing
-          stream: false // Using non-streaming for reliability in this version
+        // Get or create an interview assistant
+        const { assistantId } = await getOrCreateInterviewAssistant();
+        
+        // Create a thread with interview context and conversation history
+        const thread = await openaiInstance.beta.threads.create({
+          messages: [
+            {
+              role: "user",
+              content: `I'm completing a practice interview for the position of ${jobTitle} at ${company}.
+              
+              Please analyze our full conversation and provide comprehensive feedback on my interview performance. 
+              Include specific strengths, areas for improvement, and 3-5 concrete suggestions.
+              Format your response in a structured way with clear sections.`
+            }
+          ]
         });
         
-        const feedback = completion.choices[0].message.content;
-        
-        if (feedback === null) {
-          logResponse('analyze-response', 500, 'Empty feedback received from OpenAI');
-          return res.status(500).json({ error: 'Failed to generate feedback', details: 'No content received from AI' });
+        // Add conversation history
+        for (const message of conversation) {
+          await openaiInstance.beta.threads.messages.create(
+            thread.id,
+            {
+              role: message.role === 'assistant' ? 'assistant' : 'user',
+              content: message.content
+            }
+          );
         }
         
-        logResponse('analyze-response', 200, 'Successfully generated final feedback', {
+        // Add the final user response if it's not already in the conversation
+        await openaiInstance.beta.threads.messages.create(
+          thread.id,
+          {
+            role: "user",
+            content: userResponse
+          }
+        );
+        
+        // Final request for comprehensive feedback
+        await openaiInstance.beta.threads.messages.create(
+          thread.id,
+          {
+            role: "user",
+            content: "Please provide comprehensive feedback on my interview performance. Include my strengths, areas for improvement, and specific suggestions for how I can improve."
+          }
+        );
+        
+        // Run the assistant on the thread with enhanced instructions for final feedback
+        const run = await openaiInstance.beta.threads.runs.create(
+          thread.id,
+          {
+            assistant_id: assistantId,
+            instructions: `You are an expert career coach providing feedback on a job interview for a ${jobTitle} position at ${company}.
+            Analyze the entire interview conversation and provide constructive, actionable feedback.
+            Include specific strengths, areas for improvement, and 3-5 concrete suggestions.
+            Format your response in a structured way with clear sections.
+            Be specific, detailed, and actionable in your feedback.`
+          }
+        );
+        
+        // Wait for completion
+        let completedRun = await openaiInstance.beta.threads.runs.retrieve(
+          thread.id,
+          run.id
+        );
+        
+        // Poll for completion
+        while (completedRun.status !== "completed") {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          completedRun = await openaiInstance.beta.threads.runs.retrieve(
+            thread.id,
+            run.id
+          );
+          
+          if (["failed", "cancelled", "expired"].includes(completedRun.status)) {
+            throw new Error(`Run ended with status: ${completedRun.status}`);
+          }
+        }
+        
+        // Get messages from the thread
+        const messages = await openaiInstance.beta.threads.messages.list(thread.id);
+        
+        // Get the latest assistant message (the feedback)
+        const feedbackMessage = messages.data
+          .filter(msg => msg.role === "assistant")
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        
+        if (!feedbackMessage || !feedbackMessage.content || feedbackMessage.content.length === 0) {
+          throw new Error("No feedback content received from assistant");
+        }
+        
+        // Extract the text content safely handling different content types
+        let feedback = '';
+        const content = feedbackMessage.content[0];
+        
+        // Handle the different potential response formats
+        if ('text' in content) {
+          // Handle text content when directly accessible
+          feedback = typeof content.text === 'object' 
+            ? content.text.value 
+            : String(content.text);
+        } else if ('type' in content && content.type === 'text' && 'text' in content) {
+          // Handle typed text content (newer API response format)
+          feedback = typeof content.text === 'object'
+            ? content.text.value
+            : String(content.text);
+        } else {
+          // Log the content for debugging and provide a meaningful error
+          console.error("Unexpected content format from OpenAI:", JSON.stringify(content, null, 2));
+          throw new Error("Unsupported response content type from assistant");
+        }
+        
+        logResponse('analyze-response', 200, 'Successfully generated final feedback via assistant', {
+          threadId: thread.id,
           feedbackLength: feedback.length,
           feedbackExcerpt: feedback.substring(0, 50) + (feedback.length > 50 ? '...' : '')
         });
@@ -469,134 +544,179 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
         // Return feedback and indicate this was the last question
         return res.status(200).json({ 
           feedback, 
-          isLastQuestion: true 
+          isLastQuestion: true,
+          threadId: thread.id
         });
-      } catch (openaiError: any) {
-        logResponse('analyze-response', 500, 'OpenAI API error during feedback generation', openaiError);
+      } catch (error: any) {
+        // If the Assistants API fails, provide a clear error
+        console.error('Error using OpenAI Assistants API for feedback:', error);
+        logResponse('analyze-response', 500, 'Error using OpenAI Assistants API for feedback', {
+          errorMessage: error?.message || 'Unknown error'
+        });
         
-        // Always provide a fallback response regardless of the error
-        console.log('[Interview Voice] Providing fallback response due to error in analyze-response');
-        const mockFeedback = `
-# Interview Feedback for ${jobTitle}
-
-## Overall Impression
-You demonstrated good communication skills in this interview. Your answers showed enthusiasm for the position.
-
-## Strengths
-- You articulated your relevant experience well
-- You showed understanding of the technical requirements
-
-## Areas for Improvement
-- Consider using the STAR method more consistently
-- Provide more specific examples relevant to this role
-
-## Recommendations
-1. Practice structuring your answers more clearly
-2. Research more about ${company}'s specific needs
-3. Prepare stronger examples that highlight your relevant skills
-
-With some refinement, your interview performance would be even stronger.
-`;
-        
-        return res.status(200).json({ 
-          feedback: mockFeedback, 
-          isLastQuestion: true 
+        // Return a helpful error message to the client
+        return res.status(500).json({ 
+          error: 'Failed to generate interview feedback', 
+          details: error.message || 'An error occurred with the AI assistant',
+          isLastQuestion: true
         });
       }
     } else {
       logRequest('analyze-response', 'Processing ongoing interview response');
       
-      // For regular ongoing interview, generate the next AI response directly
-      // First, prepare system message for the interview conversation
-      const interviewSystemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
-      
-      const interviewMessages: OpenAIMessage[] = [
-        { role: 'system', content: interviewSystemPrompt }
-      ];
-      
-      // Add the full conversation history 
-      conversation.forEach((message, index) => {
-        interviewMessages.push({
-          role: message.role,
-          content: message.content
-        });
-        
-        // Log messages for debugging
-        logRequest('analyze-response', `Conversation message ${index}`, {
-          role: message.role,
-          contentLength: message.content.length,
-          excerpt: message.content.substring(0, 30) + (message.content.length > 30 ? '...' : '')
-        });
-      });
-      
-      // Add the user's latest response (which might not be in the conversation array yet)
-      interviewMessages.push({
-        role: 'user',
-        content: userResponse
-      });
-      
-      // Add a specific prompt to continue the interview with feedback and next question
-      interviewMessages.push({
-        role: 'user',
-        content: 'Please provide brief feedback on my answer, then ask your next interview question.'
-      });
-      
-      logRequest('analyze-response', 'Calling OpenAI API for next question generation', {
-        messageCount: interviewMessages.length,
-        systemPromptLength: interviewSystemPrompt.length
-      });
-      
       try {
         // Check if OpenAI API key is available before attempting API call
         if (!process.env.OPENAI_API_KEY) {
           logResponse('analyze-response', 500, 'OpenAI API key missing');
-          return res.status(500).json({ error: 'OpenAI API configuration is missing' });
+          return res.status(500).json({ 
+            error: 'OpenAI API configuration is missing',
+            details: 'The OpenAI API key is required for interview functionality.'
+          });
         }
         
-        // Only use real OpenAI API responses
-        // Generate the next AI response with enhanced human-like conversation parameters
-        // Currently OpenAI's streaming requires a different handling approach
-        // For now, we'll use non-streaming to ensure reliability, but we'll prioritize
-        // natural conversation parameters for better quality
-        const completion = await openaiInstance.chat.completions.create({
-          model: 'gpt-4o', // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-          messages: interviewMessages,
-          temperature: 0.75, // Slightly higher creativity for more varied, natural responses
-          max_tokens: 500, // Enough for detailed, conversational responses
-          presence_penalty: 0.6, // Strongly encourage the AI to ask new questions
-          frequency_penalty: 0.5, // Penalize repetition for natural conversation
-          stream: false // Using non-streaming for reliability in this version
-        });
+        // Get or create an interview assistant
+        const { assistantId } = await getOrCreateInterviewAssistant();
         
-        const aiResponse = completion.choices[0].message.content;
+        // Check if we have a thread ID passed from the client
+        let threadId: string | undefined = req.body.threadId;
         
-        if (aiResponse === null) {
-          logResponse('analyze-response', 500, 'Empty AI response received from OpenAI');
-          return res.status(500).json({ error: 'Failed to generate AI response', details: 'No content received from AI' });
+        // Use existing thread or create a new one
+        if (!threadId) {
+          // Create a new thread with initial context
+          let contextMessage = `I'm preparing for an interview for the position of ${jobTitle} at ${company}.`;
+          
+          if (jobDescription && jobDescription.length > 10) {
+            contextMessage += `\n\nHere is the complete job description:\n${jobDescription}`;
+          }
+          
+          const thread = await openaiInstance.beta.threads.create({
+            messages: [
+              {
+                role: "user",
+                content: contextMessage
+              }
+            ]
+          });
+          
+          threadId = thread.id;
+          
+          // Add conversation history if this is not the first message
+          if (conversation && conversation.length > 0) {
+            for (const message of conversation) {
+              await openaiInstance.beta.threads.messages.create(
+                threadId,
+                {
+                  role: message.role === 'assistant' ? 'assistant' : 'user',
+                  content: message.content
+                }
+              );
+            }
+          }
         }
         
-        logResponse('analyze-response', 200, 'Successfully generated AI response', {
-          aiResponseLength: aiResponse.length,
-          aiResponseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
+        // Add the user's latest response
+        await openaiInstance.beta.threads.messages.create(
+          threadId,
+          {
+            role: "user",
+            content: userResponse
+          }
+        );
+        
+        // Add a prompt for feedback and next question
+        await openaiInstance.beta.threads.messages.create(
+          threadId,
+          {
+            role: "user",
+            content: "Please provide brief feedback on my answer, then ask your next interview question."
+          }
+        );
+        
+        // Run the assistant on the thread
+        const run = await openaiInstance.beta.threads.runs.create(
+          threadId,
+          {
+            assistant_id: assistantId,
+            instructions: `You are a warm, professional career coach. The user is applying for the role of ${jobTitle} at ${company}. 
+            Study the job description below and generate realistic, role-specific interview questions. 
+            Do not repeat the job description verbatim. 
+            Ask smart, targeted questions a real hiring manager would. 
+            After each answer, provide feedback on clarity, content, and confidence. 
+            Adjust your tone to remain supportive and human.`
+          }
+        );
+        
+        // Wait for completion
+        let completedRun = await openaiInstance.beta.threads.runs.retrieve(
+          threadId,
+          run.id
+        );
+        
+        // Poll for completion
+        while (completedRun.status !== "completed") {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          completedRun = await openaiInstance.beta.threads.runs.retrieve(
+            threadId,
+            run.id
+          );
+          
+          if (["failed", "cancelled", "expired"].includes(completedRun.status)) {
+            throw new Error(`Run ended with status: ${completedRun.status}`);
+          }
+        }
+        
+        // Get messages from the thread
+        const messages = await openaiInstance.beta.threads.messages.list(threadId);
+        
+        // Get the latest assistant message (the feedback + next question)
+        const responseMessage = messages.data
+          .filter(msg => msg.role === "assistant")
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        
+        if (!responseMessage || !responseMessage.content || responseMessage.content.length === 0) {
+          throw new Error("No response content received from assistant");
+        }
+        
+        // Extract the text content safely handling different content types
+        let aiResponse = '';
+        const content = responseMessage.content[0];
+        if ('text' in content) {
+          // Handle text content
+          aiResponse = typeof content.text === 'object' 
+            ? content.text.value 
+            : content.text;
+        } else if (content.type === 'text') {
+          // Alternative text content format
+          aiResponse = content.text.value;
+        } else {
+          // Fallback for other content types
+          throw new Error("Unsupported response content type from assistant");
+        }
+        
+        logResponse('analyze-response', 200, 'Successfully generated next question via assistant', {
+          threadId,
+          responseLength: aiResponse.length,
+          responseExcerpt: aiResponse.substring(0, 50) + (aiResponse.length > 50 ? '...' : '')
         });
         
-        // Return the AI's next response directly
+        // Return the AI's next response with the thread ID
         return res.status(200).json({ 
           isLastQuestion: false,
-          aiResponse
+          aiResponse,
+          threadId
         });
-      } catch (openaiError: any) {
-        logResponse('analyze-response', 500, 'OpenAI API error during response generation', openaiError);
+      } catch (error: any) {
+        // If the Assistants API fails, provide a clear error
+        console.error('Error using OpenAI Assistants API for ongoing interview:', error);
+        logResponse('analyze-response', 500, 'Error using OpenAI Assistants API for ongoing interview', {
+          errorMessage: error?.message || 'Unknown error'
+        });
         
-        // Always provide a fallback response regardless of the error
-        // This ensures the feature works even when OpenAI has problems
-        console.log('[Interview Voice] Providing fallback response for ongoing interview due to error');
-        
-        const fallbackResponse = `Thank you for that answer. Let me ask you another question: What would you say are your greatest strengths that make you a good fit for this ${jobTitle} position at ${company}?`;
-        
-        return res.status(200).json({ 
-          isLastQuestion: false,
-          aiResponse: fallbackResponse
+        // Return a helpful error message to the client
+        return res.status(500).json({ 
+          error: 'Failed to generate interview question', 
+          details: error.message || 'An error occurred with the AI assistant',
+          isLastQuestion: false
         });
       }
     }
