@@ -1137,6 +1137,7 @@ router.post('/text-to-speech', requireLoginFallback, async (req: Request, res: R
       const speedToUse = speed || 1.12; // Slightly faster than normal for natural coaching conversational pace
       
       logRequest('text-to-speech', `Using premium voice quality: model=tts-1-hd, voice=nova, speed=${speedToUse}`);
+      
       const mp3 = await openaiInstance.audio.speech.create({
         model: 'tts-1-hd', // Always use the highest quality HD model for premium voice quality
         voice: 'nova', // Force nova voice for consistency - it's the most natural and professional sounding
