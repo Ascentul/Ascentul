@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import Confetti from '@/components/Confetti';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useReviewPopup } from '@/components/ReviewPopup';
 
 // Define checklist item interface
 interface ChecklistItem {
@@ -30,6 +31,7 @@ interface GetStartedChecklistProps {
 // Main component
 export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const { toast } = useToast();
+  const { openReviewPopup, closeReviewPopup, ReviewPopupComponent } = useReviewPopup();
   
   // Fetch career data to check profile completion
   const { data: careerData } = useQuery({
@@ -305,11 +307,23 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
 
   // Toggle review completion
   const toggleReviewCompletion = () => {
+    // Open the review popup instead of immediately marking as complete
+    openReviewPopup();
+  };
+  
+  // Handle successful review submission
+  const handleReviewSubmitSuccess = () => {
     setReviewItem(prev => {
-      const updated = { ...prev, completed: !prev.completed };
+      const updated = { ...prev, completed: true };
       
       // Save progress
-      saveProgress(checklistItems, updated.completed);
+      saveProgress(checklistItems, true);
+      
+      // Show success toast
+      toast({
+        title: "Thank you for your feedback!",
+        description: "Your review has been recorded. We appreciate your input.",
+      });
       
       return updated;
     });
@@ -594,6 +608,9 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
       variants={fadeIn}
       className="mb-6"
     >
+      {/* Review Popup */}
+      <ReviewPopupComponent onSubmitSuccess={handleReviewSubmitSuccess} />
+      
       {/* Confetti effect for completion */}
       <Confetti active={showConfetti} duration={2000} />
       
@@ -700,15 +717,14 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
                   <p className="text-xs text-muted-foreground">{reviewItem.description}</p>
                 </div>
                 
-                <Link href={reviewItem.href}>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
-                  >
-                    {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-shrink-0 ml-2 h-7 px-2 text-xs whitespace-nowrap"
+                  onClick={toggleReviewCompletion}
+                >
+                  {reviewItem.completed ? 'View' : 'Go'} <ChevronRight className="ml-1 h-3 w-3" />
+                </Button>
               </div>
             )}
           </div>
