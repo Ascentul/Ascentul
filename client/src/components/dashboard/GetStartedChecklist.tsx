@@ -36,13 +36,11 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     queryKey: ['/api/career-data'],
     queryFn: async () => {
       try {
-        return await apiRequest({
-          url: '/api/career-data',
-          method: 'GET',
-        });
+        const res = await apiRequest('GET', '/api/career-data');
+        return await res.json();
       } catch (error) {
         console.error('Error fetching career data:', error);
-        return null;
+        return {};
       }
     },
   });
@@ -52,10 +50,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     queryKey: ['/api/contacts'],
     queryFn: async () => {
       try {
-        return await apiRequest({
-          url: '/api/contacts',
-          method: 'GET',
-        });
+        const res = await apiRequest('GET', '/api/contacts');
+        return await res.json();
       } catch (error) {
         console.error('Error fetching network contacts:', error);
         return [];
@@ -68,10 +64,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     queryKey: ['/api/goals'],
     queryFn: async () => {
       try {
-        return await apiRequest({
-          url: '/api/goals',
-          method: 'GET',
-        });
+        const res = await apiRequest('GET', '/api/goals');
+        return await res.json();
       } catch (error) {
         console.error('Error fetching user goals:', error);
         return [];
@@ -84,10 +78,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     queryKey: ['/api/job-applications'],
     queryFn: async () => {
       try {
-        return await apiRequest({
-          url: '/api/job-applications',
-          method: 'GET',
-        });
+        const res = await apiRequest('GET', '/api/job-applications');
+        return await res.json();
       } catch (error) {
         console.error('Error fetching job applications:', error);
         return [];
@@ -100,10 +92,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     queryKey: ['/api/resumes'],
     queryFn: async () => {
       try {
-        return await apiRequest({
-          url: '/api/resumes',
-          method: 'GET',
-        });
+        const res = await apiRequest('GET', '/api/resumes');
+        return await res.json();
       } catch (error) {
         console.error('Error fetching user resumes:', error);
         return [];
@@ -340,6 +330,25 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   const [hasUpdatedApplicationItem, setHasUpdatedApplicationItem] = useState(false);
   const [hasUpdatedResumeItem, setHasUpdatedResumeItem] = useState(false);
   const [hasUpdatedCareerProfileItem, setHasUpdatedCareerProfileItem] = useState(false);
+  
+  // Calculate career profile completion percentage
+  const calculateProfileCompletion = (data: any) => {
+    if (!data) return 0;
+    
+    const hasWorkHistory = data.workHistory && Array.isArray(data.workHistory) && data.workHistory.length > 0;
+    const hasEducation = data.educationHistory && Array.isArray(data.educationHistory) && data.educationHistory.length > 0;
+    const hasSkills = data.skills && Array.isArray(data.skills) && data.skills.length > 0;
+    const hasCertifications = data.certifications && Array.isArray(data.certifications) && data.certifications.length > 0;
+    
+    // Calculate completion percentage - each category is worth 25%
+    let completionPercentage = 0;
+    if (hasWorkHistory) completionPercentage += 25;
+    if (hasEducation) completionPercentage += 25;
+    if (hasSkills) completionPercentage += 25;
+    if (hasCertifications) completionPercentage += 25;
+    
+    return completionPercentage;
+  };
   
   // Update the network contact checklist item based on actual data
   useEffect(() => {
