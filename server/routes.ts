@@ -428,17 +428,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password: pwd, ...safeUser } = user;
       
       // Add redirect paths based on user role and login type for frontend to handle
+      // Use the role-based redirect mapping
+      const routeMap = {
+        user: '/dashboard',
+        university_user: '/university',
+        university_admin: '/university-admin',
+        staff: '/staff-dashboard',
+        super_admin: '/admin',
+        admin: '/admin'
+      };
+      
+      // Store the role in the session to be used by auth middleware
+      req.session.role = user.role || 'user';
+      
+      // Determine redirectPath based on userType for backward compatibility
+      // and also consider the role field for future use
       let redirectPath;
-      if (user.userType === "admin") {
-        redirectPath = "/admin"; // Fixed: using /admin instead of /admin-dashboard
-      } else if (user.userType === "staff") {
-        redirectPath = "/staff-dashboard";
-      } else if (user.userType === "university_admin") {
-        // University admins always go to the admin dashboard regardless of login type
-        redirectPath = "/university-admin/dashboard";
+      
+      // First try to use the role field if it exists and has a valid mapping
+      if (user.role && routeMap[user.role]) {
+        redirectPath = routeMap[user.role];
       } else {
-        // All other users (including university_student) go to the regular career dashboard
-        redirectPath = "/career-dashboard";
+        // Fall back to userType-based routing
+        if (user.userType === "admin") {
+          redirectPath = "/admin"; 
+        } else if (user.userType === "staff") {
+          redirectPath = "/staff-dashboard";
+        } else if (user.userType === "university_admin") {
+          redirectPath = "/university-admin/dashboard";
+        } else {
+          redirectPath = "/dashboard";
+        }
       }
       
       res.status(200).json({ user: safeUser, redirectPath });
@@ -452,6 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Clear the session
       if (req.session) {
         req.session.userId = undefined;
+        req.session.role = undefined;
         
         // Destroy the session
         req.session.destroy((err) => {
