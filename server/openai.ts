@@ -488,7 +488,22 @@ Your response must be in JSON format with the following structure:
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    // Enhanced error handling for JSON parsing
+    let result = {};
+    try {
+      const content = response.choices[0].message.content || "{}";
+      result = JSON.parse(content);
+      
+      // Check if the result is actually an object
+      if (typeof result !== 'object' || result === null) {
+        console.warn("Response was not a valid JSON object:", content);
+        result = {};
+      }
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError);
+      console.warn("Received invalid JSON response:", response.choices[0].message.content);
+      result = {};
+    }
     
     // Apply default values for any missing fields to ensure consistent structure
     return {
@@ -667,7 +682,22 @@ ${companyName ? `Company: ${companyName}` : ''}`
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    // Enhanced error handling for JSON parsing
+    let result = {};
+    try {
+      const content = response.choices[0].message.content || "{}";
+      result = JSON.parse(content);
+      
+      // Check if the result is actually an object
+      if (typeof result !== 'object' || result === null) {
+        console.warn("Response was not a valid JSON object:", content);
+        result = {};
+      }
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError);
+      console.warn("Received invalid JSON response:", response.choices[0].message.content);
+      result = {};
+    }
 
     // Ensure all required fields are present with defaults if missing
     return {
