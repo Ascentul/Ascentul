@@ -329,7 +329,8 @@ Your response must be in JSON format with the following structure:
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const content = response.choices[0].message.content;
+    const result = JSON.parse(content !== null ? content : "{}");
     
     // Apply default values for any missing fields to ensure consistent structure
     return {
