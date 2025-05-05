@@ -173,7 +173,10 @@ export default function ContactsTable({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-red-600"
-                      onClick={() => onDeleteContact(contact.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent event bubbling
+                        onDeleteContact(contact.id);
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete contact
