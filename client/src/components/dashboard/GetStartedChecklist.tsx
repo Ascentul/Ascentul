@@ -113,7 +113,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
           setChecklistItems(prevItems => 
             prevItems.map(item => ({
               ...item,
-              completed: parsedProgress.items[item.id] || false
+              completed: parsedProgress.items && parsedProgress.items[item.id] || false
             }))
           );
           
@@ -123,29 +123,18 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
             completed: parsedProgress.reviewCompleted || false
           }));
           
-          // Check if we should show the checklist
-          // Hide if all 5 primary tasks are completed
-          const allCompleted = 
-            Object.values(parsedProgress.items).filter(Boolean).length >= 5;
-          
-          setShowChecklist(!allCompleted);
+          // Only hide the checklist if explicitly dismissed by the user
+          // This ensures the checklist persists for all users until they explicitly dismiss it
+          setShowChecklist(!parsedProgress.explicitlyDismissed);
         } else {
-          // Mock some random completion (for demo)
-          // In production, this would be based on actual user data
-          const mockCompletedCount = Math.floor(Math.random() * 3); // 0-2 random completed items
+          // For new users, we show all items as incomplete (no random demo completion)
+          // This ensures all new users see the complete checklist
           
-          // Randomly mark some items as completed for the demo
-          const updatedItems = [...checklistItems];
-          for (let i = 0; i < mockCompletedCount; i++) {
-            if (i < updatedItems.length) {
-              updatedItems[i].completed = true;
-            }
-          }
+          // Save initial progress to localStorage (all items incomplete)
+          saveProgress(checklistItems, false, false);
           
-          setChecklistItems(updatedItems);
-          
-          // Save initial progress to localStorage
-          saveProgress(updatedItems, false);
+          // Ensure checklist is visible
+          setShowChecklist(true);
         }
       } catch (error) {
         console.error('Error loading checklist progress:', error);
@@ -158,6 +147,14 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   // Save progress to localStorage (or API in the future)
   const saveProgress = (items: ChecklistItem[], reviewCompleted: boolean, explicitlyDismissed: boolean = false) => {
     try {
+      // Added log to track what's being saved
+      console.log('Saving checklist progress for user', userId, {
+        itemCount: items.length,
+        completedCount: items.filter(i => i.completed).length,
+        reviewCompleted,
+        explicitlyDismissed
+      });
+      
       const progressData = {
         userId,
         items: items.reduce((acc, item) => {
