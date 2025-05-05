@@ -388,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add redirect paths based on user role and login type for frontend to handle
       let redirectPath;
       if (user.userType === "admin") {
-        redirectPath = "/admin-dashboard";
+        redirectPath = "/admin"; // Fixed: using /admin instead of /admin-dashboard
       } else if (user.userType === "staff") {
         redirectPath = "/staff-dashboard";
       } else if (user.userType === "university_admin") {
