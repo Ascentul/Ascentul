@@ -4120,7 +4120,38 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore = sessionStore;
+  sessionStore: session.Store;
+  
+  constructor() {
+    this.sessionStore = sessionStore;
+    
+    // Run a synchronous check to verify database connection
+    // We can't use async in constructor, so we'll do a simple sync check
+    try {
+      // This is just to check if the db object is properly configured
+      if (!db) {
+        throw new Error("Database client is not initialized");
+      }
+      
+      console.log("✅ Database client initialized, proceeding with PostgreSQL storage");
+    } catch (error) {
+      console.error("❌ Database client initialization error:", error);
+      throw new Error("Failed to initialize database client");
+    }
+  }
+  
+  // Method to test the database connection (can be called after constructor)
+  async testDatabaseConnection(): Promise<boolean> {
+    try {
+      // Try a simple query to test the connection
+      const result = await db.execute(sql`SELECT 1 as test`);
+      console.log("✅ Database connection test successful:", result);
+      return true;
+    } catch (error) {
+      console.error("❌ Database connection test failed:", error);
+      return false;
+    }
+  }
 
   // User Methods
   async getUser(id: number): Promise<User | undefined> {
@@ -4284,5 +4315,80 @@ export class DatabaseStorage implements IStorage {
   // We'll implement more as we go through conversion
 }
 
-// Use MemStorage for now until we fully implement the database storage
-export const storage = new MemStorage();
+// Flag to control which storage implementation to use
+// This allows us to explicitly choose which storage to use for testing
+const USE_DATABASE_STORAGE = true; // Set to true to use PostgreSQL or false to use memory
+
+// Create storage instance with proper error handling
+let storage: IStorage;
+
+try {
+  if (USE_DATABASE_STORAGE) {
+    console.log("Attempting to initialize DatabaseStorage with PostgreSQL...");
+    
+    // Check if required environment variables are present
+    if (!process.env.DATABASE_URL) {
+      console.error("❌ DATABASE_URL environment variable is missing");
+      throw new Error("Missing required database configuration");
+    }
+    
+    // Initialize database storage
+    storage = new DatabaseStorage();
+    
+    // Test database connection after initialization
+    // We don't await this promise because we can't use top-level await
+    // But we log the result for diagnostic purposes
+    (async () => {
+      const connectionSuccessful = await (storage as DatabaseStorage).testDatabaseConnection();
+      if (connectionSuccessful) {
+        console.log("✅ DATABASE CONNECTION VERIFIED: PostgreSQL is working properly");
+      } else {
+        console.error("⚠️ DATABASE CONNECTION TEST FAILED: Using DatabaseStorage but connection is not working properly");
+      }
+    })();
+    
+    console.log("✅ SUCCESS: Using DatabaseStorage with PostgreSQL for data persistence");
+  } else {
+    console.log("⚠️ USING IN-MEMORY STORAGE BY CONFIGURATION: All data will be lost on server restart");
+    storage = new MemStorage();
+  }
+} catch (error) {
+  console.error("❌ ERROR: Failed to initialize DatabaseStorage:", error);
+  console.log("⚠️ FALLING BACK to MemStorage. ALL DATA WILL BE LOST ON SERVER RESTART!");
+  storage = new MemStorage();
+}
+
+// Health check method to verify storage status
+// This is exported for use in API health checks
+export async function checkStorageHealth(): Promise<{
+  type: 'memory' | 'database';
+  status: 'healthy' | 'degraded' | 'failing';
+  details: string;
+}> {
+  if (storage instanceof DatabaseStorage) {
+    try {
+      const connectionTest = await (storage as DatabaseStorage).testDatabaseConnection();
+      return {
+        type: 'database',
+        status: connectionTest ? 'healthy' : 'degraded',
+        details: connectionTest 
+          ? 'PostgreSQL database connection working properly' 
+          : 'Using database storage but connection test failed'
+      };
+    } catch (error) {
+      return {
+        type: 'database',
+        status: 'failing',
+        details: `Database error: ${(error as Error).message}`
+      };
+    }
+  } else {
+    return {
+      type: 'memory',
+      status: 'degraded', // Memory storage is always considered degraded
+      details: 'Using in-memory storage - all data will be lost when server restarts'
+    };
+  }
+}
+
+export { storage };
