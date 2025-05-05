@@ -340,12 +340,43 @@ function LinkedInOptimizer() {
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: LinkedInProfileData) => {
-      const response = await apiRequest("POST", "/api/linkedin-optimizer/analyze", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to analyze LinkedIn profile");
+      // Using direct fetch for debugging purposes
+      const url = "/api/linkedin-optimizer/analyze";
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(import.meta.env.DEV ? { "Authorization": "Bearer dev_token" } : {})
+        },
+        body: JSON.stringify(data),
+        credentials: "include"
+      });
+      
+      // Debug the raw response
+      const text = await response.text();
+      console.log("🔍 Debug Response Text:", text);
+      
+      // Check content type and handle accordingly
+      const contentType = response.headers.get('Content-Type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          // Parse the text as JSON
+          const data = JSON.parse(text);
+          
+          // Check for error response
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to analyze LinkedIn profile");
+          }
+          
+          return data;
+        } catch (parseError) {
+          console.error("JSON Parse Error:", parseError);
+          throw new Error("Failed to parse response as JSON");
+        }
+      } else {
+        console.error("Expected JSON, got:", contentType);
+        throw new Error(`Expected JSON response, got ${contentType || "unknown content type"}`);
       }
-      return response.json();
     },
     onSuccess: (data) => {
       setResults(data);
