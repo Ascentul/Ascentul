@@ -91,6 +91,8 @@ export async function manageInterviewThread(params: {
   userMessage?: string;
 }) {
   try {
+    console.log('OPENAI_API_KEY status check in manageInterviewThread:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
+    
     const { threadId, assistantId, jobTitle, company, jobDescription, userMessage } = params;
     
     let thread;
@@ -225,7 +227,25 @@ Make sure each response is thoughtful but concise so it's comfortable for the us
       response: textContent.text.value
     };
   } catch (error) {
-    console.error('Error managing interview thread:', error);
+    console.error('Error managing interview thread:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      type: error.type,
+      name: error.name,
+      param: error.param,
+      stack: error.stack,
+      // Log extended error properties without exposing sensitive data
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : 'No response object',
+      // Full object but remove any potentially sensitive values
+      fullError: JSON.stringify(error, (key, value) => 
+        ['apiKey', 'key', 'token', 'secret', 'password'].includes(key.toLowerCase()) ? '[REDACTED]' : value
+      )
+    });
     throw error;
   }
 }
@@ -615,11 +635,16 @@ export async function analyzeInterviewAnswer(
 
 // Generate interview questions for practice sessions
 export async function generateInterviewQuestions(category?: string): Promise<string[]> {
+  console.log('[Voice Practice][generateInterviewQuestions] OPENAI_API_KEY status check:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
+  console.log('[Voice Practice][generateInterviewQuestions] Starting - Category:', category || 'general');
+  
   try {
     // Create a prompt for generating interview questions
     const prompt = category 
       ? `Generate 5 challenging interview questions for the "${category}" category. These should be thought-provoking questions that would be asked in real job interviews.`
       : `Generate 5 challenging general interview questions. These should be thought-provoking questions that would be asked in real job interviews.`;
+    
+    console.log('[Voice Practice][generateInterviewQuestions] Calling OpenAI API with prompt length:', prompt.length);
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -636,9 +661,14 @@ export async function generateInterviewQuestions(category?: string): Promise<str
       temperature: 0.7
     });
     
+    console.log('[Voice Practice][generateInterviewQuestions] OpenAI API call successful');
+    
     // Parse the response into an array of questions
     const content = response.choices[0].message.content;
-    if (!content) return ["Tell me about yourself and your relevant experience for this role."];
+    if (!content) {
+      console.warn('[Voice Practice][generateInterviewQuestions] Empty content returned from OpenAI');
+      return ["Tell me about yourself and your relevant experience for this role."];
+    }
     
     // Split by numbers (1., 2., etc.) or line breaks, then filter out empty strings
     const questions = content
@@ -646,9 +676,30 @@ export async function generateInterviewQuestions(category?: string): Promise<str
       .map(q => q.trim())
       .filter(q => q && q.length > 10 && (q.endsWith('?') || q.includes('?')));
     
+    console.log('[Voice Practice][generateInterviewQuestions] Successfully generated', questions.length, 'questions');
+    
     return questions.slice(0, 5); // Return at most 5 questions
   } catch (error) {
-    console.error('Error generating interview questions:', error);
+    console.error('[Voice Practice][generateInterviewQuestions] ⚠️ Using fallback questions due to OpenAI API failure');
+    console.error('Error generating interview questions:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      type: error.type,
+      name: error.name,
+      param: error.param,
+      // Log extended error properties without exposing sensitive data
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : 'No response object',
+      // Full object but remove any potentially sensitive values
+      fullError: JSON.stringify(error, (key, value) => 
+        ['apiKey', 'key', 'token', 'secret', 'password'].includes(key.toLowerCase()) ? '[REDACTED]' : value
+      )
+    });
+    
     // Return fallback questions that are always appropriate
     return [
       "Tell me about yourself and your relevant experience for this role.",
