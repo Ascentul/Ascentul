@@ -438,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
+      console.error('Login error detail:', error);
       res.status(500).json({ message: "Error during login" });
     }
   });
