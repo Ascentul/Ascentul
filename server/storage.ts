@@ -1,3 +1,4 @@
+import { pool } from "./db";
 import {
   users,
   type User,
@@ -4270,14 +4271,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getContactsNeedingFollowup(userId: number): Promise<NetworkingContact[]> {
-    // Use raw SQL query to avoid potential SQL syntax issues with the ORM
+    // Use raw SQL query with proper columns matching the actual database schema
+    // For now, we'll fetch all contacts where last_contacted_date is older than 30 days
+    // This is a simple heuristic for determining contacts needing follow-up
     const result = await pool.query(`
       SELECT * FROM networking_contacts 
       WHERE user_id = $1 
-      AND status = 'active' 
-      AND follow_up_date IS NOT NULL 
-      AND follow_up_date <= CURRENT_TIMESTAMP
-      ORDER BY follow_up_date ASC
+      AND (
+        last_contacted_date IS NULL OR 
+        last_contacted_date < (CURRENT_TIMESTAMP - INTERVAL '30 days')
+      )
+      ORDER BY last_contacted_date ASC NULLS FIRST
     `, [userId]);
     
     return result.rows;
