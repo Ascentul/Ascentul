@@ -320,6 +320,13 @@ export function EditApplicationForm({
       queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
       queryClient.invalidateQueries({ queryKey: ['/api/interview/processes'] });
       
+      // Dispatch custom events to update counters instead of page reload
+      window.dispatchEvent(new Event('interviewStageChange'));
+      window.dispatchEvent(new Event('applicationStatusChange'));
+      window.dispatchEvent(new CustomEvent('applicationDeleted', { 
+        detail: { applicationId: application.id } 
+      }));
+      
       toast({
         title: 'Application Deleted',
         description: 'The application has been deleted successfully.',
@@ -327,11 +334,6 @@ export function EditApplicationForm({
       
       // Force an immediate refresh of application data
       queryClient.refetchQueries({ queryKey: ['/api/job-applications'] });
-      
-      // Force a complete refresh of the page to ensure all counters are updated
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
       
       if (onSuccess) {
         onSuccess();
