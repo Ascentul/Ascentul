@@ -270,126 +270,56 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       hasExistingThread: !!threadId
     });
     
-    // Check if we should use the new OpenAI assistants API or fallback to the old implementation
-    const useAssistantsAPI = true; // Set to true to use the new assistants API
-    
-    if (useAssistantsAPI) {
-      try {
-        // Get or create an interview assistant
-        const { assistantId } = await getOrCreateInterviewAssistant();
-        
-        logRequest('generate-question', 'Using assistant', { assistantId });
-        
-        // Use the thread management function to handle the interview
-        const { threadId: newThreadId, response } = await manageInterviewThread({
-          threadId, // Will be undefined for new threads
-          assistantId,
-          jobTitle,
-          company,
-          jobDescription,
-          // Only pass user message for continued conversations, not for the initial question
-          userMessage: conversation.length > 0 ? conversation[conversation.length - 1].content : undefined
-        });
-        
-        // Log successful response
-        logResponse('generate-question', 200, 'Question generated successfully via assistant', {
-          threadId: newThreadId,
-          responseLength: response.length,
-          excerpt: response.substring(0, 50) + (response.length > 50 ? '...' : '')
-        });
-        
-        // Return the question and thread ID to the client
-        return res.status(200).json({ 
-          question: response,
-          threadId: newThreadId
-        });
-      } catch (assistantError: any) {
-        console.error('Error using OpenAI Assistants API:', assistantError);
-        logResponse('generate-question', 500, 'Error using OpenAI Assistants API, falling back to chat completions', {
-          errorMessage: assistantError?.message || 'Unknown error'
-        });
-        // Fall through to the mock/fallback implementation
-      }
-    }
-    
-    // When the Assistants API fails, we need to use the Chat Completions API as backup
-    console.log('[Interview Voice] Assistants API unavailable, falling back to Chat Completions API');
-    
-    // Check if the OpenAI API key is set
-    if (!process.env.OPENAI_API_KEY) {
-      logResponse('generate-question', 500, 'OpenAI API key missing');
-      return res.status(500).json({ error: 'OpenAI API configuration is missing' });
-    }
-    
+    // Use OpenAI Assistants API exclusively for interview questions and feedback
     try {
-      // Generate a dynamic system prompt
-      const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
-      
-      // Create messages array for OpenAI
-      const messages: OpenAIMessage[] = [
-        {
-          role: 'system',
-          content: systemPrompt
-        }
-      ];
-      
-      // Add conversation history if available
-      if (conversation && conversation.length > 0) {
-        conversation.forEach(msg => {
-          messages.push({
-            role: msg.role === 'assistant' ? 'assistant' : 'user',
-            content: msg.content
-          });
-        });
-        
-        // Add a message requesting the next question
-        messages.push({
-          role: 'user',
-          content: 'Please provide feedback on my last answer and ask your next interview question.'
-        });
-      } else {
-        // First question - add a message asking to start the interview
-        messages.push({
-          role: 'user',
-          content: `Please start the interview for the ${jobTitle} position at ${company}.`
+      // Check if the OpenAI API key is set
+      if (!process.env.OPENAI_API_KEY) {
+        logResponse('generate-question', 500, 'OpenAI API key missing');
+        return res.status(500).json({ 
+          error: 'OpenAI API configuration is missing',
+          details: 'The OpenAI API key is required for interview functionality.'
         });
       }
       
-      // Call OpenAI's API for chat completions
-      const response = await openaiInstance.chat.completions.create({
-        model: 'gpt-4o',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 500
+      // Get or create an interview assistant
+      const { assistantId } = await getOrCreateInterviewAssistant();
+      
+      logRequest('generate-question', 'Using assistant', { assistantId });
+      
+      // Use the thread management function to handle the interview
+      const { threadId: newThreadId, response } = await manageInterviewThread({
+        threadId, // Will be undefined for new threads
+        assistantId,
+        jobTitle,
+        company,
+        jobDescription,
+        // Only pass user message for continued conversations, not for the initial question
+        userMessage: conversation.length > 0 ? conversation[conversation.length - 1].content : undefined
       });
-      
-      const question = response.choices[0].message.content;
-      
-      if (!question) {
-        throw new Error('OpenAI returned an empty response');
-      }
       
       // Log successful response
-      logResponse('generate-question', 200, 'Question generated successfully via chat completions', {
-        responseLength: question.length,
-        responseExcerpt: question.substring(0, 50) + (question.length > 50 ? '...' : '')
+      logResponse('generate-question', 200, 'Question generated successfully via assistant', {
+        threadId: newThreadId,
+        responseLength: response.length,
+        excerpt: response.substring(0, 50) + (response.length > 50 ? '...' : '')
       });
       
-      // Return the question to the client
+      // Return the question and thread ID to the client
       return res.status(200).json({ 
-        question: question,
-        aiResponse: question
+        question: response,
+        threadId: newThreadId
       });
-    } catch (fallbackError) {
-      // Even our fallback had an error, use the most basic response
-      console.error('[Interview Voice] Error in fallback response generation:', fallbackError);
-      const ultimateFallback = "Could you tell me about your relevant experience for this position?";
+    } catch (error: any) {
+      // If the Assistants API fails, provide a clear error
+      console.error('Error using OpenAI Assistants API:', error);
+      logResponse('generate-question', 500, 'Error using OpenAI Assistants API', {
+        errorMessage: error?.message || 'Unknown error'
+      });
       
-      return res.status(200).json({ 
-        question: ultimateFallback,
-        aiResponse: ultimateFallback,
-        isFallback: true,
-        isEmergencyFallback: true
+      // Return a helpful error message to the client
+      return res.status(500).json({ 
+        error: 'Failed to generate interview question', 
+        details: error.message || 'An error occurred with the AI assistant'
       });
     }
   } catch (error) {
