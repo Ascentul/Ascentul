@@ -176,16 +176,26 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
       : "Not available";
     
     // Construct the dynamic system prompt with updated coaching instructions
-    return `You are a warm, professional career coach. The user is applying for the role of ${jobTitle} at ${company}.
-${jobDescription ? `Study the job description below and generate realistic, role-specific interview questions:\n\n${jobDescription}` : ''}
+    return `You are a $200/hr professional interview coach. For each session, read the job description in detail and ask role-specific, intelligent, and challenging questions tailored to that position. Never repeat the job post directly. Think like a hiring manager. Ask one question at a time, wait for an answer, and then respond with thoughtful feedback or a follow-up question.
 
-The candidate's background is:
+Job Details:
+- Position: ${jobTitle}
+- Company: ${company}
+${jobDescription ? `- Job Description: ${jobDescription}` : ''}
+
+Candidate Background:
 - Work History: ${workHistorySummary}
 - Education: ${educationSummary}
 - Skills: ${skillsSummary}
 - Achievements: ${achievementsSummary}
 
-Do not repeat the job description verbatim. Ask smart, targeted questions a real hiring manager would. After each answer, provide feedback on clarity, content, and confidence. Adjust your tone to remain supportive and human.`;
+Important Instructions:
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Generate thoughtful questions that probe for experience and competency in these areas.
+3. Ask questions that require specific examples, not just theoretical knowledge.
+4. NEVER parrot the job description text verbatim - synthesize and reframe.
+5. Be conversational but professional, as if you're an actual hiring manager.
+6. Connect the candidate's background to the job requirements in your questions.`;
   } catch (error) {
     console.error("Error generating dynamic system prompt:", error);
     return getBasicSystemPrompt(jobTitle, company, jobDescription);
@@ -196,10 +206,19 @@ Do not repeat the job description verbatim. Ask smart, targeted questions a real
  * Generate a basic system prompt as fallback
  */
 function getBasicSystemPrompt(jobTitle: string, company: string, jobDescription: string): string {
-  return `You are a warm, professional career coach. The user is applying for the role of ${jobTitle} at ${company}.
-${jobDescription ? `Study the job description below and generate realistic, role-specific interview questions:\n\n${jobDescription}` : ''}
+  return `You are a $200/hr professional interview coach. For each session, read the job description in detail and ask role-specific, intelligent, and challenging questions tailored to that position. Never repeat the job post directly. Think like a hiring manager. Ask one question at a time, wait for an answer, and then respond with thoughtful feedback or a follow-up question.
 
-Do not repeat the job description verbatim. Ask smart, targeted questions a real hiring manager would. After each answer, provide feedback on clarity, content, and confidence. Adjust your tone to remain supportive and human.`;
+Job Details:
+- Position: ${jobTitle}
+- Company: ${company}
+${jobDescription ? `- Job Description: ${jobDescription}` : ''}
+
+Important Instructions:
+1. First, identify 3-5 key themes, skills, or responsibilities from the job description.
+2. Generate thoughtful questions that probe for experience and competency in these areas.
+3. Ask questions that require specific examples, not just theoretical knowledge.
+4. NEVER parrot the job description text verbatim - synthesize and reframe.
+5. Be conversational but professional, as if you're an actual hiring manager.`;
 }
 
 /**
@@ -230,6 +249,15 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
       conversationLength: conversation.length,
       hasExistingThread: !!threadId
     });
+    
+    // Validate that we have a job description - it's required for generating good interview questions
+    if (!jobDescription || jobDescription.trim().length < 10) {
+      logResponse('generate-question', 400, 'Missing or insufficient job description');
+      return res.status(400).json({
+        error: 'Missing job description',
+        details: 'A detailed job description is required to generate intelligent interview questions. Please provide a proper job description.'
+      });
+    }
     
     // Use OpenAI Assistants API exclusively for interview questions and feedback
     try {
@@ -341,11 +369,21 @@ router.post('/analyze-response', requireLoginFallback, async (req: Request, res:
     logRequest('analyze-response', 'Valid request data received', {
       jobTitle,
       company,
+      hasJobDescription: !!jobDescription,
       userResponseLength: userResponse.length,
       conversationLength: conversation.length,
       conversationSummary: conversation.map(msg => ({ role: msg.role, contentLength: msg.content.length })),
       userResponseExcerpt: userResponse.substring(0, 50) + (userResponse.length > 50 ? '...' : '')
     });
+    
+    // Validate that we have a job description - it's required for generating good interview feedback
+    if (!jobDescription || jobDescription.trim().length < 10) {
+      logResponse('analyze-response', 400, 'Missing or insufficient job description');
+      return res.status(400).json({
+        error: 'Missing job description',
+        details: 'A detailed job description is required to provide meaningful interview feedback. Please provide a proper job description.'
+      });
+    }
     
     // Generate dynamic system prompt with user profile data
     const systemPrompt = await generateDynamicSystemPrompt(req, jobTitle, company, jobDescription);
