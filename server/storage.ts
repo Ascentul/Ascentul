@@ -592,6 +592,7 @@ export class MemStorage implements IStorage {
     this.projectIdCounter = 1;
     this.networkingContactIdCounter = 1;
     this.contactInteractionIdCounter = 1;
+    this.userReviewIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
@@ -1363,6 +1364,25 @@ export class MemStorage implements IStorage {
   // Achievement operations
   async getAchievements(): Promise<Achievement[]> {
     return Array.from(this.achievements.values());
+  }
+  
+  // User Reviews operations
+  async getUserReviews(userId: number): Promise<UserReview[]> {
+    return Array.from(this.userReviews.values()).filter(
+      review => review.userId === userId
+    );
+  }
+
+  async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
+    const id = this.userReviewIdCounter++;
+    const newReview: UserReview = {
+      ...review,
+      id,
+      userId,
+      createdAt: new Date()
+    };
+    this.userReviews.set(id, newReview);
+    return newReview;
   }
 
   // Networking Contacts (Ascentul CRM) operations
