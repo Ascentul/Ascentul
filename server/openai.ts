@@ -34,321 +34,28 @@ if (!apiKey) {
     chat: {
       completions: {
         create: async (params: any) => {
-          console.log('Mock OpenAI API call with params:', JSON.stringify(params, null, 2));
-          
-          // Prepare more intelligent mock responses based on the endpoint being used
-          // Check the messages to determine context
-          const isTextToSpeech = params.model === 'tts-1-hd';
-          const isLinkedInAnalysis = params.messages.some((m: any) => m.content && m.content.includes('LinkedIn optimization coach'));
-          const isInterviewQuestion = params.messages.some((m: any) => m.content && 
-            (m.content.includes('interview') || m.content.includes('Start the interview')));
-          const isInterviewAnalysis = params.messages.some((m: any) => m.content && 
-            m.content.includes('Please provide brief feedback on my answer'));
-          
-          if (isInterviewQuestion) {
-            // Return a mock interview question
-            return {
-              choices: [
-                {
-                  message: {
-                    content: "Tell me about your relevant experience for this position and how it has prepared you for this role."
-                  }
-                }
-              ],
-              model: "mock-gpt-4o",
-              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
-            };
-          } else if (isInterviewAnalysis) {
-            // Return mock interview analysis
-            return {
-              choices: [
-                {
-                  message: {
-                    content: "Good answer! You highlighted your key skills well. For my next question: How do you handle challenging situations in a team environment?"
-                  }
-                }
-              ],
-              model: "mock-gpt-4o",
-              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
-            };
-          } else if (isLinkedInAnalysis) {
-            // If response_format is json_object
-            if (params.response_format && params.response_format.type === 'json_object') {
-              return {
-                choices: [
-                  {
-                    message: {
-                      content: JSON.stringify({
-                        overallScore: 70,
-                        sections: {
-                          headline: {
-                            score: 7,
-                            feedback: "Your headline is clear and mentions your role.",
-                            suggestion: "Add more keywords relevant to your target position."
-                          },
-                          about: {
-                            score: 6,
-                            feedback: "Good overview of your background.",
-                            suggestion: "Make it more achievement-focused."
-                          },
-                          experience: {
-                            score: 8,
-                            feedback: "Strong work history with relevant roles.",
-                            suggestions: ["Add more metrics to quantify success.", "Highlight leadership more."]
-                          },
-                          skills: {
-                            score: 7,
-                            feedback: "Good technical skills listed.",
-                            missingSkills: ["Project Management", "Team Leadership"],
-                            suggestedSkills: ["Agile Methodology", "Cross-functional Leadership"]
-                          },
-                          featured: {
-                            score: 5,
-                            feedback: "Limited featured content.",
-                            suggestions: ["Add relevant projects", "Include certifications"]
-                          },
-                          banner: {
-                            score: 6,
-                            feedback: "Basic professional banner.",
-                            suggestion: "Use a banner that relates to your industry."
-                          }
-                        },
-                        recruiterPerspective: "This is a solid profile that shows relevant experience but could be more distinctive.",
-                        actionPlan: {
-                          highPriority: ["Improve headline with keywords", "Add metrics to experience"],
-                          mediumPriority: ["Update banner image", "Add featured projects"],
-                          lowPriority: ["Reorder skills list", "Update profile photo"]
-                        }
-                      })
-                    }
-                  }
-                ],
-                model: "mock-gpt-4o",
-                usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
-              };
-            }
-          } else {
-            // Default mock response
-            return {
-              choices: [
-                {
-                  message: {
-                    content: "This is mock AI content. The system is running in demo mode with sample responses."
-                  }
-                }
-              ],
-              model: "mock-gpt-4o",
-              usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
-            };
-          }
-        }
-      }
-    },
-    audio: {
-      speech: {
-        create: async (params: any) => {
-          console.log('Mock OpenAI TTS API call with params:', params);
-          // Return a mock audio buffer (empty but satisfies the interface)
-          const mockBuffer = Buffer.from('Mock audio content');
+          console.log('Mock OpenAI API call with params:', params);
           return {
-            arrayBuffer: async () => mockBuffer.buffer
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    message: "This is mock AI content. Please provide an OpenAI API key for real responses.",
+                    details: "The application is running in mock mode because the OPENAI_API_KEY is not set."
+                  })
+                }
+              }
+            ],
+            model: "mock-gpt-4o",
+            usage: { total_tokens: 0, prompt_tokens: 0, completion_tokens: 0 }
           };
         }
-      },
-      transcriptions: {
-        create: async (params: any) => {
-          console.log('Mock OpenAI transcription API call');
-          return {
-            text: "This is a mock transcription of user speech since the OpenAI API is in demo mode.",
-            duration: 5.2
-          };
-        }
-      }
-    },
-    images: {
-      generate: async (params: any) => {
-        console.log('Mock OpenAI image generation API call with params:', params);
-        return {
-          data: [
-            {
-              url: "https://placekitten.com/1024/1024" // Placeholder image URL
-            }
-          ]
-        };
       }
     }
   };
 } else {
   // Initialize with the real API key
   openai = new OpenAI({ apiKey });
-}
-
-// Helper function to get or create an interview assistant
-export async function getOrCreateInterviewAssistant() {
-  try {
-    if (useMockOpenAI) {
-      // Return a mock assistant ID for testing
-      console.log('Using mock assistant for interview practice');
-      return { assistantId: 'mock-assistant-id' };
-    }
-    
-    // Check for existing assistants with the tag 'interview-coach'
-    const assistantsList = await openai.beta.assistants.list({
-      order: 'desc',
-      limit: 10,
-    });
-    
-    const existingAssistant = assistantsList.data.find(
-      assistant => assistant.name === 'Interview Coach'
-    );
-    
-    if (existingAssistant) {
-      console.log('Found existing interview coach assistant');
-      return { assistantId: existingAssistant.id };
-    }
-    
-    // Create a new assistant if none exists
-    console.log('Creating new interview coach assistant');
-    const assistant = await openai.beta.assistants.create({
-      name: 'Interview Coach',
-      instructions: `You are a professional interview coach. Ask relevant questions based on the job title and company the user selects. Respond in a human, calm, coaching tone. Guide the user through the interview like a real recruiter.
-
-When beginning an interview, first introduce yourself briefly and ask an initial question related to the job role.
-Each follow-up should provide brief feedback on the user's previous answer before asking a new question.
-Make your questions specific to the job title and company when possible.
-If the user seems confused or gives a very short answer, guide them with more specific follow-up questions.
-End the interview after 5-6 questions with positive encouragement and brief overall feedback.`,
-      model: "gpt-4o",
-      tools: [{ type: "retrieval" }],
-    });
-    
-    return { assistantId: assistant.id };
-  } catch (error) {
-    console.error('Error creating/retrieving interview assistant:', error);
-    throw error;
-  }
-}
-
-// Helper function to manage interview threads
-export async function manageInterviewThread(params: {
-  threadId?: string;
-  assistantId: string;
-  jobTitle: string;
-  company: string;
-  jobDescription?: string;
-  userMessage?: string;
-}) {
-  try {
-    const { threadId, assistantId, jobTitle, company, jobDescription, userMessage } = params;
-    
-    if (useMockOpenAI) {
-      // Return mock data for testing
-      console.log('Using mock thread for interview practice');
-      return {
-        threadId: threadId || 'mock-thread-id',
-        response: userMessage 
-          ? "I'll provide feedback on that answer. For my next question: Can you describe a challenging situation you faced in your previous role and how you handled it?"
-          : `Hello! I'm your interview coach for the ${jobTitle} position at ${company}. Let's start with a common question: Can you tell me about your relevant experience for this role?`
-      };
-    }
-    
-    let thread;
-    
-    // Create or retrieve thread
-    if (threadId) {
-      // Use existing thread
-      thread = { id: threadId };
-    } else {
-      // Create a new thread with initial context
-      thread = await openai.beta.threads.create({
-        messages: [
-          {
-            role: "user",
-            content: `I'm preparing for an interview for the position of ${jobTitle} at ${company}.${jobDescription ? ` The job description is: ${jobDescription}` : ''} Please conduct a realistic practice interview with me, asking relevant questions for this specific role.`
-          }
-        ]
-      });
-    }
-    
-    // Add user message to thread if provided
-    if (userMessage) {
-      await openai.beta.threads.messages.create(
-        thread.id,
-        {
-          role: "user",
-          content: userMessage
-        }
-      );
-    }
-    
-    // Run the assistant on the thread
-    const run = await openai.beta.threads.runs.create(
-      thread.id,
-      {
-        assistant_id: assistantId,
-        instructions: `You are conducting a practice interview for a ${jobTitle} position at ${company}. Ask relevant questions and provide brief, constructive feedback on the user's responses before asking the next question. Use the 'nova' voice style - conversational, clear, and professional. Keep each response concise and focused.`,
-      }
-    );
-    
-    // Wait for the run to complete
-    let runStatus = await openai.beta.threads.runs.retrieve(
-      thread.id,
-      run.id
-    );
-    
-    // Poll for completion (with a reasonable timeout)
-    let attempts = 0;
-    const maxAttempts = 30; // 30 seconds
-    
-    while (runStatus.status !== "completed" && runStatus.status !== "failed" && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      runStatus = await openai.beta.threads.runs.retrieve(
-        thread.id,
-        run.id
-      );
-      attempts++;
-    }
-    
-    if (runStatus.status === "failed") {
-      console.error("Assistant run failed:", runStatus.last_error);
-      throw new Error(`Assistant run failed: ${runStatus.last_error?.message || "Unknown error"}`);
-    }
-    
-    if (attempts >= maxAttempts && runStatus.status !== "completed") {
-      console.error("Assistant run timed out");
-      throw new Error("Assistant run timed out");
-    }
-    
-    // Get the latest assistant message
-    const messages = await openai.beta.threads.messages.list(
-      thread.id
-    );
-    
-    // Find the last assistant message
-    const assistantMessages = messages.data.filter(msg => msg.role === "assistant");
-    const latestMessage = assistantMessages[0]; // Most recent first
-    
-    if (!latestMessage) {
-      throw new Error("No assistant message found");
-    }
-    
-    // Extract the text content
-    const textContent = latestMessage.content.find(
-      content => content.type === "text"
-    );
-    
-    if (!textContent || textContent.type !== "text") {
-      throw new Error("No text content found in assistant message");
-    }
-    
-    return {
-      threadId: thread.id,
-      response: textContent.text.value
-    };
-  } catch (error) {
-    console.error('Error managing interview thread:', error);
-    throw error;
-  }
 }
 
 // Export the OpenAI instance
@@ -488,22 +195,7 @@ Your response must be in JSON format with the following structure:
       response_format: { type: "json_object" }
     });
 
-    // Enhanced error handling for JSON parsing
-    let result = {};
-    try {
-      const content = response.choices[0].message.content || "{}";
-      result = JSON.parse(content);
-      
-      // Check if the result is actually an object
-      if (typeof result !== 'object' || result === null) {
-        console.warn("Response was not a valid JSON object:", content);
-        result = {};
-      }
-    } catch (parseError) {
-      console.error("Error parsing OpenAI response:", parseError);
-      console.warn("Received invalid JSON response:", response.choices[0].message.content);
-      result = {};
-    }
+    const result = JSON.parse(response.choices[0].message.content || "{}");
     
     // Apply default values for any missing fields to ensure consistent structure
     return {
@@ -682,22 +374,7 @@ ${companyName ? `Company: ${companyName}` : ''}`
       response_format: { type: "json_object" }
     });
 
-    // Enhanced error handling for JSON parsing
-    let result = {};
-    try {
-      const content = response.choices[0].message.content || "{}";
-      result = JSON.parse(content);
-      
-      // Check if the result is actually an object
-      if (typeof result !== 'object' || result === null) {
-        console.warn("Response was not a valid JSON object:", content);
-        result = {};
-      }
-    } catch (parseError) {
-      console.error("Error parsing OpenAI response:", parseError);
-      console.warn("Received invalid JSON response:", response.choices[0].message.content);
-      result = {};
-    }
+    const result = JSON.parse(response.choices[0].message.content || "{}");
 
     // Ensure all required fields are present with defaults if missing
     return {

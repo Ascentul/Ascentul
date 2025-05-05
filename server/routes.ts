@@ -2798,28 +2798,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(analysis);
     } catch (error) {
       console.error("Error analyzing LinkedIn profile:", error);
-      
-      // More detailed error handling
-      let statusCode = 500;
-      let errorMessage = "An error occurred while analyzing your LinkedIn profile.";
-      
-      // Handle specific OpenAI errors
-      if (error instanceof Error) {
-        if (error.message.includes("API key")) {
-          statusCode = 503;
-          errorMessage = "The AI service is currently unavailable. Please try again later.";
-        } else if (error.message.includes("rate limit")) {
-          statusCode = 429;
-          errorMessage = "Too many requests. Please try again in a few minutes.";
-        } else if (error.message.includes("timeout") || error.message.includes("timed out")) {
-          statusCode = 504;
-          errorMessage = "The analysis took too long to complete. Please try again.";
-        }
-      }
-      
-      // Always return valid JSON
-      res.status(statusCode).json({ 
-        message: errorMessage
+      res.status(500).json({ 
+        message: "An error occurred while analyzing your LinkedIn profile. Please try again later."
       });
     }
   });
