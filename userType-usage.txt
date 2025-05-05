@@ -1,0 +1,57 @@
+client/src/components/StaffSidebar.tsx:57:        <div className="mt-1 text-sm text-neutral-400 capitalize">{user.userType}</div>
+client/src/components/staff/QuickActionsModal.tsx:82:    user.userType.toLowerCase().includes(userSearchQuery.toLowerCase())
+client/src/components/staff/QuickActionsModal.tsx:415:                            user.userType === 'premium' 
+client/src/components/staff/QuickActionsModal.tsx:417:                              : user.userType === 'university'
+client/src/components/staff/QuickActionsModal.tsx:421:                            {user.userType}
+client/src/components/StaffLayout.tsx:43:  if (!user || (user.userType !== 'staff' && user.userType !== 'admin')) {
+client/src/components/LoginDialog.tsx:67:      if (user.userType === 'admin') {
+client/src/components/LoginDialog.tsx:70:      } else if (user.userType === 'university_admin') {
+client/src/components/LoginDialog.tsx:73:      } else if (user.userType === 'university_student') {
+client/src/components/RouteProtection.tsx:70:  if (user.userType === 'staff') {
+client/src/components/RouteProtection.tsx:101:  if (!user || !(user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin')) {
+client/src/components/RouteProtection.tsx:107:    } else if (user.userType === 'staff') {
+client/src/components/RouteProtection.tsx:109:    } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
+client/src/components/RouteProtection.tsx:144:  if (!user || (user.userType !== 'university_student' && user.userType !== 'university_admin')) {
+client/src/components/RouteProtection.tsx:148:    } else if (user.userType === 'admin') {
+client/src/components/RouteProtection.tsx:150:    } else if (user.userType === 'staff') {
+client/src/components/RouteProtection.tsx:186:    user.userType === 'staff' || 
+client/src/components/RouteProtection.tsx:187:    user.userType === 'admin'
+client/src/components/RouteProtection.tsx:194:    } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
+client/src/components/RouteProtection.tsx:230:  if (!user || !(user.role === 'university_admin' || user.userType === 'university_admin')) {
+client/src/components/RouteProtection.tsx:236:    } else if (user.userType === 'university_student') {
+client/src/components/RouteProtection.tsx:240:    } else if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
+client/src/components/RouteProtection.tsx:242:    } else if (user.role === 'staff' || user.userType === 'staff') {
+client/src/lib/useUserData.tsx:107:        else if (user.userType === 'admin') {
+client/src/lib/useUserData.tsx:110:        } else if (user.userType === 'staff') {
+client/src/lib/useUserData.tsx:112:        } else if (user.userType === 'university_admin') {
+client/src/lib/useUserData.tsx:114:        } else if (user.userType === 'university_student') {
+client/src/lib/useUserData.tsx:131:    switch (user.userType) {
+client/src/lib/useUserData.tsx:389:  return !!user && user.userType === 'regular';
+client/src/lib/useUserData.tsx:394:  return !!user && user.userType === 'university_student';
+client/src/lib/useUserData.tsx:399:  return !!user && user.userType === 'university_admin';
+client/src/lib/useUserData.tsx:404:  return !!user && (user.userType === 'university_student' || user.userType === 'university_admin');
+client/src/lib/useUserData.tsx:413:    user.userType === 'admin' || 
+client/src/lib/useUserData.tsx:424:    user.userType === 'admin' || 
+client/src/lib/useUserData.tsx:435:    user.userType === 'staff' || 
+client/src/lib/useUserData.tsx:436:    user.userType === 'admin'
+client/src/pages/Account.tsx.bak:608:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/admin/UserManagement.tsx:212:    const matchesUserType = filters.userType === 'all' || user.userType === filters.userType;
+client/src/pages/admin/UserManagement.tsx:383:                          <UserTypeBadge type={user.userType} />
+client/src/pages/staff-login.tsx:23:  if (user && (user.userType === 'staff' || user.userType === 'admin')) {
+client/src/pages/staff-login.tsx:41:      if (user.userType !== 'staff' && user.userType !== 'admin') {
+client/src/pages/sign-up.tsx:24:    if (user.userType === 'regular') {
+client/src/pages/sign-up.tsx:92:        if (loginData.user.userType === 'regular') {
+client/src/pages/sign-up.tsx:94:        } else if (loginData.user.userType === 'university_student' || loginData.user.userType === 'university_admin') {
+client/src/pages/sign-up.tsx:96:        } else if (loginData.user.userType === 'admin') {
+client/src/pages/sign-up.tsx:98:        } else if (loginData.user.userType === 'staff') {
+client/src/pages/Account_backup.tsx:563:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/Account_clean.tsx:563:client/src/pages/Account.tsx:563:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/Account.tsx.new:419:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/Account.tsx.simple:95:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/Account.tsx:147:                <p className="capitalize">{user.userType ? user.userType.replace('_', ' ') : 'Standard'}</p>
+client/src/pages/AccountSettings.tsx:444:                  <p className="text-base text-gray-800 capitalize">{user.userType.replace('_', ' ')}</p>
+client/src/pages/admin-login.tsx:22:  if (user && user.userType === 'admin') {
+client/src/pages/admin-login.tsx:41:      if (user.userType !== 'admin') {
+client/src/pages/sign-in.tsx:25:    if (user.userType === 'regular') {
+client/src/layouts/UniversityAdminLayout.tsx:41:  if (!user || user.userType !== 'university_admin') {
+client/src/layouts/AdminLayout.tsx:59:    if (!isLoading && (!user || user.userType !== "admin")) {

@@ -122,12 +122,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Helper function to determine the redirect path based on user role or userType
   const getRedirectPathByRole = (user: User): string => {
-    // First check the role field which is more specific
+    // Check role first
     if (user.role === 'super_admin' || user.role === 'admin') {
+      console.log("getRedirectPathByRole: Admin role detected, redirecting to /admin");
       return '/admin';
+    } else if (user.role === 'staff') {
+      console.log("getRedirectPathByRole: Staff role detected, redirecting to /staff-dashboard");
+      return '/staff-dashboard';
+    } else if (user.role === 'university_admin') {
+      console.log("getRedirectPathByRole: University admin role detected, redirecting to /university-admin/dashboard");
+      return '/university-admin/dashboard';
+    } else if (user.role === 'university_user') {
+      console.log("getRedirectPathByRole: University user role detected, redirecting to /career-dashboard");
+      return '/career-dashboard';
+    } else if (user.role === 'user') {
+      console.log("getRedirectPathByRole: Regular user role detected, redirecting to /career-dashboard");
+      return '/career-dashboard';
     }
     
     // Fall back to userType if role doesn't give a definitive answer
+    console.log("getRedirectPathByRole: Falling back to userType:", user.userType);
     switch (user.userType) {
       case 'admin':
         return '/admin';
