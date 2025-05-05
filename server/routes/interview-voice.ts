@@ -94,51 +94,42 @@ async function generateDynamicSystemPrompt(req: Request, jobTitle: string, compa
     let achievements: string[] = [];
     
     try {
-      // Here we'd fetch from actual endpoints if available
-      // Since we might not have actual endpoints for these in every implementation,
-      // handle gracefully if they don't exist
-      
-      // These would be the ideal implementations:
-      // workHistory = await storage.getUserWorkHistory(userId);
-      // education = await storage.getUserEducation(userId);
-      // skills = await storage.getUserSkills(userId);
-      // achievements = await storage.getUserAchievements(userId);
-      
-      // For now, provide sample data if user's work history isn't available
-      workHistory = [
-        {
-          company: "Tech Solutions Inc.",
-          position: "Senior Developer",
-          startDate: "2020-01",
-          endDate: "Present",
-          description: "Lead development team, implement microservices architecture"
-        },
-        {
-          company: "WebDev Co",
-          position: "Frontend Developer",
-          startDate: "2017-05",
-          endDate: "2019-12",
-          description: "Built responsive web applications using React"
+      // Fetch user data from storage if available
+      try {
+        const userWorkHistory = await storage.getUserWorkHistory(userId);
+        if (userWorkHistory && userWorkHistory.length > 0) {
+          workHistory = userWorkHistory;
         }
-      ];
+      } catch (err) {
+        console.log("Work history not available in storage");
+      }
       
-      education = [
-        {
-          institution: "University of Technology",
-          degree: "BS Computer Science",
-          startDate: "2013-09",
-          endDate: "2017-05",
-          achievements: ["Dean's List", "Senior Project Award"]
+      try {
+        const userEducation = await storage.getUserEducation(userId);
+        if (userEducation && userEducation.length > 0) {
+          education = userEducation;
         }
-      ];
+      } catch (err) {
+        console.log("Education not available in storage");
+      }
       
-      skills = ["JavaScript", "TypeScript", "React", "Node.js", "Express", "SQL", "NoSQL", "CI/CD"];
+      try {
+        const userSkills = await storage.getUserSkills(userId);
+        if (userSkills && userSkills.length > 0) {
+          skills = userSkills;
+        }
+      } catch (err) {
+        console.log("Skills not available in storage");
+      }
       
-      achievements = [
-        "Reduced application load time by 45% through code optimization",
-        "Led team of 5 developers to deliver project under budget and ahead of schedule",
-        "Implemented automated testing that improved code quality by 30%"
-      ];
+      try {
+        const userAchievements = await storage.getUserAchievements(userId);
+        if (userAchievements && userAchievements.length > 0) {
+          achievements = userAchievements;
+        }
+      } catch (err) {
+        console.log("Achievements not available in storage");
+      }
     } catch (error) {
       console.log("Error fetching user profile data:", error);
       // Continue with whatever data we have
