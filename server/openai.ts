@@ -17,8 +17,8 @@ if (!apiKey) {
       apiKey = openaiKeyMatch[1].trim();
       console.log('Successfully loaded OPENAI_API_KEY from .env file');
     }
-  } catch (error) {
-    console.log('No .env file found or unable to parse OPENAI_API_KEY');
+  } catch (error: any) {
+    console.log('No .env file found or unable to parse OPENAI_API_KEY:', error?.message);
   }
 }
 
@@ -226,26 +226,44 @@ Make sure each response is thoughtful but concise so it's comfortable for the us
       threadId: thread.id,
       response: textContent.text.value
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error managing interview thread:', {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      type: error.type,
-      name: error.name,
-      param: error.param,
-      stack: error.stack,
+      message: error?.message || 'Unknown error',
+      code: error?.code,
+      status: error?.status,
+      type: error?.type,
+      name: error?.name,
+      param: error?.param,
+      stack: error?.stack,
       // Log extended error properties without exposing sensitive data
-      response: error.response ? {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
+      response: error?.response ? {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
       } : 'No response object',
       // Full object but remove any potentially sensitive values
       fullError: JSON.stringify(error, (key, value) => 
         ['apiKey', 'key', 'token', 'secret', 'password'].includes(key.toLowerCase()) ? '[REDACTED]' : value
       )
     });
+    
+    // Check for recovery mode or specific OpenAI API errors
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[Voice Practice] Possible OpenAI API temporary issue detected:', error.message);
+      
+      // Create appropriate context-aware message to return instead of throwing
+      return {
+        threadId: params.threadId || 'fallback_thread',
+        response: "I apologize, but I'm having trouble with my connection. Let me ask a different question. " +
+                 "Could you tell me about your relevant experience for this role?"
+      };
+    }
+    
     throw error;
   }
 }
@@ -627,8 +645,28 @@ export async function analyzeInterviewAnswer(
         isLastQuestion: false
       };
     }
-  } catch (error) {
-    console.error('Error analyzing interview response:', error);
+  } catch (error: any) {
+    console.error('Error analyzing interview response:', {
+      message: error?.message || 'Unknown error',
+      code: error?.code,
+      status: error?.status,
+      type: error?.type
+    });
+    
+    // Check for recovery mode errors specifically and provide user-friendly fallback
+    if (error?.message && (
+      error.message.includes('Recovery mode') || 
+      error.message.includes('Rate limit') ||
+      error.message.includes('Timeout') ||
+      error.message.includes('overloaded')
+    )) {
+      console.warn('[Voice Practice] Gracefully handling OpenAI API temporary issue');
+      return {
+        feedback: "I noticed some interesting aspects of your response. Could you tell me more about your experience with team collaboration?",
+        isLastQuestion: false
+      };
+    }
+    
     throw error;
   }
 }
@@ -679,20 +717,20 @@ export async function generateInterviewQuestions(category?: string): Promise<str
     console.log('[Voice Practice][generateInterviewQuestions] Successfully generated', questions.length, 'questions');
     
     return questions.slice(0, 5); // Return at most 5 questions
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Voice Practice][generateInterviewQuestions] ⚠️ Using fallback questions due to OpenAI API failure');
     console.error('Error generating interview questions:', {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      type: error.type,
-      name: error.name,
-      param: error.param,
+      message: error?.message || 'Unknown error',
+      code: error?.code,
+      status: error?.status,
+      type: error?.type,
+      name: error?.name,
+      param: error?.param,
       // Log extended error properties without exposing sensitive data
-      response: error.response ? {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data
+      response: error?.response ? {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
       } : 'No response object',
       // Full object but remove any potentially sensitive values
       fullError: JSON.stringify(error, (key, value) => 
