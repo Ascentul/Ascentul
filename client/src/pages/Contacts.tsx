@@ -155,53 +155,63 @@ export default function Contacts() {
     mutationFn: async (contactId: number) => {
       console.log(`Attempting to delete contact with ID: ${contactId}`);
       
-      // Always check if contact exists in local state first
-      const contactExists = contacts.some(contact => contact.id === contactId);
+      // Always remove the contact from the UI immediately, regardless of the API response
+      const existingContact = contacts.find(contact => contact.id === contactId);
       
-      if (!contactExists) {
+      if (!existingContact) {
         console.log(`Contact ID ${contactId} doesn't exist in local state, skipping deletion`);
         return { success: true, skipped: true };
       }
       
+      // Optimistically remove the contact from the UI
+      // by updating the query cache before the API call completes
+      queryClient.setQueryData(['/api/contacts'], (oldData: any) => {
+        if (Array.isArray(oldData)) {
+          return oldData.filter(contact => contact.id !== contactId);
+        }
+        return oldData;
+      });
+      
       try {
-        // Try to DELETE the contact from the API
-        const response = await apiRequest({
+        // Try to DELETE the contact from the API (but we've already updated the UI)
+        await apiRequest({
           url: `/api/contacts/${contactId}`,
           method: 'DELETE',
         });
-        console.log(`Delete contact response:`, response);
-        return { success: true };
+        console.log(`Contact ID ${contactId} successfully deleted from API`);
+        return { success: true, contactName: existingContact.fullName };
       } catch (error: any) {
         console.error(`Error deleting contact with ID ${contactId}:`, error);
         
         // Special handling for "Contact not found" errors (404)
         if (error.status === 404) {
           console.log(`Contact ID ${contactId} returned 404, handling gracefully`);
-          
-          // Still refresh the data
-          queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-          
-          // Return a success result - don't throw error for this case
-          return { success: true, notFound: true };
+          // For 404, consider it a success since the contact doesn't exist anyway
+          return { success: true, notFound: true, contactName: existingContact.fullName };
         }
+        
+        // For other errors, we need to roll back our optimistic update
+        // Refetch the contacts to restore the UI state
+        queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
         
         // Let other errors propagate to onError handler
         throw error;
       }
     },
     onSuccess: (result: any) => {
-      console.log('Contact delete mutation completed successfully');
+      console.log('Contact delete mutation completed successfully', result);
       
-      // Refresh all contact-related data
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      // Refresh all contact-related data to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
       
       // Show appropriate toast based on the result
+      const contactName = result?.contactName || 'The contact';
+      
       if (result?.notFound) {
         toast({
-          title: 'Contact already deleted',
-          description: 'This contact has already been removed from your network.',
+          title: 'Contact already removed',
+          description: `${contactName} has already been removed from your network.`,
         });
       } else if (result?.skipped) {
         toast({
@@ -211,7 +221,7 @@ export default function Contacts() {
       } else {
         toast({
           title: 'Contact deleted',
-          description: 'The contact has been removed from your network.',
+          description: `${contactName} has been removed from your network.`,
         });
       }
       
@@ -222,7 +232,7 @@ export default function Contacts() {
       console.error('Contact deletion error details:', error);
       toast({
         title: 'Error',
-        description: `Failed to delete the contact. Please try again.`,
+        description: `Failed to delete the contact. The view has been refreshed.`,
         variant: 'destructive',
       });
     },
