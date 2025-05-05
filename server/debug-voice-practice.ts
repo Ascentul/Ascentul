@@ -37,8 +37,8 @@ export function logResponse(endpoint: string, statusCode: number, message: strin
 }
 
 // Save audio data for debugging purposes
-export function saveAudioForDebugging(audioData: Buffer, prefix: string) {
-  if (!DEBUG_ENABLED || !SAVE_DEBUG_AUDIO) return;
+export function saveAudioForDebugging(audioData: string | Buffer, prefix: string): string | null {
+  if (!DEBUG_ENABLED || !SAVE_DEBUG_AUDIO) return null;
   
   try {
     // Create debug directory if it doesn't exist
@@ -46,6 +46,9 @@ export function saveAudioForDebugging(audioData: Buffer, prefix: string) {
     if (!fs.existsSync(debugDir)) {
       fs.mkdirSync(debugDir, { recursive: true });
     }
+    
+    // Convert string to Buffer if needed
+    const buffer = Buffer.isBuffer(audioData) ? audioData : Buffer.from(audioData);
     
     // Save the audio file with timestamp
     const timestamp = new Date().getTime();
