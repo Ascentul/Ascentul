@@ -10,9 +10,16 @@ declare global {
         username: string;
         name: string;
         email: string;
-        userType: string; // "regular", "admin", "staff"
+        userType: string; // "regular", "admin", "staff", "university_admin"
+        role?: string | null;    // "user", "admin", "staff", "university_user", "university_admin", "super_admin"
         // Add other user fields as needed
       } | null;
+    }
+    
+    // Extend session type to include role
+    interface SessionData {
+      userId?: number;
+      role?: string;
     }
   }
 }
@@ -26,6 +33,7 @@ export function requireAuth(req: Request, res: Response, next: () => void) {
     console.warn('DEV MODE: Bypassing auth with dev_token in requireAuth');
     req.session = req.session || {};
     req.session.userId = 2; // Using demo user ID
+    req.session.role = 'user'; // Set default role
     
     // Continue with normal auth flow which will now succeed
   }
@@ -101,6 +109,7 @@ export function devTokenAuthBypass(req: Request, res: Response, next: NextFuncti
     console.warn('DEV MODE: Bypassing auth with dev_token');
     req.session = req.session || {};
     req.session.userId = 2; // Using demo user ID
+    req.session.role = 'user'; // Set default role
     
     // Fetch user data and attach to request if needed
     if (!req.user) {
@@ -132,6 +141,7 @@ export function requireLoginFallback(req: Request, res: Response, next: () => vo
     console.log("Auto-assigning demo user ID");
     // Set session with the demo user ID
     req.session.userId = 2; // Demo user ID
+    req.session.role = 'user'; // Set default role
   }
   
   // If we already have the user in the request, don't fetch it again

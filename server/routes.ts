@@ -429,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add redirect paths based on user role and login type for frontend to handle
       // Use the role-based redirect mapping
-      const routeMap = {
+      const routeMap: Record<string, string> = {
         user: '/dashboard',
         university_user: '/university',
         university_admin: '/university-admin',
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let redirectPath;
       
       // First try to use the role field if it exists and has a valid mapping
-      if (user.role && routeMap[user.role]) {
+      if (user.role && user.role in routeMap) {
         redirectPath = routeMap[user.role];
       } else {
         // Fall back to userType-based routing
