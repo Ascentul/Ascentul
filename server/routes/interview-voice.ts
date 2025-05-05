@@ -312,10 +312,10 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
           question: response,
           threadId: newThreadId
         });
-      } catch (assistantError) {
+      } catch (assistantError: any) {
         console.error('Error using OpenAI Assistants API:', assistantError);
-        logResponse('generate-question', 500, 'Error using OpenAI Assistants API, falling back to mock', {
-          errorMessage: typeof assistantError === 'object' ? assistantError.message || 'Unknown error' : String(assistantError)
+        logResponse('generate-question', 500, 'Error using OpenAI Assistants API, falling back to chat completions', {
+          errorMessage: assistantError?.message || 'Unknown error'
         });
         // Fall through to the mock/fallback implementation
       }
@@ -406,8 +406,8 @@ router.post('/generate-question', requireLoginFallback, async (req: Request, res
     
     // Log the error for monitoring and debugging
     logResponse('generate-question', 500, 'Error generating question (critical error)', {
-      errorMessage: typeof error === 'object' && error !== null ? (error.message || 'Unknown error') : String(error),
-      stack: typeof error === 'object' && error !== null && 'stack' in error ? error.stack : 'No stack trace available',
+      errorMessage: typeof error === 'object' && error !== null ? ((error as any).message || 'Unknown error') : String(error),
+      stack: typeof error === 'object' && error !== null && 'stack' in error ? (error as any).stack : 'No stack trace available',
       errorType: typeof error
     });
     
@@ -621,43 +621,13 @@ With some refinement, your interview performance would be even stronger.
       });
       
       try {
-        // Mock response for testing purposes (regardless of API key status)
-        // This ensures the feature works in development mode even when OpenAI API is unavailable
-        const shouldUseMockResponse = true; // Always use mock in development for reliability
-        
-        if (shouldUseMockResponse) {
-          console.log('[Interview Voice] Using guaranteed mock response for ongoing interview');
-          
-          // Create mock responses based on conversation context
-          const possibleResponses = [
-            `That's a good response. You've highlighted your relevant experience well. Let me ask you another question: How do you handle stressful situations or tight deadlines in a work environment?`,
-            `Thank you for sharing that. Your approach seems well-thought-out. For my next question: Can you tell me about a time when you had to resolve a conflict within a team?`,
-            `I appreciate your detailed answer. You clearly have experience in this area. Now, could you describe how you prioritize tasks when managing multiple projects simultaneously?`,
-            `That's helpful context. You've demonstrated good problem-solving skills there. My next question is: What do you consider your greatest professional achievement so far, and why?`,
-            `Thank you for explaining that approach. It gives me a good sense of your working style. Let me ask: How do you stay updated with the latest trends and developments in your field?`
-          ];
-          
-          // Select a response based on conversation length for variety
-          // This will cycle through different questions as the conversation progresses
-          const responseIndex = (conversation.length / 2) % possibleResponses.length;
-          const mockResponse = possibleResponses[Math.floor(responseIndex)];
-          
-          console.log('[Interview Voice] Returning mock ongoing interview response');
-          
-          // Log success for debugging
-          logResponse('analyze-response', 200, 'Successfully generated mock ongoing AI response', {
-            mockResponseLength: mockResponse.length,
-            mockResponseExcerpt: mockResponse
-          });
-          
-          // Return the mock response
-          return res.status(200).json({ 
-            isLastQuestion: false,
-            aiResponse: mockResponse
-          });
+        // Check if OpenAI API key is available before attempting API call
+        if (!process.env.OPENAI_API_KEY) {
+          logResponse('analyze-response', 500, 'OpenAI API key missing');
+          return res.status(500).json({ error: 'OpenAI API configuration is missing' });
         }
         
-        // If we're not using the mock response, proceed with OpenAI
+        // Only use real OpenAI API responses
         // Generate the next AI response with enhanced human-like conversation parameters
         // Currently OpenAI's streaming requires a different handling approach
         // For now, we'll use non-streaming to ensure reliability, but we'll prioritize
