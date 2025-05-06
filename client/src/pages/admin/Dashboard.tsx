@@ -553,17 +553,7 @@ export default function AdminDashboard() {
             <span className="mr-3"><HelpCircle className="h-5 w-5" /></span>
             <span>Support</span>
           </div> {/* Added Support Sidebar Item */}
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === 'content'
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab('content')}
-          >
-            <span className="mr-3"><BookOpen className="h-5 w-5" /></span>
-            <span>Content</span>
-          </div>
+
           <div
             className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
               activeTab === 'billing'
