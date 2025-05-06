@@ -265,6 +265,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register reviews router
   apiRouter.use('/reviews', reviewsRouter);
   
+  // Public endpoints for reviews that don't require authentication
+  
+  // GET /api/reviews/public - Get approved public reviews
+  apiRouter.get('/reviews/public', async (req: Request, res: Response) => {
+    try {
+      console.log("Fetching public reviews...");
+      
+      // Get only approved public reviews
+      const reviews = await db.select()
+        .from(userReviews)
+        .where(eq(userReviews.isPublic, true))
+        .orderBy(desc(userReviews.createdAt))
+        .limit(10);
+      
+      console.log(`Found ${reviews.length} public reviews`);
+      res.status(200).json({ reviews });
+    } catch (error) {
+      console.error("Error fetching public reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+  
   // Handle the review/submit endpoint that the frontend is calling
   // This is a public endpoint without authentication requirements
   apiRouter.post('/review/submit', async (req: Request, res: Response) => {
