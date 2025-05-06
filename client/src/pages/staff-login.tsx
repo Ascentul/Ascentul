@@ -20,8 +20,16 @@ export default function StaffLoginPage() {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   
   // Redirect if user is already logged in as staff or admin
-  if (user && (user.userType === 'staff' || user.userType === 'admin')) {
-    setLocation('/staff');
+  // Check both role and userType fields for consistent authorization
+  if (user && (
+    user.role === 'staff' || 
+    user.role === 'admin' ||
+    user.role === 'super_admin' ||
+    user.userType === 'staff' || 
+    user.userType === 'admin'
+  )) {
+    console.log("Staff login page: User already has staff access. Role:", user.role, "Type:", user.userType);
+    setLocation('/staff-dashboard');
     return null;
   }
   
@@ -38,7 +46,15 @@ export default function StaffLoginPage() {
       
       // Check if the logged-in user is staff or admin - this is a fallback
       // in case the server doesn't handle the login type correctly
-      if (user.userType !== 'staff' && user.userType !== 'admin') {
+      // Check both role and userType fields for consistent authorization
+      if (!(
+        user.role === 'staff' || 
+        user.role === 'admin' || 
+        user.role === 'super_admin' || 
+        user.userType === 'staff' || 
+        user.userType === 'admin'
+      )) {
+        console.log("Staff login denied - User has incorrect role/type. Role:", user.role, "Type:", user.userType);
         toast({
           title: "Access denied",
           description: "You do not have staff portal access privileges.",
@@ -50,6 +66,8 @@ export default function StaffLoginPage() {
         setLocation('/sign-in');
         return;
       }
+      
+      console.log("Staff login successful for user with role:", user.role, "type:", user.userType);
       
       toast({
         title: "Staff login successful!",

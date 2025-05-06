@@ -345,6 +345,7 @@ function App() {
     );
   }
 
+  // Allow both /admin and /admin-dashboard paths to identify admin routes for backwards compatibility
   const isAdminRoute = (location.startsWith("/admin") && location !== "/admin-login") || location === "/admin-dashboard";
   
   // University Admin routes check
