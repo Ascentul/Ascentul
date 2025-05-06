@@ -32,6 +32,8 @@ import academicProgramsRouter from "./routes/academic-programs";
 import mailRouter from "./routes/mail";
 // Import university invites router
 import universityInvitesRouter from "./routes/university-invites";
+// Import universities router
+import universitiesRouter from "./routes/universities";
 // Import reviews router
 import reviewsRouter from "./routes/reviews";
 import * as openai from "./openai";
@@ -251,6 +253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register university invites router
   apiRouter.use('/university-invites', universityInvitesRouter);
+  
+  // Register universities router
+  apiRouter.use('/universities', universitiesRouter);
   
   // Register reviews router
   apiRouter.use('/reviews', reviewsRouter);
