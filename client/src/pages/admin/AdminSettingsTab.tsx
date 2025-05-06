@@ -70,13 +70,7 @@ export default function AdminSettingsTab() {
   // Fetch settings from the API
   const { data: settingsData, isLoading, error } = useQuery({
     queryKey: ["/api/settings"],
-    queryFn: async () => {
-      const response = await fetch("/api/settings");
-      if (!response.ok) {
-        throw new Error("Failed to fetch settings");
-      }
-      return response.json();
-    },
+    // Use the default queryFn which includes credentials and proper auth headers
   });
 
   // Update settings mutation
