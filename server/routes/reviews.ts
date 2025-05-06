@@ -19,10 +19,9 @@ const filterReviewsSchema = z.object({
 // GET /api/reviews - Get all reviews (for admin dashboard)
 router.get("/", requireAdmin, async (req, res) => {
   try {
-    // Check if user is admin or super admin
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+    // The requireAdmin middleware already checks that the user is authenticated
+    // and has admin or super_admin role, so we don't need to check again
+    console.log("Admin review route accessed by user:", req.user?.id, "Role:", req.user?.role);
 
     // Parse query parameters for filtering and sorting
     const { rating, status, search, sortBy = "createdAt", sortOrder = "desc" } = filterReviewsSchema.parse(req.query);
@@ -79,10 +78,7 @@ router.get("/", requireAdmin, async (req, res) => {
 // GET /api/reviews/:id - Get a single review
 router.get("/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is admin or super admin
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+    // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
 
@@ -114,10 +110,7 @@ router.patch("/:id", requireAdmin, async (req, res) => {
     // Validate request body
     const validatedData = updateReviewStatusSchema.parse(req.body);
     
-    // Check if user is admin or super admin
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+    // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
     const { status, adminNotes, isPublic } = validatedData;
@@ -155,10 +148,7 @@ router.patch("/:id", requireAdmin, async (req, res) => {
 // DELETE /api/reviews/:id - Delete a review
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is admin or super admin
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+    // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
 
@@ -180,10 +170,7 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 // POST /api/reviews/flag/:id - Flag a review
 router.post("/flag/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is admin or super admin
-    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+    // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
     const { adminNotes } = req.body;
