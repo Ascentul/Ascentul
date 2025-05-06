@@ -50,11 +50,9 @@ export default function SignInPage() {
         description: "You have been logged in successfully.",
       });
       
-      // The redirect should be handled by useUserData.tsx, but this is a fallback
-      if (redirectPath) {
-        console.log("Redirecting to:", redirectPath);
-        window.location.href = redirectPath;
-      }
+      // ✅ Rely solely on the server-sent redirectPath for proper routing
+      // The login function in useUserData.tsx handles redirection based on the server response
+      console.log("Login successful - redirection will be handled by useUserData.tsx");
     } catch (error) {
       toast({
         title: "Login failed",

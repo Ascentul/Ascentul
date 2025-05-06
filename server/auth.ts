@@ -22,7 +22,9 @@ declare global {
 
 // Middleware to check if user is authenticated
 export function requireAuth(req: Request, res: Response, next: () => void) {
-  // Check for dev token first
+  // ✅ TEMPORARY DISABLED DEV TOKEN AUTH FOR TESTING
+  // Check for dev token first - DISABLED FOR TESTING
+  /*
   const devToken = req.headers.authorization?.replace('Bearer ', '');
   
   if (process.env.NODE_ENV === 'development' && devToken === 'dev_token') {
@@ -30,9 +32,8 @@ export function requireAuth(req: Request, res: Response, next: () => void) {
     req.session = req.session || {};
     req.session.userId = 2; // Using demo user ID
     req.session.role = 'user'; // Set default role
-    
-    // Continue with normal auth flow which will now succeed
   }
+  */
   
   console.log("Checking auth. Session:", req.session?.userId ? "Has userId" : "No userId");
   
@@ -102,6 +103,15 @@ export function requireAdmin(req: Request, res: Response, next: () => void) {
 // Dev Token Auth Bypass middleware
 // This middleware checks for the dev_token in Authorization header and bypasses auth in development
 export function devTokenAuthBypass(req: Request, res: Response, next: NextFunction) {
+  // ✅ TEMPORARY DISABLED DEV TOKEN AUTH FOR TESTING
+  // To test real session-based authentication without dev token override
+  
+  console.log("DevTokenAuthBypass middleware is temporarily DISABLED for testing");
+  
+  // Just pass through to the next middleware without modifying session
+  next(); // Continue to normal auth flow
+  
+  /* Original implementation (commented out):
   const devToken = req.headers.authorization?.replace('Bearer ', '');
   
   if (process.env.NODE_ENV === 'development' && devToken === 'dev_token') {
@@ -129,6 +139,7 @@ export function devTokenAuthBypass(req: Request, res: Response, next: NextFuncti
   } else {
     next(); // Continue to normal auth flow
   }
+  */
 }
 
 // Modified authentication middleware that automatically logs in as a demo user
