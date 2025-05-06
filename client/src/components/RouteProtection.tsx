@@ -69,8 +69,8 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
   // Staff users should be redirected to their dashboard
   // Check both role and userType fields
   if (user.role === 'staff' || user.userType === 'staff') {
-    console.log("Career route check - redirecting staff user to staff dashboard. Role:", user.role, "Type:", user.userType);
-    setLocation('/staff-dashboard');
+    console.log("Career route check - redirecting staff user to admin dashboard. Role:", user.role, "Type:", user.userType);
+    setLocation('/admin');
     return null;
   }
   
@@ -108,7 +108,7 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
     if (!user) {
       setLocation('/sign-in');
     } else if (user.userType === 'staff') {
-      setLocation('/staff-dashboard');
+      setLocation('/admin');
     } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
       setLocation('/university-admin/dashboard');
     } else {
