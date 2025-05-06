@@ -104,15 +104,11 @@ export const validateUniversityAccess = (req: Request, res: Response, next: Next
  */
 export const validateResourceOwnership = (userIdKey: string = 'userId') => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
     
     const user = req.user;
-    
-    if (!user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
     
     // Admins and super admins have access to all resources
     if (user.role === 'admin' || user.role === 'super_admin') {
