@@ -22,11 +22,19 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Drawer,
   DrawerContent,
@@ -41,8 +49,17 @@ import { useToast } from "@/hooks/use-toast";
 interface University {
   id: number;
   name: string;
-  studentCount: number;
-  adminCount: number;
+  slug: string;
+  licensePlan: string;
+  licenseSeats: number;
+  licenseUsed: number;
+  licenseStart: string;
+  licenseEnd: string | null;
+  status: string;
+  adminEmail?: string;
+  createdById?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Interface for university admin
@@ -55,6 +72,17 @@ interface UniversityAdmin {
 // Add university form schema
 const addUniversitySchema = z.object({
   name: z.string().min(3, "University name must be at least 3 characters"),
+  licensePlan: z.enum(["Starter", "Basic", "Pro", "Enterprise"], {
+    required_error: "Please select a plan tier",
+  }),
+  licenseSeats: z.number().min(1, "Seat limit must be at least 1").default(50),
+  licenseStart: z.date().or(z.string()).refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid start date",
+  }),
+  licenseEnd: z.date().or(z.string()).refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid end date",
+  }),
+  adminEmail: z.string().email("Please enter a valid email address").optional(),
 });
 
 type AddUniversityFormValues = z.infer<typeof addUniversitySchema>;
@@ -85,7 +113,12 @@ export default function UniversitiesPage() {
   const addUniversityForm = useForm<AddUniversityFormValues>({
     resolver: zodResolver(addUniversitySchema),
     defaultValues: {
-      name: ""
+      name: "",
+      licensePlan: "Starter",
+      licenseSeats: 50,
+      licenseStart: new Date().toISOString().split('T')[0], // Today's date
+      licenseEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0], // 1 year from now
+      adminEmail: "",
     }
   });
 
@@ -293,15 +326,23 @@ export default function UniversitiesPage() {
                 <CardContent className="p-0">
                   <div className="p-4 border-b">
                     <h3 className="font-semibold text-lg">{university.name}</h3>
+                    <div className="mt-1 text-sm text-gray-500">{university.status}</div>
                   </div>
                   <div className="p-4 bg-gray-50">
                     <div className="flex justify-between mb-2">
-                      <span className="text-gray-600">Students:</span>
-                      <span className="font-medium">{university.studentCount}</span>
+                      <span className="text-gray-600">Plan:</span>
+                      <span className="font-medium">{university.licensePlan} — {university.licenseSeats} seats</span>
+                    </div>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-600">Usage:</span>
+                      <span className="font-medium">{university.licenseUsed} / {university.licenseSeats}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Admins:</span>
-                      <span className="font-medium">{university.adminCount}</span>
+                      <span className="text-gray-600">Contract:</span>
+                      <span className="font-medium">
+                        {new Date(university.licenseStart).toLocaleDateString()} — 
+                        {university.licenseEnd ? new Date(university.licenseEnd).toLocaleDateString() : 'N/A'}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -344,6 +385,119 @@ export default function UniversitiesPage() {
                     <FormControl>
                       <Input placeholder="Enter university name" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addUniversityForm.control}
+                name="licensePlan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>License Plan</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a plan tier" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Starter">Starter</SelectItem>
+                        <SelectItem value="Basic">Basic</SelectItem>
+                        <SelectItem value="Pro">Pro</SelectItem>
+                        <SelectItem value="Enterprise">Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={addUniversityForm.control}
+                name="licenseSeats"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>License Seats</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Number of seats" 
+                        min={1}
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={addUniversityForm.control}
+                  name="licenseStart"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License Start Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          value={typeof field.value === 'string' ? field.value : field.value.toISOString().split('T')[0]}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={addUniversityForm.control}
+                  name="licenseEnd"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>License End Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          value={typeof field.value === 'string' ? field.value : field.value.toISOString().split('T')[0]}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={addUniversityForm.control}
+                name="adminEmail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Admin Email (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email"
+                        placeholder="admin@university.edu" 
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      If provided, an invitation will be sent to this email.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
