@@ -85,6 +85,7 @@ import {
   Trash2,
   Cpu,
   Mail,
+  Star,
 } from 'lucide-react';
 // Import the components directly
 // This avoid the need for separate imports
@@ -407,6 +408,8 @@ export default function AdminDashboard() {
         return <UserManagement />;
       case 'universities':
         return <UniversitiesPage />;
+      case 'reviews':
+        return <ReviewsPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
@@ -531,6 +534,17 @@ export default function AdminDashboard() {
           >
             <span className="mr-3"><Building className="h-5 w-5" /></span>
             <span>Universities</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'reviews'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
+            onClick={() => setActiveTab('reviews')}
+          >
+            <span className="mr-3"><Star className="h-5 w-5" /></span>
+            <span>Customer Reviews</span>
           </div>
           <div
             className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
