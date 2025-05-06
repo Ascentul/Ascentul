@@ -3,7 +3,7 @@ import { db } from "../db";
 import { userReviews, users } from "@shared/schema";
 import { eq, and, desc, sql, like, asc } from "drizzle-orm";
 import { z } from "zod";
-import { requireAdmin, requireAuth } from "../utils/validateRequest";
+import { requireAdmin, requireAuth, publicAccess } from "../utils/validateRequest";
 
 const router = Router();
 
@@ -212,7 +212,7 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
 
 // GET /api/reviews/public - Public endpoint to get approved reviews
 // This endpoint is intentionally not auth protected for testing purposes
-router.get("/public", async (req, res) => {
+router.get("/public", publicAccess, async (req, res) => {
   try {
     console.log("Fetching public reviews...");
     
