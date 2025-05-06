@@ -50,16 +50,12 @@ router.get('/my-invites', async (req, res) => {
       let universityInfo = null;
       
       if (invite.universityId) {
-        const [university] = await db.select({
-          id: universities.id,
-          name: universities.name,
-          slug: universities.slug
-        })
-        .from(universities)
-        .where(eq(universities.id, invite.universityId));
+        const universities = await db.execute(
+          sql`SELECT id, name, slug FROM universities WHERE id = ${invite.universityId}`
+        );
         
-        if (university) {
-          universityInfo = university;
+        if (universities.length > 0) {
+          universityInfo = universities[0];
         }
       }
       
@@ -92,37 +88,36 @@ router.post('/', async (req, res) => {
     const validatedData = universityInviteSchema.parse(req.body);
     
     // Check if university exists
-    const [university] = await db.select()
-      .from(universities)
-      .where(eq(universities.id, validatedData.universityId));
+    const universities = await db.execute(
+      sql`SELECT * FROM universities WHERE id = ${validatedData.universityId}`
+    );
     
-    if (!university) {
+    if (universities.length === 0) {
       return res.status(404).json({ error: 'University not found' });
     }
     
+    const university = universities[0];
+    
     // Check if university has available license seats
     if (validatedData.role === 'student' && 
-        university.licenseUsed !== null && 
-        university.licenseSeats !== null && 
-        university.licenseUsed >= university.licenseSeats) {
+        university.license_used !== null && 
+        university.license_seats !== null && 
+        university.license_used >= university.license_seats) {
       return res.status(400).json({ 
         error: 'License limit reached',
-        message: `The university has used all of its ${university.licenseSeats} license seats`
+        message: `The university has used all of its ${university.license_seats} license seats`
       });
     }
     
     // Check if invite for this email already exists
-    const [existingInvite] = await db.select()
-      .from(invites)
-      .where(
-        and(
-          eq(invites.email, validatedData.email),
-          eq(invites.universityId, validatedData.universityId),
-          eq(invites.status, "pending")
-        )
-      );
+    const existingInvites = await db.execute(
+      sql`SELECT * FROM invites 
+          WHERE email = ${validatedData.email} 
+          AND university_id = ${validatedData.universityId}
+          AND status = 'pending'`
+    );
     
-    if (existingInvite) {
+    if (existingInvites.length > 0) {
       return res.status(400).json({ 
         error: 'Invite already exists',
         message: `An invitation has already been sent to ${validatedData.email}` 
@@ -211,22 +206,21 @@ router.post('/accept/:inviteId', async (req, res) => {
     }
     
     // Get the invite by ID
-    const [invite] = await db.select()
-      .from(invites)
-      .where(
-        and(
-          eq(invites.id, inviteId),
-          eq(invites.token, token),
-          eq(invites.status, "pending")
-        )
-      );
+    const invites = await db.execute(
+      sql`SELECT * FROM invites 
+          WHERE id = ${inviteId} 
+          AND token = ${token}
+          AND status = 'pending'`
+    );
     
-    if (!invite) {
+    if (invites.length === 0) {
       return res.status(404).json({ error: 'Invite not found or already accepted' });
     }
     
+    const invite = invites[0];
+    
     // Check if invite is expired
-    if (new Date() > invite.expiresAt) {
+    if (new Date() > new Date(invite.expires_at)) {
       return res.status(400).json({ error: 'Invite has expired' });
     }
     
@@ -239,50 +233,52 @@ router.post('/accept/:inviteId', async (req, res) => {
     }
     
     // Get the university information
-    const [university] = await db.select()
-      .from(universities)
-      .where(eq(universities.id, invite.universityId || 0));
+    const universities = await db.execute(
+      sql`SELECT * FROM universities WHERE id = ${invite.university_id}`
+    );
     
-    if (!university) {
+    if (universities.length === 0) {
       return res.status(404).json({ error: 'University not found' });
     }
     
+    const university = universities[0];
+    
     // If inviting a student, check if university has available license seats
     if (invite.role === 'student' && 
-        university.licenseUsed !== null && 
-        university.licenseSeats !== null && 
-        university.licenseUsed >= university.licenseSeats) {
+        university.license_used !== null && 
+        university.license_seats !== null && 
+        university.license_used >= university.license_seats) {
       return res.status(400).json({ 
         error: 'License limit reached',
-        message: `The university has used all of its ${university.licenseSeats} license seats`
+        message: `The university has used all of its ${university.license_seats} license seats`
       });
     }
     
     // Update user with university information and appropriate role
-    await db.update(users)
-      .set({
-        universityId: invite.universityId,
-        universityName: university.name,
-        userType: invite.role === 'admin' ? 'university_admin' : 'university_student',
-        role: invite.role === 'admin' ? 'university_admin' : 'user'
-      })
-      .where(eq(users.id, user.id));
+    await db.execute(
+      sql`UPDATE users 
+          SET university_id = ${invite.university_id}, 
+              university_name = ${university.name},
+              user_type = ${invite.role === 'admin' ? 'university_admin' : 'university_student'},
+              role = ${invite.role === 'admin' ? 'university_admin' : 'user'}
+          WHERE id = ${user.id}`
+    );
     
     // Mark the invite as accepted
-    await db.update(invites)
-      .set({
-        status: "accepted",
-        acceptedAt: new Date()
-      })
-      .where(eq(invites.id, inviteId));
+    await db.execute(
+      sql`UPDATE invites 
+          SET status = 'accepted', 
+              accepted_at = ${new Date()}
+          WHERE id = ${inviteId}`
+    );
     
     // If this is a student, increment the university's license used count
-    if (invite.role === 'student' && university.licenseUsed !== null) {
-      await db.update(universities)
-        .set({
-          licenseUsed: university.licenseUsed + 1
-        })
-        .where(eq(universities.id, university.id));
+    if (invite.role === 'student' && university.license_used !== null) {
+      await db.execute(
+        sql`UPDATE universities 
+            SET license_used = license_used + 1
+            WHERE id = ${university.id}`
+      );
     }
     
     // Return success
@@ -304,32 +300,33 @@ router.get('/validate-token/:token', async (req, res) => {
     const token = req.params.token;
     
     // Get the invite by token
-    const [invite] = await db.select()
-      .from(invites)
-      .where(
-        and(
-          eq(invites.token, token),
-          eq(invites.status, "pending")
-        )
-      );
+    const invites = await db.execute(
+      sql`SELECT * FROM invites 
+          WHERE token = ${token}
+          AND status = 'pending'`
+    );
     
-    if (!invite) {
+    if (invites.length === 0) {
       return res.status(404).json({ error: 'Invite not found or already accepted' });
     }
     
+    const invite = invites[0];
+    
     // Check if invite is expired
-    if (new Date() > invite.expiresAt) {
+    if (new Date() > new Date(invite.expires_at)) {
       return res.status(400).json({ error: 'Invite has expired' });
     }
     
     // Get the university information
-    const [university] = await db.select()
-      .from(universities)
-      .where(eq(universities.id, invite.universityId || 0));
+    const universities = await db.execute(
+      sql`SELECT * FROM universities WHERE id = ${invite.university_id}`
+    );
     
-    if (!university) {
+    if (universities.length === 0) {
       return res.status(404).json({ error: 'University not found' });
     }
+    
+    const university = universities[0];
     
     // Return invite details for the signup process
     res.json({
@@ -338,7 +335,7 @@ router.get('/validate-token/:token', async (req, res) => {
         id: invite.id,
         email: invite.email,
         role: invite.role,
-        universityId: invite.universityId,
+        universityId: invite.university_id,
         universityName: university.name
       }
     });
