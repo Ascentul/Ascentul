@@ -75,14 +75,9 @@ export default function StaffLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // The redirect should be handled by useUserData.tsx, but this is a fallback
-      if (redirectPath) {
-        window.location.href = redirectPath;
-      } else {
-        // If no redirectPath is provided, default to /staff
-        console.log("No redirectPath provided, defaulting to /staff");
-        window.location.href = '/staff';
-      }
+      // ✅ Rely solely on the server-sent redirectPath for proper routing
+      // The login function in useUserData.tsx handles redirection based on the server response
+      console.log("Staff login successful - redirection will be handled by useUserData.tsx");
     } catch (error) {
       toast({
         title: "Login failed",
