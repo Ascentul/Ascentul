@@ -114,8 +114,8 @@ router.patch("/:id", requireAdmin, async (req, res) => {
     // Validate request body
     const validatedData = updateReviewStatusSchema.parse(req.body);
     
-    // Check if user is super admin
-    if (req.user?.role !== "super_admin") {
+    // Check if user is admin or super admin
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
@@ -155,8 +155,8 @@ router.patch("/:id", requireAdmin, async (req, res) => {
 // DELETE /api/reviews/:id - Delete a review
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is super admin
-    if (req.user?.role !== "super_admin") {
+    // Check if user is admin or super admin
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
@@ -180,8 +180,8 @@ router.delete("/:id", requireAdmin, async (req, res) => {
 // POST /api/reviews/flag/:id - Flag a review
 router.post("/flag/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is super admin
-    if (req.user?.role !== "super_admin") {
+    // Check if user is admin or super admin
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
