@@ -1,5 +1,5 @@
 import express from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, isNotNull } from 'drizzle-orm';
 import { storage } from '../storage';
 import { db } from '../db';
 import { users } from '@shared/schema';
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   }
   
   const user = await storage.getUser(req.session.userId);
-  if (!user || (user.userType !== 'admin')) {
+  if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
   
@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
     .from(users)
     .where(
       // Filter where universityId is not null
-      users.universityId.notNull
+      isNotNull(users.universityId)
     );
     
     // Process the results to get university information
