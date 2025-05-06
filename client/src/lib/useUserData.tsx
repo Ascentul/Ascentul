@@ -91,6 +91,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(['/api/users/me'], data.user);
       setIsAuthenticated(true);
       
+      // Enhanced logging to debug redirect issues
+      console.log("Login successful - User data:", {
+        id: data.user.id,
+        username: data.user.username,
+        role: data.user.role,
+        userType: data.user.userType,
+        serverRedirectPath: data.redirectPath
+      });
+      
       // Use the redirect path provided by the server, or fall back to role-based redirect
       if (data.redirectPath) {
         console.log("Using server provided redirectPath:", data.redirectPath);
@@ -98,6 +107,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       } else {
         // Fall back to role-based redirection
         const user = data.user;
+        console.log("WARNING: Server did not provide redirectPath, using client-side logic");
         
         // Check role first for more accurate routing
         if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'staff') {

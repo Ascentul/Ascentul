@@ -436,6 +436,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the utility function to determine redirect path
       const redirectPath = getRedirectByRole(user.role || 'user');
       
+      // Enhanced logging to diagnose redirect issues
+      console.log("Login success - User info for redirect:", { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        role: user.role, 
+        userType: user.userType,
+        redirectPath
+      });
+      
       res.status(200).json({ user: safeUser, redirectPath });
     } catch (error) {
       console.error('Login error detail:', error);
