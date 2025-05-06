@@ -232,17 +232,19 @@ const ReviewsTab: React.FC = () => {
 
   // Filter reviews based on active tab
   const getFilteredReviews = () => {
-    if (!adminReviews?.reviews) return [];
+    if (!adminReviews || !adminReviews.reviews || !Array.isArray(adminReviews.reviews)) {
+      return [];
+    }
     
     switch(activeTab) {
       case 'pending':
-        return adminReviews.reviews.filter(r => r.status === 'pending');
+        return adminReviews.reviews.filter((r: Review) => r.status === 'pending');
       case 'approved':
-        return adminReviews.reviews.filter(r => r.status === 'approved');
+        return adminReviews.reviews.filter((r: Review) => r.status === 'approved');
       case 'rejected':
-        return adminReviews.reviews.filter(r => r.status === 'rejected');
+        return adminReviews.reviews.filter((r: Review) => r.status === 'rejected');
       case 'public':
-        return adminReviews.reviews.filter(r => r.isPublic);
+        return adminReviews.reviews.filter((r: Review) => r.isPublic);
       case 'all':
       default:
         return adminReviews.reviews;
@@ -302,7 +304,7 @@ const ReviewsTab: React.FC = () => {
         <TabsContent value={activeTab} className="mt-4">
           {filteredReviews.length > 0 ? (
             <div className="space-y-4">
-              {filteredReviews.map(review => (
+              {filteredReviews.map((review: Review) => (
                 <ReviewCard 
                   key={review.id} 
                   review={review}
@@ -341,8 +343,8 @@ const ReviewsTab: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {publicReviews?.reviews && publicReviews.reviews.length > 0 ? (
-              publicReviews.reviews.map(review => (
+            {publicReviews && publicReviews.reviews && Array.isArray(publicReviews.reviews) && publicReviews.reviews.length > 0 ? (
+              publicReviews.reviews.map((review: Review) => (
                 <Card key={review.id} className="overflow-hidden border rounded-lg shadow-sm">
                   <CardHeader className="pb-2 bg-gray-50">
                     <div className="flex justify-between items-center">

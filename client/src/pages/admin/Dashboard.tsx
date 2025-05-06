@@ -22,6 +22,7 @@ import UniversitiesPage from './universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
 import ReviewsPage from './ReviewsPage';
+import ReviewsTab from './ReviewsTab';
 import AdminSettingsTab from './AdminSettingsTab';
 import {
   Form,
@@ -410,7 +411,7 @@ export default function AdminDashboard() {
       case 'universities':
         return <UniversitiesPage />;
       case 'reviews':
-        return <ReviewsPage />;
+        return <ReviewsTab />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
