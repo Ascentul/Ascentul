@@ -522,11 +522,11 @@ export default function AdminDashboard() {
           </div>
           <div
             className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === 'universities'
+              activeTab === 'universities' || isUniversitiesRoute
                 ? "bg-[#1333c2] text-white font-medium"
                 : "text-foreground/70 hover:bg-muted/80"
             }`}
-            onClick={() => setActiveTab('universities')}
+            onClick={() => setLocation('/admin/universities')}
           >
             <span className="mr-3"><Building className="h-5 w-5" /></span>
             <span>Universities</span>
