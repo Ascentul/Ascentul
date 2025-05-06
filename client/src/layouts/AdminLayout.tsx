@@ -41,35 +41,9 @@ const navItems = [
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [location, navigate] = useLocation();
 
-  // Query to check if user is admin
-  const { data: user, isLoading } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/user");
-      if (!response.ok) {
-        throw new Error("Not authenticated");
-      }
-      return response.json();
-    },
-    retry: false,
-  });
-
-  // Redirect non-admin users - check both role and userType fields
-  useEffect(() => {
-    if (!isLoading && (!user || (user.role !== 'super_admin' && user.role !== 'admin' && user.userType !== "admin"))) {
-      console.log("AdminLayout: Access denied. User role:", user?.role, "User type:", user?.userType);
-      navigate("/sign-in");
-    }
-  }, [user, isLoading, navigate]);
-
-  // Show loading while checking auth
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  // We don't need to check authentication here since RouteProtection already does this
+  // The AdminRoute component in RouteProtection.tsx will prevent this component from rendering
+  // if the user doesn't have admin permissions
 
   // If authentication check passed, render the layout
   return (
