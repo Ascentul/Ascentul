@@ -100,23 +100,32 @@ export function UserProvider({ children }: { children: ReactNode }) {
         serverRedirectPath: data.redirectPath
       });
       
-      // Use the redirect path provided by the server, or fall back to role-based redirect
+      // For admins and super admins, always direct to /admin regardless of server response
+      const user = data.user;
+      if (user.role === 'super_admin' || user.role === 'admin') {
+        console.log("Super Admin/Admin role detected - always routing to /admin");
+        window.location.href = '/admin';
+        return;
+      }
+      
+      // For staff, also route to /admin
+      if (user.role === 'staff' || user.userType === 'staff') {
+        console.log("Staff role detected - routing to /admin");
+        window.location.href = '/admin';
+        return;
+      }
+      
+      // For other users, use the server's redirect path if available
       if (data.redirectPath) {
         console.log("Using server provided redirectPath:", data.redirectPath);
         window.location.href = data.redirectPath;
       } else {
         // Fall back to role-based redirection
-        const user = data.user;
         console.log("WARNING: Server did not provide redirectPath, using client-side logic");
         
-        // Check role first for more accurate routing
-        if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'staff') {
-          console.log("Admin/SuperAdmin/Staff role detected - redirecting to /admin");
-          window.location.href = '/admin';
-        } 
         // Fall back to userType if role isn't definitive
-        else if (user.userType === 'admin' || user.userType === 'staff') {
-          console.log("Admin/Staff userType detected - redirecting to /admin");
+        if (user.userType === 'admin') {
+          console.log("Admin userType detected - redirecting to /admin");
           window.location.href = '/admin';
         } else if (user.userType === 'university_admin') {
           window.location.href = '/university-admin/dashboard';
