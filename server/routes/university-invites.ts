@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { storage } from '../storage';
 import { db } from '../db';
 import { users, universities, invites, insertInviteSchema } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -101,7 +101,10 @@ router.post('/', async (req, res) => {
     }
     
     // Check if university has available license seats
-    if (university.licenseUsed >= university.licenseSeats && validatedData.role === 'student') {
+    if (validatedData.role === 'student' && 
+        university.licenseUsed !== null && 
+        university.licenseSeats !== null && 
+        university.licenseUsed >= university.licenseSeats) {
       return res.status(400).json({ 
         error: 'License limit reached',
         message: `The university has used all of its ${university.licenseSeats} license seats`
@@ -187,19 +190,162 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Accept an invite
+// Accept an invite (for existing users)
 router.post('/accept/:inviteId', async (req, res) => {
   if (!req.session?.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
   try {
-    // Placeholder - would implement to accept an invite
-    // This would typically validate the invite token, update user role, etc.
-    res.json({ success: true });
+    const inviteId = parseInt(req.params.inviteId);
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+    
+    // Get the user from the session
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    // Get the invite by ID
+    const [invite] = await db.select()
+      .from(invites)
+      .where(
+        and(
+          eq(invites.id, inviteId),
+          eq(invites.token, token),
+          eq(invites.status, "pending")
+        )
+      );
+    
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found or already accepted' });
+    }
+    
+    // Check if invite is expired
+    if (new Date() > invite.expiresAt) {
+      return res.status(400).json({ error: 'Invite has expired' });
+    }
+    
+    // Check if the invite is for this user
+    if (invite.email !== user.email) {
+      return res.status(403).json({ 
+        error: 'This invite is not for your account',
+        message: `This invite was sent to ${invite.email} but your account email is ${user.email}`
+      });
+    }
+    
+    // Get the university information
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, invite.universityId || 0));
+    
+    if (!university) {
+      return res.status(404).json({ error: 'University not found' });
+    }
+    
+    // If inviting a student, check if university has available license seats
+    if (invite.role === 'student' && 
+        university.licenseUsed !== null && 
+        university.licenseSeats !== null && 
+        university.licenseUsed >= university.licenseSeats) {
+      return res.status(400).json({ 
+        error: 'License limit reached',
+        message: `The university has used all of its ${university.licenseSeats} license seats`
+      });
+    }
+    
+    // Update user with university information and appropriate role
+    await db.update(users)
+      .set({
+        universityId: invite.universityId,
+        universityName: university.name,
+        userType: invite.role === 'admin' ? 'university_admin' : 'university_student',
+        role: invite.role === 'admin' ? 'university_admin' : 'user'
+      })
+      .where(eq(users.id, user.id));
+    
+    // Mark the invite as accepted
+    await db.update(invites)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date()
+      })
+      .where(eq(invites.id, inviteId));
+    
+    // If this is a student, increment the university's license used count
+    if (invite.role === 'student' && university.licenseUsed !== null) {
+      await db.update(universities)
+        .set({
+          licenseUsed: university.licenseUsed + 1
+        })
+        .where(eq(universities.id, university.id));
+    }
+    
+    // Return success
+    res.json({ 
+      success: true,
+      message: `You have successfully joined ${university.name} as a ${invite.role === 'admin' ? 'university administrator' : 'student'}`,
+      redirectTo: invite.role === 'admin' ? '/university-admin' : '/university'
+    });
+    
   } catch (error) {
     console.error('Error accepting invite:', error);
     res.status(500).json({ error: 'Failed to accept invite' });
+  }
+});
+
+// Validate an invite token (for new users during signup)
+router.get('/validate-token/:token', async (req, res) => {
+  try {
+    const token = req.params.token;
+    
+    // Get the invite by token
+    const [invite] = await db.select()
+      .from(invites)
+      .where(
+        and(
+          eq(invites.token, token),
+          eq(invites.status, "pending")
+        )
+      );
+    
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found or already accepted' });
+    }
+    
+    // Check if invite is expired
+    if (new Date() > invite.expiresAt) {
+      return res.status(400).json({ error: 'Invite has expired' });
+    }
+    
+    // Get the university information
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, invite.universityId || 0));
+    
+    if (!university) {
+      return res.status(404).json({ error: 'University not found' });
+    }
+    
+    // Return invite details for the signup process
+    res.json({
+      valid: true,
+      invite: {
+        id: invite.id,
+        email: invite.email,
+        role: invite.role,
+        universityId: invite.universityId,
+        universityName: university.name
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error validating invite token:', error);
+    res.status(500).json({ error: 'Failed to validate invite token' });
   }
 });
 
