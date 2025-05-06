@@ -100,14 +100,20 @@ function getDefaultSettings() {
 // Get platform settings
 router.get('/', requireAdmin, async (req, res) => {
   try {
+    console.log('GET /settings request received');
+    console.log('User authenticated:', req.isAuthenticated());
+    console.log('User role:', req.user?.role);
+    
     // Try to fetch existing settings
     const settings = await db.select().from(platformSettings).limit(1);
+    console.log('Settings query result:', settings);
     
     if (settings && settings.length > 0) {
       return res.json(settings[0]);
     }
     
     // If no settings exist yet, return defaults
+    console.log('No settings found, returning defaults');
     return res.json(getDefaultSettings());
   } catch (error) {
     console.error('Error fetching platform settings:', error);
