@@ -934,23 +934,23 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 }
 
 function UserTypeBadge({ type }: { type: string }) {
-  let badgeStyles = '';
+  let className = '';
   
   switch(type) {
     case 'regular':
-      badgeStyles = 'bg-blue-50 text-blue-700 border-blue-200';
+      className = 'text-blue-600 bg-blue-50 border-blue-200';
       break;
     case 'university_student':
-      badgeStyles = 'bg-green-50 text-green-700 border-green-200';
+      className = 'text-green-600 bg-green-50 border-green-200';
       break;
     case 'university_admin':
-      badgeStyles = 'bg-purple-50 text-purple-700 border-purple-200';
+      className = 'text-purple-600 bg-purple-50 border-purple-200';
       break;
     case 'staff':
-      badgeStyles = 'bg-amber-50 text-amber-700 border-amber-200';
+      className = 'text-amber-600 bg-amber-50 border-amber-200';
       break;
     default:
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
   }
   
   let displayName = 'User';
@@ -960,9 +960,9 @@ function UserTypeBadge({ type }: { type: string }) {
   else if (type === 'staff') displayName = 'Staff';
       
   return (
-    <span className={`text-xs px-2 py-1 rounded-full border ${badgeStyles}`}>
+    <Badge variant="outline" className={className}>
       {displayName}
-    </span>
+    </Badge>
   );
 }
 
@@ -973,80 +973,90 @@ function SubscriptionBadge({
   plan: string; 
   status: string;
 }) {
-  let badgeStyles = '';
+  let className = '';
   
   switch(plan) {
     case 'free':
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
       break;
     case 'premium':
-      badgeStyles = 'bg-amber-50 text-amber-700 border-amber-200';
+      className = 'text-amber-600 bg-amber-50 border-amber-200';
       break;
     case 'university':
-      badgeStyles = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      className = 'text-blue-600 bg-blue-50 border-blue-200';
       break;
     default:
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
   }
   
-  const statusDot = 
-    status === 'active' ? '🟢 ' : 
-    status === 'inactive' ? '⚪ ' : 
-    status === 'cancelled' ? '🔴 ' : 
-    '🟡 '; // past_due
+  // Replace emoji dots with colored indicators
+  const StatusIndicator = () => {
+    switch(status) {
+      case 'active':
+        return <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 inline-block" />;
+      case 'inactive':
+        return <span className="w-2 h-2 rounded-full bg-gray-400 mr-1.5 inline-block" />;
+      case 'cancelled':
+        return <span className="w-2 h-2 rounded-full bg-red-500 mr-1.5 inline-block" />;
+      case 'past_due':
+        return <span className="w-2 h-2 rounded-full bg-amber-500 mr-1.5 inline-block" />;
+      default:
+        return null;
+    }
+  };
   
   return (
-    <span className={`text-xs px-2 py-1 rounded-full border ${badgeStyles}`}>
-      {statusDot}{plan.charAt(0).toUpperCase() + plan.slice(1)}
-    </span>
+    <Badge variant="outline" className={className}>
+      <StatusIndicator />{plan.charAt(0).toUpperCase() + plan.slice(1)}
+    </Badge>
   );
 }
 
 function ActivityBadge({ level }: { level: string }) {
-  let badgeStyles = '';
+  let className = '';
   
   switch(level) {
     case 'high':
-      badgeStyles = 'bg-green-50 text-green-700 border-green-200';
+      className = 'text-green-600 bg-green-50 border-green-200';
       break;
     case 'medium':
-      badgeStyles = 'bg-blue-50 text-blue-700 border-blue-200';
+      className = 'text-blue-600 bg-blue-50 border-blue-200';
       break;
     case 'low':
-      badgeStyles = 'bg-orange-50 text-orange-700 border-orange-200';
+      className = 'text-orange-600 bg-orange-50 border-orange-200';
       break;
     default:
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
   }
   
   return (
-    <span className={`text-xs px-2 py-1 rounded-full border ${badgeStyles}`}>
+    <Badge variant="outline" className={className}>
       {level.charAt(0).toUpperCase() + level.slice(1)}
-    </span>
+    </Badge>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
-  let badgeStyles = '';
+  let className = '';
   
   switch(status) {
     case 'active':
-      badgeStyles = 'bg-green-50 text-green-700 border-green-200';
+      className = 'text-green-600 bg-green-50 border-green-200';
       break;
     case 'inactive':
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
       break;
     case 'suspended':
-      badgeStyles = 'bg-red-50 text-red-700 border-red-200';
+      className = 'text-red-600 bg-red-50 border-red-200';
       break;
     default:
-      badgeStyles = 'bg-gray-50 text-gray-700 border-gray-200';
+      className = 'text-gray-600 bg-gray-50 border-gray-200';
   }
   
   return (
-    <span className={`text-xs px-2 py-1 rounded-full border ${badgeStyles}`}>
+    <Badge variant="outline" className={className}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    </Badge>
   );
 }
 
