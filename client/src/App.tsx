@@ -461,12 +461,13 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
-        {/* Use AdminRoute to properly protect the Universities page */}
+        {/* Use AdminRoute to properly protect the Universities page - moved BEFORE the /admin catch-all route */}
         <Route path="/admin/universities">
           <AdminRoute>
             <UniversitiesPage />
           </AdminRoute>
         </Route>
+        {/* This is the catch-all route for /admin which must come AFTER more specific routes */}
         <Route path="/admin">
           <AdminRoute>
             <AdminDashboard />
