@@ -54,9 +54,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     retry: false,
   });
 
-  // Redirect non-admin users
+  // Redirect non-admin users - check both role and userType fields
   useEffect(() => {
-    if (!isLoading && (!user || user.userType !== "admin")) {
+    if (!isLoading && (!user || (user.role !== 'super_admin' && user.role !== 'admin' && user.userType !== "admin"))) {
+      console.log("AdminLayout: Access denied. User role:", user?.role, "User type:", user?.userType);
       navigate("/auth");
     }
   }, [user, isLoading, navigate]);

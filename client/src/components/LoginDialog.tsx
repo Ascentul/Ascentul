@@ -56,14 +56,22 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       localStorage.removeItem('auth-logout');
       
       // Use the login function from useUser hook, passing email instead of username
-      const user = await login(loginEmail, loginPassword);
+      const result = await login(loginEmail, loginPassword);
+      const user = result.user;
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
       
-      // Redirect based on user role first, then fall back to userType
+      // Use redirect path from result if provided
+      if (result.redirectPath) {
+        console.log("Using server-provided redirect path:", result.redirectPath);
+        window.location.href = result.redirectPath;
+        return;
+      }
+      
+      // Otherwise, redirect based on user role first, then fall back to userType
       if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
         console.log("Redirecting admin user to admin dashboard. Role:", user.role, "Type:", user.userType);
         window.location.href = '/admin';
