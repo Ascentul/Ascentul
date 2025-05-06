@@ -1,0 +1,57 @@
+// IMPLEMENT A "Customer Reviews" TAB IN THE /admin DASHBOARD
+// This tab must sync with reviews submitted via the frontend review popup modal
+// It should support admin moderation, insights, and display of real feedback
+
+// ✅ 1. Admin Nav + Tab View
+
+// - Add a new tab in the /admin dashboard labeled: "Customer Reviews"
+// - Clicking this tab loads a new component: <AdminReviewsTab />
+
+// ✅ 2. Create the Reviews Tab Component (AdminReviewsTab)
+
+// A. Fetch reviews from backend via: GET /api/reviews
+// - Each review should include: id, userId, rating, comment, submittedAt, appVersion (if tracked)
+
+// B. Display reviews in a table with the following columns:
+// | User | Rating (⭐) | Comment | Date | Actions |
+
+// - User: show name or email (if available via join/user map)
+// - Rating: show 1–5 stars (icons or badge)
+// - Comment: truncate long comments with “Show more” toggle
+// - Date: format as MM/DD/YYYY
+// - Actions: optional “Delete” or “Flag” button for moderation
+
+// ✅ 3. Backend Requirements (server/routes/reviews.ts)
+
+// - GET /api/reviews
+//   → Returns list of user-submitted reviews
+// - Optional:
+//   - DELETE /api/reviews/:id → for admin moderation
+//   - POST /api/reviews/flag → to flag low-quality/abusive reviews
+
+// ✅ 4. UI & UX Enhancements
+
+// - Add filter by rating (All, 5-star, 4-star, etc.)
+// - Add sort by: Newest, Oldest, Highest, Lowest
+// - Add search by user email or review text (client-side or server-side)
+
+// ✅ 5. Integration
+
+// - Confirm that the existing frontend review modal posts to the same backend route
+// - Ensure data is persistently stored (not in memory)
+// - Refetch data on review creation/deletion
+
+// ✅ 6. Access Control
+
+// - Only visible to platform super admins
+// - Wrap tab content in <AdminRoute> or role guard
+
+// ✅ 7. Deployment-Ready Requirements
+
+// - Functional on both mobile and desktop
+// - Accessible (labelled buttons, semantic HTML)
+// - No hardcoded data or placeholder text
+// - Clean error/loading states
+// - Toasts for delete/flag actions
+
+// This tab will allow internal admins to monitor customer sentiment, identify product issues, and maintain quality control on reviews submitted across the app

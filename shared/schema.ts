@@ -1082,12 +1082,20 @@ export const userReviews = pgTable("user_reviews", {
   rating: integer("rating").notNull(),
   feedback: text("feedback"),
   source: text("source").notNull().default("checklist"), // Source of the review (checklist, campaign, etc.)
+  status: text("status").notNull().default("pending"), // Status can be "pending", "approved", "rejected"
+  isPublic: boolean("is_public").notNull().default(true), // Whether the review should be displayed publicly
+  adminNotes: text("admin_notes"), // Admin notes for moderation purposes
+  appVersion: text("app_version"), // Version of the app when review was submitted
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  moderatedAt: timestamp("moderated_at"), // When the review was moderated
+  moderatedBy: integer("moderated_by"), // Admin user ID who moderated the review
 });
 
 export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
   id: true,
   userId: true,
+  moderatedAt: true,
+  moderatedBy: true,
   createdAt: true,
 });
 
