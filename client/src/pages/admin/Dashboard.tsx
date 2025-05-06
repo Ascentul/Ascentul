@@ -526,7 +526,7 @@ export default function AdminDashboard() {
                 ? "bg-[#1333c2] text-white font-medium"
                 : "text-foreground/70 hover:bg-muted/80"
             }`}
-            onClick={() => setLocation('/admin/universities')}
+            onClick={() => setActiveTab('universities')}
           >
             <span className="mr-3"><Building className="h-5 w-5" /></span>
             <span>Universities</span>
