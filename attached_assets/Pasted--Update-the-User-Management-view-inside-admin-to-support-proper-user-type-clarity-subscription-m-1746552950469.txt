@@ -1,0 +1,60 @@
+// Update the User Management view inside /admin to support proper user type clarity, subscription management, and admin controls
+
+// ✅ 1. Table UI Updates
+
+// A. Remove circle emojis from the "Subscription" column
+//    - Replace with styled <Badge> components
+//    - Example: <Badge variant="outline" className="text-blue-600 bg-blue-50">University</Badge>
+
+// B. Rename and split columns:
+//    - Current: Type | Subscription
+//    - Change to:
+//      - Access Type: (Regular, Student, Admin)
+//      - Plan: (Free, Premium, University)
+
+// C. Add a new column (optional):
+//    - University: shows university name if linked (or "N/A")
+
+// ✅ 2. Actions Menu (three-dot button)
+
+// A. Organize into clear sections with separators:
+
+// --- Actions ---
+// - View Details → Navigates to /admin/users/[id]
+// - Edit Info → Opens user info modal or form
+// - Deactivate → PUT /api/users/:id/suspend
+
+// --- Plan Management ---
+// - Upgrade to Premium → Only enabled if user isn't already Premium
+// - Upgrade to University → Only enabled if not on University plan
+// - Downgrade to Free → Optional
+
+// --- University Admin ---
+// - Assign University Admin → If user is a Student or Regular on University plan
+//   - POST to /api/university-admins
+
+// B. Show toast on success/error of all actions
+
+// ✅ 3. Backend Route Requirements
+
+// - PUT /api/users/:id/upgrade → Accepts { plan: "Premium" | "University" }
+// - PUT /api/users/:id/suspend
+// - POST /api/university-admins → Assigns a user as university admin
+
+// ✅ 4. Role Display + Filtering
+
+// - Show user role (Admin / Student / Regular) in Access Type column
+// - Allow filtering by Type and Plan via dropdown (already exists)
+
+// ✅ 5. (Optional) Bulk Actions
+
+// - Add checkboxes to table rows
+// - Allow bulk suspend, upgrade, or export via top-level dropdown
+
+// ✅ 6. Style + UX
+
+// - Use consistent spacing in menu
+// - Disable unavailable actions with tooltip (e.g. "Already on Premium Plan")
+// - Ensure mobile responsiveness
+
+// This will make User Management fully aligned with your business logic and scalable for licensed university plans
