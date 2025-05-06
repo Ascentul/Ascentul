@@ -100,23 +100,27 @@ function getDefaultSettings() {
 // Get platform settings
 router.get('/', requireAdmin, async (req, res) => {
   try {
-    console.log('GET /settings request received');
-    console.log('User authenticated:', req.isAuthenticated());
-    console.log('User role:', req.user?.role);
+    console.log('⭐ GET /api/settings request received');
+    console.log('⭐ User authenticated:', req.isAuthenticated());
+    console.log('⭐ User role:', req.user?.role);
+    console.log('⭐ User details:', req.user);
     
     // Try to fetch existing settings
     const settings = await db.select().from(platformSettings).limit(1);
-    console.log('Settings query result:', settings);
+    console.log('⭐ Settings query result:', JSON.stringify(settings));
     
     if (settings && settings.length > 0) {
-      return res.json(settings[0]);
+      console.log('⭐ Returning existing settings');
+      return res.status(200).json(settings[0]);
     }
     
     // If no settings exist yet, return defaults
-    console.log('No settings found, returning defaults');
-    return res.json(getDefaultSettings());
+    console.log('⭐ No settings found, returning defaults');
+    const defaultSettings = getDefaultSettings();
+    console.log('⭐ Default settings:', JSON.stringify(defaultSettings));
+    return res.status(200).json(defaultSettings);
   } catch (error) {
-    console.error('Error fetching platform settings:', error);
+    console.error('⭐ Error fetching platform settings:', error);
     return res.status(500).json({ error: 'Failed to fetch platform settings' });
   }
 });
