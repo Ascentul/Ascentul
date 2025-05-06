@@ -514,9 +514,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
             </div>
           )}
           <Link 
-            href="/admin-dashboard"
+            href="/admin"
             className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm transition-colors hover:bg-primary/5 rounded-md ${expanded ? 'mx-3' : 'mx-1'}
-              ${location.startsWith("/admin") || location === "/admin-dashboard" ? 'text-primary bg-primary/10' : ''}`}
+              ${location.startsWith("/admin") ? 'text-primary bg-primary/10' : ''}`}
             title={!expanded ? 'Admin Dashboard' : undefined}
           >
             <ShieldCheck className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />

@@ -251,7 +251,7 @@ export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuar
       // Show access denied message
       alert('You need university administrator privileges to access this section');
     } else if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
-      setLocation('/admin-dashboard');
+      setLocation('/admin');
     } else if (user.role === 'staff' || user.userType === 'staff') {
       setLocation('/staff-dashboard');
     } else {
