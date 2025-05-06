@@ -10,7 +10,7 @@ export function getRedirectByRole(role: string): string {
     case 'admin':
       return '/admin';
     case 'staff':
-      return '/staff-dashboard';
+      return '/admin'; // Updated to use canonical admin path
     case 'university_admin':
       return '/university-admin';
     case 'university_user':
