@@ -3,6 +3,7 @@ import { db } from "../db";
 import { userReviews, users } from "@shared/schema";
 import { eq, and, desc, sql, like, asc } from "drizzle-orm";
 import { z } from "zod";
+import { Router } from "express";
 import { requireAdmin, requireAuth } from "../utils/validateRequest";
 
 const router = Router();
