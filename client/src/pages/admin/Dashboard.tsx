@@ -609,17 +609,7 @@ export default function AdminDashboard() {
             <span className="mr-3"><Settings className="h-5 w-5" /></span>
             <span>Settings</span>
           </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === 'help'
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab('help')}
-          >
-            <span className="mr-3"><HelpCircle className="h-5 w-5" /></span>
-            <span>Help</span>
-          </div>
+
         </nav>
 
         <div className="mt-auto pt-4">
