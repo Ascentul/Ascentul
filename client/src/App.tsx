@@ -461,12 +461,6 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
-        {/* Universities page with exact path "/admin/universities" - all lowercase */}
-        <Route path="/admin/universities">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
         {/* This is the catch-all route for /admin which must come AFTER more specific routes */}
         <Route path="/admin">
           <AdminRoute>

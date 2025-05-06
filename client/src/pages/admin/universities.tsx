@@ -6,7 +6,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { apiRequest } from "@/lib/queryClient";
-import AdminLayout from "@/layouts/AdminLayout";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -232,7 +231,7 @@ export default function UniversitiesPage() {
   );
 
   return (
-    <AdminLayout>
+    <>
       <div className="p-4 md:p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
@@ -461,6 +460,6 @@ export default function UniversitiesPage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-    </AdminLayout>
+    </>
   );
 }
