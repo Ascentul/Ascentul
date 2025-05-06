@@ -1,0 +1,7 @@
+client/src/components/UniversityAdminRouteGuard.tsx
+client/src/pages/university/AdminDashboard.tsx
+client/src/pages/admin/EmailAdmin.tsx
+client/src/pages/admin/AdminOverview.tsx
+client/src/pages/admin-login.tsx
+client/src/layouts/UniversityAdminLayout.tsx
+client/src/layouts/AdminLayout.tsx

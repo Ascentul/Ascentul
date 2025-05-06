@@ -8,6 +8,7 @@ export interface User {
   name: string;
   email: string;
   userType: "regular" | "university_student" | "university_admin" | "admin" | "staff";
+  role?: "user" | "staff" | "admin" | "super_admin" | "university_user" | "university_admin"; // Role field from database schema
   universityId?: number;
   departmentId?: number;
   studentId?: string;

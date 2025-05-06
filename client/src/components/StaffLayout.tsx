@@ -40,7 +40,15 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
   }
   
   // If no user or not a staff/admin, show access denied
-  if (!user || (user.userType !== 'staff' && user.userType !== 'admin')) {
+  // Check both role and userType fields for consistent authorization
+  if (!user || !(
+    user.role === 'staff' || 
+    user.role === 'admin' || 
+    user.role === 'super_admin' || 
+    user.userType === 'staff' || 
+    user.userType === 'admin'
+  )) {
+    console.log("StaffLayout access denied - redirecting. User role:", user?.role, "User type:", user?.userType);
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
@@ -51,6 +59,8 @@ export default function StaffLayout({ children }: StaffLayoutProps) {
       </div>
     );
   }
+  
+  console.log("StaffLayout access granted for user with role:", user?.role, "type:", user?.userType);
   
   return (
     <div className="flex h-screen bg-gray-50">
