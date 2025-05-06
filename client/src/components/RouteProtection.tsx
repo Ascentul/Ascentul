@@ -159,7 +159,7 @@ export function UniversityRouteGuard({ children }: UniversityRouteGuardProps) {
     } else if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
       setLocation('/admin');
     } else if (user.role === 'staff' || user.userType === 'staff') {
-      setLocation('/staff-dashboard');
+      setLocation('/admin');
     } else {
       setLocation('/career-dashboard');
     }
@@ -253,7 +253,7 @@ export function UniversityAdminRouteGuard({ children }: UniversityAdminRouteGuar
     } else if (user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin') {
       setLocation('/admin');
     } else if (user.role === 'staff' || user.userType === 'staff') {
-      setLocation('/staff-dashboard');
+      setLocation('/admin');
     } else {
       setLocation('/career-dashboard');
     }
