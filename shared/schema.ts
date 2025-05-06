@@ -1101,3 +1101,26 @@ export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
 
 export type UserReview = typeof userReviews.$inferSelect;
 export type InsertUserReview = z.infer<typeof insertUserReviewSchema>;
+
+// Platform Settings model
+export const platformSettings = pgTable("platform_settings", {
+  id: serial("id").primaryKey(),
+  general: jsonb("general").notNull(),
+  features: jsonb("features").notNull(),
+  userRoles: jsonb("user_roles").notNull(),
+  university: jsonb("university").notNull(),
+  email: jsonb("email").notNull(),
+  api: jsonb("api").notNull(),
+  security: jsonb("security").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPlatformSettingsSchema = createInsertSchema(platformSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PlatformSettings = typeof platformSettings.$inferSelect;
+export type InsertPlatformSettings = z.infer<typeof insertPlatformSettingsSchema>;
