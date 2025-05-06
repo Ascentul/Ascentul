@@ -20,6 +20,8 @@ import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
+import { eq } from "drizzle-orm";
+import { users, userReviews } from "@shared/schema";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 // Voice Interview routes removed
 import { registerCareerDataRoutes } from "./career-data";
@@ -261,6 +263,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register reviews router
   apiRouter.use('/reviews', reviewsRouter);
+  
+  // Handle the review/submit endpoint that the frontend is calling
+  apiRouter.post('/review/submit', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { rating, feedback, name } = req.body;
+      
+      if (!rating || rating < 1 || rating > 5) {
+        return res.status(400).json({ message: "Valid rating between 1-5 is required" });
+      }
+      
+      // Get current user
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User authentication required" });
+      }
+      
+      // Get the user to update their name if provided
+      if (name) {
+        await db.update(users)
+          .set({ name })
+          .where(eq(users.id, userId));
+      }
+      
+      // Create the review
+      const [review] = await db.insert(userReviews)
+        .values({
+          userId: userId,
+          rating: rating,
+          feedback: feedback || "",
+          source: "in-app",
+          status: "pending",
+          isPublic: true,
+          appVersion: "1.0" // Could be dynamic in the future
+        })
+        .returning();
+      
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      res.status(500).json({ message: "Failed to submit review" });
+    }
+  });
   
   // Register settings router
   apiRouter.use('/settings', settingsRouter);
