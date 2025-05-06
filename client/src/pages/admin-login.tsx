@@ -61,20 +61,9 @@ export default function AdminLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // For super_admin or admin roles, always ensure they go to /admin regardless of redirectPath
-      if (user.role === 'super_admin' || user.role === 'admin') {
-        console.log("Admin/Super Admin user detected - always redirecting to /admin");
-        window.location.href = '/admin';
-      }
-      // For other roles, use the redirectPath from server if available
-      else if (redirectPath) {
-        console.log("Using server-provided redirect path:", redirectPath);
-        window.location.href = redirectPath;
-      } else {
-        // If no redirectPath is provided, default to /admin
-        console.log("No redirectPath provided, defaulting to /admin");
-        window.location.href = '/admin';
-      }
+      // ✅ Rely solely on the server-sent redirectPath for proper routing
+      // The login function in useUserData.tsx handles redirection based on the server response
+      console.log("Admin login successful - redirection will be handled by useUserData.tsx");
     } catch (error) {
       toast({
         title: "Login failed",

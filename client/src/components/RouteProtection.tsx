@@ -66,10 +66,10 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
     return null;
   }
   
-  // Staff users should be redirected to their dashboard
+  // Staff and super_admin users should be redirected to their dashboard
   // Check both role and userType fields
-  if (user.role === 'staff' || user.userType === 'staff') {
-    console.log("Career route check - redirecting staff user to admin dashboard. Role:", user.role, "Type:", user.userType);
+  if (user.role === 'staff' || user.userType === 'staff' || user.role === 'super_admin') {
+    console.log("Career route check - redirecting staff/admin user to admin dashboard. Role:", user.role, "Type:", user.userType);
     setLocation('/admin');
     return null;
   }
