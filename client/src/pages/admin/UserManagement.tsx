@@ -361,8 +361,9 @@ export default function UserManagement() {
                     <TableRow>
                       <TableHead>User</TableHead>
                       <TableHead className="hidden md:table-cell">Email</TableHead>
-                      <TableHead className="hidden md:table-cell">Type</TableHead>
-                      <TableHead className="hidden sm:table-cell">Subscription</TableHead>
+                      <TableHead className="hidden md:table-cell">Access Type</TableHead>
+                      <TableHead className="hidden sm:table-cell">Plan</TableHead>
+                      <TableHead className="hidden lg:table-cell">University</TableHead>
                       <TableHead className="hidden lg:table-cell">Last Login</TableHead>
                       <TableHead className="hidden xl:table-cell">Activity</TableHead>
                       <TableHead className="hidden lg:table-cell">Status</TableHead>
@@ -387,6 +388,13 @@ export default function UserManagement() {
                             plan={user.subscriptionPlan} 
                             status={user.subscriptionStatus} 
                           />
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {user.university ? (
+                            <span className="text-sm">{user.university}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">N/A</span>
+                          )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {new Date(user.lastLogin).toLocaleDateString()}
@@ -935,6 +943,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 function UserTypeBadge({ type }: { type: string }) {
   let className = '';
+  let variant: "outline" | "secondary" | "destructive" | null = "outline";
   
   switch(type) {
     case 'regular':
@@ -949,6 +958,10 @@ function UserTypeBadge({ type }: { type: string }) {
     case 'staff':
       className = 'text-amber-600 bg-amber-50 border-amber-200';
       break;
+    case 'admin':
+      variant = "destructive";
+      className = 'font-medium';
+      break;
     default:
       className = 'text-gray-600 bg-gray-50 border-gray-200';
   }
@@ -956,11 +969,12 @@ function UserTypeBadge({ type }: { type: string }) {
   let displayName = 'User';
   if (type === 'regular') displayName = 'Regular';
   else if (type === 'university_student') displayName = 'Student';
-  else if (type === 'university_admin') displayName = 'Admin';
+  else if (type === 'university_admin') displayName = 'Uni Admin';
   else if (type === 'staff') displayName = 'Staff';
+  else if (type === 'admin') displayName = 'Admin';
       
   return (
-    <Badge variant="outline" className={className}>
+    <Badge variant={variant} className={className}>
       {displayName}
     </Badge>
   );
@@ -974,6 +988,7 @@ function SubscriptionBadge({
   status: string;
 }) {
   let className = '';
+  let variant: "outline" | "secondary" | "destructive" | null = "outline";
   
   switch(plan) {
     case 'free':
@@ -983,7 +998,8 @@ function SubscriptionBadge({
       className = 'text-amber-600 bg-amber-50 border-amber-200';
       break;
     case 'university':
-      className = 'text-blue-600 bg-blue-50 border-blue-200';
+      variant = "secondary";
+      className = 'bg-blue-100 text-blue-800 hover:bg-blue-100';
       break;
     default:
       className = 'text-gray-600 bg-gray-50 border-gray-200';
@@ -1005,9 +1021,15 @@ function SubscriptionBadge({
     }
   };
   
+  // Display name with better capitalization
+  const displayName = plan === 'free' ? 'Free' : 
+                     plan === 'premium' ? 'Premium' : 
+                     plan === 'university' ? 'University' : 
+                     plan.charAt(0).toUpperCase() + plan.slice(1);
+  
   return (
-    <Badge variant="outline" className={className}>
-      <StatusIndicator />{plan.charAt(0).toUpperCase() + plan.slice(1)}
+    <Badge variant={variant} className={className}>
+      <StatusIndicator />{displayName}
     </Badge>
   );
 }
