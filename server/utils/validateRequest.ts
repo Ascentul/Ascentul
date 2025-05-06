@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { User } from '@shared/schema';
+import { storage } from '../storage';
 
 // Extend Express Request to include auth methods
 declare global {
@@ -10,6 +11,15 @@ declare global {
     }
   }
 }
+
+/**
+ * Middleware to allow public access (no auth required)
+ * For testing purposes only - should not be used in production
+ */
+export const publicAccess = async (req: Request, res: Response, next: NextFunction) => {
+  // Just pass through without any auth checks
+  next();
+};
 
 /**
  * Middleware to validate that a user is authenticated
