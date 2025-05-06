@@ -105,8 +105,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  // Check if user is admin
-  const isAdmin = user?.userType === 'admin';
+  // Check if user is admin (including super_admin)
+  const isAdmin = user?.userType === 'admin' || user?.role === 'super_admin' || user?.role === 'admin';
 
   return (
     <AuthContext.Provider
