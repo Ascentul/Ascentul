@@ -167,6 +167,22 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// Edit university plan form schema
+const editPlanSchema = z.object({
+  licensePlan: z.enum(["Starter", "Basic", "Pro", "Enterprise"], {
+    required_error: "Please select a plan tier",
+  }),
+  licenseSeats: z.number().min(1, "Seat limit must be at least 1"),
+  licenseStart: z.date().or(z.string()).refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid start date",
+  }),
+  licenseEnd: z.date().or(z.string()).refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid end date",
+  }),
+});
+
+type EditPlanFormValues = z.infer<typeof editPlanSchema>;
+
 export default function UniversitiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddUniversityOpen, setIsAddUniversityOpen] = useState(false);
@@ -175,6 +191,9 @@ export default function UniversitiesPage() {
     universityId: null,
     universityName: ""
   });
+  const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
+  const [isEditPlanOpen, setIsEditPlanOpen] = useState(false);
+  const [selectedUniversity, setSelectedUniversity] = useState<University | null>(null);
   const [filters, setFilters] = useState({
     plan: 'all',
     status: 'all',
@@ -204,6 +223,17 @@ export default function UniversitiesPage() {
       universityId: 0
     }
   });
+  
+  // Edit plan form
+  const editPlanForm = useForm<EditPlanFormValues>({
+    resolver: zodResolver(editPlanSchema),
+    defaultValues: {
+      licensePlan: "Starter",
+      licenseSeats: 50,
+      licenseStart: "",
+      licenseEnd: "",
+    }
+  });
 
   // Reset forms when dialogs close
   const onAddUniversityClose = () => {
@@ -214,6 +244,17 @@ export default function UniversitiesPage() {
   const onManageAccessClose = () => {
     setManageAccessDrawer({ isOpen: false, universityId: null, universityName: "" });
     inviteAdminForm.reset();
+  };
+  
+  const onViewDetailsClose = () => {
+    setIsViewDetailsOpen(false);
+    setSelectedUniversity(null);
+  };
+  
+  const onEditPlanClose = () => {
+    setIsEditPlanOpen(false);
+    setSelectedUniversity(null);
+    editPlanForm.reset();
   };
 
   // Fetch universities data
@@ -310,6 +351,34 @@ export default function UniversitiesPage() {
       });
     }
   });
+  
+  // Edit university plan mutation
+  const editPlanMutation = useMutation({
+    mutationFn: async (values: EditPlanFormValues & { id: number }) => {
+      const { id, ...planData } = values;
+      const response = await apiRequest("PUT", `/api/universities/${id}`, planData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update university plan");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/universities"] });
+      toast({
+        title: "Plan updated",
+        description: "The university plan has been updated successfully",
+      });
+      onEditPlanClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update plan",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Handle add university form submission
   const onAddUniversitySubmit = (values: AddUniversityFormValues) => {
@@ -319,6 +388,16 @@ export default function UniversitiesPage() {
   // Handle invite admin form submission
   const onInviteAdminSubmit = (values: InviteAdminFormValues) => {
     inviteAdminMutation.mutate(values);
+  };
+  
+  // Handle edit plan form submission
+  const onEditPlanSubmit = (values: EditPlanFormValues) => {
+    if (!selectedUniversity) return;
+    
+    editPlanMutation.mutate({
+      ...values,
+      id: selectedUniversity.id
+    });
   };
 
   // Open manage access drawer for a university
@@ -330,6 +409,27 @@ export default function UniversitiesPage() {
     });
     
     inviteAdminForm.setValue("universityId", university.id);
+  };
+  
+  // Open view details modal for a university
+  const openViewDetails = (university: University) => {
+    setSelectedUniversity(university);
+    setIsViewDetailsOpen(true);
+  };
+  
+  // Open edit plan modal for a university
+  const openEditPlan = (university: University) => {
+    setSelectedUniversity(university);
+    
+    // Initialize form with current values
+    editPlanForm.reset({
+      licensePlan: university.licensePlan as "Starter" | "Basic" | "Pro" | "Enterprise",
+      licenseSeats: university.licenseSeats,
+      licenseStart: university.licenseStart.split('T')[0],
+      licenseEnd: university.licenseEnd ? university.licenseEnd.split('T')[0] : "",
+    });
+    
+    setIsEditPlanOpen(true);
   };
 
   // Filter universities based on search query and filters
@@ -524,13 +624,11 @@ export default function UniversitiesPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/universities/${university.id}`}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </Link>
+                              <DropdownMenuItem onClick={() => openViewDetails(university)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditPlan(university)}>
                                 <Pencil className="h-4 w-4 mr-2" />
                                 Edit Plan
                               </DropdownMenuItem>
@@ -794,6 +892,244 @@ export default function UniversitiesPage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+      
+      {/* View University Details Dialog */}
+      <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
+        <DialogContent className="max-w-md">
+          {selectedUniversity && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedUniversity.name}</DialogTitle>
+                <DialogDescription>
+                  University details and contract information
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground">Slug</h4>
+                    <p className="text-sm">{selectedUniversity.slug}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground">Status</h4>
+                    <div className="mt-1">
+                      <StatusBadge status={selectedUniversity.status} />
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">License</h4>
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Plan:</span>
+                      <PlanBadge plan={selectedUniversity.licensePlan} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm">Seats:</span>
+                      <span className="text-sm font-medium">
+                        {selectedUniversity.licenseUsed} / {selectedUniversity.licenseSeats}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm">Period:</span>
+                      <span className="text-sm">
+                        {new Date(selectedUniversity.licenseStart).toLocaleDateString()} — 
+                        {selectedUniversity.licenseEnd 
+                          ? new Date(selectedUniversity.licenseEnd).toLocaleDateString() 
+                          : 'No end date'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Timeline</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Created:</span>
+                      <span className="text-sm">{new Date(selectedUniversity.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Last Updated:</span>
+                      <span className="text-sm">{new Date(selectedUniversity.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={onViewDetailsClose}>
+                  Close
+                </Button>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      onViewDetailsClose();
+                      openEditPlan(selectedUniversity);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Plan
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      onViewDetailsClose();
+                      openManageAccess(selectedUniversity);
+                    }}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Access
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit University Plan Dialog */}
+      <Dialog open={isEditPlanOpen} onOpenChange={setIsEditPlanOpen}>
+        <DialogContent>
+          {selectedUniversity && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Edit Plan for {selectedUniversity.name}</DialogTitle>
+                <DialogDescription>
+                  Update the university's plan tier and license details
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Form {...editPlanForm}>
+                <form onSubmit={editPlanForm.handleSubmit(onEditPlanSubmit)} className="space-y-4">
+                  <FormField
+                    control={editPlanForm.control}
+                    name="licensePlan"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License Plan</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a plan tier" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Starter">Starter</SelectItem>
+                            <SelectItem value="Basic">Basic</SelectItem>
+                            <SelectItem value="Pro">Pro</SelectItem>
+                            <SelectItem value="Enterprise">Enterprise</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={editPlanForm.control}
+                    name="licenseSeats"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License Seats</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="Number of seats" 
+                            min={1}
+                            {...field}
+                            onChange={e => field.onChange(parseInt(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Currently using: {selectedUniversity.licenseUsed} seats
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={editPlanForm.control}
+                      name="licenseStart"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License Start Date</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              value={String(field.value).split('T')[0]}
+                              name={field.name}
+                              ref={field.ref}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={editPlanForm.control}
+                      name="licenseEnd"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>License End Date</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              value={String(field.value).split('T')[0]}
+                              name={field.name}
+                              ref={field.ref}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Leave empty for no end date
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      type="button" 
+                      onClick={onEditPlanClose}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={editPlanMutation.isPending}
+                    >
+                      {editPlanMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Update Plan
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
