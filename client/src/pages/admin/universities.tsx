@@ -77,6 +77,8 @@ export default function UniversitiesPage() {
     universityName: ""
   });
   
+  console.log("UniversitiesPage component is rendering");
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

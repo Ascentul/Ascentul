@@ -102,23 +102,37 @@ export function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   
   // Explicit check for super_admin role directly, then use helper function
   if (!user || !(user.role === 'super_admin' || user.role === 'admin' || user.userType === 'admin')) {
-    console.log("Admin route check failed - redirecting. User role:", user?.role, "User type:", user?.userType);
+    console.log("Admin route check failed - redirecting to appropriate page.");
+    console.log("User details:", {
+      role: user?.role,
+      userType: user?.userType,
+      isLoggedIn: !!user,
+      currentPath: window.location.pathname
+    });
     
     // Redirect based on user type
     if (!user) {
+      console.log("No user found - redirecting to /sign-in");
       setLocation('/sign-in');
     } else if (user.userType === 'staff') {
+      console.log("Staff user - redirecting to /admin");
       setLocation('/admin');
     } else if (user.userType === 'university_admin' || user.userType === 'university_student') {
+      console.log("University user - redirecting to /university-admin/dashboard");
       setLocation('/university-admin/dashboard');
     } else {
+      console.log("Regular user - redirecting to /career-dashboard");
       setLocation('/career-dashboard');
     }
     return null;
   }
   
   // If we got here, the user is an admin
-  console.log("Admin route access granted for user with role:", user?.role, "type:", user?.userType);
+  console.log("Admin route access granted for path:", window.location.pathname);
+  console.log("User details:", {
+    role: user?.role,
+    userType: user?.userType
+  });
   
   return <>{children}</>;
 }
