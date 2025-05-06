@@ -179,13 +179,18 @@ const EmptyState: React.FC<{message: string}> = ({ message }) => (
 const ReviewsTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState('all');
   
+    // Define type for API responses
+  interface ReviewsResponse {
+    reviews: Review[];
+  }
+
   // Fetch all reviews for admin
   const { 
     data: adminReviews, 
     isLoading: adminLoading, 
     error: adminError,
     refetch: refetchAdmin
-  } = useQuery({
+  } = useQuery<ReviewsResponse>({
     queryKey: ['/api/reviews'],
     retry: 3,
     retryDelay: 1000,
@@ -198,31 +203,76 @@ const ReviewsTab: React.FC = () => {
     isLoading: publicLoading, 
     error: publicError,
     refetch: refetchPublic
-  } = useQuery({
+  } = useQuery<ReviewsResponse>({
     queryKey: ['/api/reviews/public'], // Use the public endpoint directly
     retry: 3,
     retryDelay: 1000,
     enabled: true,
   });
 
-  // Example handlers that would need implementation for a complete feature
-  const handleTogglePublic = (id: number, isPublic: boolean) => {
-    // This would call an API endpoint to update the review
-    console.log(`Toggle review ${id} public status to ${isPublic}`);
-    toast({
-      title: "Review visibility updated",
-      description: `Review is now ${isPublic ? 'public' : 'private'}.`,
-    });
+  // API handlers for review management
+  const handleTogglePublic = async (id: number, isPublic: boolean) => {
+    try {
+      const response = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPublic }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update review visibility');
+      }
+      
+      // Refresh the data
+      refetchAdmin();
+      refetchPublic();
+      
+      toast({
+        title: "Review visibility updated",
+        description: `Review is now ${isPublic ? 'public' : 'private'}.`,
+      });
+    } catch (error) {
+      console.error('Error updating review visibility:', error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating the review visibility.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdateStatus = (id: number, status: string) => {
-    // This would call an API endpoint to update the review status
-    console.log(`Update review ${id} status to ${status}`);
-    toast({
-      title: "Review status updated",
-      description: `Review status changed to ${status}.`,
-      variant: status === 'approved' ? 'default' : (status === 'rejected' ? 'destructive' : 'default'),
-    });
+  const handleUpdateStatus = async (id: number, status: string) => {
+    try {
+      const response = await fetch(`/api/reviews/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update review status');
+      }
+      
+      // Refresh the data
+      refetchAdmin();
+      
+      toast({
+        title: "Review status updated",
+        description: `Review status changed to ${status}.`,
+        variant: status === 'approved' ? 'default' : (status === 'rejected' ? 'destructive' : 'default'),
+      });
+    } catch (error) {
+      console.error('Error updating review status:', error);
+      toast({
+        title: "Update failed",
+        description: "There was a problem updating the review status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRefresh = () => {
