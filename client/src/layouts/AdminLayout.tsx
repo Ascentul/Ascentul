@@ -101,13 +101,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   )}
                   onClick={(e) => {
-                    // Special handling for Universities page
-                    if (item.href === "/admin/universities") {
-                      e.preventDefault();
-                      console.log("Navigation to Universities page requested");
-                      // Use direct window navigation for Universities page
-                      window.location.href = item.href;
-                    }
+                    // No special handling needed - let Wouter handle it
                   }}
                 >
                   {item.icon}
