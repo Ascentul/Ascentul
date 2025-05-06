@@ -3,7 +3,7 @@ import { db } from "../db";
 import { userReviews, users } from "@shared/schema";
 import { eq, and, desc, sql, like, asc } from "drizzle-orm";
 import { z } from "zod";
-import { validateRequest } from "../utils/validateRequest";
+import { requireAdmin, requireAuth } from "../utils/validateRequest";
 
 const router = Router();
 
@@ -17,13 +17,13 @@ const filterReviewsSchema = z.object({
 });
 
 // GET /api/reviews - Get all reviews (for admin dashboard)
-router.get("/", async (req, res) => {
-  // Check if user is super admin
-  if (req.user?.role !== "super_admin") {
-    return res.status(403).json({ message: "Unauthorized access" });
-  }
-
+router.get("/", requireAdmin, async (req, res) => {
   try {
+    // Check if user is super admin
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
     // Parse query parameters for filtering and sorting
     const { rating, status, search, sortBy = "createdAt", sortOrder = "desc" } = filterReviewsSchema.parse(req.query);
 
@@ -77,13 +77,13 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/reviews/:id - Get a single review
-router.get("/:id", async (req, res) => {
-  // Check if user is super admin
-  if (req.user?.role !== "super_admin") {
-    return res.status(403).json({ message: "Unauthorized access" });
-  }
-
+router.get("/:id", requireAdmin, async (req, res) => {
   try {
+    // Check if user is super admin
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
     const { id } = req.params;
 
     const [review] = await db.select()
@@ -109,15 +109,18 @@ const updateReviewStatusSchema = z.object({
 });
 
 // PATCH /api/reviews/:id - Update review status (for moderation)
-router.patch("/:id", validateRequest(updateReviewStatusSchema), async (req, res) => {
-  // Check if user is super admin
-  if (req.user?.role !== "super_admin") {
-    return res.status(403).json({ message: "Unauthorized access" });
-  }
-
+router.patch("/:id", requireAdmin, async (req, res) => {
   try {
+    // Validate request body
+    const validatedData = updateReviewStatusSchema.parse(req.body);
+    
+    // Check if user is super admin
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
     const { id } = req.params;
-    const { status, adminNotes, isPublic } = req.body;
+    const { status, adminNotes, isPublic } = validatedData;
 
     const updateData: any = {
       status,
@@ -150,13 +153,13 @@ router.patch("/:id", validateRequest(updateReviewStatusSchema), async (req, res)
 });
 
 // DELETE /api/reviews/:id - Delete a review
-router.delete("/:id", async (req, res) => {
-  // Check if user is super admin
-  if (req.user?.role !== "super_admin") {
-    return res.status(403).json({ message: "Unauthorized access" });
-  }
-
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
+    // Check if user is super admin
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
     const { id } = req.params;
 
     const [deletedReview] = await db.delete(userReviews)
@@ -175,13 +178,13 @@ router.delete("/:id", async (req, res) => {
 });
 
 // POST /api/reviews/flag/:id - Flag a review
-router.post("/flag/:id", async (req, res) => {
-  // Check if user is super admin
-  if (req.user?.role !== "super_admin") {
-    return res.status(403).json({ message: "Unauthorized access" });
-  }
-
+router.post("/flag/:id", requireAdmin, async (req, res) => {
   try {
+    // Check if user is super admin
+    if (req.user?.role !== "super_admin") {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
     const { id } = req.params;
     const { adminNotes } = req.body;
 

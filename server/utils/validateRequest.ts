@@ -1,37 +1,134 @@
-import { Request, Response, NextFunction } from "express";
-import { z } from "zod";
+import { Request, Response, NextFunction } from 'express';
+import { User } from '@shared/schema';
+
+// Extend Express Request to include auth methods
+declare global {
+  namespace Express {
+    interface Request {
+      isAuthenticated(): boolean;
+      user?: User;
+    }
+  }
+}
 
 /**
- * Middleware factory for validating request body with Zod schemas
- * @param schema Zod schema to validate against
- * @returns Express middleware function
+ * Middleware to validate that a user is authenticated
  */
-export function validateRequest<T extends z.ZodType>(schema: T) {
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  next();
+};
+
+/**
+ * Middleware to validate that a user is an admin
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const user = req.user;
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+    return res.status(403).json({ message: 'Admin privileges required' });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware to validate that a user is a super admin
+ */
+export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const user = req.user;
+  if (!user || user.role !== 'super_admin') {
+    return res.status(403).json({ message: 'Super admin privileges required' });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware to validate that a user is a university admin
+ */
+export const requireUniversityAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const user = req.user;
+  if (!user || user.role !== 'university_admin') {
+    return res.status(403).json({ message: 'University admin privileges required' });
+  }
+  
+  next();
+};
+
+/**
+ * Middleware to validate that a user belongs to the requested university
+ * or is an admin/super admin
+ */
+export const validateUniversityAccess = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  const user = req.user;
+  const universityId = parseInt(req.params.universityId);
+  
+  if (!user) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  
+  // Admins and super admins have access to all universities
+  if (user.role === 'admin' || user.role === 'super_admin') {
+    return next();
+  }
+  
+  // University admins have access to their own university
+  if (user.role === 'university_admin' && user.universityId === universityId) {
+    return next();
+  }
+  
+  // University students have access to their own university's data
+  if (user.userType === 'university_student' && user.universityId === universityId) {
+    return next();
+  }
+  
+  return res.status(403).json({ message: 'You do not have access to this university' });
+};
+
+/**
+ * Middleware to validate that a user owns the requested resource or is an admin
+ */
+export const validateResourceOwnership = (userIdKey: string = 'userId') => {
   return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // Validate and transform the request body
-      const validData = schema.parse(req.body);
-      
-      // Replace the request body with the validated data
-      req.body = validData;
-      
-      // Continue to the next middleware/route handler
-      next();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        // Format and return Zod validation errors
-        return res.status(400).json({
-          message: "Validation failed",
-          errors: error.errors.map(e => ({
-            path: e.path.join('.'),
-            message: e.message
-          }))
-        });
-      }
-      
-      // Handle other types of errors
-      console.error("Request validation error:", error);
-      return res.status(500).json({ message: "Internal server error during validation" });
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Authentication required' });
     }
+    
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    // Admins and super admins have access to all resources
+    if (user.role === 'admin' || user.role === 'super_admin') {
+      return next();
+    }
+    
+    // Check if the user owns the resource
+    const resourceUserId = req.body[userIdKey] || req.params[userIdKey];
+    if (resourceUserId && parseInt(resourceUserId) === user.id) {
+      return next();
+    }
+    
+    return res.status(403).json({ message: 'You do not have permission to access this resource' });
   };
-}
+};

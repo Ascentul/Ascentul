@@ -1,32 +1,20 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertCircle, Save, RotateCcw, Check, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
-import { RefreshCw, Save, AlertTriangle, Shield, Upload, Globe, Mail, Key, Users, Building, Bell } from 'lucide-react';
-
-// Default settings structure
+// Define the platform settings type
 type PlatformSettings = {
   general: {
     platformName: string;
@@ -70,169 +58,164 @@ type PlatformSettings = {
   };
 };
 
-// Component for settings section
-const SettingsSection = ({ 
-  title, 
-  description, 
-  children,
-  onSave,
-  saving = false
-}: { 
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  onSave: () => void;
-  saving?: boolean;
-}) => {
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {children}
-      </CardContent>
-      <CardFooter className="flex justify-end">
-        <Button onClick={onSave} disabled={saving}>
-          {saving ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </>
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
-
 export default function AdminSettingsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Fetch settings
-  const { data: settings, isLoading, isError } = useQuery({
-    queryKey: ['/api/settings'],
+  const [currentTab, setCurrentTab] = useState("general");
+  const [settings, setSettings] = useState<PlatformSettings | null>(null);
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [allowedIp, setAllowedIp] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Fetch settings from the API
+  const { data: settingsData, isLoading, error } = useQuery({
+    queryKey: ["/api/settings"],
     queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/settings');
-        if (!response.ok) {
-          throw new Error('Failed to fetch settings');
-        }
-        return response.json();
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-        // Return default settings if the API call fails
-        return defaultSettings;
-      }
-    }
-  });
-
-  // State for form values (initialized with settings or defaults)
-  const [formValues, setFormValues] = useState<PlatformSettings | null>(null);
-  const [activeSection, setActiveSection] = useState('general');
-  
-  // Set form values when settings are loaded
-  useState(() => {
-    if (settings && !formValues) {
-      setFormValues(settings);
-    }
-  });
-
-  // Track which sections are being saved
-  const [savingSections, setSavingSections] = useState<Record<string, boolean>>({
-    general: false,
-    features: false,
-    userRoles: false,
-    university: false,
-    email: false,
-    api: false,
-    security: false,
-  });
-
-  // Mutation to update settings
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { section: string; values: any }) => {
-      setSavingSections(prev => ({ ...prev, [data.section]: true }));
-      
-      const response = await apiRequest('PUT', `/api/settings/${data.section}`, data.values);
-      
+      const response = await fetch("/api/settings");
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update settings');
+        throw new Error("Failed to fetch settings");
       }
-      
       return response.json();
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+  });
+
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (updatedSettings: PlatformSettings) => {
+      const res = await apiRequest("PUT", "/api/settings", updatedSettings);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({
-        title: 'Settings updated',
-        description: `${variables.section.charAt(0).toUpperCase() + variables.section.slice(1)} settings have been updated successfully.`,
+        title: "Settings Updated",
+        description: "Platform settings have been updated successfully.",
+        variant: "success",
       });
-      setSavingSections(prev => ({ ...prev, [variables.section]: false }));
+      setIsDirty(false);
     },
     onError: (error: Error, variables) => {
+      console.error("Error updating settings:", error);
       toast({
-        title: 'Error updating settings',
-        description: error.message,
-        variant: 'destructive',
+        title: "Update Failed",
+        description: "There was an error updating the settings. Please try again.",
+        variant: "destructive",
       });
-      setSavingSections(prev => ({ ...prev, [variables.section]: false }));
     },
   });
 
-  // Handle form field changes
-  const handleChange = (section: string, field: string, value: any) => {
-    if (!formValues) return;
-    
-    setFormValues({
-      ...formValues,
+  // Reset settings mutation
+  const resetSettingsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/settings/reset", {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({
+        title: "Settings Reset",
+        description: "Platform settings have been reset to defaults.",
+        variant: "success",
+      });
+      setIsDirty(false);
+    },
+    onError: (error: Error) => {
+      console.error("Error resetting settings:", error);
+      toast({
+        title: "Reset Failed",
+        description: "There was an error resetting the settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Initialize settings state with data from API
+  useEffect(() => {
+    if (settingsData) {
+      setSettings(settingsData);
+    }
+  }, [settingsData]);
+
+  // Handler for input changes
+  const handleInputChange = (section: keyof PlatformSettings, field: string, value: any) => {
+    if (!settings) return;
+  
+    setSettings({
+      ...settings,
       [section]: {
-        ...formValues[section as keyof PlatformSettings],
-        [field]: value
-      }
+        ...settings[section],
+        [field]: value,
+      },
     });
+    setIsDirty(true);
   };
 
-  // Handle nested field changes (for arrays and objects)
-  const handleNestedChange = (section: string, field: string, subField: string, value: any) => {
-    if (!formValues) return;
+  // Handler for array field additions
+  const handleAddToArray = (section: keyof PlatformSettings, field: string, value: string) => {
+    if (!settings || !value.trim()) return;
+  
+    // Type assertion to help TypeScript understand this is a string array
+    const currentArray = settings[section][field] as string[];
     
-    setFormValues({
-      ...formValues,
-      [section]: {
-        ...formValues[section as keyof PlatformSettings],
-        [field]: {
-          ...formValues[section as keyof PlatformSettings][field],
-          [subField]: value
-        }
-      }
-    });
-  };
-
-  // Handle saving a section
-  const handleSaveSection = (section: string) => {
-    if (!formValues) return;
+    if (!currentArray.includes(value)) {
+      setSettings({
+        ...settings,
+        [section]: {
+          ...settings[section],
+          [field]: [...currentArray, value],
+        },
+      });
+      setIsDirty(true);
+    }
     
-    updateSettingsMutation.mutate({
-      section,
-      values: formValues[section as keyof PlatformSettings]
-    });
+    // Clear the input field
+    if (field === 'webhookUrls') {
+      setWebhookUrl("");
+    } else if (field === 'allowedIpAddresses') {
+      setAllowedIp("");
+    }
   };
 
-  // Default settings in case the API is not yet implemented
+  // Handler for array field removals
+  const handleRemoveFromArray = (section: keyof PlatformSettings, field: string, index: number) => {
+    if (!settings) return;
+  
+    // Type assertion to help TypeScript understand this is a string array
+    const currentArray = settings[section][field] as string[];
+    
+    const updatedArray = [...currentArray];
+    updatedArray.splice(index, 1);
+    
+    setSettings({
+      ...settings,
+        [section]: {
+          ...settings[section],
+          [field]: updatedArray,
+        },
+    });
+    setIsDirty(true);
+  };
+
+  // Handler for saving settings
+  const handleSaveSettings = () => {
+    if (settings) {
+      updateSettingsMutation.mutate(settings);
+    }
+  };
+
+  // Handler for resetting settings
+  const handleResetSettings = () => {
+    if (confirm("Are you sure you want to reset all settings to defaults? This action cannot be undone.")) {
+      resetSettingsMutation.mutate();
+    }
+  };
+
+  // Default settings values if none are loaded yet
   const defaultSettings: PlatformSettings = {
     general: {
-      platformName: 'Ascentul',
-      supportEmail: 'support@ascentul.io',
-      defaultTimezone: 'America/New_York',
+      platformName: "Ascentul",
+      supportEmail: "support@ascentul.io",
+      defaultTimezone: "America/New_York",
       maintenanceMode: false,
     },
     features: {
@@ -243,567 +226,743 @@ export default function AdminSettingsTab() {
       enableCareerGoals: true,
     },
     userRoles: {
-      defaultUserRole: 'regular',
-      freeFeatures: ['basic_resume', 'job_search', 'application_tracking'],
-      proFeatures: ['ai_coach', 'voice_practice', 'advanced_analytics'],
+      defaultUserRole: "regular",
+      freeFeatures: ["resume-builder", "job-search", "basic-interview"],
+      proFeatures: ["ai-coach", "voice-practice", "unlimited-storage"],
     },
     university: {
-      defaultSeatCount: 50,
+      defaultSeatCount: 100,
       trialDurationDays: 30,
-      defaultAdminPermissions: ['manage_students', 'view_analytics'],
+      defaultAdminPermissions: ["manage-users", "view-analytics"],
     },
     email: {
       notifyOnReviews: true,
       notifyOnSignups: true,
       notifyOnErrors: true,
-      defaultReplyToEmail: 'no-reply@ascentul.io',
-      enableMarketingEmails: true,
+      defaultReplyToEmail: "noreply@ascentul.io",
+      enableMarketingEmails: false,
     },
     api: {
-      openaiModel: 'gpt-4o',
-      maxTokensPerRequest: 4096,
+      openaiModel: "gpt-4o",
+      maxTokensPerRequest: 4000,
       webhookUrls: [],
     },
     security: {
       requireMfaForAdmins: false,
-      sessionTimeoutMinutes: 120,
+      sessionTimeoutMinutes: 60,
       allowedIpAddresses: [],
     },
   };
 
-  // Use default settings if loading or there's an error
-  const displayValues = formValues || defaultSettings;
-  
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+        <span className="ml-4 text-lg">Loading settings...</span>
       </div>
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-        <h3 className="text-lg font-medium mb-2">Failed to load settings</h3>
-        <p className="text-muted-foreground">There was an error loading the platform settings.</p>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/settings'] })}
-        >
-          Try Again
-        </Button>
+      <div className="flex justify-center items-center h-64">
+        <AlertCircle className="w-10 h-10 text-destructive" />
+        <span className="ml-4 text-lg">Failed to load settings. Please try again later.</span>
       </div>
     );
   }
+
+  // Use fetched settings or defaults if not available
+  const displaySettings = settings || defaultSettings;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="md:w-1/4">
-          <Tabs 
-            orientation="vertical" 
-            value={activeSection} 
-            onValueChange={setActiveSection}
-            className="w-full"
-          >
-            <TabsList className="flex flex-col h-auto w-full bg-muted/50 p-1 rounded-md">
-              <TabsTrigger 
-                value="general" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                <span>Platform Settings</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="features" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                <span>Feature Toggles</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="userRoles" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                <span>User & Role Config</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="university" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Building className="h-4 w-4 mr-2" />
-                <span>University Defaults</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="email" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                <span>Email Settings</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="api" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Key className="h-4 w-4 mr-2" />
-                <span>API Settings</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="security" 
-                className="flex items-center justify-start px-4 py-2 w-full"
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                <span>Security</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+    <div className="container py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Platform Settings</h1>
+          <p className="text-muted-foreground">
+            Manage global platform settings and configurations
+          </p>
         </div>
-        
-        <div className="md:w-3/4">
-          <TabsContent value="general" className="mt-0">
-            <SettingsSection
-              title="Platform Settings"
-              description="Configure global platform settings and branding"
-              onSave={() => handleSaveSection('general')}
-              saving={savingSections.general}
-            >
-              <div className="grid gap-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="platformName">Platform Name</Label>
-                  <Input
-                    id="platformName"
-                    value={displayValues.general.platformName}
-                    onChange={(e) => handleChange('general', 'platformName', e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="supportEmail">Support Email</Label>
-                  <Input
-                    id="supportEmail"
-                    type="email"
-                    value={displayValues.general.supportEmail}
-                    onChange={(e) => handleChange('general', 'supportEmail', e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="defaultTimezone">Default Timezone</Label>
-                  <Select 
-                    value={displayValues.general.defaultTimezone}
-                    onValueChange={(value) => handleChange('general', 'defaultTimezone', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                      <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                      <SelectItem value="Europe/London">London (GMT)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center space-x-2 pt-2">
-                  <Switch
-                    id="maintenanceMode"
-                    checked={displayValues.general.maintenanceMode}
-                    onCheckedChange={(checked) => handleChange('general', 'maintenanceMode', checked)}
-                  />
-                  <Label htmlFor="maintenanceMode">Enable Maintenance Mode</Label>
-                </div>
-                
-                <div className="text-sm text-muted-foreground mt-2">
-                  <AlertTriangle className="h-4 w-4 inline-block mr-1" />
-                  Enabling maintenance mode will prevent users from accessing the platform.
-                </div>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            onClick={handleResetSettings}
+            disabled={resetSettingsMutation.isPending}
+          >
+            {resetSettingsMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RotateCcw className="w-4 h-4 mr-2" />
+            )}
+            Reset to Defaults
+          </Button>
+          <Button
+            onClick={handleSaveSettings}
+            disabled={!isDirty || updateSettingsMutation.isPending}
+          >
+            {updateSettingsMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            Save Changes
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={currentTab} onValueChange={setCurrentTab}>
+        <TabsList className="grid grid-cols-7 mb-8">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="features">Features</TabsTrigger>
+          <TabsTrigger value="userRoles">User Roles</TabsTrigger>
+          <TabsTrigger value="university">University</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="api">API & Integrations</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+        </TabsList>
+
+        {/* General Settings Tab */}
+        <TabsContent value="general">
+          <Card>
+            <CardHeader>
+              <CardTitle>General Settings</CardTitle>
+              <CardDescription>
+                Basic platform settings that affect the entire application
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="platformName">Platform Name</Label>
+                <Input
+                  id="platformName"
+                  value={displaySettings.general.platformName}
+                  onChange={(e) => handleInputChange("general", "platformName", e.target.value)}
+                />
               </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="features" className="mt-0">
-            <SettingsSection
-              title="Feature Toggles"
-              description="Enable or disable platform features"
-              onSave={() => handleSaveSection('features')}
-              saving={savingSections.features}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableReviews" className="font-medium">Customer Reviews</Label>
-                    <p className="text-sm text-muted-foreground">Allow users to submit reviews about their experience</p>
-                  </div>
-                  <Switch
-                    id="enableReviews"
-                    checked={displayValues.features.enableReviews}
-                    onCheckedChange={(checked) => handleChange('features', 'enableReviews', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableAICoach" className="font-medium">AI Career Coach</Label>
-                    <p className="text-sm text-muted-foreground">Enable AI-powered career coaching features</p>
-                  </div>
-                  <Switch
-                    id="enableAICoach"
-                    checked={displayValues.features.enableAICoach}
-                    onCheckedChange={(checked) => handleChange('features', 'enableAICoach', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableResumeStudio" className="font-medium">Resume Studio</Label>
-                    <p className="text-sm text-muted-foreground">Allow users to create and manage resumes</p>
-                  </div>
-                  <Switch
-                    id="enableResumeStudio"
-                    checked={displayValues.features.enableResumeStudio}
-                    onCheckedChange={(checked) => handleChange('features', 'enableResumeStudio', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableVoicePractice" className="font-medium">Voice Practice</Label>
-                    <p className="text-sm text-muted-foreground">Enable voice-based interview practice features</p>
-                  </div>
-                  <Switch
-                    id="enableVoicePractice"
-                    checked={displayValues.features.enableVoicePractice}
-                    onCheckedChange={(checked) => handleChange('features', 'enableVoicePractice', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableCareerGoals" className="font-medium">Career Goals</Label>
-                    <p className="text-sm text-muted-foreground">Allow users to set and track career goals</p>
-                  </div>
-                  <Switch
-                    id="enableCareerGoals"
-                    checked={displayValues.features.enableCareerGoals}
-                    onCheckedChange={(checked) => handleChange('features', 'enableCareerGoals', checked)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="supportEmail">Support Email</Label>
+                <Input
+                  id="supportEmail"
+                  type="email"
+                  value={displaySettings.general.supportEmail}
+                  onChange={(e) => handleInputChange("general", "supportEmail", e.target.value)}
+                />
               </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="userRoles" className="mt-0">
-            <SettingsSection
-              title="User & Role Configuration"
-              description="Configure user roles and permissions"
-              onSave={() => handleSaveSection('userRoles')}
-              saving={savingSections.userRoles}
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="defaultUserRole">Default User Role</Label>
-                  <Select
-                    value={displayValues.userRoles.defaultUserRole}
-                    onValueChange={(value) => handleChange('userRoles', 'defaultUserRole', value)}
-                  >
-                    <SelectTrigger id="defaultUserRole">
-                      <SelectValue placeholder="Select default role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="regular">Regular</SelectItem>
-                      <SelectItem value="university_student">University Student</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="freeFeatures">Free Tier Features</Label>
-                  <p className="text-sm text-muted-foreground mb-2">Enter features separated by commas</p>
-                  <Textarea
-                    id="freeFeatures"
-                    value={displayValues.userRoles.freeFeatures.join(', ')}
-                    onChange={(e) => handleChange('userRoles', 'freeFeatures', e.target.value.split(',').map(item => item.trim()))}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="proFeatures">Pro Tier Features</Label>
-                  <p className="text-sm text-muted-foreground mb-2">Enter features separated by commas</p>
-                  <Textarea
-                    id="proFeatures"
-                    value={displayValues.userRoles.proFeatures.join(', ')}
-                    onChange={(e) => handleChange('userRoles', 'proFeatures', e.target.value.split(',').map(item => item.trim()))}
-                    className="min-h-[100px]"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="defaultTimezone">Default Timezone</Label>
+                <Select 
+                  value={displaySettings.general.defaultTimezone}
+                  onValueChange={(value) => handleInputChange("general", "defaultTimezone", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                    <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
+                    <SelectItem value="Pacific/Honolulu">Hawaii Time (HT)</SelectItem>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="university" className="mt-0">
-            <SettingsSection
-              title="University Plan Defaults"
-              description="Configure default settings for university plans"
-              onSave={() => handleSaveSection('university')}
-              saving={savingSections.university}
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="defaultSeatCount">Default Seat Count</Label>
-                  <Input
-                    id="defaultSeatCount"
-                    type="number"
-                    min={1}
-                    value={displayValues.university.defaultSeatCount}
-                    onChange={(e) => handleChange('university', 'defaultSeatCount', parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="trialDurationDays">Trial Duration (Days)</Label>
-                  <Input
-                    id="trialDurationDays"
-                    type="number"
-                    min={0}
-                    value={displayValues.university.trialDurationDays}
-                    onChange={(e) => handleChange('university', 'trialDurationDays', parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="defaultAdminPermissions">Default Admin Permissions</Label>
-                  <p className="text-sm text-muted-foreground mb-2">Enter permissions separated by commas</p>
-                  <Textarea
-                    id="defaultAdminPermissions"
-                    value={displayValues.university.defaultAdminPermissions.join(', ')}
-                    onChange={(e) => handleChange('university', 'defaultAdminPermissions', e.target.value.split(',').map(item => item.trim()))}
-                    className="min-h-[100px]"
-                  />
-                </div>
-              </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="email" className="mt-0">
-            <SettingsSection
-              title="Email & Notification Settings"
-              description="Configure email notifications and settings"
-              onSave={() => handleSaveSection('email')}
-              saving={savingSections.email}
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="defaultReplyToEmail">Default Reply-To Email</Label>
-                  <Input
-                    id="defaultReplyToEmail"
-                    type="email"
-                    value={displayValues.email.defaultReplyToEmail}
-                    onChange={(e) => handleChange('email', 'defaultReplyToEmail', e.target.value)}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between py-2 mt-4">
-                  <div>
-                    <Label htmlFor="notifyOnReviews" className="font-medium">Notify on New Reviews</Label>
-                    <p className="text-sm text-muted-foreground">Receive email when users submit new reviews</p>
-                  </div>
-                  <Switch
-                    id="notifyOnReviews"
-                    checked={displayValues.email.notifyOnReviews}
-                    onCheckedChange={(checked) => handleChange('email', 'notifyOnReviews', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="notifyOnSignups" className="font-medium">Notify on New Signups</Label>
-                    <p className="text-sm text-muted-foreground">Receive email when new users register</p>
-                  </div>
-                  <Switch
-                    id="notifyOnSignups"
-                    checked={displayValues.email.notifyOnSignups}
-                    onCheckedChange={(checked) => handleChange('email', 'notifyOnSignups', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="notifyOnErrors" className="font-medium">Notify on System Errors</Label>
-                    <p className="text-sm text-muted-foreground">Receive email on critical system errors</p>
-                  </div>
-                  <Switch
-                    id="notifyOnErrors"
-                    checked={displayValues.email.notifyOnErrors}
-                    onCheckedChange={(checked) => handleChange('email', 'notifyOnErrors', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="enableMarketingEmails" className="font-medium">Marketing Emails</Label>
-                    <p className="text-sm text-muted-foreground">Enable automated marketing email sequences</p>
-                  </div>
-                  <Switch
-                    id="enableMarketingEmails"
-                    checked={displayValues.email.enableMarketingEmails}
-                    onCheckedChange={(checked) => handleChange('email', 'enableMarketingEmails', checked)}
-                  />
-                </div>
-              </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="api" className="mt-0">
-            <SettingsSection
-              title="API & System Settings"
-              description="Configure API keys and system defaults"
-              onSave={() => handleSaveSection('api')}
-              saving={savingSections.api}
-            >
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="openaiModel">Default OpenAI Model</Label>
-                  <Select
-                    value={displayValues.api.openaiModel}
-                    onValueChange={(value) => handleChange('api', 'openaiModel', value)}
-                  >
-                    <SelectTrigger id="openaiModel">
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gpt-4o">GPT-4o (Latest)</SelectItem>
-                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="maxTokensPerRequest">Max Tokens Per Request</Label>
-                  <Input
-                    id="maxTokensPerRequest"
-                    type="number"
-                    min={1}
-                    max={16384}
-                    value={displayValues.api.maxTokensPerRequest}
-                    onChange={(e) => handleChange('api', 'maxTokensPerRequest', parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="webhookUrls">Webhook URLs</Label>
-                  <p className="text-sm text-muted-foreground mb-2">Enter URLs separated by new lines</p>
-                  <Textarea
-                    id="webhookUrls"
-                    value={displayValues.api.webhookUrls.join('\n')}
-                    onChange={(e) => handleChange('api', 'webhookUrls', e.target.value.split('\n').map(url => url.trim()).filter(url => url))}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                
-                <div className="rounded-md bg-muted p-4 mt-4">
-                  <div className="font-medium mb-2">API Keys</div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Manage API keys in the separate section. For security reasons, API keys cannot be viewed here.
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, all users will be shown a maintenance page
                   </p>
-                  <Button variant="outline" size="sm">
-                    <Key className="h-4 w-4 mr-2" />
-                    Manage API Keys
+                </div>
+                <Switch
+                  id="maintenanceMode"
+                  checked={displaySettings.general.maintenanceMode}
+                  onCheckedChange={(checked) => handleInputChange("general", "maintenanceMode", checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Features Tab */}
+        <TabsContent value="features">
+          <Card>
+            <CardHeader>
+              <CardTitle>Feature Settings</CardTitle>
+              <CardDescription>
+                Toggle platform features on or off globally
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableReviews">User Reviews</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow users to submit reviews and feedback
+                  </p>
+                </div>
+                <Switch
+                  id="enableReviews"
+                  checked={displaySettings.features.enableReviews}
+                  onCheckedChange={(checked) => handleInputChange("features", "enableReviews", checked)}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableAICoach">AI Career Coach</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable the AI-powered career coaching features
+                  </p>
+                </div>
+                <Switch
+                  id="enableAICoach"
+                  checked={displaySettings.features.enableAICoach}
+                  onCheckedChange={(checked) => handleInputChange("features", "enableAICoach", checked)}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableResumeStudio">Resume Studio</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable resume creation and editing features
+                  </p>
+                </div>
+                <Switch
+                  id="enableResumeStudio"
+                  checked={displaySettings.features.enableResumeStudio}
+                  onCheckedChange={(checked) => handleInputChange("features", "enableResumeStudio", checked)}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableVoicePractice">Voice Practice</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable interview voice practice features
+                  </p>
+                </div>
+                <Switch
+                  id="enableVoicePractice"
+                  checked={displaySettings.features.enableVoicePractice}
+                  onCheckedChange={(checked) => handleInputChange("features", "enableVoicePractice", checked)}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableCareerGoals">Career Goals</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable career goal setting and tracking features
+                  </p>
+                </div>
+                <Switch
+                  id="enableCareerGoals"
+                  checked={displaySettings.features.enableCareerGoals}
+                  onCheckedChange={(checked) => handleInputChange("features", "enableCareerGoals", checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* User Roles Tab */}
+        <TabsContent value="userRoles">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Role Settings</CardTitle>
+              <CardDescription>
+                Configure default user roles and permissions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="defaultUserRole">Default User Role</Label>
+                <Select 
+                  value={displaySettings.userRoles.defaultUserRole}
+                  onValueChange={(value) => handleInputChange("userRoles", "defaultUserRole", value)}
+                >
+                  <SelectTrigger id="defaultUserRole">
+                    <SelectValue placeholder="Select default role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular User</SelectItem>
+                    <SelectItem value="university_student">University Student</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Free Features</Label>
+                <div className="flex flex-wrap gap-2">
+                  {displaySettings.userRoles.freeFeatures.map((feature, index) => (
+                    <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center">
+                      <span className="text-sm">{feature}</span>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveFromArray("userRoles", "freeFeatures", index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex mt-2">
+                  <Input
+                    placeholder="Add a free feature"
+                    className="mr-2"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddToArray(
+                          "userRoles",
+                          "freeFeatures",
+                          (e.target as HTMLInputElement).value
+                        );
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousSibling as HTMLInputElement;
+                      handleAddToArray("userRoles", "freeFeatures", input.value);
+                      input.value = '';
+                    }}
+                  >
+                    +
                   </Button>
                 </div>
               </div>
-            </SettingsSection>
-          </TabsContent>
-          
-          <TabsContent value="security" className="mt-0">
-            <SettingsSection
-              title="Security & Access Control"
-              description="Configure security settings and access controls"
-              onSave={() => handleSaveSection('security')}
-              saving={savingSections.security}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <Label htmlFor="requireMfaForAdmins" className="font-medium">Require MFA for Admins</Label>
-                    <p className="text-sm text-muted-foreground">Force admin accounts to use Multi-Factor Authentication</p>
-                  </div>
-                  <Switch
-                    id="requireMfaForAdmins"
-                    checked={displayValues.security.requireMfaForAdmins}
-                    onCheckedChange={(checked) => handleChange('security', 'requireMfaForAdmins', checked)}
-                  />
-                </div>
-                
-                <Separator />
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="sessionTimeoutMinutes">Session Timeout (Minutes)</Label>
-                  <Input
-                    id="sessionTimeoutMinutes"
-                    type="number"
-                    min={5}
-                    max={1440}
-                    value={displayValues.security.sessionTimeoutMinutes}
-                    onChange={(e) => handleChange('security', 'sessionTimeoutMinutes', parseInt(e.target.value))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Time in minutes before inactive users are logged out
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2 mt-4">
-                  <Label htmlFor="allowedIpAddresses">IP Allowlist</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Enter IP addresses or CIDR blocks, one per line. Leave empty to allow all.
-                  </p>
-                  <Textarea
-                    id="allowedIpAddresses"
-                    value={displayValues.security.allowedIpAddresses.join('\n')}
-                    onChange={(e) => handleChange('security', 'allowedIpAddresses', e.target.value.split('\n').map(ip => ip.trim()).filter(ip => ip))}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                
-                <div className="rounded-md bg-amber-50 border border-amber-200 p-4 mt-4">
-                  <div className="flex">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mr-2 shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-amber-800">Security Warning</h4>
-                      <p className="text-sm text-amber-700 mt-1">
-                        Changes to security settings may affect all users and may require system restart.
-                        Make sure you understand the implications before saving changes.
-                      </p>
+              
+              <div className="space-y-2">
+                <Label>Pro Features</Label>
+                <div className="flex flex-wrap gap-2">
+                  {displaySettings.userRoles.proFeatures.map((feature, index) => (
+                    <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center">
+                      <span className="text-sm">{feature}</span>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveFromArray("userRoles", "proFeatures", index)}
+                      >
+                        ×
+                      </button>
                     </div>
-                  </div>
+                  ))}
+                </div>
+                <div className="flex mt-2">
+                  <Input
+                    placeholder="Add a pro feature"
+                    className="mr-2"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddToArray(
+                          "userRoles",
+                          "proFeatures",
+                          (e.target as HTMLInputElement).value
+                        );
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousSibling as HTMLInputElement;
+                      handleAddToArray("userRoles", "proFeatures", input.value);
+                      input.value = '';
+                    }}
+                  >
+                    +
+                  </Button>
                 </div>
               </div>
-            </SettingsSection>
-          </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* University Tab */}
+        <TabsContent value="university">
+          <Card>
+            <CardHeader>
+              <CardTitle>University Settings</CardTitle>
+              <CardDescription>
+                Configure university-specific settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="defaultSeatCount">Default Seat Count</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {displaySettings.university.defaultSeatCount} seats
+                  </span>
+                </div>
+                <Slider
+                  id="defaultSeatCount"
+                  min={10}
+                  max={1000}
+                  step={10}
+                  value={[displaySettings.university.defaultSeatCount]}
+                  onValueChange={(values) => handleInputChange("university", "defaultSeatCount", values[0])}
+                  className="py-4"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="trialDurationDays">Trial Duration</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {displaySettings.university.trialDurationDays} days
+                  </span>
+                </div>
+                <Slider
+                  id="trialDurationDays"
+                  min={7}
+                  max={90}
+                  step={1}
+                  value={[displaySettings.university.trialDurationDays]}
+                  onValueChange={(values) => handleInputChange("university", "trialDurationDays", values[0])}
+                  className="py-4"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Default Admin Permissions</Label>
+                <div className="flex flex-wrap gap-2">
+                  {displaySettings.university.defaultAdminPermissions.map((permission, index) => (
+                    <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center">
+                      <span className="text-sm">{permission}</span>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveFromArray("university", "defaultAdminPermissions", index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex mt-2">
+                  <Input
+                    placeholder="Add a permission"
+                    className="mr-2"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddToArray(
+                          "university",
+                          "defaultAdminPermissions",
+                          (e.target as HTMLInputElement).value
+                        );
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousSibling as HTMLInputElement;
+                      handleAddToArray("university", "defaultAdminPermissions", input.value);
+                      input.value = '';
+                    }}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Email Tab */}
+        <TabsContent value="email">
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Settings</CardTitle>
+              <CardDescription>
+                Configure email notifications and settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="defaultReplyToEmail">Default Reply-To Email</Label>
+                <Input
+                  id="defaultReplyToEmail"
+                  type="email"
+                  value={displaySettings.email.defaultReplyToEmail}
+                  onChange={(e) => handleInputChange("email", "defaultReplyToEmail", e.target.value)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="notifyOnReviews">Reviews Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive email notifications for new reviews
+                  </p>
+                </div>
+                <Switch
+                  id="notifyOnReviews"
+                  checked={displaySettings.email.notifyOnReviews}
+                  onCheckedChange={(checked) => handleInputChange("email", "notifyOnReviews", checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="notifyOnSignups">Signup Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive email notifications for new user registrations
+                  </p>
+                </div>
+                <Switch
+                  id="notifyOnSignups"
+                  checked={displaySettings.email.notifyOnSignups}
+                  onCheckedChange={(checked) => handleInputChange("email", "notifyOnSignups", checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="notifyOnErrors">Error Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receive email notifications for critical system errors
+                  </p>
+                </div>
+                <Switch
+                  id="notifyOnErrors"
+                  checked={displaySettings.email.notifyOnErrors}
+                  onCheckedChange={(checked) => handleInputChange("email", "notifyOnErrors", checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enableMarketingEmails">Marketing Emails</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow sending marketing emails to users who opted in
+                  </p>
+                </div>
+                <Switch
+                  id="enableMarketingEmails"
+                  checked={displaySettings.email.enableMarketingEmails}
+                  onCheckedChange={(checked) => handleInputChange("email", "enableMarketingEmails", checked)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* API & Integrations Tab */}
+        <TabsContent value="api">
+          <Card>
+            <CardHeader>
+              <CardTitle>API & Integrations</CardTitle>
+              <CardDescription>
+                Configure external API settings and integrations
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="openaiModel">OpenAI Model</Label>
+                <Select 
+                  value={displaySettings.api.openaiModel}
+                  onValueChange={(value) => handleInputChange("api", "openaiModel", value)}
+                >
+                  <SelectTrigger id="openaiModel">
+                    <SelectValue placeholder="Select OpenAI model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gpt-4o">GPT-4o (Latest)</SelectItem>
+                    <SelectItem value="gpt-4">GPT-4</SelectItem>
+                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="maxTokensPerRequest">Max Tokens Per Request</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {displaySettings.api.maxTokensPerRequest} tokens
+                  </span>
+                </div>
+                <Slider
+                  id="maxTokensPerRequest"
+                  min={1000}
+                  max={8000}
+                  step={100}
+                  value={[displaySettings.api.maxTokensPerRequest]}
+                  onValueChange={(values) => handleInputChange("api", "maxTokensPerRequest", values[0])}
+                  className="py-4"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Webhook URLs</Label>
+                <div className="flex flex-wrap gap-2">
+                  {displaySettings.api.webhookUrls.map((url, index) => (
+                    <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center max-w-full">
+                      <span className="text-sm truncate">{url}</span>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        onClick={() => handleRemoveFromArray("api", "webhookUrls", index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex mt-2">
+                  <Input
+                    placeholder="https://example.com/webhook"
+                    className="mr-2"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddToArray("api", "webhookUrls", webhookUrl);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleAddToArray("api", "webhookUrls", webhookUrl)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Settings</CardTitle>
+              <CardDescription>
+                Configure platform security settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="requireMfaForAdmins">Require MFA for Admins</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Require multi-factor authentication for admin accounts
+                  </p>
+                </div>
+                <Switch
+                  id="requireMfaForAdmins"
+                  checked={displaySettings.security.requireMfaForAdmins}
+                  onCheckedChange={(checked) => handleInputChange("security", "requireMfaForAdmins", checked)}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sessionTimeoutMinutes">Session Timeout</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {displaySettings.security.sessionTimeoutMinutes} minutes
+                  </span>
+                </div>
+                <Slider
+                  id="sessionTimeoutMinutes"
+                  min={15}
+                  max={240}
+                  step={15}
+                  value={[displaySettings.security.sessionTimeoutMinutes]}
+                  onValueChange={(values) => handleInputChange("security", "sessionTimeoutMinutes", values[0])}
+                  className="py-4"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Allowed IP Addresses</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="text-sm text-muted-foreground hover:cursor-help">
+                      Leave empty to allow all IPs
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add IP addresses to restrict admin dashboard access.</p>
+                      <p>If empty, all IPs will be allowed to access the dashboard.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <div className="flex flex-wrap gap-2">
+                  {displaySettings.security.allowedIpAddresses.map((ip, index) => (
+                    <div key={index} className="bg-muted px-3 py-1 rounded-full flex items-center">
+                      <span className="text-sm">{ip}</span>
+                      <button
+                        type="button"
+                        className="ml-2 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemoveFromArray("security", "allowedIpAddresses", index)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex mt-2">
+                  <Input
+                    placeholder="192.168.1.1"
+                    className="mr-2"
+                    value={allowedIp}
+                    onChange={(e) => setAllowedIp(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddToArray("security", "allowedIpAddresses", allowedIp);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleAddToArray("security", "allowedIpAddresses", allowedIp)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Fixed save button at the bottom */}
+      {isDirty && (
+        <div className="fixed bottom-8 right-8 flex items-center shadow-lg bg-primary text-primary-foreground px-4 py-2 rounded-lg border border-primary/20">
+          <span className="mr-2 text-sm">Unsaved changes</span>
+          <Button 
+            size="sm" 
+            onClick={handleSaveSettings}
+            disabled={updateSettingsMutation.isPending}
+          >
+            {updateSettingsMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Check className="w-4 h-4 mr-2" />
+            )}
+            Save
+          </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }

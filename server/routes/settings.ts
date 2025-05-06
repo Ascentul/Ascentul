@@ -1,83 +1,63 @@
-import { Router } from 'express';
-import { db } from '../db';
-import { eq } from 'drizzle-orm';
-import { platformSettings } from '@shared/schema';
-import { requireSuperAdmin } from '../utils/validateRequest';
+import express from 'express';
+import { db } from "../db";
+import { eq } from "drizzle-orm";
+import { platformSettings } from "@shared/schema";
+import { requireSuperAdmin } from "../utils/validateRequest";
+import { z } from "zod";
 
-const router = Router();
+const router = express.Router();
 
-// Get all platform settings
-router.get('/', requireSuperAdmin, async (req, res) => {
-  try {
-    // Fetch settings from database
-    const settings = await db.select().from(platformSettings).limit(1);
-    
-    // If no settings exist, return default settings
-    if (!settings.length) {
-      // Create default settings in the database
-      const defaultSettings = getDefaultSettings();
-      const [createdSettings] = await db.insert(platformSettings).values(defaultSettings).returning();
-      return res.json(createdSettings);
-    }
-    
-    return res.json(settings[0]);
-  } catch (error) {
-    console.error('Error fetching platform settings:', error);
-    return res.status(500).json({ message: 'Failed to fetch platform settings' });
-  }
+// Settings validation schema
+const settingsSchema = z.object({
+  general: z.object({
+    platformName: z.string(),
+    supportEmail: z.string().email(),
+    defaultTimezone: z.string(),
+    maintenanceMode: z.boolean(),
+  }),
+  features: z.object({
+    enableReviews: z.boolean(),
+    enableAICoach: z.boolean(),
+    enableResumeStudio: z.boolean(),
+    enableVoicePractice: z.boolean(),
+    enableCareerGoals: z.boolean(),
+  }),
+  userRoles: z.object({
+    defaultUserRole: z.string(),
+    freeFeatures: z.array(z.string()),
+    proFeatures: z.array(z.string()),
+  }),
+  university: z.object({
+    defaultSeatCount: z.number(),
+    trialDurationDays: z.number(),
+    defaultAdminPermissions: z.array(z.string()),
+  }),
+  email: z.object({
+    notifyOnReviews: z.boolean(),
+    notifyOnSignups: z.boolean(),
+    notifyOnErrors: z.boolean(),
+    defaultReplyToEmail: z.string().email(),
+    enableMarketingEmails: z.boolean(),
+  }),
+  api: z.object({
+    openaiModel: z.string(),
+    maxTokensPerRequest: z.number(),
+    webhookUrls: z.array(z.string()),
+  }),
+  security: z.object({
+    requireMfaForAdmins: z.boolean(),
+    sessionTimeoutMinutes: z.number(),
+    allowedIpAddresses: z.array(z.string()),
+  }),
 });
 
-// Update settings for a specific section
-router.put('/:section', requireSuperAdmin, async (req, res) => {
-  const { section } = req.params;
-  const sectionData = req.body;
-  
-  try {
-    // Validate section name
-    const validSections = ['general', 'features', 'userRoles', 'university', 'email', 'api', 'security'];
-    if (!validSections.includes(section)) {
-      return res.status(400).json({ message: 'Invalid settings section' });
-    }
-    
-    // Get current settings
-    const currentSettings = await db.select().from(platformSettings).limit(1);
-    
-    if (!currentSettings.length) {
-      // If no settings exist, create default settings first
-      const defaultSettings = getDefaultSettings();
-      defaultSettings[section] = sectionData;
-      
-      const [createdSettings] = await db.insert(platformSettings).values(defaultSettings).returning();
-      return res.json(createdSettings);
-    }
-    
-    // Update only the specific section
-    const updatedSettings = {
-      ...currentSettings[0],
-      [section]: sectionData,
-      updatedAt: new Date()
-    };
-    
-    const [result] = await db
-      .update(platformSettings)
-      .set(updatedSettings)
-      .where(eq(platformSettings.id, currentSettings[0].id))
-      .returning();
-    
-    return res.json(result);
-  } catch (error) {
-    console.error(`Error updating ${section} settings:`, error);
-    return res.status(500).json({ message: `Failed to update ${section} settings` });
-  }
-});
-
-// Helper function to get default settings
+// Get default settings
 function getDefaultSettings() {
   return {
     general: {
-      platformName: 'Ascentul',
-      supportEmail: 'support@ascentul.io',
-      defaultTimezone: 'America/New_York',
+      platformName: "Ascentul",
+      supportEmail: "support@ascentul.io",
+      defaultTimezone: "America/New_York",
       maintenanceMode: false,
     },
     features: {
@@ -88,35 +68,140 @@ function getDefaultSettings() {
       enableCareerGoals: true,
     },
     userRoles: {
-      defaultUserRole: 'regular',
-      freeFeatures: ['basic_resume', 'job_search', 'application_tracking'],
-      proFeatures: ['ai_coach', 'voice_practice', 'advanced_analytics'],
+      defaultUserRole: "regular",
+      freeFeatures: ["resume-builder", "job-search", "basic-interview"],
+      proFeatures: ["ai-coach", "voice-practice", "unlimited-storage"],
     },
     university: {
-      defaultSeatCount: 50,
+      defaultSeatCount: 100,
       trialDurationDays: 30,
-      defaultAdminPermissions: ['manage_students', 'view_analytics'],
+      defaultAdminPermissions: ["manage-users", "view-analytics"],
     },
     email: {
       notifyOnReviews: true,
       notifyOnSignups: true,
       notifyOnErrors: true,
-      defaultReplyToEmail: 'no-reply@ascentul.io',
-      enableMarketingEmails: true,
+      defaultReplyToEmail: "noreply@ascentul.io",
+      enableMarketingEmails: false,
     },
     api: {
-      openaiModel: 'gpt-4o',
-      maxTokensPerRequest: 4096,
+      openaiModel: "gpt-4o",
+      maxTokensPerRequest: 4000,
       webhookUrls: [],
     },
     security: {
       requireMfaForAdmins: false,
-      sessionTimeoutMinutes: 120,
+      sessionTimeoutMinutes: 60,
       allowedIpAddresses: [],
     },
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 }
+
+// Get platform settings
+router.get('/', requireSuperAdmin, async (req, res) => {
+  try {
+    // Try to fetch existing settings
+    const settings = await db.select().from(platformSettings).limit(1);
+    
+    if (settings && settings.length > 0) {
+      return res.json(settings[0]);
+    }
+    
+    // If no settings exist yet, return defaults
+    return res.json(getDefaultSettings());
+  } catch (error) {
+    console.error('Error fetching platform settings:', error);
+    return res.status(500).json({ error: 'Failed to fetch platform settings' });
+  }
+});
+
+// Update platform settings
+router.put('/', requireSuperAdmin, async (req, res) => {
+  try {
+    const settingsData = req.body;
+    
+    // Validate settings
+    const validatedSettings = settingsSchema.parse(settingsData);
+    
+    // Check if settings exist
+    const existingSettings = await db.select().from(platformSettings).limit(1);
+    
+    if (existingSettings && existingSettings.length > 0) {
+      // Update existing settings
+      await db.update(platformSettings)
+        .set({
+          ...validatedSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(platformSettings.id, existingSettings[0].id));
+      
+      return res.json({ 
+        message: 'Settings updated successfully',
+        settings: {
+          ...existingSettings[0],
+          ...validatedSettings,
+          updatedAt: new Date(),
+        }
+      });
+    } else {
+      // Create new settings
+      const [newSettings] = await db.insert(platformSettings)
+        .values({
+          ...validatedSettings,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      
+      return res.json({ 
+        message: 'Settings created successfully',
+        settings: newSettings
+      });
+    }
+  } catch (error) {
+    console.error('Error updating platform settings:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Invalid settings data',
+        details: error.errors
+      });
+    }
+    return res.status(500).json({ error: 'Failed to update platform settings' });
+  }
+});
+
+// Reset platform settings to defaults
+router.post('/reset', requireSuperAdmin, async (req, res) => {
+  try {
+    const defaultSettings = getDefaultSettings();
+    const existingSettings = await db.select().from(platformSettings).limit(1);
+    
+    if (existingSettings && existingSettings.length > 0) {
+      // Update existing settings with defaults
+      await db.update(platformSettings)
+        .set({
+          ...defaultSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(platformSettings.id, existingSettings[0].id));
+    } else {
+      // Create new settings with defaults
+      await db.insert(platformSettings)
+        .values({
+          ...defaultSettings,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+    }
+    
+    return res.json({ 
+      message: 'Settings reset to defaults successfully',
+      settings: defaultSettings
+    });
+  } catch (error) {
+    console.error('Error resetting platform settings:', error);
+    return res.status(500).json({ error: 'Failed to reset platform settings' });
+  }
+});
 
 export default router;
