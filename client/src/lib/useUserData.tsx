@@ -88,53 +88,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
       };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['/api/users/me'], data.user);
+      if (!data) return;
+      const { user, redirectPath } = data;
+
+      // ✅ Save user data to state
+      queryClient.setQueryData(['/api/users/me'], user);
       setIsAuthenticated(true);
-      
-      // Enhanced logging to debug redirect issues
-      console.log("Login successful - User data:", {
-        id: data.user.id,
-        username: data.user.username,
-        role: data.user.role,
-        userType: data.user.userType,
-        serverRedirectPath: data.redirectPath
-      });
-      
-      // For admins and super admins, always direct to /admin regardless of server response
-      const user = data.user;
-      if (user.role === 'super_admin' || user.role === 'admin') {
-        console.log("Super Admin/Admin role detected - always routing to /admin");
-        window.location.href = '/admin';
+
+      // ✅ Force redirect using server-sent redirectPath
+      if (redirectPath) {
+        console.log("✅ Redirecting to", redirectPath);
+        window.location.href = redirectPath;
         return;
       }
-      
-      // For staff, also route to /admin
-      if (user.role === 'staff' || user.userType === 'staff') {
-        console.log("Staff role detected - routing to /admin");
-        window.location.href = '/admin';
-        return;
-      }
-      
-      // For other users, use the server's redirect path if available
-      if (data.redirectPath) {
-        console.log("Using server provided redirectPath:", data.redirectPath);
-        window.location.href = data.redirectPath;
-      } else {
-        // Fall back to role-based redirection
-        console.log("WARNING: Server did not provide redirectPath, using client-side logic");
-        
-        // Fall back to userType if role isn't definitive
-        if (user.userType === 'admin') {
-          console.log("Admin userType detected - redirecting to /admin");
-          window.location.href = '/admin';
-        } else if (user.userType === 'university_admin') {
-          window.location.href = '/university-admin/dashboard';
-        } else if (user.userType === 'university_student') {
-          window.location.href = '/career-dashboard';
-        } else { // regular user
-          window.location.href = '/career-dashboard';
-        }
-      }
+
+      // 🛑 Optional: Remove fallback logic unless absolutely needed
+      // navigate("/career-dashboard"); // Comment this out to avoid override
     },
   });
 
