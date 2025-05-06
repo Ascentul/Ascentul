@@ -42,7 +42,7 @@ interface UserContextType {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
-  login: (email: string, password: string, loginType?: 'staff' | 'admin') => Promise<User>;
+  login: (email: string, password: string, loginType?: 'staff' | 'admin' | 'university' | 'regular') => Promise<{user: User, redirectPath?: string}>;
   logout: () => void;
   isAuthenticated: boolean;
   refetchUser: () => Promise<User | null>;
