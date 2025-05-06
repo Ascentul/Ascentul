@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { UserReview } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { convertToCSV, generateExportFileName, downloadFile } from '@/utils/csvExport';
 import {
   Card,
   CardContent,
@@ -50,6 +51,8 @@ import {
   Shield,
   Trash2,
   RefreshCw,
+  Download,
+  FileDown,
 } from 'lucide-react';
 
 // Type definition for reviews with user information
@@ -320,6 +323,9 @@ function ReviewDetailDialog({
 }
 
 export default function ReviewsPage() {
+  // Get toast from useToast hook
+  const { toast } = useToast();
+  
   // State for filters
   const [rating, setRating] = useState<string>('all');
   const [status, setStatus] = useState<string>('all');
@@ -365,6 +371,60 @@ export default function ReviewsPage() {
   const handleViewReview = (review: ReviewWithUser) => {
     setSelectedReview(review);
     setDetailDialogOpen(true);
+  };
+  
+  // State for export functionality
+  const [isExporting, setIsExporting] = useState(false);
+  
+  // Handle export to CSV
+  const handleExportReviews = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Use current filtered/sorted reviews
+      if (!reviews || reviews.length === 0) {
+        toast({
+          title: "No reviews to export",
+          description: "No reviews found with the current filters.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Define the CSV headers
+      const headers = {
+        "User": (r: ReviewWithUser) => r.user.name,
+        "Email": (r: ReviewWithUser) => r.user.email,
+        "Rating": (r: ReviewWithUser) => r.review.rating,
+        "Comment": (r: ReviewWithUser) => r.review.feedback || '',
+        "Date": (r: ReviewWithUser) => new Date(r.review.createdAt).toISOString(),
+        "Status": (r: ReviewWithUser) => r.review.status,
+        "Source": (r: ReviewWithUser) => r.review.source,
+        "App Version": (r: ReviewWithUser) => r.review.appVersion || '',
+      };
+      
+      // Convert to CSV
+      const csvContent = convertToCSV(reviews, headers);
+      
+      // Generate filename with timestamp
+      const fileName = generateExportFileName('customer_reviews');
+      
+      // Trigger download
+      downloadFile(csvContent, fileName);
+      
+      toast({
+        title: "Export successful",
+        description: `${reviews.length} reviews exported to ${fileName}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Render status badge based on review status
@@ -438,11 +498,30 @@ export default function ReviewsPage() {
       
       {/* Filters and Reviews Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Customer Reviews</CardTitle>
-          <CardDescription>
-            Manage and moderate customer reviews across the platform
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Customer Reviews</CardTitle>
+            <CardDescription>
+              Manage and moderate customer reviews across the platform
+            </CardDescription>
+          </div>
+          <Button 
+            onClick={handleExportReviews}
+            disabled={isExporting || isLoading || !reviews?.length}
+            className="mt-4 sm:mt-0"
+          >
+            {isExporting ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Export Reviews
+              </>
+            )}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
