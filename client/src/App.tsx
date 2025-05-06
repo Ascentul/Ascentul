@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Switch, Route, useLocation, Link } from "wouter";
+import { Loader2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
@@ -75,7 +76,7 @@ import {
 import UniversityAdminRouteGuard from "@/components/UniversityAdminRouteGuard";
 
 // User data hooks
-import { useUser, useIsUniversityAdmin } from "@/lib/useUserData";
+import { useUser, useIsUniversityAdmin, useIsAdminUser } from "@/lib/useUserData";
 
 // University Edition Components
 import UniversityAdminDashboard from "@/pages/university/AdminDashboard";
@@ -459,10 +460,40 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
+        {/* Convert standard route to a protected route with better error handling */}
         <Route path="/admin/universities">
-          <AdminRoute>
-            <UniversitiesPage />
-          </AdminRoute>
+          {() => {
+            // This is a workaround for direct access to /admin/universities
+            const { user, isLoading } = useUser();
+            const isAdminUser = useIsAdminUser();
+            const [, setLocation] = useLocation();
+            
+            console.log("Accessing /admin/universities, User:", !!user, "Is Admin:", isAdminUser);
+            
+            if (isLoading) {
+              return (
+                <div className="min-h-screen flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              );
+            }
+            
+            // Explicitly check for admin access
+            if (!user) {
+              console.log("Universities page redirecting to /sign-in");
+              React.useEffect(() => { setLocation('/sign-in'); }, []);
+              return null;
+            }
+            
+            if (!isAdminUser) {
+              console.log("Universities page - Not admin, redirecting to dashboard");
+              React.useEffect(() => { setLocation('/career-dashboard'); }, []);
+              return null;
+            }
+            
+            // If we get here, the user is an admin
+            return <UniversitiesPage />;
+          }}
         </Route>
         <Route path="/admin">
           <AdminRoute>
