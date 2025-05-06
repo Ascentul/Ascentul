@@ -99,7 +99,7 @@ router.get("/:id", requireAdmin, async (req, res) => {
 
 // Schema for updating review status
 const updateReviewStatusSchema = z.object({
-  status: z.enum(["pending", "approved", "rejected"]),
+  status: z.enum(["pending", "approved", "rejected"]).optional(),
   adminNotes: z.string().optional(),
   isPublic: z.boolean().optional(),
 });
@@ -115,11 +115,16 @@ router.patch("/:id", requireAdmin, async (req, res) => {
     const { id } = req.params;
     const { status, adminNotes, isPublic } = validatedData;
 
+    // The requireAdmin middleware guarantees req.user exists
     const updateData: any = {
-      status,
       moderatedAt: new Date(),
-      moderatedBy: req.user.id,
+      moderatedBy: req.user!.id, // Add ! to tell TypeScript that req.user is not null
     };
+    
+    // Only include status if provided
+    if (status !== undefined) {
+      updateData.status = status;
+    }
 
     if (adminNotes !== undefined) {
       updateData.adminNotes = adminNotes;
@@ -181,7 +186,7 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
         adminNotes: adminNotes || "Flagged by admin",
         isPublic: false,
         moderatedAt: new Date(),
-        moderatedBy: req.user.id,
+        moderatedBy: req.user!.id, // Add ! to tell TypeScript that req.user is not null
       })
       .where(eq(userReviews.id, parseInt(id)))
       .returning();
