@@ -100,16 +100,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const user = data.user;
         
         // Check role first for more accurate routing
-        if (user.role === 'super_admin' || user.role === 'admin') {
-          console.log("Admin/SuperAdmin role detected - redirecting to /admin");
+        if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'staff') {
+          console.log("Admin/SuperAdmin/Staff role detected - redirecting to /admin");
           window.location.href = '/admin';
         } 
         // Fall back to userType if role isn't definitive
-        else if (user.userType === 'admin') {
-          console.log("Admin userType detected - redirecting to /admin");
+        else if (user.userType === 'admin' || user.userType === 'staff') {
+          console.log("Admin/Staff userType detected - redirecting to /admin");
           window.location.href = '/admin';
-        } else if (user.userType === 'staff') {
-          window.location.href = '/staff-dashboard';
         } else if (user.userType === 'university_admin') {
           window.location.href = '/university-admin/dashboard';
         } else if (user.userType === 'university_student') {
@@ -128,8 +126,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log("getRedirectPathByRole: Admin role detected, redirecting to /admin");
       return '/admin';
     } else if (user.role === 'staff') {
-      console.log("getRedirectPathByRole: Staff role detected, redirecting to /staff-dashboard");
-      return '/staff-dashboard';
+      console.log("getRedirectPathByRole: Staff role detected, redirecting to /admin");
+      return '/admin';
     } else if (user.role === 'university_admin') {
       console.log("getRedirectPathByRole: University admin role detected, redirecting to /university-admin/dashboard");
       return '/university-admin/dashboard';
@@ -147,7 +145,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       case 'admin':
         return '/admin';
       case 'staff':
-        return '/staff-dashboard';
+        return '/admin';  // Updated to use canonical admin path
       case 'university_admin':
         return '/university-admin/dashboard';
       case 'university_student':
