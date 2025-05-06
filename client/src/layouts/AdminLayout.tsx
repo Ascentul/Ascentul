@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     if (!isLoading && (!user || (user.role !== 'super_admin' && user.role !== 'admin' && user.userType !== "admin"))) {
       console.log("AdminLayout: Access denied. User role:", user?.role, "User type:", user?.userType);
-      navigate("/auth");
+      navigate("/sign-in");
     }
   }, [user, isLoading, navigate]);
 
