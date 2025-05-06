@@ -43,12 +43,18 @@ export default function SignInPage() {
       // We must use a type casting approach since the login function expects a specific type
       const loginTypeParam = loginType === 'university' ? 'university' : 'regular';
       // Pass the login type cast as any to avoid type errors with the login function
-      await login(loginEmail, loginPassword, loginTypeParam as any);
+      const { user, redirectPath } = await login(loginEmail, loginPassword, loginTypeParam as any);
       
       toast({
         title: "Login successful!",
         description: "You have been logged in successfully.",
       });
+      
+      // The redirect should be handled by useUserData.tsx, but this is a fallback
+      if (redirectPath) {
+        console.log("Redirecting to:", redirectPath);
+        window.location.href = redirectPath;
+      }
     } catch (error) {
       toast({
         title: "Login failed",
