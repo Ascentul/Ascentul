@@ -101,7 +101,7 @@ function getDefaultSettings() {
 router.get('/', requireAdmin, async (req, res) => {
   try {
     console.log('⭐ GET /api/settings request received');
-    console.log('⭐ User authenticated:', req.isAuthenticated());
+    console.log('⭐ User authenticated:', req.user ? 'Yes' : 'No');
     console.log('⭐ User role:', req.user?.role);
     console.log('⭐ User details:', req.user);
     

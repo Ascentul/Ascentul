@@ -15,7 +15,7 @@ declare global {
  * Middleware to validate that a user is authenticated
  */
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   next();
@@ -25,12 +25,12 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
  * Middleware to validate that a user is an admin
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
   const user = req.user;
-  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
     return res.status(403).json({ message: 'Admin privileges required' });
   }
   
@@ -41,12 +41,12 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
  * Middleware to validate that a user is a super admin
  */
 export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
   const user = req.user;
-  if (!user || user.role !== 'super_admin') {
+  if (user.role !== 'super_admin') {
     return res.status(403).json({ message: 'Super admin privileges required' });
   }
   
@@ -57,12 +57,12 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
  * Middleware to validate that a user is a university admin
  */
 export const requireUniversityAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
   const user = req.user;
-  if (!user || user.role !== 'university_admin') {
+  if (user.role !== 'university_admin') {
     return res.status(403).json({ message: 'University admin privileges required' });
   }
   
@@ -74,16 +74,12 @@ export const requireUniversityAdmin = (req: Request, res: Response, next: NextFu
  * or is an admin/super admin
  */
 export const validateUniversityAccess = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
   const user = req.user;
   const universityId = parseInt(req.params.universityId);
-  
-  if (!user) {
-    return res.status(401).json({ message: 'Authentication required' });
-  }
   
   // Admins and super admins have access to all universities
   if (user.role === 'admin' || user.role === 'super_admin') {
