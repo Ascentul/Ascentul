@@ -22,6 +22,7 @@ import UniversitiesPage from './universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
 import ReviewsPage from './ReviewsPage';
+import AdminSettingsTab from './AdminSettingsTab';
 import {
   Form,
   FormControl,
@@ -422,6 +423,8 @@ export default function AdminDashboard() {
         return <OpenAILogsPage />;
       case 'email':
         return <EmailAdmin />;
+      case 'settings':
+        return <AdminSettingsTab />;
       default:
         return <AdminOverview />;
     }
