@@ -2,8 +2,9 @@ import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { db } from '../db';
-import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { users, universities, invites, insertInviteSchema } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -26,9 +27,49 @@ router.get('/my-invites', async (req, res) => {
   }
   
   try {
-    // Placeholder - would implement to get invites by user email
-    // This would typically query from a university_invites table
-    res.json([]);
+    // Get all pending invites for this user's email
+    const userInvites = await db.select({
+      id: invites.id,
+      role: invites.role,
+      universityId: invites.universityId,
+      universityName: invites.universityName,
+      status: invites.status,
+      sentAt: invites.sentAt,
+      expiresAt: invites.expiresAt
+    })
+    .from(invites)
+    .where(
+      and(
+        eq(invites.email, user.email),
+        eq(invites.status, "pending")
+      )
+    );
+    
+    // Map the invites with additional university information
+    const invitesWithDetails = await Promise.all(userInvites.map(async (invite) => {
+      let universityInfo = null;
+      
+      if (invite.universityId) {
+        const [university] = await db.select({
+          id: universities.id,
+          name: universities.name,
+          slug: universities.slug
+        })
+        .from(universities)
+        .where(eq(universities.id, invite.universityId));
+        
+        if (university) {
+          universityInfo = university;
+        }
+      }
+      
+      return {
+        ...invite,
+        university: universityInfo
+      };
+    }));
+    
+    res.json(invitesWithDetails);
   } catch (error) {
     console.error('Error fetching invites:', error);
     res.status(500).json({ error: 'Failed to fetch invites' });
@@ -51,12 +92,38 @@ router.post('/', async (req, res) => {
     const validatedData = universityInviteSchema.parse(req.body);
     
     // Check if university exists
-    const university = await db.query.users.findFirst({
-      where: eq(users.id, validatedData.universityId)
-    });
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, validatedData.universityId));
     
     if (!university) {
       return res.status(404).json({ error: 'University not found' });
+    }
+    
+    // Check if university has available license seats
+    if (university.licenseUsed >= university.licenseSeats && validatedData.role === 'student') {
+      return res.status(400).json({ 
+        error: 'License limit reached',
+        message: `The university has used all of its ${university.licenseSeats} license seats`
+      });
+    }
+    
+    // Check if invite for this email already exists
+    const [existingInvite] = await db.select()
+      .from(invites)
+      .where(
+        and(
+          eq(invites.email, validatedData.email),
+          eq(invites.universityId, validatedData.universityId),
+          eq(invites.status, "pending")
+        )
+      );
+    
+    if (existingInvite) {
+      return res.status(400).json({ 
+        error: 'Invite already exists',
+        message: `An invitation has already been sent to ${validatedData.email}` 
+      });
     }
     
     // Check if user with this email already exists
@@ -64,25 +131,53 @@ router.post('/', async (req, res) => {
       where: eq(users.email, validatedData.email)
     });
     
-    if (existingUser) {
-      // If user exists, we would update their role and university association
-      // For this example, we'll just return success
-      // In a real implementation, you would create an entry in a university_invites table
-      // and send an email with a tokenized signup link
-      
-      return res.status(201).json({ 
-        success: true, 
-        message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}` 
-      });
-    }
+    // Generate invite token and set expiration (30 days from now)
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
     
-    // If user doesn't exist, we would create an invite and send an email
-    // For this example, we'll just return success
+    // Create the invite record
+    const [invite] = await db.insert(invites)
+      .values({
+        email: validatedData.email,
+        role: validatedData.role,
+        token: token,
+        universityId: validatedData.universityId,
+        universityName: university.name,
+        status: "pending",
+        expiresAt: expiresAt
+      })
+      .returning();
+    
+    // If the user already exists, we would typically send an email with information
+    // about joining the university. For existing users, they would be able to
+    // accept the invite from their account.
+    
+    // If user doesn't exist, we would send an email with a signup link that 
+    // includes the invite token. They would then complete registration and be
+    // automatically added to the university.
+    
+    // For now, we'll just return the invite data
+    const inviteUrl = existingUser
+      ? `/university/invites/accept/${invite.id}?token=${token}`
+      : `/sign-up?inviteToken=${token}`;
     
     res.status(201).json({ 
       success: true, 
-      message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}` 
+      message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}`,
+      invite: {
+        id: invite.id,
+        email: invite.email,
+        role: invite.role,
+        universityId: invite.universityId,
+        universityName: invite.universityName,
+        inviteUrl
+      }
     });
+    
+    // TODO: Send email with invite link (would implement email sending here
+    // using a service like Mailgun or SendGrid)
+    
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors });
