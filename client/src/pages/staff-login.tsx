@@ -42,7 +42,8 @@ export default function StaffLoginPage() {
       localStorage.removeItem('auth-logout');
       
       // Use the login function from useUser hook with a special 'staff' indicator
-      const user = await login(loginUsername, loginPassword, 'staff');
+      const result = await login(loginUsername, loginPassword, 'staff');
+      const { user, redirectPath } = result;
       
       // Check if the logged-in user is staff or admin - this is a fallback
       // in case the server doesn't handle the login type correctly
@@ -74,9 +75,12 @@ export default function StaffLoginPage() {
         description: "You have been logged in successfully.",
       });
       
-      // The redirect will be handled by useUserData.tsx, but this is a fallback
-      // in case the server doesn't provide a redirectPath
-      if (!user.redirectPath) {
+      // The redirect should be handled by useUserData.tsx, but this is a fallback
+      if (redirectPath) {
+        window.location.href = redirectPath;
+      } else {
+        // If no redirectPath is provided, default to /staff
+        console.log("No redirectPath provided, defaulting to /staff");
         window.location.href = '/staff';
       }
     } catch (error) {
