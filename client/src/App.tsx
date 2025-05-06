@@ -461,40 +461,11 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
-        {/* Convert standard route to a protected route with better error handling */}
+        {/* Use AdminRoute to properly protect the Universities page */}
         <Route path="/admin/universities">
-          {() => {
-            // This is a workaround for direct access to /admin/universities
-            const { user, isLoading } = useUser();
-            const isAdminUser = useIsAdminUser();
-            const [, setLocation] = useLocation();
-            
-            console.log("Accessing /admin/universities, User:", !!user, "Is Admin:", isAdminUser);
-            
-            if (isLoading) {
-              return (
-                <div className="min-h-screen flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              );
-            }
-            
-            // Explicitly check for admin access
-            if (!user) {
-              console.log("Universities page redirecting to /sign-in");
-              React.useEffect(() => { setLocation('/sign-in'); }, []);
-              return null;
-            }
-            
-            if (!isAdminUser) {
-              console.log("Universities page - Not admin, redirecting to dashboard");
-              React.useEffect(() => { setLocation('/career-dashboard'); }, []);
-              return null;
-            }
-            
-            // If we get here, the user is an admin
-            return <UniversitiesPage />;
-          }}
+          <AdminRoute>
+            <UniversitiesPage />
+          </AdminRoute>
         </Route>
         <Route path="/admin">
           <AdminRoute>
