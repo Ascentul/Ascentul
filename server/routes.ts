@@ -20,8 +20,9 @@ import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { users, userReviews } from "@shared/schema";
+import { db } from "./db";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 // Voice Interview routes removed
 import { registerCareerDataRoutes } from "./career-data";
@@ -297,8 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Create the review in the database
-        const review = await storage.createReview({
-          userId: userId,
+        const review = await storage.createUserReview(userId, {
           rating: rating,
           feedback: feedback || "",
           source: "in-app",
@@ -345,9 +345,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add an endpoint to list the most recent reviews for testing
+  // This endpoint allows unauthenticated access for testing purposes
   apiRouter.get('/reviews/recent', async (req: Request, res: Response) => {
     try {
       console.log("Fetching recent reviews...");
+      
+      // Skip authentication check for this testing endpoint
       
       // Directly query the database for reviews
       const reviews = await db.select()

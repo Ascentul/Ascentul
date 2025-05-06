@@ -3,7 +3,6 @@ import { db } from "../db";
 import { userReviews, users } from "@shared/schema";
 import { eq, and, desc, sql, like, asc } from "drizzle-orm";
 import { z } from "zod";
-import { Router } from "express";
 import { requireAdmin, requireAuth } from "../utils/validateRequest";
 
 const router = Router();
@@ -208,6 +207,27 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error flagging review:", error);
     res.status(500).json({ message: "Failed to flag review" });
+  }
+});
+
+// GET /api/reviews/public - Public endpoint to get approved reviews
+// This endpoint is intentionally not auth protected for testing purposes
+router.get("/public", async (req, res) => {
+  try {
+    console.log("Fetching public reviews...");
+    
+    // Get only approved public reviews
+    const reviews = await db.select()
+      .from(userReviews)
+      .where(eq(userReviews.isPublic, true))
+      .orderBy(desc(userReviews.createdAt))
+      .limit(10);
+    
+    console.log(`Found ${reviews.length} public reviews`);
+    res.status(200).json({ reviews });
+  } catch (error) {
+    console.error("Error fetching public reviews:", error);
+    res.status(500).json({ message: "Failed to fetch reviews" });
   }
 });
 
