@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { platformSettings } from "@shared/schema";
-import { requireAdmin } from "../utils/validateRequest";
+import { requireAdmin } from "../auth";  // Use auth.ts implementation instead of validateRequest.ts
 import { z } from "zod";
 
 const router = express.Router();
