@@ -2,7 +2,7 @@ import express from 'express';
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { platformSettings } from "@shared/schema";
-import { requireSuperAdmin } from "../utils/validateRequest";
+import { requireAdmin } from "../utils/validateRequest";
 import { z } from "zod";
 
 const router = express.Router();
@@ -98,7 +98,7 @@ function getDefaultSettings() {
 }
 
 // Get platform settings
-router.get('/', requireSuperAdmin, async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     // Try to fetch existing settings
     const settings = await db.select().from(platformSettings).limit(1);
@@ -116,7 +116,7 @@ router.get('/', requireSuperAdmin, async (req, res) => {
 });
 
 // Update platform settings
-router.put('/', requireSuperAdmin, async (req, res) => {
+router.put('/', requireAdmin, async (req, res) => {
   try {
     const settingsData = req.body;
     
@@ -171,7 +171,7 @@ router.put('/', requireSuperAdmin, async (req, res) => {
 });
 
 // Reset platform settings to defaults
-router.post('/reset', requireSuperAdmin, async (req, res) => {
+router.post('/reset', requireAdmin, async (req, res) => {
   try {
     const defaultSettings = getDefaultSettings();
     const existingSettings = await db.select().from(platformSettings).limit(1);
