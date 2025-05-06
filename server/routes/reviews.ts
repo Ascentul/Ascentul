@@ -19,8 +19,8 @@ const filterReviewsSchema = z.object({
 // GET /api/reviews - Get all reviews (for admin dashboard)
 router.get("/", requireAdmin, async (req, res) => {
   try {
-    // Check if user is super admin
-    if (req.user?.role !== "super_admin") {
+    // Check if user is admin or super admin
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
@@ -79,8 +79,8 @@ router.get("/", requireAdmin, async (req, res) => {
 // GET /api/reviews/:id - Get a single review
 router.get("/:id", requireAdmin, async (req, res) => {
   try {
-    // Check if user is super admin
-    if (req.user?.role !== "super_admin") {
+    // Check if user is admin or super admin
+    if (req.user?.role !== "admin" && req.user?.role !== "super_admin") {
       return res.status(403).json({ message: "Unauthorized access" });
     }
 
