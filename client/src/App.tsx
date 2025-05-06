@@ -345,8 +345,8 @@ function App() {
     );
   }
 
-  // Allow both /admin and /admin-dashboard paths to identify admin routes for backwards compatibility
-  const isAdminRoute = (location.startsWith("/admin") && location !== "/admin-login") || location === "/admin-dashboard";
+  // Define admin routes with the canonical /admin path
+  const isAdminRoute = location.startsWith("/admin") && location !== "/admin-login";
   
   // University Admin routes check
   const isUniversityAdminRoute = location.startsWith("/university-admin");
@@ -411,10 +411,15 @@ function App() {
   if (isAdminRoute) {
     return (
       <Switch>
+        {/* Redirect /admin-dashboard to /admin for backward compatibility */}
         <Route path="/admin-dashboard">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
+          {() => {
+            // Use useEffect to perform the redirect
+            React.useEffect(() => {
+              navigate('/admin');
+            }, []);
+            return null;
+          }}
         </Route>
         <Route path="/admin/support">
           <AdminRoute>
