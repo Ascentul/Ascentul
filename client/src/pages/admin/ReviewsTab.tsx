@@ -187,6 +187,8 @@ const ReviewsTab: React.FC = () => {
     refetch: refetchAdmin
   } = useQuery({
     queryKey: ['/api/reviews'],
+    retry: 3,
+    retryDelay: 1000,
     enabled: true,
   });
 
@@ -197,7 +199,9 @@ const ReviewsTab: React.FC = () => {
     error: publicError,
     refetch: refetchPublic
   } = useQuery({
-    queryKey: ['/api/public/reviews'],
+    queryKey: ['/api/reviews/public'], // Use the public endpoint directly
+    retry: 3,
+    retryDelay: 1000,
     enabled: true,
   });
 
