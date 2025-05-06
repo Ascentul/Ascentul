@@ -39,7 +39,7 @@ import SupportPage from "@/pages/admin/SupportPage";
 import AdminModelsPage from "@/pages/admin/ModelsPage";
 import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
 import EmailAdmin from "@/pages/admin/EmailAdmin";
-import UniversitiesPage from "@/pages/admin/Universities";
+import UniversitiesPage from "@/pages/admin/universities";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -461,7 +461,7 @@ function App() {
             <EmailAdmin />
           </AdminRoute>
         </Route>
-        {/* Use AdminRoute to properly protect the Universities page - moved BEFORE the /admin catch-all route */}
+        {/* Universities page with exact path "/admin/universities" - all lowercase */}
         <Route path="/admin/universities">
           <AdminRoute>
             <UniversitiesPage />

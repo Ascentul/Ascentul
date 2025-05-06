@@ -18,7 +18,7 @@ import AdminModelsPage from './ModelsPage';
 import OpenAILogsPage from './OpenAILogsPage';
 import EmailAdmin from './EmailAdmin';
 import UserManagement from './UserManagement';
-import UniversitiesPage from './Universities';
+import UniversitiesPage from './universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
 import {
