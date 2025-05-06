@@ -344,6 +344,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Add an endpoint to list the most recent reviews for testing
+  apiRouter.get('/reviews/recent', async (req: Request, res: Response) => {
+    try {
+      console.log("Fetching recent reviews...");
+      
+      // Directly query the database for reviews
+      const reviews = await db.select()
+        .from(userReviews)
+        .orderBy(desc(userReviews.createdAt))
+        .limit(10);
+      
+      console.log(`Found ${reviews.length} recent reviews`);
+      res.status(200).json({ reviews });
+    } catch (error) {
+      console.error("Error fetching recent reviews:", error);
+      res.status(500).json({ message: "Failed to fetch reviews" });
+    }
+  });
+  
   // Register settings router
   apiRouter.use('/settings', settingsRouter);
   
