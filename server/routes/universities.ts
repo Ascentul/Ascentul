@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users, universities, insertUniversitySchema } from '@shared/schema';
 import { eq, isNotNull, and, isNull } from 'drizzle-orm';
 
 const router = express.Router();
@@ -34,11 +34,17 @@ router.get('/', async (req, res) => {
   }
   
   try {
-    // Get all users who have a universityId or universityName
-    // Group them by university to create a list of universities with student counts
+    // Get all universities from the universities table
+    const universityList = await db.select()
+      .from(universities)
+      .where(
+        // Exclude deleted universities
+        eq(universities.status, "Active")
+      );
+    
+    // Get all users who have a universityId to count students and admins
     const universityUsers = await db.select({
-      id: users.universityId,
-      name: users.universityName,
+      universityId: users.universityId,
       userType: users.userType
     })
     .from(users)
@@ -46,33 +52,24 @@ router.get('/', async (req, res) => {
       isNotNull(users.universityId)
     );
     
-    // Process the results to get university information
-    const universitiesMap = new Map();
-    
-    universityUsers.forEach(user => {
-      if (!user.id || !user.name) return;
+    // Process the results to get university information with counts
+    const universitiesWithCounts = universityList.map(university => {
+      const studentCount = universityUsers.filter(
+        user => user.universityId === university.id && user.userType === 'university_student'
+      ).length;
       
-      if (!universitiesMap.has(user.id)) {
-        universitiesMap.set(user.id, {
-          id: user.id,
-          name: user.name,
-          studentCount: 0,
-          adminCount: 0
-        });
-      }
+      const adminCount = universityUsers.filter(
+        user => user.universityId === university.id && user.userType === 'university_admin'
+      ).length;
       
-      const university = universitiesMap.get(user.id);
-      
-      if (user.userType === 'university_student') {
-        university.studentCount++;
-      } else if (user.userType === 'university_admin') {
-        university.adminCount++;
-      }
+      return {
+        ...university,
+        studentCount,
+        adminCount
+      };
     });
     
-    const universities = Array.from(universitiesMap.values());
-    
-    res.json(universities);
+    res.json(universitiesWithCounts);
   } catch (error) {
     console.error('Error fetching universities:', error);
     res.status(500).json({ error: 'Failed to fetch universities' });
@@ -101,19 +98,19 @@ router.post('/', async (req, res) => {
       .replace(/(^-|-$)/g, '');
     
     // Create the university with the updated schema
-    const university = await db.insert(storage.universities)
+    const university = await db.insert(universities)
       .values({
         name: validatedData.name,
         slug: slug,
         licensePlan: validatedData.licensePlan,
         licenseSeats: validatedData.licenseSeats,
         licenseUsed: 0, // Start with 0 used seats
-        licenseStart: new Date(validatedData.licenseStart).toISOString(),
-        licenseEnd: new Date(validatedData.licenseEnd).toISOString(),
+        licenseStart: new Date(validatedData.licenseStart),
+        licenseEnd: new Date(validatedData.licenseEnd),
         status: validatedData.status,
         createdById: req.session.userId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       .returning();
     
@@ -155,12 +152,12 @@ router.get('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid university ID' });
     }
     
-    // Get the university
-    const university = await db.query.users.findFirst({
-      where: eq(users.id, universityId)
-    });
+    // Get the university from the universities table
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, universityId));
     
-    if (!university || university.userType !== 'university') {
+    if (!university) {
       return res.status(404).json({ error: 'University not found' });
     }
     
@@ -185,11 +182,9 @@ router.get('/:id', async (req, res) => {
     });
     
     res.json({
-      id: university.id,
-      name: university.name,
+      ...university,
       studentCount,
-      adminCount,
-      createdAt: university.createdAt
+      adminCount
     });
   } catch (error) {
     console.error('Error fetching university:', error);
@@ -218,18 +213,35 @@ router.patch('/:id', async (req, res) => {
     const validatedData = universitySchema.parse(req.body);
     
     // Get the university
-    const university = await db.query.users.findFirst({
-      where: eq(users.id, universityId)
-    });
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, universityId));
     
-    if (!university || university.userType !== 'university') {
+    if (!university) {
       return res.status(404).json({ error: 'University not found' });
     }
     
+    // Generate a slug from the university name (if name was updated)
+    const slug = validatedData.name !== university.name
+      ? validatedData.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '')
+      : university.slug;
+    
     // Update the university
-    await db.update(users)
-      .set({ name: validatedData.name })
-      .where(eq(users.id, universityId));
+    await db.update(universities)
+      .set({
+        name: validatedData.name,
+        slug: slug,
+        licensePlan: validatedData.licensePlan,
+        licenseSeats: validatedData.licenseSeats,
+        licenseStart: new Date(validatedData.licenseStart),
+        licenseEnd: new Date(validatedData.licenseEnd),
+        status: validatedData.status,
+        updatedAt: new Date()
+      })
+      .where(eq(universities.id, universityId));
     
     // Get count of students and admins (for the response)
     const universityUsers = await db.select({
@@ -251,12 +263,15 @@ router.patch('/:id', async (req, res) => {
       }
     });
     
+    // Get the updated university
+    const [updatedUniversity] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, universityId));
+    
     res.json({
-      id: universityId,
-      name: validatedData.name,
+      ...updatedUniversity,
       studentCount,
-      adminCount,
-      createdAt: university.createdAt
+      adminCount
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -285,11 +300,11 @@ router.delete('/:id', async (req, res) => {
     }
     
     // Get the university
-    const university = await db.query.users.findFirst({
-      where: eq(users.id, universityId)
-    });
+    const [university] = await db.select()
+      .from(universities)
+      .where(eq(universities.id, universityId));
     
-    if (!university || university.userType !== 'university') {
+    if (!university) {
       return res.status(404).json({ error: 'University not found' });
     }
     
@@ -305,12 +320,12 @@ router.delete('/:id', async (req, res) => {
       .where(eq(users.universityId, universityId));
     
     // "Delete" the university by updating its status
-    await db.update(users)
+    await db.update(universities)
       .set({ 
-        active: false,
-        email: `deleted_${university.email}`,
+        status: "Deleted",
+        updatedAt: new Date()
       })
-      .where(eq(users.id, universityId));
+      .where(eq(universities.id, universityId));
     
     res.json({ success: true });
   } catch (error) {
