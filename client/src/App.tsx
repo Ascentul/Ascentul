@@ -206,7 +206,8 @@ function App() {
   const isUniversityRoute = location.startsWith("/university") || location === "/university-dashboard";
   const isSignInRoute = location === "/sign-in";
   const isSignUpRoute = location === "/sign-up";
-  const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
+  // Remove auth route check since this route doesn't exist (using sign-in instead)
+  // const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
   
   // Load the html2pdf.js library for PDF exports
   useEffect(() => {
