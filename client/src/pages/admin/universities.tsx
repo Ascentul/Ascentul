@@ -449,7 +449,7 @@ export default function UniversitiesPage() {
                           type="date" 
                           onChange={field.onChange}
                           onBlur={field.onBlur}
-                          value={typeof field.value === 'string' ? field.value : field.value.toISOString().split('T')[0]}
+                          value={String(field.value).split('T')[0]}
                           name={field.name}
                           ref={field.ref}
                         />
@@ -470,7 +470,7 @@ export default function UniversitiesPage() {
                           type="date" 
                           onChange={field.onChange}
                           onBlur={field.onBlur}
-                          value={typeof field.value === 'string' ? field.value : field.value.toISOString().split('T')[0]}
+                          value={String(field.value).split('T')[0]}
                           name={field.name}
                           ref={field.ref}
                         />

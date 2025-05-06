@@ -9,7 +9,17 @@ const router = express.Router();
 
 // Schema for creating or updating a university
 const universitySchema = z.object({
-  name: z.string().min(3),
+  name: z.string().min(3, "University name must be at least 3 characters"),
+  licensePlan: z.enum(["Starter", "Basic", "Pro", "Enterprise"]),
+  licenseSeats: z.number().min(1, "Seat limit must be at least 1"),
+  licenseStart: z.string().refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid start date",
+  }),
+  licenseEnd: z.string().refine(val => !isNaN(new Date(val).getTime()), {
+    message: "Please enter a valid end date",
+  }),
+  status: z.string().default("Active"),
+  adminEmail: z.string().email("Please enter a valid email").optional(),
 });
 
 // Get all universities
@@ -84,21 +94,38 @@ router.post('/', async (req, res) => {
     // Validate input
     const validatedData = universitySchema.parse(req.body);
     
-    // In a real application, you would likely have a universities table
-    // For this example, we'll create a "university" user with a special type
-    // This would be refactored in a production system
-    const university = await storage.createUser({
-      username: `university_${Date.now()}`,
-      name: validatedData.name,
-      email: `university_${Date.now()}@example.com`,
-      password: Math.random().toString(36).slice(-8),
-      userType: 'university',
-      role: 'university'
-    });
+    // Generate a slug from the university name
+    const slug = validatedData.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    // Create the university with the updated schema
+    const university = await db.insert(storage.universities)
+      .values({
+        name: validatedData.name,
+        slug: slug,
+        licensePlan: validatedData.licensePlan,
+        licenseSeats: validatedData.licenseSeats,
+        licenseUsed: 0, // Start with 0 used seats
+        licenseStart: new Date(validatedData.licenseStart).toISOString(),
+        licenseEnd: new Date(validatedData.licenseEnd).toISOString(),
+        status: validatedData.status,
+        createdById: req.session.userId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .returning();
+    
+    // If admin email is provided, send an invitation
+    if (validatedData.adminEmail) {
+      // This would be handled by the university-invites router
+      // For now, just log it
+      console.log(`Will send invitation to ${validatedData.adminEmail} for university ${university[0].id}`);
+    }
     
     res.status(201).json({
-      id: university.id,
-      name: university.name,
+      ...university[0],
       studentCount: 0,
       adminCount: 0
     });
