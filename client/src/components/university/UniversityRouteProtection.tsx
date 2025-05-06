@@ -25,8 +25,8 @@ export function UniversityRouteGuard({ children, requiresAdmin = false }: Univer
 
   // Not logged in
   if (!user) {
-    // Redirect to login
-    setLocation('/auth');
+    // Redirect to login (fixed: using sign-in instead of auth which doesn't exist)
+    setLocation('/sign-in'); 
     return null;
   }
 
