@@ -241,6 +241,19 @@ function App() {
       navigate("/sign-in");
     }
   }, [location, navigate]);
+  
+  // Special fix for super admin redirect issue - always ensure super_admin users go to /admin
+  const { user } = useUser();
+  
+  useEffect(() => {
+    // If a user with super_admin role is detected on a non-admin route, redirect them
+    if (user && 
+        (user.role === 'super_admin') && 
+        location === '/career-dashboard') {
+      console.log('SUPER ADMIN FIX: Detected super_admin at incorrect route, redirecting to /admin');
+      navigate('/admin');
+    }
+  }, [user, location, navigate]);
 
   // Authentication routes always take precedence
   if (isSignInRoute || isSignUpRoute || location === "/admin-login" || location === "/staff-login" || location === "/staff-signup") {
