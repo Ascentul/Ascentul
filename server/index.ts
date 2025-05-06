@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import { sessionStore } from "./session-store";
 import { devTokenAuthBypass } from "./auth";
+import publicRouter from "./public-endpoints";
 import path from "path";
 
 // Log all environment variables for debugging (masking sensitive values)
@@ -35,6 +36,11 @@ app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Mount the public router BEFORE session and auth middleware
+// This ensures public endpoints don't require authentication
+app.use('/api/public', publicRouter);
+console.log('Public API routes mounted at /api/public');
 
 // Configure session middleware
 app.use(session({
