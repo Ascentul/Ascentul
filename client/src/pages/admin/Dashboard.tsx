@@ -21,6 +21,7 @@ import UserManagement from './UserManagement';
 import UniversitiesPage from './universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
+import ReviewsPage from './ReviewsPage';
 import {
   Form,
   FormControl,
