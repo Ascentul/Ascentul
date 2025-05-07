@@ -371,19 +371,24 @@ export default function GoalCard({
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
-                    title="Click to change status"
+                  <Button 
+                    variant="ghost" 
+                    className="p-0 h-auto hover:bg-transparent"
                   >
-                    {status === 'not_started' ? (
-                      <span className="flex items-center">
-                        <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
-                        Not started
-                      </span>
-                    ) : status === 'in_progress' ? 'In progress' : 
-                      status.charAt(0).toUpperCase() + status.slice(1)}
-                  </Badge>
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
+                      title="Click to change status"
+                    >
+                      {status === 'not_started' ? (
+                        <span className="flex items-center">
+                          <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+                          Not started
+                        </span>
+                      ) : status === 'in_progress' ? 'In progress' : 
+                        status.charAt(0).toUpperCase() + status.slice(1)}
+                    </Badge>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[150px]">
                   <DropdownMenuItem 
