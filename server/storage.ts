@@ -4472,6 +4472,26 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async deleteGoal(id: number): Promise<boolean> {
+    try {
+      // First check if the goal exists
+      const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+      if (!goal) {
+        console.error(`Goal with ID ${id} not found for deletion`);
+        return false;
+      }
+      
+      // Delete the goal
+      await db.delete(goals).where(eq(goals.id, id));
+      
+      console.log(`Successfully deleted goal with ID ${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting goal with ID ${id}:`, error);
+      throw error; // Re-throw to propagate error to the route handler
+    }
+  }
+  
   async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {
     try {
       // Use raw SQL query to avoid orderBy syntax issues
