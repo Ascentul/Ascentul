@@ -13,7 +13,7 @@ import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
 import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
-import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
+import { ActiveApplicationsStatCard } from '@/components/dashboard/ActiveApplicationsStatCard';
 import { InterviewCountdownCard } from '@/components/dashboard/InterviewCountdownCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
 import { GetStartedChecklist } from '@/components/dashboard/GetStartedChecklist';
@@ -562,7 +562,7 @@ export default function Dashboard() {
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <InterviewsStatCard />
+          <ActiveApplicationsStatCard />
         </motion.div>
         
         {/* Debug section removed - interview issue has been resolved */}
