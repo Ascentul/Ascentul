@@ -4836,6 +4836,136 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // Contact Follow-ups methods
+  async getContactFollowUps(contactId: number): Promise<FollowupAction[]> {
+    try {
+      console.log(`🔍 Looking for follow-ups for contact ID: ${contactId}`);
+      
+      // Find follow-ups for this contact
+      // The applicationId field in followupActions is used to store the contactId for contact follow-ups
+      const result = await db.select()
+        .from(followupActions)
+        .where(eq(followupActions.applicationId, contactId))
+        .orderBy(sql`${followupActions.dueDate} ASC`);
+      
+      console.log(`✅ Found ${result.length} follow-ups for contact ID ${contactId}`);
+      return result;
+    } catch (error) {
+      console.error("Error fetching contact follow-ups from database:", error);
+      return [];
+    }
+  }
+  
+  async createContactFollowUp(userId: number, contactId: number, followUp: Partial<InsertFollowupAction>): Promise<FollowupAction> {
+    try {
+      // Ensure the contact exists
+      const [contact] = await db.select()
+        .from(networkingContacts)
+        .where(eq(networkingContacts.id, contactId))
+        .limit(1);
+      
+      if (!contact) {
+        throw new Error(`Contact with ID ${contactId} not found`);
+      }
+      
+      const now = new Date();
+      
+      // Log incoming data
+      console.log(`📝 Creating contact follow-up for contact ID ${contactId}:`, JSON.stringify(followUp, null, 2));
+      
+      // Check/validate dueDate if provided
+      let parsedDueDate = null;
+      if (followUp.dueDate) {
+        if (followUp.dueDate instanceof Date) {
+          console.log(`✅ Valid Date object for dueDate:`, followUp.dueDate.toISOString());
+          parsedDueDate = followUp.dueDate;
+        } else {
+          try {
+            parsedDueDate = new Date(followUp.dueDate);
+            console.log(`✅ Parsed dueDate string to Date:`, parsedDueDate.toISOString());
+          } catch (err) {
+            console.error(`❌ Error parsing dueDate:`, err);
+            throw new Error("Invalid date format");
+          }
+        }
+      }
+      
+      // Ensure the type includes the contact_ prefix
+      let followUpType = followUp.type || 'followup';
+      if (!followUpType.startsWith('contact_')) {
+        followUpType = `contact_${followUpType}`;
+      }
+      
+      // Create the follow-up record in the database
+      const [newFollowUp] = await db.insert(followupActions)
+        .values({
+          processId: null, // Not related to an interview process
+          applicationId: contactId, // Store contactId in applicationId field
+          stageId: null, // Not related to an interview stage
+          type: followUpType, // Ensure it has the 'contact_' prefix
+          description: followUp.description || `Follow up with ${contact.fullName}`,
+          dueDate: parsedDueDate,
+          completed: false,
+          notes: followUp.notes || '',
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning();
+      
+      // Update the contact's lastContactedDate
+      await db.update(networkingContacts)
+        .set({ lastContactedDate: now, updatedAt: now })
+        .where(eq(networkingContacts.id, contactId));
+      
+      return newFollowUp;
+    } catch (error) {
+      console.error("Error creating contact follow-up in database:", error);
+      throw error;
+    }
+  }
+  
+  async completeContactFollowUp(id: number): Promise<FollowupAction | undefined> {
+    try {
+      const now = new Date();
+      
+      // Get the follow-up to check if it exists and isn't already completed
+      const [followUp] = await db.select()
+        .from(followupActions)
+        .where(eq(followupActions.id, id))
+        .limit(1);
+      
+      if (!followUp) return undefined;
+      if (followUp.completed) return followUp; // Already completed
+      
+      // Update to completed status
+      const [updatedFollowUp] = await db.update(followupActions)
+        .set({
+          completed: true,
+          completedDate: now,
+          updatedAt: now
+        })
+        .where(eq(followupActions.id, id))
+        .returning();
+      
+      return updatedFollowUp;
+    } catch (error) {
+      console.error("Error completing contact follow-up in database:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteContactFollowUp(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(followupActions)
+        .where(eq(followupActions.id, id));
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error("Error deleting contact follow-up from database:", error);
+      return false;
+    }
+  }
+  
   // These methods remain to be implemented
   // We'll implement more as we go through conversion
 }
