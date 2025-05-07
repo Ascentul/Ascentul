@@ -1089,6 +1089,7 @@ export const userReviews = pgTable("user_reviews", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   moderatedAt: timestamp("moderated_at"), // When the review was moderated
   moderatedBy: integer("moderated_by"), // Admin user ID who moderated the review
+  deletedAt: timestamp("deleted_at"), // For soft deletion of reviews
 });
 
 export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
@@ -1097,6 +1098,7 @@ export const insertUserReviewSchema = createInsertSchema(userReviews).omit({
   moderatedAt: true,
   moderatedBy: true,
   createdAt: true,
+  deletedAt: true,
 });
 
 export type UserReview = typeof userReviews.$inferSelect;
