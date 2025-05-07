@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, CheckCircle, XCircle, EyeOff, Eye, Star, Filter, RefreshCcw, Trash2 } from 'lucide-react';
+import { Star, RefreshCcw, Settings, AlertCircle, EyeOff, Eye, CheckCircle, XCircle, Filter, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import ReviewDeleteDialog from '@/components/ReviewDeleteDialog';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 // Review types
 interface Review {
