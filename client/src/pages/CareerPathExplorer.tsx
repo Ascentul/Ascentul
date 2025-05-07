@@ -1442,19 +1442,7 @@ export default function CareerPathExplorer() {
           <p className="text-neutral-500 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
             Enter a job title above and click "Generate" to explore a personalized career progression path.
           </p>
-          <Button 
-            onClick={() => {
-              const searchInput = document.getElementById('job-title-search') as HTMLInputElement;
-              if (searchInput) {
-                searchInput.focus();
-              }
-            }}
-            size="default" 
-            className="bg-[#1333c2] hover:bg-[#0f2aae] text-white shadow-sm hover:shadow-lg transition-all"
-          >
-            <Plus className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-            Generate My First Path
-          </Button>
+          
         </motion.div>
       )}
 
