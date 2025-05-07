@@ -81,10 +81,16 @@ router.get("/:id", requireAdmin, async (req, res) => {
     // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
+    
+    // Check if id is a valid number to prevent NaN errors
+    const reviewId = Number(id);
+    if (isNaN(reviewId)) {
+      return res.status(400).json({ message: "Invalid review ID" });
+    }
 
     const [review] = await db.select()
       .from(userReviews)
-      .where(eq(userReviews.id, parseInt(id)));
+      .where(eq(userReviews.id, reviewId));
 
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
@@ -114,6 +120,12 @@ router.patch("/:id", requireAdmin, async (req, res) => {
 
     const { id } = req.params;
     const { status, adminNotes, isPublic } = validatedData;
+    
+    // Check if id is a valid number to prevent NaN errors
+    const reviewId = Number(id);
+    if (isNaN(reviewId)) {
+      return res.status(400).json({ message: "Invalid review ID" });
+    }
 
     // The requireAdmin middleware guarantees req.user exists
     const updateData: any = {
@@ -136,7 +148,7 @@ router.patch("/:id", requireAdmin, async (req, res) => {
 
     const [updatedReview] = await db.update(userReviews)
       .set(updateData)
-      .where(eq(userReviews.id, parseInt(id)))
+      .where(eq(userReviews.id, reviewId))
       .returning();
 
     if (!updatedReview) {
@@ -156,9 +168,15 @@ router.delete("/:id", requireAdmin, async (req, res) => {
     // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
+    
+    // Check if id is a valid number to prevent NaN errors
+    const reviewId = Number(id);
+    if (isNaN(reviewId)) {
+      return res.status(400).json({ message: "Invalid review ID" });
+    }
 
     const [deletedReview] = await db.delete(userReviews)
-      .where(eq(userReviews.id, parseInt(id)))
+      .where(eq(userReviews.id, reviewId))
       .returning();
 
     if (!deletedReview) {
@@ -179,6 +197,12 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
 
     const { id } = req.params;
     const { adminNotes } = req.body;
+    
+    // Check if id is a valid number to prevent NaN errors
+    const reviewId = Number(id);
+    if (isNaN(reviewId)) {
+      return res.status(400).json({ message: "Invalid review ID" });
+    }
 
     const [flaggedReview] = await db.update(userReviews)
       .set({
@@ -188,7 +212,7 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
         moderatedAt: new Date(),
         moderatedBy: req.user!.id, // Add ! to tell TypeScript that req.user is not null
       })
-      .where(eq(userReviews.id, parseInt(id)))
+      .where(eq(userReviews.id, reviewId))
       .returning();
 
     if (!flaggedReview) {
