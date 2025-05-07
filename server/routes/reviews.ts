@@ -16,6 +16,67 @@ const filterReviewsSchema = z.object({
   sortOrder: z.string().optional(),
 });
 
+// IMPORTANT: The order of these routes matter!
+// Static routes (like /public) MUST be placed BEFORE parameterized routes (like /:id)
+// or Express will interpret "public" as an ID parameter
+
+// GET /api/reviews/public - Public endpoint to get approved reviews
+// This endpoint is intentionally not auth protected for testing purposes
+router.get("/public", publicAccess, async (req, res) => {
+  try {
+    console.log("Fetching public reviews...");
+    
+    // Get only approved public reviews
+    const reviews = await db.select()
+      .from(userReviews)
+      .where(eq(userReviews.isPublic, true))
+      .orderBy(desc(userReviews.createdAt))
+      .limit(10);
+    
+    console.log(`Found ${reviews.length} public reviews`);
+    res.status(200).json({ reviews });
+  } catch (error) {
+    console.error("Error fetching public reviews:", error);
+    res.status(500).json({ message: "Failed to fetch reviews" });
+  }
+});
+
+// POST /api/reviews/flag/:id - Flag a review
+router.post("/flag/:id", requireAdmin, async (req, res) => {
+  try {
+    // The requireAdmin middleware already checks authentication and role
+
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+    
+    // Check if id is a valid number to prevent NaN errors
+    const reviewId = Number(id);
+    if (isNaN(reviewId)) {
+      return res.status(400).json({ message: "Invalid review ID" });
+    }
+
+    const [flaggedReview] = await db.update(userReviews)
+      .set({
+        status: "rejected",
+        adminNotes: adminNotes || "Flagged by admin",
+        isPublic: false,
+        moderatedAt: new Date(),
+        moderatedBy: req.user!.id, // Add ! to tell TypeScript that req.user is not null
+      })
+      .where(eq(userReviews.id, reviewId))
+      .returning();
+
+    if (!flaggedReview) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    res.json({ message: "Review successfully flagged", review: flaggedReview });
+  } catch (error) {
+    console.error("Error flagging review:", error);
+    res.status(500).json({ message: "Failed to flag review" });
+  }
+});
+
 // GET /api/reviews - Get all reviews (for admin dashboard)
 router.get("/", requireAdmin, async (req, res) => {
   try {
@@ -72,34 +133,6 @@ router.get("/", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error fetching reviews:", error);
     res.status(500).json({ message: "Failed to fetch reviews" });
-  }
-});
-
-// GET /api/reviews/:id - Get a single review
-router.get("/:id", requireAdmin, async (req, res) => {
-  try {
-    // The requireAdmin middleware already checks authentication and role
-
-    const { id } = req.params;
-    
-    // Check if id is a valid number to prevent NaN errors
-    const reviewId = Number(id);
-    if (isNaN(reviewId)) {
-      return res.status(400).json({ message: "Invalid review ID" });
-    }
-
-    const [review] = await db.select()
-      .from(userReviews)
-      .where(eq(userReviews.id, reviewId));
-
-    if (!review) {
-      return res.status(404).json({ message: "Review not found" });
-    }
-
-    res.json(review);
-  } catch (error) {
-    console.error("Error fetching review:", error);
-    res.status(500).json({ message: "Failed to fetch review" });
   }
 });
 
@@ -190,13 +223,13 @@ router.delete("/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/reviews/flag/:id - Flag a review
-router.post("/flag/:id", requireAdmin, async (req, res) => {
+// GET /api/reviews/:id - Get a single review
+// This must be the LAST route to avoid conflicting with other routes
+router.get("/:id", requireAdmin, async (req, res) => {
   try {
     // The requireAdmin middleware already checks authentication and role
 
     const { id } = req.params;
-    const { adminNotes } = req.body;
     
     // Check if id is a valid number to prevent NaN errors
     const reviewId = Number(id);
@@ -204,50 +237,19 @@ router.post("/flag/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Invalid review ID" });
     }
 
-    const [flaggedReview] = await db.update(userReviews)
-      .set({
-        status: "rejected",
-        adminNotes: adminNotes || "Flagged by admin",
-        isPublic: false,
-        moderatedAt: new Date(),
-        moderatedBy: req.user!.id, // Add ! to tell TypeScript that req.user is not null
-      })
-      .where(eq(userReviews.id, reviewId))
-      .returning();
+    const [review] = await db.select()
+      .from(userReviews)
+      .where(eq(userReviews.id, reviewId));
 
-    if (!flaggedReview) {
+    if (!review) {
       return res.status(404).json({ message: "Review not found" });
     }
 
-    res.json({ message: "Review successfully flagged", review: flaggedReview });
+    res.json(review);
   } catch (error) {
-    console.error("Error flagging review:", error);
-    res.status(500).json({ message: "Failed to flag review" });
+    console.error("Error fetching review:", error);
+    res.status(500).json({ message: "Failed to fetch review" });
   }
 });
-
-// GET /api/reviews/public - Public endpoint to get approved reviews
-// This endpoint is intentionally not auth protected for testing purposes
-router.get("/public", publicAccess, async (req, res) => {
-  try {
-    console.log("Fetching public reviews...");
-    
-    // Get only approved public reviews
-    const reviews = await db.select()
-      .from(userReviews)
-      .where(eq(userReviews.isPublic, true))
-      .orderBy(desc(userReviews.createdAt))
-      .limit(10);
-    
-    console.log(`Found ${reviews.length} public reviews`);
-    res.status(200).json({ reviews });
-  } catch (error) {
-    console.error("Error fetching public reviews:", error);
-    res.status(500).json({ message: "Failed to fetch reviews" });
-  }
-});
-
-// IMPORTANT: This catch-all route must be registered AFTER /public to avoid conflicts
-// The ordering matters - more specific routes should come first
 
 export default router;
