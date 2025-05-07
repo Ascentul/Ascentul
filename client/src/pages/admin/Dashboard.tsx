@@ -632,11 +632,38 @@ export default function AdminDashboard() {
         </nav>
 
         <div className="mt-auto pt-4">
-          <Link href="/dashboard">
-            <button className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border bg-background hover:bg-accent transition-colors">
-              <span>Exit Admin Mode</span>
-            </button>
-          </Link>
+          <button 
+            onClick={async () => {
+              try {
+                // First log out from the server
+                const response = await fetch('/api/logout', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                });
+                
+                if (response.ok) {
+                  // Then redirect to the regular dashboard
+                  window.location.href = '/dashboard';
+                } else {
+                  toast({
+                    title: "Logout Failed",
+                    description: "Could not exit admin mode. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error) {
+                console.error("Logout error:", error);
+                toast({
+                  title: "Logout Failed",
+                  description: "Network error. Please try again.",
+                  variant: "destructive",
+                });
+              }
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border bg-background hover:bg-accent transition-colors"
+          >
+            <span>Exit Admin Mode</span>
+          </button>
         </div>
       </div>
 
