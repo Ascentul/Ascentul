@@ -635,16 +635,24 @@ export default function AdminDashboard() {
           <button 
             onClick={async () => {
               try {
-                // First log out from the server
-                const response = await fetch('/api/logout', {
+                // First log out from the server using the correct endpoint
+                const response = await fetch('/api/auth/logout', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include', // Include cookies for session-based auth
                 });
                 
                 if (response.ok) {
+                  toast({
+                    title: "Success",
+                    description: "Exited admin mode successfully.",
+                  });
                   // Then redirect to the regular dashboard
-                  window.location.href = '/dashboard';
+                  setTimeout(() => {
+                    window.location.href = '/dashboard';
+                  }, 500); // Short delay to allow toast to be seen
                 } else {
+                  console.error("Logout failed with status:", response.status);
                   toast({
                     title: "Logout Failed",
                     description: "Could not exit admin mode. Please try again.",
