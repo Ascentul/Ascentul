@@ -62,7 +62,13 @@ export function InterviewCountdownCard() {
         );
         
         const stageDate = new Date(stage.scheduledDate);
-        return isScheduledOrPending && stageDate > now;
+        // Include interviews if they're scheduled for today or in the future
+        // For today's interviews, we'll check if they're on the same day rather than strictly after now
+        const isToday = stageDate.getDate() === now.getDate() && 
+                        stageDate.getMonth() === now.getMonth() && 
+                        stageDate.getFullYear() === now.getFullYear();
+                        
+        return isScheduledOrPending && (isToday || stageDate > now);
       });
       
       // Sort by date (earliest first)
@@ -171,7 +177,13 @@ export function InterviewCountdownCard() {
           );
           
           const stageDate = new Date(stage.scheduledDate);
-          return isScheduledOrPending && stageDate > now;
+          // Include interviews if they're scheduled for today or in the future
+          // For today's interviews, we'll check if they're on the same day rather than strictly after now
+          const isToday = stageDate.getDate() === now.getDate() && 
+                        stageDate.getMonth() === now.getMonth() && 
+                        stageDate.getFullYear() === now.getFullYear();
+                        
+          return isScheduledOrPending && (isToday || stageDate > now);
         });
         
         // Sort by date (earliest first)
