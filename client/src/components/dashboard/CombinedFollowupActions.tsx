@@ -106,9 +106,53 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
     
     const pendingFollowups: CombinedFollowup[] = [];
     
-    // Process each application for followups
+    // First load all localStorage applications and their followups
+    try {
+      // Get all mockJobApplications from localStorage
+      const mockAppsJson = localStorage.getItem('mockJobApplications');
+      if (mockAppsJson) {
+        const mockApps = JSON.parse(mockAppsJson);
+        if (Array.isArray(mockApps)) {
+          console.log(`Found ${mockApps.length} applications in localStorage`);
+          
+          // Process each localStorage application for followups
+          for (const app of mockApps) {
+            try {
+              const followupsJson = localStorage.getItem(`mockFollowups_${app.id}`);
+              if (followupsJson) {
+                const followups = JSON.parse(followupsJson);
+                if (Array.isArray(followups)) {
+                  followups
+                    .filter((f: any) => f && !f.completed)
+                    .forEach((followup: any) => {
+                      pendingFollowups.push({
+                        ...followup,
+                        applicationId: followup.applicationId || app.id,
+                        application: app,
+                        source: 'application'
+                      });
+                    });
+                }
+              }
+            } catch (storageError) {
+              console.error(`Error loading followups from localStorage for app ${app.id}:`, storageError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading applications from localStorage:", error);
+    }
+    
+    // Now process each database application for followups
     for (const app of applications) {
       try {
+        // Skip if the ID is too large for PostgreSQL integer (probably a client-side ID)
+        if (`${app.id}`.length > 10) {
+          console.log(`Skipping API fetch for large application ID: ${app.id}`);
+          continue;
+        }
+        
         // Try to get from API first
         const apiResponse = await apiRequest('GET', `/api/applications/${app.id}/followups`);
         if (apiResponse.ok) {
@@ -119,46 +163,23 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
             followups
               .filter((f: FollowupAction) => f && !f.completed)
               .forEach((followup: FollowupAction) => {
-                pendingFollowups.push({
-                  ...followup,
-                  applicationId: followup.applicationId || app.id,
-                  application: app,
-                  source: 'application'
-                });
+                // Check if this followup is already in the pendingFollowups
+                const exists = pendingFollowups.some(
+                  (pf) => 
+                    pf.source === 'application' && 
+                    pf.id === followup.id
+                );
+                
+                if (!exists) {
+                  pendingFollowups.push({
+                    ...followup,
+                    applicationId: followup.applicationId || app.id,
+                    application: app,
+                    source: 'application'
+                  });
+                }
               });
           }
-        }
-        
-        // Fallback to localStorage
-        try {
-          const followupsJson = localStorage.getItem(`mockFollowups_${app.id}`);
-          if (followupsJson) {
-            const followups = JSON.parse(followupsJson);
-            if (Array.isArray(followups)) {
-              followups
-                .filter((f: any) => f && !f.completed)
-                .forEach((followup: any) => {
-                  // Check if this followup is already in the pendingFollowups
-                  const exists = pendingFollowups.some(
-                    (pf) => 
-                      pf.source === 'application' && 
-                      pf.id === followup.id && 
-                      pf.applicationId === (followup.applicationId || app.id)
-                  );
-                  
-                  if (!exists) {
-                    pendingFollowups.push({
-                      ...followup,
-                      applicationId: followup.applicationId || app.id,
-                      application: app,
-                      source: 'application'
-                    });
-                  }
-                });
-            }
-          }
-        } catch (storageError) {
-          console.error(`Error loading followups from localStorage for app ${app.id}:`, storageError);
         }
       } catch (error) {
         console.error(`Error loading followups for application ${app.id}:`, error);
@@ -303,11 +324,50 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
     
     // Call the appropriate API based on the followup source
     if (followup.source === 'application' && 'application' in followup) {
-      toggleApplicationFollowup.mutate({
-        followupId: followup.id,
-        applicationId: followup.applicationId,
-        completed: !followup.completed
-      });
+      // Check if this is a localStorage-based application (client-side ID)
+      if (`${followup.applicationId}`.length > 10) {
+        // Handle localStorage update directly for client-side application
+        try {
+          const followupsJson = localStorage.getItem(`mockFollowups_${followup.applicationId}`);
+          if (followupsJson) {
+            const followups = JSON.parse(followupsJson);
+            if (Array.isArray(followups)) {
+              // Update the specific followup
+              const updatedFollowups = followups.map((f: any) => 
+                f.id === followup.id ? { ...f, completed: !followup.completed } : f
+              );
+              
+              // Save back to localStorage
+              localStorage.setItem(`mockFollowups_${followup.applicationId}`, JSON.stringify(updatedFollowups));
+              
+              // Update the counter via context
+              updatePendingFollowupCount().catch(console.error);
+              
+              // Trigger a refresh after short delay
+              setTimeout(refreshFollowups, 300);
+              
+              toast({
+                title: 'Followup updated',
+                description: 'The followup status has been updated successfully.',
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error updating localStorage followup:", error);
+          toast({
+            title: 'Update failed',
+            description: 'Failed to update the followup status in local storage.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        // Use the API for database-stored application followups
+        toggleApplicationFollowup.mutate({
+          followupId: followup.id,
+          applicationId: followup.applicationId,
+          completed: !followup.completed
+        });
+      }
     } else if (followup.source === 'contact' && 'contact' in followup) {
       toggleContactFollowup.mutate({
         followupId: followup.id,
