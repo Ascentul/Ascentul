@@ -20,7 +20,7 @@ import { registerApplicationRoutes } from "./routes/applications";
 import { registerApplicationInterviewRoutes } from "./routes/application-interview";
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { users, userReviews } from "@shared/schema";
 import { db } from "./db";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
@@ -292,6 +292,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Exception in public reviews endpoint:", error);
       return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // GET /api/public-reviews - WordPress-friendly reviews endpoint with proper formatting
+  apiRouter.get('/public-reviews', (req, res) => {
+    console.log("WordPress public reviews endpoint accessed");
+    try {
+      db.select({
+        review: userReviews,
+        user: users
+      })
+      .from(userReviews)
+      .leftJoin(users, eq(userReviews.userId, users.id))
+      .where(
+        and(
+          eq(userReviews.isPublic, true),
+          eq(userReviews.status, "approved")
+        )
+      )
+      .orderBy(desc(userReviews.createdAt))
+      .then(results => {
+        // Format the response according to the WordPress site needs
+        const formattedReviews = results.map(({ review, user }) => ({
+          id: review.id,
+          name: user?.name || "Verified User", // Fallback if no name
+          rating: review.rating,
+          body: review.feedback || "", // Safe fallback
+          date: review.createdAt.toISOString()
+        }));
+        
+        console.log(`Found ${formattedReviews.length} public approved reviews for WordPress`);
+        return res.status(200).json(formattedReviews);
+      })
+      .catch(error => {
+        console.error("Error fetching public reviews for WordPress:", error);
+        return res.status(500).json({ 
+          error: "Failed to fetch reviews",
+          message: "An error occurred while retrieving reviews"
+        });
+      });
+    } catch (error) {
+      console.error("Exception in WordPress public reviews endpoint:", error);
+      return res.status(500).json({ 
+        error: "Server error",
+        message: "An unexpected error occurred"
+      });
     }
   });
   

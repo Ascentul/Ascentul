@@ -6,6 +6,7 @@ import { sessionStore } from "./session-store";
 import { devTokenAuthBypass } from "./auth";
 import publicRouter from "./public-endpoints";
 import path from "path";
+import cors from "cors";
 
 // Log all environment variables for debugging (masking sensitive values)
 console.log('Environment Variables Status:');
@@ -41,6 +42,9 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // This ensures public endpoints don't require authentication
 app.use('/api/public', publicRouter);
 console.log('Public API routes mounted at /api/public');
+
+// New WordPress-friendly reviews endpoint with CORS enabled
+app.use('/api/public-reviews', cors({ origin: '*' }));
 
 // Configure session middleware
 app.use(session({
