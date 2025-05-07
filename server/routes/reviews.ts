@@ -37,7 +37,7 @@ router.get("/public", publicAccess, async (req, res) => {
           // sql`${userReviews.deletedAt} IS NULL`
         )
       )
-      .orderBy(userReviews.createdAt)
+      .orderBy(sql`${userReviews.createdAt} DESC`)
       .limit(10);
     
     console.log(`Found ${reviews.length} public reviews`);
@@ -123,9 +123,11 @@ router.get("/", requireAdmin, async (req, res) => {
       );
     }
 
-    // For now, just use fixed sort order as a temporary workaround
+    // For now, just use fixed sort order as a temporary workaround using SQL literals
     // This simplifies the code and avoids using problematic sort expressions
-    query = query.orderBy(userReviews.createdAt, sortOrder === "asc" ? "asc" : "desc");
+    const sortDirection = sortOrder === "asc" ? "ASC" : "DESC";
+    const sortColumn = sortBy === "rating" ? userReviews.rating : userReviews.createdAt;
+    query = query.orderBy(sql`${sortColumn} ${sortDirection}`);
 
     const reviews = await query;
 
