@@ -4370,11 +4370,41 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select()
         .from(goals)
         .where(eq(goals.userId, userId))
-        .orderBy(goals.updatedAt, "desc");
+        .orderBy(sql`${goals.updatedAt} DESC`);
       return result;
     } catch (error) {
       console.error("Error fetching goals from database:", error);
       return [];
+    }
+  }
+  
+  async createGoal(userId: number, goalData: InsertGoal): Promise<Goal> {
+    try {
+      // Set default values
+      const now = new Date();
+      const status = goalData.status || 'in_progress';
+      
+      // Insert the goal into the database
+      const [goal] = await db.insert(goals)
+        .values({
+          ...goalData,
+          userId,
+          status,
+          progress: 0,
+          completed: false,
+          completedAt: null,
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning();
+      
+      // Award XP for creating a goal
+      await this.addUserXP(userId, 50, "goals_created", "Created a new career goal");
+      
+      return goal;
+    } catch (error) {
+      console.error("Error creating goal in database:", error);
+      throw error;
     }
   }
   
@@ -4671,6 +4701,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(networkingContacts.id, contactId));
       
     return newInteraction;
+  }
+  
+  // XP Management Methods
+  async addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number> {
+    try {
+      const now = new Date();
+      
+      // Create XP history record
+      await db.insert(xpHistory)
+        .values({
+          userId,
+          amount,
+          source,
+          description: description || '',
+          createdAt: now
+        });
+      
+      // Update user's total XP
+      const [updatedUser] = await db
+        .update(users)
+        .set(eb => ({ xp: eb.xp + amount }))
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return updatedUser?.xp || 0;
+    } catch (error) {
+      console.error("Error adding user XP in database:", error);
+      // Return 0 instead of throwing to avoid breaking goal creation
+      return 0;
+    }
   }
   
   // These methods remain to be implemented
