@@ -696,7 +696,7 @@ const Interview = () => {
         className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0"
       >
         <div>
-          <h1 className="text-2xl font-bold">Application Tracker</h1>
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">Application Tracker</h1>
           <p className="text-muted-foreground">Manage your job applications from first save to final offer</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
