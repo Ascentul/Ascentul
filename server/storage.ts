@@ -4368,10 +4368,11 @@ export class DatabaseStorage implements IStorage {
   async getGoals(userId: number): Promise<Goal[]> {
     try {
       // Use raw SQL query to avoid orderBy syntax issues
+      // Note: The table only has created_at, not updated_at
       const result = await pool.query(`
         SELECT * FROM goals 
         WHERE user_id = $1 
-        ORDER BY updated_at DESC
+        ORDER BY created_at DESC
       `, [userId]);
       
       return result.rows;
@@ -4435,10 +4436,11 @@ export class DatabaseStorage implements IStorage {
   async getAiCoachConversations(userId: number): Promise<AiCoachConversation[]> {
     try {
       // Use raw SQL query to avoid orderBy syntax issues
+      // Note: This table only has created_at, no updated_at column
       const result = await pool.query(`
         SELECT * FROM ai_coach_conversations 
         WHERE user_id = $1 
-        ORDER BY updated_at DESC
+        ORDER BY created_at DESC
       `, [userId]);
       
       return result.rows;
