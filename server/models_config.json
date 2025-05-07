@@ -13,7 +13,7 @@
     {
       "id": "gpt-4-turbo",
       "label": "GPT-4 Turbo",
-      "active": false
+      "active": true
     },
     {
       "id": "gpt-4-vision-preview",
