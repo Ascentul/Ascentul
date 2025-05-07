@@ -290,23 +290,55 @@ const ReviewsTab: React.FC = () => {
 
   // Filter reviews based on active tab
   const getFilteredReviews = () => {
-    if (!adminReviews || !adminReviews.reviews || !Array.isArray(adminReviews.reviews)) {
+    // First check if we have data
+    if (!adminReviews) {
+      console.log("No admin reviews data available");
       return [];
     }
     
-    switch(activeTab) {
-      case 'pending':
-        return adminReviews.reviews.filter((r: Review) => r.status === 'pending');
-      case 'approved':
-        return adminReviews.reviews.filter((r: Review) => r.status === 'approved');
-      case 'rejected':
-        return adminReviews.reviews.filter((r: Review) => r.status === 'rejected');
-      case 'public':
-        return adminReviews.reviews.filter((r: Review) => r.isPublic);
-      case 'all':
-      default:
-        return adminReviews.reviews;
+    // Check if adminReviews is an array (new format from API)
+    if (Array.isArray(adminReviews)) {
+      console.log("Processing adminReviews as array", adminReviews);
+      
+      // Extract the review objects from the array of {review, user} objects
+      const reviews = adminReviews.map(item => item.review);
+      
+      switch(activeTab) {
+        case 'pending':
+          return reviews.filter((r: Review) => r.status === 'pending');
+        case 'approved':
+          return reviews.filter((r: Review) => r.status === 'approved');
+        case 'rejected':
+          return reviews.filter((r: Review) => r.status === 'rejected');
+        case 'public':
+          return reviews.filter((r: Review) => r.isPublic);
+        case 'all':
+        default:
+          return reviews;
+      }
     }
+    
+    // Handle the old format where adminReviews has a 'reviews' property
+    if (adminReviews.reviews && Array.isArray(adminReviews.reviews)) {
+      console.log("Processing adminReviews.reviews", adminReviews.reviews);
+      
+      switch(activeTab) {
+        case 'pending':
+          return adminReviews.reviews.filter((r: Review) => r.status === 'pending');
+        case 'approved':
+          return adminReviews.reviews.filter((r: Review) => r.status === 'approved');
+        case 'rejected':
+          return adminReviews.reviews.filter((r: Review) => r.status === 'rejected');
+        case 'public':
+          return adminReviews.reviews.filter((r: Review) => r.isPublic);
+        case 'all':
+        default:
+          return adminReviews.reviews;
+      }
+    }
+    
+    console.log("Unable to process reviews data:", adminReviews);
+    return [];
   };
 
   if (adminLoading) {
@@ -335,6 +367,27 @@ const ReviewsTab: React.FC = () => {
   }
 
   const filteredReviews = getFilteredReviews();
+  
+  // Find the users for each review
+  const getUsers = () => {
+    if (!adminReviews) return {};
+    
+    // If adminReviews is an array of objects with review and user properties
+    if (Array.isArray(adminReviews)) {
+      // Create a map of userId -> user data
+      const userMap: Record<number, User> = {};
+      adminReviews.forEach(item => {
+        if (item.user && item.review) {
+          userMap[item.review.userId] = item.user;
+        }
+      });
+      return userMap;
+    }
+    
+    return {};
+  };
+  
+  const userMap = getUsers();
 
   return (
     <div className="space-y-4">
@@ -366,6 +419,7 @@ const ReviewsTab: React.FC = () => {
                 <ReviewCard 
                   key={review.id} 
                   review={review}
+                  user={userMap[review.userId]}
                   onTogglePublic={handleTogglePublic}
                   onUpdateStatus={handleUpdateStatus}
                 />
@@ -401,44 +455,64 @@ const ReviewsTab: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {publicReviews && publicReviews.reviews && Array.isArray(publicReviews.reviews) && publicReviews.reviews.length > 0 ? (
-              publicReviews.reviews.map((review: Review) => (
-                <Card key={review.id} className="overflow-hidden border rounded-lg shadow-sm">
-                  <CardHeader className="pb-2 bg-gray-50">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <Avatar className="h-8 w-8 mr-2">
-                          <AvatarFallback className="text-xs">
-                            {review.userId.toString()[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-sm">Verified User</CardTitle>
-                          <div className="flex mt-1">
-                            {Array(5).fill(0).map((_, i) => (
-                              <Star key={i} className={cn(
-                                "h-3 w-3", 
-                                i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                              )} />
-                            ))}
+            {(() => {
+              // Process reviews data based on format
+              let reviewsToDisplay: Review[] = [];
+              
+              if (publicReviews) {
+                if (Array.isArray(publicReviews)) {
+                  console.log("Public reviews is an array");
+                  // Extract reviews from array of {review, user} objects
+                  reviewsToDisplay = publicReviews.map(item => item.review);
+                } else if (publicReviews.reviews && Array.isArray(publicReviews.reviews)) {
+                  console.log("Public reviews has reviews property");
+                  reviewsToDisplay = publicReviews.reviews;
+                }
+              }
+              
+              console.log("Public reviews to display:", reviewsToDisplay);
+              
+              if (reviewsToDisplay.length > 0) {
+                return reviewsToDisplay.map((review: Review) => (
+                  <Card key={review.id} className="overflow-hidden border rounded-lg shadow-sm">
+                    <CardHeader className="pb-2 bg-gray-50">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <Avatar className="h-8 w-8 mr-2">
+                            <AvatarFallback className="text-xs">
+                              {review.userId.toString()[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-sm">Verified User</CardTitle>
+                            <div className="flex mt-1">
+                              {Array(5).fill(0).map((_, i) => (
+                                <Star key={i} className={cn(
+                                  "h-3 w-3", 
+                                  i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                )} />
+                              ))}
+                            </div>
                           </div>
                         </div>
+                        <CardDescription className="text-xs">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </CardDescription>
                       </div>
-                      <CardDescription className="text-xs">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="text-sm py-3">
-                    {review.feedback || <span className="text-gray-400 italic">No feedback provided</span>}
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-1 md:col-span-2">
-                <EmptyState message="No public reviews available to display." />
-              </div>
-            )}
+                    </CardHeader>
+                    <CardContent className="text-sm py-3">
+                      {review.feedback || <span className="text-gray-400 italic">No feedback provided</span>}
+                    </CardContent>
+                  </Card>
+                ));
+              } else {
+                return (
+                  <div className="col-span-1 md:col-span-2">
+                    <EmptyState message="No public reviews available to display." />
+                  </div>
+                );
+              }
+            })()}
           </div>
         )}
       </div>
