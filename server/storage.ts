@@ -4397,8 +4397,7 @@ export class DatabaseStorage implements IStorage {
           progress: 0,
           completed: false,
           completedAt: null,
-          createdAt: now,
-          updatedAt: now
+          createdAt: now
         })
         .returning();
       
@@ -4409,6 +4408,67 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating goal in database:", error);
       throw error;
+    }
+  }
+  
+  async getGoal(id: number): Promise<Goal | undefined> {
+    try {
+      const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+      return goal || undefined;
+    } catch (error) {
+      console.error("Error fetching goal from database:", error);
+      return undefined;
+    }
+  }
+  
+  async updateGoal(id: number, goalData: Partial<Goal>): Promise<Goal | undefined> {
+    try {
+      // First get the current goal
+      const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+      if (!goal) return undefined;
+
+      // Check if the goal is being completed
+      const completingGoal = !goal.completed && goalData.completed === true;
+      
+      // Prepare updated data
+      const updateData: Partial<Goal> = { ...goalData };
+      
+      // If completing the goal, set completedAt and other fields
+      if (completingGoal) {
+        updateData.completedAt = new Date();
+        updateData.progress = 100;
+        updateData.status = 'completed';
+        updateData.completed = true;
+      }
+      
+      // Also check if the status is being set to 'completed' directly
+      if (goalData.status === 'completed' && !goal.completed) {
+        updateData.completed = true;
+        updateData.completedAt = updateData.completedAt || new Date();
+        updateData.progress = 100;
+      }
+      
+      // Update the goal in the database
+      const [updatedGoal] = await db
+        .update(goals)
+        .set(updateData)
+        .where(eq(goals.id, id))
+        .returning();
+      
+      // If goal was completed, award XP
+      if (completingGoal || (goalData.status === 'completed' && !goal.completed)) {
+        await this.addUserXP(
+          goal.userId, 
+          goal.xpReward, 
+          "goals_completed", 
+          `Completed goal: ${goal.title}`
+        );
+      }
+      
+      return updatedGoal;
+    } catch (error) {
+      console.error("Error updating goal in database:", error);
+      throw error; // Re-throw to propagate error to the route handler
     }
   }
   
