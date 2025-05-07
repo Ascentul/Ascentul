@@ -195,8 +195,10 @@ const EmptyState: React.FC<{message: string}> = ({ message }) => (
 
 const ReviewsTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState('all');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reviewToDelete, setReviewToDelete] = useState<number | null>(null);
   
-    // Define type for API responses
+  // Define type for API responses
   interface ReviewsResponse {
     reviews: Review[];
   }
@@ -304,6 +306,54 @@ const ReviewsTab: React.FC = () => {
       description: "Fetching the latest reviews from the database.",
     });
   };
+  
+  const handleDeleteRequest = (id: number) => {
+    setReviewToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!reviewToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/reviews/${reviewToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include credentials for authentication
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete review');
+      }
+      
+      // Refresh the data
+      refetchAdmin();
+      refetchPublic();
+      
+      toast({
+        title: "Review deleted",
+        description: "The review has been successfully deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      toast({
+        title: "Delete failed",
+        description: "There was a problem deleting the review.",
+        variant: "destructive",
+      });
+    } finally {
+      // Reset the state
+      setDeleteDialogOpen(false);
+      setReviewToDelete(null);
+    }
+  };
+  
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setReviewToDelete(null);
+  };
 
   // Filter reviews based on active tab
   const getFilteredReviews = () => {
@@ -408,6 +458,14 @@ const ReviewsTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Delete confirmation dialog */}
+      <ReviewDeleteDialog 
+        isOpen={deleteDialogOpen} 
+        onClose={handleDeleteCancel} 
+        onConfirm={handleDeleteConfirm} 
+        reviewId={reviewToDelete || 0}
+      />
+      
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Customer Reviews</h2>
         <Button 
@@ -439,6 +497,7 @@ const ReviewsTab: React.FC = () => {
                   user={userMap[review.userId]}
                   onTogglePublic={handleTogglePublic}
                   onUpdateStatus={handleUpdateStatus}
+                  onDelete={handleDeleteRequest}
                 />
               ))}
             </div>
