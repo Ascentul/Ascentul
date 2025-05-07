@@ -308,8 +308,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .where(
         and(
           eq(userReviews.isPublic, true),
-          eq(userReviews.status, "approved"),
-          sql`${userReviews.deletedAt} IS NULL` // Exclude deleted reviews
+          eq(userReviews.status, "approved")
+          // Temporary fix: removed deletedAt check until column is created
+          // sql`${userReviews.deletedAt} IS NULL` // Exclude deleted reviews
         )
       )
       .orderBy(desc(userReviews.createdAt))
