@@ -4147,8 +4147,10 @@ export class DatabaseStorage implements IStorage {
   // Job application methods
   async getJobApplications(userId: number): Promise<JobApplication[]> {
     try {
-      const result = await db.select().from(jobApplications).where(eq(jobApplications.userId, userId))
-        .orderBy(desc(jobApplications.updatedAt));
+      const result = await db.select()
+        .from(jobApplications)
+        .where(eq(jobApplications.userId, userId))
+        .orderBy((cols) => desc(cols.updatedAt));
       return result;
     } catch (error) {
       console.error("Error fetching job applications from database:", error);
