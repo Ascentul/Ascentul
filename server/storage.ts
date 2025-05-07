@@ -4146,6 +4146,35 @@ export class DatabaseStorage implements IStorage {
   
   // Critical missing methods that are causing errors
   
+  async getUserReviews(userId: number): Promise<UserReview[]> {
+    try {
+      const result = await db.select().from(userReviews).where(eq(userReviews.userId, userId))
+        .orderBy(desc(userReviews.createdAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching user reviews from database:", error);
+      return [];
+    }
+  }
+  
+  async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
+    try {
+      // Create the review object with userId
+      const reviewData = {
+        ...review,
+        userId
+      };
+      
+      // Insert into database and return the created review
+      const [newReview] = await db.insert(userReviews).values(reviewData).returning();
+      console.log("Review created successfully:", newReview);
+      return newReview;
+    } catch (error) {
+      console.error("Error creating user review in database:", error);
+      throw new Error(`Failed to create user review: ${error.message}`);
+    }
+  }
+  
   async getResumes(userId: number): Promise<Resume[]> {
     try {
       const result = await db.select().from(resumes).where(eq(resumes.userId, userId))
