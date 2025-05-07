@@ -400,14 +400,6 @@ export default function GoalCard({
                     {status === 'not_started' && <Check className="ml-auto h-4 w-4" />}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => handleStatusChange('active')}
-                    className="gap-2"
-                  >
-                    <span className="h-1.5 w-1.5 bg-primary rounded-full"></span>
-                    Active
-                    {status === 'active' && <Check className="ml-auto h-4 w-4" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
                     onClick={() => handleStatusChange('in_progress')}
                     className="gap-2"
                   >
