@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, CheckCircle, XCircle, EyeOff, Eye, Star, Filter, RefreshCcw } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, EyeOff, Eye, Star, Filter, RefreshCcw, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import ReviewDeleteDialog from '@/components/ReviewDeleteDialog';
 
 // Review types
 interface Review {
@@ -40,8 +41,9 @@ const ReviewCard: React.FC<{
   review: Review, 
   user?: User, 
   onTogglePublic?: (id: number, isPublic: boolean) => void,
-  onUpdateStatus?: (id: number, status: string) => void
-}> = ({ review, user, onTogglePublic, onUpdateStatus }) => {
+  onUpdateStatus?: (id: number, status: string) => void,
+  onDelete?: (id: number) => void
+}> = ({ review, user, onTogglePublic, onUpdateStatus, onDelete }) => {
   const stars = Array(5).fill(0).map((_, i) => (
     <Star key={i} className={cn(
       "h-4 w-4", 
@@ -108,57 +110,72 @@ const ReviewCard: React.FC<{
         )}
       </CardContent>
       
-      {(onTogglePublic || onUpdateStatus) && (
+      {(onTogglePublic || onUpdateStatus || onDelete) && (
         <>
           <Separator />
           <CardFooter className="pt-2 pb-2 flex justify-between items-center">
-            {onTogglePublic && (
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id={`public-${review.id}`}
-                  checked={review.isPublic}
-                  onCheckedChange={(checked) => onTogglePublic(review.id, checked)}
-                />
-                <Label htmlFor={`public-${review.id}`} className="text-sm">
-                  {review.isPublic ? (
-                    <span className="flex items-center"><Eye className="h-3 w-3 mr-1" /> Public</span>
-                  ) : (
-                    <span className="flex items-center"><EyeOff className="h-3 w-3 mr-1" /> Private</span>
-                  )}
-                </Label>
-              </div>
-            )}
+            <div className="flex items-center space-x-2">
+              {onTogglePublic && (
+                <>
+                  <Switch 
+                    id={`public-${review.id}`}
+                    checked={review.isPublic}
+                    onCheckedChange={(checked) => onTogglePublic(review.id, checked)}
+                  />
+                  <Label htmlFor={`public-${review.id}`} className="text-sm">
+                    {review.isPublic ? (
+                      <span className="flex items-center"><Eye className="h-3 w-3 mr-1" /> Public</span>
+                    ) : (
+                      <span className="flex items-center"><EyeOff className="h-3 w-3 mr-1" /> Private</span>
+                    )}
+                  </Label>
+                </>
+              )}
+              
+              {onDelete && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                  onClick={() => onDelete(review.id)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Delete
+                </Button>
+              )}
+            </div>
             
-            {onUpdateStatus && review.status === 'pending' && (
-              <div className="flex space-x-2">
+            <div className="flex space-x-2">
+              {onUpdateStatus && review.status === 'pending' && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-green-600 hover:text-green-800 flex items-center"
+                    onClick={() => onUpdateStatus(review.id, 'approved')}
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-red-600 hover:text-red-800 flex items-center"
+                    onClick={() => onUpdateStatus(review.id, 'rejected')}
+                  >
+                    <XCircle className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                </>
+              )}
+              
+              {onUpdateStatus && review.status !== 'pending' && (
                 <Button 
                   variant="outline" 
-                  size="sm" 
-                  className="text-green-600 hover:text-green-800 flex items-center"
-                  onClick={() => onUpdateStatus(review.id, 'approved')}
+                  size="sm"
+                  onClick={() => onUpdateStatus(review.id, 'pending')}
                 >
-                  <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                  Reset Status
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-red-600 hover:text-red-800 flex items-center"
-                  onClick={() => onUpdateStatus(review.id, 'rejected')}
-                >
-                  <XCircle className="h-3 w-3 mr-1" /> Reject
-                </Button>
-              </div>
-            )}
-            
-            {onUpdateStatus && review.status !== 'pending' && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onUpdateStatus(review.id, 'pending')}
-              >
-                Reset Status
-              </Button>
-            )}
+              )}
+            </div>
           </CardFooter>
         </>
       )}

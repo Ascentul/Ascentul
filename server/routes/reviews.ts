@@ -26,10 +26,16 @@ router.get("/public", publicAccess, async (req, res) => {
   try {
     console.log("Fetching public reviews...");
     
-    // Get only approved public reviews
+    // Get only approved public reviews that are not deleted
     const reviews = await db.select()
       .from(userReviews)
-      .where(eq(userReviews.isPublic, true))
+      .where(
+        and(
+          eq(userReviews.isPublic, true),
+          eq(userReviews.status, "approved"),
+          sql`${userReviews.deletedAt} IS NULL`
+        )
+      )
       .orderBy(desc(userReviews.createdAt))
       .limit(10);
     
@@ -97,9 +103,10 @@ router.get("/", requireAdmin, async (req, res) => {
       },
     })
     .from(userReviews)
-    .leftJoin(users, eq(userReviews.userId, users.id));
+    .leftJoin(users, eq(userReviews.userId, users.id))
+    .where(sql`${userReviews.deletedAt} IS NULL`); // Exclude deleted reviews
 
-    // Apply filters
+    // Apply additional filters
     if (rating) {
       query = query.where(eq(userReviews.rating, parseInt(rating)));
     }
@@ -195,7 +202,7 @@ router.patch("/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/reviews/:id - Delete a review
+// DELETE /api/reviews/:id - Soft delete a review
 router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     // The requireAdmin middleware already checks authentication and role
@@ -208,7 +215,13 @@ router.delete("/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Invalid review ID" });
     }
 
-    const [deletedReview] = await db.delete(userReviews)
+    // Soft delete by setting deletedAt timestamp
+    const [deletedReview] = await db.update(userReviews)
+      .set({
+        deletedAt: new Date(),
+        moderatedAt: new Date(),
+        moderatedBy: req.user!.id, // Add moderator info
+      })
       .where(eq(userReviews.id, reviewId))
       .returning();
 
