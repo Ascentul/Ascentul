@@ -701,12 +701,6 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Follow-up Actions</h2>
                 <div className="flex space-x-2">
-                  <Link href="/networking">
-                    <Button variant="outline" size="sm" className="text-xs">
-                      <Users className="mr-1 h-3 w-3" />
-                      Contacts
-                    </Button>
-                  </Link>
                 </div>
               </div>
               <CombinedFollowupActions limit={3} showTitle={false} />
