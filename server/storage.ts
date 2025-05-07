@@ -4544,12 +4544,16 @@ export class DatabaseStorage implements IStorage {
     monthlyXp: { month: string; xp: number }[];
   }> {
     try {
-      // Count active goals
-      const activeGoalsCount = await db
-        .select({ count: sql`count(*)` })
-        .from(goals)
-        .where(eq(goals.userId, userId))
-        .where(eq(goals.status, 'active'));
+      // Count active goals - using raw SQL to get any uncompleted goals
+      // This will count goals where status != 'completed' OR completed = false
+      const activeGoalsResult = await pool.query(`
+        SELECT COUNT(*) FROM goals 
+        WHERE user_id = $1 
+        AND (status != 'completed' AND completed = false)
+      `, [userId]);
+      
+      const activeGoalsCount = parseInt(activeGoalsResult.rows[0].count);
+      console.log(`Active goals count for user ${userId}: ${activeGoalsCount}`);
       
       // Count achievements
       const achievementsCount = await db
@@ -4593,7 +4597,8 @@ export class DatabaseStorage implements IStorage {
       const monthlyXp = Array.from(monthlyXpMap.entries()).map(([month, xp]) => ({ month, xp }));
       
       return {
-        activeGoals: Number(activeGoalsCount[0]?.count || 0),
+        // Use the direct count from our SQL query instead of trying to access as array
+        activeGoals: activeGoalsCount,
         achievementsCount: Number(achievementsCount[0]?.count || 0),
         resumesCount: Number(resumesCount[0]?.count || 0),
         pendingTasks: 0, // TODO: Implement
