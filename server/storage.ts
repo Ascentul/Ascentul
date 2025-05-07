@@ -4389,6 +4389,7 @@ export class DatabaseStorage implements IStorage {
       const status = goalData.status || 'in_progress';
       
       // Insert the goal into the database
+      // NOTE: No updatedAt column in goals table according to DB schema
       const [goal] = await db.insert(goals)
         .values({
           ...goalData,
@@ -4481,11 +4482,15 @@ export class DatabaseStorage implements IStorage {
         return false;
       }
       
-      // Delete the goal
-      await db.delete(goals).where(eq(goals.id, id));
-      
-      console.log(`Successfully deleted goal with ID ${id}`);
-      return true;
+      // Try using a raw SQL query to delete the goal since we're having issues
+      try {
+        await pool.query('DELETE FROM goals WHERE id = $1', [id]);
+        console.log(`Successfully deleted goal with ID ${id}`);
+        return true;
+      } catch (sqlError) {
+        console.error(`SQL Error deleting goal with ID ${id}:`, sqlError);
+        throw sqlError;
+      }
     } catch (error) {
       console.error(`Error deleting goal with ID ${id}:`, error);
       throw error; // Re-throw to propagate error to the route handler

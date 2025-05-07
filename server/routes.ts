@@ -1446,14 +1446,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You don't have permission to delete this goal" });
       }
       
-      await storage.deleteGoal(goalId);
+      // Attempt to delete the goal and capture the result
+      const result = await storage.deleteGoal(goalId);
+      
+      // Check if deletion was successful
+      if (!result) {
+        console.error(`Failed to delete goal with ID ${goalId} - storage.deleteGoal returned false`);
+        return res.status(500).json({ message: "Failed to delete goal" });
+      }
       
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader('X-Invalidate-Cache', JSON.stringify([`/api/users/statistics`]));
       
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: "Error deleting goal" });
+      console.error(`Error in DELETE /goals/${req.params.id}:`, error);
+      res.status(500).json({ message: "Error deleting goal", error: error.message });
     }
   });
   
