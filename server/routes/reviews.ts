@@ -247,4 +247,7 @@ router.get("/public", publicAccess, async (req, res) => {
   }
 });
 
+// IMPORTANT: This catch-all route must be registered AFTER /public to avoid conflicts
+// The ordering matters - more specific routes should come first
+
 export default router;
