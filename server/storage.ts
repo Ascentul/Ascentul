@@ -4150,7 +4150,7 @@ export class DatabaseStorage implements IStorage {
       const result = await db.select()
         .from(jobApplications)
         .where(eq(jobApplications.userId, userId))
-        .orderBy((cols) => desc(cols.updatedAt));
+        .orderBy(sql`${jobApplications.updatedAt} DESC`);
       return result;
     } catch (error) {
       console.error("Error fetching job applications from database:", error);
@@ -4411,7 +4411,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(aiCoachConversations)
         .where(eq(aiCoachConversations.userId, userId))
-        .orderBy((cols) => desc(cols.updatedAt));
+        .orderBy(sql`${aiCoachConversations.updatedAt} DESC`);
       return result;
     } catch (error) {
       console.error("Error fetching AI coach conversations from database:", error);
@@ -4650,7 +4650,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(contactInteractions)
       .where(eq(contactInteractions.contactId, contactId))
-      .orderBy((cols) => desc(cols.date));
+      .orderBy(sql`${contactInteractions.date} DESC`);
   }
   
   async createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction> {
