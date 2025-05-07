@@ -220,6 +220,7 @@ const ReviewsTab: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include credentials for authentication
         body: JSON.stringify({ isPublic }),
       });
       
@@ -252,6 +253,7 @@ const ReviewsTab: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include credentials for authentication
         body: JSON.stringify({ status }),
       });
       
