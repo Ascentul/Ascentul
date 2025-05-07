@@ -4367,11 +4367,14 @@ export class DatabaseStorage implements IStorage {
   
   async getGoals(userId: number): Promise<Goal[]> {
     try {
-      const result = await db.select()
-        .from(goals)
-        .where(eq(goals.userId, userId))
-        .orderBy(sql`${goals.updatedAt} DESC`);
-      return result;
+      // Use raw SQL query to avoid orderBy syntax issues
+      const result = await pool.query(`
+        SELECT * FROM goals 
+        WHERE user_id = $1 
+        ORDER BY updated_at DESC
+      `, [userId]);
+      
+      return result.rows;
     } catch (error) {
       console.error("Error fetching goals from database:", error);
       return [];
@@ -4410,25 +4413,19 @@ export class DatabaseStorage implements IStorage {
   
   async getUserAchievements(userId: number): Promise<(Achievement & { earnedAt: Date })[]> {
     try {
-      // Join userAchievements with achievements to get complete achievement data
-      const result = await db
-        .select({
-          id: achievements.id,
-          name: achievements.name,
-          description: achievements.description,
-          icon: achievements.icon,
-          xpValue: achievements.xpValue,
-          category: achievements.category,
-          createdAt: achievements.createdAt,
-          updatedAt: achievements.updatedAt,
-          earnedAt: userAchievements.earnedAt
-        })
-        .from(userAchievements)
-        .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
-        .where(eq(userAchievements.userId, userId))
-        .orderBy(userAchievements.earnedAt, "desc");
+      // Use raw SQL query to avoid orderBy syntax issues
+      const result = await pool.query(`
+        SELECT 
+          a.id, a.name, a.description, a.icon, a.xp_value as "xpValue", 
+          a.category, a.created_at as "createdAt", a.updated_at as "updatedAt",
+          ua.earned_at as "earnedAt"
+        FROM user_achievements ua
+        INNER JOIN achievements a ON ua.achievement_id = a.id
+        WHERE ua.user_id = $1
+        ORDER BY ua.earned_at DESC
+      `, [userId]);
       
-      return result as unknown as (Achievement & { earnedAt: Date })[];
+      return result.rows as unknown as (Achievement & { earnedAt: Date })[];
     } catch (error) {
       console.error("Error fetching user achievements from database:", error);
       return [];
@@ -4437,12 +4434,14 @@ export class DatabaseStorage implements IStorage {
   
   async getAiCoachConversations(userId: number): Promise<AiCoachConversation[]> {
     try {
-      const result = await db
-        .select()
-        .from(aiCoachConversations)
-        .where(eq(aiCoachConversations.userId, userId))
-        .orderBy(aiCoachConversations.updatedAt, "desc");
-      return result;
+      // Use raw SQL query to avoid orderBy syntax issues
+      const result = await pool.query(`
+        SELECT * FROM ai_coach_conversations 
+        WHERE user_id = $1 
+        ORDER BY updated_at DESC
+      `, [userId]);
+      
+      return result.rows;
     } catch (error) {
       console.error("Error fetching AI coach conversations from database:", error);
       return [];
@@ -4483,18 +4482,22 @@ export class DatabaseStorage implements IStorage {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
       
-      const xpHistoryData = await db
-        .select()
-        .from(xpHistory)
-        .where(eq(xpHistory.userId, userId))
-        .where(sql`created_at >= ${sixMonthsAgo}`)
-        .orderBy(xpHistory.createdAt);
+      // Use raw SQL to avoid syntax issues
+      const xpHistoryResult = await pool.query(`
+        SELECT * FROM xp_history 
+        WHERE user_id = $1 
+        AND created_at >= $2
+        ORDER BY created_at ASC
+      `, [userId, sixMonthsAgo]);
+      
+      const xpHistoryData = xpHistoryResult.rows;
       
       // Process XP history data into monthly aggregates
       const monthlyXpMap = new Map<string, number>();
       
       for (const record of xpHistoryData) {
-        const date = new Date(record.createdAt);
+        // Note: Database column names use snake_case
+        const date = new Date(record.created_at);
         const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
         const currentXp = monthlyXpMap.get(monthKey) || 0;
         monthlyXpMap.set(monthKey, currentXp + record.amount);
@@ -4718,10 +4721,16 @@ export class DatabaseStorage implements IStorage {
           createdAt: now
         });
       
+      // Get the current user
+      const [currentUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
       // Update user's total XP
       const [updatedUser] = await db
         .update(users)
-        .set(eb => ({ xp: eb.xp + amount }))
+        .set({ xp: (currentUser?.xp || 0) + amount })
         .where(eq(users.id, userId))
         .returning();
       
