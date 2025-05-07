@@ -4144,6 +4144,174 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  // Job application methods
+  async getJobApplications(userId: number): Promise<JobApplication[]> {
+    try {
+      const result = await db.select().from(jobApplications).where(eq(jobApplications.userId, userId))
+        .orderBy(desc(jobApplications.updatedAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching job applications from database:", error);
+      return [];
+    }
+  }
+  
+  async getJobApplication(id: number): Promise<JobApplication | undefined> {
+    try {
+      const [result] = await db.select().from(jobApplications).where(eq(jobApplications.id, id));
+      return result;
+    } catch (error) {
+      console.error("Error fetching job application from database:", error);
+      return undefined;
+    }
+  }
+  
+  async createJobApplication(userId: number, application: InsertJobApplication): Promise<JobApplication> {
+    try {
+      // Ensure the application object has the user ID
+      const applicationData = {
+        ...application,
+        userId
+      };
+      
+      // Insert the application and return the created record
+      const [newApplication] = await db.insert(jobApplications)
+        .values(applicationData)
+        .returning();
+        
+      console.log(`Successfully created job application:`, newApplication);
+      
+      return newApplication;
+    } catch (error) {
+      console.error(`Error creating job application:`, error);
+      throw new Error(`Failed to create job application: ${error.message}`);
+    }
+  }
+  
+  async updateJobApplication(id: number, applicationData: Partial<JobApplication>): Promise<JobApplication | undefined> {
+    try {
+      const [updatedApplication] = await db.update(jobApplications)
+        .set({
+          ...applicationData,
+          updatedAt: new Date()
+        })
+        .where(eq(jobApplications.id, id))
+        .returning();
+        
+      return updatedApplication;
+    } catch (error) {
+      console.error(`Error updating job application ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async submitJobApplication(id: number, applied: boolean = false): Promise<JobApplication | undefined> {
+    try {
+      // Get the current application
+      const application = await this.getJobApplication(id);
+      
+      if (!application) {
+        throw new Error("Application not found");
+      }
+      
+      // Update the application status and add submission date
+      const [submittedApplication] = await db.update(jobApplications)
+        .set({
+          status: "Applied",
+          submittedAt: new Date(),
+          applicationDate: applied ? new Date() : application.applicationDate,
+          updatedAt: new Date()
+        })
+        .where(eq(jobApplications.id, id))
+        .returning();
+        
+      return submittedApplication;
+    } catch (error) {
+      console.error(`Error submitting job application ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteJobApplication(id: number): Promise<boolean> {
+    try {
+      // Also delete any associated interview stages
+      await db.delete(interviewStages)
+        .where(eq(interviewStages.applicationId, id));
+      
+      // Delete any associated wizard steps
+      await db.delete(applicationWizardSteps)
+        .where(eq(applicationWizardSteps.applicationId, id));
+        
+      // Delete the application itself
+      await db.delete(jobApplications)
+        .where(eq(jobApplications.id, id));
+        
+      return true;
+    } catch (error) {
+      console.error(`Error deleting job application ${id}:`, error);
+      return false;
+    }
+  }
+  
+  async getApplicationWizardSteps(applicationId: number): Promise<ApplicationWizardStep[]> {
+    try {
+      const result = await db.select().from(applicationWizardSteps)
+        .where(eq(applicationWizardSteps.applicationId, applicationId))
+        .orderBy(asc(applicationWizardSteps.stepOrder));
+      return result;
+    } catch (error) {
+      console.error(`Error fetching wizard steps for application ${applicationId}:`, error);
+      return [];
+    }
+  }
+  
+  // Interview stages methods
+  async getInterviewStagesForApplication(applicationId: number): Promise<InterviewStage[]> {
+    try {
+      const result = await db.select().from(interviewStages)
+        .where(eq(interviewStages.applicationId, applicationId))
+        .orderBy(asc(interviewStages.scheduledDate));
+      return result;
+    } catch (error) {
+      console.error("Error fetching interview stages from database:", error);
+      return [];
+    }
+  }
+  
+  async createInterviewStageForApplication(applicationId: number, stageData: InsertInterviewStage): Promise<InterviewStage> {
+    try {
+      console.log(`Creating interview stage for application ${applicationId} with data:`, stageData);
+      
+      // Ensure applicationId is set in the data
+      const interviewStageData = {
+        ...stageData,
+        applicationId
+      };
+      
+      // Insert the stage and return the created record
+      const [newStage] = await db.insert(interviewStages)
+        .values(interviewStageData)
+        .returning();
+        
+      console.log(`Successfully created interview stage:`, newStage);
+      
+      return newStage;
+    } catch (error) {
+      console.error(`Error creating interview stage for application ${applicationId}:`, error);
+      throw new Error(`Failed to create interview stage: ${error.message}`);
+    }
+  }
+  
+  async getInterviewStage(id: number): Promise<InterviewStage | undefined> {
+    try {
+      const [stage] = await db.select().from(interviewStages).where(eq(interviewStages.id, id));
+      return stage;
+    } catch (error) {
+      console.error(`Error fetching interview stage ${id} from database:`, error);
+      return undefined;
+    }
+  }
+  
   // Critical missing methods that are causing errors
   
   async getUserReviews(userId: number): Promise<UserReview[]> {
