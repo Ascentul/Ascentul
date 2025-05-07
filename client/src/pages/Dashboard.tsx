@@ -547,26 +547,17 @@ export default function Dashboard() {
         variants={staggeredContainer}
         style={{ backfaceVisibility: 'hidden' }}
       >
+        {/* 1. Next Interview */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <StatCard 
-            icon={<Target className="h-5 w-5 text-primary" />}
-            iconBgColor="bg-primary/20"
-            iconColor="text-primary"
-            label="Active Goals"
-            value={stats.activeGoals}
-            change={{
-              type: 'increase',
-              text: '2 more than last month'
-            }}
-          />
+          <InterviewCountdownCard />
         </motion.div>
         
+        {/* 2. Active Applications */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <ActiveApplicationsStatCard />
         </motion.div>
         
-        {/* Debug section removed - interview issue has been resolved */}
-        
+        {/* 3. Pending Tasks */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
             icon={<Clock className="h-5 w-5 text-[#ff9800]" />}
@@ -583,8 +574,19 @@ export default function Dashboard() {
           />
         </motion.div>
         
+        {/* 4. Active Goals */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <InterviewCountdownCard />
+          <StatCard 
+            icon={<Target className="h-5 w-5 text-primary" />}
+            iconBgColor="bg-primary/20"
+            iconColor="text-primary"
+            label="Active Goals"
+            value={stats.activeGoals}
+            change={{
+              type: 'increase',
+              text: '2 more than last month'
+            }}
+          />
         </motion.div>
       </motion.div>
       
