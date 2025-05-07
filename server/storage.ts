@@ -113,6 +113,9 @@ export interface IStorage {
   // Contact interaction operations
   updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined>;
   deleteContactInteraction(id: number): Promise<boolean>;
+  
+  // User review operations
+  createUserReview(userId: number, reviewData: InsertUserReview): Promise<UserReview>;
 
   // Career path operations
   saveCareerPath(userId: number, name: string, pathData: any): Promise<CareerPath>;
