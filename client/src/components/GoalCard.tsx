@@ -91,6 +91,52 @@ export default function GoalCard({
 
     return `Due in ${formatDistanceToNow(dueTime)}`;
   };
+  
+  // Handle status changes when clicking the badge
+  const handleStatusChange = (currentStatus: string) => {
+    // Define the status progression cycle
+    const statuses = ['not_started', 'active', 'in_progress', 'completed'];
+    
+    // Find the current status in the cycle
+    let currentIndex = statuses.indexOf(currentStatus);
+    if (currentIndex === -1) currentIndex = 0; // Default to first status if not found
+    
+    // Get the next status in the cycle
+    const nextIndex = (currentIndex + 1) % statuses.length;
+    const nextStatus = statuses[nextIndex];
+    
+    // For completed status, we need to set additional properties
+    const isCompleted = nextStatus === 'completed';
+    
+    // Create the update object
+    const updateData: any = { status: nextStatus };
+    
+    // Set completed and completedAt for completed status
+    if (isCompleted) {
+      updateData.completed = true;
+      updateData.progress = 100;
+    }
+    
+    // Call the update mutation
+    updateChecklistMutation.mutate(updateData);
+    
+    // Show toast message
+    toast({
+      title: `Goal status updated`,
+      description: `Status changed to "${nextStatus.replace('_', ' ').charAt(0).toUpperCase() + nextStatus.replace('_', ' ').slice(1)}"`,
+    });
+    
+    // If setting to completed, initiate the completion flow
+    if (isCompleted && !completionCelebratedRef.current) {
+      completionCelebratedRef.current = true;
+      setShowConfetti(true);
+      
+      // After a short delay, dissolve the goal
+      setTimeout(() => {
+        handleDissolveAnimation(id);
+      }, 1500);
+    }
+  };
 
   // Update checklist item mutation
   const updateChecklistMutation = useMutation({
@@ -319,7 +365,12 @@ export default function GoalCard({
               <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
               </div>
-              <Badge variant="outline" className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()}`}>
+              <Badge 
+                variant="outline" 
+                className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
+                onClick={() => handleStatusChange(status)}
+                title="Click to change status"
+              >
                 {status === 'not_started' ? (
                   <span className="flex items-center">
                     <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
