@@ -104,8 +104,9 @@ router.get("/", requireAdmin, async (req, res) => {
       },
     })
     .from(userReviews)
-    .leftJoin(users, eq(userReviews.userId, users.id))
-    .where(sql`${userReviews.deletedAt} IS NULL`); // Exclude deleted reviews
+    .leftJoin(users, eq(userReviews.userId, users.id));
+    // Temporary fix: removed deletedAt check until column is created
+    // .where(sql`${userReviews.deletedAt} IS NULL`); // Exclude deleted reviews
 
     // Apply additional filters
     if (rating) {
@@ -216,12 +217,16 @@ router.delete("/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Invalid review ID" });
     }
 
-    // Soft delete by setting deletedAt timestamp
+    // Temporary hard delete until deletedAt column is created
+    // Instead of soft delete, just make it not visible by setting status to rejected
+    // and isPublic to false
     const [deletedReview] = await db.update(userReviews)
       .set({
-        deletedAt: new Date(),
+        status: "rejected",
+        isPublic: false,
         moderatedAt: new Date(),
         moderatedBy: req.user!.id, // Add moderator info
+        adminNotes: "Manually deleted by admin"
       })
       .where(eq(userReviews.id, reviewId))
       .returning();
