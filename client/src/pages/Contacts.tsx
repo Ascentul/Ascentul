@@ -345,7 +345,7 @@ export default function Contacts() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit">Apply Filters</Button>
+            <Button type="submit" variant="outline" className="bg-white">Apply Filters</Button>
           </form>
         </div>
 
