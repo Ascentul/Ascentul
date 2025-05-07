@@ -411,7 +411,7 @@ export default function AdminDashboard() {
       case 'universities':
         return <UniversitiesPage />;
       case 'reviews':
-        return <ReviewsTab />;
+        return <SimpleReviewsTab />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'billing':
