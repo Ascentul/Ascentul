@@ -12,7 +12,7 @@ import CreateGoalModal from '@/components/modals/CreateGoalModal';
 import EditGoalModal from '@/components/modals/EditGoalModal';
 import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
-import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
+import { CombinedFollowupActions } from '@/components/dashboard/CombinedFollowupActions';
 import { ActiveApplicationsStatCard } from '@/components/dashboard/ActiveApplicationsStatCard';
 import { InterviewCountdownCard } from '@/components/dashboard/InterviewCountdownCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
@@ -700,14 +700,22 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold font-poppins">Follow-up Actions</h2>
-                <Link href="/job-applications">
-                  <Button variant="outline" size="sm" className="text-xs">
-                    <Eye className="mr-1 h-3 w-3" />
-                    View Applications
-                  </Button>
-                </Link>
+                <div className="flex space-x-2">
+                  <Link href="/networking">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      <Users className="mr-1 h-3 w-3" />
+                      Contacts
+                    </Button>
+                  </Link>
+                  <Link href="/job-applications">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      <Eye className="mr-1 h-3 w-3" />
+                      Applications
+                    </Button>
+                  </Link>
+                </div>
               </div>
-              <ApplicationFollowupActions limit={3} showTitle={false} />
+              <CombinedFollowupActions limit={3} showTitle={false} />
             </CardContent>
           </Card>
         </motion.div>
