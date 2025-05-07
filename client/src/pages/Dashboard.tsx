@@ -619,16 +619,6 @@ export default function Dashboard() {
                     <Plus className="mr-1 h-3 w-3" />
                     Create Goal
                   </Button>
-                  <Link href="/goals">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                    >
-                      <Eye className="mr-1 h-3 w-3" />
-                      View All
-                    </Button>
-                  </Link>
                 </div>
               </div>
 
