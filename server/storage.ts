@@ -4574,11 +4574,12 @@ export class DatabaseStorage implements IStorage {
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
       
       // Use raw SQL to avoid syntax issues
+      // The column is named 'earned_at' not 'created_at'
       const xpHistoryResult = await pool.query(`
         SELECT * FROM xp_history 
         WHERE user_id = $1 
-        AND created_at >= $2
-        ORDER BY created_at ASC
+        AND earned_at >= $2
+        ORDER BY earned_at ASC
       `, [userId, sixMonthsAgo]);
       
       const xpHistoryData = xpHistoryResult.rows;
@@ -4588,7 +4589,8 @@ export class DatabaseStorage implements IStorage {
       
       for (const record of xpHistoryData) {
         // Note: Database column names use snake_case
-        const date = new Date(record.created_at);
+        // Use earned_at instead of created_at
+        const date = new Date(record.earned_at);
         const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
         const currentXp = monthlyXpMap.get(monthKey) || 0;
         monthlyXpMap.set(monthKey, currentXp + record.amount);
@@ -4810,7 +4812,7 @@ export class DatabaseStorage implements IStorage {
           amount,
           source,
           description: description || '',
-          createdAt: now
+          earnedAt: now // Use earnedAt instead of createdAt to match database schema
         });
       
       // Get the current user
