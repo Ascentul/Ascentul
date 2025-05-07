@@ -707,12 +707,6 @@ export default function Dashboard() {
                       Contacts
                     </Button>
                   </Link>
-                  <Link href="/job-applications">
-                    <Button variant="outline" size="sm" className="text-xs">
-                      <Eye className="mr-1 h-3 w-3" />
-                      Applications
-                    </Button>
-                  </Link>
                 </div>
               </div>
               <CombinedFollowupActions limit={3} showTitle={false} />
