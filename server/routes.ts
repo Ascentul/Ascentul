@@ -263,9 +263,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/universities', universitiesRouter);
   
   // Register reviews router
-  apiRouter.use('/reviews', reviewsRouter);
+  // IMPORTANT: Add debugging middleware to diagnose route issues
+  apiRouter.use('/reviews/*', (req, res, next) => {
+    console.log(`[DEBUG REVIEWS] Requested path: ${req.originalUrl}, Method: ${req.method}`);
+    next();
+  });
   
-  // Public endpoints for reviews are now handled by the reviews router in routes/reviews.ts
+  // Register review endpoints directly - bypass the router completely
+  // This is a workaround for the route ordering issues we're facing
+  
+  // GET /api/reviews/public - Public endpoint for approved reviews
+  apiRouter.get('/reviews/public', (req, res) => {
+    console.log("PUBLIC REVIEWS ENDPOINT ACCESSED DIRECTLY");
+    try {
+      db.select()
+        .from(userReviews)
+        .where(eq(userReviews.isPublic, true))
+        .orderBy(desc(userReviews.createdAt))
+        .limit(10)
+        .then(reviews => {
+          console.log(`Found ${reviews.length} public reviews (direct endpoint)`);
+          return res.status(200).json({ reviews });
+        })
+        .catch(error => {
+          console.error("Error fetching public reviews (direct):", error);
+          return res.status(500).json({ message: "Failed to fetch reviews" });
+        });
+    } catch (error) {
+      console.error("Exception in public reviews endpoint:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // GET /api/reviews/recent - Testing endpoint for most recent reviews
+  apiRouter.get('/reviews/recent', (req, res) => {
+    console.log("RECENT REVIEWS ENDPOINT ACCESSED DIRECTLY");
+    try {
+      db.select()
+        .from(userReviews)
+        .orderBy(desc(userReviews.createdAt))
+        .limit(10)
+        .then(reviews => {
+          console.log(`Found ${reviews.length} recent reviews (direct endpoint)`);
+          return res.status(200).json({ reviews });
+        })
+        .catch(error => {
+          console.error("Error fetching recent reviews (direct):", error);
+          return res.status(500).json({ message: "Failed to fetch reviews" });
+        });
+    } catch (error) {
+      console.error("Exception in recent reviews endpoint:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Now register the reviews router for the general review endpoints
+  // Exclude the /public and /recent paths which we handle directly above
+  apiRouter.use('/reviews', (req, res, next) => {
+    const path = req.path;
+    if (path === '/public' || path === '/recent') {
+      console.log(`[REVIEWS ROUTER BYPASS] Skipping router for special path: ${path}`);
+      // These endpoints are handled directly above
+      return res.status(404).json({ message: "Not found in reviews router" });
+    }
+    console.log(`[REVIEWS ROUTER] Processing path: ${path}`);
+    next();
+  }, reviewsRouter);
+  
+  // Public endpoints for reviews are now handled directly and by the reviews router in routes/reviews.ts
   
   // Handle the review/submit endpoint that the frontend is calling
   // This is a public endpoint without authentication requirements
@@ -346,27 +411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // Add an endpoint to list the most recent reviews for testing
-  // This endpoint allows unauthenticated access for testing purposes
-  apiRouter.get('/reviews/recent', async (req: Request, res: Response) => {
-    try {
-      console.log("Fetching recent reviews...");
-      
-      // Skip authentication check for this testing endpoint
-      
-      // Directly query the database for reviews
-      const reviews = await db.select()
-        .from(userReviews)
-        .orderBy(desc(userReviews.createdAt))
-        .limit(10);
-      
-      console.log(`Found ${reviews.length} recent reviews`);
-      res.status(200).json({ reviews });
-    } catch (error) {
-      console.error("Error fetching recent reviews:", error);
-      res.status(500).json({ message: "Failed to fetch reviews" });
-    }
-  });
+  // This endpoint has been moved above the reviews router registration to avoid conflicts 
+  // with the /:id parameter route in the router
   
   // Register settings router
   apiRouter.use('/settings', settingsRouter);
