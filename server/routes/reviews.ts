@@ -26,14 +26,15 @@ router.get("/public", publicAccess, async (req, res) => {
   try {
     console.log("Fetching public reviews...");
     
-    // Get only approved public reviews that are not deleted
+    // Get only approved public reviews (temporarily removed deletedAt check until column is created)
     const reviews = await db.select()
       .from(userReviews)
       .where(
         and(
           eq(userReviews.isPublic, true),
-          eq(userReviews.status, "approved"),
-          sql`${userReviews.deletedAt} IS NULL`
+          eq(userReviews.status, "approved")
+          // Temporary fix: removed deletedAt check until column is created
+          // sql`${userReviews.deletedAt} IS NULL`
         )
       )
       .orderBy(desc(userReviews.createdAt))
