@@ -54,7 +54,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       }
       
       // Count pending followups from localStorage applications first for immediate feedback
-      let localCount = 0;
+      let appFollowupCount = 0;
       // Keep track of individual application counts for logging
       const appCounts: Record<number, { company: string; pendingCount: number }> = {};
       
@@ -69,7 +69,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
           if (Array.isArray(mockFollowups)) {
             // Only count tasks with completed = false (pending tasks)
             const pendingCount = mockFollowups.filter((f: any) => f && !f.completed).length;
-            localCount += pendingCount;
+            appFollowupCount += pendingCount;
             
             // Store for logging
             appCounts[app.id] = {
@@ -102,28 +102,49 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      console.log(`Total pending followups from localStorage: ${localCount}`);
+      console.log(`Total pending application followups from localStorage: ${appFollowupCount}`);
       
-      // Update the count immediately from localStorage data
-      setPendingFollowupCount(localCount);
+      // Now fetch contact followups from the API to get a complete count
+      let contactFollowupCount = 0;
+      try {
+        const contactFollowupsResponse = await apiRequest('GET', '/api/contacts/all-followups');
+        if (contactFollowupsResponse.ok) {
+          const contactFollowups = await contactFollowupsResponse.json();
+          if (Array.isArray(contactFollowups)) {
+            // Only count contact followups that are not completed
+            contactFollowupCount = contactFollowups.filter(f => f && !f.completed).length;
+            console.log(`Found ${contactFollowupCount} pending contact followups from API`);
+          }
+        }
+      } catch (contactError) {
+        console.error('Error fetching contact followups from API:', contactError);
+      }
+      
+      // Calculate combined total
+      const combinedCount = appFollowupCount + contactFollowupCount;
+      console.log(`Combined ${appFollowupCount} application followups and ${contactFollowupCount} contact followups`);
+      
+      // Update the count with the combined total
+      setPendingFollowupCount(combinedCount);
       
       // Save this value to localStorage so it persists across page reloads
-      localStorage.setItem('pendingFollowupCount', String(localCount));
+      localStorage.setItem('pendingFollowupCount', String(combinedCount));
       
       // Then try to get applications from the API in the background
-      // to ensure we have the latest data
+      // to ensure we have the latest data for application followups
       try {
         const response = await apiRequest('GET', '/api/job-applications');
         if (!response.ok) {
           console.error(`API error fetching applications: ${response.status}`);
-          return localCount; // Return localStorage count on API error
+          return combinedCount; // Return combined count on API error
         }
         
         const apiApplications = await response.json();
         
         if (Array.isArray(apiApplications) && apiApplications.length > 0) {
+          console.log(`Found ${apiApplications.length} applications in localStorage`);
           // Get API counts for each application
-          let apiCount = 0;
+          let apiAppCount = 0;
           const apiPromises = apiApplications.map(async (app) => {
             try {
               // First check localStorage as it's the most up-to-date
@@ -164,14 +185,16 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
           
           // Wait for all API counts to be resolved
           const appCountsArray = await Promise.all(apiPromises);
-          apiCount = appCountsArray.reduce((sum, count) => sum + count, 0);
+          apiAppCount = appCountsArray.reduce((sum, count) => sum + count, 0);
           
-          // Only update if there's a difference with localStorage count
-          if (apiCount !== localCount) {
-            console.log(`API count (${apiCount}) differs from localStorage count (${localCount}), updating to API count...`);
-            setPendingFollowupCount(apiCount);
-            localStorage.setItem('pendingFollowupCount', String(apiCount));
-            return apiCount;
+          // If API application count differs from localStorage count, update the total
+          if (apiAppCount !== appFollowupCount) {
+            console.log(`API app count (${apiAppCount}) differs from localStorage app count (${appFollowupCount}), updating...`);
+            const updatedCombinedCount = apiAppCount + contactFollowupCount;
+            console.log(`Combined ${apiAppCount} application followups and ${contactFollowupCount} contact followups`);
+            setPendingFollowupCount(updatedCombinedCount);
+            localStorage.setItem('pendingFollowupCount', String(updatedCombinedCount));
+            return updatedCombinedCount;
           }
         }
       } catch (apiError) {
@@ -179,7 +202,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
         console.error('Error fetching or processing API applications:', apiError);
       }
       
-      return localCount;
+      return combinedCount;
     } catch (error) {
       console.error('Error updating pending followup count:', error);
       return pendingFollowupCount; // Return current count on error
@@ -278,9 +301,17 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       // This is just to enable other components to react to the changes
     };
     
+    // Listen for contact followup update events
+    const handleContactFollowupUpdate = () => {
+      // When contact followups are updated, refresh the count
+      updatePendingFollowupCount();
+    };
+    
     // Set up event listeners
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener(TASK_STATUS_CHANGE_EVENT, handleTaskStatusChange as EventListener);
+    window.addEventListener(CONTACT_FOLLOWUP_UPDATE_EVENT, handleContactFollowupUpdate as EventListener);
+    window.addEventListener('contactFollowupUpdate', handleContactFollowupUpdate as EventListener);
     
     // Set up a refresh interval
     const interval = setInterval(() => {
@@ -290,6 +321,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(TASK_STATUS_CHANGE_EVENT, handleTaskStatusChange as EventListener);
+      window.removeEventListener(CONTACT_FOLLOWUP_UPDATE_EVENT, handleContactFollowupUpdate as EventListener);
+      window.removeEventListener('contactFollowupUpdate', handleContactFollowupUpdate as EventListener);
       clearInterval(interval);
     };
   }, [updatePendingFollowupCount]);

@@ -295,7 +295,18 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
       return await response.json();
     },
     onSuccess: () => {
+      // Invalidate the contacts followups query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] });
+      
+      // Dispatch the contact followup update event for other components to react to
+      window.dispatchEvent(new CustomEvent('contactFollowupUpdate'));
+      
+      // Also dispatch our custom event for consistency
+      window.dispatchEvent(new CustomEvent('CONTACT_FOLLOWUP_UPDATE_EVENT'));
+      
+      // Update the pending task count
+      updatePendingFollowupCount().catch(console.error);
+      
       toast({
         title: 'Contact followup updated',
         description: 'The contact followup status has been updated successfully.',
