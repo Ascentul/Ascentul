@@ -129,7 +129,7 @@ export default function Dashboard() {
   const { user } = useUser();
   const { toast } = useToast();
   const isUnivUser = useIsUniversityUser();
-  
+
   // Modal states
   const [createGoalModalOpen, setCreateGoalModalOpen] = useState(false);
   const [editGoalModalOpen, setEditGoalModalOpen] = useState(false);
@@ -141,10 +141,10 @@ export default function Dashboard() {
     // Refresh every 30 seconds to keep statistics up to date
     refetchInterval: 30000,
   });
-  
+
   // Get the pending followup count from the PendingTasksContext
   const { pendingFollowupCount } = usePendingTasks();
-  
+
   // Use default stats if data is not available, and override pendingTasks with our follow-up count
   const stats: Stats = {
     ...(statsData || DEFAULT_STATS),
@@ -165,7 +165,7 @@ export default function Dashboard() {
     setTimeout(() => {
       setShowConfetti(false);
     }, 2000);
-    
+
     // Find the completed goal element and apply dissolve effect manually
     const goalElement = document.getElementById(`goal-${id}`);
     if (goalElement) {
@@ -180,11 +180,11 @@ export default function Dashboard() {
         goalElement.style.overflow = 'hidden';
       }, 2200);
     }
-    
+
     // Temporarily hide the goal during animation
     setTimeout(() => {
       setHiddenGoalIds(prev => [...prev, id]);
-      
+
       // After the animation, find the goal and update its status in the database
       const goal = goals.find((g: Goal) => g.id === id);
       if (goal) {
@@ -200,12 +200,12 @@ export default function Dashboard() {
           // Refresh goals data and user statistics
           queryClient.invalidateQueries({ queryKey: ['/api/goals'] });
           queryClient.invalidateQueries({ queryKey: ['/api/users/statistics'] });
-          
+
           toast({
             title: "Goal Completed",
             description: "Your goal has been marked as completed.",
           });
-          
+
           // After another short delay, remove it from hidden list
           // so it appears in the Completed Goals section
           setTimeout(() => {
@@ -218,7 +218,7 @@ export default function Dashboard() {
           setTimeout(() => {
             setHiddenGoalIds(prev => prev.filter(goalId => goalId !== id));
           }, 500);
-          
+
           toast({
             title: "Error",
             description: "Failed to update goal status. Please try again.",
@@ -228,16 +228,16 @@ export default function Dashboard() {
       }
     }, 3000); // Longer delay to allow for confetti and dissolve animation
   };
-  
+
   // Fetch goals
   const { data: goals = [] } = useQuery<Goal[]>({
     queryKey: ['/api/goals']
   });
-  
+
   // Auto-dissolve completed goals when goals data changes
   useEffect(() => {
     if (!goals || !Array.isArray(goals)) return;
-    
+
     // Auto-dissolve any completed goals that have all checklist items completed
     goals.forEach((goal: Goal) => {
       if (
@@ -258,34 +258,34 @@ export default function Dashboard() {
   const { data: achievements = [] } = useQuery<Achievement[]>({
     queryKey: ['/api/achievements/user'],
   });
-  
+
   // Fetch interview processes and stages to check for upcoming interviews
   const { data: interviewProcesses = [] } = useQuery({
     queryKey: ['/api/interview/processes'],
   });
-  
+
   // Calculate active interview processes count
   const activeInterviewProcesses = useMemo(() => {
     // Check if we have interview processes
     if (!interviewProcesses || !Array.isArray(interviewProcesses)) return 0;
-    
+
     // Count only the interview processes with status "In Progress" or "Offer Extended"
     return interviewProcesses.filter((process: any) => 
       process.status === 'In Progress' || process.status === 'Offer Extended'
     ).length;
   }, [interviewProcesses]);
-  
+
   // Find upcoming interviews (scheduled within the next 2 weeks)
   const upcomingInterviews = useMemo(() => {
     const now = new Date();
     const twoWeeksFromNow = new Date();
     twoWeeksFromNow.setDate(now.getDate() + 14); // 2 weeks from now
-    
+
     const upcoming: UpcomingInterview[] = [];
-    
+
     // Check if we have interview processes
     if (!interviewProcesses || !Array.isArray(interviewProcesses)) return [];
-    
+
     // For each process, check if it has any stages with scheduled dates in the next 2 weeks
     interviewProcesses.forEach((process: any) => {
       if (process.stages && Array.isArray(process.stages)) {
@@ -305,7 +305,7 @@ export default function Dashboard() {
         });
       }
     });
-    
+
     // Sort by date (earliest first)
     return upcoming.sort((a, b) => 
       new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()
@@ -316,7 +316,7 @@ export default function Dashboard() {
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ['/api/ai-coach/conversations'],
   });
-  
+
   // States for dashboard AI coach mini-conversation
   const [userQuestion, setUserQuestion] = useState('');
   const [miniCoachMessages, setMiniCoachMessages] = useState<Array<{role: string, content: string}>>([
@@ -324,12 +324,12 @@ export default function Dashboard() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const conversationRef = useRef<HTMLDivElement>(null);
-  
+
   // Function to handle sending a message to the coach
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userQuestion.trim()) return;
-    
+
     // Add user's question to the conversation
     const newMessages = [
       ...miniCoachMessages,
@@ -338,7 +338,7 @@ export default function Dashboard() {
     setMiniCoachMessages(newMessages);
     setUserQuestion('');
     setIsTyping(true);
-    
+
     try {
       // Call the OpenAI API through our backend
       const response = await apiRequest("POST", "/api/ai-coach/generate-response", {
@@ -347,15 +347,15 @@ export default function Dashboard() {
           content: msg.content
         }))
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to get AI response');
       }
-      
+
       const data = await response.json();
-      
+
       setMiniCoachMessages([...newMessages, { role: 'assistant', content: data.content }]);
-      
+
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
@@ -363,7 +363,7 @@ export default function Dashboard() {
         description: "Could not get a response from AI Coach. Please try again.",
         variant: "destructive"
       });
-      
+
       // Fallback message in case of error
       setMiniCoachMessages([...newMessages, { 
         role: 'assistant', 
@@ -371,14 +371,14 @@ export default function Dashboard() {
       }]);
     } finally {
       setIsTyping(false);
-      
+
       // Scroll to bottom of conversation
       if (conversationRef.current) {
         conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
       }
     }
   };
-  
+
   // Auto-scroll conversation to bottom when new messages appear
   useEffect(() => {
     if (conversationRef.current) {
@@ -402,13 +402,13 @@ export default function Dashboard() {
   if (!user || !stats) {
     return <div className="h-full flex items-center justify-center">Loading dashboard data...</div>;
   }
-  
+
   // Animation variants - instant (no animations for smooth adding/removing)
   const fadeIn = {
     hidden: { opacity: 1 },
     visible: { opacity: 1, transition: { duration: 0 } }
   };
-  
+
   const subtleUp = {
     hidden: { opacity: 1, y: 0 },
     visible: { 
@@ -419,7 +419,7 @@ export default function Dashboard() {
       } 
     }
   };
-  
+
   const cardAnimation = {
     hidden: { opacity: 1, y: 0 },
     visible: { 
@@ -430,7 +430,7 @@ export default function Dashboard() {
       } 
     }
   };
-  
+
   const staggeredContainer = {
     hidden: { opacity: 1 },
     visible: {
@@ -487,7 +487,7 @@ export default function Dashboard() {
                     <div className="text-xs text-muted-foreground">Track your career objectives</div>
                   </div>
                 </div>
-                
+
                 <Link href="/resume" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-blue-500/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -499,7 +499,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </Link>
-                
+
                 <Link href="/cover-letter" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-purple-500/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -511,7 +511,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </Link>
-                
+
                 <Link href="/application-tracker?create=true" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-green-500/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -523,7 +523,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </Link>
-                
+
                 <Link href="/work-history" className="w-full">
                   <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
                     <div className="h-9 w-9 rounded-full bg-amber-500/10 flex items-center justify-center mr-3 flex-shrink-0">
@@ -540,7 +540,7 @@ export default function Dashboard() {
           </Dialog>
         </div>
       </motion.div>
-      
+
       {/* Stats Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 will-change-opacity"
@@ -551,12 +551,12 @@ export default function Dashboard() {
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <InterviewCountdownCard />
         </motion.div>
-        
+
         {/* 2. Active Applications */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <ActiveApplicationsStatCard />
         </motion.div>
-        
+
         {/* 3. Pending Tasks */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
@@ -573,7 +573,7 @@ export default function Dashboard() {
             }}
           />
         </motion.div>
-        
+
         {/* 4. Active Goals */}
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
           <StatCard 
@@ -589,10 +589,10 @@ export default function Dashboard() {
           />
         </motion.div>
       </motion.div>
-      
+
       {/* Get Started Checklist - always shown to users until explicitly dismissed */}
       {user && user.id && <GetStartedChecklist userId={user.id} />}
-      
+
       {/* Current Goals, Upcoming Interviews & Follow-up Actions */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
@@ -631,7 +631,7 @@ export default function Dashboard() {
                   </Link>
                 </div>
               </div>
-              
+
               {/* Goals Section */}
               <div>
                 <div className="space-y-4">
@@ -680,7 +680,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
-        
+
         {/* Upcoming Interviews - between Career Goals and Follow-up Actions */}
         <motion.div
           variants={cardAnimation}
@@ -689,7 +689,7 @@ export default function Dashboard() {
         >
           <UpcomingInterviewsCard />
         </motion.div>
-        
+
         {/* Interview Followup Actions */}
         <motion.div
           variants={cardAnimation}
@@ -720,7 +720,7 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </motion.div>
-      
+
       {/* AI Coach & Today's Recommendations */}
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 will-change-opacity"
@@ -743,7 +743,7 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              
+
               {/* Conversation Area */}
               <div 
                 ref={conversationRef}
@@ -787,7 +787,7 @@ export default function Dashboard() {
                     </div>
                   )
                 ))}
-                
+
                 {/* Show typing indicator */}
                 {isTyping && (
                   <Card className="border border-neutral-200 shadow-none p-3 mb-3">
@@ -807,7 +807,7 @@ export default function Dashboard() {
                   </Card>
                 )}
               </div>
-              
+
               {/* Input Area */}
               <form onSubmit={handleSendMessage} className="mt-auto">
                 <div className="flex items-center border rounded-lg overflow-hidden bg-background">
@@ -833,8 +833,17 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Todays Recommendations - takes up 1/3 width */}
+        <motion.div
+          variants={cardAnimation}
+          className="will-change-transform"
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <TodaysRecommendations />
+        </motion.div>
       </motion.div>
-      
+
       {/* Level Progress - only for university users */}
       {isUnivUser && (
         <motion.div
@@ -852,7 +861,7 @@ export default function Dashboard() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold font-poppins">Your Level</h2>
                 </div>
-                
+
                 <div className="flex flex-col items-center justify-center">
                   <LevelProgress 
                     level={user.level || 1}
@@ -867,7 +876,7 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
       )}
-      
+
       {/* Career Journey Chart & Recent Achievements - Only for university users */}
       {isUnivUser && (
         <motion.div 
@@ -887,14 +896,14 @@ export default function Dashboard() {
                   <h2 className="text-lg font-semibold font-poppins">Career Journey</h2>
                   <p className="text-xs text-neutral-500">Your XP growth over time</p>
                 </div>
-                
+
                 <div className="h-[300px]">
                   <CareerJourneyChart data={stats.monthlyXp} />
                 </div>
               </CardContent>
             </Card>
           </motion.div>
-          
+
           {/* Upcoming Interviews - Takes up 1/3 width */}
           <motion.div
             variants={cardAnimation}
@@ -906,7 +915,7 @@ export default function Dashboard() {
                 <div className="mb-4">
                   <h2 className="text-lg font-semibold font-poppins">Upcoming Interviews</h2>
                 </div>
-                
+
                 <div className="space-y-4">
                   {stats.upcomingInterviews > 0 && Array.isArray(upcomingInterviews) && upcomingInterviews.length > 0 ? (
                     upcomingInterviews.slice(0, 3).map((interview) => (
@@ -936,7 +945,7 @@ export default function Dashboard() {
                       </Link>
                     </div>
                   )}
-                  
+
                   <div className="pt-2">
                     <Link href="/application-tracker">
                       <Button variant="outline" size="sm" className="w-full">
@@ -950,7 +959,7 @@ export default function Dashboard() {
           </motion.div>
         </motion.div>
       )}
-      
+
       {/* Modals */}
       {createGoalModalOpen && (
         <CreateGoalModal 
@@ -958,7 +967,7 @@ export default function Dashboard() {
           onClose={() => setCreateGoalModalOpen(false)} 
         />
       )}
-      
+
       {editGoalModalOpen && selectedGoalId && (
         <EditGoalModal 
           isOpen={editGoalModalOpen} 
