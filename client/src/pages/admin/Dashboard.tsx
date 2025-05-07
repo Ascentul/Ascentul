@@ -22,7 +22,7 @@ import UniversitiesPage from './universities';
 import AnalyticsPage from './AnalyticsPage';
 import BillingPage from './BillingPage';
 import ReviewsPage from './ReviewsPage';
-import ReviewsTab from './ReviewsTab';
+import SimpleReviewsTab from './SimpleReviewsTab';
 import AdminSettingsTab from './AdminSettingsTab';
 import {
   Form,
