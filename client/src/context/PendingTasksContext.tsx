@@ -9,8 +9,10 @@ interface PendingTasksContextType {
   markTaskPending: (applicationId: number, followupId: number) => void;
 }
 
-// Define a custom event for task status changes
+// Event names for task status changes and contact followup updates
 const TASK_STATUS_CHANGE_EVENT = 'taskStatusChange';
+const CONTACT_FOLLOWUP_UPDATE_EVENT = 'contactFollowupUpdate';
+
 // Custom event interface
 interface TaskStatusChangeEvent extends CustomEvent {
   detail: {
