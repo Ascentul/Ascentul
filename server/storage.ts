@@ -4316,8 +4316,10 @@ export class DatabaseStorage implements IStorage {
   
   async getUserReviews(userId: number): Promise<UserReview[]> {
     try {
-      const result = await db.select().from(userReviews).where(eq(userReviews.userId, userId))
-        .orderBy(desc(userReviews.createdAt));
+      const result = await db.select()
+        .from(userReviews)
+        .where(eq(userReviews.userId, userId))
+        .orderBy((cols) => desc(cols.createdAt));
       return result;
     } catch (error) {
       console.error("Error fetching user reviews from database:", error);
@@ -4345,8 +4347,10 @@ export class DatabaseStorage implements IStorage {
   
   async getResumes(userId: number): Promise<Resume[]> {
     try {
-      const result = await db.select().from(resumes).where(eq(resumes.userId, userId))
-        .orderBy(desc(resumes.updatedAt));
+      const result = await db.select()
+        .from(resumes)
+        .where(eq(resumes.userId, userId))
+        .orderBy((cols) => desc(cols.updatedAt));
       return result;
     } catch (error) {
       console.error("Error fetching resumes from database:", error);
@@ -4361,8 +4365,10 @@ export class DatabaseStorage implements IStorage {
   
   async getGoals(userId: number): Promise<Goal[]> {
     try {
-      const result = await db.select().from(goals).where(eq(goals.userId, userId))
-        .orderBy(desc(goals.updatedAt));
+      const result = await db.select()
+        .from(goals)
+        .where(eq(goals.userId, userId))
+        .orderBy((cols) => desc(cols.updatedAt));
       return result;
     } catch (error) {
       console.error("Error fetching goals from database:", error);
@@ -4388,7 +4394,7 @@ export class DatabaseStorage implements IStorage {
         .from(userAchievements)
         .innerJoin(achievements, eq(userAchievements.achievementId, achievements.id))
         .where(eq(userAchievements.userId, userId))
-        .orderBy(desc(userAchievements.earnedAt));
+        .orderBy((cols) => desc(cols.earnedAt));
       
       return result as unknown as (Achievement & { earnedAt: Date })[];
     } catch (error) {
@@ -4403,7 +4409,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(aiCoachConversations)
         .where(eq(aiCoachConversations.userId, userId))
-        .orderBy(desc(aiCoachConversations.updatedAt));
+        .orderBy((cols) => desc(cols.updatedAt));
       return result;
     } catch (error) {
       console.error("Error fetching AI coach conversations from database:", error);
@@ -4642,7 +4648,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(contactInteractions)
       .where(eq(contactInteractions.contactId, contactId))
-      .orderBy(desc(contactInteractions.date));
+      .orderBy((cols) => desc(cols.date));
   }
   
   async createContactInteraction(userId: number, contactId: number, interaction: InsertContactInteraction): Promise<ContactInteraction> {
