@@ -333,7 +333,11 @@ export default function GoalCard({
             <div>
               <p className="text-sm font-medium">Progress</p>
               <div className="relative">
-                <Progress value={progress} className="mt-1 h-2 transition-all duration-300" />
+                {progress > 0 ? (
+                  <Progress value={progress} className="mt-1 h-2 transition-all duration-300" />
+                ) : (
+                  <div className="mt-1 h-2 w-full rounded-full bg-secondary transition-all duration-300" />
+                )}
               </div>
             </div>
 
