@@ -195,6 +195,7 @@ const ReviewsTab: React.FC = () => {
     retry: 3,
     retryDelay: 1000,
     enabled: true,
+    gcTime: 0, // Disable caching to ensure fresh data
   });
 
   // Fetch public reviews
@@ -208,6 +209,7 @@ const ReviewsTab: React.FC = () => {
     retry: 3,
     retryDelay: 1000,
     enabled: true,
+    gcTime: 0, // Disable caching to ensure fresh data
   });
 
   // API handlers for review management
