@@ -14,6 +14,7 @@ import Confetti from '@/components/Confetti';
 import TodaysRecommendations from '@/components/TodaysRecommendations';
 import { ApplicationFollowupActions } from '@/components/dashboard/ApplicationFollowupActions';
 import { InterviewsStatCard } from '@/components/dashboard/InterviewsStatCard';
+import { InterviewCountdownCard } from '@/components/dashboard/InterviewCountdownCard';
 import { UpcomingInterviewsCard } from '@/components/dashboard/UpcomingInterviewsCard';
 import { GetStartedChecklist } from '@/components/dashboard/GetStartedChecklist';
 import { useUpcomingInterviews } from '@/context/UpcomingInterviewsContext';
@@ -583,17 +584,7 @@ export default function Dashboard() {
         </motion.div>
         
         <motion.div variants={cardAnimation} className="will-change-transform" style={{ transform: 'translateZ(0)' }}>
-          <StatCard 
-            icon={<Target className="h-5 w-5 text-green-500" />}
-            iconBgColor="bg-green-500/25"
-            iconColor="text-green-500"
-            label="Skill Plans"
-            value={3} 
-            change={{
-              type: 'increase',
-              text: '3 active learning paths'
-            }}
-          />
+          <InterviewCountdownCard />
         </motion.div>
       </motion.div>
       
