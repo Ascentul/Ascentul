@@ -1,4 +1,4 @@
-import { Edit, Calendar, CheckSquare, Square, PartyPopper, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit, Calendar, CheckSquare, Square, PartyPopper, ChevronUp, ChevronDown, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,14 @@ import '@/assets/css/goal-card-animations.css';
 
 // Import the checklist item type
 import { type GoalChecklistItem } from '@shared/schema';
+
+// Import dropdown components
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Import the Confetti component
 import Confetti from './Confetti';
@@ -92,24 +100,16 @@ export default function GoalCard({
     return `Due in ${formatDistanceToNow(dueTime)}`;
   };
   
-  // Handle status changes when clicking the badge
-  const handleStatusChange = (currentStatus: string) => {
-    // Define the status progression cycle
-    const statuses = ['not_started', 'active', 'in_progress', 'completed'];
-    
-    // Find the current status in the cycle
-    let currentIndex = statuses.indexOf(currentStatus);
-    if (currentIndex === -1) currentIndex = 0; // Default to first status if not found
-    
-    // Get the next status in the cycle
-    const nextIndex = (currentIndex + 1) % statuses.length;
-    const nextStatus = statuses[nextIndex];
+  // Handle status changes from the dropdown menu
+  const handleStatusChange = (newStatus: string) => {
+    // Don't update if the status is already the same
+    if (status === newStatus) return;
     
     // For completed status, we need to set additional properties
-    const isCompleted = nextStatus === 'completed';
+    const isCompleted = newStatus === 'completed';
     
     // Create the update object
-    const updateData: any = { status: nextStatus };
+    const updateData: any = { status: newStatus };
     
     // Set completed and completedAt for completed status
     if (isCompleted) {
@@ -120,10 +120,14 @@ export default function GoalCard({
     // Call the update mutation
     updateChecklistMutation.mutate(updateData);
     
+    // Format the status label for the toast message
+    const statusLabel = newStatus.replace('_', ' ');
+    const formattedStatus = statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1);
+    
     // Show toast message
     toast({
       title: `Goal status updated`,
-      description: `Status changed to "${nextStatus.replace('_', ' ').charAt(0).toUpperCase() + nextStatus.replace('_', ' ').slice(1)}"`,
+      description: `Status changed to "${formattedStatus}"`,
     });
     
     // If setting to completed, initiate the completion flow
@@ -365,20 +369,57 @@ export default function GoalCard({
               <div>
                 <h3 className="text-lg font-semibold">{title}</h3>
               </div>
-              <Badge 
-                variant="outline" 
-                className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
-                onClick={() => handleStatusChange(status)}
-                title="Click to change status"
-              >
-                {status === 'not_started' ? (
-                  <span className="flex items-center">
-                    <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs px-3 py-1.5 rounded-full whitespace-nowrap ${getBadgeStyles()} cursor-pointer hover:shadow-sm transition-all duration-150`}
+                    title="Click to change status"
+                  >
+                    {status === 'not_started' ? (
+                      <span className="flex items-center">
+                        <span className="h-1.5 w-1.5 bg-gray-400 rounded-full mr-1.5"></span>
+                        Not started
+                      </span>
+                    ) : status === 'in_progress' ? 'In progress' : 
+                      status.charAt(0).toUpperCase() + status.slice(1)}
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[150px]">
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange('not_started')}
+                    className="gap-2"
+                  >
+                    <span className="h-1.5 w-1.5 bg-gray-400 rounded-full"></span>
                     Not started
-                  </span>
-                ) : status === 'in_progress' ? 'In progress' : 
-                  status.charAt(0).toUpperCase() + status.slice(1)}
-              </Badge>
+                    {status === 'not_started' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange('active')}
+                    className="gap-2"
+                  >
+                    <span className="h-1.5 w-1.5 bg-primary rounded-full"></span>
+                    Active
+                    {status === 'active' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange('in_progress')}
+                    className="gap-2"
+                  >
+                    <span className="h-1.5 w-1.5 bg-blue-600 rounded-full"></span>
+                    In progress
+                    {status === 'in_progress' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange('completed')}
+                    className="gap-2"
+                  >
+                    <span className="h-1.5 w-1.5 bg-green-600 rounded-full"></span>
+                    Completed
+                    {status === 'completed' && <Check className="ml-auto h-4 w-4" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div>
