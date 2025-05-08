@@ -70,6 +70,12 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
           storage.getUser(userId)
         ]);
         
+        // Add debug logs to see what's happening with skills
+        console.log(`DEBUG: getUserSkills returned ${skills.length} skills for user ${userId}`);
+        if (skills.length > 0) {
+          console.log(`DEBUG: First skill:`, JSON.stringify(skills[0], null, 2));
+        }
+        
         // Only try to get certifications if the method exists
         if (typeof storage.getCertifications === 'function') {
           certifications = await storage.getCertifications(userId);

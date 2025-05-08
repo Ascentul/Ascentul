@@ -910,9 +910,9 @@ export default function AccountSettings() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {careerData.skills.map((skill: string, index: number) => (
+                  {careerData.skills.map((skill, index: number) => (
                     <Badge key={index} variant="secondary" className="px-3 py-1">
-                      {skill}
+                      {skill.name}
                     </Badge>
                   ))}
                 </div>
