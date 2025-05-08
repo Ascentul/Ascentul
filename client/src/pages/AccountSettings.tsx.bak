@@ -1,0 +1,1370 @@
+import React, { useState, useEffect } from 'react';
+import { useUser, useIsSubscriptionActive, useUpdateUserSubscription } from '@/lib/useUserData';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useCareerData } from '@/hooks/use-career-data';
+
+// Import the form modals
+import { WorkHistoryFormModal } from '@/components/modals/WorkHistoryFormModal';
+import { EducationFormModal } from '@/components/modals/EducationFormModal';
+import { SkillFormModal } from '@/components/modals/SkillFormModal';
+import { CertificationFormModal } from '@/components/modals/CertificationFormModal';
+import { CareerSummaryFormModal } from '@/components/modals/CareerSummaryFormModal';
+import { DeleteConfirmationDialog } from '@/components/modals/DeleteConfirmationDialog';
+import { AddSectionButton } from '@/components/AddSectionButton';
+
+import { 
+  Loader2, 
+  CreditCard, 
+  ShieldCheck, 
+  User, 
+  LogOut, 
+  Mail, 
+  CheckCircle, 
+  Briefcase,
+  GraduationCap,
+  Award,
+  BookOpen,
+  FileText,
+  Pencil,
+  Trash2,
+  Calendar,
+  MapPin,
+  RefreshCw,
+  HelpCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useLocation } from 'wouter';
+
+const profileFormSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  currentPassword: z.string()
+    .min(1, { message: "Current password is required to change email or password." })
+    .optional()
+    .or(z.literal('')), // Only required when changing email or password
+  password: z.string()
+    .min(8, { message: "Password must be at least 8 characters." })
+    .optional()
+    .or(z.literal('')), // Allow empty string for no password change
+});
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
+export default function AccountSettings() {
+  const { user, isLoading: userLoading, logout, updateProfile } = useUser();
+  const isSubscriptionActive = useIsSubscriptionActive();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const updateUserSubscription = useUpdateUserSubscription();
+  // Theme color customization removed as per branding decision
+  const careerQuery = useCareerData();
+  const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
+  
+  // Track the current active tab
+  const [activeTab, setActiveTab] = useState('career');
+  
+  // Track overall page loading state - combines user and career data loading
+  const isPageLoading = userLoading || (activeTab === 'career' && careerDataLoading);
+  
+  // Create form first before using it in useEffect
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: user?.name || '',
+      email: user?.email || '',
+      currentPassword: '', // Current password field (required for email/password changes)
+      password: '', // Empty password field by default (no password change)
+    },
+  });
+
+  // No need to force refresh on component mount - rely on React Query's caching
+  // This prevents the white flash by not removing cached data
+  useEffect(() => {
+    // Only refetch if the data is stale, which React Query handles automatically
+    // We don't need to manually removeQueries
+    if (!careerData) {
+      console.log('Career data not found in cache, fetching');
+      refetchCareerData();
+    }
+    
+    // Always update form values when user data changes
+    if (user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        currentPassword: '',
+        password: '',
+      });
+    }
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+  
+  // Only refresh career data when user switches to the Career tab IF data is stale or missing
+  useEffect(() => {
+    if (activeTab === 'career' && (!careerData || Object.keys(careerData).length === 0)) {
+      console.log('Career data missing or empty, fetching on tab change');
+      refetchCareerData().then(() => {
+        console.log('Career data loaded on tab change');
+      });
+    }
+    
+    // Update form with latest user data when switching to profile tab
+    if (activeTab === 'profile' && user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        currentPassword: '', // Always reset password fields
+        password: '',
+      });
+    }
+  }, [activeTab, refetchCareerData, careerData, user, form]);
+  
+  // Modal state variables for career data forms
+  const [workHistoryModal, setWorkHistoryModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [educationModal, setEducationModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [skillModal, setSkillModal] = useState<{
+    open: boolean;
+  }>({ open: false });
+  
+  const [certificationModal, setCertificationModal] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    data?: any;
+    id?: number;
+  }>({ open: false, mode: 'add' });
+  
+  const [careerSummaryModal, setCareerSummaryModal] = useState<{
+    open: boolean;
+    defaultValue: string;
+  }>({ open: false, defaultValue: '' });
+  
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    open: boolean;
+    itemId: number;
+    itemType: string;
+    endpoint: string;
+  }>({ open: false, itemId: 0, itemType: '', endpoint: '' });
+
+  // Form is already defined above
+
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/payments/cancel-subscription', {});
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel subscription');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your subscription has been cancelled and will end at the end of your billing period.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Theme customization mutation removed as per branding decision
+
+  // Send verification email mutation
+  const sendVerificationEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/auth/send-verification-email', {});
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send verification email');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your inbox for the verification link.",
+      });
+      
+      // For development only - directly show the verification URL
+      if (data.verificationUrl) {
+        toast({
+          title: "Development Mode",
+          description: "Verification link: " + data.verificationUrl,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Email Send Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCancelSubscription = async () => {
+    if (!user || !isSubscriptionActive) {
+      return;
+    }
+    
+    cancelSubscriptionMutation.mutate();
+  };
+
+  const handleSendVerificationEmail = async () => {
+    if (!user || user.emailVerified) {
+      return;
+    }
+    
+    sendVerificationEmailMutation.mutate();
+  };
+
+  const handleProfileSubmit = async (data: ProfileFormValues) => {
+    try {
+      // Validate password requirements for email or password changes
+      const isEmailChanged = data.email !== user.email;
+      const isPasswordChanged = data.password && data.password.trim() !== '';
+      
+      if ((isEmailChanged || isPasswordChanged) && (!data.currentPassword || data.currentPassword.trim() === '')) {
+        toast({
+          title: "Validation Error",
+          description: "Current password is required when changing email or password.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Prepare update data
+      const updateData: any = {
+        name: data.name
+      };
+      
+      // Only include email and password changes if current password is provided
+      if (data.currentPassword && data.currentPassword.trim() !== '') {
+        // Add current password for verification
+        updateData.currentPassword = data.currentPassword;
+        
+        // Add email update if changed
+        if (isEmailChanged) {
+          updateData.email = data.email;
+        }
+        
+        // Add password update if provided
+        if (isPasswordChanged) {
+          updateData.password = data.password;
+        }
+      } else if (data.name !== user.name) {
+        // If only updating name (no password required)
+        updateData.name = data.name;
+      }
+      
+      // Send the update to the server
+      await updateProfile(updateData);
+      
+      // Reset password fields after successful update
+      form.setValue('password', '');
+      form.setValue('currentPassword', '');
+      
+      // Show success toast
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been updated.",
+      });
+    } catch (error: any) {
+      // Show error toast
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile information.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+  };
+  
+  // Theme color customization handlers removed as per branding decision
+
+  if (userLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  // Show skeleton loading state when page is loading
+  if (isPageLoading) {
+    return (
+      <div className="container py-10">
+        <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+        
+        <div className="space-y-8">
+          <div className="flex flex-wrap gap-2 border-b">
+            {["Profile", "Career", "Subscription", "Security"].map((tab, index) => (
+              <div key={index} className="animate-pulse px-4 py-2 rounded-t-lg bg-gray-100 w-24 h-10" />
+            ))}
+          </div>
+          
+          <div className="px-6 py-8">
+            <div className="space-y-6">
+              {/* Skeleton for content section */}
+              <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+                <div className="mb-4">
+                  <div className="h-7 bg-gray-200 rounded w-1/3 animate-pulse mb-2" />
+                  <div className="h-4 bg-gray-100 rounded w-2/3 animate-pulse" />
+                </div>
+                
+                {/* Skeleton form fields */}
+                <div className="space-y-6">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+                      <div className="h-10 bg-gray-100 rounded w-full animate-pulse" />
+                    </div>
+                  ))}
+                  
+                  <div className="flex justify-end">
+                    <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const formatDate = (date: Date | undefined | null) => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getPlanName = (plan: string) => {
+    switch(plan) {
+      case 'premium': return 'Premium';
+      case 'university': return 'University Edition';
+      default: return 'Free';
+    }
+  };
+
+  return (
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
+      
+      <Tabs 
+        defaultValue="career" 
+        className="space-y-8"
+        onValueChange={(value) => {
+          console.log(`Tab changed to: ${value}`);
+          setActiveTab(value);
+        }}
+      >
+        <TabsList className="flex flex-wrap">
+          <TabsTrigger value="career" className="flex items-center">
+            <Briefcase className="mr-2 h-4 w-4" />
+            Career
+          </TabsTrigger>
+          <TabsTrigger value="profile" className="flex items-center">
+            <User className="mr-2 h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="subscription" className="flex items-center">
+            <CreditCard className="mr-2 h-4 w-4" />
+            Subscription
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Security
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="profile" className="px-6 py-8">
+          <div className="space-y-6">
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Profile Information</h2>
+                <p className="text-sm text-gray-500 mt-1">Update your personal information and how we can contact you.</p>
+              </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleProfileSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Your name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">Email Address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="your.email@example.com" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          {user.emailVerified ? (
+                            <span className="inline-flex items-center gap-1 text-green-700 bg-green-100 text-xs font-medium px-2 py-0.5 rounded-full">
+                              ✅ Verified
+                            </span>
+                          ) : (
+                            <Button 
+                              variant="link" 
+                              className="p-0 h-auto text-sm" 
+                              onClick={handleSendVerificationEmail}
+                              disabled={sendVerificationEmailMutation.isPending}
+                            >
+                              {sendVerificationEmailMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>Not verified. Click to verify</>
+                              )}
+                            </Button>
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">Current Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="Required to change email or password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Your current password is required when changing your email or password.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">New Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="Leave blank to keep current password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Password must be at least 8 characters long.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="flex justify-end">
+                    <Button type="submit" className="ml-auto">
+                      Update Profile
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </div>
+
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Account Details</h2>
+                <p className="text-sm text-gray-500 mt-1">Other information about your account.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 mt-4">
+                <div>
+                  <p className="text-sm text-gray-500">Username</p>
+                  <p className="text-base text-gray-800">{user.username}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Account Created</p>
+                  <p className="text-base text-gray-800">March 15, 2025</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">User Type</p>
+                  <p className="text-base text-gray-800 capitalize">{user.userType.replace('_', ' ')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="career" className="space-y-6">
+          <div className="flex items-center justify-end pb-0">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex items-center"
+              onClick={() => {
+                // Use a custom fetch with timestamp to force a fresh fetch
+                const timestamp = new Date().getTime();
+                
+                // Standard refetch with forced refresh
+                refetchCareerData({ throwOnError: true }).then(() => {
+                  toast({
+                    title: "Career data refreshed",
+                    description: "Your career data has been refreshed from the server."
+                  });
+                });
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Career Data
+            </Button>
+          </div>
+          
+          {careerDataLoading ? (
+            <div className="space-y-6">
+              {/* Profile Completion Skeleton */}
+              <div className="mb-6 border border-gray-200 rounded-md p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
+                  <span className="text-sm font-medium animate-pulse bg-gray-200 w-12 h-6 rounded flex items-center justify-center">--%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div className="bg-gray-300 h-2.5 rounded-full animate-pulse w-1/2"></div>
+                </div>
+              </div>
+              
+              {/* Work History Skeleton */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Work History</CardTitle>
+                    <CardDescription>Your professional experience</CardDescription>
+                  </div>
+                  <div className="animate-pulse h-9 w-24 bg-gray-200 rounded-md"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="animate-pulse flex flex-col gap-2">
+                        <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-100 rounded w-full"></div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Education Skeleton */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Education</CardTitle>
+                    <CardDescription>Your academic background</CardDescription>
+                  </div>
+                  <div className="animate-pulse h-9 w-24 bg-gray-200 rounded-md"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="animate-pulse flex flex-col gap-2">
+                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                      <div className="h-4 bg-gray-100 rounded w-full"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <>
+              {/* Profile Completion Progress */}
+              <div className="mb-6 border border-gray-200 rounded-md p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
+                  {(() => {
+                    // Calculate completion percentage - certifications no longer required
+                    const requiredSections = [
+                      !!careerData?.careerSummary,
+                      (careerData?.workHistory?.length || 0) > 0,
+                      (careerData?.educationHistory?.length || 0) > 0,
+                      (careerData?.skills?.length || 0) > 0
+                    ];
+                    // Certifications are optional and not counted in completion percentage
+                    const completedSections = requiredSections.filter(Boolean).length;
+                    const percentage = Math.round((completedSections / requiredSections.length) * 100);
+                    
+                    return (
+                      <span className="text-sm font-medium">
+                        {percentage}% ({completedSections} of {requiredSections.length} sections)
+                      </span>
+                    );
+                  })()}
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-200 mt-2">
+                  <div
+                    className="h-2 bg-indigo-600 rounded-full transition-all duration-300"
+                    style={{ width: `${(() => {
+                      // Use the same required sections as above (without certifications)
+                      const requiredSections = [
+                        !!careerData?.careerSummary,
+                        (careerData?.workHistory?.length || 0) > 0,
+                        (careerData?.educationHistory?.length || 0) > 0,
+                        (careerData?.skills?.length || 0) > 0
+                      ];
+                      const completedSections = requiredSections.filter(Boolean).length;
+                      return (completedSections / requiredSections.length) * 100;
+                    })()}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Complete your profile to unlock better AI recommendations
+                </p>
+              </div>
+              
+              {/* Career Summary Section */}
+              <Card className="border border-gray-200 shadow-sm my-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
+                      <FileText className="mr-2 h-5 w-5" />
+                      Career Summary
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      A brief overview of your professional background and goals
+                    </CardDescription>
+                  </div>
+                  <AddSectionButton
+                    label={careerData?.careerSummary ? 'Edit Summary' : 'Add Summary'}
+                    mode={careerData?.careerSummary ? 'edit' : 'add'}
+                    onClick={() => setCareerSummaryModal({ 
+                      open: true, 
+                      defaultValue: careerData?.careerSummary || '' 
+                    })}
+                  />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData?.careerSummary ? (
+                    <div className="relative border rounded-lg p-4">
+                      <p className="whitespace-pre-wrap">{careerData.careerSummary}</p>
+                      <div className="mt-4 text-xs text-muted-foreground flex items-center">
+                        <HelpCircle className="h-3 w-3 mr-1" />
+                        Used in Resume Studio, AI Coach, and Voice Interview Practice.
+                      </div>
+                      <div className="absolute bottom-2 right-2">
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No career summary added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add a professional summary from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        This section powers AI coaching and resume suggestions.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Work History Section */}
+              <Card className="border border-gray-200 shadow-sm my-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
+                      <Briefcase className="mr-2 h-5 w-5" />
+                      Work History
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      Manage your professional work history
+                    </CardDescription>
+                  </div>
+                  <AddSectionButton
+                    label="Add Job"
+                    mode="add"
+                    onClick={() => setWorkHistoryModal({ open: true, mode: 'add' })}
+                  />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData && careerData.workHistory && careerData.workHistory.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.workHistory.map((job) => (
+                        <div key={job.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setWorkHistoryModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: job,
+                                id: job.id 
+                              })}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: job.id,
+                                itemType: 'Work history',
+                                endpoint: '/api/career-data/work-history'
+                              })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-xl mb-1">{job.position}</h3>
+                          <p className="text-muted-foreground font-medium">{job.company}</p>
+                          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
+                            {formatDate(job.startDate)} - {job.currentJob ? 'Present' : formatDate(job.endDate)}
+                          </div>
+                          {job.location && (
+                            <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5 inline" />
+                              {job.location}
+                            </div>
+                          )}
+                          {job.description && (
+                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                              <p className="text-sm whitespace-pre-wrap">{job.description}</p>
+                            </div>
+                          )}
+                          {job.achievements && job.achievements.length > 0 && (
+                            <div className="mt-3">
+                              <h4 className="font-medium text-sm mb-1.5">Key Achievements:</h4>
+                              <ul className="list-disc list-outside ml-5 space-y-1 text-sm">
+                                {job.achievements.map((achievement, i) => (
+                                  <li key={i}>{achievement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <Briefcase className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No work history added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your professional experience from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Work history powers your resume and job matching algorithms.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Education Section */}
+              <Card className="border border-gray-200 shadow-sm my-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
+                      <GraduationCap className="mr-2 h-5 w-5" />
+                      Education
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      Manage your educational background
+                    </CardDescription>
+                  </div>
+                  <AddSectionButton
+                    label="Add Education"
+                    mode="add"
+                    onClick={() => setEducationModal({ open: true, mode: 'add' })}
+                  />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData && careerData.educationHistory && careerData.educationHistory.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.educationHistory.map((education) => (
+                        <div key={education.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setEducationModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: education,
+                                id: education.id 
+                              })}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: education.id,
+                                itemType: 'Education',
+                                endpoint: '/api/career-data/education'
+                              })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-xl mb-1">{education.degree}</h3>
+                          <p className="text-md font-medium">{education.fieldOfStudy}</p>
+                          <p className="text-muted-foreground">{education.institution}</p>
+                          <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
+                            {formatDate(education.startDate)} - {education.current ? 'Present' : formatDate(education.endDate)}
+                          </div>
+                          {education.location && (
+                            <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5 mr-1.5 inline" />
+                              {education.location}
+                            </div>
+                          )}
+                          {education.gpa && (
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">GPA:</span> {education.gpa}
+                            </div>
+                          )}
+                          {education.description && (
+                            <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                              <p className="text-sm whitespace-pre-wrap">{education.description}</p>
+                            </div>
+                          )}
+                          {education.achievements && education.achievements.length > 0 && (
+                            <div className="mt-3">
+                              <h4 className="font-medium text-sm mb-1.5">Achievements:</h4>
+                              <ul className="list-disc list-outside ml-5 space-y-1 text-sm">
+                                {education.achievements.map((achievement, i) => (
+                                  <li key={i}>{achievement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <GraduationCap className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No education history added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your educational background from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Education history is displayed on your resume and profile.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Skills Section */}
+              <Card className="border border-gray-200 shadow-sm my-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
+                      <Award className="mr-2 h-5 w-5" />
+                      Skills
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      Manage your professional and technical skills
+                    </CardDescription>
+                  </div>
+                  <AddSectionButton
+                    label="Add Skill"
+                    mode="add"
+                    onClick={() => setSkillModal({ open: true })}
+                  />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData && careerData.skills && careerData.skills.length > 0 ? (
+                    <div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {careerData.skills.map((skill) => (
+                          <div key={skill.id} className="flex items-center bg-secondary text-secondary-foreground rounded-full px-3 py-1.5 text-sm">
+                            {skill.name}
+                            {skill.proficiencyLevel && (
+                              <span className="ml-1 text-xs text-muted-foreground">({skill.proficiencyLevel})</span>
+                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 ml-1 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: skill.id,
+                                itemType: 'Skill',
+                                endpoint: '/api/career-data/skills'
+                              })}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-6">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          <HelpCircle className="h-3 w-3 mr-1" />
+                          These skills are highlighted in your resume and used by the AI Coach.
+                        </div>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <Award className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No skills added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your technical and soft skills from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Skills help match you with relevant job opportunities.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Certifications Section */}
+              <Card className="border border-gray-200 shadow-sm my-6">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold mb-1 flex items-center">
+                      <BookOpen className="mr-2 h-5 w-5" />
+                      Certifications
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-500">
+                      Manage your certifications and credentials
+                    </CardDescription>
+                  </div>
+                  <AddSectionButton
+                    label="Add Certification"
+                    mode="add"
+                    onClick={() => setCertificationModal({ open: true, mode: 'add' })}
+                  />
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {careerData && careerData.certifications && careerData.certifications.length > 0 ? (
+                    <div className="space-y-5">
+                      {careerData.certifications.map((cert) => (
+                        <div key={cert.id} className="border rounded-lg p-4 relative">
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => setCertificationModal({ 
+                                open: true, 
+                                mode: 'edit', 
+                                data: cert,
+                                id: cert.id 
+                              })}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteConfirmation({
+                                open: true,
+                                itemId: cert.id,
+                                itemType: 'Certification',
+                                endpoint: '/api/career-data/certifications'
+                              })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <h3 className="font-semibold text-xl mb-1">{cert.name}</h3>
+                          <p className="text-muted-foreground font-medium">{cert.issuingOrganization}</p>
+                          
+                          {cert.issueDate && (
+                            <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 mr-1.5 inline" />
+                              Issued: {formatDate(cert.issueDate)}
+                              {cert.expiryDate && <> · Expires: {formatDate(cert.expiryDate)}</>}
+                              {!cert.expiryDate && cert.noExpiration && <> · No Expiration</>}
+                            </div>
+                          )}
+                          
+                          {cert.credentialID && (
+                            <div className="mt-2 text-sm">
+                              <span className="font-medium">Credential ID:</span> {cert.credentialID}
+                            </div>
+                          )}
+                          
+                          {cert.credentialURL && (
+                            <div className="mt-2">
+                              <a 
+                                href={cert.credentialURL} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline text-sm flex items-center"
+                              >
+                                <HelpCircle className="h-3.5 w-3.5 mr-1.5" /> 
+                                View Credential
+                              </a>
+                            </div>
+                          )}
+                          
+                          <div className="absolute bottom-2 right-2">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              <RefreshCw className="h-3 w-3 mr-1" /> Synced to Resume
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg border-dashed flex flex-col items-center justify-center py-16 text-center px-4">
+                      <BookOpen className="h-8 w-8 text-muted-foreground mb-2" />
+                      <h3 className="font-medium mb-1">No certifications added yet</h3>
+                      <p className="text-center text-sm text-gray-500 mb-2">
+                        Add your professional certifications from the button above.
+                      </p>
+                      <p className="text-xs text-gray-400 max-w-md">
+                        <HelpCircle className="h-3 w-3 inline-block mr-1" />
+                        Certifications validate your expertise and enhance your resume.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+
+            </>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="subscription" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Details</CardTitle>
+              <CardDescription>
+                Manage your subscription and billing information.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Current Plan</h3>
+                <p className="font-medium">{getPlanName(user.subscriptionPlan)}</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Status</h3>
+                <p className="capitalize">
+                  {user.subscriptionStatus === 'active' ? 
+                    <span className="text-green-600 font-medium">Active</span> : 
+                    user.subscriptionStatus.replace('_', ' ')}
+                </p>
+              </div>
+              {user.subscriptionExpiresAt && (
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground">Renewal / Expiration Date</h3>
+                  <p>{formatDate(user.subscriptionExpiresAt)}</p>
+                </div>
+              )}
+              {user.stripeCustomerId && (
+                <div>
+                  <h3 className="font-medium text-sm text-muted-foreground">Customer ID</h3>
+                  <p className="text-sm text-muted-foreground">{user.stripeCustomerId}</p>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex flex-col items-start gap-4">
+              {user.subscriptionPlan !== 'free' && (
+                <>
+                  {isSubscriptionActive ? (
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleCancelSubscription}
+                      disabled={cancelSubscriptionMutation.isPending}
+                    >
+                      {cancelSubscriptionMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>Cancel Subscription</>
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Your subscription will expire on {formatDate(user.subscriptionExpiresAt)}.
+                    </div>
+                  )}
+                </>
+              )}
+              
+              <Link href="/pricing">
+                <Button variant={user.subscriptionPlan === 'free' ? 'default' : 'outline'}>
+                  {user.subscriptionPlan === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        {/* Appearance tab removed as per branding decision */}
+        
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Verification</CardTitle>
+              <CardDescription>
+                Verify your email address to secure your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-medium">Status</h3>
+                <p className="flex items-center mt-1">
+                  {user.emailVerified ? (
+                    <span className="text-green-600 flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Your email address is verified
+                    </span>
+                  ) : (
+                    <span className="text-amber-600">
+                      Your email address is not verified
+                    </span>
+                  )}
+                </p>
+              </div>
+              
+              {!user.emailVerified && (
+                <Button 
+                  onClick={handleSendVerificationEmail}
+                  disabled={sendVerificationEmailMutation.isPending}
+                >
+                  {sendVerificationEmailMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending verification email...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Send Verification Email
+                    </>
+                  )}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Sign Out</CardTitle>
+              <CardDescription>
+                Sign out of your account on this device.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Career Data Form Modals */}
+      <WorkHistoryFormModal 
+        open={workHistoryModal.open} 
+        onOpenChange={(open) => setWorkHistoryModal({ ...workHistoryModal, open })}
+        mode={workHistoryModal.mode}
+        defaultValues={workHistoryModal.data}
+        workHistoryId={workHistoryModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Work history ${workHistoryModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your work history has been ${workHistoryModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <EducationFormModal 
+        open={educationModal.open} 
+        onOpenChange={(open) => setEducationModal({ ...educationModal, open })}
+        mode={educationModal.mode}
+        defaultValues={educationModal.data}
+        educationId={educationModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Education ${educationModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your education has been ${educationModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <SkillFormModal 
+        open={skillModal.open} 
+        onOpenChange={(open) => setSkillModal({ ...skillModal, open })}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: "Skill added successfully",
+            description: "Your skill has been added to your profile.",
+          });
+        }}
+      />
+      
+      <CertificationFormModal 
+        open={certificationModal.open} 
+        onOpenChange={(open) => setCertificationModal({ ...certificationModal, open })}
+        mode={certificationModal.mode}
+        defaultValues={certificationModal.data}
+        certificationId={certificationModal.id}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `Certification ${certificationModal.mode === 'add' ? 'added' : 'updated'} successfully`,
+            description: `Your certification has been ${certificationModal.mode === 'add' ? 'added to' : 'updated in'} your profile.`,
+          });
+        }}
+      />
+      
+      <CareerSummaryFormModal 
+        open={careerSummaryModal.open} 
+        onOpenChange={(open) => setCareerSummaryModal({ ...careerSummaryModal, open })}
+        defaultValue={careerSummaryModal.defaultValue}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: "Career summary updated successfully",
+            description: "Your career summary has been updated.",
+          });
+        }}
+      />
+      
+      <DeleteConfirmationDialog 
+        open={deleteConfirmation.open}
+        onOpenChange={(open) => setDeleteConfirmation({ ...deleteConfirmation, open })}
+        title={`Delete ${deleteConfirmation.itemType}`}
+        description={`Are you sure you want to delete this ${deleteConfirmation.itemType.toLowerCase()}? This action cannot be undone.`}
+        endpoint={deleteConfirmation.endpoint}
+        itemId={deleteConfirmation.itemId}
+        itemType={deleteConfirmation.itemType}
+        onSuccess={() => {
+          refetchCareerData();
+          toast({
+            title: `${deleteConfirmation.itemType} deleted`,
+            description: `The ${deleteConfirmation.itemType.toLowerCase()} has been removed from your profile.`,
+          });
+        }}
+      />
+    </div>
+  );
+}
