@@ -607,7 +607,8 @@ Instead of writing a complete cover letter, please provide high-quality suggesti
 1. OPENING PARAGRAPH:
    - Provide a strong, attention-grabbing opening that mentions the exact position
    - Include a compelling value proposition statement
-   - Balance enthusiasm with professionalism 
+   - Balance enthusiasm with professionalism
+   - Start directly with a "Dear Hiring Manager," greeting (do NOT include address blocks)
 
 2. KEY ACCOMPLISHMENTS TO HIGHLIGHT (4-5):
    - Extract specific keywords/requirements from the job description
@@ -623,6 +624,11 @@ Instead of writing a complete cover letter, please provide high-quality suggesti
    - Create a confident call-to-action
    - Suggest a closing that reinforces value and enthusiasm without generic phrasing
    - Include a professional sign-off
+
+5. FORMAT REQUIREMENTS:
+   - Use a simple, modern format with just greeting, body content, and signature
+   - DO NOT include any address blocks at the top or recipient address sections
+   - Start directly with "Dear Hiring Manager," or a specific name if provided
 
 Ensure all suggestions focus on clarity (short, direct sentences), alignment with the job, persuasiveness through concrete examples, and strong overall impact. Avoid generic statements like "I'm a hard worker" or "I'm passionate about success."
 `;
@@ -698,6 +704,12 @@ Certifications: ${careerData.certifications || 'Not provided'}
    - Middle paragraphs with specific accomplishments matching job requirements
    - Professional closing that drives action
    - Appropriate formal tone without being stiff or robotic
+
+IMPORTANT FORMAT NOTES:
+- Use a simple, modern format with just a greeting, body content, and signature
+- DO NOT include any contact info sections at the top like "[Your Address]" or "[City, State, Zip Code]"
+- DO NOT include recipient address sections like "Hiring Manager" or "[Company Address]" or "[City, State, Zip Code]"
+- Start directly with "Dear Hiring Manager," or "Dear [Specific Name]," if provided
 
 DO NOT:
 - Use generic phrases like "I'm a hard worker" or "I'm passionate about success"
