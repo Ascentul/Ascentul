@@ -610,6 +610,7 @@ export class MemStorage implements IStorage {
     this.networkingContactIdCounter = 1;
     this.contactInteractionIdCounter = 1;
     this.userReviewIdCounter = 1;
+    this.dailyRecommendationIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
@@ -5316,6 +5317,339 @@ export class DatabaseStorage implements IStorage {
   
   // These methods remain to be implemented
   // We'll implement more as we go through conversion
+
+  // Daily Recommendations methods
+  async getUserDailyRecommendations(userId: number, date?: Date): Promise<DailyRecommendation[]> {
+    const targetDate = date || new Date();
+    // Format date to match expected format (YYYY-MM-DD)
+    const formattedDate = targetDate.toISOString().split('T')[0];
+    
+    return Array.from(this.dailyRecommendations.values()).filter(
+      rec => rec.userId === userId && rec.date === formattedDate
+    );
+  }
+  
+  async getRecommendation(id: number): Promise<DailyRecommendation | undefined> {
+    return this.dailyRecommendations.get(id);
+  }
+  
+  async completeRecommendation(id: number): Promise<DailyRecommendation | undefined> {
+    const recommendation = this.dailyRecommendations.get(id);
+    if (!recommendation) {
+      return undefined;
+    }
+    
+    // Mark as completed
+    const updatedRecommendation: DailyRecommendation = {
+      ...recommendation,
+      completed: true,
+      completedAt: new Date()
+    };
+    this.dailyRecommendations.set(id, updatedRecommendation);
+    
+    // Award XP for completing the recommendation
+    await this.addUserXP(recommendation.userId, 10, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
+    
+    return updatedRecommendation;
+  }
+  
+  async clearTodaysRecommendations(userId: number): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Find recommendations for today and remove them
+    const keysToDelete: number[] = [];
+    this.dailyRecommendations.forEach((rec, key) => {
+      if (rec.userId === userId && rec.date === today) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    // Delete the identified recommendations
+    keysToDelete.forEach(key => this.dailyRecommendations.delete(key));
+  }
+  
+  async generateDailyRecommendations(userId: number): Promise<DailyRecommendation[]> {
+    // Check if user already has recommendations for today
+    const today = new Date();
+    const existingRecommendations = await this.getUserDailyRecommendations(userId, today);
+    
+    // If recommendations already exist for today, return them
+    if (existingRecommendations.length > 0) {
+      console.log(`Found ${existingRecommendations.length} existing recommendations for user ${userId} today`);
+      return existingRecommendations;
+    }
+    
+    console.log(`Generating new recommendations for user ${userId}`);
+    
+    // Format date to match expected format (YYYY-MM-DD)
+    const formattedDate = today.toISOString().split('T')[0];
+    
+    // Get data needed to generate personalized recommendations
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    // Get user's active goals
+    const goals = await this.getGoals(userId);
+    const activeGoals = goals.filter(goal => !goal.completed);
+    
+    // Get user's interview processes
+    const interviewProcesses = await this.getInterviewProcesses(userId);
+    const activeProcesses = interviewProcesses.filter(process => process.status === "in_progress");
+    
+    // Get upcoming stages
+    const upcomingStages: InterviewStage[] = [];
+    for (const process of activeProcesses) {
+      const stages = await this.getInterviewStages(process.id);
+      const upcoming = stages.filter(stage => stage.completedDate === null && stage.scheduledDate !== null);
+      upcomingStages.push(...upcoming);
+    }
+    
+    // Get pending followup actions
+    const pendingActions: FollowupAction[] = [];
+    for (const process of activeProcesses) {
+      const actions = await this.getFollowupActions(process.id);
+      const pending = actions.filter(action => !action.completed);
+      pendingActions.push(...pending);
+    }
+    
+    // Create recommendation objects
+    const newRecommendations: DailyRecommendation[] = [];
+    
+    // 1. Goal-based recommendations
+    if (activeGoals.length > 0) {
+      // For each goal, create a recommendation
+      activeGoals.forEach(goal => {
+        if (goal.status === "not_started") {
+          newRecommendations.push({
+            id: this.dailyRecommendationIdCounter++,
+            userId,
+            date: formattedDate,
+            text: `Start working on your goal: "${goal.title}"`,
+            category: "goal",
+            relatedEntityId: goal.id,
+            relatedEntityType: "goal",
+            completed: false,
+            completedAt: null,
+            createdAt: new Date(),
+            expiresAt: null,
+            type: "goal"
+          });
+        } else if (goal.progress < 50) {
+          newRecommendations.push({
+            id: this.dailyRecommendationIdCounter++,
+            userId,
+            date: formattedDate,
+            text: `Continue progress on your goal: "${goal.title}"`,
+            category: "goal",
+            relatedEntityId: goal.id,
+            relatedEntityType: "goal",
+            completed: false,
+            completedAt: null,
+            createdAt: new Date(),
+            expiresAt: null,
+            type: "goal"
+          });
+        }
+      });
+    } else {
+      // If no active goals, recommend creating one
+      newRecommendations.push({
+        id: this.dailyRecommendationIdCounter++,
+        userId,
+        date: formattedDate,
+        text: "Create a new career goal to track your progress",
+        category: "goal",
+        relatedEntityId: null,
+        relatedEntityType: "system",
+        completed: false,
+        completedAt: null,
+        createdAt: new Date(),
+        expiresAt: null,
+        type: "system"
+      });
+    }
+    
+    // 2. Interview process recommendations
+    if (activeProcesses.length > 0) {
+      // For each process, create recommendations
+      activeProcesses.forEach(process => {
+        newRecommendations.push({
+          id: this.dailyRecommendationIdCounter++,
+          userId,
+          date: formattedDate,
+          text: `Update status for your interview with ${process.companyName}`,
+          category: "interview",
+          relatedEntityId: process.id,
+          relatedEntityType: "interview_process",
+          completed: false,
+          completedAt: null,
+          createdAt: new Date(),
+          expiresAt: null,
+          type: "interview"
+        });
+      });
+    }
+    
+    // 3. Upcoming interview recommendations
+    if (upcomingStages.length > 0) {
+      upcomingStages.forEach(stage => {
+        if (stage.scheduledDate) {
+          const stageDate = new Date(stage.scheduledDate);
+          const daysDiff = Math.floor((stageDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 7) { // If within a week
+            const process = activeProcesses.find(p => p.id === stage.processId);
+            if (process) {
+              newRecommendations.push({
+                id: this.dailyRecommendationIdCounter++,
+                userId,
+                date: formattedDate,
+                text: `Prepare for your upcoming ${stage.type} with ${process.companyName} (${daysDiff <= 0 ? 'today' : `in ${daysDiff} days`})`,
+                category: "interview",
+                relatedEntityId: stage.id,
+                relatedEntityType: "interview_stage",
+                completed: false,
+                completedAt: null,
+                createdAt: new Date(),
+                expiresAt: null,
+                type: "interview"
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    // 4. Pending followup recommendations
+    if (pendingActions.length > 0) {
+      pendingActions.forEach(action => {
+        if (action.dueDate) {
+          const actionDate = new Date(action.dueDate);
+          const daysDiff = Math.floor((actionDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff <= 3) { // If due within 3 days
+            newRecommendations.push({
+              id: this.dailyRecommendationIdCounter++,
+              userId,
+              date: formattedDate,
+              text: `Complete action: "${action.description}" (due ${daysDiff <= 0 ? 'today' : `in ${daysDiff} days`})`,
+              category: "followup",
+              relatedEntityId: action.id,
+              relatedEntityType: "followup_action",
+              completed: false,
+              completedAt: null,
+              createdAt: new Date(),
+              expiresAt: null,
+              type: "followup"
+            });
+          }
+        }
+      });
+    }
+    
+    // 5. Profile completion recommendations
+    const workHistory = await this.getWorkHistory(userId);
+    if (workHistory.length < 1) {
+      newRecommendations.push({
+        id: this.dailyRecommendationIdCounter++,
+        userId,
+        date: formattedDate,
+        text: "Add your work history to complete your profile",
+        category: "profile",
+        relatedEntityId: null,
+        relatedEntityType: "profile",
+        completed: false,
+        completedAt: null,
+        createdAt: new Date(),
+        expiresAt: null,
+        type: "profile"
+      });
+    }
+    
+    const educationHistory = await this.getEducationHistory(userId);
+    if (educationHistory.length < 1) {
+      newRecommendations.push({
+        id: this.dailyRecommendationIdCounter++,
+        userId,
+        date: formattedDate,
+        text: "Add your education to complete your profile",
+        category: "profile",
+        relatedEntityId: null,
+        relatedEntityType: "profile",
+        completed: false,
+        completedAt: null,
+        createdAt: new Date(),
+        expiresAt: null,
+        type: "profile"
+      });
+    }
+    
+    const resumes = await this.getResumes(userId);
+    if (resumes.length < 1) {
+      newRecommendations.push({
+        id: this.dailyRecommendationIdCounter++,
+        userId,
+        date: formattedDate,
+        text: "Create your first resume",
+        category: "profile",
+        relatedEntityId: null,
+        relatedEntityType: "profile",
+        completed: false,
+        completedAt: null,
+        createdAt: new Date(),
+        expiresAt: null,
+        type: "profile"
+      });
+    }
+    
+    // 6. System recommendations
+    // If we have less than 5 recommendations, add generic momentum-building ones
+    if (newRecommendations.length < 5) {
+      const genericRecommendations = [
+        "Update your work history with your most recent experience",
+        "Practice a new interview question today",
+        "Update your resume with your latest skills",
+        "Connect with a new networking contact",
+        "Update your career skills",
+        "Create a new cover letter for a job you're interested in",
+        "Review your career goals and adjust as needed",
+        "Connect with the AI career coach for personalized advice"
+      ];
+      
+      // Add random generic recommendations until we have at least 5
+      while (newRecommendations.length < 5 && genericRecommendations.length > 0) {
+        const randomIndex = Math.floor(Math.random() * genericRecommendations.length);
+        const recommendation = genericRecommendations.splice(randomIndex, 1)[0];
+        
+        newRecommendations.push({
+          id: this.dailyRecommendationIdCounter++,
+          userId,
+          date: formattedDate,
+          text: recommendation,
+          category: "general",
+          relatedEntityId: null,
+          relatedEntityType: "system",
+          completed: false,
+          completedAt: null,
+          createdAt: new Date(),
+          expiresAt: null,
+          type: "system"
+        });
+      }
+    }
+    
+    // Store the recommendations
+    newRecommendations.forEach(recommendation => {
+      this.dailyRecommendations.set(recommendation.id, recommendation);
+    });
+    
+    console.log(`Generated ${newRecommendations.length} recommendations for user ${userId}`);
+    
+    // Only return up to 5 recommendations per day
+    return newRecommendations.slice(0, 5);
+  }
 }
 
 // Flag to control which storage implementation to use
