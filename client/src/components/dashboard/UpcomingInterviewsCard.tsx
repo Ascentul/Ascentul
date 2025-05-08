@@ -42,8 +42,8 @@ export function UpcomingInterviewsCard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fix existing interviews with missing scheduled dates
-  const fixExistingInterviews = () => {
+  // Fix existing interviews with missing scheduled dates - memoized to prevent recreation
+  const fixExistingInterviews = React.useCallback(() => {
     // For debugging - dump all localStorage keys related to interviews
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -91,29 +91,48 @@ export function UpcomingInterviewsCard() {
         console.error(`Error processing ${key}:`, error);
       }
     });
-  };
+  }, []);
 
   // Use the UpcomingInterviewsContext hook
   const { upcomingInterviewCount, updateInterviewCount } = useUpcomingInterviews();
 
   // Pre-load interview data immediately on component mount and after applications load
   useEffect(() => {
+    // Immediately fix any existing interviews with missing dates
+    fixExistingInterviews();
+    
     // Immediately dispatch an update event to force context to refresh
     window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+    
     // Update context data immediately
     updateInterviewCount();
 
-    // Set a timer to refresh again shortly after mounting
-    // This helps ensure we have the most up-to-date data
-    const refreshTimer = setTimeout(() => {
-      window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
-      updateInterviewCount();
-    }, 500);
+    // Set multiple refresh timers to ensure data is loaded properly
+    // This helps when navigating directly to the dashboard
+    const refreshTimers = [
+      setTimeout(() => {
+        fixExistingInterviews();
+        window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+        updateInterviewCount();
+      }, 300),
+      
+      setTimeout(() => {
+        fixExistingInterviews();
+        window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+        updateInterviewCount();
+      }, 800),
+      
+      setTimeout(() => {
+        fixExistingInterviews();
+        window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
+        updateInterviewCount();
+      }, 1500)
+    ];
 
     return () => {
-      clearTimeout(refreshTimer);
+      refreshTimers.forEach(timer => clearTimeout(timer));
     };
-  }, [updateInterviewCount]);
+  }, [updateInterviewCount, fixExistingInterviews]);
 
   // Refresh when applications data changes
   useEffect(() => {
@@ -278,7 +297,7 @@ export function UpcomingInterviewsCard() {
     // Force a UI update by dispatching the update event
     window.dispatchEvent(new Event(INTERVIEW_COUNT_UPDATE_EVENT));
 
-  }, [applications, upcomingInterviewCount, updateInterviewCount]);
+  }, [applications, upcomingInterviewCount, updateInterviewCount, fixExistingInterviews]);
 
   // Handle editing an interview
   const handleEditInterview = (stageId: number, applicationId: number) => {
