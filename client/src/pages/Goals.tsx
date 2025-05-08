@@ -231,7 +231,7 @@ export default function Goals() {
         variants={subtleUp}
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Career Goals</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Career Goals</h1>
           <p className="text-neutral-500">Track and manage your career goals</p>
         </div>
         <Button 
