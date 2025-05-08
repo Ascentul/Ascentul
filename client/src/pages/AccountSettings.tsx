@@ -717,50 +717,6 @@ export default function AccountSettings() {
               </div>
             </div>
             
-            {/* LinkedIn Profile Section */}
-            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200 mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <Linkedin className="h-5 w-5 mr-2 text-blue-600" />
-                    LinkedIn Profile
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">Your professional LinkedIn profile URL.</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center"
-                  onClick={() => {
-                    setLinkedInProfileModal({
-                      open: true,
-                      defaultValue: careerData?.linkedInUrl || ''
-                    });
-                  }}
-                >
-                  {careerData?.linkedInUrl ? 'Update' : 'Add'} Profile URL
-                </Button>
-              </div>
-              
-              {careerData?.linkedInUrl ? (
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <a 
-                    href={careerData.linkedInUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline flex items-center"
-                  >
-                    <Linkedin className="h-4 w-4 mr-2" />
-                    {careerData.linkedInUrl}
-                  </a>
-                </div>
-              ) : (
-                <div className="bg-gray-50 p-4 rounded-md text-gray-400 italic">
-                  No LinkedIn profile added yet. Click the button above to add your profile URL.
-                </div>
-              )}
-            </div>
-            
             {/* Work History Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
