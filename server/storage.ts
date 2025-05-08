@@ -4987,39 +4987,34 @@ export class DatabaseStorage implements IStorage {
       // Format date to match database date format (YYYY-MM-DD)
       const formattedDate = targetDate.toISOString().split('T')[0];
       
-      console.log("DEBUG - getUserDailyRecommendations:");
-      console.log("- userId:", userId);
-      console.log("- formattedDate:", formattedDate);
-      console.log("- dailyRecommendations table exists:", !!dailyRecommendations);
+      console.log(`DEBUG - getUserDailyRecommendations for user ${userId} and date ${formattedDate}`);
       
-      if (!dailyRecommendations) {
-        console.error("CRITICAL ERROR: dailyRecommendations table is undefined in DatabaseStorage");
-        return [];
-      }
+      // Directly query the database using SQL to bypass any schema reference issues
+      const result = await pool.query(`
+        SELECT * FROM daily_recommendations 
+        WHERE user_id = $1 AND date = $2
+        ORDER BY created_at
+      `, [userId, formattedDate]);
       
-      try {
-        // Test if we can access the table schema
-        console.log("- dailyRecommendations.userId exists:", !!dailyRecommendations.userId);
-        console.log("- dailyRecommendations.date exists:", !!dailyRecommendations.date);
-        console.log("- dailyRecommendations schema:", Object.keys(dailyRecommendations).join(", "));
-        
-        // Try a simple query to test access
-        const test = await db.select().from(dailyRecommendations).limit(1);
-        console.log("- TEST QUERY result:", test);
-        
-        const recommendations = await db.select()
-          .from(dailyRecommendations)
-          .where(eq(dailyRecommendations.userId, userId))
-          .where(eq(dailyRecommendations.date, formattedDate))
-          .orderBy(dailyRecommendations.createdAt);
-        
-        console.log("- Found recommendations:", recommendations.length);
-        return recommendations;
-      } catch (innerError) {
-        console.error("QUERY ERROR:", innerError);
-        console.error("Stack trace:", innerError.stack);
-        return [];
-      }
+      console.log(`Found ${result.rows.length} recommendations via direct SQL query`);
+      
+      // Convert from snake_case to camelCase for the returned objects
+      const recommendations = result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        date: row.date,
+        text: row.text,
+        type: row.type, 
+        category: row.category,
+        completed: row.completed,
+        completedAt: row.completed_at,
+        relatedEntityId: row.related_entity_id,
+        relatedEntityType: row.related_entity_type,
+        expiresAt: row.expires_at,
+        createdAt: row.created_at
+      }));
+      
+      return recommendations;
     } catch (error) {
       console.error("Error fetching daily recommendations from database:", error);
       console.error("Stack trace:", error.stack);
@@ -5292,17 +5287,21 @@ export class DatabaseStorage implements IStorage {
   
   async completeRecommendation(id: number): Promise<DailyRecommendation | undefined> {
     try {
-      const [recommendation] = await db.select()
-        .from(dailyRecommendations)
-        .where(eq(dailyRecommendations.id, id));
+      // First retrieve the recommendation
+      const result = await pool.query(`
+        SELECT * FROM daily_recommendations 
+        WHERE id = $1
+      `, [id]);
       
-      if (!recommendation) {
-        throw new Error(`Recommendation with ID ${id} not found`);
+      if (result.rows.length === 0) {
+        console.log(`Recommendation with ID ${id} not found`);
+        return undefined;
       }
       
+      const recommendation = result.rows[0];
       const now = new Date();
       
-      // Update the recommendation as completed
+      // Update the recommendation as completed using direct SQL query
       const [updatedRecommendation] = await db.update(dailyRecommendations)
         .set({
           completed: true,
@@ -5345,54 +5344,128 @@ export class DatabaseStorage implements IStorage {
   // These methods remain to be implemented
   // We'll implement more as we go through conversion
 
-  // Daily Recommendations methods
+  // Daily Recommendations methods are already implemented above
+  // This method should never be called because the implementation is earlier in the class
+  // But we'll add a fallback direct SQL version to be safe
   async getUserDailyRecommendations(userId: number, date?: Date): Promise<DailyRecommendation[]> {
-    const targetDate = date || new Date();
-    // Format date to match expected format (YYYY-MM-DD)
-    const formattedDate = targetDate.toISOString().split('T')[0];
-    
-    return Array.from(this.dailyRecommendations.values()).filter(
-      rec => rec.userId === userId && rec.date === formattedDate
-    );
+    try {
+      console.log("WARNING: Second implementation of getUserDailyRecommendations was called!");
+      
+      const targetDate = date || new Date();
+      // Format date to match database date format (YYYY-MM-DD)
+      const formattedDate = targetDate.toISOString().split('T')[0];
+      
+      // Directly query the database using SQL to bypass any schema reference issues
+      const result = await pool.query(`
+        SELECT * FROM daily_recommendations 
+        WHERE user_id = $1 AND date = $2
+        ORDER BY created_at
+      `, [userId, formattedDate]);
+      
+      // Convert from snake_case to camelCase for the returned objects
+      return result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        date: row.date,
+        text: row.text,
+        type: row.type, 
+        category: row.category,
+        completed: row.completed,
+        completedAt: row.completed_at,
+        relatedEntityId: row.related_entity_id,
+        relatedEntityType: row.related_entity_type,
+        expiresAt: row.expires_at,
+        createdAt: row.created_at
+      }));
+    } catch (error) {
+      console.error("Error in second implementation of getUserDailyRecommendations:", error);
+      return [];
+    }
   }
   
   async getRecommendation(id: number): Promise<DailyRecommendation | undefined> {
-    return this.dailyRecommendations.get(id);
+    try {
+      const result = await pool.query(`
+        SELECT * FROM daily_recommendations 
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      
+      return {
+        id: row.id,
+        userId: row.user_id,
+        date: row.date,
+        text: row.text,
+        type: row.type, 
+        category: row.category,
+        completed: row.completed,
+        completedAt: row.completed_at,
+        relatedEntityId: row.related_entity_id,
+        relatedEntityType: row.related_entity_type,
+        expiresAt: row.expires_at,
+        createdAt: row.created_at
+      };
+    } catch (error) {
+      console.error(`Error fetching recommendation with ID ${id}:`, error);
+      return undefined;
+    }
   }
   
   async completeRecommendation(id: number): Promise<DailyRecommendation | undefined> {
-    const recommendation = this.dailyRecommendations.get(id);
-    if (!recommendation) {
+    try {
+      // This is the MemStorage implementation which uses the in-memory Map
+      console.log("MemStorage completeRecommendation called for ID:", id);
+      const recommendation = this.dailyRecommendations.get(id);
+      if (!recommendation) {
+        console.log(`Recommendation with ID ${id} not found in MemStorage`);
+        return undefined;
+      }
+      
+      // Mark as completed
+      const updatedRecommendation: DailyRecommendation = {
+        ...recommendation,
+        completed: true,
+        completedAt: new Date()
+      };
+      this.dailyRecommendations.set(id, updatedRecommendation);
+      
+      // Award XP for completing the recommendation
+      await this.addUserXP(recommendation.userId, 10, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
+      
+      console.log(`Recommendation with ID ${id} marked as completed with timestamp: ${updatedRecommendation.completedAt}`);
+      return updatedRecommendation;
+    } catch (error) {
+      console.error(`Error completing recommendation with ID ${id} in MemStorage:`, error);
       return undefined;
     }
-    
-    // Mark as completed
-    const updatedRecommendation: DailyRecommendation = {
-      ...recommendation,
-      completed: true,
-      completedAt: new Date()
-    };
-    this.dailyRecommendations.set(id, updatedRecommendation);
-    
-    // Award XP for completing the recommendation
-    await this.addUserXP(recommendation.userId, 10, "recommendation_completed", `Completed recommendation: ${recommendation.text}`);
-    
-    return updatedRecommendation;
   }
   
-  async clearTodaysRecommendations(userId: number): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Find recommendations for today and remove them
-    const keysToDelete: number[] = [];
-    this.dailyRecommendations.forEach((rec, key) => {
-      if (rec.userId === userId && rec.date === today) {
-        keysToDelete.push(key);
-      }
-    });
-    
-    // Delete the identified recommendations
-    keysToDelete.forEach(key => this.dailyRecommendations.delete(key));
+  async clearTodaysRecommendations(userId: number): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Find recommendations for today and remove them
+      const keysToDelete: number[] = [];
+      this.dailyRecommendations.forEach((rec, key) => {
+        if (rec.userId === userId && rec.date === today) {
+          keysToDelete.push(key);
+        }
+      });
+      
+      // Delete the identified recommendations
+      keysToDelete.forEach(key => this.dailyRecommendations.delete(key));
+      
+      // Return true if any recommendations were deleted
+      return keysToDelete.length > 0;
+    } catch (error) {
+      console.error(`Error clearing today's recommendations for user ${userId}:`, error);
+      return false;
+    }
   }
   
   async generateDailyRecommendations(userId: number): Promise<DailyRecommendation[]> {
