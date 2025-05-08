@@ -63,6 +63,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       let workHistory, educationHistory, skills, certifications = [], user;
       
       try {
+        console.log(`DEBUG: About to fetch skills for user ${userId}`);
         [workHistory, educationHistory, skills, user] = await Promise.all([
           storage.getWorkHistory(userId),
           storage.getEducationHistory(userId),
@@ -71,7 +72,15 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         ]);
         
         // Add debug logs to see what's happening with skills
-        console.log(`DEBUG: getUserSkills returned ${skills.length} skills for user ${userId}`);
+        console.log(`DEBUG: getUserSkills returned ${skills ? skills.length : 'undefined'} skills for user ${userId}`);
+        console.log(`DEBUG: Skills is type: ${typeof skills}, Array? ${Array.isArray(skills)}`);
+        
+        // Make sure skills is an array
+        if (!skills) {
+          console.log(`DEBUG: Skills is falsy, setting to empty array`);
+          skills = [];
+        }
+        
         if (skills.length > 0) {
           console.log(`DEBUG: First skill:`, JSON.stringify(skills[0], null, 2));
         }
@@ -526,6 +535,31 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   });
   
   // Skills CRUD endpoints
+  // Debug endpoint to get skills directly
+  app.get("/api/career-data/skills", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.session.userId;
+      console.log(`DEBUG: Direct skills endpoint - Fetching skills for user ${userId}`);
+      
+      // Fetch skills directly
+      const skills = await storage.getUserSkills(userId);
+      
+      console.log(`DEBUG: Direct skills endpoint - Found ${skills.length} skills for user ${userId}`);
+      if (skills.length > 0) {
+        console.log(`DEBUG: First skill:`, JSON.stringify(skills[0], null, 2));
+      }
+      
+      res.status(200).json(skills);
+    } catch (error) {
+      console.error("Error fetching skills:", error);
+      res.status(500).json({ message: "Error fetching skills" });
+    }
+  });
+
   app.post("/api/career-data/skills", requireAuth, async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {
@@ -535,7 +569,10 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       const userId = req.session.userId;
       // Add userId to the request body before creating
       const skillData = { ...req.body, userId };
+      console.log(`DEBUG: Creating skill for user ${userId}:`, JSON.stringify(skillData, null, 2));
+      
       const skill = await storage.createSkill(skillData);
+      console.log(`DEBUG: Skill created successfully:`, JSON.stringify(skill, null, 2));
       
       res.status(201).json(skill);
     } catch (error) {
