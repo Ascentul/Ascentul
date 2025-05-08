@@ -4369,6 +4369,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getEducationHistory(userId: number): Promise<EducationHistory[]> {
+    try {
+      const result = await db.select()
+        .from(educationHistory)
+        .where(eq(educationHistory.userId, userId))
+        .orderBy(desc(educationHistory.startDate));
+      return result;
+    } catch (error) {
+      console.error("Error fetching education history from database:", error);
+      return [];
+    }
+  }
+  
   async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
     try {
       // Create the review object with userId
