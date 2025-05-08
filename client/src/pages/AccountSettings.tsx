@@ -534,20 +534,20 @@ export default function AccountSettings() {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold mb-1">Profile Completion</h3>
                   {(() => {
-                    // Calculate completion percentage
-                    const sections = [
+                    // Calculate completion percentage - certifications no longer required
+                    const requiredSections = [
                       !!careerData?.careerSummary,
                       (careerData?.workHistory?.length || 0) > 0,
                       (careerData?.educationHistory?.length || 0) > 0,
-                      (careerData?.skills?.length || 0) > 0,
-                      (careerData?.certifications?.length || 0) > 0
+                      (careerData?.skills?.length || 0) > 0
                     ];
-                    const completedSections = sections.filter(Boolean).length;
-                    const percentage = Math.round((completedSections / sections.length) * 100);
+                    // Certifications are optional and not counted in completion percentage
+                    const completedSections = requiredSections.filter(Boolean).length;
+                    const percentage = Math.round((completedSections / requiredSections.length) * 100);
                     
                     return (
                       <span className="text-sm font-medium">
-                        {percentage}% ({completedSections} of {sections.length} sections)
+                        {percentage}% ({completedSections} of {requiredSections.length} sections)
                       </span>
                     );
                   })()}
@@ -556,15 +556,15 @@ export default function AccountSettings() {
                   <div
                     className="h-2 bg-indigo-600 rounded-full transition-all duration-300"
                     style={{ width: `${(() => {
-                      const sections = [
+                      // Use the same required sections as above (without certifications)
+                      const requiredSections = [
                         !!careerData?.careerSummary,
                         (careerData?.workHistory?.length || 0) > 0,
                         (careerData?.educationHistory?.length || 0) > 0,
-                        (careerData?.skills?.length || 0) > 0,
-                        (careerData?.certifications?.length || 0) > 0
+                        (careerData?.skills?.length || 0) > 0
                       ];
-                      const completedSections = sections.filter(Boolean).length;
-                      return (completedSections / sections.length) * 100;
+                      const completedSections = requiredSections.filter(Boolean).length;
+                      return (completedSections / requiredSections.length) * 100;
                     })()}%` }}
                   />
                 </div>
