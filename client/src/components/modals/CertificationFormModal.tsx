@@ -96,12 +96,20 @@ export function CertificationFormModal({
       if (values.credentialURL === '') {
         values.credentialURL = null;
       }
+      
+      // Convert Date objects to ISO string format for the backend
+      // The database schema expects text for date fields
+      const formattedValues = {
+        ...values,
+        issueDate: values.issueDate ? values.issueDate.toISOString().split('T')[0] : null,
+        expiryDate: values.expiryDate ? values.expiryDate.toISOString().split('T')[0] : null
+      };
 
       let response;
       if (mode === 'add') {
-        response = await apiRequest('POST', '/api/career-data/certifications', values);
+        response = await apiRequest('POST', '/api/career-data/certifications', formattedValues);
       } else {
-        response = await apiRequest('PUT', `/api/career-data/certifications/${certificationId}`, values);
+        response = await apiRequest('PUT', `/api/career-data/certifications/${certificationId}`, formattedValues);
       }
 
       if (!response.ok) {
