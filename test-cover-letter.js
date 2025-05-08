@@ -3,7 +3,7 @@
  * Run with: node test-cover-letter.js
  */
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function testCoverLetterGeneration() {
   console.log('Testing cover letter generation with user profile data...');
@@ -68,3 +68,6 @@ async function testCoverLetterGeneration() {
 }
 
 testCoverLetterGeneration();
+
+// Add this for ES modules
+export {};
