@@ -718,12 +718,12 @@ Certifications: ${careerData.certifications || 'Not provided'}
 
 IMPORTANT FORMAT NOTES:
 - Use a simple, modern format with the following structure:
-  ${userProfile?.name || "{User first and last name}"}
-  ${jobTitle || "{job title}"} 
+  ${userProfile?.name || "[Your First Name] [Your Last Name]"}
+  ${jobTitle || "[Job Title]"} 
   
-  ${userProfile?.email || "{User email}"} ${userProfile?.linkedinUrl ? `| ${userProfile.linkedinUrl}` : "| {user linkedin link}"} ${userProfile?.phone ? `| ${userProfile.phone}` : "| {user mobile phone}"}
+  ${userProfile?.email || "[Your Email]"} | ${userProfile?.location ? userProfile.location : "[Your Location]"} | ${userProfile?.phone || "[Your Phone Number]"}
   ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-  ${companyName || "{company applying for}"}
+  ${companyName || "[Company Name]"}
   
   Dear Hiring Manager,
 
