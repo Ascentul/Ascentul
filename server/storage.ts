@@ -4515,6 +4515,70 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async createEducationHistoryItem(userId: number, item: InsertEducationHistory): Promise<EducationHistory> {
+    try {
+      console.log("Creating education history item with data:", JSON.stringify(item, null, 2));
+      console.log("User ID:", userId);
+      
+      // Fix for missing achievements array
+      if (!item.achievements) {
+        item.achievements = [];
+      } else if (!Array.isArray(item.achievements)) {
+        console.log("Fixing non-array achievements:", item.achievements);
+        item.achievements = Array.isArray(item.achievements) ? item.achievements : [item.achievements];
+      }
+      
+      // Make sure all fields that should be null are actually null, not undefined
+      item.description = item.description || null;
+      item.location = item.location || null;
+      item.gpa = item.gpa || null;
+      
+      const now = new Date();
+      
+      // Process dates
+      const startDate = item.startDate instanceof Date ? item.startDate : new Date(item.startDate);
+      const endDate = item.endDate ? (item.endDate instanceof Date ? item.endDate : new Date(item.endDate)) : null;
+      
+      console.log("Creating education history with processed data:", {
+        userId,
+        institution: item.institution,
+        degree: item.degree,
+        fieldOfStudy: item.fieldOfStudy,
+        achievements: item.achievements,
+        current: item.current,
+        description: item.description,
+        location: item.location,
+        gpa: item.gpa
+      });
+      
+      // Insert the education history record
+      const [newEducationHistoryItem] = await db.insert(educationHistory)
+        .values({
+          ...item,
+          userId,
+          startDate,
+          endDate,
+          createdAt: now
+        })
+        .returning();
+      
+      console.log(`Successfully created education history item with ID ${newEducationHistoryItem.id}`);
+      
+      // Award XP for adding education history
+      try {
+        await this.addUserXP(userId, 50, "education_history_added", "Added education information");
+      } catch (xpError) {
+        console.error("Error awarding XP for education history:", xpError);
+        // Continue despite XP error
+      }
+      
+      return newEducationHistoryItem;
+    } catch (error) {
+      console.error("Error creating education history item in database:", error);
+      throw error;
+    }
+  }
+  
   async getCertifications(userId: number): Promise<Certification[]> {
     try {
       const result = await db.select()
