@@ -243,11 +243,26 @@ export default function AccountSettings() {
   };
 
   const handleProfileSubmit = async (data: ProfileFormValues) => {
-    // In a real app, would send this to the server
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been updated.",
-    });
+    try {
+      // Send the update to the server
+      await updateProfile({
+        name: data.name,
+        email: data.email
+      });
+      
+      // Show success toast
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been updated.",
+      });
+    } catch (error: any) {
+      // Show error toast
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile information.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleLogout = () => {
