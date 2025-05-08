@@ -4987,15 +4987,42 @@ export class DatabaseStorage implements IStorage {
       // Format date to match database date format (YYYY-MM-DD)
       const formattedDate = targetDate.toISOString().split('T')[0];
       
-      const recommendations = await db.select()
-        .from(dailyRecommendations)
-        .where(eq(dailyRecommendations.userId, userId))
-        .where(eq(dailyRecommendations.date, formattedDate))
-        .orderBy(dailyRecommendations.createdAt);
+      console.log("DEBUG - getUserDailyRecommendations:");
+      console.log("- userId:", userId);
+      console.log("- formattedDate:", formattedDate);
+      console.log("- dailyRecommendations table exists:", !!dailyRecommendations);
       
-      return recommendations;
+      if (!dailyRecommendations) {
+        console.error("CRITICAL ERROR: dailyRecommendations table is undefined in DatabaseStorage");
+        return [];
+      }
+      
+      try {
+        // Test if we can access the table schema
+        console.log("- dailyRecommendations.userId exists:", !!dailyRecommendations.userId);
+        console.log("- dailyRecommendations.date exists:", !!dailyRecommendations.date);
+        console.log("- dailyRecommendations schema:", Object.keys(dailyRecommendations).join(", "));
+        
+        // Try a simple query to test access
+        const test = await db.select().from(dailyRecommendations).limit(1);
+        console.log("- TEST QUERY result:", test);
+        
+        const recommendations = await db.select()
+          .from(dailyRecommendations)
+          .where(eq(dailyRecommendations.userId, userId))
+          .where(eq(dailyRecommendations.date, formattedDate))
+          .orderBy(dailyRecommendations.createdAt);
+        
+        console.log("- Found recommendations:", recommendations.length);
+        return recommendations;
+      } catch (innerError) {
+        console.error("QUERY ERROR:", innerError);
+        console.error("Stack trace:", innerError.stack);
+        return [];
+      }
     } catch (error) {
       console.error("Error fetching daily recommendations from database:", error);
+      console.error("Stack trace:", error.stack);
       return [];
     }
   }
