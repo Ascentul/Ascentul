@@ -140,7 +140,12 @@ export function SkillFormModal({
 
   // Submit handler
   const onSubmit = (values: SkillFormValues) => {
-    mutation.mutate(values);
+    // Ensure proficiencyLevel has a default if not provided
+    const valuesToSubmit = {
+      ...values,
+      proficiencyLevel: values.proficiencyLevel || "Beginner" // Default to Beginner if not selected
+    };
+    mutation.mutate(valuesToSubmit);
   };
 
   return (
