@@ -4592,6 +4592,114 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getCertification(id: number): Promise<Certification | undefined> {
+    try {
+      const [result] = await db.select()
+        .from(certifications)
+        .where(eq(certifications.id, id));
+      return result;
+    } catch (error) {
+      console.error("Error fetching certification from database:", error);
+      return undefined;
+    }
+  }
+  
+  async createCertification(userId: number, certification: InsertCertification): Promise<Certification> {
+    try {
+      console.log(`Creating certification for user ${userId}:`, JSON.stringify(certification, null, 2));
+      
+      // Process dates if they're strings
+      let issueDate = certification.issueDate;
+      let expirationDate = certification.expirationDate;
+      
+      if (typeof issueDate === 'string') {
+        issueDate = new Date(issueDate);
+      }
+      
+      if (typeof expirationDate === 'string' && expirationDate) {
+        expirationDate = new Date(expirationDate);
+      }
+      
+      const now = new Date();
+      
+      // Set default values for optional fields
+      const certificationData = {
+        ...certification,
+        userId,
+        issueDate,
+        expirationDate: expirationDate || null,
+        description: certification.description || null,
+        skills: certification.skills || null,
+        credentialId: certification.credentialId || null,
+        credentialUrl: certification.credentialUrl || null,
+        createdAt: now,
+        updatedAt: now
+      };
+      
+      // Insert the certification record
+      const [newCertification] = await db.insert(certifications)
+        .values(certificationData)
+        .returning();
+      
+      console.log(`Successfully created certification with ID ${newCertification.id}`);
+      
+      // Award XP for adding a certification
+      try {
+        await this.addUserXP(userId, 100, "certification_added", "Added professional certification");
+      } catch (xpError) {
+        console.error("Error awarding XP for certification:", xpError);
+        // Continue despite XP error
+      }
+      
+      return newCertification;
+    } catch (error) {
+      console.error("Error creating certification in database:", error);
+      throw error;
+    }
+  }
+  
+  async updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined> {
+    try {
+      // Process dates if they're strings
+      let updateData = { ...certificationData };
+      
+      if (typeof updateData.issueDate === 'string' && updateData.issueDate) {
+        updateData.issueDate = new Date(updateData.issueDate);
+      }
+      
+      if (typeof updateData.expirationDate === 'string' && updateData.expirationDate) {
+        updateData.expirationDate = new Date(updateData.expirationDate);
+      }
+      
+      // Update the record
+      const [updatedCertification] = await db.update(certifications)
+        .set({
+          ...updateData,
+          updatedAt: new Date()
+        })
+        .where(eq(certifications.id, id))
+        .returning();
+        
+      return updatedCertification;
+    } catch (error) {
+      console.error(`Error updating certification ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteCertification(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(certifications)
+        .where(eq(certifications.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting certification ${id}:`, error);
+      return false;
+    }
+  }
+  
   async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
     try {
       // Create the review object with userId
