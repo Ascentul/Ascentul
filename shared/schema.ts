@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb, uniqueIndex,
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // User model
 export const users = pgTable("users", {
@@ -580,6 +581,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
   skills: many(skills),
   languages: many(languages),
+  dailyRecommendations: many(dailyRecommendations),
 }));
 
 // Interview Questions Relations
@@ -1126,3 +1128,35 @@ export const insertPlatformSettingsSchema = createInsertSchema(platformSettings)
 
 export type PlatformSettings = typeof platformSettings.$inferSelect;
 export type InsertPlatformSettings = z.infer<typeof insertPlatformSettingsSchema>;
+
+// Daily Recommendations model
+export const dailyRecommendations = pgTable("daily_recommendations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  date: date("date").notNull(),
+  text: text("text").notNull(),
+  category: text("category").notNull(), // Options: "interview", "followup", "goal", "profile", "momentum"
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  relatedEntityId: integer("related_entity_id"),
+  relatedEntityType: text("related_entity_type"), // e.g., "interview_stage", "goal", "followup_action"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDailyRecommendationSchema = createInsertSchema(dailyRecommendations).omit({
+  id: true,
+  userId: true,
+  completed: true,
+  completedAt: true,
+  createdAt: true,
+});
+
+export const dailyRecommendationsRelations = relations(dailyRecommendations, ({ one }) => ({
+  user: one(users, {
+    fields: [dailyRecommendations.userId],
+    references: [users.id],
+  }),
+}));
+
+export type DailyRecommendation = typeof dailyRecommendations.$inferSelect;
+export type InsertDailyRecommendation = z.infer<typeof insertDailyRecommendationSchema>;
