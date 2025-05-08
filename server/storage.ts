@@ -4356,6 +4356,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getWorkHistory(userId: number): Promise<WorkHistory[]> {
+    try {
+      const result = await db.select()
+        .from(workHistory)
+        .where(eq(workHistory.userId, userId))
+        .orderBy(desc(workHistory.startDate));
+      return result;
+    } catch (error) {
+      console.error("Error fetching work history from database:", error);
+      return [];
+    }
+  }
+  
   async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
     try {
       // Create the review object with userId
