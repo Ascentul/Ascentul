@@ -337,7 +337,7 @@ export function UpcomingInterviewsCard() {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-semibold">Upcoming Interviews</CardTitle>
+          <CardTitle className="text-lg font-semibold">Upcoming Interviews</CardTitle>
           <Badge variant="secondary" className="text-xs">
             {interviewCount} {interviewCount === 1 ? 'interview' : 'interviews'}
           </Badge>
