@@ -4940,7 +4940,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createSkill(skill: InsertSkill): Promise<Skill> {
-    const [newSkill] = await db.insert(skills).values(skill).returning();
+    // Make sure proficiencyLevel is set (default to 1 if not provided)
+    const skillData = {
+      ...skill,
+      proficiencyLevel: skill.proficiencyLevel || 1  // Default to 1 (Beginner) if not provided
+    };
+    
+    const [newSkill] = await db.insert(skills).values(skillData).returning();
     return newSkill;
   }
   
