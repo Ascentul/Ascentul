@@ -4951,9 +4951,8 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserSkills(userId: number): Promise<Skill[]> {
-    // This assumes there's a userSkills junction table that relates users to skills
-    // If it doesn't exist in your schema, you'll need to add it
-    return [];
+    // Fetch skills directly from the skills table where userId matches
+    return db.select().from(skills).where(eq(skills.userId, userId));
   }
   
   // Languages Methods
