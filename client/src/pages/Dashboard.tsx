@@ -535,6 +535,25 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </Link>
+
+                <Link 
+                  href="/contacts" 
+                  className="w-full"
+                  onClick={() => {
+                    // Set flag in localStorage to open Add Contact dialog when the contacts page loads
+                    localStorage.setItem('openAddContactDialog', 'true');
+                  }}
+                >
+                  <div className="flex items-center p-3 text-sm hover:bg-muted rounded-md cursor-pointer transition-colors">
+                    <div className="h-9 w-9 rounded-full bg-blue-600/10 flex items-center justify-center mr-3 flex-shrink-0">
+                      <UserRound className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Add a Contact</div>
+                      <div className="text-xs text-muted-foreground">Build your professional network</div>
+                    </div>
+                  </div>
+                </Link>
               </div>
             </DialogContent>
           </Dialog>
