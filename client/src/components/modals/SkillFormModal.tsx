@@ -84,12 +84,12 @@ export function SkillFormModal({
     "Other"
   ];
 
-  // Proficiency levels
+  // Proficiency levels with corresponding numeric values
   const proficiencyLevels = [
-    "Beginner",
-    "Intermediate", 
-    "Advanced",
-    "Expert"
+    { label: "Beginner", value: "1" },
+    { label: "Intermediate", value: "2" },
+    { label: "Advanced", value: "3" },
+    { label: "Expert", value: "4" }
   ];
 
   // Form submission mutation
@@ -143,7 +143,7 @@ export function SkillFormModal({
     // Ensure proficiencyLevel has a default if not provided
     const valuesToSubmit = {
       ...values,
-      proficiencyLevel: values.proficiencyLevel || "Beginner" // Default to Beginner if not selected
+      proficiencyLevel: values.proficiencyLevel || "1" // Default to level 1 (Beginner) if not selected
     };
     mutation.mutate(valuesToSubmit);
   };
@@ -215,13 +215,15 @@ export function SkillFormModal({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
+                          <SelectValue placeholder="Select level">
+                            {field.value && proficiencyLevels.find(level => level.value === field.value)?.label}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {proficiencyLevels.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {level}
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
