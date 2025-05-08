@@ -3,62 +3,74 @@
  * Run with: node test-cover-letter.js
  */
 
-import fetch from 'node-fetch';
+import { generateCoverLetter } from './server/openai.js';
+import { config } from 'dotenv';
+import OpenAI from 'openai';
+
+// Load environment variables
+config();
+
+// Initialize OpenAI for the test
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+global.openai = openai;
 
 async function testCoverLetterGeneration() {
-  console.log('Testing cover letter generation with user profile data...');
+  console.log('Testing cover letter generation with user profile info...');
   
   try {
-    const response = await fetch('http://localhost:3000/api/cover-letters/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        jobTitle: 'Software Engineer',
-        companyName: 'Tech Innovations Inc.',
-        jobDescription: `
-        We're seeking a talented Software Engineer to join our team.
-        
-        Requirements:
-        - 3+ years experience in JavaScript and React
-        - Experience with Node.js and Express
-        - Understanding of database design and SQL
-        - Strong problem-solving skills
-        - Team player with excellent communication skills
-        
-        Responsibilities:
-        - Develop and maintain web applications
-        - Collaborate with cross-functional teams
-        - Write clean, maintainable code
-        - Participate in code reviews
-        - Troubleshoot and debug applications
-        `,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error(`Error: ${response.status} ${response.statusText}`);
-      const errorText = await response.text();
-      console.error(`Error details: ${errorText}`);
-      return;
-    }
-
-    const data = await response.text();
+    // Test with a mock user profile
+    const userProfile = {
+      name: 'Jane Smith',
+      email: 'jane.smith@example.com',
+      phone: '(555) 123-4567',
+      location: 'San Francisco, CA'
+    };
+    
+    const jobTitle = 'Software Engineer';
+    const companyName = 'Tech Innovations Inc.';
+    const jobDescription = `
+      We're seeking a talented Software Engineer to join our team.
+      
+      Requirements:
+      - 3+ years experience in JavaScript and React
+      - Experience with Node.js and Express
+      - Understanding of database design and SQL
+      - Strong problem-solving skills
+      - Team player with excellent communication skills
+      
+      Responsibilities:
+      - Develop and maintain web applications
+      - Collaborate with cross-functional teams
+      - Write clean, maintainable code
+      - Participate in code reviews
+      - Troubleshoot and debug applications
+    `;
+    
+    // Call the OpenAI function directly
+    const coverLetter = await generateCoverLetter(
+      jobTitle,
+      companyName,
+      jobDescription,
+      userProfile,
+      userProfile.name
+    );
     
     // Check if the cover letter contains placeholder text
     const containsPlaceholders = 
-      data.includes('[Your First Name]') || 
-      data.includes('[Your Last Name]') ||
-      data.includes('[Your Email]') ||
-      data.includes('[Your Phone Number]');
+      coverLetter.includes('[Your First Name]') || 
+      coverLetter.includes('[Your Last Name]') ||
+      coverLetter.includes('[Your Email]') ||
+      coverLetter.includes('[Your Phone Number]') ||
+      coverLetter.includes('[Your Location]');
     
     console.log('Cover letter generated successfully!');
     console.log('Contains placeholders:', containsPlaceholders);
     
     // Print just the first few lines to check header format
-    const lines = data.split('\n').slice(0, 10);
+    const lines = coverLetter.split('\n').slice(0, 10);
     console.log('\nFirst few lines of the cover letter:');
     console.log(lines.join('\n'));
     

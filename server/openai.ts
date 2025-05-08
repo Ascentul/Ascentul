@@ -676,6 +676,23 @@ export async function generateCoverLetter(
   userProfile?: any // Optional user profile object with name, email, etc.
 ): Promise<string> {
   try {
+    // Log the user profile to debug what we're receiving
+    console.log("Generating cover letter with user profile:", userProfile ? {
+      id: userProfile.id,
+      name: userProfile.name,
+      firstName: userProfile.firstName,
+      lastName: userProfile.lastName,
+      email: userProfile.email,
+      phone: userProfile.phone,
+      location: userProfile.location,
+      hasProfile: !!userProfile
+    } : "No user profile provided");
+    
+    // Prepare user information with fallbacks
+    const userName = userProfile?.name || 
+                    (userProfile?.firstName && userProfile?.lastName ? 
+                      `${userProfile.firstName} ${userProfile.lastName}` : null);
+    
     const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
 
@@ -693,6 +710,12 @@ Work History: ${careerData.workHistory}
 Education: ${careerData.education || 'Not provided'}
 Skills: ${careerData.skills?.join(', ') || 'Not provided'}
 Certifications: ${careerData.certifications || 'Not provided'}
+
+User Personal Information:
+Name: ${userName || 'Not provided'}
+Email: ${userProfile?.email || 'Not provided'}
+Phone: ${userProfile?.phone || 'Not provided'}
+Location: ${userProfile?.location || 'Not provided'}
 
 🎯 Your goal is to generate a cover letter that would score 80 or higher on these categories:
 
@@ -718,10 +741,10 @@ Certifications: ${careerData.certifications || 'Not provided'}
 
 IMPORTANT FORMAT NOTES:
 - Use a simple, modern format with the following structure:
-  ${userProfile?.name || "[Your First Name] [Your Last Name]"}
+  ${userName ? userName : "[Your First Name] [Your Last Name]"}
   ${jobTitle || "[Job Title]"} 
   
-  ${userProfile?.email || "[Your Email]"} | ${userProfile?.location ? userProfile.location : "[Your Location]"} | ${userProfile?.phone || "[Your Phone Number]"}
+  ${userProfile?.email ? userProfile.email : "[Your Email]"} | ${userProfile?.location ? userProfile.location : "[Your Location]"} | ${userProfile?.phone ? userProfile.phone : "[Your Phone Number]"}
   ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
   ${companyName || "[Company Name]"}
   
