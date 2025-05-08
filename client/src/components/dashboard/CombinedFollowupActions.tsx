@@ -480,11 +480,6 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
             You don't have any {activeFilter !== 'all' ? activeFilter + ' ' : ''}follow-up actions pending.
           </p>
           <div className="flex gap-3">
-            <Link href="/job-applications/create">
-              <Button size="sm" variant="outline">
-                Add Application
-              </Button>
-            </Link>
             <Link href="/networking/create">
               <Button size="sm" variant="outline">
                 Add Contact
