@@ -689,9 +689,17 @@ export async function generateCoverLetter(
     } : "No user profile provided");
     
     // Prepare user information with fallbacks
-    const userName = userProfile?.name || 
-                    (userProfile?.firstName && userProfile?.lastName ? 
-                      `${userProfile.firstName} ${userProfile.lastName}` : null);
+    // Build full name from firstName, lastName, or name fields, ensuring we never use placeholders
+    let userName = null;
+    
+    if (userProfile?.name) {
+      userName = userProfile.name;
+    } else if (userProfile?.firstName || userProfile?.lastName) {
+      // Use what we have - firstName, lastName, or both
+      const firstName = userProfile?.firstName || '';
+      const lastName = userProfile?.lastName || '';
+      userName = `${firstName} ${lastName}`.trim();
+    }
     
     const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
@@ -741,12 +749,12 @@ Location: ${userProfile?.location || 'Not provided'}
 
 IMPORTANT FORMAT NOTES:
 - Use a simple, modern format with the following structure:
-  ${userName ? userName : "[Your First Name] [Your Last Name]"}
-  ${jobTitle || "[Job Title]"} 
+  ${userName || "Job Applicant"}
+  ${jobTitle || "Applicant"} 
   
-  ${userProfile?.email ? userProfile.email : "[Your Email]"} | ${userProfile?.location ? userProfile.location : "[Your Location]"} | ${userProfile?.phone ? userProfile.phone : "[Your Phone Number]"}
+  ${userProfile?.email || "applicant@example.com"} | ${userProfile?.location || "City, State"} | ${userProfile?.phone || "555-555-5555"}
   ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-  ${companyName || "[Company Name]"}
+  ${companyName || "Hiring Company"}
   
   Dear Hiring Manager,
 
