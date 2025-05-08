@@ -295,7 +295,7 @@ export function UpcomingInterviewsCard() {
     return (
       <Card className="h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
+          <CardTitle className="text-lg font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
           <div className="flex justify-center items-center py-8">
@@ -311,7 +311,7 @@ export function UpcomingInterviewsCard() {
     return (
       <Card className="h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
+          <CardTitle className="text-lg font-semibold">Upcoming Interviews</CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
           <div className="text-center text-muted-foreground py-8 space-y-3">
