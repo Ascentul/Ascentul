@@ -2815,6 +2815,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { jobTitle, companyName, jobDescription, userExperience, userSkills, type } = req.body;
       
+      // Initialize userProfile variable to store user data
+      let userProfile = null;
+      
       // If type is suggestions, only job description is mandatory
       if (type === 'suggestions') {
         if (!jobDescription) {
@@ -2897,10 +2900,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }).join('\n---\n\n');
             }
             
-            // 5. Get career summary from user profile
+            // 5. Get user profile data including name and career summary
             const userData = await storage.getUser(req.session.userId);
-            if (userData && userData.careerSummary) {
-              careerSummary = userData.careerSummary;
+            if (userData) {
+              if (userData.careerSummary) {
+                careerSummary = userData.careerSummary;
+              }
+              
+              // Store user data for passing to generateCoverLetter
+              userProfile = userData;
             }
           } catch (error) {
             console.error("Error fetching career data:", error);
@@ -2922,7 +2930,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           jobTitle || '',
           companyName || '',
           jobDescription,
-          careerData
+          careerData,
+          userProfile // Pass the user profile data including name, email, etc.
         );
         
         res.status(200).json({ content: coverLetter });
