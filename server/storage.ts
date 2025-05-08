@@ -4608,26 +4608,29 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Creating certification for user ${userId}:`, JSON.stringify(certification, null, 2));
       
-      // Process dates if they're strings
-      let issueDate = certification.issueDate;
-      let expirationDate = certification.expirationDate;
-      
-      if (typeof issueDate === 'string') {
-        issueDate = new Date(issueDate);
-      }
-      
-      if (typeof expirationDate === 'string' && expirationDate) {
-        expirationDate = new Date(expirationDate);
-      }
-      
+      // Ensure we have a valid date for issueDate
+      // Our schema expects a text field but requires a value
       const now = new Date();
+      const todayAsString = now.toISOString().split('T')[0];
       
-      // Set default values for optional fields
+      // Prepare data with date handling that ensures string format compatible with database
       const certificationData = {
-        ...certification,
         userId,
-        issueDate,
-        expirationDate: expirationDate || null,
+        name: certification.name,
+        issuingOrganization: certification.issuingOrganization,
+        // Always provide a text date value for issueDate
+        issueDate: certification.issueDate ? 
+          (typeof certification.issueDate === 'string' ? 
+            certification.issueDate : 
+            certification.issueDate.toISOString().split('T')[0]) 
+          : todayAsString,
+        // Handle expirationDate (optional)
+        expirationDate: certification.expirationDate ? 
+          (typeof certification.expirationDate === 'string' ? 
+            certification.expirationDate : 
+            certification.expirationDate.toISOString().split('T')[0])
+          : null,
+        // All other optional fields with null fallbacks
         description: certification.description || null,
         skills: certification.skills || null,
         credentialId: certification.credentialId || null,
@@ -4635,6 +4638,8 @@ export class DatabaseStorage implements IStorage {
         createdAt: now,
         updatedAt: now
       };
+      
+      console.log("Prepared certification data:", JSON.stringify(certificationData, null, 2));
       
       // Insert the certification record
       const [newCertification] = await db.insert(certifications)
@@ -4660,22 +4665,40 @@ export class DatabaseStorage implements IStorage {
   
   async updateCertification(id: number, certificationData: Partial<Certification>): Promise<Certification | undefined> {
     try {
-      // Process dates if they're strings
-      let updateData = { ...certificationData };
+      // Create a new update data object
+      const updateData: Record<string, any> = { ...certificationData };
+      const now = new Date();
       
-      if (typeof updateData.issueDate === 'string' && updateData.issueDate) {
-        updateData.issueDate = new Date(updateData.issueDate);
+      // Handle text dates - keep as text strings for database
+      // (table has text fields for date columns)
+      if (updateData.issueDate) {
+        // If a Date object was passed, convert to ISO string
+        if (updateData.issueDate instanceof Date) {
+          updateData.issueDate = updateData.issueDate.toISOString().split('T')[0];
+        }
+        // If it's not a string, convert to today's date string as a fallback
+        else if (typeof updateData.issueDate !== 'string') {
+          updateData.issueDate = now.toISOString().split('T')[0];
+        }
       }
       
-      if (typeof updateData.expirationDate === 'string' && updateData.expirationDate) {
-        updateData.expirationDate = new Date(updateData.expirationDate);
+      // Handle expirationDate if it exists (this can be null)
+      if (updateData.expirationDate) {
+        // If a Date object was passed, convert to ISO string
+        if (updateData.expirationDate instanceof Date) {
+          updateData.expirationDate = updateData.expirationDate.toISOString().split('T')[0];
+        }
+        // If it's not a string and not null, convert to string
+        else if (typeof updateData.expirationDate !== 'string' && updateData.expirationDate !== null) {
+          updateData.expirationDate = now.toISOString().split('T')[0];
+        }
       }
       
       // Update the record
       const [updatedCertification] = await db.update(certifications)
         .set({
           ...updateData,
-          updatedAt: new Date()
+          updatedAt: now
         })
         .where(eq(certifications.id, id))
         .returning();
