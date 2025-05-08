@@ -4,7 +4,7 @@
  */
 
 // Using node-fetch to make HTTP requests
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 async function testCoverLetterGeneration() {
   console.log('Testing cover letter generation with user profile info...');
