@@ -1175,15 +1175,48 @@ export class MemStorage implements IStorage {
   }
 
   async createEducationHistoryItem(userId: number, item: InsertEducationHistory): Promise<EducationHistory> {
+    console.log("Creating education history item with data:", JSON.stringify(item, null, 2));
+    console.log("User ID:", userId);
+    
+    // Fix for missing achievements array
+    if (!item.achievements) {
+      item.achievements = [];
+    } else if (!Array.isArray(item.achievements)) {
+      console.log("Fixing non-array achievements:", item.achievements);
+      item.achievements = Array.isArray(item.achievements) ? item.achievements : [item.achievements];
+    }
+    
+    // Make sure all fields that should be null are actually null, not undefined
+    item.description = item.description || null;
+    item.location = item.location || null;
+    item.gpa = item.gpa || null;
+    
     const id = this.educationHistoryIdCounter++;
     const now = new Date();
+    
+    console.log("Creating education history with processed data:", {
+      id,
+      userId,
+      institution: item.institution,
+      degree: item.degree,
+      fieldOfStudy: item.fieldOfStudy,
+      achievements: item.achievements,
+      current: item.current,
+      description: item.description,
+      location: item.location,
+      gpa: item.gpa
+    });
+    
     const educationHistoryItem: EducationHistory = {
       ...item,
       id,
       userId,
       createdAt: now
     };
+    
+    console.log("Final education item before storage:", JSON.stringify(educationHistoryItem, null, 2));
     this.educationHistory.set(id, educationHistoryItem);
+    console.log(`Education item with ID ${id} saved successfully`);
 
     // Award XP for adding education history
     await this.addUserXP(userId, 75, "education_history_added", "Added education");
