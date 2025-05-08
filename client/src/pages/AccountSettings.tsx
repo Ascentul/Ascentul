@@ -778,6 +778,7 @@ export default function AccountSettings() {
                 </div>
                 
                 <AddSectionButton 
+                  label="Add Education"
                   onClick={() => setEducationModal({
                     open: true,
                     mode: 'add'
@@ -946,6 +947,7 @@ export default function AccountSettings() {
                 </div>
                 
                 <AddSectionButton 
+                  label="Add Certification"
                   onClick={() => setCertificationModal({
                     open: true,
                     mode: 'add'

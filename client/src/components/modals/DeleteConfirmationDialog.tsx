@@ -19,23 +19,25 @@ import { Button } from '@/components/ui/button';
 interface DeleteConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  endpoint: string; // API endpoint to call for deletion
-  itemId: number;
+  title?: string;
+  description?: string;
+  endpoint?: string; // API endpoint to call for deletion
+  itemId?: number;
   itemType: string; // For toast messages (e.g., "Work history", "Education", etc.)
   onSuccess?: () => void;
+  onConfirm?: () => Promise<void>; // Custom confirm handler for direct API calls
 }
 
 export function DeleteConfirmationDialog({
   open,
   onOpenChange,
-  title,
-  description,
+  title = "Confirm deletion",
+  description = "Are you sure you want to delete this item? This action cannot be undone.",
   endpoint,
   itemId,
   itemType,
   onSuccess,
+  onConfirm,
 }: DeleteConfirmationDialogProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -88,8 +90,36 @@ export function DeleteConfirmationDialog({
     },
   });
 
-  const handleDelete = () => {
-    deleteMutation.mutate();
+  const handleDelete = async () => {
+    if (onConfirm) {
+      setIsDeleting(true);
+      try {
+        await onConfirm();
+        toast({
+          title: `${itemType} deleted`,
+          description: `The ${itemType.toLowerCase()} has been deleted successfully.`,
+        });
+        onOpenChange(false);
+        if (onSuccess) onSuccess();
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: error.message || `Failed to delete ${itemType.toLowerCase()}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsDeleting(false);
+      }
+    } else if (endpoint && itemId) {
+      deleteMutation.mutate();
+    } else {
+      console.error('DeleteConfirmationDialog: Either onConfirm or endpoint+itemId must be provided');
+      toast({
+        title: 'Configuration Error',
+        description: 'The delete dialog is not properly configured.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
