@@ -298,7 +298,7 @@ export default function Contacts() {
       <div className="container px-4 py-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Ascentul CRM</h1>
+            <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Network Hub</h1>
             <p className="text-muted-foreground mt-1">
               Manage your professional network and foster strategic relationships
             </p>
