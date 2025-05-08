@@ -26,7 +26,8 @@ import {
   User, 
   LogOut, 
   Mail, 
-  CheckCircle, 
+  CheckCircle,
+  Circle,
   Briefcase,
   GraduationCap,
   Award,
@@ -621,6 +622,105 @@ export default function AccountSettings() {
         
         <TabsContent value="career" className="px-6 py-8">
           <div className="space-y-8">
+            {/* Career Profile Completion Progress */}
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <CheckCircle className="h-5 w-5 mr-2 text-primary" />
+                    Profile Completion
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Complete your career profile to maximize opportunities.
+                  </p>
+                </div>
+                <div className="text-xl font-semibold text-primary">
+                  {(() => {
+                    // Calculate profile completion percentage
+                    const totalSections = 5; // Career Summary, LinkedIn, Work History, Education, Skills
+                    let completedSections = 0;
+                    
+                    if (careerData?.careerSummary) completedSections++;
+                    if (careerData?.linkedInUrl) completedSections++;
+                    if (careerData?.workHistory && careerData.workHistory.length > 0) completedSections++;
+                    if (careerData?.educationHistory && careerData.educationHistory.length > 0) completedSections++;
+                    if (careerData?.skills && careerData.skills.length > 0) completedSections++;
+                    
+                    const percentage = Math.round((completedSections / totalSections) * 100);
+                    return `${percentage}%`;
+                  })()}
+                </div>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-primary h-2.5 rounded-full" 
+                  style={{ 
+                    width: (() => {
+                      // Calculate profile completion percentage for the style
+                      const totalSections = 5; // Career Summary, LinkedIn, Work History, Education, Skills
+                      let completedSections = 0;
+                      
+                      if (careerData?.careerSummary) completedSections++;
+                      if (careerData?.linkedInUrl) completedSections++;
+                      if (careerData?.workHistory && careerData.workHistory.length > 0) completedSections++;
+                      if (careerData?.educationHistory && careerData.educationHistory.length > 0) completedSections++;
+                      if (careerData?.skills && careerData.skills.length > 0) completedSections++;
+                      
+                      return `${(completedSections / totalSections) * 100}%`;
+                    })()
+                  }}
+                />
+              </div>
+              
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className={`p-3 rounded-md border ${careerData?.careerSummary ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center">
+                    {careerData?.careerSummary 
+                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
+                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    <span className="text-sm font-medium">Career Summary</span>
+                  </div>
+                </div>
+                
+                <div className={`p-3 rounded-md border ${careerData?.linkedInUrl ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center">
+                    {careerData?.linkedInUrl 
+                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
+                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    <span className="text-sm font-medium">LinkedIn Profile</span>
+                  </div>
+                </div>
+                
+                <div className={`p-3 rounded-md border ${careerData?.workHistory && careerData.workHistory.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center">
+                    {careerData?.workHistory && careerData.workHistory.length > 0 
+                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
+                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    <span className="text-sm font-medium">Work History</span>
+                  </div>
+                </div>
+                
+                <div className={`p-3 rounded-md border ${careerData?.educationHistory && careerData.educationHistory.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center">
+                    {careerData?.educationHistory && careerData.educationHistory.length > 0 
+                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
+                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    <span className="text-sm font-medium">Education</span>
+                  </div>
+                </div>
+                
+                <div className={`p-3 rounded-md border ${careerData?.skills && careerData.skills.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center">
+                    {careerData?.skills && careerData.skills.length > 0 
+                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
+                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    <span className="text-sm font-medium">Skills</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             {/* Career Summary Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
