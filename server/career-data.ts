@@ -99,6 +99,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       
       // Extract career summary from user profile
       const careerSummary = user?.careerSummary || "";
+      const linkedInUrl = user?.linkedInUrl || "";
       
       // Serialize dates for work history items
       const serializedWorkHistory = workHistory.map(item => ({
@@ -188,7 +189,8 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         educationHistory: serializedEducationHistory,
         skills: serializedSkills,
         certifications: serializedCertifications,
-        careerSummary
+        careerSummary,
+        linkedInUrl
       });
     } catch (error) {
       console.error("Error fetching career data:", error);
@@ -817,6 +819,33 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   });
 
   // Optimize Career Data endpoint (updates multiple career data elements based on AI analysis)
+  // Update LinkedIn URL endpoint
+  app.post("/api/career-data/linkedin-url", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const userId = req.session.userId;
+      const { linkedInUrl } = req.body;
+      
+      if (!linkedInUrl) {
+        return res.status(400).json({ message: "LinkedIn URL is required" });
+      }
+      
+      const updatedUser = await storage.updateUserLinkedInUrl(userId, linkedInUrl);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.status(200).json({ linkedInUrl: updatedUser.linkedInUrl });
+    } catch (error) {
+      console.error("Error updating LinkedIn URL:", error);
+      res.status(500).json({ message: "Error updating LinkedIn URL" });
+    }
+  });
+
   app.post("/api/career-data/optimize", requireAuth, async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {

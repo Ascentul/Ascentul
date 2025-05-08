@@ -15,6 +15,7 @@ import { EducationFormModal } from '@/components/modals/EducationFormModal';
 import { SkillFormModal } from '@/components/modals/SkillFormModal';
 import { CertificationFormModal } from '@/components/modals/CertificationFormModal';
 import { CareerSummaryFormModal } from '@/components/modals/CareerSummaryFormModal';
+import { LinkedInProfileFormModal } from '@/components/modals/LinkedInProfileFormModal';
 import { DeleteConfirmationDialog } from '@/components/modals/DeleteConfirmationDialog';
 import { AddSectionButton } from '@/components/AddSectionButton';
 
@@ -36,7 +37,8 @@ import {
   Calendar,
   MapPin,
   RefreshCw,
-  HelpCircle
+  HelpCircle,
+  Linkedin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -184,6 +186,11 @@ export default function AccountSettings() {
   }>({ open: false, mode: 'add' });
   
   const [careerSummaryModal, setCareerSummaryModal] = useState<{
+    open: boolean;
+    defaultValue: string;
+  }>({ open: false, defaultValue: '' });
+  
+  const [linkedInProfileModal, setLinkedInProfileModal] = useState<{
     open: boolean;
     defaultValue: string;
   }>({ open: false, defaultValue: '' });
@@ -655,6 +662,103 @@ export default function AccountSettings() {
                   </div>
                 )}
               </div>
+            </div>
+            
+            {/* LinkedIn Profile Section */}
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Linkedin className="h-5 w-5 mr-2 text-primary" />
+                    LinkedIn Profile
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Your LinkedIn profile URL for networking and professional opportunities.</p>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center"
+                  onClick={() => setLinkedInProfileModal({
+                    open: true,
+                    defaultValue: careerData?.linkedInUrl || ''
+                  })}
+                >
+                  {!careerData?.linkedInUrl ? (
+                    <>
+                      <Pencil className="h-4 w-4 mr-1" /> Add LinkedIn
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-md text-gray-700 min-h-12">
+                {careerData?.linkedInUrl ? (
+                  <div className="flex items-center">
+                    <Linkedin className="h-4 w-4 mr-2 text-[#0077b5]" />
+                    <a 
+                      href={careerData.linkedInUrl.startsWith('http') ? careerData.linkedInUrl : `https://${careerData.linkedInUrl}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {careerData.linkedInUrl}
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 italic">
+                    No LinkedIn profile added yet. Add your LinkedIn profile URL to enhance your professional presence.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* LinkedIn Profile Section */}
+            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200 mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Linkedin className="h-5 w-5 mr-2 text-blue-600" />
+                    LinkedIn Profile
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Your professional LinkedIn profile URL.</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center"
+                  onClick={() => {
+                    setLinkedInProfileModal({
+                      open: true,
+                      defaultValue: careerData?.linkedInUrl || ''
+                    });
+                  }}
+                >
+                  {careerData?.linkedInUrl ? 'Update' : 'Add'} Profile URL
+                </Button>
+              </div>
+              
+              {careerData?.linkedInUrl ? (
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <a 
+                    href={careerData.linkedInUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center"
+                  >
+                    <Linkedin className="h-4 w-4 mr-2" />
+                    {careerData.linkedInUrl}
+                  </a>
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-md text-gray-400 italic">
+                  No LinkedIn profile added yet. Click the button above to add your profile URL.
+                </div>
+              )}
             </div>
             
             {/* Work History Section */}
@@ -1405,6 +1509,12 @@ export default function AccountSettings() {
           </div>
         </TabsContent>
       </Tabs>
+      <LinkedInProfileFormModal
+        open={linkedInProfileModal.open}
+        onOpenChange={(open) => setLinkedInProfileModal({ ...linkedInProfileModal, open })}
+        defaultValue={linkedInProfileModal.defaultValue}
+        onSuccess={() => refetchCareerData()}
+      />
     </div>
   );
 }

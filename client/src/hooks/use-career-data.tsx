@@ -56,6 +56,7 @@ export type CareerData = {
   skills: Skill[];
   certifications: Certification[];
   careerSummary: string | null;
+  linkedInUrl: string | null;
 };
 
 export function useCareerData() {
@@ -170,7 +171,8 @@ export function useCareerData() {
               return cert; // Return original item on error
             }
           }) : [],
-          careerSummary: data.careerSummary || null
+          careerSummary: data.careerSummary || null,
+          linkedInUrl: data.linkedInUrl || null
         };
       } catch (error) {
         console.error('Error in useCareerData hook:', error);
