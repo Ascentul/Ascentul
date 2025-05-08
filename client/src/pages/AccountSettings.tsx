@@ -669,6 +669,7 @@ export default function AccountSettings() {
                 </div>
                 
                 <AddSectionButton 
+                  label="Add Job"
                   onClick={() => setWorkHistoryModal({
                     open: true,
                     mode: 'add'
