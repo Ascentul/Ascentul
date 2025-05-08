@@ -603,12 +603,27 @@ export default function CoverLetter() {
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
 
+    // Fetch career data from the cache if possible
+    const queryClient = useQueryClient();
+    const careerData = queryClient.getQueryData<any>(['/api/career-data']);
+
     // Validate field length for proper fallbacks
     const nameToDisplay = user.name && user.name.length >= 2 ? user.name : '[Your Name]';
     const emailToDisplay = user.email && user.email.length >= 5 ? user.email : '[Email Address]';
     // We'll use a default value since phone may not be in the user object
     const phoneToDisplay = '[Phone Number]';
-    const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
+    
+    // Use LinkedIn URL when available, otherwise fallback to location
+    let locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
+    
+    // Check if we have a LinkedIn URL to use instead of just the location
+    const linkedInUrl = careerData?.linkedInUrl;
+    if (linkedInUrl) {
+      console.log('Using LinkedIn URL instead of location:', linkedInUrl);
+      // Format it as markdown link (or HTML anchor) depending on context
+      // Since cover letters can be displayed in different formats
+      locationToDisplay = linkedInUrl;
+    }
 
     return text
       // Name replacements
@@ -634,11 +649,11 @@ export default function CoverLetter() {
 
       // Location/Address replacements
       .replace(/\[Your Location\]/g, locationToDisplay)
-      .replace(/\[your location\]/g, locationToDisplay.toLowerCase())
-      .replace(/\[YOUR LOCATION\]/g, locationToDisplay.toUpperCase())
+      .replace(/\[your location\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toLowerCase() : locationToDisplay)
+      .replace(/\[YOUR LOCATION\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toUpperCase() : locationToDisplay)
       .replace(/\[Your Address\]/g, locationToDisplay)
-      .replace(/\[your address\]/g, locationToDisplay.toLowerCase())
-      .replace(/\[YOUR ADDRESS\]/g, locationToDisplay.toUpperCase());
+      .replace(/\[your address\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toLowerCase() : locationToDisplay)
+      .replace(/\[YOUR ADDRESS\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toUpperCase() : locationToDisplay);
   };
 
   // Function to copy content to clipboard
@@ -891,12 +906,29 @@ export default function CoverLetter() {
       const currentDate = new Date().toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
       });
-
+      
+      // Get LinkedIn profile if available
+      const careerData = queryClient.getQueryData<any>(['/api/career-data']);
+      const linkedInUrl = careerData?.linkedInUrl;
+      
       // Add header information
       doc.setFontSize(12);
       doc.text(`${userName}`, margin, margin + 12);
-      doc.text(`${currentDate}`, margin, margin + 18);
-      doc.text(`To: ${recipientCompany}`, margin, margin + 28);
+      
+      // Add LinkedIn URL if available, with special formatting
+      if (linkedInUrl) {
+        // PDF supports clickable links
+        const textWidth = doc.getStringUnitWidth(linkedInUrl) * doc.getFontSize() / doc.internal.scaleFactor;
+        doc.setTextColor(0, 0, 255); // Blue color for link
+        doc.textWithLink(linkedInUrl, margin, margin + 18, { url: linkedInUrl });
+        doc.setTextColor(0, 0, 0); // Reset back to black
+        doc.text(`${currentDate}`, margin, margin + 24);
+        doc.text(`To: ${recipientCompany}`, margin, margin + 34);
+      } else {
+        // Standard layout without LinkedIn
+        doc.text(`${currentDate}`, margin, margin + 18);
+        doc.text(`To: ${recipientCompany}`, margin, margin + 28);
+      }
 
       // Reset font size for body
       doc.setFontSize(11);
