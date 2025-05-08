@@ -322,6 +322,14 @@ export const insertCertificationSchema = createInsertSchema(certifications).omit
   userId: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  // Add handling for both string and Date objects for dates
+  issueDate: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === 'string' ? val : val.toISOString().split('T')[0]
+  ),
+  expirationDate: z.union([z.string(), z.date(), z.null()]).optional().transform(val => 
+    val instanceof Date ? val.toISOString().split('T')[0] : val
+  )
 });
 
 // User Personal Achievements
