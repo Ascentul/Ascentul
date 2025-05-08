@@ -78,7 +78,7 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export default function AccountSettings() {
-  const { user, isLoading: userLoading, logout } = useUser();
+  const { user, isLoading: userLoading, logout, updateProfile } = useUser();
   const isSubscriptionActive = useIsSubscriptionActive();
   const { toast } = useToast();
   const [, navigate] = useLocation();
