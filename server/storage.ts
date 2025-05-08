@@ -4386,6 +4386,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getCertifications(userId: number): Promise<Certification[]> {
+    try {
+      const result = await db.select()
+        .from(certifications)
+        .where(eq(certifications.userId, userId))
+        .orderBy(desc(certifications.issueDate));
+      return result;
+    } catch (error) {
+      console.error("Error fetching certifications from database:", error);
+      return [];
+    }
+  }
+  
   async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
     try {
       // Create the review object with userId
