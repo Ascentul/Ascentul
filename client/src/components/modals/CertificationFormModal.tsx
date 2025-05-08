@@ -39,7 +39,8 @@ import {
 const certificationFormSchema = z.object({
   name: z.string().min(1, { message: 'Certification name is required' }),
   issuingOrganization: z.string().min(1, { message: 'Issuing organization is required' }),
-  issueDate: z.date().nullable().optional(),
+  // issueDate is a required field in the database schema
+  issueDate: z.date({ required_error: 'Issue date is required' }),
   expiryDate: z.date().nullable().optional(),
   noExpiration: z.boolean().default(false),
   credentialID: z.string().nullable().optional(),
@@ -63,7 +64,7 @@ export function CertificationFormModal({
   defaultValues = {
     name: '',
     issuingOrganization: '',
-    issueDate: null,
+    issueDate: new Date(), // Set today's date as default for the required field
     expiryDate: null,
     noExpiration: false,
     credentialID: '',
@@ -198,7 +199,7 @@ export function CertificationFormModal({
               name="issueDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Issue Date <span className="text-muted-foreground">(Optional)</span></FormLabel>
+                  <FormLabel>Issue Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
