@@ -226,6 +226,8 @@ export interface IStorage {
     verificationExpires?: Date | null;
   }): Promise<User | undefined>;
   updateUserPassword(userId: number, newPassword: string): Promise<User | undefined>;
+  updateUserCareerSummary(userId: number, careerSummary: string): Promise<User | undefined>;
+  updateUserLinkedInUrl(userId: number, linkedInUrl: string): Promise<User | undefined>;
   addUserXP(userId: number, amount: number, source: string, description?: string): Promise<number>;
 
   // Goal operations
@@ -2822,6 +2824,32 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
 
+  async updateUserCareerSummary(userId: number, careerSummary: string): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const updatedUser = { 
+      ...user,
+      careerSummary
+    };
+
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserLinkedInUrl(userId: number, linkedInUrl: string): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+
+    const updatedUser = { 
+      ...user,
+      linkedInUrl
+    };
+
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+
   // Career Mentor Chat operations
   async getMentorChatConversations(userId: number): Promise<MentorChatConversation[]> {
     return Array.from(this.mentorChatConversations.values())
@@ -5058,6 +5086,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updatedUser || undefined;
+  }
+  
+  async updateUserCareerSummary(userId: number, careerSummary: string): Promise<User | undefined> {
+    return this.updateUser(userId, { careerSummary });
+  }
+  
+  async updateUserLinkedInUrl(userId: number, linkedInUrl: string): Promise<User | undefined> {
+    return this.updateUser(userId, { linkedInUrl });
   }
   
   // Skills Methods

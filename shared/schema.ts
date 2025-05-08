@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   location: text("location"),
   remotePreference: text("remote_preference"), // Options: "remote", "hybrid", "onsite", "flexible"
   careerSummary: text("career_summary"),
+  linkedInUrl: text("linkedin_url"),
   // Subscription fields
   subscriptionPlan: text("subscription_plan").notNull().default("free"), // Options: "free", "premium"
   subscriptionStatus: text("subscription_status").notNull().default("inactive"), // Options: "active", "inactive", "cancelled", "past_due"
