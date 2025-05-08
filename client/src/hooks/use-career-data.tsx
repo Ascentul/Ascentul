@@ -133,13 +133,28 @@ export function useCareerData() {
           }) : [],
           skills: Array.isArray(data.skills) ? data.skills.map((skill: any) => {
             try {
+              console.log('Processing skill:', skill);
+              // Ensure each skill has a name property
+              if (!skill.name && typeof skill === 'string') {
+                // Handle case where skill might be a string instead of an object
+                return { id: Math.random(), name: skill, proficiencyLevel: null, category: null, createdAt: new Date() };
+              }
               return {
                 ...skill,
+                // Ensure name exists
+                name: skill.name || 'Unnamed Skill',
                 createdAt: skill.createdAt ? new Date(skill.createdAt) : new Date()
               };
             } catch (err) {
-              console.error(`Error processing dates for skill item ${skill.id}:`, err);
-              return skill; // Return original item on error
+              console.error(`Error processing skill:`, skill, err);
+              // Provide a fallback with minimal valid data
+              return { 
+                id: skill.id || Math.random(), 
+                name: typeof skill === 'string' ? skill : 'Error: Invalid Skill', 
+                proficiencyLevel: null, 
+                category: null, 
+                createdAt: new Date() 
+              };
             }
           }) : [],
           certifications: Array.isArray(data.certifications) ? data.certifications.map((cert: any) => {

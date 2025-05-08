@@ -909,13 +909,27 @@ export default function AccountSettings() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {careerData.skills.map((skill, index: number) => (
-                    <Badge key={index} variant="secondary" className="px-3 py-1">
-                      {skill.name}
-                    </Badge>
-                  ))}
-                </div>
+                <>
+                  {/* Debug info (invisible in production) */}
+                  <div className="hidden">
+                    {console.log('Skills data:', careerData.skills)}
+                    {careerData.skills.forEach((skill: any, i: number) => {
+                      console.log(`Skill ${i}:`, skill);
+                      console.log(`- Name: ${skill.name || 'UNDEFINED'}`);
+                      console.log(`- Type: ${typeof skill}`);
+                    })}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {careerData.skills.map((skill: any, index: number) => (
+                      <Badge key={index} variant="secondary" className="px-3 py-1">
+                        {typeof skill === 'object' && skill !== null ? 
+                          (skill.name || 'Unknown skill') : 
+                          (typeof skill === 'string' ? skill : 'Invalid skill')}
+                      </Badge>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
             
