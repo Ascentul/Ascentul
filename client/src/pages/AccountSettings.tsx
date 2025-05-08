@@ -73,6 +73,10 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
+  password: z.string()
+    .min(8, { message: "Password must be at least 8 characters." })
+    .optional()
+    .or(z.literal('')), // Allow empty string for no password change
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
