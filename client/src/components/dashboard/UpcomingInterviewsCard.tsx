@@ -366,50 +366,6 @@ export function UpcomingInterviewsCard() {
             </div>
           </div>
         )}
-        
-        <div className="mt-5 pt-3 border-t">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full">
-                Add New Interview
-                <Plus className="h-4 w-4 ml-1" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Schedule New Interview</DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <h3 className="text-sm font-medium mb-3">Select an application:</h3>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {applications?.filter(app => app.status === 'Applied' || app.status === 'Interviewing').map(app => (
-                    <Card key={app.id} className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => {
-                        navigate(`/job-applications/${app.id}?addInterview=true`);
-                      }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{app.company || app.companyName}</p>
-                          <p className="text-sm text-muted-foreground">{app.position || app.jobTitle}</p>
-                        </div>
-                        <Badge>{app.status}</Badge>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <Link href="/job-applications?filter=interviewing">
-                    <Button variant="outline" size="sm" className="w-full">
-                      View all applications
-                      <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
       </CardContent>
     </Card>
   );
