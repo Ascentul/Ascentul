@@ -128,12 +128,6 @@ export default function InterviewCard({ stage, onEdit }: InterviewCardProps) {
               View Application
             </Button>
           </Link>
-          
-          <Link href={`/interview/${stage.id}`}>
-            <Button variant="default" size="sm" className="text-xs">
-              Prepare for Interview
-            </Button>
-          </Link>
         </div>
       </CardContent>
     </Card>
