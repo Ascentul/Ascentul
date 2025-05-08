@@ -626,9 +626,19 @@ Instead of writing a complete cover letter, please provide high-quality suggesti
    - Include a professional sign-off
 
 5. FORMAT REQUIREMENTS:
-   - Use a simple, modern format with just greeting, body content, and signature
-   - DO NOT include any address blocks at the top or recipient address sections
-   - Start directly with "Dear Hiring Manager," or a specific name if provided
+   - Use a modern format with this structure:
+     {User first and last name}
+     {job title} 
+     
+     {User email} | {user linkedin link} | {user mobile phone}
+     {date}
+     {company applying for}
+     
+     Dear Hiring Manager,
+   
+   - This header information replaces traditional address blocks
+   - DO NOT include old-style address sections (no "Your Address" or "City, State, Zip")
+   - DO NOT include recipient address sections
 
 Ensure all suggestions focus on clarity (short, direct sentences), alignment with the job, persuasiveness through concrete examples, and strong overall impact. Avoid generic statements like "I'm a hard worker" or "I'm passionate about success."
 `;
@@ -706,10 +716,19 @@ Certifications: ${careerData.certifications || 'Not provided'}
    - Appropriate formal tone without being stiff or robotic
 
 IMPORTANT FORMAT NOTES:
-- Use a simple, modern format with just a greeting, body content, and signature
-- DO NOT include any contact info sections at the top like "[Your Address]" or "[City, State, Zip Code]"
-- DO NOT include recipient address sections like "Hiring Manager" or "[Company Address]" or "[City, State, Zip Code]"
-- Start directly with "Dear Hiring Manager," or "Dear [Specific Name]," if provided
+- Use a simple, modern format with the following structure:
+  {User first and last name}
+  {job title} 
+  
+  {User email} | {user linkedin link} | {user mobile phone}
+  {date}
+  {company applying for}
+  
+  Dear Hiring Manager,
+
+- The above information should replace traditional address blocks
+- DO NOT include old address sections (no "[Your Address]" or "[City, State, Zip Code]")
+- DO NOT include recipient address sections like "Hiring Manager" or "[Company Address]"
 
 DO NOT:
 - Use generic phrases like "I'm a hard worker" or "I'm passionate about success"
