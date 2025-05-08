@@ -4373,6 +4373,102 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getWorkHistoryItem(id: number): Promise<WorkHistory | undefined> {
+    try {
+      const [result] = await db.select()
+        .from(workHistory)
+        .where(eq(workHistory.id, id))
+        .limit(1);
+      return result;
+    } catch (error) {
+      console.error("Error fetching work history item from database:", error);
+      return undefined;
+    }
+  }
+  
+  async createWorkHistoryItem(userId: number, item: InsertWorkHistory): Promise<WorkHistory> {
+    try {
+      console.log(`Creating work history item for user ${userId}:`, JSON.stringify(item, null, 2));
+      
+      // Ensure dates are properly formatted if they're strings
+      let startDate = item.startDate;
+      let endDate = item.endDate;
+      
+      if (typeof startDate === 'string') {
+        startDate = new Date(startDate);
+      }
+      
+      if (typeof endDate === 'string' && endDate) {
+        endDate = new Date(endDate);
+      }
+      
+      const now = new Date();
+      
+      // Insert the work history record
+      const [newWorkHistoryItem] = await db.insert(workHistory)
+        .values({
+          ...item,
+          userId,
+          startDate,
+          endDate,
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning();
+      
+      console.log(`Successfully created work history item with ID ${newWorkHistoryItem.id}`);
+      
+      // Award XP for adding work history
+      try {
+        await this.addUserXP(userId, 75, "work_history_added", "Added work experience");
+      } catch (xpError) {
+        console.error("Error awarding XP for work history:", xpError);
+        // Continue despite XP error
+      }
+      
+      return newWorkHistoryItem;
+    } catch (error) {
+      console.error("Error creating work history item in database:", error);
+      throw error;
+    }
+  }
+  
+  async deleteWorkHistoryItem(id: number): Promise<boolean> {
+    try {
+      // Get the work history item first to know which user it belongs to
+      const [item] = await db.select()
+        .from(workHistory)
+        .where(eq(workHistory.id, id))
+        .limit(1);
+        
+      if (!item) {
+        console.log(`Work history item with ID ${id} not found for deletion`);
+        return false;
+      }
+      
+      console.log(`Deleting work history item with ID ${id} belonging to user ${item.userId}`);
+      
+      // Delete the work history item
+      const result = await db.delete(workHistory)
+        .where(eq(workHistory.id, id))
+        .returning();
+      
+      const success = result.length > 0;
+      
+      // If successfully deleted, invalidate any cached data
+      if (success) {
+        const roleInsightsCacheKey = `role_insights_${item.userId}`;
+        await this.deleteCachedData(roleInsightsCacheKey);
+        console.log(`Invalidated role insights cache for user ${item.userId} on work history deletion`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Error deleting work history item with ID ${id}:`, error);
+      return false;
+    }
+  }
+  
   async getEducationHistory(userId: number): Promise<EducationHistory[]> {
     try {
       const result = await db.select()
