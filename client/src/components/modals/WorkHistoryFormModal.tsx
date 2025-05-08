@@ -52,16 +52,19 @@ type WorkHistoryFormValues = z.infer<typeof workHistoryFormSchema>;
 
 interface WorkHistoryFormModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   defaultValues?: WorkHistoryFormValues;
   mode: 'add' | 'edit';
   workHistoryId?: number;
+  id?: number; // For compatibility with the existing code
   onSuccess?: () => void;
 }
 
 export function WorkHistoryFormModal({
   open,
   onOpenChange,
+  onClose,
   defaultValues = {
     position: '',
     company: '',
@@ -74,6 +77,7 @@ export function WorkHistoryFormModal({
   },
   mode = 'add',
   workHistoryId,
+  id, // For compatibility with existing code
   onSuccess,
 }: WorkHistoryFormModalProps) {
   const [achievementInput, setAchievementInput] = useState('');
@@ -151,7 +155,11 @@ export function WorkHistoryFormModal({
       }, 500);
 
       // Close the modal
-      onOpenChange(false);
+      if (onOpenChange) {
+        onOpenChange(false);
+      } else if (onClose) {
+        onClose();
+      }
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
