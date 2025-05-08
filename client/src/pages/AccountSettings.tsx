@@ -73,6 +73,10 @@ const profileFormSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address.",
   }),
+  currentPassword: z.string()
+    .min(1, { message: "Current password is required to change email or password." })
+    .optional()
+    .or(z.literal('')), // Only required when changing email or password
   password: z.string()
     .min(8, { message: "Password must be at least 8 characters." })
     .optional()
@@ -163,6 +167,7 @@ export default function AccountSettings() {
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
+      currentPassword: '', // Current password field (required for email/password changes)
       password: '', // Empty password field by default (no password change)
     },
   });
@@ -249,22 +254,49 @@ export default function AccountSettings() {
 
   const handleProfileSubmit = async (data: ProfileFormValues) => {
     try {
+      // Validate password requirements for email or password changes
+      const isEmailChanged = data.email !== user.email;
+      const isPasswordChanged = data.password && data.password.trim() !== '';
+      
+      if ((isEmailChanged || isPasswordChanged) && (!data.currentPassword || data.currentPassword.trim() === '')) {
+        toast({
+          title: "Validation Error",
+          description: "Current password is required when changing email or password.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Prepare update data
       const updateData: any = {
-        name: data.name,
-        email: data.email
+        name: data.name
       };
       
-      // Only include password if it's not empty
-      if (data.password && data.password.trim() !== '') {
-        updateData.password = data.password;
+      // Only include email and password changes if current password is provided
+      if (data.currentPassword && data.currentPassword.trim() !== '') {
+        // Add current password for verification
+        updateData.currentPassword = data.currentPassword;
+        
+        // Add email update if changed
+        if (isEmailChanged) {
+          updateData.email = data.email;
+        }
+        
+        // Add password update if provided
+        if (isPasswordChanged) {
+          updateData.password = data.password;
+        }
+      } else if (data.name !== user.name) {
+        // If only updating name (no password required)
+        updateData.name = data.name;
       }
       
       // Send the update to the server
       await updateProfile(updateData);
       
-      // Reset password field after successful update
+      // Reset password fields after successful update
       form.setValue('password', '');
+      form.setValue('currentPassword', '');
       
       // Show success toast
       toast({
@@ -441,6 +473,27 @@ export default function AccountSettings() {
                               )}
                             </Button>
                           )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">Current Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="Required to change email or password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Your current password is required when changing your email or password.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
