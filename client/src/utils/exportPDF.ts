@@ -25,9 +25,25 @@ export function exportCoverLetterToPDF(): void {
     const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap");
     const letterBody = letterBodyElement?.textContent || "";
     
-    // Get name and other details
+    // Get all required details for modern format
     const fullNameElement = previewLetterEl.querySelector("h2");
     const fullName = fullNameElement?.textContent || "Your Name";
+    
+    // Get job title (if available)
+    const jobTitleElement = previewLetterEl.querySelector(".text-lg.text-neutral-800");
+    const jobTitle = jobTitleElement?.textContent?.trim() || "";
+    
+    // Get contact info line
+    const contactInfoElement = previewLetterEl.querySelector(".text-sm.text-neutral-600");
+    const contactInfo = contactInfoElement?.textContent?.trim() || "";
+    
+    // Get date
+    const dateElement = previewLetterEl.querySelector(".text-sm.text-neutral-500");
+    const date = dateElement?.textContent?.trim() || new Date().toLocaleDateString();
+    
+    // Get company name
+    const companyElement = previewLetterEl.querySelector(".mt-4.mb-6 p");
+    const companyName = companyElement?.textContent?.trim() || "";
     
     // Basic validation
     if (!letterBody || letterBody.trim() === "") {
@@ -59,22 +75,55 @@ export function exportCoverLetterToPDF(): void {
     // Calculate text width (accounting for margins)
     const textWidth = pageWidth - (margin * 2);
     
-    // Add title at the top
-    doc.setFontSize(16);
-    doc.text(`Cover Letter: ${fullName}`, margin, margin);
+    // Current Y position for content
+    let yPosition = margin;
     
-    // Add a separator line
-    doc.setLineWidth(0.5);
-    doc.line(margin, margin + 5, pageWidth - margin, margin + 5);
+    // Add name at the top
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(fullName, margin, yPosition);
+    yPosition += 7;
+    
+    // Add job title if present
+    if (jobTitle) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(jobTitle, margin, yPosition);
+      yPosition += 6;
+    }
+    
+    // Add contact info
+    if (contactInfo) {
+      doc.setFontSize(10);
+      doc.text(contactInfo, margin, yPosition);
+      yPosition += 8;
+    }
+    
+    // Add date
+    doc.setFontSize(10);
+    doc.text(date, margin, yPosition);
+    yPosition += 8;
+    
+    // Add company name
+    if (companyName) {
+      doc.setFontSize(11);
+      doc.text(companyName, margin, yPosition);
+      yPosition += 8;
+    }
+    
+    // Add greeting
+    doc.setFontSize(11);
+    doc.text("Dear Hiring Manager,", margin, yPosition);
+    yPosition += 10;
     
     // Reset font size for body
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     
     // Split text to fit within page width and respect line breaks
     const bodyLines = doc.splitTextToSize(letterBody, textWidth);
     
     // Add content with proper spacing
-    doc.text(bodyLines, margin, margin + 15);
+    doc.text(bodyLines, margin, yPosition);
     
     // Generate a filename
     const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
