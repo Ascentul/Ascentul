@@ -3,32 +3,13 @@
  * Run with: node test-cover-letter.js
  */
 
-import { generateCoverLetter } from './server/openai.js';
-import { config } from 'dotenv';
-import OpenAI from 'openai';
-
-// Load environment variables
-config();
-
-// Initialize OpenAI for the test
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-global.openai = openai;
+// Using node-fetch to make HTTP requests
+const fetch = require('node-fetch');
 
 async function testCoverLetterGeneration() {
   console.log('Testing cover letter generation with user profile info...');
   
   try {
-    // Test with a mock user profile
-    const userProfile = {
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      phone: '(555) 123-4567',
-      location: 'San Francisco, CA'
-    };
-    
     const jobTitle = 'Software Engineer';
     const companyName = 'Tech Innovations Inc.';
     const jobDescription = `
@@ -49,14 +30,24 @@ async function testCoverLetterGeneration() {
       - Troubleshoot and debug applications
     `;
     
-    // Call the OpenAI function directly
-    const coverLetter = await generateCoverLetter(
-      jobTitle,
-      companyName,
-      jobDescription,
-      userProfile,
-      userProfile.name
-    );
+    // Call the API endpoint to generate a cover letter
+    const response = await fetch('http://localhost:3000/api/cover-letters/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jobTitle,
+        companyName,
+        jobDescription,
+        type: 'complete'
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API responded with ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    const coverLetter = data.content;
     
     // Check if the cover letter contains placeholder text
     const containsPlaceholders = 
@@ -80,6 +71,3 @@ async function testCoverLetterGeneration() {
 }
 
 testCoverLetterGeneration();
-
-// Add this for ES modules
-export {};
