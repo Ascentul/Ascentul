@@ -48,6 +48,7 @@ interface SkillFormModalProps {
   onOpenChange: (open: boolean) => void;
   defaultValues?: SkillFormValues;
   onSuccess?: () => void;
+  skills?: any[]; // Support for passing existing skills (not used but helps with typechecking)
 }
 
 export function SkillFormModal({
