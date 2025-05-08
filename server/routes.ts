@@ -1127,7 +1127,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.pendingEmailToken = verificationToken;
         updateData.pendingEmailExpires = verificationExpires;
         
-        // In a real app, send verification email to the new address
+        // For demo/development purposes, we're setting the email directly without verification
+        // In production, uncomment this to send verification emails and remove the line below
+        // sendVerificationEmail(email, verificationToken);
+        
+        // REMOVE THIS IN PRODUCTION - SHOULD USE EMAIL VERIFICATION FLOW
+        updateData.email = email; // Set email directly for demo purposes
         console.log(`Verification link would be sent to ${email} with token: ${verificationToken}`);
       }
       

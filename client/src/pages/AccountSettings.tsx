@@ -101,6 +101,17 @@ export default function AccountSettings() {
   // Track overall page loading state - combines user and career data loading
   const isPageLoading = userLoading || (activeTab === 'career' && careerDataLoading);
   
+  // Create form first before using it in useEffect
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: user?.name || '',
+      email: user?.email || '',
+      currentPassword: '', // Current password field (required for email/password changes)
+      password: '', // Empty password field by default (no password change)
+    },
+  });
+
   // No need to force refresh on component mount - rely on React Query's caching
   // This prevents the white flash by not removing cached data
   useEffect(() => {
@@ -111,8 +122,18 @@ export default function AccountSettings() {
       refetchCareerData();
     }
     
+    // Always update form values when user data changes
+    if (user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        currentPassword: '',
+        password: '',
+      });
+    }
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
   
   // Only refresh career data when user switches to the Career tab IF data is stale or missing
   useEffect(() => {
@@ -122,7 +143,17 @@ export default function AccountSettings() {
         console.log('Career data loaded on tab change');
       });
     }
-  }, [activeTab, refetchCareerData, careerData]);
+    
+    // Update form with latest user data when switching to profile tab
+    if (activeTab === 'profile' && user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        currentPassword: '', // Always reset password fields
+        password: '',
+      });
+    }
+  }, [activeTab, refetchCareerData, careerData, user, form]);
   
   // Modal state variables for career data forms
   const [workHistoryModal, setWorkHistoryModal] = useState<{
