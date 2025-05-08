@@ -753,7 +753,7 @@ export default function Resume() {
         variants={subtleUp}
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Resume Studio</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Resume Studio</h1>
           <p className="text-neutral-500">Create, analyze, and manage your professional resumes</p>
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
