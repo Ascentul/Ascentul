@@ -163,6 +163,7 @@ export default function AccountSettings() {
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
+      password: '', // Empty password field by default (no password change)
     },
   });
 
@@ -248,11 +249,22 @@ export default function AccountSettings() {
 
   const handleProfileSubmit = async (data: ProfileFormValues) => {
     try {
-      // Send the update to the server
-      await updateProfile({
+      // Prepare update data
+      const updateData: any = {
         name: data.name,
         email: data.email
-      });
+      };
+      
+      // Only include password if it's not empty
+      if (data.password && data.password.trim() !== '') {
+        updateData.password = data.password;
+      }
+      
+      // Send the update to the server
+      await updateProfile(updateData);
+      
+      // Reset password field after successful update
+      form.setValue('password', '');
       
       // Show success toast
       toast({
@@ -429,6 +441,27 @@ export default function AccountSettings() {
                               )}
                             </Button>
                           )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm text-gray-500">New Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="Leave blank to keep current password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Password must be at least 8 characters long.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
