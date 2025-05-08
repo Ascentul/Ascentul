@@ -1056,8 +1056,8 @@ export default function AccountSettings() {
             open={educationModal.open}
             mode={educationModal.mode}
             defaultValues={educationModal.data}
-            id={educationModal.id}
-            onClose={() => setEducationModal({ ...educationModal, open: false })}
+            educationId={educationModal.id}
+            onOpenChange={(open) => setEducationModal({ ...educationModal, open })}
             onSuccess={() => {
               setEducationModal({ ...educationModal, open: false });
               refetchCareerData();
@@ -1066,8 +1066,8 @@ export default function AccountSettings() {
           
           <SkillFormModal 
             open={skillModal.open}
-            currentSkills={careerData?.skills || []}
-            onClose={() => setSkillModal({ ...skillModal, open: false })}
+            skills={careerData?.skills || []}
+            onOpenChange={(open) => setSkillModal({ ...skillModal, open })}
             onSuccess={() => {
               setSkillModal({ ...skillModal, open: false });
               refetchCareerData();
