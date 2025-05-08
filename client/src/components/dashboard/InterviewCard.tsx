@@ -64,16 +64,7 @@ export default function InterviewCard({ stage, onEdit }: InterviewCardProps) {
             </p>
           </div>
           
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8" 
-              onClick={handleEdit}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-          </div>
+          
         </div>
         
         <div className="space-y-2 mt-3">
