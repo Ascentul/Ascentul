@@ -2926,15 +2926,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Generate full cover letter with comprehensive career data
-        const coverLetter = await generateCoverLetter(
-          jobTitle || '',
-          companyName || '',
-          jobDescription,
-          careerData,
-          userProfile // Pass the user profile data including name, email, etc.
-        );
-        
-        res.status(200).json({ content: coverLetter });
+        try {
+          const coverLetter = await generateCoverLetter(
+            jobTitle || '',
+            companyName || '',
+            jobDescription,
+            careerData,
+            userProfile // Pass the user profile data including name, email, etc.
+          );
+          
+          res.status(200).json({ content: coverLetter });
+        } catch (error: any) {
+          console.error("Error in cover letter generation:", error);
+          res.status(500).json({ message: "Error generating cover letter" });
+        }
       }
     } catch (error) {
       console.error("Error generating cover letter:", error);
