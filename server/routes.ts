@@ -4750,20 +4750,40 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      console.log(`Processing recommendations request for user ID: ${user.id}`);
+      
       // Check if a refresh is requested
       const shouldRefresh = req.query.refresh === 'true';
       
       if (shouldRefresh) {
+        console.log(`Refresh requested. Clearing today's recommendations for user ${user.id}`);
         // If refresh is requested, clear today's recommendations first
         await storage.clearTodaysRecommendations(user.id);
       }
       
-      // Generate or get today's recommendations
-      const recommendations = await storage.generateDailyRecommendations(user.id);
-      res.status(200).json(recommendations);
+      try {
+        console.log(`Generating recommendations for user ${user.id}`);
+        // Generate or get today's recommendations
+        const recommendations = await storage.generateDailyRecommendations(user.id);
+        console.log(`Successfully generated ${recommendations.length} recommendations for user ${user.id}`);
+        return res.status(200).json(recommendations);
+      } catch (genError: any) {
+        console.error(`Specific error generating recommendations for user ${user.id}:`, genError);
+        console.error(`Error stack:`, genError.stack);
+        return res.status(500).json({ 
+          message: "Error generating daily recommendations", 
+          error: genError.message,
+          stack: genError.stack
+        });
+      }
     } catch (error: any) {
-      console.error("Error generating daily recommendations:", error);
-      res.status(500).json({ message: "Error generating daily recommendations", error: error.message });
+      console.error("Error in recommendations endpoint:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ 
+        message: "Error generating daily recommendations", 
+        error: error.message,
+        stack: error.stack
+      });
     }
   });
   
