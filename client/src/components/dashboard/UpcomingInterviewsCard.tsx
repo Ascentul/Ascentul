@@ -334,7 +334,7 @@ export function UpcomingInterviewsCard() {
   ) || [];
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium">Upcoming Interviews</CardTitle>
@@ -343,7 +343,7 @@ export function UpcomingInterviewsCard() {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="pb-4 overflow-auto max-h-[600px]">
+      <CardContent className="pb-4">
         {/* Display only upcoming interview stages */}
         {upcomingInterviews.length > 0 ? (
           <div className="space-y-4">
