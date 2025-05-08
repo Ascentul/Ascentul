@@ -548,24 +548,26 @@ export default function CoverLetter() {
                                   <h2 class="text-xl font-bold">
                                     ${letter.content.header.fullName}
                                   </h2>
-                                  <div class="text-sm text-neutral-600">
-                                    ${letter.content.header.location ? `<div>${letter.content.header.location}</div>` : ''}
-                                    ${letter.content.header.phone ? `<div>${letter.content.header.phone}</div>` : ''}
-                                    ${letter.content.header.email ? `<div>${letter.content.header.email}</div>` : ''}
+                                  <!-- Job title -->
+                                  <div class="text-lg text-neutral-800 mt-1">
+                                    ${letter.content.header.jobTitle || letter.content.recipient.position || ''}
+                                  </div>
+                                  <!-- Contact info in single line with separators -->
+                                  <div class="text-sm text-neutral-600 mt-2">
+                                    ${letter.content.header.email ? `${letter.content.header.email}` : ''}
+                                    ${letter.content.header.linkedin ? ` | ${letter.content.header.linkedin}` : ''}
+                                    ${letter.content.header.phone ? ` | ${letter.content.header.phone}` : ''}
                                   </div>
                                 </div>
                                 
                                 <!-- Date -->
-                                <div class="mb-6">
+                                <div class="mb-3">
                                   <p>${letter.content.header.date}</p>
                                 </div>
                                 
-                                <!-- Recipient -->
+                                <!-- Company -->
                                 <div class="mb-6">
-                                  ${letter.content.recipient.name ? `<p>${letter.content.recipient.name}</p>` : ''}
-                                  ${letter.content.recipient.position ? `<p>${letter.content.recipient.position}</p>` : ''}
-                                  ${letter.content.recipient.company ? `<p>${letter.content.recipient.company}</p>` : ''}
-                                  ${letter.content.recipient.address ? `<p>${letter.content.recipient.address}</p>` : ''}
+                                  <p>${letter.content.recipient.company || ''}</p>
                                 </div>
                                 
                                 <!-- Greeting -->
