@@ -4343,6 +4343,19 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getInterviewProcesses(userId: number): Promise<InterviewProcess[]> {
+    try {
+      const result = await db.select()
+        .from(interviewProcesses)
+        .where(eq(interviewProcesses.userId, userId))
+        .orderBy(desc(interviewProcesses.createdAt));
+      return result;
+    } catch (error) {
+      console.error("Error fetching interview processes from database:", error);
+      return [];
+    }
+  }
+  
   async createUserReview(userId: number, review: InsertUserReview): Promise<UserReview> {
     try {
       // Create the review object with userId
