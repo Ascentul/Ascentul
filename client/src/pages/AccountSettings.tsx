@@ -631,10 +631,10 @@ export default function AccountSettings() {
                   className="flex items-center"
                   onClick={() => setCareerSummaryModal({
                     open: true,
-                    defaultValue: careerData?.summary || ''
+                    defaultValue: careerData?.careerSummary || ''
                   })}
                 >
-                  {!careerData?.summary ? (
+                  {!careerData?.careerSummary ? (
                     <>
                       <Pencil className="h-4 w-4 mr-1" /> Add Summary
                     </>
@@ -647,8 +647,8 @@ export default function AccountSettings() {
               </div>
               
               <div className="bg-gray-50 p-4 rounded-md text-gray-700 min-h-20">
-                {careerData?.summary ? (
-                  <div className="whitespace-pre-wrap">{careerData.summary}</div>
+                {careerData?.careerSummary ? (
+                  <div className="whitespace-pre-wrap">{careerData.careerSummary}</div>
                 ) : (
                   <div className="text-gray-400 italic">
                     No career summary yet. Add a professional summary that highlights your career goals, expertise, and what sets you apart.
