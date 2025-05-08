@@ -61,7 +61,7 @@ export function LinkedInProfileFormModal({
     
     try {
       // Send to backend
-      const response = await apiRequest('POST', '/api/career-data/linkedin-profile', {
+      const response = await apiRequest('POST', '/api/career-data/linkedin-url', {
         linkedInUrl: values.linkedInUrl
       });
       
