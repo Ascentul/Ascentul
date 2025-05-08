@@ -985,7 +985,7 @@ export default function CoverLetter() {
         variants={subtleUp}
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Cover Letters</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Cover Letters</h1>
           <p className="text-neutral-500">Create targeted cover letters for your job applications</p>
         </div>
         <Button 
