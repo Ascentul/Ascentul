@@ -690,7 +690,7 @@ export async function generateCoverLetter(
     
     // Prepare user information with fallbacks
     // Build full name from name field, ensuring we never use placeholders
-    let userName = null;
+    let userName = "Job Applicant"; // Default fallback
     
     if (userProfile?.name) {
       userName = userProfile.name;
@@ -723,7 +723,7 @@ Skills: ${careerData.skills?.join(', ') || 'Not provided'}
 Certifications: ${careerData.certifications || 'Not provided'}
 
 User Personal Information:
-Name: ${userName || 'Not provided'}
+Name: ${userName}
 Email: ${userProfile?.email || 'Not provided'}
 Phone: ${userProfile?.phone || 'Not provided'}
 Location: ${userProfile?.location || 'Not provided'}
@@ -752,7 +752,7 @@ Location: ${userProfile?.location || 'Not provided'}
 
 IMPORTANT FORMAT NOTES:
 - Use a simple, modern format with the following structure:
-  ${userName || "Job Applicant"}
+  ${userName}
   ${jobTitle || "Applicant"} 
   
   ${userProfile?.email || "applicant@example.com"} | ${userProfile?.location || "City, State"} | ${userProfile?.phone || "555-555-5555"}
