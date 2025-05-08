@@ -140,10 +140,11 @@ export function SkillFormModal({
 
   // Submit handler
   const onSubmit = (values: SkillFormValues) => {
-    // Ensure proficiencyLevel has a default if not provided
+    // Ensure proficiencyLevel and category have defaults if not provided
     const valuesToSubmit = {
       ...values,
-      proficiencyLevel: values.proficiencyLevel || "1" // Default to level 1 (Beginner) if not selected
+      proficiencyLevel: values.proficiencyLevel || "1", // Default to level 1 (Beginner) if not selected
+      category: values.category || "Technical" // Default to Technical if not selected
     };
     mutation.mutate(valuesToSubmit);
   };
@@ -180,7 +181,7 @@ export function SkillFormModal({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category <span className="text-muted-foreground">(Optional)</span></FormLabel>
+                    <FormLabel>Category</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || undefined}
@@ -208,7 +209,7 @@ export function SkillFormModal({
                 name="proficiencyLevel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Proficiency <span className="text-muted-foreground">(Optional)</span></FormLabel>
+                    <FormLabel>Proficiency</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value || undefined}
