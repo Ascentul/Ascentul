@@ -672,7 +672,8 @@ export async function generateCoverLetter(
     education: string;
     skills: string[];
     certifications: string;
-  }
+  },
+  userProfile?: any // Optional user profile object with name, email, etc.
 ): Promise<string> {
   try {
     const prompt = `
@@ -717,12 +718,12 @@ Certifications: ${careerData.certifications || 'Not provided'}
 
 IMPORTANT FORMAT NOTES:
 - Use a simple, modern format with the following structure:
-  {User first and last name}
-  {job title} 
+  ${userProfile?.name || "{User first and last name}"}
+  ${jobTitle || "{job title}"} 
   
-  {User email} | {user linkedin link} | {user mobile phone}
-  {date}
-  {company applying for}
+  ${userProfile?.email || "{User email}"} ${userProfile?.linkedinUrl ? `| ${userProfile.linkedinUrl}` : "| {user linkedin link}"} ${userProfile?.phone ? `| ${userProfile.phone}` : "| {user mobile phone}"}
+  ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+  ${companyName || "{company applying for}"}
   
   Dear Hiring Manager,
 
