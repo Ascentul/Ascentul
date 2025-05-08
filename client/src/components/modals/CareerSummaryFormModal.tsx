@@ -38,7 +38,8 @@ type CareerSummaryFormValues = z.infer<typeof careerSummaryFormSchema>;
 
 interface CareerSummaryFormModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   defaultValue?: string;
   onSuccess?: () => void;
 }
@@ -46,6 +47,7 @@ interface CareerSummaryFormModalProps {
 export function CareerSummaryFormModal({
   open,
   onOpenChange,
+  onClose,
   defaultValue = '',
   onSuccess,
 }: CareerSummaryFormModalProps) {
@@ -84,7 +86,7 @@ export function CareerSummaryFormModal({
       queryClient.invalidateQueries({ queryKey: ['/api/career-data'] });
 
       // Close the modal
-      onOpenChange(false);
+      handleDialogOpenChange(false);
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
@@ -100,13 +102,22 @@ export function CareerSummaryFormModal({
     },
   });
 
+  // Custom handler for dialog close events
+  const handleDialogOpenChange = (openState: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(openState);
+    } else if (!openState && onClose) {
+      onClose();
+    }
+  };
+
   // Submit handler
   const onSubmit = (values: CareerSummaryFormValues) => {
     mutation.mutate(values);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Career Summary</DialogTitle>
@@ -142,7 +153,7 @@ export function CareerSummaryFormModal({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleDialogOpenChange(false)}
               >
                 Cancel
               </Button>
