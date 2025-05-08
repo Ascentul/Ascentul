@@ -161,6 +161,12 @@ export function EducationFormModal({
 
   // Submit handler
   const onSubmit = (values: EducationFormValues) => {
+    // Ensure achievements is always an array
+    if (!values.achievements) {
+      values.achievements = [];
+    }
+    // Log the values being submitted for debugging
+    console.log("Submitting education form values:", values);
     mutation.mutate(values);
   };
 

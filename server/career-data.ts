@@ -392,8 +392,13 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       
       const userId = req.session.userId;
       
+      console.log("⭐️ POST /api/career-data/education - Request received for user:", userId);
+      console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
+      
       // Process dates to ensure they're Date objects
       const formData = { ...req.body };
+      
+      console.log("Processing education form data with achievements:", formData.achievements);
       
       // Convert string dates to Date objects
       if (formData.startDate && typeof formData.startDate === 'string') {
@@ -403,6 +408,32 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       if (formData.endDate && typeof formData.endDate === 'string') {
         formData.endDate = new Date(formData.endDate);
       }
+      
+      // Ensure achievements is an array
+      if (!formData.achievements) {
+        formData.achievements = [];
+      } else if (!Array.isArray(formData.achievements)) {
+        formData.achievements = [formData.achievements];
+      }
+      
+      console.log("🛠️ Creating education history with processed data:", {
+        userId,
+        institution: formData.institution,
+        degree: formData.degree,
+        fieldOfStudy: formData.fieldOfStudy,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        current: formData.current,
+        achievements: formData.achievements,
+        startDateType: formData.startDate ? typeof formData.startDate : 'undefined',
+        endDateType: formData.endDate ? typeof formData.endDate : 'undefined',
+        isStartDateValid: formData.startDate instanceof Date && !isNaN(formData.startDate.getTime()),
+        isEndDateValid: formData.endDate ? (formData.endDate instanceof Date && !isNaN(formData.endDate.getTime())) : true
+      });
+      
+      // Check storage before creating
+      const existingItems = await storage.getEducationHistory(userId);
+      console.log(`📋 User ${userId} has ${existingItems.length} existing education history items before creation`);
       
       const educationItem = await storage.createEducationHistoryItem(userId, formData);
       
@@ -414,10 +445,16 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
         createdAt: educationItem.createdAt instanceof Date ? educationItem.createdAt.toISOString() : educationItem.createdAt
       };
       
+      console.log("✅ Education history item created successfully:", serializedItem);
+      
+      // Verify item was saved by retrieving again
+      const updatedItems = await storage.getEducationHistory(userId);
+      console.log(`📋 User ${userId} now has ${updatedItems.length} education history items after creation`);
+      
       res.status(201).json(serializedItem);
     } catch (error) {
-      console.error("Error creating education item:", error);
-      res.status(500).json({ message: "Error creating education item" });
+      console.error("❌ Error creating education item:", error);
+      res.status(500).json({ message: "Error creating education item", error: String(error) });
     }
   });
   
