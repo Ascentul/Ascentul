@@ -113,13 +113,7 @@ export default function InterviewCard({ stage, onEdit }: InterviewCardProps) {
           )}
         </div>
         
-        <div className="mt-3 pt-3 border-t flex justify-between">
-          <Link href={`/job-applications/${stage.applicationId}`}>
-            <Button variant="outline" size="sm" className="text-xs">
-              View Application
-            </Button>
-          </Link>
-        </div>
+        
       </CardContent>
     </Card>
   );
