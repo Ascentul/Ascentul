@@ -194,7 +194,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return responseData as User;
     },
     onSuccess: (updatedUser) => {
+      // Update the cache with the new user data
       queryClient.setQueryData(['/api/users/me'], updatedUser);
+      
+      // Also invalidate the cache to ensure fresh data on next fetch
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
     },
   });
   
