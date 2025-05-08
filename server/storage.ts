@@ -48,6 +48,9 @@ import {
   aiCoachMessages,
   type AiCoachMessage,
   type InsertAiCoachMessage,
+  dailyRecommendations,
+  type DailyRecommendation,
+  type InsertDailyRecommendation,
   userReviews,
   type UserReview,
   type InsertUserReview,
@@ -109,6 +112,13 @@ export interface IStorage {
 
   // User management for scheduled tasks
   getAllActiveUsers(): Promise<User[]>;
+  
+  // Daily Recommendations operations
+  generateDailyRecommendations(userId: number): Promise<DailyRecommendation[]>;
+  getUserDailyRecommendations(userId: number, date?: Date): Promise<DailyRecommendation[]>;
+  getRecommendation(id: number): Promise<DailyRecommendation | undefined>;
+  completeRecommendation(id: number): Promise<DailyRecommendation | undefined>;
+  clearTodaysRecommendations(userId: number): Promise<boolean>;
   
   // Contact interaction operations
   updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined>;
