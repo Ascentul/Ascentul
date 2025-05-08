@@ -1078,8 +1078,8 @@ export default function AccountSettings() {
             open={certificationModal.open}
             mode={certificationModal.mode}
             defaultValues={certificationModal.data}
-            id={certificationModal.id}
-            onClose={() => setCertificationModal({ ...certificationModal, open: false })}
+            certificationId={certificationModal.id}
+            onOpenChange={(open) => setCertificationModal({ ...certificationModal, open })}
             onSuccess={() => {
               setCertificationModal({ ...certificationModal, open: false });
               refetchCareerData();
@@ -1089,7 +1089,7 @@ export default function AccountSettings() {
           <CareerSummaryFormModal 
             open={careerSummaryModal.open}
             defaultValue={careerSummaryModal.defaultValue}
-            onClose={() => setCareerSummaryModal({ ...careerSummaryModal, open: false })}
+            onOpenChange={(open) => setCareerSummaryModal({ ...careerSummaryModal, open })}
             onSuccess={() => {
               setCareerSummaryModal({ ...careerSummaryModal, open: false });
               refetchCareerData();
@@ -1099,7 +1099,7 @@ export default function AccountSettings() {
           <DeleteConfirmationDialog
             open={deleteConfirmation.open}
             itemType={deleteConfirmation.itemType}
-            onClose={() => setDeleteConfirmation({ ...deleteConfirmation, open: false })}
+            onOpenChange={(open) => setDeleteConfirmation({ ...deleteConfirmation, open })}
             onConfirm={async () => {
               try {
                 await apiRequest('DELETE', `/api/career-data/${deleteConfirmation.endpoint}/${deleteConfirmation.itemId}`, {});
