@@ -689,7 +689,7 @@ export async function generateCoverLetter(
     } : "No user profile provided");
     
     // Prepare user information with fallbacks
-    // Build full name from firstName, lastName, or name fields, ensuring we never use placeholders
+    // Build full name from name field, ensuring we never use placeholders
     let userName = null;
     
     if (userProfile?.name) {
@@ -700,6 +700,9 @@ export async function generateCoverLetter(
       const lastName = userProfile?.lastName || '';
       userName = `${firstName} ${lastName}`.trim();
     }
+    
+    // Debug the user name being used
+    console.log("Using userName for cover letter:", userName, "from user profile:", userProfile?.name);
     
     const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.

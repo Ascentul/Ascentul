@@ -30,10 +30,33 @@ async function testCoverLetterGeneration() {
       - Troubleshoot and debug applications
     `;
     
-    // Call the API endpoint to generate a cover letter
-    const response = await fetch('http://localhost:3000/api/cover-letters/generate', {
+    // First login to get a session cookie
+    console.log('Logging in to get a session...');
+    const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'alex',
+        password: 'password'
+      }),
+      redirect: 'manual'
+    });
+    
+    if (!loginResponse.ok && loginResponse.status !== 302) {
+      throw new Error(`Login failed: ${loginResponse.status} ${loginResponse.statusText}`);
+    }
+    
+    // Get the session cookie
+    const cookies = loginResponse.headers.get('set-cookie');
+    console.log('Login successful, got cookies:', !!cookies);
+    
+    // Call the API endpoint to generate a cover letter with the session cookie
+    const response = await fetch('http://localhost:3000/api/cover-letters/generate', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cookie': cookies
+      },
       body: JSON.stringify({
         jobTitle,
         companyName,
