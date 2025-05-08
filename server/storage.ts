@@ -4516,8 +4516,8 @@ export class DatabaseStorage implements IStorage {
       // Use raw SQL query to avoid orderBy syntax issues
       const result = await pool.query(`
         SELECT 
-          a.id, a.name, a.description, a.icon, a.xp_value as "xpValue", 
-          a.category, a.created_at as "createdAt", a.updated_at as "updatedAt",
+          a.id, a.name, a.description, a.icon, a.xp_reward as "xpReward", 
+          a.required_action as "requiredAction", a.required_value as "requiredValue",
           ua.earned_at as "earnedAt"
         FROM user_achievements ua
         INNER JOIN achievements a ON ua.achievement_id = a.id
