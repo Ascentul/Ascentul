@@ -4952,7 +4952,10 @@ export class DatabaseStorage implements IStorage {
   
   async getUserSkills(userId: number): Promise<Skill[]> {
     // Fetch skills directly from the skills table where userId matches
-    return db.select().from(skills).where(eq(skills.userId, userId));
+    console.log(`DatabaseStorage.getUserSkills: Fetching skills for user ${userId}`);
+    const userSkills = await db.select().from(skills).where(eq(skills.userId, userId));
+    console.log(`DatabaseStorage.getUserSkills: Found ${userSkills.length} skills:`, JSON.stringify(userSkills));
+    return userSkills;
   }
   
   // Languages Methods
