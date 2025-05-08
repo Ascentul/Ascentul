@@ -270,11 +270,6 @@ export function InterviewCountdownCard() {
             <div className="ml-4">
               <h3 className="text-neutral-500 text-sm">Next Interview</h3>
               <p className="text-2xl font-semibold">{getDisplayText()}</p>
-              {nextInterview && (
-                <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                  {nextInterview.company} - {nextInterview.position}
-                </p>
-              )}
             </div>
           </div>
         </CardContent>
