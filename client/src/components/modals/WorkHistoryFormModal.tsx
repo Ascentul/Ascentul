@@ -155,11 +155,7 @@ export function WorkHistoryFormModal({
       }, 500);
 
       // Close the modal
-      if (onOpenChange) {
-        onOpenChange(false);
-      } else if (onClose) {
-        onClose();
-      }
+      handleDialogOpenChange(false);
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
@@ -181,8 +177,17 @@ export function WorkHistoryFormModal({
     mutation.mutate(values);
   };
 
+  // Custom handler for dialog close events
+  const handleDialogOpenChange = (openState: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(openState);
+    } else if (!openState && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{mode === 'add' ? 'Add Work History' : 'Edit Work History'}</DialogTitle>
@@ -395,7 +400,7 @@ export function WorkHistoryFormModal({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleDialogOpenChange(false)}
               >
                 Cancel
               </Button>
