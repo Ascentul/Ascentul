@@ -784,7 +784,7 @@ export default function AccountSettings() {
                 />
               </div>
               
-              {!careerData?.education || careerData.education.length === 0 ? (
+              {!careerData?.educationHistory || careerData.educationHistory.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50">
                   <GraduationCap className="mx-auto h-10 w-10 text-gray-400" />
                   <h3 className="mt-2 text-sm font-semibold text-gray-900">No education history</h3>
@@ -805,7 +805,7 @@ export default function AccountSettings() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {careerData.education.map((edu: any) => (
+                  {careerData.educationHistory.map((edu: any) => (
                     <div key={edu.id} className="border border-gray-200 rounded-md p-4 relative group">
                       <div className="opacity-0 group-hover:opacity-100 absolute top-3 right-3 flex gap-1 transition-opacity">
                         <Button
