@@ -4139,9 +4139,13 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  dailyRecommendations: Map<number, DailyRecommendation>;
+  dailyRecommendationIdCounter: number;
   
   constructor() {
     this.sessionStore = sessionStore;
+    this.dailyRecommendations = new Map();
+    this.dailyRecommendationIdCounter = 1000;
     
     // Run a synchronous check to verify database connection
     // We can't use async in constructor, so we'll do a simple sync check
