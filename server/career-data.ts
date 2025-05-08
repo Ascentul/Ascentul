@@ -60,13 +60,27 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       const userId = req.session.userId;
       
       // Fetch all career data in parallel
-      const [workHistory, educationHistory, skills, certifications, user] = await Promise.all([
-        storage.getWorkHistory(userId),
-        storage.getEducationHistory(userId),
-        storage.getUserSkills(userId),
-        storage.getCertifications(userId),
-        storage.getUser(userId)
-      ]);
+      let workHistory, educationHistory, skills, certifications = [], user;
+      
+      try {
+        [workHistory, educationHistory, skills, user] = await Promise.all([
+          storage.getWorkHistory(userId),
+          storage.getEducationHistory(userId),
+          storage.getUserSkills(userId),
+          storage.getUser(userId)
+        ]);
+        
+        // Only try to get certifications if the method exists
+        if (typeof storage.getCertifications === 'function') {
+          certifications = await storage.getCertifications(userId);
+        } else {
+          console.log("getCertifications method not available in current storage implementation");
+          certifications = []; // Empty array as fallback
+        }
+      } catch (error) {
+        console.error("Error fetching career data components:", error);
+        throw error;
+      }
       
       // Extract career summary from user profile
       const careerSummary = user?.careerSummary || "";
@@ -178,13 +192,27 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
       const userId = req.session.userId;
       
       // Fetch all career data in parallel
-      const [workHistory, education, skills, certifications, user] = await Promise.all([
-        storage.getWorkHistory(userId),
-        storage.getEducationHistory(userId),
-        storage.getUserSkills(userId),
-        storage.getCertifications(userId),
-        storage.getUser(userId)
-      ]);
+      let workHistory, education, skills, certifications = [], user;
+      
+      try {
+        [workHistory, education, skills, user] = await Promise.all([
+          storage.getWorkHistory(userId),
+          storage.getEducationHistory(userId),
+          storage.getUserSkills(userId),
+          storage.getUser(userId)
+        ]);
+        
+        // Only try to get certifications if the method exists
+        if (typeof storage.getCertifications === 'function') {
+          certifications = await storage.getCertifications(userId);
+        } else {
+          console.log("getCertifications method not available in current storage implementation");
+          certifications = []; // Empty array as fallback
+        }
+      } catch (error) {
+        console.error("Error fetching career data components:", error);
+        throw error;
+      }
       
       // Extract career summary from user profile
       const careerSummary = user?.careerSummary || "";
