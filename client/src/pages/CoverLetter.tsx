@@ -2438,24 +2438,27 @@ export default function CoverLetter() {
               id="pdf-export-content"
             >
               {/* Header with contact info */}
-              <div className="text-center">
+              <div className="text-left">
                 <h2 className="text-xl font-bold">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
-                <div className="text-sm space-x-2 text-neutral-600 mt-1 flex justify-center flex-wrap">
-                  {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
-                  {previewLetter.content.header.phone && <><span>|</span><span>{previewLetter.content.header.phone}</span></>}
-                  {previewLetter.content.header.location && <><span>|</span><span>{previewLetter.content.header.location}</span></>}
+                {/* Job title line */}
+                <div className="text-lg text-neutral-800 mt-1">
+                  {previewLetter.content.header.jobTitle || previewLetter.content.recipient.position || ''}
                 </div>
-                <div className="text-sm text-neutral-500 mt-1">
+                {/* Contact info in single line with separator bars */}
+                <div className="text-sm text-neutral-600 mt-2">
+                  {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
+                  {previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>}
+                  {previewLetter.content.header.phone && <span> | {previewLetter.content.header.phone}</span>}
+                </div>
+                {/* Date */}
+                <div className="text-sm text-neutral-500 mt-4">
                   {previewLetter.content.header.date || new Date().toLocaleDateString()}
                 </div>
               </div>
 
-              {/* Recipient Info */}
-              <div className="space-y-1">
-                {previewLetter.content.recipient.name && <p>{previewLetter.content.recipient.name}</p>}
-                {previewLetter.content.recipient.position && <p>{previewLetter.content.recipient.position}</p>}
+              {/* Company */}
+              <div className="mt-4 mb-6">
                 {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
-                {previewLetter.content.recipient.address && <p>{previewLetter.content.recipient.address}</p>}
               </div>
 
               {/* Greeting */}
