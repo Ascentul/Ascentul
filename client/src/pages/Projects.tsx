@@ -184,7 +184,7 @@ export default function Projects() {
         variants={subtleUp}
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Project Portfolio</h1>
+          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Project Portfolio</h1>
           <p className="text-neutral-500">Showcase your professional and personal projects</p>
         </div>
         <div className="flex items-center gap-3 mt-4 md:mt-0">
