@@ -1135,11 +1135,13 @@ export const dailyRecommendations = pgTable("daily_recommendations", {
   userId: integer("user_id").notNull(),
   date: date("date").notNull(),
   text: text("text").notNull(),
+  type: text("type"), // For backwards compatibility with existing data
   category: text("category").notNull(), // Options: "interview", "followup", "goal", "profile", "momentum"
   completed: boolean("completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
   relatedEntityId: integer("related_entity_id"),
   relatedEntityType: text("related_entity_type"), // e.g., "interview_stage", "goal", "followup_action"
+  expiresAt: timestamp("expires_at"), // For backwards compatibility with existing data
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
