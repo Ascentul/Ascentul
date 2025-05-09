@@ -2527,7 +2527,7 @@ export default function CoverLetter() {
                 <h2 className="text-xl font-bold">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
                 {/* Job title line */}
                 <div className="text-lg text-neutral-800 mt-1">
-                  {previewLetter.content.header.jobTitle || previewLetter.content.recipient.position || ''}
+                  {previewLetter.jobTitle || previewLetter.content.header.jobTitle || previewLetter.content.recipient.position || ''}
                 </div>
                 {/* Contact info in single line with separator bars */}
                 <div className="text-sm text-neutral-600 mt-2">
