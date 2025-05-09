@@ -29,6 +29,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 const coverLetterSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
+  jobTitle: z.string().optional(),
   template: z.string().default('standard'),
   content: z.object({
     header: z.object({
@@ -36,6 +37,7 @@ const coverLetterSchema = z.object({
       email: z.string().email({ message: 'Please enter a valid email' }),
       phone: z.string().optional(),
       location: z.string().optional(),
+      jobTitle: z.string().optional(),
       date: z.string().optional(),
     }),
     recipient: z.object({
@@ -52,6 +54,7 @@ const coverLetterSchema = z.object({
       email: '',
       phone: '',
       location: '',
+      jobTitle: '',
       date: new Date().toLocaleDateString(),
     },
     recipient: {
@@ -83,6 +86,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
 
   const defaultValues: CoverLetterFormValues = {
     name: letterData?.name || '',
+    jobTitle: letterData?.jobTitle || '',
     template: letterData?.template || 'standard',
     content: letterData?.content || {
       header: {
@@ -90,6 +94,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
         email: '',
         phone: '',
         location: '',
+        jobTitle: '',
         date: new Date().toLocaleDateString(),
       },
       recipient: {
@@ -174,7 +179,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <FormField
             control={form.control}
             name="name"
@@ -189,6 +194,22 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="content.header.jobTitle"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Salesforce Administrator" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="template"

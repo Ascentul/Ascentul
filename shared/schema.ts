@@ -187,6 +187,7 @@ export const coverLetters = pgTable("cover_letters", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   name: text("name").notNull(),
+  jobTitle: text("job_title"),
   template: text("template").notNull().default("standard"),
   content: jsonb("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
