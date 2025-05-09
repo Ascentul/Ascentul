@@ -914,21 +914,41 @@ export default function CoverLetter() {
     setIsCleaning(true);
     
     try {
-      // First clean the optimized content via API
-      const response = await fetch('/api/strip-optimized-cover-letter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ optimizedLetter: analysisResult.optimizedCoverLetter }),
-      });
+      // Create a local variable to hold the cleaned content
+      let cleanedContent = analysisResult.optimizedCoverLetter;
       
-      if (!response.ok) {
-        throw new Error('Failed to clean cover letter content');
+      try {
+        // First clean the optimized content via API
+        const response = await fetch('/api/strip-optimized-cover-letter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ optimizedLetter: analysisResult.optimizedCoverLetter }),
+        });
+        
+        if (!response.ok) {
+          console.warn('API cleaning failed, using client-side cleaning as fallback');
+        } else {
+          const responseText = await response.text();
+          
+          try {
+            // Safely try to parse the JSON
+            const data = JSON.parse(responseText);
+            if (data.cleanedLetterBody) {
+              cleanedContent = data.cleanedLetterBody;
+              console.log("Successfully cleaned letter via API");
+            }
+          } catch (parseError) {
+            console.error("Error parsing API response:", parseError);
+            console.log("Response was:", responseText);
+            // Fall back to client-side cleaning without failing the save process
+          }
+        }
+      } catch (apiError) {
+        console.error("API cleaning error:", apiError);
+        // Continue with the original content if API cleaning fails
       }
-      
-      const data = await response.json();
-      const cleanedContent = data.cleanedLetterBody || analysisResult.optimizedCoverLetter;
       
       // Get user data if available
       const userData = {
