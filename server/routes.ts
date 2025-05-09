@@ -2894,7 +2894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // New improved endpoint for better cover letter cleaning
   // Specialized endpoint for final cleaning before saving to database or exporting to PDF
-  apiRouter.post("/api/save-cleaned-cover-letter", async (req: Request, res: Response) => {
+  apiRouter.post("/save-cleaned-cover-letter", async (req: Request, res: Response) => {
     try {
       const { optimizedLetter, jobTitle, companyName, userEmail } = req.body;
       
