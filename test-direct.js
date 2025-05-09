@@ -16,7 +16,7 @@ Throughout my career, I have developed expertise in analyzing customer data to i
 Sincerely,
 Vincent Holm`;
 
-// Use the direct API route
+// Use the direct API route with the corrected path
 fetch('http://localhost:3000/api/save-cleaned-cover-letter', {
   method: 'POST',
   headers: {

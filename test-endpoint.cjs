@@ -41,6 +41,7 @@ async function testEndpoint() {
   console.log(testLetter);
   
   try {
+    // Use the properly registered endpoint path after our fix
     const response = await fetch('http://localhost:3000/api/save-cleaned-cover-letter', {
       method: 'POST',
       headers: {
@@ -53,6 +54,11 @@ async function testEndpoint() {
         userEmail: "vincentholm@gmail.com"
       }),
     });
+    
+    // Check if the response is successful
+    if (!response.ok) {
+      throw new Error(`API returned status ${response.status}: ${await response.text()}`);
+    }
     
     const data = await response.json();
     
