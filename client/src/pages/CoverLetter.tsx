@@ -1173,16 +1173,33 @@ export default function CoverLetter() {
       // Reset font size for body
       doc.setFontSize(11);
 
-      // Split text to fit within page width and respect line breaks
+      // Process the content to better preserve paragraph breaks
+      const paragraphs = letterBody.split(/\n\s*\n+/);
+      let yPosition = margin + 40;
+      
+      // Handle each paragraph with proper spacing
+      paragraphs.forEach((paragraph, index) => {
+        // Split each paragraph to fit within page width
+        const paragraphLines = doc.splitTextToSize(paragraph.trim(), textWidth);
+        
+        // Add paragraph to document
+        doc.text(paragraphLines, margin, yPosition);
+        
+        // Calculate height of this paragraph and add extra space between paragraphs
+        const paragraphHeight = doc.getTextDimensions(paragraphLines).h;
+        yPosition += paragraphHeight + 10; // 10mm is the paragraph spacing
+      });
+      
+      // Store the final y-position for the closing signature
+      const finalYPosition = yPosition;
+      
+      // For backward compatibility, create the bodyLines variable
       const bodyLines = doc.splitTextToSize(letterBody, textWidth);
 
-      // Add content with proper spacing
-      doc.text(bodyLines, margin, margin + 40);
-
-      // Add closing
-      const textHeight = doc.getTextDimensions(bodyLines).h;
-      doc.text(`Sincerely,`, margin, margin + 45 + textHeight);
-      doc.text(`${userName}`, margin, margin + 55 + textHeight);
+      // Skip the old content rendering as we've already rendered paragraphs individually
+      // Now add the closing signature using our calculated finalYPosition
+      doc.text(`Sincerely,`, margin, finalYPosition);
+      doc.text(`${userName}`, margin, finalYPosition + 10);
 
       // Generate output filename
       const outputFilename = filename || `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;

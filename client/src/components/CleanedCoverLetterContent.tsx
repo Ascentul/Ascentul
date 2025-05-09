@@ -370,13 +370,21 @@ export const CleanedCoverLetterContent = ({
     : [cleanedContent.trim()];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {finalParagraphs.map((paragraph, paragraphIndex) => {
         // Now handle each paragraph, checking for placeholders
         const parts = paragraph.split(/(\[.*?\])/);
         
         return (
-          <p key={`para-${paragraphIndex}`} className="mb-4 whitespace-pre-wrap">
+          <p 
+            key={`para-${paragraphIndex}`} 
+            className="mb-6 whitespace-pre-wrap" 
+            style={{ 
+              marginBottom: '1.5rem', 
+              lineHeight: '1.5',
+              display: 'block'
+            }}
+          >
             {parts.map((part, partIndex) => {
               // Check if this part is a placeholder
               const isPlaceholder = /^\[.*\]$/.test(part);
