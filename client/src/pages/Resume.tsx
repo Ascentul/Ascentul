@@ -459,8 +459,8 @@ export default function Resume() {
           if (item.id) {
             workHistoryPromises.push(
               apiRequest('PUT', `/api/career-data/work-history/${item.id}`, {
-                description: item.description,
-                achievements: item.achievements
+                description: item.description || '',
+                achievements: Array.isArray(item.achievements) ? item.achievements : []
               })
             );
           }
