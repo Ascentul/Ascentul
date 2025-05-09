@@ -51,9 +51,23 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     const selectedFile = e.target.files?.[0];
     
     if (!selectedFile) {
-      console.log('No file selected in handleFileChange');
+      const errorMsg = 'No file selected in handleFileChange';
+      console.error(errorMsg);
+      toast({
+        title: 'No File Selected',
+        description: 'Please select a valid PDF file to continue.',
+        variant: 'destructive',
+      });
       return;
     }
+    
+    // Enhanced logging with detailed file info
+    console.log('File selected:', {
+      name: selectedFile.name,
+      type: selectedFile.type || 'unknown type',
+      size: `${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`,
+      lastModified: new Date(selectedFile.lastModified).toISOString()
+    });
     
     // Check file type - allow both explicit application/pdf and for browsers 
     // that may report different MIME types for PDFs
@@ -63,22 +77,42 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                  fileType === 'application/x-pdf' || 
                  fileName.endsWith('.pdf');
     
-    console.log('Selected file:', selectedFile.name, 'Type:', fileType, 'Size:', selectedFile.size, 'Is PDF:', isPdf);
-    
     if (!isPdf) {
+      const errorMsg = `Invalid file type: ${fileType || 'unknown'}. Please upload a PDF file.`;
+      console.error(errorMsg);
       setError('Currently, we only support PDF files for reliable text extraction.');
+      toast({
+        title: 'Invalid File Type',
+        description: 'Only PDF files are supported. Please upload a PDF document.',
+        variant: 'destructive',
+      });
       return;
     }
     
     // Check file size (limit to 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
+      const sizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+      const errorMsg = `File size (${sizeMB}MB) exceeds the 5MB limit.`;
+      console.error(errorMsg);
       setError('File size must be less than 5MB.');
+      toast({
+        title: 'File Too Large',
+        description: `Your file is ${sizeMB}MB. Please upload a file smaller than 5MB.`,
+        variant: 'destructive',
+      });
       return;
     }
     
     // Check if file has content
     if (selectedFile.size === 0) {
+      const errorMsg = 'The selected file appears to be empty (0 bytes).';
+      console.error(errorMsg);
       setError('The selected file appears to be empty.');
+      toast({
+        title: 'Empty File',
+        description: 'The selected file appears to be empty. Please choose a valid PDF file.',
+        variant: 'destructive',
+      });
       return;
     }
     
@@ -106,11 +140,18 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
 
     try {
+      // Display proper loading states
       setUploading(true);
       setExtracting(true);
       setError(null);
+      setHasExtractedText(false);
 
       console.log("Processing file:", file.name, "Type:", file.type, "Size:", file.size, "Last Modified:", new Date(file.lastModified).toISOString());
+
+      // Extra validation before proceeding
+      if (!file.type && !file.name.toLowerCase().endsWith('.pdf')) {
+        throw new Error('File appears to be missing type information and does not have a .pdf extension');
+      }
 
       // Comprehensive file validation
       const fileType = file.type.toLowerCase();
@@ -139,6 +180,18 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         throw new Error(errorMsg);
       }
 
+      // Verify file has content by checking arrayBuffer
+      try {
+        const buffer = await file.arrayBuffer();
+        if (buffer.byteLength === 0) {
+          throw new Error('File has zero bytes content although size property shows non-zero');
+        }
+        console.log(`File integrity check: Successfully read ${buffer.byteLength} bytes from file`);
+      } catch (bufferError) {
+        console.error("Failed to read file content:", bufferError);
+        throw new Error(`Cannot read file content: ${bufferError.message}`);
+      }
+
       // First try the direct extraction method (new approach)
       try {
         console.log("Attempting direct extraction method first via /api/resumes/extract endpoint");
@@ -151,16 +204,38 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           blobType: fileCopy.type
         });
         
+        // Attempt direct extraction with better error diagnostics
         await extractTextWithDirectEndpoint();
         console.log("Direct extraction method succeeded!");
+        
+        // Show success toast
+        toast({
+          title: 'Resume Processed',
+          description: 'Your resume has been successfully analyzed.',
+          variant: 'default',
+        });
       } catch (directError) {
         console.error("Direct extraction failed with error:", directError);
+        
+        // Show warning toast for fallback
+        toast({
+          title: 'Using Backup Method',
+          description: 'Trying alternative extraction approach...',
+          variant: 'default',
+        });
         
         // If direct method fails, try the legacy approach with detailed fallback logging
         console.log("Falling back to legacy two-step extraction method");
         try {
           await legacyExtractProcess();
           console.log("Legacy extraction method succeeded!");
+          
+          // Show success toast
+          toast({
+            title: 'Resume Processed',
+            description: 'Your resume was successfully analyzed using our backup method.',
+            variant: 'default',
+          });
         } catch (legacyError) {
           console.error("Legacy extraction also failed:", legacyError);
           throw new Error(`All extraction methods failed. Last error: ${legacyError.message}`);
@@ -332,16 +407,33 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   
   // Handle errors during the extraction process with better diagnostics
   const handleProcessError = (error: unknown) => {
+    // Reset all loading states
     setUploading(false);
     setExtracting(false);
     
     // Get a better error message with more context
     let errorMessage: string;
     let errorDetails: string = '';
+    let errorCategory: 'file_size' | 'file_type' | 'file_empty' | 'network' | 'parsing' | 'unknown' = 'unknown';
     
+    // Categorize the error to provide more specific help
     if (error instanceof Error) {
       errorMessage = error.message;
       errorDetails = error.stack || '';
+      
+      // Categorize common error types
+      if (errorMessage.includes('file size') || errorMessage.includes('5MB') || errorMessage.includes('too large')) {
+        errorCategory = 'file_size';
+      } else if (errorMessage.includes('file type') || errorMessage.includes('PDF') || errorMessage.includes('application/pdf')) {
+        errorCategory = 'file_type';
+      } else if (errorMessage.includes('empty') || errorMessage.includes('0 bytes') || errorMessage.includes('zero bytes')) {
+        errorCategory = 'file_empty';
+      } else if (errorMessage.includes('fetch') || errorMessage.includes('network') || 
+                 errorMessage.includes('failed to fetch') || errorMessage.includes('Failed to fetch')) {
+        errorCategory = 'network';
+      } else if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
+        errorCategory = 'parsing';
+      }
     } else if (error && typeof error === 'object') {
       try {
         errorMessage = JSON.stringify(error);
@@ -356,37 +448,76 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     console.error("Final error during file processing:", {
       message: errorMessage,
       details: errorDetails,
+      category: errorCategory,
       originalError: error
     });
     
-    // Set user-facing error message
-    setError(errorMessage);
+    // User-friendly error message with more context
+    let userErrorMessage = errorMessage;
     
-    // Show relevant toast message based on error type
-    if (errorMessage.includes('file size') || errorMessage.includes('5MB')) {
-      toast({
-        title: 'File Too Large',
-        description: 'Please upload a smaller PDF file (under 5MB).',
-        variant: 'destructive',
-      });
-    } else if (errorMessage.includes('file type') || errorMessage.includes('PDF')) {
-      toast({
-        title: 'Invalid File Type',
-        description: 'Only PDF files are supported for text extraction.',
-        variant: 'destructive',
-      });
-    } else if (errorMessage.includes('empty') || errorMessage.includes('0 bytes')) {
-      toast({
-        title: 'Empty File',
-        description: 'The uploaded file appears to be empty. Please upload a valid PDF.',
-        variant: 'destructive',
-      });
-    } else {
-      toast({
-        title: 'Extraction Failed',
-        description: 'Could not extract text from the PDF. Please try another file or contact support.',
-        variant: 'destructive',
-      });
+    // If the error message is too technical, simplify it
+    if (errorMessage.includes("TypeError") || 
+        errorMessage.includes("SyntaxError") || 
+        errorMessage.includes("object Object")) {
+      userErrorMessage = "Technical error occurred during processing.";
+    }
+    
+    // Set user-facing error message
+    setError(userErrorMessage);
+    
+    // Show relevant toast message based on error category
+    switch (errorCategory) {
+      case 'file_size':
+        toast({
+          title: 'File Too Large',
+          description: 'Please upload a smaller PDF file (under 5MB).',
+          variant: 'destructive',
+        });
+        break;
+        
+      case 'file_type':
+        toast({
+          title: 'Invalid File Type',
+          description: 'Only PDF files are supported for text extraction.',
+          variant: 'destructive',
+        });
+        break;
+        
+      case 'file_empty':
+        toast({
+          title: 'Empty File',
+          description: 'The uploaded file appears to be empty. Please upload a valid PDF.',
+          variant: 'destructive',
+        });
+        break;
+        
+      case 'network':
+        toast({
+          title: 'Connection Error',
+          description: 'Unable to connect to the server. Please check your internet connection and try again.',
+          variant: 'destructive',
+        });
+        break;
+        
+      case 'parsing':
+        toast({
+          title: 'Processing Error',
+          description: 'The server had trouble processing your file. Please try another PDF or contact support.',
+          variant: 'destructive',
+        });
+        break;
+        
+      default:
+        toast({
+          title: 'Extraction Failed',
+          description: 'Could not extract text from the PDF. Please try another file or contact support.',
+          variant: 'destructive',
+        });
+    }
+    
+    // Reset file input if we had a critical error
+    if (['file_type', 'file_empty', 'file_size'].includes(errorCategory)) {
+      resetFileInput();
     }
   };
 
@@ -458,31 +589,94 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
               
               {!file ? (
                 <div 
-                  className="text-center py-4 w-full"
+                  className="text-center py-4 w-full relative"
                   onDragOver={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    e.currentTarget.classList.add('bg-gray-100');
+                    e.currentTarget.classList.add('bg-gray-100', 'border-primary');
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.add('bg-gray-100', 'border-primary');
                   }}
                   onDragLeave={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    e.currentTarget.classList.remove('bg-gray-100');
+                    
+                    // Only remove the highlight if we're leaving the container (not entering a child)
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX;
+                    const y = e.clientY;
+                    
+                    if (
+                      x <= rect.left ||
+                      x >= rect.right ||
+                      y <= rect.top ||
+                      y >= rect.bottom
+                    ) {
+                      e.currentTarget.classList.remove('bg-gray-100', 'border-primary');
+                    }
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    e.currentTarget.classList.remove('bg-gray-100');
+                    e.currentTarget.classList.remove('bg-gray-100', 'border-primary');
                     
-                    const droppedFiles = e.dataTransfer.files;
-                    if (droppedFiles?.length) {
-                      // Simulate the file input change
-                      const event = {
-                        target: {
-                          files: droppedFiles
+                    try {
+                      const droppedFiles = e.dataTransfer.files;
+                      console.log("Files dropped:", droppedFiles.length, "files");
+                      
+                      if (droppedFiles?.length) {
+                        // Validate file type before handling
+                        const droppedFile = droppedFiles[0];
+                        const fileType = droppedFile.type.toLowerCase();
+                        const fileName = droppedFile.name.toLowerCase();
+                        
+                        console.log("Dropped file details:", {
+                          name: droppedFile.name,
+                          type: droppedFile.type,
+                          size: `${(droppedFile.size / 1024 / 1024).toFixed(2)}MB`
+                        });
+                        
+                        const isPdf = fileType === 'application/pdf' || 
+                                      fileType === 'application/x-pdf' || 
+                                      fileName.endsWith('.pdf');
+                        
+                        if (!isPdf) {
+                          toast({
+                            title: 'Invalid File Type',
+                            description: 'Please upload a PDF file only.',
+                            variant: 'destructive',
+                          });
+                          return;
                         }
-                      } as React.ChangeEvent<HTMLInputElement>;
-                      handleFileChange(event);
+                        
+                        if (droppedFile.size > 5 * 1024 * 1024) {
+                          toast({
+                            title: 'File Too Large',
+                            description: `File size (${(droppedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 5MB limit.`,
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        
+                        // Simulate the file input change
+                        const event = {
+                          target: {
+                            files: droppedFiles
+                          }
+                        } as React.ChangeEvent<HTMLInputElement>;
+                        
+                        handleFileChange(event);
+                      }
+                    } catch (error) {
+                      console.error("Error handling dropped file:", error);
+                      toast({
+                        title: 'Upload Error',
+                        description: 'An error occurred while processing the file. Please try again.',
+                        variant: 'destructive',
+                      });
                     }
                   }}
                 >
