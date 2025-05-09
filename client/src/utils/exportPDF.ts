@@ -14,19 +14,46 @@ declare global {
  */
 export function exportCoverLetterToPDF(): void {
   try {
-    // Get direct reference to the global preview letter data
-    // We need to use the window.coverLetter to access this data
+    // Get direct reference to the cover letter content element
     const previewLetterEl = document.getElementById("pdf-export-content");
     if (!previewLetterEl) {
       alert("❌ Could not find cover letter content. Please try again.");
       return;
     }
     
-    // Get all required details for modern format
+    console.log("Exporting cover letter to PDF from preview element...");
+    
+    // Get all required details directly from the DOM structure
     const fullNameElement = previewLetterEl.querySelector("h2");
     const fullName = fullNameElement?.textContent || "Your Name";
     
-    // Extract text directly from the DOM structure with updated class selector
+    // Get job title (positioned directly below the name)
+    const jobTitleElement = previewLetterEl.querySelector(".text-base.font-normal.mt-1");
+    const jobTitle = jobTitleElement?.textContent?.trim() || "";
+    
+    // Get contact info from the proper element (contains email, LinkedIn, phone)
+    const contactInfoElement = previewLetterEl.querySelector("div.text-base.font-normal.mt-4");
+    const contactInfo = contactInfoElement?.textContent?.trim() || "";
+    
+    // Extract email from contact info (to avoid duplication)
+    const emailMatch = contactInfo.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/);
+    const email = emailMatch ? emailMatch[0] : "";
+    
+    // Get date from the date element
+    const dateContainer = Array.from(previewLetterEl.querySelectorAll(".text-base.font-normal"))
+      .find(el => {
+        const text = el.textContent?.trim() || "";
+        return (text.match(/\d{1,2}\/\d{1,2}\/\d{4}/) || text.match(/\w+ \d{1,2}, \d{4}/));
+      });
+    const date = dateContainer?.textContent?.trim() || new Date().toLocaleDateString();
+    
+    // Get company name - check multiple possible selectors since class names might vary
+    const companyElement = previewLetterEl.querySelector(".mt-1.mb-6.text-base.font-normal p") || 
+                          previewLetterEl.querySelector(".mb-6.text-base.font-normal p") || 
+                          previewLetterEl.querySelector(".mt-4.mb-6.text-base.font-normal p");
+    const companyName = companyElement?.textContent?.trim() || "";
+    
+    // Get body content
     const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");
     let letterBody = letterBodyElement?.textContent || "";
     
@@ -37,22 +64,6 @@ export function exportCoverLetterToPDF(): void {
       .replace(/\[City, State\]|City, State/g, "")
       .replace(/\[Your Name\]/g, fullName)
       .replace(/\[Name\]/g, fullName);
-    
-    // Get job title (if available) with updated class selector
-    const jobTitleElement = previewLetterEl.querySelector(".text-base.font-normal.mt-1");
-    const jobTitle = jobTitleElement?.textContent?.trim() || "";
-    
-    // Get contact info line with updated class selector
-    const contactInfoElement = previewLetterEl.querySelector(".text-base.font-normal.mt-4");
-    const contactInfo = contactInfoElement?.textContent?.trim() || "";
-    
-    // Get date with updated class selector - more specific to ensure we get the right element
-    const dateElement = previewLetterEl.querySelector(".text-base.font-normal.mt-4:not(:first-of-type):not(.mt-1):not(.mb-6)");
-    const date = dateElement?.textContent?.trim() || new Date().toLocaleDateString();
-    
-    // Get company name with updated class selector
-    const companyElement = previewLetterEl.querySelector(".mt-4.mb-6.text-base.font-normal p");
-    const companyName = companyElement?.textContent?.trim() || "";
     
     // Basic validation
     if (!letterBody || letterBody.trim() === "") {
@@ -153,18 +164,18 @@ export function exportCoverLetterToPDF(): void {
       }
     }
     
-    // Add date and company name on adjacent lines with minimal spacing
+    // Add date and company name on the same line with minimal spacing
     doc.setFont(baseFontFamily, "normal");
-    doc.text(date, margin, yPosition);
     
-    // Add company name with minimal spacing (just enough to be distinct but appear connected)
+    // Format a combined date and company line
     if (companyName) {
-      yPosition += 4; // Minimal spacing between date and company
-      doc.setFont(baseFontFamily, "normal");
-      doc.text(companyName, margin, yPosition);
-      yPosition += 6; // Adjust spacing before greeting
+      // Put date and company name on the same line (with appropriate spacing)
+      doc.text(`${date}     ${companyName}`, margin, yPosition);
+      yPosition += 8; // Space before greeting
     } else {
-      yPosition += 6; // Ensure consistent spacing if no company name
+      // Just date if no company
+      doc.text(date, margin, yPosition);
+      yPosition += 8; // Space before greeting
     }
     
     // Add greeting with consistent font
