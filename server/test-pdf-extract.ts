@@ -1,210 +1,193 @@
-import express from 'express';
-import multer from 'multer';
-import path from 'path';
+import { PDFDocument } from 'pdf-lib';
+import { Request, Response } from 'express';
 import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import multer from 'multer';
+import pdfParse from 'pdf-parse-fork';
+import { fileURLToPath } from 'url';
 
-// Create a router for testing
-const router = express.Router();
+// Get the directory name for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Set up multer storage for test uploads
+// Configure multer for file uploads
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'temp');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+  destination: function(req, file, cb) {
     cb(null, uploadDir);
   },
-  filename: (_req, file, cb) => {
-    const uniqueId = uuidv4().substring(0, 8);
-    const ext = path.extname(file.originalname);
-    cb(null, `test_pdf_${uniqueId}${ext}`);
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const fileExt = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + fileExt);
   }
 });
 
-// Configure multer
-const upload = multer({ 
+const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (_req, file, cb) => {
-    // Accept PDF files only
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Only allow PDFs
     if (file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
       cb(new Error('Only PDF files are allowed'));
     }
   }
-});
+}).single('pdfFile');
 
-// Test endpoint with raw file buffer handling
-router.post('/test-pdf-extract', upload.single('file'), async (req, res) => {
-  console.log("TEST ENDPOINT: PDF extraction test called");
-
+/**
+ * Method to test loading PDF with pdf-lib
+ */
+async function testPdfLib(filePath: string) {
   try {
+    console.log(`[PDF-LIB] Testing PDF at path: ${filePath}`);
+    const fileData = fs.readFileSync(filePath);
+    
+    // Try to load with pdf-lib
+    try {
+      const pdfDoc = await PDFDocument.load(fileData);
+      const pageCount = pdfDoc.getPageCount();
+      return {
+        success: true,
+        pageCount,
+        message: `PDF loaded successfully with pdf-lib. Found ${pageCount} pages.`
+      };
+    } catch (pdfLibError) {
+      console.error('[PDF-LIB] Error loading PDF with pdf-lib:', pdfLibError);
+      return {
+        success: false,
+        error: pdfLibError instanceof Error ? pdfLibError.message : String(pdfLibError),
+        stack: pdfLibError instanceof Error ? pdfLibError.stack : undefined,
+        message: 'Failed to load PDF with pdf-lib'
+      };
+    }
+  } catch (fileError) {
+    console.error(`[PDF-LIB] File system error: ${fileError}`);
+    return {
+      success: false,
+      error: fileError instanceof Error ? fileError.message : String(fileError),
+      message: 'Failed to read PDF file'
+    };
+  }
+}
+
+/**
+ * Method to test extracting text from PDF with pdf-parse-fork
+ */
+async function testPdfParse(filePath: string) {
+  try {
+    console.log(`[PDF-PARSE] Testing PDF extraction at path: ${filePath}`);
+    const dataBuffer = fs.readFileSync(filePath);
+    
+    // Try to extract text
+    try {
+      const data = await pdfParse(dataBuffer);
+      const textPreview = data.text.substring(0, 200) + (data.text.length > 200 ? '...' : '');
+      
+      return {
+        success: true,
+        numpages: data.numpages,
+        numrender: data.numrender,
+        info: data.info,
+        metadata: data.metadata,
+        textPreview,
+        textLength: data.text.length,
+        message: `Successfully extracted ${data.text.length} characters from PDF.`
+      };
+    } catch (error) {
+      console.error('[PDF-PARSE] Error parsing PDF:', error);
+      let errorMessage = 'Unknown error';
+      let errorName = 'Unknown';
+      let errorStack = '';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        errorName = error.name;
+        errorStack = error.stack || '';
+      } else {
+        errorMessage = String(error);
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+        errorName,
+        errorStack,
+        message: 'Failed to extract text from PDF using pdf-parse-fork'
+      };
+    }
+  } catch (error) {
+    console.error('[PDF-PARSE] File system error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      message: 'Failed to read PDF file for parsing'
+    };
+  }
+}
+
+/**
+ * Handler for the PDF test endpoint
+ */
+export async function handleTestPdfExtract(req: Request, res: Response) {
+  upload(req, res, async function(err) {
+    // Handle multer errors
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Error uploading file',
+        error: err.message
+      });
+    }
+    
+    // Check if file was provided
     if (!req.file) {
-      console.error("TEST ENDPOINT: No file uploaded");
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
       });
     }
-
-    console.log(`TEST ENDPOINT: File received: ${req.file.originalname}, size: ${req.file.size} bytes`);
-
-    // Try different PDF extraction methods
+    
     try {
-      // Method 1: Try pdf-parse-fork
-      const pdfParse = await import('pdf-parse-fork')
-        .then(module => module.default)
-        .catch(err => {
-          console.error("TEST ENDPOINT: Error importing pdf-parse-fork:", err);
-          return null;
-        });
-
-      if (pdfParse) {
-        try {
-          console.log("TEST ENDPOINT: Trying extraction with pdf-parse-fork");
-          const dataBuffer = fs.readFileSync(req.file.path);
-          const result = await pdfParse(dataBuffer);
-          
-          console.log(`TEST ENDPOINT: pdf-parse-fork extracted ${result.text.length} characters, ${result.numpages} pages`);
-          
-          return res.json({
-            success: true,
-            method: 'pdf-parse-fork',
-            textLength: result.text.length,
-            pages: result.numpages,
-            textPreview: result.text.substring(0, 200),
-            fileName: req.file.originalname
-          });
-        } catch (err) {
-          console.error("TEST ENDPOINT: pdf-parse-fork extraction failed:", err);
-        }
-      }
-
-      // Method 2: Try regular pdf-parse as fallback
-      const pdfParseRegular = await import('pdf-parse')
-        .then(module => module.default)
-        .catch(err => {
-          console.error("TEST ENDPOINT: Error importing regular pdf-parse:", err);
-          return null;
-        });
-
-      if (pdfParseRegular) {
-        try {
-          console.log("TEST ENDPOINT: Trying extraction with regular pdf-parse");
-          const dataBuffer = fs.readFileSync(req.file.path);
-          const result = await pdfParseRegular(dataBuffer);
-          
-          console.log(`TEST ENDPOINT: regular pdf-parse extracted ${result.text.length} characters, ${result.numpages} pages`);
-          
-          return res.json({
-            success: true,
-            method: 'pdf-parse',
-            textLength: result.text.length,
-            pages: result.numpages,
-            textPreview: result.text.substring(0, 200),
-            fileName: req.file.originalname
-          });
-        } catch (err) {
-          console.error("TEST ENDPOINT: regular pdf-parse extraction failed:", err);
-        }
-      }
-
-      // No extraction method succeeded
-      return res.status(500).json({
-        success: false,
-        message: 'All extraction methods failed'
+      const filePath = req.file.path;
+      console.log(`Processing uploaded file: ${filePath}`);
+      
+      // Test loading with pdf-lib
+      const pdfLibResult = await testPdfLib(filePath);
+      
+      // Test extracting with pdf-parse-fork
+      const pdfParseResult = await testPdfParse(filePath);
+      
+      // Return combined results
+      res.json({
+        success: pdfLibResult.success && pdfParseResult.success,
+        file: {
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          path: filePath
+        },
+        pdfLib: pdfLibResult,
+        pdfParse: pdfParseResult
       });
-    } catch (extractionError) {
-      console.error("TEST ENDPOINT: Extraction error:", extractionError);
-      return res.status(500).json({
+      
+    } catch (error) {
+      console.error('Unexpected error in PDF testing:', error);
+      res.status(500).json({
         success: false,
-        message: 'Error during extraction',
-        error: extractionError instanceof Error ? extractionError.message : 'Unknown error'
+        message: 'Unexpected error during PDF testing',
+        error: error instanceof Error ? error.message : String(error)
       });
     }
-  } catch (error) {
-    console.error("TEST ENDPOINT: General error:", error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
+  });
+}
 
-// Simple HTML form for testing
-router.get('/test-pdf-upload-form', (_req, res) => {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Test PDF Upload</title>
-      <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        button { padding: 8px 15px; background: #1333c2; color: white; border: none; cursor: pointer; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow: auto; max-height: 400px; }
-      </style>
-    </head>
-    <body>
-      <h1>PDF Extraction Test</h1>
-      <p>Upload a PDF file to test extraction functionality</p>
-      
-      <form id="uploadForm" enctype="multipart/form-data">
-        <div class="form-group">
-          <label for="pdfFile">Select PDF:</label>
-          <input type="file" id="pdfFile" name="file" accept="application/pdf" required>
-        </div>
-        <button type="submit">Test Extraction</button>
-      </form>
-      
-      <div id="result" style="margin-top: 20px; display: none;">
-        <h2>Result:</h2>
-        <pre id="resultContent"></pre>
-      </div>
-      
-      <script>
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-          e.preventDefault();
-          
-          const formData = new FormData();
-          const fileInput = document.getElementById('pdfFile');
-          
-          if (!fileInput.files.length) {
-            alert('Please select a file');
-            return;
-          }
-          
-          formData.append('file', fileInput.files[0]);
-          
-          const resultDiv = document.getElementById('result');
-          const resultContent = document.getElementById('resultContent');
-          
-          try {
-            resultDiv.style.display = 'block';
-            resultContent.textContent = 'Processing...';
-            
-            const response = await fetch('/test-pdf-extract', {
-              method: 'POST',
-              body: formData
-            });
-            
-            const result = await response.json();
-            resultContent.textContent = JSON.stringify(result, null, 2);
-          } catch (error) {
-            resultContent.textContent = 'Error: ' + error.message;
-          }
-        });
-      </script>
-    </body>
-    </html>
-  `;
-  
-  res.send(html);
-});
-
-export default router;
+export default { handleTestPdfExtract };

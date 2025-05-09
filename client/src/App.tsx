@@ -5,6 +5,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Goals from "@/pages/Goals";
 import Resume from "@/pages/Resume";
+import PdfTestPage from "@/pages/PdfTestPage";
 
 import CoverLetter from "@/pages/CoverLetter";
 import Interview from "@/pages/Interview";
@@ -516,6 +517,11 @@ function App() {
         <Route path="/resume">
           <CareerRoute>
             <Resume />
+          </CareerRoute>
+        </Route>
+        <Route path="/pdf-test">
+          <CareerRoute>
+            <PdfTestPage />
           </CareerRoute>
         </Route>
 
