@@ -48,6 +48,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     
     // Check file type - only allow PDF for now
     const fileType = selectedFile.type;
+    console.log('Selected file:', selectedFile.name, 'Type:', fileType, 'Size:', selectedFile.size);
     
     if (fileType !== 'application/pdf') {
       setError('Currently, we only support PDF files for reliable text extraction.');
@@ -60,12 +61,14 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       return;
     }
     
+    // Store the file in state
     setFile(selectedFile);
     
-    // Auto-process when a file is selected
+    // Auto-process when a file is selected after a brief delay
+    // to ensure the file state is properly set
     setTimeout(() => {
       processFile();
-    }, 100);
+    }, 300); // Slightly longer delay to ensure state is updated
   };
 
   const processFile = async () => {
@@ -108,10 +111,19 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
 
   // New method: Upload and extract in a single step
   const extractTextWithDirectEndpoint = async () => {
-    console.log("Using direct extraction endpoint for file:", file?.name);
+    if (!file) {
+      throw new Error('No file selected');
+    }
     
+    console.log("Using direct extraction endpoint for file:", file.name, "Size:", file.size, "Type:", file.type);
+    
+    // Create a fresh FormData instance
     const formData = new FormData();
-    formData.append('file', file as File);
+    
+    // Make sure we're using the right field name that the server expects
+    formData.append('file', file);
+    
+    console.log("FormData created with file field");
     
     // Send form data to the extraction endpoint
     const response = await fetch('/api/resumes/extract', {
@@ -137,11 +149,19 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   
   // Legacy method: Upload first, then extract
   const legacyExtractProcess = async () => {
-    console.log("Using legacy two-step process for file:", file?.name);
+    if (!file) {
+      throw new Error('No file selected');
+    }
     
-    // Create form data for file upload
+    console.log("Using legacy two-step process for file:", file.name, "Size:", file.size, "Type:", file.type);
+    
+    // Create a fresh FormData instance for the file upload
     const formData = new FormData();
-    formData.append('file', file as File);
+    
+    // Make sure we're using the correct field name
+    formData.append('file', file);
+    
+    console.log("FormData created for legacy upload with file field");
     
     // Step 1: Upload the file
     const uploadResponse = await fetch('/api/resumes/upload', {
@@ -162,7 +182,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       throw new Error('Invalid upload response from server');
     }
     
-    console.log("Legacy upload successful, proceeding to extraction");
+    console.log("Legacy upload successful, proceeding to extraction. FilePath:", uploadResult.filePath);
     
     // Step 2: Extract text from the uploaded file
     const extractResponse = await fetch('/api/resumes/extract-text', {
@@ -283,13 +303,41 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept=".pdf"
+                accept="application/pdf,.pdf"
                 name="file"
                 id="resumeUpload"
               />
               
               {!file ? (
-                <div className="text-center py-4">
+                <div 
+                  className="text-center py-4 w-full"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.add('bg-gray-100');
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove('bg-gray-100');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove('bg-gray-100');
+                    
+                    const droppedFiles = e.dataTransfer.files;
+                    if (droppedFiles?.length) {
+                      // Simulate the file input change
+                      const event = {
+                        target: {
+                          files: droppedFiles
+                        }
+                      } as React.ChangeEvent<HTMLInputElement>;
+                      handleFileChange(event);
+                    }
+                  }}
+                >
                   <UploadCloud className="h-10 w-10 mx-auto text-neutral-300 mb-2" />
                   <p className="text-neutral-600 mb-2">Drop your resume PDF here or</p>
                   <Button 
