@@ -213,16 +213,26 @@ export default function CoverLetter() {
   const handleSaveGenerated = () => {
     if (!generatedContent) return;
 
+    // Get user data for the cover letter
+    const { user } = useUserData.getState();
+    const userFullName = user?.fullName || '';
+    const userEmail = user?.email || '';
+    const userPhone = user?.phone || '';
+    const userLocation = user?.location || '';
+    
+    // Process content to replace placeholders before saving
+    const processedContent = cleanAIOutput(generatedContent);
+
     // Create a new cover letter with the generated content
     const newCoverLetter = {
       name: `${jobTitle} at ${companyName}`,
       template: 'standard',
       content: {
         header: {
-          fullName: '',
-          email: '',
-          phone: '',
-          location: '',
+          fullName: userFullName,
+          email: userEmail,
+          phone: userPhone,
+          location: userLocation,
           date: new Date().toLocaleDateString(),
         },
         recipient: {
@@ -231,7 +241,7 @@ export default function CoverLetter() {
           position: 'Hiring Manager',
           address: '',
         },
-        body: generatedContent,
+        body: processedContent,
         closing: 'Sincerely,',
       }
     };
@@ -252,6 +262,7 @@ export default function CoverLetter() {
         // Redirect to main tab would go here if needed
       })
       .catch((error) => {
+        console.error("Error saving cover letter:", error);
         toast({
           title: 'Error saving cover letter',
           description: error.message || 'An unexpected error occurred',
