@@ -79,6 +79,17 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       setExtracting(true); // We're doing upload and extract in one step now
       setError(null);
 
+      console.log("Processing file:", file.name, "Type:", file.type, "Size:", file.size);
+
+      // Validate file again just to be sure
+      if (file.type !== 'application/pdf') {
+        throw new Error('Only PDF files are supported.');
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File size must be less than 5MB.');
+      }
+
       // Method 1: Use direct extraction endpoint (new approach)
       await extractTextWithDirectEndpoint();
       
