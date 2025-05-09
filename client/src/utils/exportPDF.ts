@@ -352,7 +352,7 @@ export function exportCoverLetterToPDF(): void {
       doc.text(bodyLines, margin, yPosition);
       
       // Move Y position down based on number of lines in this paragraph plus extra spacing
-      yPosition += (bodyLines.length * 6) + 6; // 6 points per line plus 6 points between paragraphs
+      yPosition += (bodyLines.length * 6) + 12; // 6 points per line plus 12 points (doubled) between paragraphs
       
       // Check if we need a new page
       if (yPosition > pageHeight - margin && i < paragraphs.length - 1) {
