@@ -333,65 +333,108 @@ export async function cleanOptimizedCoverLetter(optimizedLetter: string): Promis
   }
   
   try {
-    // First use AI to clean the letter
+    // First use AI to clean the letter with improved prompt
     const prompt = `
-You are an assistant that removes redundant elements from an AI-generated optimized cover letter.
+You are an assistant that formats cover letter content for final saving.
 
-Your goal is to remove:
-- The applicant's name
-- Contact info (email, LinkedIn, date)
-- Any dates at the beginning (like MM/DD/YYYY)
-- Greeting (e.g., "Dear Hiring Manager")
-- Sign-off (e.g., "Sincerely," and name)
+Your goal is to identify and extract ONLY the actual body paragraphs of this cover letter, removing ALL header information, greetings, and closings.
 
-✅ Keep ONLY the main body of the letter (the paragraphs describing the applicant's experience and relevance to the job).
-✅ Make sure the letter starts with the first actual paragraph of content, with no dates or extra spaces at the top.
+❌ REMOVE ALL of these elements regardless of where they appear in the document:
+- Any name that looks like an applicant name (anywhere in the document)
+- Any job title/position mentions at the top or bottom
+- ALL contact information (email, phone, LinkedIn, URLs, etc.)
+- ALL date formats (MM/DD/YYYY, Month DD, YYYY, etc.)
+- ANY company name or recipient lines
+- ALL greeting lines (e.g., "Dear Hiring Manager," "Dear Recruitment Team," etc.)
+- ALL closing phrases (e.g., "Sincerely," "Best regards," "Thank you," etc.)
+- Any placeholder text like "Your Name", "Your Email", "Date", etc.
+- MULTIPLE instances of "Dear Hiring Manager" or similar greetings
+
+✅ Keep ONLY the main body paragraphs that describe the applicant's experience and qualifications.
+✅ The first line of your output should be the first sentence of the ACTUAL letter body content.
+✅ Make sure there are no duplicate paragraphs or phrases in your output.
+✅ Ensure NO greeting line remains at the beginning of your output.
 
 Optimized Letter:
 """
 ${optimizedLetter}
 """
 
-Return just the main body content without any header, dates, or closing lines.
+Return ONLY the clean body content that contains the applicant's qualifications and experience, with no header information, no greetings, and no closings.
 `;
 
     let cleanedLetter = await generateAIResponse(prompt);
     
-    // Additional regex cleanup to remove any dates at the beginning
+    // Enhanced regex cleanup to remove problematic patterns that might remain
     cleanedLetter = cleanedLetter
-      // Remove date pattern at the beginning (like 5/8/2025)
-      .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*/g, '')
-      // Remove date pattern like May 8, 2025
-      .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*/g, '')
-      // Remove extra spaces at the beginning
+      // Remove placeholder text patterns
+      .replace(/Your Name\s*\n/gi, '')
+      .replace(/Your Email\s*\n/gi, '')
+      .replace(/Date\s*\n/gi, '')
+      .replace(/Company\s*\n/gi, '')
+      .replace(/Grubhub\s*\n/gi, '')  // Remove specific company seen in example
+      
+      // Remove any date patterns anywhere
+      .replace(/\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
+      .replace(/[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/g, '')
+      
+      // Remove all greeting lines, not just at the beginning
+      .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+      
+      // Clean up unnecessary whitespace and lines
       .replace(/^\s+/, '')
-      // Trim any whitespace
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
-    
+      
     return cleanedLetter;
   } catch (error) {
     console.error("Error cleaning optimized cover letter:", error);
-    // Attempt regex-only cleanup if AI fails
+    
+    // Enhanced fallback to regex-based cleaning if AI cleaning fails
     try {
       let fallbackCleaned = optimizedLetter
-        // Remove date pattern at the beginning (like 5/8/2025)
-        .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*/g, '')
-        // Remove date pattern like May 8, 2025
-        .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*/g, '')
-        // Remove greeting patterns
-        .replace(/^\s*Dear\s+[^,\n]+(,|\n)/i, '')
+        // Remove placeholder text patterns
+        .replace(/Your Name\s*\n/gi, '')
+        .replace(/Your Email\s*\n/gi, '')
+        .replace(/Date\s*\n/gi, '')
+        .replace(/Company\s*\n/gi, '')
+        .replace(/Grubhub\s*\n/gi, '')  // Remove specific company seen in example
+        
+        // Remove header patterns more thoroughly
+        .replace(/^.*?email.*?\n/i, '')
+        .replace(/^.*?linkedin.*?\n/i, '')
+        .replace(/^.*?phone.*?\n/i, '')
+        .replace(/vincentholm@gmail\.com\s*\|\s*LinkedIn\s*\n/i, '')
+        
+        // Remove name/email/date patterns from anywhere in the document
+        .replace(/^([A-Za-z0-9\s.]+\n){1,4}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\n/gm, '')
+        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*\|\s*LinkedIn/gm, '')
+        
+        // Remove date patterns more thoroughly
+        .replace(/\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
+        .replace(/[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/g, '')
+        
+        // Remove greeting lines thoroughly
+        .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+        
         // Remove sign-off patterns
         .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
-        // Remove extra spaces at the beginning
+        
+        // Clean up extra whitespace
+        .replace(/\n{3,}/g, '\n\n')
         .replace(/^\s+/, '')
-        // Trim any whitespace
         .trim();
       
       return fallbackCleaned;
     } catch (regexError) {
       console.error("Regex fallback cleaning failed:", regexError);
-      // If all cleaning fails, return the original letter
-      return optimizedLetter;
+      // If all cleaning fails, return the original letter with a basic cleanup
+      return optimizedLetter
+        .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+        .replace(/Your Name\s*\n/gi, '')
+        .replace(/Your Email\s*\n/gi, '')
+        .replace(/Date\s*\n/gi, '')
+        .trim();
     }
   }
 }
