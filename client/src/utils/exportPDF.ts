@@ -155,7 +155,7 @@ export function exportCoverLetterToPDF(): void {
     // Add date
     doc.setFontSize(10);
     doc.text(date, margin, yPosition);
-    yPosition += 8;
+    yPosition += 4; // Reduced spacing between date and company name
     
     // Add company name
     if (companyName) {
