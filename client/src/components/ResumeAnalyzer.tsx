@@ -360,11 +360,12 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         fileName: file.name,
         fileSize: file.size,
         fileType: 'application/pdf',
-        formDataEntries: [...formData.entries()].map(e => 
-          e[0] === 'file' ? 
-            `${e[0]}: [File object, size: ${(e[1] as File).size}, type: ${(e[1] as File).type}]` : 
-            `${e[0]}: ${e[1]}`
-        )
+        fileObjectType: pdfFile.type,
+        fileObjectSize: pdfFile.size,
+        containsFile: formData.has('file'),
+        containsFilename: formData.has('filename'),
+        containsFilesize: formData.has('filesize'),
+        containsMethod: formData.has('method')
       });
       
       // Step 1: Upload the file
