@@ -4787,6 +4787,90 @@ export class DatabaseStorage implements IStorage {
     return this.getResumes(userId);
   }
   
+  // Cover Letter operations
+  async getCoverLetters(userId: number): Promise<CoverLetter[]> {
+    try {
+      console.log(`DatabaseStorage: Fetching cover letters for user ${userId}`);
+      const results = await db.select()
+        .from(coverLetters)
+        .where(eq(coverLetters.userId, userId))
+        .orderBy(desc(coverLetters.updatedAt));
+      
+      console.log(`DatabaseStorage: Found ${results.length} cover letters`);
+      return results;
+    } catch (error) {
+      console.error("Error fetching cover letters:", error);
+      return [];
+    }
+  }
+  
+  async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
+    try {
+      const [result] = await db.select()
+        .from(coverLetters)
+        .where(eq(coverLetters.id, id))
+        .limit(1);
+      
+      return result;
+    } catch (error) {
+      console.error(`Error fetching cover letter ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createCoverLetter(userId: number, letterData: InsertCoverLetter): Promise<CoverLetter> {
+    try {
+      console.log(`Creating cover letter for user ${userId}`);
+      const now = new Date();
+      
+      const [result] = await db.insert(coverLetters)
+        .values({
+          ...letterData,
+          userId,
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning();
+      
+      console.log(`Cover letter created with ID ${result.id}`);
+      return result;
+    } catch (error) {
+      console.error("Error creating cover letter:", error);
+      throw error;
+    }
+  }
+  
+  async updateCoverLetter(id: number, data: Partial<CoverLetter>): Promise<CoverLetter | undefined> {
+    try {
+      const now = new Date();
+      
+      const [result] = await db.update(coverLetters)
+        .set({
+          ...data,
+          updatedAt: now
+        })
+        .where(eq(coverLetters.id, id))
+        .returning();
+      
+      return result;
+    } catch (error) {
+      console.error(`Error updating cover letter ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteCoverLetter(id: number): Promise<boolean> {
+    try {
+      await db.delete(coverLetters)
+        .where(eq(coverLetters.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting cover letter ${id}:`, error);
+      return false;
+    }
+  }
+  
   async getGoals(userId: number): Promise<Goal[]> {
     try {
       // Use raw SQL query to avoid orderBy syntax issues
