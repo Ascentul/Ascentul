@@ -5,6 +5,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { exportCoverLetterToPDF } from '@/utils/exportPDF';
 import { jsPDF } from 'jspdf';
+import CleanedCoverLetterContent from '@/components/CleanedCoverLetterContent';
 
 // Add html2pdf type for TypeScript
 declare global {
@@ -1948,7 +1949,9 @@ export default function CoverLetter() {
                           >
                             {analysisResult.optimizedCoverLetter && (
                               <CleanedCoverLetterContent 
-                                content={analysisResult.optimizedCoverLetter} 
+                                content={analysisResult.optimizedCoverLetter}
+                                cleanAIOutput={cleanAIOutput}
+                                replaceUserPlaceholders={replaceUserPlaceholders}
                               />
                             )}
                           </div>
