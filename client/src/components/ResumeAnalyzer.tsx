@@ -250,7 +250,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
   };
 
-  // New method: Upload and extract in a single step
+  // New method: Upload and extract in a single step with more debugging
   const extractTextWithDirectEndpoint = async () => {
     if (!file) {
       throw new Error('No file selected');
@@ -261,19 +261,36 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     try {
       // Create a fresh FormData instance
       const formData = new FormData();
-      
-      // IMPORTANT: Use the actual File object directly instead of creating a new Blob
-      // This ensures all metadata is properly preserved
-      formData.append('file', file);
-      
-      // Log FormData contents for debugging
-      console.log("FormData created with original file object:", {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type
+
+      // Create a new File instance with explicit mimetype to avoid browser inconsistencies
+      const fileBlob = file.slice(0, file.size, 'application/pdf');
+      const pdfFile = new File([fileBlob], file.name, {
+        type: 'application/pdf',
+        lastModified: file.lastModified
       });
       
-      // Send form data to the extraction endpoint
+      // Add the file to the form data
+      formData.append('file', pdfFile);
+
+      // Add a simple field to ensure FormData is working properly
+      formData.append('filename', file.name);
+      formData.append('filesize', file.size.toString());
+      
+      // Enhanced debugging to log the actual form data contents
+      console.log("Enhanced FormData created with file object:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: 'application/pdf',
+        fileObjectType: pdfFile.type,
+        fileObjectSize: pdfFile.size,
+        containsFile: formData.has('file'),
+        containsFilename: formData.has('filename'),
+        containsFilesize: formData.has('filesize')
+      });
+
+      console.log("⚠️ Submitting form data to /api/resumes/extract...");
+      
+      // Send form data to the extraction endpoint with enhanced error handling
       const response = await fetch('/api/resumes/extract', {
         method: 'POST',
         body: formData,
@@ -311,27 +328,43 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
   };
   
-  // Legacy method: Upload first, then extract
+  // Legacy method: Upload first, then extract - with enhanced debugging and handling
   const legacyExtractProcess = async () => {
     if (!file) {
       throw new Error('No file selected');
     }
     
-    console.log("Using legacy two-step process for file:", file.name, "Size:", file.size, "Type:", file.type);
+    console.log("⚠️ Falling back to legacy two-step process for file:", file.name, "Size:", file.size, "Type:", file.type);
     
     try {
       // Create a fresh FormData instance for the file upload
       const formData = new FormData();
+
+      // Create a new File instance with explicit mimetype to avoid browser inconsistencies
+      const fileBlob = file.slice(0, file.size, 'application/pdf');
+      const pdfFile = new File([fileBlob], file.name, {
+        type: 'application/pdf',
+        lastModified: file.lastModified
+      });
       
-      // IMPORTANT: Use the actual File object directly instead of creating a new Blob
-      // This ensures all metadata is properly preserved
-      formData.append('file', file);
+      // Add the file to the form data
+      formData.append('file', pdfFile);
+
+      // Add debug fields to ensure FormData is working properly
+      formData.append('filename', file.name);
+      formData.append('filesize', file.size.toString());
+      formData.append('method', 'legacy');
       
-      // Log FormData contents for debugging
-      console.log("FormData created for legacy upload with original file object:", {
+      // Enhanced debugging to log the actual form data contents
+      console.log("Enhanced legacy FormData created with file object:", {
         fileName: file.name,
         fileSize: file.size,
-        fileType: file.type
+        fileType: 'application/pdf',
+        formDataEntries: [...formData.entries()].map(e => 
+          e[0] === 'file' ? 
+            `${e[0]}: [File object, size: ${(e[1] as File).size}, type: ${(e[1] as File).type}]` : 
+            `${e[0]}: ${e[1]}`
+        )
       });
       
       // Step 1: Upload the file
