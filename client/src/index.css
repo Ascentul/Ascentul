@@ -377,6 +377,6 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    @apply focus-visible:border-primary focus-visible:ring-primary;
+    @apply focus-visible:border-input focus-visible:ring-primary;
   }
 }
