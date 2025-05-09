@@ -907,52 +907,90 @@ export default function CoverLetter() {
     }
   };
 
-  const handleSaveOptimizedCoverLetter = () => {
+  const handleSaveOptimizedCoverLetter = async () => {
     if (!analysisResult?.optimizedCoverLetter) return;
 
-    // Create a new cover letter with the optimized content
-    const newCoverLetter = {
-      name: `Optimized Cover Letter ${new Date().toLocaleDateString()}`,
-      jobTitle: 'Optimized Position', // Adding job title at root level
-      template: 'standard',
-      content: {
-        header: {
-          fullName: '',
-          email: '',
-          phone: '',
-          location: '',
-          date: new Date().toLocaleDateString(),
+    // Show loading state
+    setIsCleaning(true);
+    
+    try {
+      // First clean the optimized content via API
+      const response = await fetch('/api/strip-optimized-cover-letter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        recipient: {
-          name: '',
-          company: '',
-          position: 'Hiring Manager',
-          address: '',
-        },
-        body: analysisResult.optimizedCoverLetter,
-        closing: 'Sincerely,',
-      }
-    };
-
-    // Create a new cover letter with the mutation
-    apiRequest('POST', '/api/cover-letters', newCoverLetter)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
-        toast({
-          title: 'Optimized Cover Letter Saved',
-          description: 'Your optimized cover letter has been saved',
-        });
-        setAnalysisResult(null);
-        setAnalyzeJobDescription('');
-        setAnalyzeCoverLetterText('');
-      })
-      .catch((error: Error) => {
-        toast({
-          title: 'Error',
-          description: `Failed to save optimized cover letter: ${error.message}`,
-          variant: 'destructive',
-        });
+        body: JSON.stringify({ optimizedLetter: analysisResult.optimizedCoverLetter }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to clean cover letter content');
+      }
+      
+      const data = await response.json();
+      const cleanedContent = data.cleanedLetterBody || analysisResult.optimizedCoverLetter;
+      
+      // Get user data if available
+      const userData = {
+        fullName: user?.name || '',
+        email: user?.email || '',
+        phone: '',
+        location: window.linkedInProfile || user?.location || '',
+      };
+      
+      // Get a name for the company from the analysis result
+      const companyName = analysisResult.jobDetails?.companyName || 'Company';
+      const jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
+
+      // Create a new cover letter with the cleaned content
+      const newCoverLetter = {
+        name: `Optimized for ${jobTitle} at ${companyName}`,
+        jobTitle: jobTitle || 'Optimized Position',
+        template: 'standard',
+        content: {
+          header: {
+            fullName: userData.fullName,
+            email: userData.email,
+            phone: userData.phone,
+            location: userData.location,
+            date: new Date().toLocaleDateString(),
+          },
+          recipient: {
+            name: '',
+            company: companyName,
+            position: 'Hiring Manager',
+            address: '',
+          },
+          body: cleanedContent,
+          closing: 'Sincerely,',
+        }
+      };
+
+      // Create a new cover letter with the mutation
+      await apiRequest('POST', '/api/cover-letters', newCoverLetter);
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/cover-letters'] });
+      
+      toast({
+        title: '✅ Optimized Cover Letter Saved',
+        description: "Your optimized cover letter has been saved to 'My Cover Letters'",
+      });
+      
+      // Reset form fields
+      setAnalysisResult(null);
+      setAnalyzeJobDescription('');
+      setAnalyzeCoverLetterText('');
+    } catch (error) {
+      console.error("Error saving optimized cover letter:", error);
+      
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCleaning(false);
+    }
   };
 
   // This was removed to eliminate duplication (function is defined above)
