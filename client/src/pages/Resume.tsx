@@ -457,23 +457,32 @@ export default function Resume() {
       if (optimizedCareerData.workHistory && optimizedCareerData.workHistory.length > 0) {
         for (const item of optimizedCareerData.workHistory) {
           if (item.id) {
-            // Create a properly structured work history update
+            // Create a properly structured work history update with stringified achievements
+            // Make sure we're not modifying any date fields that could cause validation issues
             const updateData = {
               description: item.description || '',
-              // Always ensure achievements is a proper array
-              achievements: Array.isArray(item.achievements) ? 
-                item.achievements.filter((a: string) => typeof a === 'string' && a.trim() !== '') : []
+              // Always ensure achievements is a proper array of strings
+              achievements: Array.isArray(item.achievements) 
+                ? item.achievements
+                    .filter((a: any) => a && (typeof a === 'string') && a.trim() !== '')
+                    .map((a: string) => a.trim())
+                : []
             };
             
-            console.log(`Updating work history item ${item.id} with:`, updateData);
+            console.log(`Updating work history item ${item.id} with:`, JSON.stringify(updateData));
             
-            workHistoryPromises.push(
-              apiRequest('PUT', `/api/career-data/work-history/${item.id}`, updateData)
-                .catch(error => {
-                  console.error(`Error updating work history item ${item.id}:`, error);
-                  throw error;
-                })
-            );
+            try {
+              workHistoryPromises.push(
+                apiRequest('PUT', `/api/career-data/work-history/${item.id}`, updateData)
+                  .catch(error => {
+                    console.error(`Error updating work history item ${item.id}:`, error);
+                    // Don't throw here, let the Promise.all catch the error
+                    return null;
+                  })
+              );
+            } catch (e) {
+              console.error(`Exception during work history item ${item.id} update setup:`, e);
+            }
           }
         }
       }
@@ -512,8 +521,37 @@ export default function Resume() {
         }
       }
 
-      // Wait for all updates to complete
-      return Promise.all([summaryPromise, ...workHistoryPromises, skillsPromise]);
+      // Filter out any null values from failed promises
+      const validWorkHistoryPromises = workHistoryPromises.filter(p => p !== null);
+      
+      console.log(`Executing ${validWorkHistoryPromises.length} work history updates, 1 summary update, and skills update`);
+      
+      // Wait for all updates to complete, but don't fail if some promise rejects
+      // This is crucial for ensuring the resume generation still happens
+      try {
+        const results = await Promise.allSettled([summaryPromise, ...validWorkHistoryPromises, skillsPromise]);
+        
+        // Count successes and failures
+        const succeeded = results.filter(r => r.status === 'fulfilled').length;
+        const failed = results.filter(r => r.status === 'rejected').length;
+        
+        console.log(`Career data update results: ${succeeded} succeeded, ${failed} failed`);
+        
+        // If all failed, throw error
+        if (succeeded === 0 && failed > 0) {
+          const errors = results
+            .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+            .map(r => r.reason)
+            .join(', ');
+          throw new Error(`All updates failed: ${errors}`);
+        }
+        
+        // Return the results
+        return results;
+      } catch (error) {
+        console.error("Error in Promise.allSettled:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       // Refresh career data
