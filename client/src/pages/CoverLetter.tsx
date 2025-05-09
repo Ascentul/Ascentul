@@ -964,10 +964,14 @@ export default function CoverLetter() {
             const data = JSON.parse(responseText);
             if (data.cleanedFinalBody) {
               cleanedContent = data.cleanedFinalBody;
+              // Ensure paragraph formatting is preserved (normalize to exactly one blank line between paragraphs)
+              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with enhanced API cleaning");
             } else if (data.cleanedLetterBody) {
               // For backward compatibility
               cleanedContent = data.cleanedLetterBody;
+              // Ensure paragraph formatting is preserved (normalize to exactly one blank line between paragraphs)
+              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with basic API cleaning");
             }
           } catch (parseError) {
@@ -1010,7 +1014,8 @@ export default function CoverLetter() {
             position: 'Hiring Manager',
             address: '',
           },
-          body: cleanedContent,
+          // Ensure paragraph breaks are preserved in the saved content
+          body: cleanedContent.trim().replace(/\n{3,}/g, '\n\n'),
           closing: 'Sincerely,',
         }
       };
