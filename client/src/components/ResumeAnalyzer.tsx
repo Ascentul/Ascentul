@@ -237,7 +237,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
             description: 'Your resume was successfully analyzed using our backup method.',
             variant: 'default',
           });
-        } catch (legacyError) {
+        } catch (e) {
+          const legacyError = e instanceof Error ? e : new Error('Unknown legacy extraction error');
           console.error("Legacy extraction also failed:", legacyError);
           throw new Error(`All extraction methods failed. Last error: ${legacyError.message}`);
         }
