@@ -676,12 +676,12 @@ export default function CoverLetter() {
 
 
 
-  // Fetch career data at the component level
-  const careerData = queryClient.getQueryData<any>(['/api/career-data']);
-
   // Helper function to replace placeholder tags with user information
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
+
+    // Get career data directly from the queryClient at usage time (not using hooks)
+    const careerData = queryClient.getQueryData<any>(['/api/career-data']);
 
     // Validate field length for proper fallbacks
     const nameToDisplay = user.name && user.name.length >= 2 ? user.name : '[Your Name]';
