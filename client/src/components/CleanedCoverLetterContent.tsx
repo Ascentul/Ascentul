@@ -46,20 +46,36 @@ export const CleanedCoverLetterContent = ({
           console.log("Content cleaned successfully");
         } else {
           console.log("API did not return cleaned content, using original");
-          // Apply client-side cleaning as fallback
+          // Apply enhanced client-side cleaning as fallback
           const clientSideCleaned = cleanAIOutput(content)
-            .replace(/dear hiring manager[,.]?/i, '')
-            .replace(/dear recruitment team[,.]?/i, '')
-            .replace(/sincerely,?[\s\S]*$/i, '');
+            // Remove common greeting patterns
+            .replace(/dear\s+[^,\n]*[,.]?/gi, '')
+            .replace(/to\s+whom\s+it\s+may\s+concern[,.]?/gi, '')
+            // Remove any email/LinkedIn/contact lines
+            .replace(/[\w.-]+@[\w.-]+\.[a-z]{2,}\s*\|\s*linkedin/gi, '')
+            .replace(/email\s*\|\s*linkedin\s*\|\s*phone/gi, '')
+            // Remove date patterns
+            .replace(/\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
+            .replace(/[a-z]+\s+\d{1,2},\s*\d{4}\s*\n/gi, '')
+            // Remove sign-off and everything after it
+            .replace(/\s*(sincerely|regards|respectfully|thank you)[,\s]*[\s\S]*$/i, '');
           setCleanedContent(clientSideCleaned);
         }
       } catch (error) {
         console.error('Error cleaning cover letter content:', error);
-        // Apply client-side cleaning as fallback
+        // Apply enhanced client-side cleaning as fallback
         const clientSideCleaned = cleanAIOutput(content)
-          .replace(/dear hiring manager[,.]?/i, '')
-          .replace(/dear recruitment team[,.]?/i, '')
-          .replace(/sincerely,?[\s\S]*$/i, '');
+          // Remove common greeting patterns
+          .replace(/dear\s+[^,\n]*[,.]?/gi, '')
+          .replace(/to\s+whom\s+it\s+may\s+concern[,.]?/gi, '')
+          // Remove any email/LinkedIn/contact lines
+          .replace(/[\w.-]+@[\w.-]+\.[a-z]{2,}\s*\|\s*linkedin/gi, '')
+          .replace(/email\s*\|\s*linkedin\s*\|\s*phone/gi, '')
+          // Remove date patterns
+          .replace(/\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
+          .replace(/[a-z]+\s+\d{1,2},\s*\d{4}\s*\n/gi, '')
+          // Remove sign-off and everything after it
+          .replace(/\s*(sincerely|regards|respectfully|thank you)[,\s]*[\s\S]*$/i, '');
         setCleanedContent(clientSideCleaned);
       } finally {
         setIsLoading(false);
