@@ -333,9 +333,9 @@ export async function cleanOptimizedCoverLetter(optimizedLetter: string): Promis
   }
   
   try {
-    // First use AI to clean the letter with improved prompt
+    // First use AI to clean the letter with significantly improved prompt
     const prompt = `
-You are an assistant that formats cover letter content for final saving.
+You are an expert assistant that formats cover letter content for final presentation.
 
 Your goal is to identify and extract ONLY the actual body paragraphs of this cover letter, removing ALL header information, greetings, and closings.
 
@@ -344,23 +344,26 @@ Your goal is to identify and extract ONLY the actual body paragraphs of this cov
 - Any job title/position mentions at the top or bottom
 - ALL contact information (email, phone, LinkedIn, URLs, etc.)
 - ALL date formats (MM/DD/YYYY, Month DD, YYYY, etc.)
-- ANY company name or recipient lines
-- ALL greeting lines (e.g., "Dear Hiring Manager," "Dear Recruitment Team," etc.)
-- ALL closing phrases (e.g., "Sincerely," "Best regards," "Thank you," etc.)
+- ANY company name or recipient lines (including "Grubhub", "Google", etc.)
+- ALL greeting lines (e.g., "Dear Hiring Manager," "Dear Recruitment Team," "To Whom It May Concern," etc.)
+- ALL closing phrases (e.g., "Sincerely," "Best regards," "Thank you," "Yours truly," etc.)
 - Any placeholder text like "Your Name", "Your Email", "Date", etc.
 - MULTIPLE instances of "Dear Hiring Manager" or similar greetings
+- ANY reference numbers or application IDs
 
 ✅ Keep ONLY the main body paragraphs that describe the applicant's experience and qualifications.
 ✅ The first line of your output should be the first sentence of the ACTUAL letter body content.
 ✅ Make sure there are no duplicate paragraphs or phrases in your output.
 ✅ Ensure NO greeting line remains at the beginning of your output.
+✅ Check for and remove any duplicate paragraphs that might appear at both the beginning and end.
+✅ Maintain proper paragraph breaks between content sections.
 
 Optimized Letter:
 """
 ${optimizedLetter}
 """
 
-Return ONLY the clean body content that contains the applicant's qualifications and experience, with no header information, no greetings, and no closings.
+Return ONLY the clean body content that contains the applicant's qualifications and experience, with absolutely no header information, no greetings, and no closings.
 `;
 
     let cleanedLetter = await generateAIResponse(prompt);
@@ -372,7 +375,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
       .replace(/Your Email\s*\n/gi, '')
       .replace(/Date\s*\n/gi, '')
       .replace(/Company\s*\n/gi, '')
-      .replace(/Grubhub\s*\n/gi, '')  // Remove specific company seen in example
+      .replace(/\b(Grubhub|Google|Amazon|Microsoft|Apple|Meta|LinkedIn|Twitter|Facebook|Tesla)\s*\n/gi, '')
       
       // Remove any date patterns anywhere
       .replace(/\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
@@ -380,11 +383,30 @@ Return ONLY the clean body content that contains the applicant's qualifications 
       
       // Remove all greeting lines, not just at the beginning
       .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+      .replace(/To\s+Whom\s+It\s+May\s+Concern[,\n]/gi, '')
+      .replace(/Hello\s+[^,\n]+(,|\n)/gi, '')
+      
+      // Remove job title patterns at the beginning
+      .replace(/^[A-Z][a-zA-Z\s]+(Engineer|Developer|Manager|Analyst|Consultant|Specialist)\s*\n/gi, '')
+      
+      // Remove name patterns at the beginning
+      .replace(/^[A-Z][a-z]+(-[A-Z][a-z]+)? [A-Z][a-z]+(-[A-Z][a-z]+)?\s*\n/g, '')
       
       // Clean up unnecessary whitespace and lines
       .replace(/^\s+/, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+      
+    // Check for duplicate content at the beginning and end (sometimes AI returns duplicated content)
+    if (cleanedLetter.length > 200) {
+      const firstHundredChars = cleanedLetter.substring(0, 100).toLowerCase();
+      const lastFewHundredChars = cleanedLetter.substring(cleanedLetter.length - 200).toLowerCase();
+      
+      if (lastFewHundredChars.includes(firstHundredChars)) {
+        // Found likely duplication, keep only the beginning
+        cleanedLetter = cleanedLetter.substring(0, cleanedLetter.length / 2);
+      }
+    }
       
     return cleanedLetter;
   } catch (error) {
