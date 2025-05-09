@@ -456,31 +456,69 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     // Get a better error message with more context
     let errorMessage: string;
     let errorDetails: string = '';
-    let errorCategory: 'file_size' | 'file_type' | 'file_empty' | 'network' | 'parsing' | 'unknown' = 'unknown';
+    let errorCategory: 'file_size' | 'file_type' | 'file_empty' | 'network' | 'parsing' | 'authentication' | 'server' | 'extraction' | 'unknown' = 'unknown';
     
     // Categorize the error to provide more specific help
     if (error instanceof Error) {
       errorMessage = error.message;
       errorDetails = error.stack || '';
       
-      // Categorize common error types
-      if (errorMessage.includes('file size') || errorMessage.includes('5MB') || errorMessage.includes('too large')) {
+      // Enhanced error categorization with more comprehensive pattern matching
+      if (errorMessage.includes('file size') || errorMessage.includes('5MB') || 
+          errorMessage.includes('too large') || errorMessage.includes('LIMIT_FILE_SIZE')) {
         errorCategory = 'file_size';
-      } else if (errorMessage.includes('file type') || errorMessage.includes('PDF') || errorMessage.includes('application/pdf')) {
+      } else if (errorMessage.includes('file type') || errorMessage.includes('PDF') || 
+                errorMessage.includes('application/pdf') || errorMessage.includes('Invalid file type')) {
         errorCategory = 'file_type';
-      } else if (errorMessage.includes('empty') || errorMessage.includes('0 bytes') || errorMessage.includes('zero bytes')) {
+      } else if (errorMessage.includes('empty') || errorMessage.includes('0 bytes') || 
+                errorMessage.includes('zero bytes') || errorMessage.includes('no text was found')) {
         errorCategory = 'file_empty';
       } else if (errorMessage.includes('fetch') || errorMessage.includes('network') || 
-                 errorMessage.includes('failed to fetch') || errorMessage.includes('Failed to fetch')) {
+                errorMessage.includes('failed to fetch') || errorMessage.includes('Failed to fetch') ||
+                errorMessage.includes('ECONNREFUSED') || errorMessage.includes('timeout')) {
         errorCategory = 'network';
-      } else if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
+      } else if (errorMessage.includes('JSON') || errorMessage.includes('parse') ||
+                errorMessage.includes('Invalid JSON')) {
         errorCategory = 'parsing';
+      } else if (errorMessage.includes('401') || errorMessage.includes('unauthorized') || 
+                errorMessage.includes('Unauthorized') || errorMessage.includes('authentication')) {
+        errorCategory = 'authentication';
+      } else if (errorMessage.includes('500') || errorMessage.includes('server error') || 
+                errorMessage.includes('internal server')) {
+        errorCategory = 'server';
+      } else if (errorMessage.includes('extraction') || errorMessage.includes('text extract') || 
+                errorMessage.includes('No text content found')) {
+        errorCategory = 'extraction';
       }
     } else if (error && typeof error === 'object') {
       try {
         errorMessage = JSON.stringify(error);
+        
+        // Try to categorize JSON error messages as well
+        if (errorMessage.includes('size') || errorMessage.includes('large')) {
+          errorCategory = 'file_size';
+        } else if (errorMessage.includes('type') || errorMessage.includes('PDF')) {
+          errorCategory = 'file_type';
+        } else if (errorMessage.includes('empty') || errorMessage.includes('bytes')) {
+          errorCategory = 'file_empty';
+        }
       } catch (e) {
         errorMessage = String(error);
+      }
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+      
+      // Also try to categorize string errors
+      if (error.includes('file size') || error.includes('too large')) {
+        errorCategory = 'file_size';
+      } else if (error.includes('file type') || error.includes('PDF')) {
+        errorCategory = 'file_type';
+      } else if (error.includes('empty') || error.includes('no text')) {
+        errorCategory = 'file_empty';
+      } else if (error.includes('401') || error.includes('unauthorized')) {
+        errorCategory = 'authentication';
+      } else if (error.includes('500') || error.includes('server error')) {
+        errorCategory = 'server';
       }
     } else {
       errorMessage = 'An unknown error occurred during file processing';
@@ -494,61 +532,70 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       originalError: error
     });
     
-    // User-friendly error message with more context
-    let userErrorMessage = errorMessage;
-    
-    // If the error message is too technical, simplify it
-    if (errorMessage.includes("TypeError") || 
-        errorMessage.includes("SyntaxError") || 
-        errorMessage.includes("object Object")) {
-      userErrorMessage = "Technical error occurred during processing.";
-    }
+    // Get a user-friendly error message
+    const userErrorMessage = getHumanReadableError(errorMessage, errorCategory);
     
     // Set user-facing error message
     setError(userErrorMessage);
     
-    // Show relevant toast message based on error category
+    // Show helpful toast with potential solutions based on error category
     switch (errorCategory) {
       case 'file_size':
         toast({
           title: 'File Too Large',
-          description: 'Please upload a smaller PDF file (under 5MB).',
+          description: 'Please upload a PDF file smaller than 5MB. Try compressing your PDF or uploading a simpler version.',
           variant: 'destructive',
         });
         break;
-        
       case 'file_type':
         toast({
           title: 'Invalid File Type',
-          description: 'Only PDF files are supported for text extraction.',
+          description: 'Please upload a valid PDF file. Other file formats are not supported at this time.',
           variant: 'destructive',
         });
         break;
-        
       case 'file_empty':
         toast({
-          title: 'Empty File',
-          description: 'The uploaded file appears to be empty. Please upload a valid PDF.',
+          title: 'Empty or Unreadable File',
+          description: 'No text could be extracted from this file. Please upload a PDF with selectable text content.',
           variant: 'destructive',
         });
         break;
-        
       case 'network':
         toast({
           title: 'Connection Error',
-          description: 'Unable to connect to the server. Please check your internet connection and try again.',
+          description: 'There was a problem connecting to the server. Please check your internet connection and try again.',
           variant: 'destructive',
         });
         break;
-        
       case 'parsing':
         toast({
           title: 'Processing Error',
-          description: 'The server had trouble processing your file. Please try another PDF or contact support.',
+          description: 'There was an issue processing the file. Please try a different PDF file format.',
           variant: 'destructive',
         });
         break;
-        
+      case 'authentication':
+        toast({
+          title: 'Authentication Error',
+          description: 'Your session may have expired. Please refresh the page and try again.',
+          variant: 'destructive',
+        });
+        break;
+      case 'server':
+        toast({
+          title: 'Server Error',
+          description: 'We encountered a server error while processing your file. Please try again later.',
+          variant: 'destructive',
+        });
+        break;
+      case 'extraction':
+        toast({
+          title: 'Text Extraction Failed',
+          description: 'We couldn\'t extract text from your PDF. Try a PDF with selectable text rather than scanned images.',
+          variant: 'destructive',
+        });
+        break;
       default:
         toast({
           title: 'Extraction Failed',
@@ -558,8 +605,43 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
     }
     
     // Reset file input if we had a critical error
-    if (['file_type', 'file_empty', 'file_size'].includes(errorCategory)) {
+    if (['file_type', 'file_empty', 'file_size', 'extraction'].includes(errorCategory)) {
       resetFileInput();
+    }
+  };
+  
+  // Helper function to convert technical errors to human-readable messages
+  const getHumanReadableError = (errorMessage: string, category: string): string => {
+    // If the error message is too technical, simplify it
+    if (errorMessage.includes("TypeError") || 
+        errorMessage.includes("SyntaxError") || 
+        errorMessage.includes("object Object")) {
+      return "Technical error occurred during processing.";
+    }
+    
+    switch(category) {
+      case 'file_size':
+        return 'Your file is too large. Please keep it under 5MB.';
+      case 'file_type':
+        return 'Only PDF files are supported at this time.';
+      case 'file_empty':
+        return 'We couldn\'t find any text in this file. Make sure it contains text that can be selected.';
+      case 'network':
+        return 'Connection problem. Please check your internet and try again.';
+      case 'parsing':
+        return 'There was a problem reading your file. Try a different PDF.';
+      case 'authentication':
+        return 'Your session may have expired. Please refresh the page.';
+      case 'server':
+        return 'Our server encountered an issue. Please try again later.';
+      case 'extraction':
+        return 'We couldn\'t extract text from your PDF. Try a PDF with selectable text rather than scanned images.';
+      default:
+        // For unknown errors, clean up the message if it's too technical
+        if (errorMessage.includes('Error: ')) {
+          return errorMessage.replace('Error: ', '');
+        }
+        return errorMessage || 'An unknown error occurred during file processing.';
     }
   };
 
