@@ -98,7 +98,7 @@ export function exportCoverLetterToPDF(): void {
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
       doc.text(jobTitle, margin, yPosition);
-      yPosition += 6;
+      yPosition += 8; // Increased spacing between job title and contact info
     }
     
     // Add contact info
@@ -119,11 +119,14 @@ export function exportCoverLetterToPDF(): void {
         yPosition += 5;
         
         // Set blue color and underline for link
-        doc.setTextColor(0, 0, 255); // Blue color for link
-        doc.text('LinkedIn Profile', margin, yPosition);
+        doc.setTextColor(0, 102, 204); // Professional blue color for link
+        
+        // Use a more professional display format for the LinkedIn URL
+        const linkedInText = 'LinkedIn: Professional Profile';
+        doc.text(linkedInText, margin, yPosition);
         
         // Add the link to the text
-        const textWidth = doc.getTextWidth('LinkedIn Profile');
+        const textWidth = doc.getTextWidth(linkedInText);
         doc.link(
           margin, 
           yPosition - 4, // Slightly above text
