@@ -101,92 +101,89 @@ export function exportCoverLetterToPDF(): void {
     // Current Y position for content
     let yPosition = margin;
     
-    // Consistent line spacing to use throughout
-    const lineHeight = 6; // Base line height matching leading-relaxed
-    const paragraphSpacing = 10; // Space between logical groups (acts as h-4 equivalent)
-    
     // Add name at the top - slight emphasis with bold only
     doc.setFont(baseFontFamily, "bold");
     doc.text(fullName, margin, yPosition);
-    yPosition += lineHeight;
+    yPosition += 7;
     
     // Add job title if present
     if (jobTitle) {
       doc.setFont(baseFontFamily, "normal");
       doc.text(jobTitle, margin, yPosition);
-      yPosition += paragraphSpacing; // Line break between name/title and contact info
-    } else {
-      // If no job title, still add consistent space
-      yPosition += paragraphSpacing - lineHeight;
+      yPosition += 8; // Increased spacing between job title and contact info
     }
     
     // Add contact info
     if (contactInfo) {
       doc.setFont(baseFontFamily, "normal");
       
-      // Extract email from contact info
-      const contactParts = contactInfo.split('|').map(part => part.trim());
-      
-      // Always show email on its own line
-      if (contactParts.length > 0) {
-        doc.text(contactParts[0], margin, yPosition);
-      }
-      
-      // Add LinkedIn if available
+      // Check if we have a LinkedIn URL to include as a clickable link
       if (window.linkedInProfile) {
-        // Only if we have a separate LinkedIn URL
-        yPosition += lineHeight;
+        // Split the contact info (typically Email | LinkedIn | Phone) to isolate parts
+        const contactParts = contactInfo.split('|').map(part => part.trim());
+        
+        // Parse email (usually first part)
+        if (contactParts.length > 0) {
+          doc.text(contactParts[0], margin, yPosition);
+        }
+        
+        // Move to next line for LinkedIn as a clickable link
+        yPosition += 5;
         
         // Set blue color for link while maintaining font consistency
         doc.setTextColor(0, 102, 204); // Professional blue color for link
         
+        // Use a more professional display format for the LinkedIn URL
         const linkedInText = 'LinkedIn: Professional Profile';
         doc.text(linkedInText, margin, yPosition);
         
         // Add the link to the text
-        const linkedInWidth = doc.getTextWidth(linkedInText);
+        const textWidth = doc.getTextWidth(linkedInText);
         doc.link(
           margin, 
           yPosition - 4, // Slightly above text
-          linkedInWidth, 
+          textWidth, 
           5, // Height of clickable area
           { url: window.linkedInProfile }
         );
         
         // Reset to black text
         doc.setTextColor(0, 0, 0);
+        
+        // Add phone if present (usually last part)
+        if (contactParts.length > 2) {
+          yPosition += 5;
+          doc.text(contactParts[2], margin, yPosition);
+        }
+        
+        yPosition += 3; // Extra spacing
+      } else {
+        // Without LinkedIn URL, just use the regular contact info line
+        doc.text(contactInfo, margin, yPosition);
+        yPosition += 8;
       }
-      
-      // Add phone if present
-      if (contactParts.length > 2) {
-        yPosition += lineHeight;
-        doc.text(contactParts[2], margin, yPosition);
-      }
-      
-      // Add paragraph spacing after contact section
-      yPosition += paragraphSpacing;
     }
     
-    // Add date and company name with consistent spacing
+    // Add date and company name on separate lines with consistent body text spacing
     doc.setFont(baseFontFamily, "normal");
     
     // Add date on its own line
     doc.text(date, margin, yPosition);
-    yPosition += lineHeight;
+    yPosition += 6; // Space between date and company (matches body line spacing)
     
     // Add company name on its own line (if provided)
     if (companyName) {
       doc.text(companyName, margin, yPosition);
-      yPosition += paragraphSpacing; // Line break between company and greeting
-    } else {
-      // Still maintain paragraph spacing if no company
-      yPosition += paragraphSpacing - lineHeight;
+      yPosition += 6; // Space after company name
     }
+    
+    // Add extra space before greeting for visual separation
+    yPosition += 2;
     
     // Add greeting with consistent font
     doc.setFont(baseFontFamily, "normal");
     doc.text("Dear Hiring Manager,", margin, yPosition);
-    yPosition += lineHeight + 4; // Slight extra space before body text
+    yPosition += 10;
     
     // Ensure body text uses the same font
     
