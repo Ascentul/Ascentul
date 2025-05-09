@@ -2792,14 +2792,30 @@ export default function CoverLetter() {
                         : (
                           // Split the text into paragraphs and render each with proper spacing
                           part.split(/\n\s*\n+/).map((paragraph, pIndex) => (
-                            <p key={`p-${i}-${pIndex}`} className="whitespace-pre-wrap mb-4">{paragraph.trim()}</p>
+                            <p 
+                              key={`p-${i}-${pIndex}`} 
+                              className="whitespace-pre-wrap mb-6" 
+                              style={{ 
+                                marginBottom: '1.5rem', 
+                                lineHeight: '1.6',
+                                display: 'block'
+                              }}
+                            >{paragraph.trim()}</p>
                           ))
                         )
                     )
                   : (
                     // If no LinkedIn URL, just split content into paragraphs
                     previewLetter.content.body.split(/\n\s*\n+/).map((paragraph, pIndex) => (
-                      <p key={`p-${pIndex}`} className="whitespace-pre-wrap mb-4">{paragraph.trim()}</p>
+                      <p 
+                        key={`p-${pIndex}`} 
+                        className="whitespace-pre-wrap mb-6" 
+                        style={{ 
+                          marginBottom: '1.5rem', 
+                          lineHeight: '1.6',
+                          display: 'block'
+                        }}
+                      >{paragraph.trim()}</p>
                     ))
                   )
                 }</div>
