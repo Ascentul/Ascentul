@@ -96,7 +96,14 @@ export function registerPdfExtractRoutes(app: Router) {
       // Check if it exists and has proper permissions
       const dirExists = fs.existsSync(uploadDir);
       
-      let access = {
+      // Define proper type for access permissions
+      interface AccessPermissions {
+        read: boolean;
+        write: boolean;
+        execute: boolean;
+      }
+      
+      const access: AccessPermissions = {
         read: false,
         write: false,
         execute: false
@@ -126,14 +133,30 @@ export function registerPdfExtractRoutes(app: Router) {
         // Can't execute
       }
       
-      // List files in directory if possible
-      let files = [];
+      // List files in directory if possible with proper typing
+      const files: string[] = [];
       if (dirExists && access.read) {
-        files = fs.readdirSync(uploadDir).slice(0, 10); // Show up to 10 files
+        const dirFiles = fs.readdirSync(uploadDir);
+        // Only take the first 10 files to avoid overwhelming the response
+        files.push(...dirFiles.slice(0, 10));
       }
       
-      // Return full diagnostics
-      res.json({
+      // Return full diagnostics with explicit response interface
+      interface DiagnosticsResponse {
+        success: boolean;
+        directory: {
+          path: string;
+          exists: boolean;
+          access: AccessPermissions;
+          fileCount: number;
+          sampleFiles: string[];
+        };
+        multerConfigured: boolean;
+        extractionEndpointsAvailable: string[];
+        uploadDirectoryAutoCreated: boolean;
+      }
+      
+      const response: DiagnosticsResponse = {
         success: true,
         directory: {
           path: uploadDir,
@@ -149,7 +172,9 @@ export function registerPdfExtractRoutes(app: Router) {
           "/api/resumes/extract-text"
         ],
         uploadDirectoryAutoCreated: true
-      });
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error("Diagnostics error:", error);
       res.status(500).json({
