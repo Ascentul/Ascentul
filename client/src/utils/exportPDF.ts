@@ -193,7 +193,7 @@ export function exportCoverLetterToPDF(): void {
       console.log("Export PDF - LinkedIn profile:", window.linkedInProfile);
       console.log("Export PDF - Contact info:", contactInfo);
       
-      // Format contact line with specific email | LinkedIn format
+      // Always try to format contact info with LinkedIn, even if it's not mentioned in the contact info yet
       if (window.linkedInProfile) {
         let emailPart = '';
         let phonePart = '';
@@ -202,6 +202,17 @@ export function exportCoverLetterToPDF(): void {
         const emailMatch = contactInfo.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
         if (emailMatch) {
           emailPart = emailMatch[0];
+        } else {
+          // Try to get email from anywhere in the document if not in contact line
+          const allEmails = Array.from(previewLetterEl.querySelectorAll("p")).map(p => {
+            const text = p.textContent || "";
+            const match = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
+            return match ? match[0] : null; 
+          }).filter(Boolean);
+          
+          if (allEmails.length > 0) {
+            emailPart = allEmails[0] as string;
+          }
         }
         
         // Extract phone from contact info - typically contains digits
@@ -210,11 +221,10 @@ export function exportCoverLetterToPDF(): void {
           phonePart = phoneMatch[0];
         }
         
-        // Build new contact line with exact format: email | LinkedIn | phone
-        let contactLine = emailPart;
+        // Start with a clean contact line
         let currentX = margin;
         
-        // Email part
+        // Email part - always include if we have it
         if (emailPart) {
           doc.text(emailPart, currentX, yPosition);
           currentX += doc.getTextWidth(emailPart);
@@ -224,7 +234,7 @@ export function exportCoverLetterToPDF(): void {
           currentX += doc.getTextWidth(' | ');
         }
         
-        // LinkedIn part (always included if we have a LinkedIn URL)
+        // LinkedIn part - always include if we have a LinkedIn URL
         doc.setTextColor(0, 102, 204); // LinkedIn blue color
         doc.text('LinkedIn', currentX, yPosition);
         
@@ -251,12 +261,22 @@ export function exportCoverLetterToPDF(): void {
           doc.text(phonePart, currentX, yPosition);
         }
         
+        // Log what we're doing
+        console.log("Added formatted contact line with LinkedIn URL:", {
+          email: emailPart,
+          linkedIn: 'LinkedIn',
+          phone: phonePart,
+          linkedInUrl: window.linkedInProfile
+        });
+        
         // Add spacing after contact line
         yPosition += 8;
       } else {
         // Without LinkedIn URL, just use the regular contact info line
         doc.text(contactInfo, margin, yPosition);
         yPosition += 8;
+        
+        console.log("Using standard contact info (no LinkedIn URL):", contactInfo);
       }
     }
     
@@ -276,8 +296,23 @@ export function exportCoverLetterToPDF(): void {
     // Add extra space before greeting for visual separation
     yPosition += 2;
     
-    // Force the recipient to be "Hiring Manager" to avoid any test data
-    const recipientName = "Hiring Manager";
+    // Try to extract the recipient name from the preview content
+    let recipientName = "Hiring Manager"; // Default fallback
+    
+    // Look for any paragraph that might contain a greeting
+    const greetingParagraph = Array.from(previewLetterEl.querySelectorAll("p")).find(el => {
+      const text = el.textContent?.trim() || "";
+      return text.startsWith("Dear ") || text.startsWith("To Whom");
+    });
+    
+    if (greetingParagraph) {
+      const greetingText = greetingParagraph.textContent?.trim() || "";
+      const match = greetingText.match(/Dear\s+([^,]+)/i);
+      if (match && match[1]) {
+        recipientName = match[1].trim();
+        console.log("Found recipient name from greeting:", recipientName);
+      }
+    }
     
     // Add greeting with consistent font
     doc.setFont(baseFontFamily, "normal");
