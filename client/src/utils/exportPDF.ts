@@ -626,12 +626,14 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       }
       /* Ensure paragraph spacing is preserved */
       p {
-        margin-bottom: 1em !important;
+        margin-bottom: 1.5em !important;
         white-space: pre-wrap !important;
+        line-height: 1.6 !important;
+        display: block !important;
       }
       /* Preserve line breaks within paragraphs */
       p + p {
-        margin-top: 1em !important;
+        margin-top: 1.5em !important;
       }
     `;
     clone.appendChild(styleElement);
