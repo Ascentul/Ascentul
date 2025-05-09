@@ -122,15 +122,17 @@ export default function CoverLetter() {
     },
   });
 
+  // Create a type for the cover letter when preparing for creation or duplication
+  type CoverLetterCreateType = Omit<CoverLetterType, 'id' | 'createdAt' | 'updatedAt'>;
+
   const duplicateCoverLetterMutation = useMutation({
     mutationFn: async (coverLetter: CoverLetterType) => {
-      const newCoverLetter = {
-        ...coverLetter,
+      // Create a new object without the id, createdAt, and updatedAt properties
+      const { id, createdAt, updatedAt, ...restOfLetter } = coverLetter;
+      const newCoverLetter: CoverLetterCreateType = {
+        ...restOfLetter,
         name: `${coverLetter.name} (Copy)`,
       };
-      delete newCoverLetter.id;
-      delete newCoverLetter.createdAt;
-      delete newCoverLetter.updatedAt;
 
       return apiRequest('POST', '/api/cover-letters', newCoverLetter);
     },
@@ -243,8 +245,16 @@ export default function CoverLetter() {
 
     console.log("Saving generated cover letter content");
 
+    // Define type for user data to ensure consistency
+    interface CoverLetterUserData {
+      fullName: string;
+      email: string;
+      phone: string;
+      location: string;
+    }
+
     // Initialize user data with empty values
-    const userData = {
+    const userData: CoverLetterUserData = {
       fullName: '',
       email: '',
       phone: '',
@@ -276,7 +286,7 @@ export default function CoverLetter() {
     console.log("Content processed successfully");
 
     // Create a properly formatted cover letter with the generated content
-    const newCoverLetter = {
+    const newCoverLetter: CoverLetterCreateType = {
       name: `${jobTitle} at ${companyName}`,
       jobTitle: jobTitle, // Add job title at the root level
       template: 'standard',
@@ -314,7 +324,7 @@ export default function CoverLetter() {
 
         // Redirect to main tab would go here if needed
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error("Error saving cover letter:", error);
         toast({
           title: 'Error saving cover letter',
@@ -364,7 +374,7 @@ export default function CoverLetter() {
 
   // This function has been moved to a utility file, we're keeping it here for backwards compatibility
   // with other parts of the code
-  const directPdfExport = (coverLetter: any) => {
+  const directPdfExport = (coverLetter: CoverLetterType) => {
     // First set the preview letter so the proper content is in the DOM
     setPreviewLetter(coverLetter);
 
@@ -490,7 +500,7 @@ export default function CoverLetter() {
             // Clean up
             document.body.removeChild(container);
           })
-          .catch((err: any) => {
+          .catch((err: Error) => {
             console.error('Professional PDF generation failed:', err);
             toast({
               title: 'Error',
@@ -588,7 +598,7 @@ export default function CoverLetter() {
                 title: 'PDF Downloaded',
                 description: `Your cover letter "${letter.name}" has been saved as a PDF.`,
               });
-            } catch (finalError) {
+            } catch (finalError: unknown) {
               console.error('All PDF generation methods failed:', finalError);
               toast({
                 title: 'Error',
@@ -598,7 +608,7 @@ export default function CoverLetter() {
             }
           });
       }, 500); // Increased delay to ensure rendering
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error in PDF export setup:', error);
       toast({
         title: 'Error',
