@@ -2855,9 +2855,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { cleanOptimizedCoverLetter } = await import('./utils/openai');
       
       // Clean the cover letter to keep only the main body
-      const cleanedOptimizedLetter = await cleanOptimizedCoverLetter(optimizedLetter);
+      const cleanedLetterBody = await cleanOptimizedCoverLetter(optimizedLetter);
       
-      return res.json({ cleanedOptimizedLetter });
+      return res.json({ cleanedLetterBody });
     } catch (error) {
       console.error('Error cleaning optimized cover letter:', error);
       return res.status(500).json({ 
