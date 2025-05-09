@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 import type { Express } from 'express';
-import { requireAuth } from './auth';
+import { requireAuth, requireLoginFallback } from './auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -186,7 +186,7 @@ export function registerPdfExtractRoutes(app: Router) {
   });
   
   // Direct file submission endpoint - processes file immediately with enhanced debugging
-  app.post("/api/resumes/extract", requireAuth, (req: Request, res: Response) => {
+  app.post("/api/resumes/extract", requireLoginFallback, (req: Request, res: Response) => {
     console.log("=== Starting direct PDF extraction process ===");
     console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
     
@@ -303,7 +303,7 @@ export function registerPdfExtractRoutes(app: Router) {
 
   // Legacy endpoints for backward compatibility with enhanced debugging
   // Resume file upload endpoint
-  app.post("/api/resumes/upload", requireAuth, (req: Request, res: Response) => {
+  app.post("/api/resumes/upload", requireLoginFallback, (req: Request, res: Response) => {
     console.log(`=== Legacy upload endpoint called by user ID: ${req.user?.id} ===`);
     console.log(`Content-Type: ${req.headers['content-type']}`);
     
@@ -382,7 +382,7 @@ export function registerPdfExtractRoutes(app: Router) {
   });
   
   // Legacy text extraction endpoint with enhanced error handling
-  app.post("/api/resumes/extract-text", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/resumes/extract-text", requireLoginFallback, async (req: Request, res: Response) => {
     try {
       console.log("=== Legacy extract-text endpoint called ===");
       console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
