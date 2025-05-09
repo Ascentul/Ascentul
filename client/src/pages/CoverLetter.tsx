@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -1946,18 +1946,11 @@ export default function CoverLetter() {
                             className="p-4 pb-0 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap"
                             id="optimizedCoverLetterContent"
                           >
-                            {analysisResult.optimizedCoverLetter && replaceUserPlaceholders(cleanAIOutput(analysisResult.optimizedCoverLetter))
-                              .split(/(\[.*?\])/).map((part, index) => {
-                                // Check if this part is a placeholder (surrounded by brackets)
-                                const isPlaceholder = /^\[.*\]$/.test(part);
-                                return isPlaceholder ? (
-                                  <span key={index} className="text-neutral-400 bg-neutral-50 px-1 rounded" title="Fill in your personal details in your profile">
-                                    {part}
-                                  </span>
-                                ) : (
-                                  <span key={index}>{part}</span>
-                                );
-                              })}
+                            {analysisResult.optimizedCoverLetter && (
+                              <CleanedCoverLetterContent 
+                                content={analysisResult.optimizedCoverLetter} 
+                              />
+                            )}
                           </div>
                         </div>
                       </div>
