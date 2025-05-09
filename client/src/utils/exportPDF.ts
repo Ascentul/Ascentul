@@ -85,13 +85,35 @@ export function exportCoverLetterToPDF(): void {
     const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");
     let letterBody = letterBodyElement?.textContent || "";
     
-    // Clean any remaining placeholders from the text
+    // Enhanced cleaning of the letter body to remove duplicate content and placeholders
     letterBody = letterBody
+      // Remove standard placeholders
       .replace(/\[Your Address\]|\[Address\]/g, "")
       .replace(/\[Your Location\]|\[Location\]/g, "")
       .replace(/\[City, State\]|City, State/g, "")
       .replace(/\[Your Name\]/g, fullName)
-      .replace(/\[Name\]/g, fullName);
+      .replace(/\[Name\]/g, fullName)
+      
+      // Remove any greeting lines to prevent duplication
+      .replace(/^\s*Dear\s+[^,\n]+(,|\n)/i, "")
+      .replace(/Dear\s+[^,\n]+(,|\n)/gi, "")
+      
+      // Remove any email/contact info lines that might be duplicated
+      .replace(/\S+@\S+\.\S+\s*\|\s*LinkedIn/gi, "")
+      .replace(/email\s*\|\s*LinkedIn\s*\|\s*Phone/gi, "")
+      
+      // Remove any date patterns that might be in the body
+      .replace(/\d{1,2}\/\d{1,2}\/\d{4}\s*\n/g, "")
+      .replace(/[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/g, "")
+      
+      // Remove sign-off patterns that should be at the end
+      .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, "")
+      
+      // Clean up extra whitespace at beginning
+      .replace(/^\s+/, "")
+      // Remove multiple consecutive line breaks
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
     
     // Basic validation
     if (!letterBody || letterBody.trim() === "") {
@@ -99,6 +121,8 @@ export function exportCoverLetterToPDF(): void {
       alert("❌ Letter body is empty. Cannot export.");
       return;
     }
+    
+    console.log("Cleaned letter body for PDF export");
 
     console.log("Creating PDF with text content:", letterBody.substring(0, 100) + "...");
     
