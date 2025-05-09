@@ -2907,28 +2907,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const prompt = `
 You are an assistant that formats cover letter content for final saving.
 
-Your goal is to identify and extract ONLY the actual body paragraphs of this cover letter.
+Your goal is to identify and extract ONLY the actual body paragraphs of this cover letter, removing ALL header information, greetings, and closings.
 
-❌ Remove ALL of these elements:
-- The applicant's name that appears at the top
-- Job title/position that appears at the top
-- Contact information (email, phone, LinkedIn)
-- Any dates at the beginning or end
-- Company name lines
-- Greeting lines (e.g., "Dear Hiring Manager,")
-- Closing phrases (e.g., "Sincerely," or "Best regards,")
-- The applicant's name that appears at the end
+❌ REMOVE ALL of these elements regardless of where they appear in the document:
+- Any name that looks like an applicant name (anywhere in the document)
+- Any job title/position mentions at the top or bottom
+- ALL contact information (email, phone, LinkedIn, URLs, etc.)
+- ALL date formats (MM/DD/YYYY, Month DD, YYYY, etc.)
+- ANY company name or recipient lines
+- ALL greeting lines (e.g., "Dear Hiring Manager," "Dear Recruitment Team," etc.)
+- ALL closing phrases (e.g., "Sincerely," "Best regards," "Thank you," etc.)
+- Any placeholder text like "Your Name", "Your Email", "Date", etc.
+- MULTIPLE instances of "Dear Hiring Manager" or similar greetings
 
 ✅ Keep ONLY the main body paragraphs that describe the applicant's experience and qualifications.
-✅ The first line of your output should be the first sentence of the actual letter body.
-✅ Make sure there are no duplicate paragraphs in your output.
+✅ The first line of your output should be the first sentence of the ACTUAL letter body content.
+✅ Make sure there are no duplicate paragraphs or phrases in your output.
+✅ Ensure NO greeting line remains at the beginning of your output.
 
 Optimized Letter:
 """
 ${optimizedLetter}
 """
 
-Return just the clean body content that starts with the first actual paragraph.
+Return ONLY the clean body content that contains the applicant's qualifications and experience, with no header information, no greetings, and no closings.
 `;
 
       const cleanedFinalBody = await generateAIResponse(prompt);
@@ -2936,20 +2938,32 @@ Return just the clean body content that starts with the first actual paragraph.
     } catch (error) {
       console.error('Error cleaning cover letter for saving:', error);
       
-      // Fall back to simple regex-based cleaning if AI cleaning fails
+      // Fall back to enhanced regex-based cleaning if AI cleaning fails
       let fallbackCleaned = optimizedLetter
-        // Remove name/email/date patterns from the top (multiple such sections may exist)
+        // Remove common placeholder text patterns
+        .replace(/Your Name\s*\n/gi, '')
+        .replace(/Your Email\s*\n/gi, '')
+        .replace(/Date\s*\n/gi, '')
+        .replace(/Company\s*\n/gi, '')
+        .replace(/Grubhub\s*\n/gi, '')  // Remove specific company name seen in the example
+        
+        // Remove name/email/date patterns from the top or anywhere in the document
         .replace(/^([A-Za-z0-9\s.]+\n){1,4}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\n/gm, '')
-        // Remove date patterns
-        .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{4}\s*\n/gm, '')
-        .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/gm, '')
-        // Remove common company name pattern
-        .replace(/^Company\n/m, '')
-        .replace(/^[A-Za-z\s]+\n/m, '') // Potential company name line
-        // Remove greeting patterns
-        .replace(/^\s*Dear\s+[^,\n]+(,|\n)/i, '')
+        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*\|\s*LinkedIn/gm, '')
+        
+        // Remove date patterns (anywhere in the document)
+        .replace(/\d{1,2}\/\d{1,2}\/\d{4}\s*\n/gm, '')
+        .replace(/[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/gm, '')
+        
+        // Remove company name patterns
+        .replace(/^[A-Za-z\s]+\n/gm, '')
+        
+        // Remove ALL greeting patterns (not just at the beginning)
+        .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+        
         // Remove sign-off patterns
         .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
+        
         // Clean up extra newlines and whitespace
         .replace(/\n{3,}/g, '\n\n')
         .trim();
