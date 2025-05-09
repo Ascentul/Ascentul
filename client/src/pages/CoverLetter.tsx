@@ -2525,12 +2525,12 @@ export default function CoverLetter() {
               id="pdf-export-content"
             >
               {/* Header with contact info - using consistent text styling */}
-              <div className="text-left">
-                <h2 className="text-base font-normal">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
-                {/* Job title line - consistent with base text */}
-                <div className="text-base font-normal mt-1">
+              <div className="text-left text-base font-normal leading-relaxed">
+                <p className="text-base font-normal leading-relaxed">{previewLetter.content.header.fullName || '[Your Name]'}</p>
+                {/* Job title line - with consistent line spacing matching body text */}
+                <p className="text-base font-normal leading-relaxed">
                   {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
-                </div>
+                </p>
                 {/* Contact info in single line with separator bars - consistent styling */}
                 <div className="text-base font-normal mt-4">
                   {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
@@ -2554,11 +2554,11 @@ export default function CoverLetter() {
                 {previewLetter.content.recipient.company && <p className="leading-relaxed">{previewLetter.content.recipient.company}</p>}
               </div>
 
-              {/* Greeting - consistent styling */}
-              <p className="text-base font-normal">Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
+              {/* Greeting - consistent styling with leading-relaxed to match body */}
+              <p className="text-base font-normal leading-relaxed">Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
 
               {/* Body content */}
-              <div className="whitespace-pre-wrap text-base font-normal">
+              <div className="whitespace-pre-wrap text-base font-normal leading-relaxed">
                 {window.linkedInProfile 
                   ? previewLetter.content.body
                     .split(/(\{\{LINKEDIN_URL\}\})/)
@@ -2571,9 +2571,9 @@ export default function CoverLetter() {
                 }</div>
 
               {/* Closing */}
-              <div className="space-y-4 text-base font-normal">
-                <p>{previewLetter.content.closing || 'Sincerely,'}</p>
-                <p>{previewLetter.content.header.fullName 
+              <div className="space-y-4 text-base font-normal leading-relaxed">
+                <p className="leading-relaxed">{previewLetter.content.closing || 'Sincerely,'}</p>
+                <p className="leading-relaxed">{previewLetter.content.header.fullName 
                    ? previewLetter.content.header.fullName.replace(/\[Your Name\]|\[Name\]/g, "")
                    : window.userName || ""}
                 </p>
