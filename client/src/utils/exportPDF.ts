@@ -81,77 +81,9 @@ export function exportCoverLetterToPDF(): void {
       companyName = paragraphs[4]?.textContent?.trim() || "";
     }
     
-    // Get body content - try multiple selector approaches
-    // First, try to get content from structured paragraphs (the updated rendering approach)
-    const paragraphElements = previewLetterEl.querySelectorAll(".text-base.font-normal > p.whitespace-pre-wrap");
-    
-    // Secondary approach: try to find the body content container
-    const letterBodyElement = 
-      (paragraphElements && paragraphElements.length > 0) 
-        ? null // We'll use the paragraphs directly
-        : previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal, .text-base.font-normal > div");
-    
-    // Determine the best content source and extract the text
-    let letterBody = "";
-    
-    if (paragraphElements && paragraphElements.length > 0) {
-      // Get content from new paragraph structure
-      console.log("Found structured paragraphs:", paragraphElements.length);
-      
-      // Collect text from each paragraph
-      const paragraphTexts: string[] = [];
-      paragraphElements.forEach(para => {
-        const text = para.textContent?.trim();
-        if (text) paragraphTexts.push(text);
-      });
-      
-      // Join with double newlines to ensure paragraph separation
-      letterBody = paragraphTexts.join("\n\n");
-    } else if (letterBodyElement) {
-      // Fallback to the previous approach
-      console.log("Using legacy body element selector");
-      letterBody = letterBodyElement.textContent || "";
-    } else {
-      // Last resort: try to extract from all text content
-      console.log("No specific body element found, using generic content extraction");
-      
-      // Find all text nodes that might be part of the body
-      const bodyTextNodes = Array.from(previewLetterEl.querySelectorAll("div, p"))
-        .filter(el => {
-          const text = el.textContent?.trim() || "";
-          // Filter out text that looks like headers or signature
-          return text.length > 20 && 
-                 !text.startsWith("Dear") &&
-                 !text.includes("@gmail.com") &&
-                 !text.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
-        });
-      
-      // Extract and join text from the potential body nodes
-      if (bodyTextNodes.length > 0) {
-        letterBody = bodyTextNodes.map(node => node.textContent?.trim()).join("\n\n");
-      }
-    }
-    
-    console.log("Extracted letter body length:", letterBody.length);
-    
-    // Force splitting the content into paragraphs - this is the key fix
-    // Break apart the text into logical paragraphs based on sentence patterns
-    if (letterBody && !letterBody.includes("\n\n")) {
-      console.log("Applying forced paragraph separation");
-      
-      // Look for natural paragraph breaks (periods followed by spaces and capital letters)
-      // This is a heuristic approach to split a wall of text into paragraphs
-      const forcedParagraphs = letterBody
-        .replace(/\.\s+([A-Z])/g, ".\n\n$1") // Add paragraph break after sentences
-        .replace(/\!\s+([A-Z])/g, "!\n\n$1") // Add paragraph break after exclamations
-        .replace(/\?\s+([A-Z])/g, "?\n\n$1") // Add paragraph break after questions
-        .split(/\n\n+/);
-      
-      // Only use the forced paragraphs if we got a reasonable number of them
-      if (forcedParagraphs.length > 1) {
-        letterBody = forcedParagraphs.join("\n\n");
-      }
-    }
+    // Get body content
+    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");
+    let letterBody = letterBodyElement?.textContent || "";
     
     // Enhanced cleaning of the letter body to remove duplicate content and placeholders
     letterBody = letterBody
@@ -167,7 +99,6 @@ export function exportCoverLetterToPDF(): void {
       .replace(/CRM Analytics Analyst Candidate\s*\n/gi, "")
       .replace(/vincentholm@gmail\.com\s*\n/gi, "")
       .replace(/5\/8\/2025\s*\n/gi, "")
-      .replace(/5\/9\/2025\s*\n/gi, "")
       .replace(/Grubhub\s*\n/gi, "")
       
       // Remove any greeting lines to prevent duplication (more comprehensive pattern matching)
@@ -190,7 +121,7 @@ export function exportCoverLetterToPDF(): void {
       
       // Clean up extra whitespace at beginning
       .replace(/^\s+/, "")
-      // Remove multiple consecutive line breaks but maintain paragraph structure with exactly one blank line
+      // Remove multiple consecutive line breaks
       .replace(/\n{3,}/g, "\n\n")
       .trim();
       
@@ -340,27 +271,11 @@ export function exportCoverLetterToPDF(): void {
     
     // Ensure body text uses the same font
     
-    // Split the letter body into paragraphs first to preserve paragraph spacing
-    const paragraphs = letterBody.split(/\n\s*\n+/);
+    // Split text to fit within page width and respect line breaks
+    const bodyLines = doc.splitTextToSize(letterBody, textWidth);
     
-    // Process each paragraph with proper spacing
-    for (let i = 0; i < paragraphs.length; i++) {
-      // Split text to fit within page width
-      const bodyLines = doc.splitTextToSize(paragraphs[i].trim(), textWidth);
-      
-      // Add this paragraph with proper spacing
-      doc.text(bodyLines, margin, yPosition);
-      
-      // Move Y position down based on number of lines in this paragraph plus extra spacing
-      yPosition += (bodyLines.length * 6) + 12; // 6 points per line plus 12 points (doubled) between paragraphs
-      
-      // Check if we need a new page
-      if (yPosition > pageHeight - margin && i < paragraphs.length - 1) {
-        // Add a new page
-        doc.addPage();
-        yPosition = margin;
-      }
-    }
+    // Add content with proper spacing
+    doc.text(bodyLines, margin, yPosition);
     
     // Generate a filename
     const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -624,39 +539,8 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       .header-container, .contact-info {
         font-size: 11pt !important;
       }
-      /* Ensure paragraph spacing is preserved */
-      p {
-        margin-bottom: 1.5em !important;
-        white-space: pre-wrap !important;
-        line-height: 1.6 !important;
-        display: block !important;
-      }
-      /* Preserve line breaks within paragraphs */
-      p + p {
-        margin-top: 1.5em !important;
-      }
     `;
     clone.appendChild(styleElement);
-    
-    // Process the content to ensure paragraphs are properly formatted
-    const paragraphs = clone.querySelectorAll('p');
-    paragraphs.forEach(p => {
-      // Replace any double line breaks with proper paragraph breaks
-      if (p.innerHTML.includes('\n\n')) {
-        const parts = p.innerHTML.split(/\n\n+/);
-        if (parts.length > 1) {
-          // Replace this paragraph with multiple paragraphs
-          const fragment = document.createDocumentFragment();
-          parts.forEach((part, index) => {
-            const newP = document.createElement('p');
-            newP.innerHTML = part.trim();
-            fragment.appendChild(newP);
-          });
-          p.parentNode?.replaceChild(fragment, p);
-        }
-      }
-    });
-    
     document.body.appendChild(clone);
     
     // Configure PDF export
