@@ -1019,7 +1019,11 @@ export default function CoverLetter() {
             address: '',
           },
           // Ensure paragraph breaks are preserved in the saved content
-          body: cleanedContent.trim().replace(/\n{3,}/g, '\n\n'),
+          body: cleanedContent.trim()
+            // First normalize all multiple newlines to exactly two newlines (one blank line)
+            .replace(/\n{3,}/g, '\n\n')
+            // Make sure every paragraph has proper spacing with exactly one blank line
+            .replace(/([.!?])\s*\n(?!\n)/g, '$1\n\n'),
           closing: 'Sincerely,',
         }
       };

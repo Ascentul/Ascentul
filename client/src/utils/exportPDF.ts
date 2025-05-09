@@ -624,8 +624,37 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       .header-container, .contact-info {
         font-size: 11pt !important;
       }
+      /* Ensure paragraph spacing is preserved */
+      p {
+        margin-bottom: 1em !important;
+        white-space: pre-wrap !important;
+      }
+      /* Preserve line breaks within paragraphs */
+      p + p {
+        margin-top: 1em !important;
+      }
     `;
     clone.appendChild(styleElement);
+    
+    // Process the content to ensure paragraphs are properly formatted
+    const paragraphs = clone.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      // Replace any double line breaks with proper paragraph breaks
+      if (p.innerHTML.includes('\n\n')) {
+        const parts = p.innerHTML.split(/\n\n+/);
+        if (parts.length > 1) {
+          // Replace this paragraph with multiple paragraphs
+          const fragment = document.createDocumentFragment();
+          parts.forEach((part, index) => {
+            const newP = document.createElement('p');
+            newP.innerHTML = part.trim();
+            fragment.appendChild(newP);
+          });
+          p.parentNode?.replaceChild(fragment, p);
+        }
+      }
+    });
+    
     document.body.appendChild(clone);
     
     // Configure PDF export
