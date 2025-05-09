@@ -2533,16 +2533,51 @@ export default function CoverLetter() {
             <DialogHeader>
               <DialogTitle className="flex justify-between items-center">
                 <span>{previewLetter.name}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => exportCoverLetterToPDF()}
-                  title="Download letter body text as PDF"
-                  className="flex items-center gap-2 text-xs"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>Download Body</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Extract the complete content from the preview dialog
+                      const contentElement = document.getElementById('pdf-export-content');
+                      if (contentElement) {
+                        const fullText = contentElement.innerText;
+                        
+                        // Copy to clipboard
+                        navigator.clipboard.writeText(fullText)
+                          .then(() => {
+                            toast({
+                              title: '✅ Copied to clipboard',
+                              description: 'The full cover letter has been copied',
+                            });
+                          })
+                          .catch((error: unknown) => {
+                            toast({
+                              title: 'Copy failed',
+                              description: 'Failed to copy content to clipboard',
+                              variant: 'destructive',
+                            });
+                            console.error('Copy failed:', error);
+                          });
+                      }
+                    }}
+                    title="Copy full letter text to clipboard"
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    <span>Copy</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => exportCoverLetterToPDF()}
+                    title="Download letter body text as PDF"
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download Body</span>
+                  </Button>
+                </div>
               </DialogTitle>
             </DialogHeader>
             <div 
