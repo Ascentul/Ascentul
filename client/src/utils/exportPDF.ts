@@ -23,35 +23,63 @@ export function exportCoverLetterToPDF(): void {
     
     console.log("Exporting cover letter to PDF from preview element...");
     
-    // Get all required details directly from the DOM structure
-    const fullNameElement = previewLetterEl.querySelector("h2");
-    const fullName = fullNameElement?.textContent || "Your Name";
+    // Get all required details from the new unified DOM structure
+    // Find the header container within the preview element
+    const headerContainer = previewLetterEl.querySelector(".text-base.font-normal.text-neutral-900");
     
-    // Get job title (positioned directly below the name)
-    const jobTitleElement = previewLetterEl.querySelector(".text-base.font-normal.mt-1");
-    const jobTitle = jobTitleElement?.textContent?.trim() || "";
+    // Declare variables to hold our extracted data
+    let fullName = "Your Name";
+    let jobTitle = "";
+    let contactInfo = "";
+    let date = new Date().toLocaleDateString();
+    let companyName = "";
     
-    // Get contact info from the proper element (contains email, LinkedIn, phone)
-    const contactInfoElement = previewLetterEl.querySelector("div.text-base.font-normal.mt-4");
-    const contactInfo = contactInfoElement?.textContent?.trim() || "";
-    
-    // Extract email from contact info (to avoid duplication)
-    const emailMatch = contactInfo.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/);
-    const email = emailMatch ? emailMatch[0] : "";
-    
-    // Get date from the date element
-    const dateContainer = Array.from(previewLetterEl.querySelectorAll(".text-base.font-normal"))
-      .find(el => {
+    if (!headerContainer) {
+      console.log("Using legacy selectors - unified header container not found");
+      // Fallback to old selectors for compatibility
+      const fullNameElement = previewLetterEl.querySelector("h2, p.font-semibold");
+      fullName = fullNameElement?.textContent?.trim() || "Your Name";
+      
+      const jobTitleElement = previewLetterEl.querySelector(".text-base.font-normal.mt-1");
+      jobTitle = jobTitleElement?.textContent?.trim() || "";
+      
+      const contactInfoElement = previewLetterEl.querySelector("p.text-neutral-700, div.text-base.font-normal.mt-4");
+      contactInfo = contactInfoElement?.textContent?.trim() || "";
+      
+      // Date from any element with date format
+      const dateContainer = Array.from(previewLetterEl.querySelectorAll("div, p")).find(el => {
         const text = el.textContent?.trim() || "";
         return (text.match(/\d{1,2}\/\d{1,2}\/\d{4}/) || text.match(/\w+ \d{1,2}, \d{4}/));
       });
-    const date = dateContainer?.textContent?.trim() || new Date().toLocaleDateString();
-    
-    // Get company name - check multiple possible selectors since class names might vary
-    const companyElement = previewLetterEl.querySelector(".mt-1.mb-6.text-base.font-normal p") || 
-                          previewLetterEl.querySelector(".mb-6.text-base.font-normal p") || 
-                          previewLetterEl.querySelector(".mt-4.mb-6.text-base.font-normal p");
-    const companyName = companyElement?.textContent?.trim() || "";
+      date = dateContainer?.textContent?.trim() || new Date().toLocaleDateString();
+      
+      // Get company name - check multiple possible selectors
+      const companyElement = previewLetterEl.querySelector(".mt-1.mb-6.text-base.font-normal p") || 
+                            previewLetterEl.querySelector(".mb-6.text-base.font-normal p") || 
+                            previewLetterEl.querySelector(".mt-4.mb-6.text-base.font-normal p");
+      companyName = companyElement?.textContent?.trim() || "";
+    } else {
+      console.log("Using new unified header structure for PDF export");
+      // Get all paragraph elements in the header container
+      const paragraphs = headerContainer.querySelectorAll("p");
+      
+      // Extract full name (first paragraph with font-semibold class)
+      const fullNameElement = headerContainer.querySelector("p.font-semibold");
+      fullName = fullNameElement?.textContent?.trim() || "Your Name";
+      
+      // Get job title (second paragraph)
+      jobTitle = paragraphs[1]?.textContent?.trim() || "";
+      
+      // Get contact info from the third paragraph (with email, LinkedIn, phone)
+      const contactInfoElement = paragraphs[2];
+      contactInfo = contactInfoElement?.textContent?.trim() || "";
+      
+      // Get date from the fourth paragraph
+      date = paragraphs[3]?.textContent?.trim() || new Date().toLocaleDateString();
+      
+      // Get company name from the fifth paragraph
+      companyName = paragraphs[4]?.textContent?.trim() || "";
+    }
     
     // Get body content
     const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");

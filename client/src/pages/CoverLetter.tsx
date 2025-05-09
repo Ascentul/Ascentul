@@ -2524,19 +2524,16 @@ export default function CoverLetter() {
               className="space-y-6 p-4 bg-white font-normal text-base text-neutral-800 leading-relaxed font-sans" 
               id="pdf-export-content"
             >
-              {/* Header with contact info - using consistent text styling */}
-              <div className="text-left">
-                <h2 className="text-base font-normal">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
-                {/* Job title line - consistent with base text */}
-                <div className="text-base font-normal mt-1">
-                  {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
-                </div>
-                {/* Contact info in single clean line with separator bars - enhanced styling */}
-                <p className="text-base text-neutral-700 leading-relaxed mt-2 mb-3">
+              {/* Unified cover letter header template that will be consistent with the PDF export */}
+              <div className="text-base font-normal text-neutral-900 leading-relaxed">
+                <p className="font-semibold">{previewLetter.content.header.fullName || '[Your Name]'}</p>
+                <p>{previewLetter.jobTitle || previewLetter.content.recipient.position || ''}</p>
+                
+                <p className="text-neutral-700">
                   {previewLetter.content.header.email}
                   {window.linkedInProfile && (
                     <>
-                      {' '}| <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="underline text-neutral-700 hover:text-blue-600">
+                      {' '}| <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="underline">
                         LinkedIn
                       </a>
                     </>
@@ -2545,19 +2542,12 @@ export default function CoverLetter() {
                     <> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</>
                   )}
                 </p>
-                {/* Date - consistent styling */}
-                <div className="text-base font-normal mt-4 leading-relaxed">
-                  {previewLetter.content.header.date || new Date().toLocaleDateString()}
-                </div>
+                
+                <p>{previewLetter.content.header.date || new Date().toLocaleDateString()}</p>
+                {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
+                
+                <p>Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
               </div>
-
-              {/* Company - on its own line with consistent spacing matching body text */}
-              <div className="mt-4 mb-6 text-base font-normal leading-relaxed">
-                {previewLetter.content.recipient.company && <p className="leading-relaxed">{previewLetter.content.recipient.company}</p>}
-              </div>
-
-              {/* Greeting - consistent styling */}
-              <p className="text-base font-normal">Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
 
               {/* Body content */}
               <div className="whitespace-pre-wrap text-base font-normal">
