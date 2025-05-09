@@ -10,7 +10,7 @@
  * It will display what was returned from the API.
  */
 
-const fetch = require('node-fetch');
+// Using global fetch (available in Node.js since v17.5.0)
 
 // Sample letter with header, greeting, body, and closing
 const testLetter = `new name test
