@@ -213,12 +213,25 @@ export default function CoverLetter() {
   const handleSaveGenerated = () => {
     if (!generatedContent) return;
 
-    // Get user data for the cover letter
-    const { user } = useUserData.getState();
-    const userFullName = user?.fullName || '';
-    const userEmail = user?.email || '';
-    const userPhone = user?.phone || '';
-    const userLocation = user?.location || '';
+    // Get user data from current state instead of using useUserData hook
+    const userData = {
+      fullName: '',
+      email: '',
+      phone: '',
+      location: '',
+    };
+    
+    try {
+      // Safely attempt to get user data if available in the component
+      if (user) {
+        userData.fullName = user.fullName || '';
+        userData.email = user.email || '';
+        userData.phone = user.phone || '';
+        userData.location = user.location || '';
+      }
+    } catch (err) {
+      console.log("Could not retrieve user data for cover letter, using defaults");
+    }
     
     // Process content to replace placeholders before saving
     const processedContent = cleanAIOutput(generatedContent);
@@ -229,10 +242,10 @@ export default function CoverLetter() {
       template: 'standard',
       content: {
         header: {
-          fullName: userFullName,
-          email: userEmail,
-          phone: userPhone,
-          location: userLocation,
+          fullName: userData.fullName,
+          email: userData.email,
+          phone: userData.phone,
+          location: userData.location,
           date: new Date().toLocaleDateString(),
         },
         recipient: {
