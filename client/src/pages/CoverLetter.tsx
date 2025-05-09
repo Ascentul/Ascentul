@@ -916,6 +916,9 @@ export default function CoverLetter() {
     try {
       // Create a local variable to hold the cleaned content
       let cleanedContent = analysisResult.optimizedCoverLetter;
+      
+      // Initial paragraph formatting normalization before any cleaning
+      cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
 
       // Get job-related info for improved cleaning
       let jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
@@ -953,6 +956,8 @@ export default function CoverLetter() {
             const fallbackData = await fallbackResponse.json();
             if (fallbackData.cleanedLetterBody) {
               cleanedContent = fallbackData.cleanedLetterBody;
+              // Ensure paragraph formatting is preserved in fallback case too
+              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with fallback API");
             }
           }
