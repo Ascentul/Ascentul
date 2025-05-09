@@ -707,7 +707,7 @@ export async function generateCoverLetter(
     const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
 
-Generate a one-page cover letter for the following role:
+Generate a cover letter for the following role:
 Job Title: ${jobTitle || 'The position described in the job description'}
 Company: ${companyName || 'The hiring company'}
 Job Description:
@@ -728,7 +728,7 @@ Email: ${userProfile?.email || 'Not provided'}
 Phone: ${userProfile?.phone || 'Not provided'}
 Location: ${userProfile?.location || 'Not provided'}
 
-🎯 Your goal is to generate a cover letter that would score 80 or higher on these categories:
+🎯 Your goal is to generate the BODY TEXT ONLY of a cover letter that would score 80 or higher on these categories:
 
 1. **Alignment** – Clearly match the role and mention job-specific keywords from the job description. Extract 3-5 key skills/technologies from the job posting and incorporate them naturally. Position the candidate as an ideal fit.
 
@@ -745,23 +745,15 @@ Location: ${userProfile?.location || 'Not provided'}
    - No complex jargon or unnecessarily verbose language
 
 4. **Overall Impact** – Structure for maximum effectiveness:
-   - Strong opening that states the position and shows enthusiasm
+   - Strong opening paragraph that shows enthusiasm for the position
    - Middle paragraphs with specific accomplishments matching job requirements
    - Professional closing that drives action
    - Appropriate formal tone without being stiff or robotic
 
 IMPORTANT FORMAT NOTES:
-- Use a simple, modern format with the following structure:
-  ${userName}
-  ${jobTitle || "Applicant"} 
-  
-  ${userProfile?.email || "applicant@example.com"} | ${userProfile?.location || "City, State"} | ${userProfile?.phone || "555-555-5555"}
-  ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-  ${companyName || "Hiring Company"}
-  
-  Dear Hiring Manager,
-
-- The above information should replace traditional address blocks
+- ONLY GENERATE THE BODY TEXT of the cover letter - start with "Dear Hiring Manager," and end with "Sincerely," followed by the user's name
+- DO NOT include the user's contact information, date, or company information in the generated text
+- DO NOT include any header elements as they will be rendered separately in the UI
 - DO NOT include old address sections (no "[Your Address]" or "[City, State, Zip Code]")
 - DO NOT include recipient address sections like "Hiring Manager" or "[Company Address]"
 
