@@ -1417,7 +1417,7 @@ export default function CoverLetter() {
                     <Button 
                       onClick={generateCoverLetter}
                       disabled={!jobDescription || generateCoverLetterMutation.isPending || generateSuggestionsMutation.isPending}
-                      className="w-full sm:w-auto"
+                      className="w-full"
                     >
                       {generateCoverLetterMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1425,20 +1425,6 @@ export default function CoverLetter() {
                         <FileText className="mr-2 h-4 w-4" />
                       )}
                       Generate Full Letter
-                    </Button>
-
-                    <Button 
-                      onClick={generateSuggestions}
-                      disabled={!jobDescription || generateSuggestionsMutation.isPending || generateCoverLetterMutation.isPending}
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                    >
-                      {generateSuggestionsMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="mr-2 h-4 w-4" />
-                      )}
-                      Get Suggestions
                     </Button>
                   </div>
                 </div>
