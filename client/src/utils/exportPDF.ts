@@ -271,11 +271,27 @@ export function exportCoverLetterToPDF(): void {
     
     // Ensure body text uses the same font
     
-    // Split text to fit within page width and respect line breaks
-    const bodyLines = doc.splitTextToSize(letterBody, textWidth);
+    // Split the letter body into paragraphs first to preserve paragraph spacing
+    const paragraphs = letterBody.split(/\n\s*\n+/);
     
-    // Add content with proper spacing
-    doc.text(bodyLines, margin, yPosition);
+    // Process each paragraph with proper spacing
+    for (let i = 0; i < paragraphs.length; i++) {
+      // Split text to fit within page width
+      const bodyLines = doc.splitTextToSize(paragraphs[i].trim(), textWidth);
+      
+      // Add this paragraph with proper spacing
+      doc.text(bodyLines, margin, yPosition);
+      
+      // Move Y position down based on number of lines in this paragraph plus extra spacing
+      yPosition += (bodyLines.length * 6) + 6; // 6 points per line plus 6 points between paragraphs
+      
+      // Check if we need a new page
+      if (yPosition > pageHeight - margin && i < paragraphs.length - 1) {
+        // Add a new page
+        doc.addPage();
+        yPosition = margin;
+      }
+    }
     
     // Generate a filename
     const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
