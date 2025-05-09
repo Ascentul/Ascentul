@@ -2531,18 +2531,20 @@ export default function CoverLetter() {
                 <div className="text-base font-normal mt-1">
                   {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
                 </div>
-                {/* Contact info in single line with separator bars - consistent styling */}
-                <div className="text-base font-normal mt-4">
-                  {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
-                  {window.linkedInProfile ? (
-                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a></span>
-                  ) : (
-                    previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
+                {/* Contact info in single clean line with separator bars - enhanced styling */}
+                <p className="text-base text-neutral-700 leading-relaxed mt-2 mb-3">
+                  {previewLetter.content.header.email}
+                  {window.linkedInProfile && (
+                    <>
+                      {' '}| <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="underline text-neutral-700 hover:text-blue-600">
+                        LinkedIn
+                      </a>
+                    </>
                   )}
                   {previewLetter.content.header.phone && previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim() && (
-                    <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</span>
+                    <> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</>
                   )}
-                </div>
+                </p>
                 {/* Date - consistent styling */}
                 <div className="text-base font-normal mt-4 leading-relaxed">
                   {previewLetter.content.header.date || new Date().toLocaleDateString()}

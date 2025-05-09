@@ -113,50 +113,58 @@ export function exportCoverLetterToPDF(): void {
       yPosition += 8; // Increased spacing between job title and contact info
     }
     
-    // Add contact info
+    // Add contact info (Email | LinkedIn | Phone) on a single line
     if (contactInfo) {
       doc.setFont(baseFontFamily, "normal");
       
-      // Check if we have a LinkedIn URL to include as a clickable link
+      // Format as a single clean line with LinkedIn as a hyperlink if available
       if (window.linkedInProfile) {
-        // Split the contact info (typically Email | LinkedIn | Phone) to isolate parts
+        // Split the contact info by separator
         const contactParts = contactInfo.split('|').map(part => part.trim());
+        let currentX = margin;
         
-        // Parse email (usually first part)
-        if (contactParts.length > 0) {
-          doc.text(contactParts[0], margin, yPosition);
+        // Process each part, formatting LinkedIn as a hyperlink
+        for (let i = 0; i < contactParts.length; i++) {
+          const part = contactParts[i];
+          
+          // Check if this part is LinkedIn
+          if (part.toLowerCase().includes('linkedin')) {
+            // Add LinkedIn as a hyperlinked text in blue
+            doc.setTextColor(0, 102, 204); // Professional blue color (#0066cc)
+            doc.text('LinkedIn', currentX, yPosition);
+            
+            // Calculate text width for positioning and link area
+            const linkWidth = doc.getTextWidth('LinkedIn');
+            
+            // Add clickable link
+            doc.link(
+              currentX,
+              yPosition - 4, // Slightly above text
+              linkWidth,
+              5, // Height of clickable area
+              { url: window.linkedInProfile }
+            );
+            
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Move position after the text
+            currentX += linkWidth;
+          } else {
+            // For non-LinkedIn parts, just add normal text
+            doc.text(part, currentX, yPosition);
+            currentX += doc.getTextWidth(part);
+          }
+          
+          // Add separator if not the last part
+          if (i < contactParts.length - 1) {
+            doc.text(' | ', currentX, yPosition);
+            currentX += doc.getTextWidth(' | ');
+          }
         }
         
-        // Move to next line for LinkedIn as a clickable link
-        yPosition += 5;
-        
-        // Set blue color for link while maintaining font consistency
-        doc.setTextColor(0, 102, 204); // Professional blue color for link
-        
-        // Use a more professional display format for the LinkedIn URL
-        const linkedInText = 'LinkedIn: Professional Profile';
-        doc.text(linkedInText, margin, yPosition);
-        
-        // Add the link to the text
-        const textWidth = doc.getTextWidth(linkedInText);
-        doc.link(
-          margin, 
-          yPosition - 4, // Slightly above text
-          textWidth, 
-          5, // Height of clickable area
-          { url: window.linkedInProfile }
-        );
-        
-        // Reset to black text
-        doc.setTextColor(0, 0, 0);
-        
-        // Add phone if present (usually last part)
-        if (contactParts.length > 2) {
-          yPosition += 5;
-          doc.text(contactParts[2], margin, yPosition);
-        }
-        
-        yPosition += 3; // Extra spacing
+        // Add spacing after contact line
+        yPosition += 8;
       } else {
         // Without LinkedIn URL, just use the regular contact info line
         doc.text(contactInfo, margin, yPosition);
