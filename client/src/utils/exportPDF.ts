@@ -190,17 +190,33 @@ export function exportCoverLetterToPDF(): void {
     if (contactInfo) {
       doc.setFont(baseFontFamily, "normal");
       
-      // Format as a single clean line with LinkedIn as a hyperlink if available
+      // Check if LinkedIn should be included - either already in the contact info or window.linkedInProfile exists
+      const hasLinkedInInContactInfo = contactInfo.toLowerCase().includes('linkedin');
+      const shouldAddLinkedIn = window.linkedInProfile && !hasLinkedInInContactInfo;
+      
+      // Format contact info with explicit LinkedIn handling
       if (window.linkedInProfile) {
         // Split the contact info by separator
         const contactParts = contactInfo.split('|').map(part => part.trim());
+        
+        // If LinkedIn isn't in the contact info yet, add it
+        if (shouldAddLinkedIn && contactParts.length > 0) {
+          // Add LinkedIn between first part (usually email) and the rest
+          if (contactParts.length === 1) {
+            contactParts.push('LinkedIn');
+          } else {
+            // Insert LinkedIn after the first part (usually email)
+            contactParts.splice(1, 0, 'LinkedIn');
+          }
+        }
+        
         let currentX = margin;
         
         // Process each part, formatting LinkedIn as a hyperlink
         for (let i = 0; i < contactParts.length; i++) {
           const part = contactParts[i];
           
-          // Check if this part is LinkedIn
+          // Check if this part is LinkedIn or contains LinkedIn
           if (part.toLowerCase().includes('linkedin')) {
             // Add LinkedIn as a hyperlinked text in blue
             doc.setTextColor(0, 102, 204); // Professional blue color (#0066cc)
