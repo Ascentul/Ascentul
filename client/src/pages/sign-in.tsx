@@ -167,18 +167,18 @@ export default function SignInPage() {
       <div className="hidden lg:w-1/2 lg:flex bg-primary p-8">
         <div className="m-auto max-w-lg text-primary-foreground">
           <h1 className="text-5xl font-bold mb-6">
-            Accelerate Your Career Journey
+            Elevate Your Career Journey
           </h1>
           
           <p className="text-xl mb-8">
-            Your all-in-one platform for career development, resume building, interview preparation, and professional growth.
+            Ascentul is your AI-powered career hub — built to help you stay organized, apply smarter, and grow with confidence.
           </p>
           
           <div className="space-y-4">
-            <FeatureItem icon="✓" text="AI-powered career coaching and goal tracking" />
-            <FeatureItem icon="✓" text="Resume and cover letter builder with AI suggestions" />
-            <FeatureItem icon="✓" text="Interactive interview preparation tools" />
-            <FeatureItem icon="✓" text="Gamified learning with XP and achievements" />
+            <FeatureItem icon="✓" text="Job application tracking that keeps you on top of every opportunity" />
+            <FeatureItem icon="✓" text="Career goal setting and progress tracking to build long-term momentum" />
+            <FeatureItem icon="✓" text="Smart resume and cover letter builder with AI-powered suggestions" />
+            <FeatureItem icon="✓" text="Personalized career coaching to guide your next move" />
           </div>
         </div>
       </div>
