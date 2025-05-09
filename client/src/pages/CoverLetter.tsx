@@ -614,20 +614,29 @@ export default function CoverLetter() {
     // We'll use a default value since phone may not be in the user object
     const phoneToDisplay = '[Phone Number]';
     
-    // Use LinkedIn URL when available, otherwise fallback to location
-    let locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
-    
     // Check if we have a LinkedIn URL to use instead of just the location
     const linkedInUrl = careerData?.linkedInUrl;
     
     // Store the LinkedIn URL separately for the preview dialog
     if (linkedInUrl) {
       console.log('Found LinkedIn URL:', linkedInUrl);
-      // Format as LinkedIn profile URL for user if needed for text replacements
-      // We'll handle the display of the actual URL in the preview dialog separately
       window.linkedInProfile = linkedInUrl;
     } else {
       window.linkedInProfile = null;
+    }
+
+    // First, modify the text to replace "City, State" in the contact line with "LinkedIn"
+    if (linkedInUrl) {
+      // Common contact line formats in cover letters
+      text = text.replace(/(vincentholm@gmail\.com\s*\|\s*)City,\s*State(\s*\|\s*555-555-5555)/gi, '$1LinkedIn$2');
+      text = text.replace(/(.*@.*\.com\s*\|\s*)City,\s*State(\s*\|\s*.*)/gi, '$1LinkedIn$2');
+      
+      // Also replace standalone "City, State" anywhere in the document
+      text = text.replace(/\bCity,\s*State\b/gi, 'LinkedIn');
+    } else {
+      // Use location when LinkedIn is not available
+      const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
+      text = text.replace(/\bCity,\s*State\b/gi, locationToDisplay);
     }
 
     return text
@@ -652,13 +661,13 @@ export default function CoverLetter() {
       .replace(/\[phone number\]/g, phoneToDisplay.toLowerCase())
       .replace(/\[PHONE NUMBER\]/g, phoneToDisplay.toUpperCase())
 
-      // Location/Address replacements
-      .replace(/\[Your Location\]/g, locationToDisplay)
-      .replace(/\[your location\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toLowerCase() : locationToDisplay)
-      .replace(/\[YOUR LOCATION\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toUpperCase() : locationToDisplay)
-      .replace(/\[Your Address\]/g, locationToDisplay)
-      .replace(/\[your address\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toLowerCase() : locationToDisplay)
-      .replace(/\[YOUR ADDRESS\]/g, typeof locationToDisplay === 'string' ? locationToDisplay.toUpperCase() : locationToDisplay);
+      // Location/Address replacements (for any standard placeholders)
+      .replace(/\[Your Location\]/g, linkedInUrl ? 'LinkedIn' : (user.location || '[Your Address]'))
+      .replace(/\[your location\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : '[your address]'))
+      .replace(/\[YOUR LOCATION\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : '[YOUR ADDRESS]'))
+      .replace(/\[Your Address\]/g, linkedInUrl ? 'LinkedIn' : (user.location || '[Your Address]'))
+      .replace(/\[your address\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : '[your address]'))
+      .replace(/\[YOUR ADDRESS\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : '[YOUR ADDRESS]'));
   };
 
   // Function to copy content to clipboard
