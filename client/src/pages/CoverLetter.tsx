@@ -2524,38 +2524,39 @@ export default function CoverLetter() {
               className="space-y-6 p-4 bg-white font-normal text-base text-neutral-800 leading-relaxed font-sans" 
               id="pdf-export-content"
             >
-              {/* Header with contact info - using consistent text styling */}
-              <div className="text-left">
-                <h2 className="text-base font-normal">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
-                {/* Job title line - consistent with base text */}
-                <div className="text-base font-normal mt-1">
-                  {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
-                </div>
-                {/* Contact info in single line with separator bars - consistent styling */}
-                <div className="text-base font-normal mt-4">
-                  {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
-                  {window.linkedInProfile ? (
-                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a></span>
-                  ) : (
-                    previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
-                  )}
-                  {previewLetter.content.header.phone && previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim() && (
-                    <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</span>
-                  )}
-                </div>
-                {/* Date - consistent styling */}
-                <div className="text-base font-normal mt-4 leading-relaxed">
-                  {previewLetter.content.header.date || new Date().toLocaleDateString()}
-                </div>
-              </div>
+              {/* Header with updated JSX structure and line spacing as requested */}
+              <div className="text-base font-normal text-neutral-900 leading-relaxed">
+                {/* Name and job title */}
+                <p>{previewLetter.content.header.fullName || '[Your Name]'}</p>
+                <p>{previewLetter.jobTitle || previewLetter.content.recipient.position || ''}</p>
 
-              {/* Company - on its own line with consistent spacing matching body text */}
-              <div className="mt-4 mb-6 text-base font-normal leading-relaxed">
-                {previewLetter.content.recipient.company && <p className="leading-relaxed">{previewLetter.content.recipient.company}</p>}
-              </div>
+                {/* Line break */}
+                <div className="h-4" />
+                
+                {/* Email and LinkedIn with proper spacing */}
+                <p>{previewLetter.content.header.email}</p>
+                {window.linkedInProfile && (
+                  <p>
+                    <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a>
+                  </p>
+                )}
+                {previewLetter.content.header.phone && previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim() && (
+                  <p>{previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</p>
+                )}
 
-              {/* Greeting - consistent styling */}
-              <p className="text-base font-normal">Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
+                {/* Line break */}
+                <div className="h-4" />
+                
+                {/* Date and company */}
+                <p>{previewLetter.content.header.date || new Date().toLocaleDateString()}</p>
+                {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
+
+                {/* Line break */}
+                <div className="h-4" />
+                
+                {/* Greeting */}
+                <p>Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
+              </div>
 
               {/* Body content */}
               <div className="whitespace-pre-wrap text-base font-normal">
