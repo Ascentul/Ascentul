@@ -764,7 +764,7 @@ export default function CoverLetter() {
         // Reset copy success after 3 seconds
         setTimeout(() => setCopySuccess(false), 3000);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         toast({
           title: 'Copy failed',
           description: 'Failed to copy content to clipboard',
@@ -845,7 +845,7 @@ export default function CoverLetter() {
         // Reset copy success after 3 seconds
         setTimeout(() => setOptimizedCopySuccess(false), 3000);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         toast({
           title: 'Copy failed',
           description: 'Failed to copy content to clipboard',
@@ -900,7 +900,7 @@ export default function CoverLetter() {
         setAnalyzeJobDescription('');
         setAnalyzeCoverLetterText('');
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         toast({
           title: 'Error',
           description: `Failed to save optimized cover letter: ${error.message}`,
@@ -1049,7 +1049,7 @@ export default function CoverLetter() {
         description: 'Your cover letter has been downloaded as a PDF.',
       });
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error in PDF export:', error);
       toast({
         title: 'Error Preparing PDF',
