@@ -30,7 +30,6 @@ import projectsRouter from "./routes/projects";
 import debugRouter from "./routes/debug";
 import pdfTestRouter from "./routes/pdf-test";
 import userRoleRouter from "./routes/user-role";
-import testPdfExtractRouter from "./test-pdf-extract";
 import academicProgramsRouter from "./routes/academic-programs";
 // Import mail router for email functionality
 import mailRouter from "./routes/mail";
@@ -5140,7 +5139,7 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   app.use(pdfTestRouter);
   
   // Register the test PDF extraction router
-  app.use(testPdfExtractRouter);
+  // (already registered above)
   
   // Skill Stacker section removed
 
