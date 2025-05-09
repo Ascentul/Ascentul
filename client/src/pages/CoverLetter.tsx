@@ -2502,7 +2502,9 @@ export default function CoverLetter() {
                   ) : (
                     previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
                   )}
-                  {previewLetter.content.header.phone && <span> | {previewLetter.content.header.phone}</span>}
+                  {previewLetter.content.header.phone && (
+                    <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "")}</span>
+                  )}
                 </div>
                 {/* Date */}
                 <div className="text-sm text-neutral-500 mt-4">
@@ -2534,7 +2536,10 @@ export default function CoverLetter() {
               {/* Closing */}
               <div className="space-y-4">
                 <p>{previewLetter.content.closing || 'Sincerely,'}</p>
-                <p>{previewLetter.content.header.fullName || '[Your Name]'}</p>
+                <p>{previewLetter.content.header.fullName 
+                   ? previewLetter.content.header.fullName.replace(/\[Your Name\]|\[Name\]/g, "")
+                   : window.userName || ""}
+                </p>
               </div>
             </div>
           </DialogContent>
