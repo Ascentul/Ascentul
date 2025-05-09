@@ -539,6 +539,67 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
     clone.style.top = "0";
     clone.style.display = "block"; // Ensure visibility for rendering
     
+    // Ensure LinkedIn URL is properly handled in the cloned content
+    if (window.linkedInProfile) {
+      console.log('Found LinkedIn profile URL for PDF export:', window.linkedInProfile);
+      
+      // Find contact info line in the clone
+      const contactInfo = clone.querySelector('.text-neutral-700');
+      
+      if (contactInfo) {
+        // Check if LinkedIn is mentioned in the contact info
+        const hasLinkedInText = contactInfo.textContent?.includes('LinkedIn') || false;
+        
+        if (hasLinkedInText) {
+          console.log('LinkedIn text found in contact info, converting to link for PDF');
+          
+          // Get the current HTML content
+          const currentHTML = contactInfo.innerHTML;
+          
+          // Replace LinkedIn text with a properly formatted hyperlink
+          const updatedHTML = currentHTML.replace(
+            /LinkedIn/g, 
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`
+          );
+          
+          // Update the contact info with the linked version
+          contactInfo.innerHTML = updatedHTML;
+        } else {
+          console.log('Adding LinkedIn to contact info for PDF');
+          
+          // Add LinkedIn to the contact info if not present
+          const currentHTML = contactInfo.innerHTML;
+          
+          // Check if there's a pipe separator in the content
+          if (currentHTML.includes('|')) {
+            // Add LinkedIn after the first pipe or before the last pipe
+            const firstPipeIndex = currentHTML.indexOf('|');
+            const beforePipe = currentHTML.substring(0, firstPipeIndex);
+            const afterPipe = currentHTML.substring(firstPipeIndex);
+            
+            const updatedHTML = `${beforePipe}| <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a> ${afterPipe}`;
+            contactInfo.innerHTML = updatedHTML;
+          } else {
+            // Just append LinkedIn if no pipes
+            const updatedHTML = `${currentHTML} | <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`;
+            contactInfo.innerHTML = updatedHTML;
+          }
+        }
+      }
+      
+      // Also check for LinkedIn URL placeholders in the body text
+      const bodyContent = clone.querySelector('.whitespace-pre-wrap');
+      if (bodyContent) {
+        const bodyHTML = bodyContent.innerHTML;
+        if (bodyHTML.includes('{{LINKEDIN_URL}}')) {
+          bodyContent.innerHTML = bodyHTML.replace(
+            /\{\{LINKEDIN_URL\}\}/g,
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`
+          );
+        }
+      }
+    }
+    
     // Apply consistent font styling to the clone before exporting
     const styleElement = document.createElement('style');
     styleElement.innerHTML = `
@@ -554,6 +615,10 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       }
       .header-container, .contact-info {
         font-size: 11pt !important;
+      }
+      a {
+        color: #0066cc !important;
+        text-decoration: underline !important;
       }
     `;
     clone.appendChild(styleElement);
