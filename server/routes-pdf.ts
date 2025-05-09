@@ -79,6 +79,10 @@ export function registerPdfExtractRoutes(app: Router) {
     console.log("Starting direct PDF extraction process");
     console.log(`User ID: ${req.user?.id}, Content-Type: ${req.headers['content-type']}`);
     
+    // Add more detailed debugging
+    console.log("Request headers:", req.headers);
+    console.log("Request body length:", req.body ? Object.keys(req.body).length : 'undefined');
+    
     if (!req.headers['content-type']?.includes('multipart/form-data')) {
       console.error("Invalid content type for direct file extraction");
       return res.status(400).json({
