@@ -104,17 +104,14 @@ export function exportCoverLetterToPDF(): void {
     // Add name at the top - slight emphasis with bold only
     doc.setFont(baseFontFamily, "bold");
     doc.text(fullName, margin, yPosition);
-    yPosition += 6; // Use consistent line height matching body text
+    yPosition += 7;
     
-    // Add job title if present with consistent line spacing
+    // Add job title if present
     if (jobTitle) {
       doc.setFont(baseFontFamily, "normal");
       doc.text(jobTitle, margin, yPosition);
-      yPosition += 6; // Consistent line spacing matching body text
+      yPosition += 8; // Increased spacing between job title and contact info
     }
-    
-    // Add small spacing after header section
-    yPosition += 2;
     
     // Add contact info
     if (contactInfo) {
