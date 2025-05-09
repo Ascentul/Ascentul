@@ -462,7 +462,7 @@ export default function Resume() {
               description: item.description || '',
               // Always ensure achievements is a proper array
               achievements: Array.isArray(item.achievements) ? 
-                item.achievements.filter(a => typeof a === 'string' && a.trim() !== '') : []
+                item.achievements.filter((a: string) => typeof a === 'string' && a.trim() !== '') : []
             };
             
             console.log(`Updating work history item ${item.id} with:`, updateData);
@@ -492,12 +492,17 @@ export default function Resume() {
         const newSkillPromises = [];
         for (const skill of optimizedCareerData.skills) {
           if (typeof skill === 'string' && !currentSkillNames.has(skill.toLowerCase())) {
+            // Ensure proficiencyLevel is an integer value
             newSkillPromises.push(
               apiRequest('POST', '/api/career-data/skills', {
                 name: skill,
-                proficiencyLevel: 3, // Set to 3 (intermediate) on a 1-5 scale
+                proficiencyLevel: 3, // MUST be an integer value (1-5 scale)
                 category: "technical"
               })
+                .catch(error => {
+                  console.error(`Error creating skill "${skill}":`, error);
+                  throw error;
+                })
             );
           }
         }
@@ -649,7 +654,19 @@ export default function Resume() {
 
     // Format optimized work history data for AI processing
     const formattedWorkHistory = optimizedCareerData.workHistory.map((job: any) => {
-      return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}\nAchievements:\n${job.achievements.map((a: string) => `- ${a}`).join('\n')}\n`;
+      // Ensure achievements is an array of non-empty strings
+      const achievements = Array.isArray(job.achievements) 
+        ? job.achievements
+            .filter((a: string) => typeof a === 'string' && a.trim() !== '')
+            .map((a: string) => `- ${a}`)
+            .join('\n')
+        : '';
+      
+      const achievementsSection = achievements 
+        ? `\nAchievements:\n${achievements}` 
+        : '\nAchievements: None listed';
+        
+      return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}${achievementsSection}\n`;
     }).join('\n---\n\n');
 
     // Set the formatted work history to use in the API call
