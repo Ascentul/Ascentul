@@ -213,30 +213,40 @@ export default function CoverLetter() {
   const handleSaveGenerated = () => {
     if (!generatedContent) return;
 
-    // Get user data from current state instead of using useUserData hook
+    console.log("Saving generated cover letter content");
+
+    // Initialize user data with empty values
     const userData = {
       fullName: '',
       email: '',
       phone: '',
-      location: '',
+      // Use LinkedIn URL if available, otherwise default to empty location
+      location: window.linkedInProfile || '',
     };
     
     try {
       // Safely attempt to get user data if available in the component
       if (user) {
-        userData.fullName = user.fullName || '';
+        console.log("User data available for cover letter:", user.name);
+        userData.fullName = user.name || '';
         userData.email = user.email || '';
         userData.phone = user.phone || '';
-        userData.location = user.location || '';
+        
+        // Only use location if LinkedIn isn't available
+        if (!userData.location) {
+          userData.location = user.location || '';
+        }
       }
     } catch (err) {
-      console.log("Could not retrieve user data for cover letter, using defaults");
+      console.error("Error retrieving user data for cover letter:", err);
+      console.log("Using default values instead");
     }
     
-    // Process content to replace placeholders before saving
+    // Process content to remove any AI commentary or formatting issues
     const processedContent = cleanAIOutput(generatedContent);
+    console.log("Content processed successfully");
 
-    // Create a new cover letter with the generated content
+    // Create a properly formatted cover letter with the generated content
     const newCoverLetter = {
       name: `${jobTitle} at ${companyName}`,
       template: 'standard',

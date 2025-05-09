@@ -2668,10 +2668,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
+      console.log("Fetching cover letters for user ID:", user.id);
       const coverLetters = await storage.getCoverLetters(user.id);
+      console.log("Found cover letters:", coverLetters.length);
       res.status(200).json(coverLetters);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching cover letters" });
+      console.error("Error in /api/cover-letters endpoint:", error);
+      res.status(500).json({ 
+        message: "Error fetching cover letters",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
   
@@ -2709,7 +2715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post("/cover-letters", requireAuth, async (req: Request, res: Response) => {
     try {
-      const letterData = insertCoverLetterSchema.parse(req.body);
+      console.log("Received POST /api/cover-letters request with body:", JSON.stringify(req.body));
       
       // Get current user from session
       const user = await getCurrentUser(req);
@@ -2717,14 +2723,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
       }
+
+      console.log("User authenticated:", user.id);
       
-      const letter = await storage.createCoverLetter(user.id, letterData);
-      res.status(201).json(letter);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid cover letter data", errors: error.errors });
+      try {
+        const letterData = insertCoverLetterSchema.parse(req.body);
+        console.log("Cover letter data passed validation");
+        
+        const letter = await storage.createCoverLetter(user.id, letterData);
+        console.log("Cover letter created successfully with ID:", letter.id);
+        
+        res.status(201).json(letter);
+      } catch (validationError) {
+        console.error("Validation error in cover letter creation:", validationError);
+        if (validationError instanceof z.ZodError) {
+          return res.status(400).json({ 
+            message: "Invalid cover letter data", 
+            errors: validationError.errors 
+          });
+        }
+        throw validationError; // Re-throw if it's not a ZodError
       }
-      res.status(500).json({ message: "Error creating cover letter" });
+    } catch (error) {
+      console.error("Error creating cover letter:", error);
+      res.status(500).json({ 
+        message: "Error creating cover letter",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   
