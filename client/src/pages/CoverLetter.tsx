@@ -10,6 +10,7 @@ import { jsPDF } from 'jspdf';
 declare global {
   interface Window {
     html2pdf: any;
+    linkedInProfile?: string | null;
   }
 }
 import { 
@@ -618,11 +619,15 @@ export default function CoverLetter() {
     
     // Check if we have a LinkedIn URL to use instead of just the location
     const linkedInUrl = careerData?.linkedInUrl;
+    
+    // Store the LinkedIn URL separately for the preview dialog
     if (linkedInUrl) {
-      console.log('Using LinkedIn URL instead of location:', linkedInUrl);
-      // Format it as markdown link (or HTML anchor) depending on context
-      // Since cover letters can be displayed in different formats
-      locationToDisplay = linkedInUrl;
+      console.log('Found LinkedIn URL:', linkedInUrl);
+      // Format as LinkedIn profile URL for user if needed for text replacements
+      // We'll handle the display of the actual URL in the preview dialog separately
+      window.linkedInProfile = linkedInUrl;
+    } else {
+      window.linkedInProfile = null;
     }
 
     return text
@@ -2479,7 +2484,11 @@ export default function CoverLetter() {
                 {/* Contact info in single line with separator bars */}
                 <div className="text-sm text-neutral-600 mt-2">
                   {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
-                  {previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>}
+                  {window.linkedInProfile ? (
+                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a></span>
+                  ) : (
+                    previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
+                  )}
                   {previewLetter.content.header.phone && <span> | {previewLetter.content.header.phone}</span>}
                 </div>
                 {/* Date */}
