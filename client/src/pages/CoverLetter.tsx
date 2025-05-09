@@ -918,8 +918,8 @@ export default function CoverLetter() {
       let cleanedContent = analysisResult.optimizedCoverLetter;
 
       // Get job-related info for improved cleaning
-      const jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
-      const companyName = analysisResult.jobDetails?.companyName || 'Company';
+      let jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
+      let companyName = analysisResult.jobDetails?.companyName || 'Company';
       const userEmail = user?.email || '';
       
       try {
@@ -989,9 +989,7 @@ export default function CoverLetter() {
         location: window.linkedInProfile || user?.location || '',
       };
       
-      // Get a name for the company from the analysis result
-      const companyName = analysisResult.jobDetails?.companyName || 'Company';
-      const jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
+      // We already have these variables defined above, no need to redefine them
 
       // Create a new cover letter with the cleaned content
       const newCoverLetter = {
