@@ -2544,14 +2544,14 @@ export default function CoverLetter() {
                   )}
                 </div>
                 {/* Date - consistent styling */}
-                <div className="text-base font-normal mt-4">
+                <div className="text-base font-normal mt-4 leading-relaxed">
                   {previewLetter.content.header.date || new Date().toLocaleDateString()}
                 </div>
               </div>
 
-              {/* Company - with reduced spacing from date */}
-              <div className="mt-1 mb-6 text-base font-normal">
-                {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
+              {/* Company - on its own line with consistent spacing matching body text */}
+              <div className="mt-4 mb-6 text-base font-normal leading-relaxed">
+                {previewLetter.content.recipient.company && <p className="leading-relaxed">{previewLetter.content.recipient.company}</p>}
               </div>
 
               {/* Greeting - consistent styling */}
