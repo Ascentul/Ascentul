@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   FileUp, UploadCloud, AlertCircle, Loader2, BarChart4, 
   Sparkles, CheckCircle2, Trash2, Info, FileText
@@ -39,6 +38,249 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   const fileDropRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Helper function to convert technical errors to human-readable messages
+  const getHumanReadableError = (errorMessage: string, category: string): string => {
+    // If the error message is too technical, simplify it
+    if (errorMessage.includes("TypeError") || 
+        errorMessage.includes("SyntaxError") || 
+        errorMessage.includes("object Object")) {
+      return "Technical error occurred during processing.";
+    }
+    
+    switch(category) {
+      case 'file_size':
+        return 'Your file is too large. Please keep it under 5MB.';
+      case 'file_type':
+        return 'Only PDF files are supported at this time.';
+      case 'file_empty':
+        return 'We couldn\'t find any text in this file. Make sure it contains text that can be selected.';
+      case 'network':
+        return 'Connection problem. Please check your internet and try again.';
+      case 'parsing':
+        return 'There was a problem reading your file. Try a different PDF.';
+      case 'authentication':
+        return 'Your session may have expired. Please refresh the page.';
+      case 'server':
+        return 'Our server encountered an issue. Please try again later.';
+      case 'extraction':
+        return 'We couldn\'t extract text from your PDF. Try a PDF with selectable text rather than scanned images.';
+      default:
+        // For unknown errors, clean up the message if it's too technical
+        if (errorMessage.includes('Error: ')) {
+          return errorMessage.replace('Error: ', '');
+        }
+        return errorMessage || 'An unknown error occurred during file processing.';
+    }
+  };
+
+  // Reset file input
+  const resetFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    setFile(null);
+    setError(null);
+    setHasExtractedText(false);
+    setResumeText('');
+  };
+
+  // Process errors from file handling
+  const handleProcessError = (error: unknown) => {
+    setUploading(false);
+    setExtracting(false);
+    
+    const err = error instanceof Error ? error : new Error('Unknown error');
+    let errorMessage = err.message || 'An error occurred during file processing';
+    let errorCategory = 'unknown';
+    
+    console.error('Process error details:', err);
+    
+    // Categorize common errors
+    if (errorMessage.includes('size') || errorMessage.includes('5MB')) {
+      errorCategory = 'file_size';
+    } else if (errorMessage.includes('Only PDF files') || errorMessage.includes('file type')) {
+      errorCategory = 'file_type';
+    } else if (errorMessage.includes('empty') || errorMessage.includes('no text')) {
+      errorCategory = 'file_empty';
+    } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+      errorCategory = 'network';
+    } else if (errorMessage.includes('parse') || errorMessage.includes('read')) {
+      errorCategory = 'parsing';
+    } else if (errorMessage.includes('extract') || errorMessage.includes('text')) {
+      errorCategory = 'extraction';
+    } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+      errorCategory = 'authentication';
+    } else if (errorMessage.includes('server') || errorMessage.includes('500')) {
+      errorCategory = 'server';
+    }
+    
+    // Set a human-readable error message
+    setError(getHumanReadableError(errorMessage, errorCategory));
+    
+    // Show toast with appropriate message
+    switch (errorCategory) {
+      case 'file_size':
+      case 'file_type':
+      case 'file_empty':
+        toast({
+          title: 'Invalid File',
+          description: getHumanReadableError(errorMessage, errorCategory),
+          variant: 'destructive',
+        });
+        break;
+      case 'network':
+      case 'parsing':
+        toast({
+          title: 'Processing Error',
+          description: getHumanReadableError(errorMessage, errorCategory),
+          variant: 'destructive',
+        });
+        break;
+      case 'authentication':
+        toast({
+          title: 'Authentication Error',
+          description: 'Please refresh the page and try again.',
+          variant: 'destructive',
+        });
+        break;
+      case 'server':
+        toast({
+          title: 'Server Error',
+          description: 'Our system encountered an issue. Please try again later.',
+          variant: 'destructive',
+        });
+        break;
+      case 'extraction':
+        toast({
+          title: 'Extraction Failed',
+          description: 'Could not extract text from the PDF. Please try another file or contact support.',
+          variant: 'destructive',
+        });
+        break;
+      default:
+        toast({
+          title: 'Extraction Failed',
+          description: 'Could not extract text from the PDF. Please try another file or contact support.',
+          variant: 'destructive',
+        });
+    }
+    
+    // Reset file input if we had a critical error
+    if (['file_type', 'file_empty', 'file_size', 'extraction'].includes(errorCategory)) {
+      resetFileInput();
+    }
+  };
+
+  // Handle successful extraction
+  const handleExtractSuccess = (text: string) => {
+    // Update state
+    setResumeText(text);
+    setHasExtractedText(true);
+    setUploading(false);
+    setExtracting(false);
+    
+    // Trigger callback
+    onExtractComplete(text);
+    
+    // Show success message
+    toast({
+      title: 'Success',
+      description: 'Resume text extracted successfully',
+      variant: 'default',
+    });
+  };
+
+  // Process the file for text extraction
+  const processFile = async () => {
+    if (!file) {
+      toast({
+        title: 'No File Selected',
+        description: 'Please select a file first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      // Start loading state
+      setUploading(true);
+      setExtracting(true);
+      setError(null);
+      
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Add debugging data
+      formData.append('fileName', file.name);
+      formData.append('fileSize', file.size.toString());
+      
+      console.log("Uploading file:", file.name, "Size:", file.size, "Type:", file.type);
+      
+      // Direct extraction approach
+      const response = await fetch('/api/resumes/extract', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`File extraction failed with status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.text) {
+        throw new Error(result.message || 'Extraction failed to retrieve text');
+      }
+      
+      // Successful extraction
+      console.log("Extraction successful, text length:", result.text.length);
+      handleExtractSuccess(result.text);
+      
+    } catch (error) {
+      console.error("PDF extraction error:", error);
+      handleProcessError(error);
+    } finally {
+      setUploading(false);
+      setExtracting(false);
+    }
+  };
+  
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
+    }
+  };
+  
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
+    }
+  };
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      // Only remove the highlight if we're leaving the container (not entering a child)
+      const rect = fileDropRef.current.getBoundingClientRect();
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      if (
+        x <= rect.left ||
+        x >= rect.right ||
+        y <= rect.top ||
+        y >= rect.bottom
+      ) {
+        fileDropRef.current.classList.remove('bg-gray-100', 'border-primary');
+      }
+    }
+  };
+
+  // Handle file change from input
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setHasExtractedText(false);
@@ -126,630 +368,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       processFile();
     }, 300); // Slightly longer delay to ensure state is updated
   };
-
-  const processFile = async () => {
-    if (!file) {
-      const errorMsg = 'Please select a PDF file first.';
-      console.error(errorMsg);
-      setError(errorMsg);
-      toast({
-        title: 'No File Selected',
-        description: errorMsg,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      // Display proper loading states
-      setUploading(true);
-      setExtracting(true);
-      setError(null);
-      setHasExtractedText(false);
-
-      console.log("Processing file:", file.name, "Type:", file.type, "Size:", file.size, "Last Modified:", new Date(file.lastModified).toISOString());
-
-      // Extra validation before proceeding
-      if (!file.type && !file.name.toLowerCase().endsWith('.pdf')) {
-        throw new Error('File appears to be missing type information and does not have a .pdf extension');
-      }
-
-      // Comprehensive file validation
-      const fileType = file.type.toLowerCase();
-      const fileName = file.name.toLowerCase();
-      const isPdf = fileType === 'application/pdf' || 
-                   fileType === 'application/x-pdf' || 
-                   fileName.endsWith('.pdf');
-                   
-      if (!isPdf) {
-        const errorMsg = `Invalid file type: ${fileType || 'unknown'}. Only PDF files are supported.`;
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // File size validation with more detailed message
-      if (file.size > 5 * 1024 * 1024) {
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        const errorMsg = `File size (${sizeMB}MB) exceeds the 5MB limit.`;
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      if (file.size === 0) {
-        const errorMsg = 'The selected file appears to be empty (0 bytes).';
-        console.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // Verify file has content by checking arrayBuffer
-      try {
-        const buffer = await file.arrayBuffer();
-        if (buffer.byteLength === 0) {
-          throw new Error('File has zero bytes content although size property shows non-zero');
-        }
-        console.log(`File integrity check: Successfully read ${buffer.byteLength} bytes from file`);
-      } catch (e) {
-        const bufferError = e instanceof Error ? e : new Error('Unknown error reading file');
-        console.error("Failed to read file content:", bufferError);
-        throw new Error(`Cannot read file content: ${bufferError.message}`);
-      }
-
-      // First try the direct extraction method (new approach)
-      try {
-        console.log("Attempting direct extraction method first via /api/resumes/extract endpoint");
-        
-        // Create a diagnostic copy of the file data for verification
-        const fileCopy = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
-        console.log("File blob created successfully:", {
-          originalSize: file.size,
-          blobSize: fileCopy.size,
-          blobType: fileCopy.type
-        });
-        
-        // Attempt direct extraction with better error diagnostics
-        await extractTextWithDirectEndpoint();
-        console.log("Direct extraction method succeeded!");
-        
-        // Show success toast
-        toast({
-          title: 'Resume Processed',
-          description: 'Your resume has been successfully analyzed.',
-          variant: 'default',
-        });
-      } catch (directError) {
-        console.error("Direct extraction failed with error:", directError);
-        
-        // Show warning toast for fallback
-        toast({
-          title: 'Using Backup Method',
-          description: 'Trying alternative extraction approach...',
-          variant: 'default',
-        });
-        
-        // If direct method fails, try the legacy approach with detailed fallback logging
-        console.log("Falling back to legacy two-step extraction method");
-        try {
-          await legacyExtractProcess();
-          console.log("Legacy extraction method succeeded!");
-          
-          // Show success toast
-          toast({
-            title: 'Resume Processed',
-            description: 'Your resume was successfully analyzed using our backup method.',
-            variant: 'default',
-          });
-        } catch (e) {
-          const legacyError = e instanceof Error ? e : new Error('Unknown legacy extraction error');
-          console.error("Legacy extraction also failed:", legacyError);
-          throw new Error(`All extraction methods failed. Last error: ${legacyError.message}`);
-        }
-      }
-      
-    } catch (error) {
-      console.error("All extraction methods failed:", error);
-      handleProcessError(error);
-    }
-  };
-
-  // New method: Upload and extract in a single step with more debugging
-  const extractTextWithDirectEndpoint = async () => {
-    if (!file) {
-      throw new Error('No file selected');
-    }
-    
-    console.log("Using direct extraction endpoint for file:", file.name, "Size:", file.size, "Type:", file.type);
-    
-    try {
-      // Create a fresh FormData instance
-      const formData = new FormData();
-
-      // Create a new File instance with explicit mimetype to avoid browser inconsistencies
-      const fileBlob = file.slice(0, file.size, 'application/pdf');
-      const pdfFile = new File([fileBlob], file.name, {
-        type: 'application/pdf',
-        lastModified: file.lastModified
-      });
-      
-      // Add the file to the form data
-      formData.append('file', pdfFile);
-
-      // Add a simple field to ensure FormData is working properly
-      formData.append('filename', file.name);
-      formData.append('filesize', file.size.toString());
-      
-      // Enhanced debugging to log the actual form data contents
-      console.log("Enhanced FormData created with file object:", {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: 'application/pdf',
-        fileObjectType: pdfFile.type,
-        fileObjectSize: pdfFile.size,
-        containsFile: formData.has('file'),
-        containsFilename: formData.has('filename'),
-        containsFilesize: formData.has('filesize')
-      });
-
-      console.log("⚠️ Submitting form data to /api/resumes/extract...");
-      
-      // Send form data to the extraction endpoint with enhanced error handling
-      const response = await fetch('/api/resumes/extract', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include', // Include cookies for authentication
-      });
-      
-      // Check for HTTP errors
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Direct extraction failed:", errorText);
-        throw new Error(`Extraction failed: ${response.status} ${response.statusText} - ${errorText.substring(0, 100)}`);
-      }
-      
-      // Parse the JSON response safely
-      let result;
-      try {
-        result = await response.json();
-      } catch (jsonError) {
-        console.error("Failed to parse direct extraction response as JSON:", jsonError);
-        throw new Error('Invalid JSON response from extraction endpoint');
-      }
-      
-      // Validate that we have the expected data
-      if (!result.success || !result.text) {
-        console.error("Invalid extraction result:", result);
-        throw new Error('Server returned success but without extracted text');
-      }
-      
-      // Success - process the extracted text
-      console.log("Direct extraction successful, text length:", result.text.length);
-      handleExtractSuccess(result.text);
-    } catch (error) {
-      console.error("Detailed direct extraction error:", error);
-      throw error; // Re-throw to be handled by the caller
-    }
-  };
-  
-  // Legacy method: Upload first, then extract - with enhanced debugging and handling
-  const legacyExtractProcess = async () => {
-    if (!file) {
-      throw new Error('No file selected');
-    }
-    
-    console.log("⚠️ Falling back to legacy two-step process for file:", file.name, "Size:", file.size, "Type:", file.type);
-    
-    try {
-      // Create a fresh FormData instance for the file upload
-      const formData = new FormData();
-
-      // Create a new File instance with explicit mimetype to avoid browser inconsistencies
-      const fileBlob = file.slice(0, file.size, 'application/pdf');
-      const pdfFile = new File([fileBlob], file.name, {
-        type: 'application/pdf',
-        lastModified: file.lastModified
-      });
-      
-      // Add the file to the form data
-      formData.append('file', pdfFile);
-
-      // Add debug fields to ensure FormData is working properly
-      formData.append('filename', file.name);
-      formData.append('filesize', file.size.toString());
-      formData.append('method', 'legacy');
-      
-      // Enhanced debugging to log the actual form data contents
-      console.log("Enhanced legacy FormData created with file object:", {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: 'application/pdf',
-        fileObjectType: pdfFile.type,
-        fileObjectSize: pdfFile.size,
-        containsFile: formData.has('file'),
-        containsFilename: formData.has('filename'),
-        containsFilesize: formData.has('filesize'),
-        containsMethod: formData.has('method')
-      });
-      
-      // Step 1: Upload the file
-      const uploadResponse = await fetch('/api/resumes/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      
-      if (!uploadResponse.ok) {
-        const errorBody = await uploadResponse.text();
-        console.error("Legacy upload error:", errorBody);
-        throw new Error(`Upload failed: ${uploadResponse.status} - ${errorBody.substring(0, 100)}`);
-      }
-      
-      let uploadResult;
-      try {
-        uploadResult = await uploadResponse.json();
-      } catch (jsonError) {
-        console.error("Failed to parse upload response as JSON:", jsonError);
-        throw new Error('Invalid JSON response from upload endpoint');
-      }
-      
-      if (!uploadResult.success || !uploadResult.filePath) {
-        console.error("Invalid upload result:", uploadResult);
-        throw new Error('Upload was successful but response format was invalid');
-      }
-      
-      console.log("Legacy upload successful, proceeding to extraction. FilePath:", uploadResult.filePath);
-      
-      // Step 2: Extract text from the uploaded file
-      const extractResponse = await fetch('/api/resumes/extract-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: uploadResult.filePath }),
-        credentials: 'include'
-      });
-      
-      if (!extractResponse.ok) {
-        const errorText = await extractResponse.text();
-        console.error("Legacy extraction error:", errorText);
-        throw new Error(`Text extraction failed: ${extractResponse.status} - ${errorText.substring(0, 100)}`);
-      }
-      
-      let extractResult;
-      try {
-        extractResult = await extractResponse.json();
-      } catch (jsonError) {
-        console.error("Failed to parse extraction response as JSON:", jsonError);
-        throw new Error('Invalid JSON response from extraction endpoint');
-      }
-      
-      if (!extractResult.success || !extractResult.text) {
-        console.error("Invalid extraction result:", extractResult);
-        throw new Error('Text extraction successful but response format was invalid');
-      }
-      
-      handleExtractSuccess(extractResult.text);
-    } catch (error) {
-      console.error("Detailed legacy extraction error:", error);
-      throw error; // Re-throw to be handled by the caller
-    }
-  };
-  
-  // Handle successful extraction
-  const handleExtractSuccess = (text: string) => {
-    setResumeText(text);
-    setUploading(false);
-    setExtracting(false);
-    setHasExtractedText(true);
-    
-    toast({
-      title: 'Resume Uploaded!',
-      description: 'Text extracted successfully. You can now add a job description.',
-      variant: 'default',
-    });
-    
-    // Call the completion handler
-    onExtractComplete(text);
-  };
-  
-  // Handle errors during the extraction process with better diagnostics
-  const handleProcessError = (error: unknown) => {
-    // Reset all loading states
-    setUploading(false);
-    setExtracting(false);
-    
-    // Get a better error message with more context
-    let errorMessage: string;
-    let errorDetails: string = '';
-    let errorCategory: 'file_size' | 'file_type' | 'file_empty' | 'network' | 'parsing' | 'authentication' | 'server' | 'extraction' | 'unknown' = 'unknown';
-    
-    // Categorize the error to provide more specific help
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      errorDetails = error.stack || '';
-      
-      // Enhanced error categorization with more comprehensive pattern matching
-      if (errorMessage.includes('file size') || errorMessage.includes('5MB') || 
-          errorMessage.includes('too large') || errorMessage.includes('LIMIT_FILE_SIZE')) {
-        errorCategory = 'file_size';
-      } else if (errorMessage.includes('file type') || errorMessage.includes('PDF') || 
-                errorMessage.includes('application/pdf') || errorMessage.includes('Invalid file type')) {
-        errorCategory = 'file_type';
-      } else if (errorMessage.includes('empty') || errorMessage.includes('0 bytes') || 
-                errorMessage.includes('zero bytes') || errorMessage.includes('no text was found')) {
-        errorCategory = 'file_empty';
-      } else if (errorMessage.includes('fetch') || errorMessage.includes('network') || 
-                errorMessage.includes('failed to fetch') || errorMessage.includes('Failed to fetch') ||
-                errorMessage.includes('ECONNREFUSED') || errorMessage.includes('timeout')) {
-        errorCategory = 'network';
-      } else if (errorMessage.includes('JSON') || errorMessage.includes('parse') ||
-                errorMessage.includes('Invalid JSON')) {
-        errorCategory = 'parsing';
-      } else if (errorMessage.includes('401') || errorMessage.includes('unauthorized') || 
-                errorMessage.includes('Unauthorized') || errorMessage.includes('authentication')) {
-        errorCategory = 'authentication';
-      } else if (errorMessage.includes('500') || errorMessage.includes('server error') || 
-                errorMessage.includes('internal server')) {
-        errorCategory = 'server';
-      } else if (errorMessage.includes('extraction') || errorMessage.includes('text extract') || 
-                errorMessage.includes('No text content found')) {
-        errorCategory = 'extraction';
-      }
-    } else if (error && typeof error === 'object') {
-      try {
-        errorMessage = JSON.stringify(error);
-        
-        // Try to categorize JSON error messages as well
-        if (errorMessage.includes('size') || errorMessage.includes('large')) {
-          errorCategory = 'file_size';
-        } else if (errorMessage.includes('type') || errorMessage.includes('PDF')) {
-          errorCategory = 'file_type';
-        } else if (errorMessage.includes('empty') || errorMessage.includes('bytes')) {
-          errorCategory = 'file_empty';
-        }
-      } catch (e) {
-        errorMessage = String(error);
-      }
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-      
-      // Also try to categorize string errors
-      if (error.includes('file size') || error.includes('too large')) {
-        errorCategory = 'file_size';
-      } else if (error.includes('file type') || error.includes('PDF')) {
-        errorCategory = 'file_type';
-      } else if (error.includes('empty') || error.includes('no text')) {
-        errorCategory = 'file_empty';
-      } else if (error.includes('401') || error.includes('unauthorized')) {
-        errorCategory = 'authentication';
-      } else if (error.includes('500') || error.includes('server error')) {
-        errorCategory = 'server';
-      }
-    } else {
-      errorMessage = 'An unknown error occurred during file processing';
-    }
-    
-    // Log detailed error information for debugging
-    console.error("Final error during file processing:", {
-      message: errorMessage,
-      details: errorDetails,
-      category: errorCategory,
-      originalError: error
-    });
-    
-    // Get a user-friendly error message
-    const userErrorMessage = getHumanReadableError(errorMessage, errorCategory);
-    
-    // Set user-facing error message
-    setError(userErrorMessage);
-    
-    // Show helpful toast with potential solutions based on error category
-    switch (errorCategory) {
-      case 'file_size':
-        toast({
-          title: 'File Too Large',
-          description: 'Please upload a PDF file smaller than 5MB. Try compressing your PDF or uploading a simpler version.',
-          variant: 'destructive',
-        });
-        break;
-      case 'file_type':
-        toast({
-          title: 'Invalid File Type',
-          description: 'Please upload a valid PDF file. Other file formats are not supported at this time.',
-          variant: 'destructive',
-        });
-        break;
-      case 'file_empty':
-        toast({
-          title: 'Empty or Unreadable File',
-          description: 'No text could be extracted from this file. Please upload a PDF with selectable text content.',
-          variant: 'destructive',
-        });
-        break;
-      case 'network':
-        toast({
-          title: 'Connection Error',
-          description: 'There was a problem connecting to the server. Please check your internet connection and try again.',
-          variant: 'destructive',
-        });
-        break;
-      case 'parsing':
-        toast({
-          title: 'Processing Error',
-          description: 'There was an issue processing the file. Please try a different PDF file format.',
-          variant: 'destructive',
-        });
-        break;
-      case 'authentication':
-        toast({
-          title: 'Authentication Error',
-          description: 'Your session may have expired. Please refresh the page and try again.',
-          variant: 'destructive',
-        });
-        break;
-      case 'server':
-        toast({
-          title: 'Server Error',
-          description: 'We encountered a server error while processing your file. Please try again later.',
-          variant: 'destructive',
-        });
-        break;
-      case 'extraction':
-        toast({
-          title: 'Text Extraction Failed',
-          description: 'We couldn\'t extract text from your PDF. Try a PDF with selectable text rather than scanned images.',
-          variant: 'destructive',
-        });
-        break;
-      default:
-        toast({
-          title: 'Extraction Failed',
-          description: 'Could not extract text from the PDF. Please try another file or contact support.',
-          variant: 'destructive',
-        });
-    }
-    
-    // Reset file input if we had a critical error
-    if (['file_type', 'file_empty', 'file_size', 'extraction'].includes(errorCategory)) {
-      resetFileInput();
-    }
-  };
-  
-  // Helper function to convert technical errors to human-readable messages
-  const getHumanReadableError = (errorMessage: string, category: string): string => {
-    // If the error message is too technical, simplify it
-    if (errorMessage.includes("TypeError") || 
-        errorMessage.includes("SyntaxError") || 
-        errorMessage.includes("object Object")) {
-      return "Technical error occurred during processing.";
-    }
-    
-    switch(category) {
-      case 'file_size':
-        return 'Your file is too large. Please keep it under 5MB.';
-      case 'file_type':
-        return 'Only PDF files are supported at this time.';
-      case 'file_empty':
-        return 'We couldn\'t find any text in this file. Make sure it contains text that can be selected.';
-      case 'network':
-        return 'Connection problem. Please check your internet and try again.';
-      case 'parsing':
-        return 'There was a problem reading your file. Try a different PDF.';
-      case 'authentication':
-        return 'Your session may have expired. Please refresh the page.';
-      case 'server':
-        return 'Our server encountered an issue. Please try again later.';
-      case 'extraction':
-        return 'We couldn\'t extract text from your PDF. Try a PDF with selectable text rather than scanned images.';
-      default:
-        // For unknown errors, clean up the message if it's too technical
-        if (errorMessage.includes('Error: ')) {
-          return errorMessage.replace('Error: ', '');
-        }
-        return errorMessage || 'An unknown error occurred during file processing.';
-    }
-  };
-  
-  // Handle successful extraction
-  const handleExtractSuccess = (text: string) => {
-    // Update state
-    setResumeText(text);
-    setHasExtractedText(true);
-    setUploading(false);
-    setExtracting(false);
-    
-    // Trigger callback
-    onExtractComplete(text);
-  };
-  
-  // Process the file for text extraction
-  const processFile = async () => {
-    if (!file) {
-      toast({
-        title: 'No File Selected',
-        description: 'Please select a file first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    try {
-      // Start loading state
-      setUploading(true);
-      setError(null);
-      
-      // Create form data for file upload
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // Add debugging data
-      formData.append('fileName', file.name);
-      formData.append('fileSize', file.size.toString());
-      
-      console.log("Uploading file:", file.name, "Size:", file.size, "Type:", file.type);
-      
-      // Direct extraction approach
-      const response = await fetch('/api/resumes/extract', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`File extraction failed with status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success || !result.text) {
-        throw new Error(result.message || 'Extraction failed to retrieve text');
-      }
-      
-      // Successful extraction
-      console.log("Extraction successful, text length:", result.text.length);
-      setExtracting(false);
-      handleExtractSuccess(result.text);
-      
-      toast({
-        title: 'Success',
-        description: 'Resume text extracted successfully',
-        variant: 'default',
-      });
-      
-    } catch (error) {
-      console.error("PDF extraction error:", error);
-      handleProcessError(error);
-    }
-  };
-
-  // Drag and drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (fileDropRef.current) {
-      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
-    }
-  };
-  
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (fileDropRef.current) {
-      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
-    }
-  };
-  
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (fileDropRef.current) {
-      // Only remove the highlight if we're leaving the container (not entering a child)
-      const rect = fileDropRef.current.getBoundingClientRect();
-      const x = e.clientX;
-      const y = e.clientY;
-      
-      if (
-        x <= rect.left ||
-        x >= rect.right ||
-        y <= rect.top ||
-        y >= rect.bottom
-      ) {
-        fileDropRef.current.classList.remove('bg-gray-100', 'border-primary');
-      }
-    }
-  };
   
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -814,16 +432,6 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         variant: 'destructive',
       });
     }
-  };
-
-  const resetFileInput = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    setFile(null);
-    setError(null);
-    setHasExtractedText(false);
-    setResumeText('');
   };
 
   const loadExampleJobDescription = () => {
@@ -1019,26 +627,46 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
                   >
                     {isAnalyzing ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Analyzing Resume...
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Analyzing Resume...</span>
                       </>
                     ) : (
                       <>
-                        <BarChart4 className="h-4 w-4 mr-2" />
-                        {getButtonText()}
+                        {hasExtractedText ? (
+                          <>
+                            <BarChart4 className="mr-2 h-4 w-4" />
+                            <span>{getButtonText()}</span>
+                            {resumeText && jobDescription && (
+                              <Sparkles className="ml-2 h-3 w-3 opacity-70" />
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <FileUp className="mr-2 h-4 w-4" />
+                            <span>{getButtonText()}</span>
+                          </>
+                        )}
                       </>
                     )}
                   </Button>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-xs">
+              <TooltipContent side="bottom" align="center" className="max-w-sm text-center p-3">
                 <p>AI will compare your resume against the job description to identify strengths, gaps, and suggestions.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           
-          {/* The textarea for the resume text is hidden from the user */}
-          <input type="hidden" id="extractedResumeText" value={resumeText} />
+          {/* Information Footer */}
+          <div className="bg-neutral-50 border border-neutral-100 rounded-md p-3 flex items-start space-x-3">
+            <div className="rounded-full bg-blue-50 p-1 mt-0.5">
+              <Info className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="text-xs text-neutral-600 space-y-1">
+              <p className="font-medium text-neutral-700">Your data is secure</p>
+              <p>Resume text is only used for this analysis and is not stored permanently. We do not share your information with third parties.</p>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
