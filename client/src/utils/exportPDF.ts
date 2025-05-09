@@ -327,6 +327,22 @@ export function exportCoverLetterToPDF(): void {
     // Add content with proper spacing
     doc.text(bodyLines, margin, yPosition);
     
+    // Calculate new vertical position after content
+    let textHeight = doc.getTextDimensions(bodyLines).h;
+    yPosition += textHeight + 12; // Add some space after body text
+    
+    // Add standard closing
+    doc.setFont(baseFontFamily, "normal");
+    doc.text("Sincerely,", margin, yPosition);
+    
+    // Add space for signature
+    yPosition += 12;
+    
+    // Add sender's name
+    const nameElement = previewLetterEl.querySelector('h1, h2, .name');
+    const senderName = nameElement?.textContent?.trim() || fullName;
+    doc.text(senderName, margin, yPosition);
+    
     // Generate a filename
     const filename = `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
     
@@ -689,6 +705,33 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
           bodyContent.innerHTML = updatedHTML;
           console.log('Replaced LinkedIn placeholders in body text');
         }
+      }
+    }
+    
+    // Look for and ensure closing signature is present
+    const letterContent = clone.querySelector('.whitespace-pre-wrap');
+    if (letterContent) {
+      // Check if there's already a closing signature
+      const text = letterContent.textContent || '';
+      const hasClosing = text.includes('Sincerely,') || 
+                         text.includes('Best regards,') || 
+                         text.includes('Kind regards,') ||
+                         text.includes('Regards,') ||
+                         text.includes('Thank you,');
+      
+      if (!hasClosing) {
+        console.log('Adding closing signature to the letter');
+        // Get the name from the header if possible
+        const nameElement = clone.querySelector('h1, h2, .name');
+        const senderName = nameElement?.textContent?.trim() || 'Your Name';
+        
+        // Append closing to the letter body
+        letterContent.innerHTML = letterContent.innerHTML + `
+          <p>&nbsp;</p>
+          <p>Sincerely,</p>
+          <p>&nbsp;</p>
+          <p>${senderName}</p>
+        `;
       }
     }
     
