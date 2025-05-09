@@ -2927,16 +2927,13 @@ Your goal is to identify and extract ONLY the actual body paragraphs of this cov
 ✅ The first line of your output should be the first sentence of the ACTUAL letter body content.
 ✅ Make sure there are no duplicate paragraphs or phrases in your output.
 ✅ Ensure NO greeting line remains at the beginning of your output.
-✅ CRITICAL: Preserve all paragraph breaks exactly as they appear in the original content.
-✅ Maintain exact paragraph structure with proper spacing between paragraphs (separate paragraphs with double line breaks).
-✅ Each paragraph should be separated by an empty line in your output.
 
 Optimized Letter:
 """
 ${optimizedLetter}
 """
 
-Return ONLY the clean body content that contains the applicant's qualifications and experience, with no header information, no greetings, and no closings. MAINTAIN ALL PARAGRAPH BREAKS AND SPACING EXACTLY.
+Return ONLY the clean body content that contains the applicant's qualifications and experience, with no header information, no greetings, and no closings.
 `;
 
       try {
@@ -2944,17 +2941,17 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         const aiResponse = await generateAIResponse(prompt);
         let cleanedBody = aiResponse.trim();
         
-        // Apply additional regex-based cleaning as a safety measure - PRESERVING paragraph breaks
+        // Apply additional regex-based cleaning as a safety measure
         cleanedBody = cleanedBody
           // Remove any remaining greeting patterns
-          .replace(/^.*?(Dear\s.*?,)?\n*/i, '')
+          .replace(/^.*?(Dear\s.*?,)?/i, '')
           // Remove any remaining closing phrases
           .replace(/Sincerely[\s\S]*$/i, '')
           // Remove specific test patterns and headers
           .replace(/(new name test|CRM Analytics Analyst.*|vincentholm@gmail\.com|Grubhub|LinkedIn|\/\d{1,2}\/\d{4}|^\s*$)/gi, '')
-          // Normalize consecutive spaces within paragraphs (but preserve paragraph breaks)
-          .replace(/([^\n])\s{2,}([^\n])/g, '$1 $2')
-          // Normalize paragraph spacing (ensure exactly one blank line between paragraphs)
+          // Clean up any extra whitespace
+          .replace(/\s+/g, ' ')
+          .replace(/\s+\n/g, '\n')
           .replace(/\n{3,}/g, '\n\n')
           .trim();
         
@@ -2974,32 +2971,34 @@ Return ONLY the clean body content that contains the applicant's qualifications 
       } catch (aiError) {
         console.error("AI cleaning failed, using regex fallback:", aiError);
         
-        // Fallback to regex-only cleaning if AI fails - preserving paragraph structure
-        // First, split into paragraphs to maintain their structure
-        const paragraphs = optimizedLetter.split(/\n\s*\n/);
-        
-        // Process each paragraph separately to maintain structure
-        const processedParagraphs = paragraphs.map(paragraph => {
-          // Skip processing if the paragraph looks like a header or contact info
-          if (/^(Your Name|Your Email|Date|Company|Grubhub|Dear|Sincerely|Best regards)/i.test(paragraph) ||
-              /^[A-Za-z0-9\s.]+\n[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/m.test(paragraph) ||
-              /\d{1,2}\/\d{1,2}\/\d{4}/m.test(paragraph) ||
-              paragraph.trim().length < 10) {
-            return null; // Will be filtered out
-          }
+        // Fallback to regex-only cleaning if AI fails
+        const fallbackCleaned = optimizedLetter
+          // Remove common placeholder text patterns
+          .replace(/Your Name\s*\n/gi, '')
+          .replace(/Your Email\s*\n/gi, '')
+          .replace(/Date\s*\n/gi, '')
+          .replace(/Company\s*\n/gi, '')
+          .replace(/Grubhub\s*\n/gi, '')  // Remove specific company name seen in the example
           
-          return paragraph
-            // Remove contact information
-            .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*\|\s*LinkedIn/gm, '')
-            // Normalize consecutive spaces within paragraphs
-            .replace(/([^\n])\s{2,}([^\n])/g, '$1 $2')
-            .trim();
-        });
-        
-        // Filter out null paragraphs (headers, signatures) and join with proper paragraph spacing
-        const fallbackCleaned = processedParagraphs
-          .filter(p => p !== null && p.trim().length > 0)
-          .join('\n\n')
+          // Remove name/email/date patterns from the top or anywhere in the document
+          .replace(/^([A-Za-z0-9\s.]+\n){1,4}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\n/gm, '')
+          .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\s*\|\s*LinkedIn/gm, '')
+          
+          // Remove date patterns (anywhere in the document)
+          .replace(/\d{1,2}\/\d{1,2}\/\d{4}\s*\n/gm, '')
+          .replace(/[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/gm, '')
+          
+          // Remove company name patterns
+          .replace(/^[A-Za-z\s]+\n/gm, '')
+          
+          // Remove ALL greeting patterns (not just at the beginning)
+          .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
+          
+          // Remove sign-off patterns
+          .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
+          
+          // Clean up extra newlines and whitespace
+          .replace(/\n{3,}/g, '\n\n')
           .trim();
         
         return res.json({ 

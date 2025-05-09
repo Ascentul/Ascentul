@@ -680,7 +680,8 @@ export default function CoverLetter() {
   const replaceUserPlaceholders = (text: string): string => {
     if (!user) return text;
 
-    // Get career data directly from the queryClient at usage time (not using hooks)
+    // Fetch career data from the cache if possible
+    const queryClient = useQueryClient();
     const careerData = queryClient.getQueryData<any>(['/api/career-data']);
 
     // Validate field length for proper fallbacks
@@ -915,9 +916,6 @@ export default function CoverLetter() {
     try {
       // Create a local variable to hold the cleaned content
       let cleanedContent = analysisResult.optimizedCoverLetter;
-      
-      // Initial paragraph formatting normalization before any cleaning
-      cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
 
       // Get job-related info for improved cleaning
       let jobTitle = analysisResult.jobDetails?.jobTitle || 'Position';
@@ -955,8 +953,6 @@ export default function CoverLetter() {
             const fallbackData = await fallbackResponse.json();
             if (fallbackData.cleanedLetterBody) {
               cleanedContent = fallbackData.cleanedLetterBody;
-              // Ensure paragraph formatting is preserved in fallback case too
-              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with fallback API");
             }
           }
@@ -968,14 +964,10 @@ export default function CoverLetter() {
             const data = JSON.parse(responseText);
             if (data.cleanedFinalBody) {
               cleanedContent = data.cleanedFinalBody;
-              // Ensure paragraph formatting is preserved (normalize to exactly one blank line between paragraphs)
-              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with enhanced API cleaning");
             } else if (data.cleanedLetterBody) {
               // For backward compatibility
               cleanedContent = data.cleanedLetterBody;
-              // Ensure paragraph formatting is preserved (normalize to exactly one blank line between paragraphs)
-              cleanedContent = cleanedContent.trim().replace(/\n{3,}/g, '\n\n');
               console.log("Successfully cleaned letter with basic API cleaning");
             }
           } catch (parseError) {
@@ -1018,12 +1010,7 @@ export default function CoverLetter() {
             position: 'Hiring Manager',
             address: '',
           },
-          // Ensure paragraph breaks are preserved in the saved content
-          body: cleanedContent.trim()
-            // First normalize all multiple newlines to exactly two newlines (one blank line)
-            .replace(/\n{3,}/g, '\n\n')
-            // Make sure every paragraph has proper spacing with exactly one blank line
-            .replace(/([.!?])\s*\n(?!\n)/g, '$1\n\n'),
+          body: cleanedContent,
           closing: 'Sincerely,',
         }
       };
@@ -1173,33 +1160,16 @@ export default function CoverLetter() {
       // Reset font size for body
       doc.setFontSize(11);
 
-      // Process the content to better preserve paragraph breaks
-      const paragraphs = letterBody.split(/\n\s*\n+/);
-      let yPosition = margin + 40;
-      
-      // Handle each paragraph with proper spacing
-      paragraphs.forEach((paragraph, index) => {
-        // Split each paragraph to fit within page width
-        const paragraphLines = doc.splitTextToSize(paragraph.trim(), textWidth);
-        
-        // Add paragraph to document
-        doc.text(paragraphLines, margin, yPosition);
-        
-        // Calculate height of this paragraph and add extra space between paragraphs
-        const paragraphHeight = doc.getTextDimensions(paragraphLines).h;
-        yPosition += paragraphHeight + 10; // 10mm is the paragraph spacing
-      });
-      
-      // Store the final y-position for the closing signature
-      const finalYPosition = yPosition;
-      
-      // For backward compatibility, create the bodyLines variable
+      // Split text to fit within page width and respect line breaks
       const bodyLines = doc.splitTextToSize(letterBody, textWidth);
 
-      // Skip the old content rendering as we've already rendered paragraphs individually
-      // Now add the closing signature using our calculated finalYPosition
-      doc.text(`Sincerely,`, margin, finalYPosition);
-      doc.text(`${userName}`, margin, finalYPosition + 10);
+      // Add content with proper spacing
+      doc.text(bodyLines, margin, margin + 40);
+
+      // Add closing
+      const textHeight = doc.getTextDimensions(bodyLines).h;
+      doc.text(`Sincerely,`, margin, margin + 45 + textHeight);
+      doc.text(`${userName}`, margin, margin + 55 + textHeight);
 
       // Generate output filename
       const outputFilename = filename || `cover-letter-${new Date().toISOString().split('T')[0]}.pdf`;
@@ -2782,42 +2752,16 @@ export default function CoverLetter() {
               </div>
 
               {/* Body content */}
-              <div className="text-base font-normal">
+              <div className="whitespace-pre-wrap text-base font-normal">
                 {window.linkedInProfile 
                   ? previewLetter.content.body
                     .split(/(\{\{LINKEDIN_URL\}\})/)
                     .map((part: string, i: number) => 
                       part === '{{LINKEDIN_URL}}' 
                         ? <a key={i} href={window.linkedInProfile || ''} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a> 
-                        : (
-                          // Split the text into paragraphs and render each with proper spacing
-                          part.split(/\n\s*\n+/).map((paragraph, pIndex) => (
-                            <p 
-                              key={`p-${i}-${pIndex}`} 
-                              className="whitespace-pre-wrap mb-6" 
-                              style={{ 
-                                marginBottom: '1.5rem', 
-                                lineHeight: '1.6',
-                                display: 'block'
-                              }}
-                            >{paragraph.trim()}</p>
-                          ))
-                        )
+                        : part
                     )
-                  : (
-                    // If no LinkedIn URL, just split content into paragraphs
-                    previewLetter.content.body.split(/\n\s*\n+/).map((paragraph, pIndex) => (
-                      <p 
-                        key={`p-${pIndex}`} 
-                        className="whitespace-pre-wrap mb-6" 
-                        style={{ 
-                          marginBottom: '1.5rem', 
-                          lineHeight: '1.6',
-                          display: 'block'
-                        }}
-                      >{paragraph.trim()}</p>
-                    ))
-                  )
+                  : previewLetter.content.body
                 }</div>
 
               {/* Closing */}
