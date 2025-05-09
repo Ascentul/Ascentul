@@ -81,9 +81,77 @@ export function exportCoverLetterToPDF(): void {
       companyName = paragraphs[4]?.textContent?.trim() || "";
     }
     
-    // Get body content
-    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");
-    let letterBody = letterBodyElement?.textContent || "";
+    // Get body content - try multiple selector approaches
+    // First, try to get content from structured paragraphs (the updated rendering approach)
+    const paragraphElements = previewLetterEl.querySelectorAll(".text-base.font-normal > p.whitespace-pre-wrap");
+    
+    // Secondary approach: try to find the body content container
+    const letterBodyElement = 
+      (paragraphElements && paragraphElements.length > 0) 
+        ? null // We'll use the paragraphs directly
+        : previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal, .text-base.font-normal > div");
+    
+    // Determine the best content source and extract the text
+    let letterBody = "";
+    
+    if (paragraphElements && paragraphElements.length > 0) {
+      // Get content from new paragraph structure
+      console.log("Found structured paragraphs:", paragraphElements.length);
+      
+      // Collect text from each paragraph
+      const paragraphTexts: string[] = [];
+      paragraphElements.forEach(para => {
+        const text = para.textContent?.trim();
+        if (text) paragraphTexts.push(text);
+      });
+      
+      // Join with double newlines to ensure paragraph separation
+      letterBody = paragraphTexts.join("\n\n");
+    } else if (letterBodyElement) {
+      // Fallback to the previous approach
+      console.log("Using legacy body element selector");
+      letterBody = letterBodyElement.textContent || "";
+    } else {
+      // Last resort: try to extract from all text content
+      console.log("No specific body element found, using generic content extraction");
+      
+      // Find all text nodes that might be part of the body
+      const bodyTextNodes = Array.from(previewLetterEl.querySelectorAll("div, p"))
+        .filter(el => {
+          const text = el.textContent?.trim() || "";
+          // Filter out text that looks like headers or signature
+          return text.length > 20 && 
+                 !text.startsWith("Dear") &&
+                 !text.includes("@gmail.com") &&
+                 !text.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+        });
+      
+      // Extract and join text from the potential body nodes
+      if (bodyTextNodes.length > 0) {
+        letterBody = bodyTextNodes.map(node => node.textContent?.trim()).join("\n\n");
+      }
+    }
+    
+    console.log("Extracted letter body length:", letterBody.length);
+    
+    // Force splitting the content into paragraphs - this is the key fix
+    // Break apart the text into logical paragraphs based on sentence patterns
+    if (letterBody && !letterBody.includes("\n\n")) {
+      console.log("Applying forced paragraph separation");
+      
+      // Look for natural paragraph breaks (periods followed by spaces and capital letters)
+      // This is a heuristic approach to split a wall of text into paragraphs
+      const forcedParagraphs = letterBody
+        .replace(/\.\s+([A-Z])/g, ".\n\n$1") // Add paragraph break after sentences
+        .replace(/\!\s+([A-Z])/g, "!\n\n$1") // Add paragraph break after exclamations
+        .replace(/\?\s+([A-Z])/g, "?\n\n$1") // Add paragraph break after questions
+        .split(/\n\n+/);
+      
+      // Only use the forced paragraphs if we got a reasonable number of them
+      if (forcedParagraphs.length > 1) {
+        letterBody = forcedParagraphs.join("\n\n");
+      }
+    }
     
     // Enhanced cleaning of the letter body to remove duplicate content and placeholders
     letterBody = letterBody
@@ -99,6 +167,7 @@ export function exportCoverLetterToPDF(): void {
       .replace(/CRM Analytics Analyst Candidate\s*\n/gi, "")
       .replace(/vincentholm@gmail\.com\s*\n/gi, "")
       .replace(/5\/8\/2025\s*\n/gi, "")
+      .replace(/5\/9\/2025\s*\n/gi, "")
       .replace(/Grubhub\s*\n/gi, "")
       
       // Remove any greeting lines to prevent duplication (more comprehensive pattern matching)
@@ -121,7 +190,7 @@ export function exportCoverLetterToPDF(): void {
       
       // Clean up extra whitespace at beginning
       .replace(/^\s+/, "")
-      // Remove multiple consecutive line breaks
+      // Remove multiple consecutive line breaks but maintain paragraph structure with exactly one blank line
       .replace(/\n{3,}/g, "\n\n")
       .trim();
       
