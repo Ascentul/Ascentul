@@ -249,6 +249,7 @@ export default function CoverLetter() {
     // Create a properly formatted cover letter with the generated content
     const newCoverLetter = {
       name: `${jobTitle} at ${companyName}`,
+      jobTitle: jobTitle, // Add job title at the root level
       template: 'standard',
       content: {
         header: {
@@ -827,6 +828,7 @@ export default function CoverLetter() {
     // Create a new cover letter with the optimized content
     const newCoverLetter = {
       name: `Optimized Cover Letter ${new Date().toLocaleDateString()}`,
+      jobTitle: 'Optimized Position', // Adding job title at root level
       template: 'standard',
       content: {
         header: {
