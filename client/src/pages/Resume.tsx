@@ -1577,7 +1577,10 @@ export default function Resume() {
                   disabled={updateCareerDataMutation.isPending}
                 >
                   {updateCareerDataMutation.isPending ? (
-                    <>Updating profile</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating profile...
+                    </>
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" /> 
@@ -1586,9 +1589,21 @@ export default function Resume() {
                   )}
                 </Button>
               ) : (
-                <Button onClick={optimizeAndGenerateResume}>
-                  <ArrowRight className="mr-2 h-4 w-4" /> 
-                  Generate Resume Only
+                <Button 
+                  onClick={optimizeAndGenerateResume}
+                  disabled={generateResumeMutation?.isPending}
+                >
+                  {generateResumeMutation?.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Resume...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" /> 
+                      Generate Resume Only
+                    </>
+                  )}
                 </Button>
               )}
             </div>
