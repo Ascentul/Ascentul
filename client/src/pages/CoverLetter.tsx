@@ -2762,16 +2762,26 @@ export default function CoverLetter() {
               </div>
 
               {/* Body content */}
-              <div className="whitespace-pre-wrap text-base font-normal">
+              <div className="text-base font-normal">
                 {window.linkedInProfile 
                   ? previewLetter.content.body
                     .split(/(\{\{LINKEDIN_URL\}\})/)
                     .map((part: string, i: number) => 
                       part === '{{LINKEDIN_URL}}' 
                         ? <a key={i} href={window.linkedInProfile || ''} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a> 
-                        : part
+                        : (
+                          // Split the text into paragraphs and render each with proper spacing
+                          part.split(/\n\s*\n+/).map((paragraph, pIndex) => (
+                            <p key={`p-${i}-${pIndex}`} className="whitespace-pre-wrap mb-4">{paragraph.trim()}</p>
+                          ))
+                        )
                     )
-                  : previewLetter.content.body
+                  : (
+                    // If no LinkedIn URL, just split content into paragraphs
+                    previewLetter.content.body.split(/\n\s*\n+/).map((paragraph, pIndex) => (
+                      <p key={`p-${pIndex}`} className="whitespace-pre-wrap mb-4">{paragraph.trim()}</p>
+                    ))
+                  )
                 }</div>
 
               {/* Closing */}
