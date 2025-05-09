@@ -216,9 +216,22 @@ export function exportCoverLetterToPDF(): void {
     // Add extra space before greeting for visual separation
     yPosition += 2;
     
+    // Get recipient name for greeting from the preview by checking all paragraphs
+    let recipientName = "Hiring Manager";
+    // Find the paragraph containing "Dear" in the content
+    const allParagraphs = previewLetterEl.querySelectorAll("p");
+    // Use Array.from to convert NodeList to array for safer iteration
+    Array.from(allParagraphs).forEach(paragraph => {
+      const text = paragraph.textContent || "";
+      if (text.includes("Dear") && text.includes(",")) {
+        // Extract the recipient name between "Dear" and ","
+        recipientName = text.replace("Dear", "").split(",")[0].trim();
+      }
+    });
+    
     // Add greeting with consistent font
     doc.setFont(baseFontFamily, "normal");
-    doc.text("Dear Hiring Manager,", margin, yPosition);
+    doc.text(`Dear ${recipientName},`, margin, yPosition);
     yPosition += 10;
     
     // Ensure body text uses the same font
