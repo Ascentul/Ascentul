@@ -164,19 +164,21 @@ export function exportCoverLetterToPDF(): void {
       }
     }
     
-    // Add date and company name on the same line with minimal spacing
+    // Add date and company name on separate lines with consistent body text spacing
     doc.setFont(baseFontFamily, "normal");
     
-    // Format a combined date and company line
+    // Add date on its own line
+    doc.text(date, margin, yPosition);
+    yPosition += 6; // Space between date and company (matches body line spacing)
+    
+    // Add company name on its own line (if provided)
     if (companyName) {
-      // Put date and company name on the same line (with appropriate spacing)
-      doc.text(`${date}     ${companyName}`, margin, yPosition);
-      yPosition += 8; // Space before greeting
-    } else {
-      // Just date if no company
-      doc.text(date, margin, yPosition);
-      yPosition += 8; // Space before greeting
+      doc.text(companyName, margin, yPosition);
+      yPosition += 6; // Space after company name
     }
+    
+    // Add extra space before greeting for visual separation
+    yPosition += 2;
     
     // Add greeting with consistent font
     doc.setFont(baseFontFamily, "normal");
