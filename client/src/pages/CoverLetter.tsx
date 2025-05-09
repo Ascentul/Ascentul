@@ -2549,8 +2549,8 @@ export default function CoverLetter() {
                 </div>
               </div>
 
-              {/* Company - consistent styling */}
-              <div className="mt-4 mb-6 text-base font-normal">
+              {/* Company - with reduced spacing from date */}
+              <div className="mt-1 mb-6 text-base font-normal">
                 {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
               </div>
 
