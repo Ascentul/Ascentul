@@ -633,6 +633,10 @@ export default function CoverLetter() {
       
       // Also replace standalone "City, State" anywhere in the document
       text = text.replace(/\bCity,\s*State\b/gi, 'LinkedIn');
+      
+      // Replace any standalone "LinkedIn" text that's not part of a longer word
+      // This is used for DOM replacement in the UI with a hyperlink
+      text = text.replace(/\bLinkedIn\b/gi, '{{LINKEDIN_URL}}');
     } else {
       // Use location when LinkedIn is not available
       const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
@@ -2494,7 +2498,7 @@ export default function CoverLetter() {
                 <div className="text-sm text-neutral-600 mt-2">
                   {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
                   {window.linkedInProfile ? (
-                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">LinkedIn</a></span>
+                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-blue-600 hover:underline">LinkedIn</a></span>
                   ) : (
                     previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
                   )}
@@ -2516,8 +2520,16 @@ export default function CoverLetter() {
 
               {/* Body content */}
               <div className="whitespace-pre-wrap">
-                {previewLetter.content.body}
-              </div>
+                {window.linkedInProfile 
+                  ? previewLetter.content.body
+                    .split(/(\{\{LINKEDIN_URL\}\})/)
+                    .map((part, i) => 
+                      part === '{{LINKEDIN_URL}}' 
+                        ? <a key={i} href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-blue-600 hover:underline">LinkedIn</a> 
+                        : part
+                    )
+                  : previewLetter.content.body
+                }</div>
 
               {/* Closing */}
               <div className="space-y-4">
