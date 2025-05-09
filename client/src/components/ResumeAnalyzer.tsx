@@ -36,6 +36,7 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
   const [resumeText, setResumeText] = useState<string>('');
   const [hasExtractedText, setHasExtractedText] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileDropRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -644,6 +645,176 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
         return errorMessage || 'An unknown error occurred during file processing.';
     }
   };
+  
+  // Handle successful extraction
+  const handleExtractSuccess = (text: string) => {
+    // Update state
+    setResumeText(text);
+    setHasExtractedText(true);
+    setUploading(false);
+    setExtracting(false);
+    
+    // Trigger callback
+    onExtractComplete(text);
+  };
+  
+  // Process the file for text extraction
+  const processFile = async () => {
+    if (!file) {
+      toast({
+        title: 'No File Selected',
+        description: 'Please select a file first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      // Start loading state
+      setUploading(true);
+      setError(null);
+      
+      // Create form data for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Add debugging data
+      formData.append('fileName', file.name);
+      formData.append('fileSize', file.size.toString());
+      
+      console.log("Uploading file:", file.name, "Size:", file.size, "Type:", file.type);
+      
+      // Direct extraction approach
+      const response = await fetch('/api/resumes/extract', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`File extraction failed with status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.text) {
+        throw new Error(result.message || 'Extraction failed to retrieve text');
+      }
+      
+      // Successful extraction
+      console.log("Extraction successful, text length:", result.text.length);
+      setExtracting(false);
+      handleExtractSuccess(result.text);
+      
+      toast({
+        title: 'Success',
+        description: 'Resume text extracted successfully',
+        variant: 'default',
+      });
+      
+    } catch (error) {
+      console.error("PDF extraction error:", error);
+      handleProcessError(error);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
+    }
+  };
+  
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      fileDropRef.current.classList.add('bg-gray-100', 'border-primary');
+    }
+  };
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (fileDropRef.current) {
+      // Only remove the highlight if we're leaving the container (not entering a child)
+      const rect = fileDropRef.current.getBoundingClientRect();
+      const x = e.clientX;
+      const y = e.clientY;
+      
+      if (
+        x <= rect.left ||
+        x >= rect.right ||
+        y <= rect.top ||
+        y >= rect.bottom
+      ) {
+        fileDropRef.current.classList.remove('bg-gray-100', 'border-primary');
+      }
+    }
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (fileDropRef.current) {
+      fileDropRef.current.classList.remove('bg-gray-100', 'border-primary');
+    }
+    
+    try {
+      const droppedFiles = e.dataTransfer.files;
+      console.log("Files dropped:", droppedFiles.length, "files");
+      
+      if (droppedFiles?.length) {
+        // Validate file type before handling
+        const droppedFile = droppedFiles[0];
+        const fileType = droppedFile.type.toLowerCase();
+        const fileName = droppedFile.name.toLowerCase();
+        
+        console.log("Dropped file details:", {
+          name: droppedFile.name,
+          type: droppedFile.type,
+          size: `${(droppedFile.size / 1024 / 1024).toFixed(2)}MB`
+        });
+        
+        const isPdf = fileType === 'application/pdf' || 
+                      fileType === 'application/x-pdf' || 
+                      fileName.endsWith('.pdf');
+        
+        if (!isPdf) {
+          toast({
+            title: 'Invalid File Type',
+            description: 'Please upload a PDF file only.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        if (droppedFile.size > 5 * 1024 * 1024) {
+          toast({
+            title: 'File Too Large',
+            description: `File size (${(droppedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 5MB limit.`,
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Simulate the file input change
+        const event = {
+          target: {
+            files: droppedFiles
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        
+        handleFileChange(event);
+      }
+    } catch (error) {
+      console.error("Error handling dropped file:", error);
+      toast({
+        title: 'Upload Error',
+        description: 'An error occurred while processing the file. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const resetFileInput = () => {
     if (fileInputRef.current) {
@@ -700,186 +871,103 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
               )}
             </Label>
             
-            <div className="border-2 border-dashed rounded-md border-gray-200 p-4 bg-gray-50 flex flex-col items-center justify-center">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="application/pdf,.pdf"
-                name="file"
-                id="resumeUpload"
-              />
+            <div className="border-2 border-dashed rounded-md border-gray-200 p-4 bg-gray-50 flex flex-col items-center justify-center" ref={fileDropRef}>
+              <form id="resumeForm" className="w-full" encType="multipart/form-data">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="application/pdf,.pdf"
+                  name="file"
+                  id="resumeUpload"
+                />
               
-              {!file ? (
-                <div 
-                  className="text-center py-4 w-full relative"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.add('bg-gray-100', 'border-primary');
-                  }}
-                  onDragEnter={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.add('bg-gray-100', 'border-primary');
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Only remove the highlight if we're leaving the container (not entering a child)
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX;
-                    const y = e.clientY;
-                    
-                    if (
-                      x <= rect.left ||
-                      x >= rect.right ||
-                      y <= rect.top ||
-                      y >= rect.bottom
-                    ) {
-                      e.currentTarget.classList.remove('bg-gray-100', 'border-primary');
-                    }
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.classList.remove('bg-gray-100', 'border-primary');
-                    
-                    try {
-                      const droppedFiles = e.dataTransfer.files;
-                      console.log("Files dropped:", droppedFiles.length, "files");
-                      
-                      if (droppedFiles?.length) {
-                        // Validate file type before handling
-                        const droppedFile = droppedFiles[0];
-                        const fileType = droppedFile.type.toLowerCase();
-                        const fileName = droppedFile.name.toLowerCase();
-                        
-                        console.log("Dropped file details:", {
-                          name: droppedFile.name,
-                          type: droppedFile.type,
-                          size: `${(droppedFile.size / 1024 / 1024).toFixed(2)}MB`
-                        });
-                        
-                        const isPdf = fileType === 'application/pdf' || 
-                                      fileType === 'application/x-pdf' || 
-                                      fileName.endsWith('.pdf');
-                        
-                        if (!isPdf) {
-                          toast({
-                            title: 'Invalid File Type',
-                            description: 'Please upload a PDF file only.',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
-                        if (droppedFile.size > 5 * 1024 * 1024) {
-                          toast({
-                            title: 'File Too Large',
-                            description: `File size (${(droppedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 5MB limit.`,
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        
-                        // Simulate the file input change
-                        const event = {
-                          target: {
-                            files: droppedFiles
-                          }
-                        } as React.ChangeEvent<HTMLInputElement>;
-                        
-                        handleFileChange(event);
-                      }
-                    } catch (error) {
-                      console.error("Error handling dropped file:", error);
-                      toast({
-                        title: 'Upload Error',
-                        description: 'An error occurred while processing the file. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                >
-                  <UploadCloud className="h-10 w-10 mx-auto text-neutral-300 mb-2" />
-                  <p className="text-neutral-600 mb-2">Drop your resume PDF here or</p>
-                  <Button 
-                    type="button"
-                    variant="outline" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="mt-1"
-                    disabled={uploading || extracting}
-                    size="sm"
+                {!file ? (
+                  <div 
+                    className="text-center py-4 w-full relative"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
                   >
-                    Browse Files
-                  </Button>
-                  <p className="text-xs text-neutral-500 mt-2">PDF files only, up to 5MB</p>
-                </div>
-              ) : (
-                <div className="w-full">
-                  <div className="flex items-center justify-between bg-white p-2 rounded border border-neutral-200 mb-3">
-                    <div className="flex items-center">
-                      <div className={`${hasExtractedText ? 'bg-green-100' : 'bg-primary/10'} p-2 rounded`}>
-                        {hasExtractedText ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <FileText className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                      <span className="ml-2 text-sm truncate max-w-[200px]">{file.name}</span>
-                    </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={resetFileInput}
-                            disabled={uploading || extracting}
-                            className="h-8 w-8 text-neutral-500 hover:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Remove file</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  
-                  {(!hasExtractedText && !(uploading || extracting)) && (
+                    <UploadCloud className="h-10 w-10 mx-auto text-neutral-300 mb-2" />
+                    <p className="text-neutral-600 mb-2">Drop your resume PDF here or</p>
                     <Button 
                       type="button"
-                      onClick={processFile}
+                      variant="outline" 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-1"
                       disabled={uploading || extracting}
-                      className="w-full"
                       size="sm"
                     >
-                      Process Resume
+                      Browse Files
                     </Button>
-                  )}
-                  
-                  {(uploading || extracting) && (
-                    <div className="flex items-center justify-center py-2">
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      <span className="text-sm">{uploading ? 'Uploading...' : 'Extracting Text...'}</span>
-                    </div>
-                  )}
-                  
-                  {hasExtractedText && (
-                    <div className="bg-green-50 text-green-700 p-2 text-sm rounded flex items-center">
-                      <div className="bg-green-100 p-1 rounded-full mr-2">
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                    <p className="text-xs text-neutral-500 mt-2">PDF files only, up to 5MB</p>
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <div className="flex items-center justify-between bg-white p-2 rounded border border-neutral-200 mb-3">
+                      <div className="flex items-center">
+                        <div className={`${hasExtractedText ? 'bg-green-100' : 'bg-primary/10'} p-2 rounded`}>
+                          {hasExtractedText ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-primary" />
+                          )}
+                        </div>
+                        <span className="ml-2 text-sm truncate max-w-[200px]">{file.name}</span>
                       </div>
-                      Resume processed successfully
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={resetFileInput}
+                              disabled={uploading || extracting}
+                              className="h-8 w-8 text-neutral-500 hover:text-red-500"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove file</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                  )}
-                </div>
-              )}
+                    
+                    {(!hasExtractedText && !(uploading || extracting)) && (
+                      <Button 
+                        type="button"
+                        onClick={processFile}
+                        disabled={uploading || extracting}
+                        className="w-full"
+                        size="sm"
+                      >
+                        Process Resume
+                      </Button>
+                    )}
+                    
+                    {(uploading || extracting) && (
+                      <div className="flex items-center justify-center py-2">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span className="text-sm">{uploading ? 'Uploading...' : 'Extracting Text...'}</span>
+                      </div>
+                    )}
+                    
+                    {hasExtractedText && (
+                      <div className="bg-green-50 text-green-700 p-2 text-sm rounded flex items-center">
+                        <div className="bg-green-100 p-1 rounded-full mr-2">
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        </div>
+                        Resume processed successfully
+                      </div>
+                    )}
+                  </div>
+                )}
+              </form>
             </div>
             
             {error && (
