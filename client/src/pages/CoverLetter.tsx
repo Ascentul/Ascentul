@@ -84,6 +84,7 @@ export default function CoverLetter() {
   const { user } = useAuth();
   const [copySuccess, setCopySuccess] = useState(false);
   const [optimizedCopySuccess, setOptimizedCopySuccess] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
 
   // Fetch user's cover letters
@@ -822,7 +823,7 @@ export default function CoverLetter() {
   };
 
   // Function to copy optimized cover letter content to clipboard
-  const handleCopyOptimizedCoverLetter = () => {
+  const handleCopyOptimizedCoverLetter = async () => {
     if (!analysisResult?.optimizedCoverLetter) {
       toast({
         title: 'Nothing to copy',
@@ -832,27 +833,71 @@ export default function CoverLetter() {
       return;
     }
 
-    // Process content: replace user placeholders
-    const processedContent = replaceUserPlaceholders(analysisResult.optimizedCoverLetter);
+    try {
+      // First, clean the optimized letter content using the new API endpoint
+      setIsCleaning(true);
+      
+      const response = await fetch('/api/cover-letters/clean-optimized', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          optimizedLetter: analysisResult.optimizedCoverLetter,
+        }),
+      });
 
-    navigator.clipboard.writeText(processedContent)
-      .then(() => {
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Get the cleaned version of the letter
+      let contentToCopy = data.cleanedOptimizedLetter;
+      
+      // If cleaning failed, fall back to the original content with placeholder replacement
+      if (!contentToCopy) {
+        contentToCopy = replaceUserPlaceholders(analysisResult.optimizedCoverLetter);
+      }
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(contentToCopy);
+      
+      // Show success toast
+      setOptimizedCopySuccess(true);
+      toast({
+        title: '✅ Copied to clipboard',
+        description: 'The optimized cover letter body has been copied',
+      });
+      
+      // Reset copy success after 3 seconds
+      setTimeout(() => setOptimizedCopySuccess(false), 3000);
+    } catch (error) {
+      console.error('Error during optimized letter copy:', error);
+      
+      // Fall back to the original approach if the API fails
+      const processedContent = replaceUserPlaceholders(analysisResult.optimizedCoverLetter);
+      
+      try {
+        await navigator.clipboard.writeText(processedContent);
         setOptimizedCopySuccess(true);
         toast({
           title: '✅ Copied to clipboard',
           description: 'The optimized cover letter has been copied',
         });
-        // Reset copy success after 3 seconds
         setTimeout(() => setOptimizedCopySuccess(false), 3000);
-      })
-      .catch((error: unknown) => {
+      } catch (clipboardError) {
         toast({
           title: 'Copy failed',
           description: 'Failed to copy content to clipboard',
           variant: 'destructive',
         });
-        console.error('Copy failed:', error);
-      });
+        console.error('Copy failed:', clipboardError);
+      }
+    } finally {
+      setIsCleaning(false);
+    }
 
     // Create an element to scroll to the optimized content to provide feedback
     const contentElement = document.getElementById('optimizedCoverLetterContent');
