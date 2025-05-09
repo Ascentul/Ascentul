@@ -326,36 +326,72 @@ export async function generateAIResponse(
   }
 }
 
-// Function to clean optimized cover letter content by removing headers, greetings, and sign-offs
+// Function to clean optimized cover letter content by removing headers, dates, greetings, and sign-offs
 export async function cleanOptimizedCoverLetter(optimizedLetter: string): Promise<string> {
   if (!optimizedLetter || optimizedLetter.trim() === '') {
     return '';
   }
   
   try {
+    // First use AI to clean the letter
     const prompt = `
 You are an assistant that removes redundant elements from an AI-generated optimized cover letter.
 
 Your goal is to remove:
 - The applicant's name
 - Contact info (email, LinkedIn, date)
+- Any dates at the beginning (like MM/DD/YYYY)
 - Greeting (e.g., "Dear Hiring Manager")
 - Sign-off (e.g., "Sincerely," and name)
 
 ✅ Keep ONLY the main body of the letter (the paragraphs describing the applicant's experience and relevance to the job).
+✅ Make sure the letter starts with the first actual paragraph of content, with no dates or extra spaces at the top.
 
 Optimized Letter:
 """
 ${optimizedLetter}
 """
 
-Return just the main body content without any header or closing lines.
+Return just the main body content without any header, dates, or closing lines.
 `;
 
-    return await generateAIResponse(prompt);
+    let cleanedLetter = await generateAIResponse(prompt);
+    
+    // Additional regex cleanup to remove any dates at the beginning
+    cleanedLetter = cleanedLetter
+      // Remove date pattern at the beginning (like 5/8/2025)
+      .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*/g, '')
+      // Remove date pattern like May 8, 2025
+      .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*/g, '')
+      // Remove extra spaces at the beginning
+      .replace(/^\s+/, '')
+      // Trim any whitespace
+      .trim();
+    
+    return cleanedLetter;
   } catch (error) {
     console.error("Error cleaning optimized cover letter:", error);
-    // If AI cleaning fails, return the original letter
-    return optimizedLetter;
+    // Attempt regex-only cleanup if AI fails
+    try {
+      let fallbackCleaned = optimizedLetter
+        // Remove date pattern at the beginning (like 5/8/2025)
+        .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{2,4}\s*/g, '')
+        // Remove date pattern like May 8, 2025
+        .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*/g, '')
+        // Remove greeting patterns
+        .replace(/^\s*Dear\s+[^,\n]+(,|\n)/i, '')
+        // Remove sign-off patterns
+        .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
+        // Remove extra spaces at the beginning
+        .replace(/^\s+/, '')
+        // Trim any whitespace
+        .trim();
+      
+      return fallbackCleaned;
+    } catch (regexError) {
+      console.error("Regex fallback cleaning failed:", regexError);
+      // If all cleaning fails, return the original letter
+      return optimizedLetter;
+    }
   }
 }
