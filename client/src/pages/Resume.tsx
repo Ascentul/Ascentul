@@ -519,14 +519,18 @@ export default function Resume() {
       // Refresh career data
       refetchCareerData();
 
-      // Close the optimize dialog
-      setIsOptimizeDialogOpen(false);
-
+      // Don't close dialog yet - will be closed by optimizeAndGenerateResume
+      
       // Show success message
       toast({
         title: 'Profile Updated',
         description: 'Your career profile has been updated with the optimized data',
       });
+
+      // Now safely call optimizeAndGenerateResume after the update is successful
+      if (shouldUpdateProfile) {
+        optimizeAndGenerateResume();
+      }
     },
     onError: (error) => {
       toast({
@@ -643,48 +647,66 @@ export default function Resume() {
 
   // Function to optimize career data and then generate resume
   const optimizeAndGenerateResume = () => {
-    if (!optimizedCareerData) {
+    try {
+      if (!optimizedCareerData) {
+        toast({
+          title: 'Error',
+          description: 'No optimized data available',
+          variant: 'destructive',
+        });
+        return;
+      }
+    
+      // Log that we're starting the resume generation process
+      console.log('Starting resume generation with optimized data:', {
+        summaryLength: optimizedCareerData.careerSummary?.length || 0,
+        workHistoryCount: optimizedCareerData.workHistory?.length || 0,
+        skillsCount: optimizedCareerData.skills?.length || 0
+      });
+
+      // Format optimized work history data for AI processing
+      const formattedWorkHistory = optimizedCareerData.workHistory.map((job: any) => {
+        // Ensure achievements is an array of non-empty strings
+        const achievements = Array.isArray(job.achievements) 
+          ? job.achievements
+              .filter((a: string) => typeof a === 'string' && a.trim() !== '')
+              .map((a: string) => `- ${a}`)
+              .join('\n')
+          : '';
+        
+        const achievementsSection = achievements 
+          ? `\nAchievements:\n${achievements}` 
+          : '\nAchievements: None listed';
+          
+        return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}${achievementsSection}\n`;
+      }).join('\n---\n\n');
+
+      // Set the formatted work history to use in the API call
+      setUserWorkHistory(formattedWorkHistory);
+
+      // Add the optimized career summary at the beginning if available
+      if (optimizedCareerData.careerSummary) {
+        setUserWorkHistory(`Career Summary:\n${optimizedCareerData.careerSummary}\n\n${formattedWorkHistory}`);
+      }
+
+      // Set the flag that we're generating from optimization flow
+      setIsGeneratingFromOptimize(true);
+
+      // Close the optimization dialog
+      setIsOptimizeDialogOpen(false);
+
+      // Call the API with the job description and formatted work history
+      generateResumeMutation.mutate();
+    } catch (error) {
+      console.error('Error in optimizeAndGenerateResume:', error);
       toast({
-        title: 'Error',
-        description: 'No optimized data available',
+        title: 'Resume Generation Error',
+        description: 'There was a problem preparing your resume data. Please try again.',
         variant: 'destructive',
       });
-      return;
+      // Close the dialog even if there's an error
+      setIsOptimizeDialogOpen(false);
     }
-
-    // Format optimized work history data for AI processing
-    const formattedWorkHistory = optimizedCareerData.workHistory.map((job: any) => {
-      // Ensure achievements is an array of non-empty strings
-      const achievements = Array.isArray(job.achievements) 
-        ? job.achievements
-            .filter((a: string) => typeof a === 'string' && a.trim() !== '')
-            .map((a: string) => `- ${a}`)
-            .join('\n')
-        : '';
-      
-      const achievementsSection = achievements 
-        ? `\nAchievements:\n${achievements}` 
-        : '\nAchievements: None listed';
-        
-      return `Position: ${job.position || 'Unknown'}\nCompany: ${job.company || 'Unknown'}\nDescription: ${job.description || 'No description'}${achievementsSection}\n`;
-    }).join('\n---\n\n');
-
-    // Set the formatted work history to use in the API call
-    setUserWorkHistory(formattedWorkHistory);
-
-    // Add the optimized career summary at the beginning if available
-    if (optimizedCareerData.careerSummary) {
-      setUserWorkHistory(`Career Summary:\n${optimizedCareerData.careerSummary}\n\n${formattedWorkHistory}`);
-    }
-
-    // Set the flag that we're generating from optimization flow
-    setIsGeneratingFromOptimize(true);
-
-    // Close the optimization dialog
-    setIsOptimizeDialogOpen(false);
-
-    // Call the API with the job description and formatted work history
-    generateResumeMutation.mutate();
   };
 
   // Animation variants - optimized for performance
@@ -1478,8 +1500,9 @@ export default function Resume() {
               {shouldUpdateProfile ? (
                 <Button 
                   onClick={() => {
+                    // Only run the mutation and wait for it to complete
+                    // The optimizeAndGenerateResume will be called from onSuccess
                     updateCareerDataMutation.mutate();
-                    optimizeAndGenerateResume();
                   }}
                   disabled={updateCareerDataMutation.isPending}
                 >
