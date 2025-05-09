@@ -70,9 +70,12 @@ export function exportCoverLetterToPDF(): void {
       format: 'letter'
     });
     
-    // Set font
-    doc.setFont("helvetica");
-    doc.setFontSize(12);
+    // Set consistent font family and base size
+    const baseFontFamily = "helvetica";
+    const baseFontSize = 11; // Standard size for all text
+    
+    doc.setFont(baseFontFamily);
+    doc.setFontSize(baseFontSize);
     
     // Define margins (1 inch = 25.4mm)
     const margin = 25.4; 
@@ -87,23 +90,21 @@ export function exportCoverLetterToPDF(): void {
     // Current Y position for content
     let yPosition = margin;
     
-    // Add name at the top
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
+    // Add name at the top - slight emphasis with bold only
+    doc.setFont(baseFontFamily, "bold");
     doc.text(fullName, margin, yPosition);
     yPosition += 7;
     
     // Add job title if present
     if (jobTitle) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
+      doc.setFont(baseFontFamily, "normal");
       doc.text(jobTitle, margin, yPosition);
       yPosition += 8; // Increased spacing between job title and contact info
     }
     
     // Add contact info
     if (contactInfo) {
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
       
       // Check if we have a LinkedIn URL to include as a clickable link
       if (window.linkedInProfile) {
@@ -118,7 +119,7 @@ export function exportCoverLetterToPDF(): void {
         // Move to next line for LinkedIn as a clickable link
         yPosition += 5;
         
-        // Set blue color and underline for link
+        // Set blue color for link while maintaining font consistency
         doc.setTextColor(0, 102, 204); // Professional blue color for link
         
         // Use a more professional display format for the LinkedIn URL
@@ -152,25 +153,24 @@ export function exportCoverLetterToPDF(): void {
       }
     }
     
-    // Add date
-    doc.setFontSize(10);
+    // Add date with consistent font
+    doc.setFont(baseFontFamily, "normal");
     doc.text(date, margin, yPosition);
     yPosition += 4; // Reduced spacing between date and company name
     
-    // Add company name
+    // Add company name with consistent font
     if (companyName) {
-      doc.setFontSize(11);
+      doc.setFont(baseFontFamily, "normal");
       doc.text(companyName, margin, yPosition);
       yPosition += 8;
     }
     
-    // Add greeting
-    doc.setFontSize(11);
+    // Add greeting with consistent font
+    doc.setFont(baseFontFamily, "normal");
     doc.text("Dear Hiring Manager,", margin, yPosition);
     yPosition += 10;
     
-    // Reset font size for body
-    doc.setFontSize(11);
+    // Ensure body text uses the same font
     
     // Split text to fit within page width and respect line breaks
     const bodyLines = doc.splitTextToSize(letterBody, textWidth);
@@ -268,8 +268,13 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
       format: 'letter'
     });
     
-    // Set font
-    doc.setFont("helvetica");
+    // Set consistent font family and base size
+    const baseFontFamily = "helvetica";
+    const baseFontSize = 11; // Standard size for all text
+    const sectionHeaderSize = 12; // Size for section headers
+    
+    doc.setFont(baseFontFamily);
+    doc.setFontSize(baseFontSize);
     
     // Define margins (1 inch = 25.4mm)
     const margin = 20; 
@@ -282,13 +287,15 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
     const textWidth = pageWidth - (margin * 2);
     
     // Add title/name at the top
-    doc.setFontSize(18);
+    doc.setFont(baseFontFamily, "bold");
+    doc.setFontSize(14); // Slightly larger only for the main heading
     doc.text(fullName, pageWidth / 2, margin, { align: 'center' });
     
     // Add contact info
     let currentY = margin + 8;
     if (contactInfo) {
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
+      doc.setFontSize(baseFontSize);
       doc.text(contactInfo, pageWidth / 2, currentY, { align: 'center' });
       currentY += 8;
     }
@@ -300,13 +307,13 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
     
     // Add summary if available
     if (summary) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+      doc.setFont(baseFontFamily, "bold");
+      doc.setFontSize(sectionHeaderSize);
       doc.text("Professional Summary", margin, currentY);
       currentY += 6;
       
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
+      doc.setFontSize(baseFontSize);
       const summaryLines = doc.splitTextToSize(summary, textWidth);
       doc.text(summaryLines, margin, currentY);
       currentY += doc.getTextDimensions(summaryLines).h + 5;
@@ -314,13 +321,13 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
     
     // Add skills if available
     if (skills) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+      doc.setFont(baseFontFamily, "bold");
+      doc.setFontSize(sectionHeaderSize);
       doc.text("Skills", margin, currentY);
       currentY += 6;
       
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
+      doc.setFontSize(baseFontSize);
       const skillsLines = doc.splitTextToSize(skills, textWidth);
       doc.text(skillsLines, margin, currentY);
       currentY += doc.getTextDimensions(skillsLines).h + 5;
@@ -328,13 +335,13 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
     
     // Add experience section if available
     if (experienceItems.length > 0) {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+      doc.setFont(baseFontFamily, "bold");
+      doc.setFontSize(sectionHeaderSize);
       doc.text("Experience", margin, currentY);
       currentY += 6;
       
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
+      doc.setFontSize(baseFontSize);
       
       for (const item of experienceItems) {
         // Check if we need to add a new page
@@ -357,13 +364,13 @@ export function exportResumeToPDF(elementId: string, resumeName: string = "Resum
         currentY = margin;
       }
       
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
+      doc.setFont(baseFontFamily, "bold");
+      doc.setFontSize(sectionHeaderSize);
       doc.text("Education", margin, currentY);
       currentY += 6;
       
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFont(baseFontFamily, "normal");
+      doc.setFontSize(baseFontSize);
       
       for (const item of educationItems) {
         // Check if we need to add a new page
@@ -416,6 +423,25 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
     clone.style.left = "-9999px";
     clone.style.top = "0";
     clone.style.display = "block"; // Ensure visibility for rendering
+    
+    // Apply consistent font styling to the clone before exporting
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      * {
+        font-family: 'Helvetica', Arial, sans-serif !important;
+        font-size: 11pt !important;
+        line-height: 1.4 !important;
+        color: rgb(0, 0, 0) !important;
+      }
+      h1, h2, h3, .name {
+        font-size: 12pt !important;
+        font-weight: normal !important;
+      }
+      .header-container, .contact-info {
+        font-size: 11pt !important;
+      }
+    `;
+    clone.appendChild(styleElement);
     document.body.appendChild(clone);
     
     // Configure PDF export
