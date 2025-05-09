@@ -297,3 +297,65 @@ function getDefaultRecommendations(): string[] {
     "Add your latest skills to your professional profiles"
   ];
 }
+
+// Generate a specific AI response based on a prompt
+export async function generateAIResponse(
+  prompt: string,
+  selectedModel?: string
+): Promise<string> {
+  try {
+    // Validate the selected model or use default
+    const validatedModel = selectedModel
+      ? validateModelAndGetId(selectedModel)
+      : DEFAULT_MODEL;
+    
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: validatedModel,
+      messages: [
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+    });
+
+    return response.choices[0].message.content || '';
+  } catch (error) {
+    console.error("Error generating AI response:", error);
+    throw new Error("Failed to generate AI response. Please try again later.");
+  }
+}
+
+// Function to clean optimized cover letter content by removing headers, greetings, and sign-offs
+export async function cleanOptimizedCoverLetter(optimizedLetter: string): Promise<string> {
+  if (!optimizedLetter || optimizedLetter.trim() === '') {
+    return '';
+  }
+  
+  try {
+    const prompt = `
+You are an assistant that removes redundant elements from an AI-generated optimized cover letter.
+
+Your goal is to remove:
+- The applicant's name
+- Contact info (email, LinkedIn, date)
+- Greeting (e.g., "Dear Hiring Manager")
+- Sign-off (e.g., "Sincerely," and name)
+
+✅ Keep ONLY the main body of the letter (the paragraphs describing the applicant's experience and relevance to the job).
+
+Optimized Letter:
+"""
+${optimizedLetter}
+"""
+
+Return just the main body content without any header or closing lines.
+`;
+
+    return await generateAIResponse(prompt);
+  } catch (error) {
+    console.error("Error cleaning optimized cover letter:", error);
+    // If AI cleaning fails, return the original letter
+    return optimizedLetter;
+  }
+}
