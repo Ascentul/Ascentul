@@ -37,7 +37,6 @@ const coverLetterSchema = z.object({
       email: z.string().email({ message: 'Please enter a valid email' }),
       phone: z.string().optional(),
       location: z.string().optional(),
-      jobTitle: z.string().optional(),
       date: z.string().optional(),
     }),
     recipient: z.object({
@@ -54,7 +53,6 @@ const coverLetterSchema = z.object({
       email: '',
       phone: '',
       location: '',
-      jobTitle: '',
       date: new Date().toLocaleDateString(),
     },
     recipient: {
@@ -94,7 +92,6 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
         email: '',
         phone: '',
         location: '',
-        jobTitle: '',
         date: new Date().toLocaleDateString(),
       },
       recipient: {
@@ -196,7 +193,7 @@ export default function CoverLetterForm({ coverLetter, onSuccess, onSubmit, init
 
           <FormField
             control={form.control}
-            name="content.header.jobTitle"
+            name="jobTitle"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Job Title</FormLabel>
