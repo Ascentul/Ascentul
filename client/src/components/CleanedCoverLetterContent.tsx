@@ -188,20 +188,38 @@ export const CleanedCoverLetterContent = ({
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   
+  // Process the content with paragraph preservation
+  const processedContent = replaceUserPlaceholders(cleanAIOutput(furtherCleaned));
+  
+  // First split by paragraphs to maintain paragraph spacing
+  const paragraphs = processedContent.split(/\n\s*\n+/);
+
   return (
     <>
-      {replaceUserPlaceholders(cleanAIOutput(furtherCleaned))
-        .split(/(\[.*?\])/).map((part, index) => {
-          // Check if this part is a placeholder (surrounded by brackets)
-          const isPlaceholder = /^\[.*\]$/.test(part);
-          return isPlaceholder ? (
-            <span key={index} className="text-neutral-400 bg-neutral-50 px-1 rounded" title="Fill in your personal details in your profile">
-              {part}
-            </span>
-          ) : (
-            <span key={index}>{part}</span>
-          );
-        })}
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        // Now handle each paragraph, checking for placeholders
+        const parts = paragraph.split(/(\[.*?\])/);
+        
+        return (
+          <p key={`para-${paragraphIndex}`} className="mb-4">
+            {parts.map((part, partIndex) => {
+              // Check if this part is a placeholder
+              const isPlaceholder = /^\[.*\]$/.test(part);
+              return isPlaceholder ? (
+                <span 
+                  key={`part-${paragraphIndex}-${partIndex}`} 
+                  className="text-neutral-400 bg-neutral-50 px-1 rounded" 
+                  title="Fill in your personal details in your profile"
+                >
+                  {part}
+                </span>
+              ) : (
+                <span key={`part-${paragraphIndex}-${partIndex}`}>{part}</span>
+              );
+            })}
+          </p>
+        );
+      })}
     </>
   );
 };
