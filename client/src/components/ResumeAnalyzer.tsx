@@ -187,7 +187,8 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
           throw new Error('File has zero bytes content although size property shows non-zero');
         }
         console.log(`File integrity check: Successfully read ${buffer.byteLength} bytes from file`);
-      } catch (bufferError) {
+      } catch (e) {
+        const bufferError = e instanceof Error ? e : new Error('Unknown error reading file');
         console.error("Failed to read file content:", bufferError);
         throw new Error(`Cannot read file content: ${bufferError.message}`);
       }
@@ -260,13 +261,16 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       // Create a fresh FormData instance
       const formData = new FormData();
       
-      // Create a new Blob with the correct MIME type to ensure consistent handling
-      const fileBlob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
+      // IMPORTANT: Use the actual File object directly instead of creating a new Blob
+      // This ensures all metadata is properly preserved
+      formData.append('file', file);
       
-      // Make sure we're using the right field name that the server expects
-      formData.append('file', fileBlob, file.name);
-      
-      console.log("FormData created with file field and proper MIME type");
+      // Log FormData contents for debugging
+      console.log("FormData created with original file object:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
       
       // Send form data to the extraction endpoint
       const response = await fetch('/api/resumes/extract', {
@@ -318,13 +322,16 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({
       // Create a fresh FormData instance for the file upload
       const formData = new FormData();
       
-      // Create a new Blob with the correct MIME type to ensure consistent handling
-      const fileBlob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
+      // IMPORTANT: Use the actual File object directly instead of creating a new Blob
+      // This ensures all metadata is properly preserved
+      formData.append('file', file);
       
-      // Make sure we're using the correct field name
-      formData.append('file', fileBlob, file.name);
-      
-      console.log("FormData created for legacy upload with file field and correct MIME type");
+      // Log FormData contents for debugging
+      console.log("FormData created for legacy upload with original file object:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
       
       // Step 1: Upload the file
       const uploadResponse = await fetch('/api/resumes/upload', {
