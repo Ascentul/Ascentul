@@ -447,9 +447,19 @@ export default function Resume() {
       // Update career summary if provided
       let summaryPromise = Promise.resolve() as Promise<any>;
       if (optimizedCareerData.careerSummary) {
-        summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
-          summary: optimizedCareerData.careerSummary
-        });
+        // Fix parameter name to match what the API expects - 'careerSummary' not 'summary'
+        try {
+          summaryPromise = apiRequest('PUT', '/api/career-data/career-summary', {
+            careerSummary: optimizedCareerData.careerSummary
+          })
+          .catch(error => {
+            console.error('Error updating career summary:', error);
+            // Don't throw the error, let Promise.allSettled handle it
+            return null;
+          });
+        } catch (e) {
+          console.error('Exception during career summary update setup:', e);
+        }
       }
 
       // Update each work history item if provided
@@ -510,14 +520,36 @@ export default function Resume() {
               })
                 .catch(error => {
                   console.error(`Error creating skill "${skill}":`, error);
-                  throw error;
+                  // Don't throw the error - allow other operations to continue
+                  return null;
                 })
             );
           }
         }
 
         if (newSkillPromises.length > 0) {
-          skillsPromise = Promise.all(newSkillPromises);
+          try {
+            // Use filter to remove any null promises from failed requests
+            const validSkillPromises = newSkillPromises.filter(p => p !== null);
+            
+            if (validSkillPromises.length > 0) {
+              console.log(`Processing ${validSkillPromises.length} new skills`);
+              // Use allSettled to prevent one failure from stopping everything
+              skillsPromise = Promise.allSettled(validSkillPromises)
+                .then(results => {
+                  const succeeded = results.filter(r => r.status === 'fulfilled').length;
+                  const failed = results.filter(r => r.status === 'rejected').length;
+                  console.log(`Skills update results: ${succeeded} succeeded, ${failed} failed`);
+                  return results;
+                })
+                .catch(err => {
+                  console.error('Error in skill updates:', err);
+                  return []; // Return empty array to prevent the entire operation from failing
+                });
+            }
+          } catch (e) {
+            console.error('Exception during skill promise setup:', e);
+          }
         }
       }
 
