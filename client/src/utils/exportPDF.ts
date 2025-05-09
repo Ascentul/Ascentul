@@ -26,8 +26,8 @@ export function exportCoverLetterToPDF(): void {
     const fullNameElement = previewLetterEl.querySelector("h2");
     const fullName = fullNameElement?.textContent || "Your Name";
     
-    // Extract text directly from the DOM structure
-    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap");
+    // Extract text directly from the DOM structure with updated class selector
+    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap.text-base.font-normal");
     let letterBody = letterBodyElement?.textContent || "";
     
     // Clean any remaining placeholders from the text
@@ -38,20 +38,20 @@ export function exportCoverLetterToPDF(): void {
       .replace(/\[Your Name\]/g, fullName)
       .replace(/\[Name\]/g, fullName);
     
-    // Get job title (if available)
-    const jobTitleElement = previewLetterEl.querySelector(".text-lg.text-neutral-800");
+    // Get job title (if available) with updated class selector
+    const jobTitleElement = previewLetterEl.querySelector(".text-base.font-normal.mt-1");
     const jobTitle = jobTitleElement?.textContent?.trim() || "";
     
-    // Get contact info line
-    const contactInfoElement = previewLetterEl.querySelector(".text-sm.text-neutral-600");
+    // Get contact info line with updated class selector
+    const contactInfoElement = previewLetterEl.querySelector(".text-base.font-normal.mt-4");
     const contactInfo = contactInfoElement?.textContent?.trim() || "";
     
-    // Get date
-    const dateElement = previewLetterEl.querySelector(".text-sm.text-neutral-500");
+    // Get date with updated class selector - more specific to ensure we get the right element
+    const dateElement = previewLetterEl.querySelector(".text-base.font-normal.mt-4:not(:first-of-type):not(.mt-1):not(.mb-6)");
     const date = dateElement?.textContent?.trim() || new Date().toLocaleDateString();
     
-    // Get company name
-    const companyElement = previewLetterEl.querySelector(".mt-4.mb-6 p");
+    // Get company name with updated class selector
+    const companyElement = previewLetterEl.querySelector(".mt-4.mb-6.text-base.font-normal p");
     const companyName = companyElement?.textContent?.trim() || "";
     
     // Basic validation
