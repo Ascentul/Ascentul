@@ -2892,6 +2892,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // New improved endpoint for better cover letter cleaning
+  apiRouter.post("/api/save-cleaned-cover-letter", async (req: Request, res: Response) => {
+    const { optimizedLetter, jobTitle, companyName, userEmail } = req.body;
+
+    if (!optimizedLetter) {
+      return res.status(400).json({ error: 'No letter provided' });
+    }
+
+    try {
+      // Import the generateAIResponse function
+      const { generateAIResponse } = await import('./utils/openai');
+      
+      const prompt = `
+You are an assistant that formats cover letter content for final saving.
+
+Your goal is to identify and extract ONLY the actual body paragraphs of this cover letter.
+
+❌ Remove ALL of these elements:
+- The applicant's name that appears at the top
+- Job title/position that appears at the top
+- Contact information (email, phone, LinkedIn)
+- Any dates at the beginning or end
+- Company name lines
+- Greeting lines (e.g., "Dear Hiring Manager,")
+- Closing phrases (e.g., "Sincerely," or "Best regards,")
+- The applicant's name that appears at the end
+
+✅ Keep ONLY the main body paragraphs that describe the applicant's experience and qualifications.
+✅ The first line of your output should be the first sentence of the actual letter body.
+✅ Make sure there are no duplicate paragraphs in your output.
+
+Optimized Letter:
+"""
+${optimizedLetter}
+"""
+
+Return just the clean body content that starts with the first actual paragraph.
+`;
+
+      const cleanedFinalBody = await generateAIResponse(prompt);
+      return res.json({ cleanedFinalBody });
+    } catch (error) {
+      console.error('Error cleaning cover letter for saving:', error);
+      
+      // Fall back to simple regex-based cleaning if AI cleaning fails
+      let fallbackCleaned = optimizedLetter
+        // Remove name/email/date patterns from the top (multiple such sections may exist)
+        .replace(/^([A-Za-z0-9\s.]+\n){1,4}[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\n/gm, '')
+        // Remove date patterns
+        .replace(/^\s*\d{1,2}\/\d{1,2}\/\d{4}\s*\n/gm, '')
+        .replace(/^\s*[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/gm, '')
+        // Remove common company name pattern
+        .replace(/^Company\n/m, '')
+        .replace(/^[A-Za-z\s]+\n/m, '') // Potential company name line
+        // Remove greeting patterns
+        .replace(/^\s*Dear\s+[^,\n]+(,|\n)/i, '')
+        // Remove sign-off patterns
+        .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
+        // Clean up extra newlines and whitespace
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      
+      return res.json({ 
+        cleanedFinalBody: fallbackCleaned,
+        usedFallback: true 
+      });
+    }
+  });
+  
   apiRouter.post("/cover-letters/generate", async (req: Request, res: Response) => {
     try {
       const { jobTitle, companyName, jobDescription, userExperience, userSkills, type } = req.body;
