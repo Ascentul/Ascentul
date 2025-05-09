@@ -581,6 +581,16 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       const contactInfo = clone.querySelector('.text-neutral-700');
       
       if (contactInfo) {
+        // Try to extract email and phone from the contact info
+        const emailMatch = contactInfo.textContent?.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/) || null;
+        const email = emailMatch ? emailMatch[0] : null;
+        
+        // Try to extract phone numbers 
+        const phoneMatch = contactInfo.textContent?.match(/(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})/) || null;
+        const phone = phoneMatch ? phoneMatch[0] : null;
+        
+        console.log('Extracted from contact info:', { email, phone });
+        
         // Check if LinkedIn is mentioned in the contact info
         const hasLinkedInText = contactInfo.textContent?.includes('LinkedIn') || false;
         
@@ -593,13 +603,22 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
           // Replace LinkedIn text with a properly formatted hyperlink
           const updatedHTML = currentHTML.replace(
             /LinkedIn/g, 
-            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`
           );
           
           // Update the contact info with the linked version
           contactInfo.innerHTML = updatedHTML;
+        } else if (email) {
+          // Format as: Email | LinkedIn | Phone
+          let newContent = email;
+          newContent += ` | <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`;
+          if (phone) {
+            newContent += ` | ${phone}`;
+          }
+          contactInfo.innerHTML = newContent;
+          console.log('Reformatted contact info for PDF with LinkedIn link:', newContent);
         } else {
-          console.log('Adding LinkedIn to contact info for PDF');
+          console.log('Adding LinkedIn to existing contact info for PDF');
           
           // Add LinkedIn to the contact info if not present
           const currentHTML = contactInfo.innerHTML;
@@ -611,13 +630,28 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
             const beforePipe = currentHTML.substring(0, firstPipeIndex);
             const afterPipe = currentHTML.substring(firstPipeIndex);
             
-            const updatedHTML = `${beforePipe}| <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a> ${afterPipe}`;
+            const updatedHTML = `${beforePipe}| <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a> ${afterPipe}`;
             contactInfo.innerHTML = updatedHTML;
           } else {
             // Just append LinkedIn if no pipes
-            const updatedHTML = `${currentHTML} | <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`;
+            const updatedHTML = `${currentHTML} | <a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`;
             contactInfo.innerHTML = updatedHTML;
           }
+        }
+      } else {
+        console.log('No contact info found for LinkedIn PDF integration');
+        
+        // Try to find any header element to inject contact info into
+        const headerSection = clone.querySelector('.header, header, .letterhead, h1, h2');
+        if (headerSection) {
+          // Create a new contact info element
+          const newContactInfo = document.createElement('p');
+          newContactInfo.className = 'contact-info text-neutral-700';
+          newContactInfo.innerHTML = `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`;
+          
+          // Insert after the header section
+          headerSection.parentNode?.insertBefore(newContactInfo, headerSection.nextSibling);
+          console.log('Created new contact info with LinkedIn link');
         }
       }
       
@@ -625,11 +659,35 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       const bodyContent = clone.querySelector('.whitespace-pre-wrap');
       if (bodyContent) {
         const bodyHTML = bodyContent.innerHTML;
-        if (bodyHTML.includes('{{LINKEDIN_URL}}')) {
-          bodyContent.innerHTML = bodyHTML.replace(
+        
+        // Check for LinkedIn URL placeholders in various formats
+        if (bodyHTML.includes('{{LINKEDIN_URL}}') || 
+            bodyHTML.includes('{{LinkedIn}}') || 
+            bodyHTML.includes('LinkedIn Profile')) {
+          
+          // Replace all variations with the properly styled link
+          let updatedHTML = bodyHTML;
+          
+          // Replace {{LINKEDIN_URL}} placeholder
+          updatedHTML = updatedHTML.replace(
             /\{\{LINKEDIN_URL\}\}/g,
-            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important;">LinkedIn</a>`
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`
           );
+          
+          // Replace {{LinkedIn}} placeholder
+          updatedHTML = updatedHTML.replace(
+            /\{\{LinkedIn\}\}/g,
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn</a>`
+          );
+          
+          // Replace "LinkedIn Profile" text
+          updatedHTML = updatedHTML.replace(
+            /LinkedIn Profile/g,
+            `<a href="${window.linkedInProfile}" style="color:#0066cc !important; text-decoration:underline !important; font-weight:bold;">LinkedIn Profile</a>`
+          );
+          
+          bodyContent.innerHTML = updatedHTML;
+          console.log('Replaced LinkedIn placeholders in body text');
         }
       }
     }
@@ -652,6 +710,12 @@ export function exportElementToPDF(elementId: string, filename: string = "cover-
       }
       a {
         color: #0066cc !important;
+        text-decoration: underline !important;
+      }
+      
+      a[href*="linkedin.com"] {
+        color: #0077b5 !important; /* LinkedIn brand color */
+        font-weight: bold !important;
         text-decoration: underline !important;
       }
     `;
