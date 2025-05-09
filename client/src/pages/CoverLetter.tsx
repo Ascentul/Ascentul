@@ -2521,21 +2521,21 @@ export default function CoverLetter() {
               </DialogTitle>
             </DialogHeader>
             <div 
-              className="space-y-6 p-4 bg-white" 
+              className="space-y-6 p-4 bg-white font-normal text-base text-neutral-800 leading-relaxed font-sans" 
               id="pdf-export-content"
             >
-              {/* Header with contact info */}
+              {/* Header with contact info - using consistent text styling */}
               <div className="text-left">
-                <h2 className="text-xl font-bold">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
-                {/* Job title line */}
-                <div className="text-lg text-neutral-800 mt-1">
+                <h2 className="text-base font-normal">{previewLetter.content.header.fullName || '[Your Name]'}</h2>
+                {/* Job title line - consistent with base text */}
+                <div className="text-base font-normal mt-1">
                   {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
                 </div>
-                {/* Contact info in single line with separator bars */}
-                <div className="text-sm text-neutral-600 mt-4">
+                {/* Contact info in single line with separator bars - consistent styling */}
+                <div className="text-base font-normal mt-4">
                   {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
                   {window.linkedInProfile ? (
-                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-blue-600 hover:underline">LinkedIn</a></span>
+                    <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a></span>
                   ) : (
                     previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
                   )}
@@ -2543,35 +2543,35 @@ export default function CoverLetter() {
                     <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</span>
                   )}
                 </div>
-                {/* Date */}
-                <div className="text-sm text-neutral-500 mt-4">
+                {/* Date - consistent styling */}
+                <div className="text-base font-normal mt-4">
                   {previewLetter.content.header.date || new Date().toLocaleDateString()}
                 </div>
               </div>
 
-              {/* Company */}
-              <div className="mt-4 mb-6">
+              {/* Company - consistent styling */}
+              <div className="mt-4 mb-6 text-base font-normal">
                 {previewLetter.content.recipient.company && <p>{previewLetter.content.recipient.company}</p>}
               </div>
 
-              {/* Greeting */}
-              <p>Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
+              {/* Greeting - consistent styling */}
+              <p className="text-base font-normal">Dear {previewLetter.content.recipient.name || 'Hiring Manager'},</p>
 
               {/* Body content */}
-              <div className="whitespace-pre-wrap">
+              <div className="whitespace-pre-wrap text-base font-normal">
                 {window.linkedInProfile 
                   ? previewLetter.content.body
                     .split(/(\{\{LINKEDIN_URL\}\})/)
                     .map((part, i) => 
                       part === '{{LINKEDIN_URL}}' 
-                        ? <a key={i} href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-blue-600 hover:underline">LinkedIn</a> 
+                        ? <a key={i} href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a> 
                         : part
                     )
                   : previewLetter.content.body
                 }</div>
 
               {/* Closing */}
-              <div className="space-y-4">
+              <div className="space-y-4 text-base font-normal">
                 <p>{previewLetter.content.closing || 'Sincerely,'}</p>
                 <p>{previewLetter.content.header.fullName 
                    ? previewLetter.content.header.fullName.replace(/\[Your Name\]|\[Name\]/g, "")
