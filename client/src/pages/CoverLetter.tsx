@@ -13,6 +13,33 @@ declare global {
     linkedInProfile?: string | null;
   }
 }
+// Define CoverLetter type interface
+interface CoverLetterType {
+  id: number;
+  name: string;
+  jobTitle?: string;
+  template: string;
+  content: {
+    header: {
+      fullName: string;
+      email: string;
+      phone?: string;
+      location?: string;
+      date: string;
+    };
+    recipient: {
+      name: string;
+      company: string;
+      position: string;
+      address?: string;
+    };
+    body: string;
+    closing: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 import { 
   Plus, 
   Mail,
@@ -59,7 +86,7 @@ export default function CoverLetter() {
   const [generationTimestamp, setGenerationTimestamp] = useState<Date | null>(null);
 
   // Fetch user's cover letters
-  const { data: coverLetters = [], isLoading } = useQuery({
+  const { data: coverLetters = [] as CoverLetterType[], isLoading } = useQuery<CoverLetterType[]>({
     queryKey: ['/api/cover-letters'],
   });
 
@@ -590,7 +617,7 @@ export default function CoverLetter() {
       console.log(`Looking for cover letter with ID: ${letterId}`);
 
       // Find the letter in the cover letters array
-      const letterToExport = coverLetters.find((letter: any) => letter.id === letterId);
+      const letterToExport = coverLetters.find((letter: CoverLetterType) => letter.id === letterId);
 
       if (letterToExport) {
         console.log('Found letter to export, setting as preview letter');
