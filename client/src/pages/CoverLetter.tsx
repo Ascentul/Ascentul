@@ -2532,7 +2532,7 @@ export default function CoverLetter() {
                   {previewLetter.jobTitle || previewLetter.content.recipient.position || ''}
                 </div>
                 {/* Contact info in single line with separator bars */}
-                <div className="text-sm text-neutral-600 mt-2">
+                <div className="text-sm text-neutral-600 mt-4">
                   {previewLetter.content.header.email && <span>{previewLetter.content.header.email}</span>}
                   {window.linkedInProfile ? (
                     <span> | <a href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-600 hover:text-blue-600 hover:underline">LinkedIn</a></span>
