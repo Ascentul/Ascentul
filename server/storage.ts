@@ -4787,6 +4787,82 @@ export class DatabaseStorage implements IStorage {
     return this.getResumes(userId);
   }
   
+  async getResume(id: number): Promise<Resume | undefined> {
+    try {
+      const [resume] = await db.select()
+        .from(resumes)
+        .where(eq(resumes.id, id));
+      return resume;
+    } catch (error) {
+      console.error(`Error fetching resume ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async createResume(userId: number, resumeData: InsertResume): Promise<Resume> {
+    try {
+      console.log(`Creating resume for user ${userId}`);
+      const now = new Date();
+      
+      const [result] = await db.insert(resumes)
+        .values({
+          ...resumeData,
+          userId,
+          createdAt: now,
+          updatedAt: now
+        })
+        .returning();
+      
+      console.log(`Resume created with ID ${result.id}`);
+      
+      // Check if this is the first resume for the user
+      const userResumes = await this.getResumes(userId);
+      if (userResumes.length === 1) {
+        // Award XP for creating first resume
+        await this.addUserXP(userId, 100, "first_resume", "Created your first resume");
+      } else {
+        // Award XP for creating any additional resume
+        await this.addUserXP(userId, 50, "resume_created", "Created a new resume");
+      }
+      
+      return result;
+    } catch (error) {
+      console.error(`Error creating resume for user ${userId}:`, error);
+      throw new Error(`Failed to create resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  async updateResume(id: number, resumeData: Partial<Resume>): Promise<Resume | undefined> {
+    try {
+      const now = new Date();
+      const [updatedResume] = await db.update(resumes)
+        .set({
+          ...resumeData,
+          updatedAt: now
+        })
+        .where(eq(resumes.id, id))
+        .returning();
+      
+      return updatedResume;
+    } catch (error) {
+      console.error(`Error updating resume ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteResume(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(resumes)
+        .where(eq(resumes.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting resume ${id}:`, error);
+      return false;
+    }
+  }
+  
   // Cover Letter operations
   async getCoverLetters(userId: number): Promise<CoverLetter[]> {
     try {
