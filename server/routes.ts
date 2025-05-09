@@ -2941,17 +2941,17 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         const aiResponse = await generateAIResponse(prompt);
         let cleanedBody = aiResponse.trim();
         
-        // Apply additional regex-based cleaning as a safety measure
+        // Apply additional regex-based cleaning as a safety measure - PRESERVING paragraph breaks
         cleanedBody = cleanedBody
           // Remove any remaining greeting patterns
-          .replace(/^.*?(Dear\s.*?,)?/i, '')
+          .replace(/^.*?(Dear\s.*?,)?\n*/i, '')
           // Remove any remaining closing phrases
           .replace(/Sincerely[\s\S]*$/i, '')
           // Remove specific test patterns and headers
           .replace(/(new name test|CRM Analytics Analyst.*|vincentholm@gmail\.com|Grubhub|LinkedIn|\/\d{1,2}\/\d{4}|^\s*$)/gi, '')
-          // Clean up any extra whitespace
-          .replace(/\s+/g, ' ')
-          .replace(/\s+\n/g, '\n')
+          // Normalize consecutive spaces within paragraphs (but preserve paragraph breaks)
+          .replace(/([^\n])\s{2,}([^\n])/g, '$1 $2')
+          // Normalize paragraph spacing (ensure exactly one blank line between paragraphs)
           .replace(/\n{3,}/g, '\n\n')
           .trim();
         
@@ -2971,7 +2971,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
       } catch (aiError) {
         console.error("AI cleaning failed, using regex fallback:", aiError);
         
-        // Fallback to regex-only cleaning if AI fails
+        // Fallback to regex-only cleaning if AI fails - preserving paragraph structure
         const fallbackCleaned = optimizedLetter
           // Remove common placeholder text patterns
           .replace(/Your Name\s*\n/gi, '')
@@ -2994,10 +2994,13 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           // Remove ALL greeting patterns (not just at the beginning)
           .replace(/Dear\s+[^,\n]+(,|\n)/gi, '')
           
-          // Remove sign-off patterns
+          // Remove sign-off patterns without affecting paragraph structure
           .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you)[,\s]+(.*?)$/i, '')
           
-          // Clean up extra newlines and whitespace
+          // Normalize consecutive spaces within paragraphs (but preserve paragraph breaks)
+          .replace(/([^\n])\s{2,}([^\n])/g, '$1 $2')
+          
+          // Ensure proper paragraph spacing (normalize to exactly one blank line between paragraphs)
           .replace(/\n{3,}/g, '\n\n')
           .trim();
         
