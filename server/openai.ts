@@ -707,7 +707,7 @@ export async function generateCoverLetter(
     const prompt = `
 You are an expert AI career assistant helping job seekers write tailored, professional cover letters.
 
-Generate a cover letter for the following role:
+Generate ONLY the body content of a cover letter for the following role:
 Job Title: ${jobTitle || 'The position described in the job description'}
 Company: ${companyName || 'The hiring company'}
 Job Description:
@@ -728,7 +728,7 @@ Email: ${userProfile?.email || 'Not provided'}
 Phone: ${userProfile?.phone || 'Not provided'}
 Location: ${userProfile?.location || 'Not provided'}
 
-🎯 Your goal is to generate the BODY TEXT ONLY of a cover letter that would score 80 or higher on these categories:
+🎯 Your goal is to generate ONLY THE BODY PARAGRAPHS of a cover letter that would score 80 or higher on these categories:
 
 1. **Alignment** – Clearly match the role and mention job-specific keywords from the job description. Extract 3-5 key skills/technologies from the job posting and incorporate them naturally. Position the candidate as an ideal fit.
 
@@ -751,11 +751,13 @@ Location: ${userProfile?.location || 'Not provided'}
    - Appropriate formal tone without being stiff or robotic
 
 IMPORTANT FORMAT NOTES:
-- ONLY GENERATE THE BODY TEXT of the cover letter - start with "Dear Hiring Manager," and end with "Sincerely," followed by the user's name
-- DO NOT include the user's contact information, date, or company information in the generated text
+- DO NOT include ANY salutation (no "Dear Hiring Manager," or similar)
+- DO NOT include ANY closing (no "Sincerely," "Best regards," or similar)
+- DO NOT include the user's name or signature at the end
+- DO NOT include the user's contact information, date, or company information
+- ONLY generate the body paragraphs starting directly with "I am writing..." or similar
+- ONLY include the main content that would go between the greeting and signature
 - DO NOT include any header elements as they will be rendered separately in the UI
-- DO NOT include old address sections (no "[Your Address]" or "[City, State, Zip Code]")
-- DO NOT include recipient address sections like "Hiring Manager" or "[Company Address]"
 
 DO NOT:
 - Use generic phrases like "I'm a hard worker" or "I'm passionate about success"
