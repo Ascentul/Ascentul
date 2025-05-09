@@ -11,6 +11,7 @@ declare global {
   interface Window {
     html2pdf: any;
     linkedInProfile?: string | null;
+    userName?: string;
   }
 }
 // Define CoverLetter type interface
@@ -76,8 +77,8 @@ import { motion } from 'framer-motion';
 export default function CoverLetter() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddLetterOpen, setIsAddLetterOpen] = useState(false);
-  const [selectedCoverLetter, setSelectedCoverLetter] = useState<any>(null);
-  const [previewLetter, setPreviewLetter] = useState<any>(null);
+  const [selectedCoverLetter, setSelectedCoverLetter] = useState<CoverLetterType | null>(null);
+  const [previewLetter, setPreviewLetter] = useState<CoverLetterType | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -122,7 +123,7 @@ export default function CoverLetter() {
   });
 
   const duplicateCoverLetterMutation = useMutation({
-    mutationFn: async (coverLetter: any) => {
+    mutationFn: async (coverLetter: CoverLetterType) => {
       const newCoverLetter = {
         ...coverLetter,
         name: `${coverLetter.name} (Copy)`,
@@ -329,7 +330,7 @@ export default function CoverLetter() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return coverLetters.filter(
-        (coverLetter: any) => coverLetter.name.toLowerCase().includes(query)
+        (coverLetter: CoverLetterType) => coverLetter.name.toLowerCase().includes(query)
       );
     }
 
@@ -2582,9 +2583,9 @@ export default function CoverLetter() {
                 {window.linkedInProfile 
                   ? previewLetter.content.body
                     .split(/(\{\{LINKEDIN_URL\}\})/)
-                    .map((part, i) => 
+                    .map((part: string, i: number) => 
                       part === '{{LINKEDIN_URL}}' 
-                        ? <a key={i} href={window.linkedInProfile} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a> 
+                        ? <a key={i} href={window.linkedInProfile || ''} target="_blank" rel="noopener noreferrer" className="text-neutral-800 hover:text-blue-600 hover:underline">LinkedIn</a> 
                         : part
                     )
                   : previewLetter.content.body
