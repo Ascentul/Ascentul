@@ -17,8 +17,14 @@ export const CleanedCoverLetterContent = ({
   
   useEffect(() => {
     const fetchCleanedContent = async () => {
+      if (!content) {
+        setIsLoading(false);
+        return;
+      }
+      
       setIsLoading(true);
       try {
+        console.log("Fetching cleaned content from API...");
         const response = await fetch('/api/strip-optimized-cover-letter', {
           method: 'POST',
           headers: {
@@ -32,21 +38,36 @@ export const CleanedCoverLetterContent = ({
         }
         
         const data = await response.json();
+        console.log("API response:", data);
+        
+        // The API returns cleanedLetterBody
         if (data.cleanedLetterBody) {
           setCleanedContent(data.cleanedLetterBody);
+          console.log("Content cleaned successfully");
         } else {
-          setCleanedContent(content);
+          console.log("API did not return cleaned content, using original");
+          // Apply client-side cleaning as fallback
+          const clientSideCleaned = cleanAIOutput(content)
+            .replace(/dear hiring manager[,.]?/i, '')
+            .replace(/dear recruitment team[,.]?/i, '')
+            .replace(/sincerely,?[\s\S]*$/i, '');
+          setCleanedContent(clientSideCleaned);
         }
       } catch (error) {
         console.error('Error cleaning cover letter content:', error);
-        setCleanedContent(content);
+        // Apply client-side cleaning as fallback
+        const clientSideCleaned = cleanAIOutput(content)
+          .replace(/dear hiring manager[,.]?/i, '')
+          .replace(/dear recruitment team[,.]?/i, '')
+          .replace(/sincerely,?[\s\S]*$/i, '');
+        setCleanedContent(clientSideCleaned);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchCleanedContent();
-  }, [content]);
+  }, [content, cleanAIOutput]);
   
   if (isLoading) {
     return (
@@ -56,9 +77,16 @@ export const CleanedCoverLetterContent = ({
     );
   }
   
+  // First, clean the content even further with regex to remove any remaining headers
+  const furtherCleaned = cleanedContent
+    .replace(/^[A-Z][a-z]+ [A-Z][a-z]+\s*\n/, '') // Remove name at start
+    .replace(/^.*?@.*?\s*\n/, '') // Remove email at start
+    .replace(/^Dear\s+[^,\n]*[,\n]/, '') // Remove any remaining Dear...
+    .replace(/Sincerely,?\s*\n.*$/, ''); // Remove closing
+  
   return (
     <>
-      {replaceUserPlaceholders(cleanAIOutput(cleanedContent))
+      {replaceUserPlaceholders(cleanAIOutput(furtherCleaned))
         .split(/(\[.*?\])/).map((part, index) => {
           // Check if this part is a placeholder (surrounded by brackets)
           const isPlaceholder = /^\[.*\]$/.test(part);
