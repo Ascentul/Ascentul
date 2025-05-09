@@ -295,7 +295,15 @@ export default function CoverLetter() {
              !lowerLine.includes('effectively showcases') &&
              !lowerLine.includes('feel free to customize');
     });
-    return filteredLines.join('\n').trim();
+    
+    // Join lines back together
+    let processedText = filteredLines.join('\n').trim();
+    
+    // Remove any parentheses around "LinkedIn" if present
+    processedText = processedText.replace(/\(LinkedIn\)/gi, 'LinkedIn');
+    processedText = processedText.replace(/\(\s*LinkedIn\s*\)/gi, 'LinkedIn');
+    
+    return processedText;
   };
 
   // This function has been moved to a utility file, we're keeping it here for backwards compatibility
@@ -633,6 +641,10 @@ export default function CoverLetter() {
       
       // Also replace standalone "City, State" anywhere in the document
       text = text.replace(/\bCity,\s*State\b/gi, 'LinkedIn');
+      
+      // Remove any parentheses around "LinkedIn" that might be in the text
+      text = text.replace(/\(LinkedIn\)/gi, 'LinkedIn');
+      text = text.replace(/\(\s*LinkedIn\s*\)/gi, 'LinkedIn');
     } else {
       // Use location when LinkedIn is not available
       const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
