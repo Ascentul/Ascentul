@@ -230,7 +230,8 @@ export default function CoverLetter() {
         console.log("User data available for cover letter:", user.name);
         userData.fullName = user.name || '';
         userData.email = user.email || '';
-        userData.phone = user.phone || '';
+        // User phone might come from a profile object or contact info
+        // For now, keep any existing userData.phone value if it exists
         
         // Only use location if LinkedIn isn't available
         if (!userData.location) {
