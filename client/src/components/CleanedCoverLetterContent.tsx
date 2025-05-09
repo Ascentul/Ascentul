@@ -105,26 +105,33 @@ export const CleanedCoverLetterContent = ({
     // Skip empty lines at the top
     if (line === '') continue;
     
-    // Check if this line starts actual content (typically starts with "I am" or similar)
-    if (line.match(/^I am|^As a|^With|^Having|^Thank you/i)) {
+    // Check if this line starts actual content (using expanded pattern matching)
+    if (line.match(/^I am|^As a|^With|^Having|^Thank you|^I have|^My experience|^Throughout my|^In my|^After reviewing|^I was excited|^I'm writing|^I would like|^Recently|^Your job posting|^The position/i)) {
+      console.log("Found body content starting with:", line.substring(0, 20) + "...");
       bodyStartIndex = i;
       break;
     }
     
     // These are obvious header lines, keep checking until we find content
     const isHeaderLine = 
-      // Check if it's a job title
-      line.match(/^[A-Z][a-zA-Z\s]+(Analyst|Engineer|Manager|Developer|Consultant|Designer|Specialist|Coordinator|Director|Assistant)/i) ||
-      // Check if it's an email
+      // Check if it's a job title (broader matching)
+      line.match(/^[A-Z][a-zA-Z\s]+(Analyst|Engineer|Manager|Developer|Consultant|Designer|Specialist|Coordinator|Director|Assistant|Lead|Architect|Advisor|Strategist)/i) ||
+      // Check if it's an email or contact line
       line.match(/^.*?@.*?$/i) ||
+      line.match(/^Email\s*\|/i) ||
+      line.match(/.*LinkedIn.*Phone.*/i) ||
       // Check if it's a date
-      line.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})$/i) ||
-      // Check if it's a company name
-      line.match(/^(Grubhub|Google|Amazon|Microsoft|Apple|Meta|LinkedIn|Twitter|Facebook|Tesla)$/i) ||
-      // Check if it's a name
-      line.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/i) ||
-      // Check if it's a greeting
-      line.match(/^Dear\s+[^,\n]*[,]/i);
+      line.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4}|[A-Z][a-z]+ \d{1,2}, \d{4})$/i) ||
+      // Check if it's a company name (expanded list)
+      line.match(/^(Grubhub|Google|Amazon|Microsoft|Apple|Meta|LinkedIn|Twitter|Facebook|Tesla|Netflix|Airbnb|Uber|Lyft|Salesforce|Oracle|IBM|Intel|Cisco|Adobe)$/i) ||
+      // Check if it's a name pattern (more variations)
+      line.match(/^[A-Z][a-z]+(-[A-Z][a-z]+)? [A-Z][a-z]+(-[A-Z][a-z]+)?$/i) ||
+      // Check if it's a greeting (more variations)
+      line.match(/^(Dear|To Whom|Hello|Greetings|Hi)\s+[^,\n]*[,]/i) ||
+      // Check for placeholder patterns
+      line.match(/^\[.*\]$/i) ||
+      // Check for header labels
+      line.match(/^(Date:|Company:|Position:|Job Title:|RE:|Reference:)/i);
       
     if (!isHeaderLine && line.length > 15) {
       // This might be the start of the body content
@@ -138,15 +145,27 @@ export const CleanedCoverLetterContent = ({
     ? processedLines.slice(bodyStartIndex).join('\n') 
     : cleanedContent;
     
-  // Now run additional regex cleaning on the body part for any remaining issues
+  // Now run enhanced regex cleaning on the body part for any remaining issues
   const furtherCleaned = cleanedBody
-    // Remove any remaining Dear... at the start
+    // Remove any remaining greeting patterns at the start
     .replace(/^Dear\s+[^,\n]*[,\n]/i, '')
-    // Remove closing
-    .replace(/Sincerely,?\s*\n.*$/i, '')
-    // Leading whitespace and multiple blank lines
+    .replace(/^To\s+Whom\s+It\s+May\s+Concern[,\n]/i, '')
+    // Remove any contact info patterns that might be at the top
+    .replace(/^[\w.-]+@[\w.-]+\.[a-z]{2,}\s*\|\s*LinkedIn/gi, '')
+    .replace(/^Email\s*\|\s*LinkedIn\s*\|\s*Phone/gi, '')
+    // Remove date patterns at the top
+    .replace(/^\d{1,2}\/\d{1,2}\/\d{2,4}\s*\n/g, '')
+    .replace(/^[A-Za-z]+\s+\d{1,2},\s*\d{4}\s*\n/gi, '')
+    // Remove common name patterns at the top
+    .replace(/^[A-Z][a-z]+ [A-Z][a-z]+\s*\n/g, '')
+    // Remove job titles at the top (common format in letters)
+    .replace(/^[A-Z][a-zA-Z\s]+(Engineer|Developer|Manager|Analyst|Consultant|Specialist)\s*\n/gi, '')
+    // Remove all forms of closings at the bottom
+    .replace(/\s*(Sincerely|Best regards|Regards|Yours truly|Thank you|Best)[,\s]*[\s\S]*$/i, '')
+    // Clean up extra whitespace
     .replace(/^\s+/, '')
-    .replace(/\n\s*\n\s*\n/g, '\n\n');
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   
   return (
     <>
