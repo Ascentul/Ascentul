@@ -153,16 +153,18 @@ export function exportCoverLetterToPDF(): void {
       }
     }
     
-    // Add date with consistent font
+    // Add date and company name on adjacent lines with minimal spacing
     doc.setFont(baseFontFamily, "normal");
     doc.text(date, margin, yPosition);
-    yPosition += 4; // Reduced spacing between date and company name
     
-    // Add company name with consistent font
+    // Add company name with minimal spacing (just enough to be distinct but appear connected)
     if (companyName) {
+      yPosition += 4; // Minimal spacing between date and company
       doc.setFont(baseFontFamily, "normal");
       doc.text(companyName, margin, yPosition);
-      yPosition += 8;
+      yPosition += 6; // Adjust spacing before greeting
+    } else {
+      yPosition += 6; // Ensure consistent spacing if no company name
     }
     
     // Add greeting with consistent font
