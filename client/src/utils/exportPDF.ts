@@ -22,13 +22,21 @@ export function exportCoverLetterToPDF(): void {
       return;
     }
     
-    // Extract text directly from the DOM structure
-    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap");
-    const letterBody = letterBodyElement?.textContent || "";
-    
     // Get all required details for modern format
     const fullNameElement = previewLetterEl.querySelector("h2");
     const fullName = fullNameElement?.textContent || "Your Name";
+    
+    // Extract text directly from the DOM structure
+    const letterBodyElement = previewLetterEl.querySelector(".whitespace-pre-wrap");
+    let letterBody = letterBodyElement?.textContent || "";
+    
+    // Clean any remaining placeholders from the text
+    letterBody = letterBody
+      .replace(/\[Your Address\]|\[Address\]/g, "")
+      .replace(/\[Your Location\]|\[Location\]/g, "")
+      .replace(/\[City, State\]|City, State/g, "")
+      .replace(/\[Your Name\]/g, fullName)
+      .replace(/\[Name\]/g, fullName);
     
     // Get job title (if available)
     const jobTitleElement = previewLetterEl.querySelector(".text-lg.text-neutral-800");

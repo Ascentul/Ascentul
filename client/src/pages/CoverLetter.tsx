@@ -672,8 +672,8 @@ export default function CoverLetter() {
       // This is used for DOM replacement in the UI with a hyperlink
       text = text.replace(/\bLinkedIn\b/gi, '{{LINKEDIN_URL}}');
     } else {
-      // Use location when LinkedIn is not available
-      const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '[Your Address]';
+      // Use location when LinkedIn is not available or empty string if not available
+      const locationToDisplay = user.location && user.location.length >= 2 ? user.location : '';
       text = text.replace(/\bCity,\s*State\b/gi, locationToDisplay);
     }
 
@@ -700,12 +700,13 @@ export default function CoverLetter() {
       .replace(/\[PHONE NUMBER\]/g, phoneToDisplay.toUpperCase())
 
       // Location/Address replacements (for any standard placeholders)
-      .replace(/\[Your Location\]/g, linkedInUrl ? 'LinkedIn' : (user.location || '[Your Address]'))
-      .replace(/\[your location\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : '[your address]'))
-      .replace(/\[YOUR LOCATION\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : '[YOUR ADDRESS]'))
-      .replace(/\[Your Address\]/g, linkedInUrl ? 'LinkedIn' : (user.location || '[Your Address]'))
-      .replace(/\[your address\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : '[your address]'))
-      .replace(/\[YOUR ADDRESS\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : '[YOUR ADDRESS]'));
+      // Instead of replacing with [Your Address] placeholder, use empty string
+      .replace(/\[Your Location\]/g, linkedInUrl ? 'LinkedIn' : (user.location || ''))
+      .replace(/\[your location\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : ''))
+      .replace(/\[YOUR LOCATION\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : ''))
+      .replace(/\[Your Address\]/g, linkedInUrl ? 'LinkedIn' : (user.location || ''))
+      .replace(/\[your address\]/g, linkedInUrl ? 'linkedin' : (typeof user.location === 'string' && user.location ? user.location.toLowerCase() : ''))
+      .replace(/\[YOUR ADDRESS\]/g, linkedInUrl ? 'LINKEDIN' : (typeof user.location === 'string' && user.location ? user.location.toUpperCase() : ''));
   };
 
   // Function to copy content to clipboard
@@ -2536,8 +2537,8 @@ export default function CoverLetter() {
                   ) : (
                     previewLetter.content.header.linkedin && <span> | {previewLetter.content.header.linkedin}</span>
                   )}
-                  {previewLetter.content.header.phone && (
-                    <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "")}</span>
+                  {previewLetter.content.header.phone && previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim() && (
+                    <span> | {previewLetter.content.header.phone.replace(/\[Your Address\]|\[Address\]/g, "").trim()}</span>
                   )}
                 </div>
                 {/* Date */}
