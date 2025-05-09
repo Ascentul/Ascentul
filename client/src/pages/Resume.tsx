@@ -484,8 +484,8 @@ export default function Resume() {
             newSkillPromises.push(
               apiRequest('POST', '/api/career-data/skills', {
                 name: skill,
-                proficiencyLevel: 'Intermediate',
-                category: null
+                proficiencyLevel: 3, // Set to 3 (intermediate) on a 1-5 scale
+                category: "technical"
               })
             );
           }
