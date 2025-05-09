@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 declare global {
   interface Window {
     html2pdf: any;
+    linkedInProfile?: string | null;
   }
 }
 
@@ -95,8 +96,49 @@ export function exportCoverLetterToPDF(): void {
     // Add contact info
     if (contactInfo) {
       doc.setFontSize(10);
-      doc.text(contactInfo, margin, yPosition);
-      yPosition += 8;
+      
+      // Check if we have a LinkedIn URL to include as a clickable link
+      if (window.linkedInProfile) {
+        // Split the contact info (typically Email | LinkedIn | Phone) to isolate parts
+        const contactParts = contactInfo.split('|').map(part => part.trim());
+        
+        // Parse email (usually first part)
+        if (contactParts.length > 0) {
+          doc.text(contactParts[0], margin, yPosition);
+        }
+        
+        // Move to next line for LinkedIn as a clickable link
+        yPosition += 5;
+        
+        // Set blue color and underline for link
+        doc.setTextColor(0, 0, 255); // Blue color for link
+        doc.text('LinkedIn Profile', margin, yPosition);
+        
+        // Add the link to the text
+        const textWidth = doc.getTextWidth('LinkedIn Profile');
+        doc.link(
+          margin, 
+          yPosition - 4, // Slightly above text
+          textWidth, 
+          5, // Height of clickable area
+          { url: window.linkedInProfile }
+        );
+        
+        // Reset to black text
+        doc.setTextColor(0, 0, 0);
+        
+        // Add phone if present (usually last part)
+        if (contactParts.length > 2) {
+          yPosition += 5;
+          doc.text(contactParts[2], margin, yPosition);
+        }
+        
+        yPosition += 3; // Extra spacing
+      } else {
+        // Without LinkedIn URL, just use the regular contact info line
+        doc.text(contactInfo, margin, yPosition);
+        yPosition += 8;
+      }
     }
     
     // Add date
