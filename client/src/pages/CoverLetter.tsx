@@ -1983,10 +1983,24 @@ export default function CoverLetter() {
                           variant="outline"
                           className="flex-1 max-w-[160px] mb-6"
                           onClick={() => handleCopyOptimizedCoverLetter()}
-                          disabled={!analysisResult.optimizedCoverLetter}
+                          disabled={!analysisResult.optimizedCoverLetter || isCleaning}
                         >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy
+                          {isCleaning ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Cleaning...
+                            </>
+                          ) : optimizedCopySuccess ? (
+                            <>
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                              Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                            </>
+                          )}
                         </Button>
 
                         <Button 
