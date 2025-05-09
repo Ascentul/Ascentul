@@ -457,11 +457,22 @@ export default function Resume() {
       if (optimizedCareerData.workHistory && optimizedCareerData.workHistory.length > 0) {
         for (const item of optimizedCareerData.workHistory) {
           if (item.id) {
+            // Create a properly structured work history update
+            const updateData = {
+              description: item.description || '',
+              // Always ensure achievements is a proper array
+              achievements: Array.isArray(item.achievements) ? 
+                item.achievements.filter(a => typeof a === 'string' && a.trim() !== '') : []
+            };
+            
+            console.log(`Updating work history item ${item.id} with:`, updateData);
+            
             workHistoryPromises.push(
-              apiRequest('PUT', `/api/career-data/work-history/${item.id}`, {
-                description: item.description || '',
-                achievements: Array.isArray(item.achievements) ? item.achievements : []
-              })
+              apiRequest('PUT', `/api/career-data/work-history/${item.id}`, updateData)
+                .catch(error => {
+                  console.error(`Error updating work history item ${item.id}:`, error);
+                  throw error;
+                })
             );
           }
         }
