@@ -5139,6 +5139,9 @@ apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   // Register our PDF test router
   app.use(pdfTestRouter);
   
+  // Register the test PDF extraction router
+  app.use(testPdfExtractRouter);
+  
   // Skill Stacker section removed
 
   // Job Listings API Routes
