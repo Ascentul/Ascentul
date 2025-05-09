@@ -78,7 +78,7 @@ export default function SignInPage() {
       <div className="w-full lg:w-1/2 p-8 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full">
           <h1 className="text-3xl font-bold mb-6 text-center">
-            <span className="text-primary">Ascentul</span>
+            <span className="text-primary text-4xl">Ascentul</span>
           </h1>
           
           <Card>
