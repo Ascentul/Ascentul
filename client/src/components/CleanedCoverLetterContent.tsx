@@ -77,12 +77,60 @@ export const CleanedCoverLetterContent = ({
     );
   }
   
-  // First, clean the content even further with regex to remove any remaining headers
-  const furtherCleaned = cleanedContent
-    .replace(/^[A-Z][a-z]+ [A-Z][a-z]+\s*\n/, '') // Remove name at start
-    .replace(/^.*?@.*?\s*\n/, '') // Remove email at start
-    .replace(/^Dear\s+[^,\n]*[,\n]/, '') // Remove any remaining Dear...
-    .replace(/Sincerely,?\s*\n.*$/, ''); // Remove closing
+  // First, strip all header content before cleaning line by line
+  // This is a complete solution that removes all common headers/contact info
+  let processedLines = cleanedContent.split('\n');
+  let bodyStartIndex = -1;
+  
+  // Process each line to find where the actual body content starts
+  for (let i = 0; i < processedLines.length; i++) {
+    const line = processedLines[i].trim();
+    
+    // Skip empty lines at the top
+    if (line === '') continue;
+    
+    // Check if this line starts actual content (typically starts with "I am" or similar)
+    if (line.match(/^I am|^As a|^With|^Having|^Thank you/i)) {
+      bodyStartIndex = i;
+      break;
+    }
+    
+    // These are obvious header lines, keep checking until we find content
+    const isHeaderLine = 
+      // Check if it's a job title
+      line.match(/^[A-Z][a-zA-Z\s]+(Analyst|Engineer|Manager|Developer|Consultant|Designer|Specialist|Coordinator|Director|Assistant)/i) ||
+      // Check if it's an email
+      line.match(/^.*?@.*?$/i) ||
+      // Check if it's a date
+      line.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4}|\d{1,2}-\d{1,2}-\d{2,4})$/i) ||
+      // Check if it's a company name
+      line.match(/^(Grubhub|Google|Amazon|Microsoft|Apple|Meta|LinkedIn|Twitter|Facebook|Tesla)$/i) ||
+      // Check if it's a name
+      line.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/i) ||
+      // Check if it's a greeting
+      line.match(/^Dear\s+[^,\n]*[,]/i);
+      
+    if (!isHeaderLine && line.length > 15) {
+      // This might be the start of the body content
+      bodyStartIndex = i;
+      break;
+    }
+  }
+  
+  // If we found where the body starts, only keep content from that point
+  let cleanedBody = bodyStartIndex !== -1 
+    ? processedLines.slice(bodyStartIndex).join('\n') 
+    : cleanedContent;
+    
+  // Now run additional regex cleaning on the body part for any remaining issues
+  const furtherCleaned = cleanedBody
+    // Remove any remaining Dear... at the start
+    .replace(/^Dear\s+[^,\n]*[,\n]/i, '')
+    // Remove closing
+    .replace(/Sincerely,?\s*\n.*$/i, '')
+    // Leading whitespace and multiple blank lines
+    .replace(/^\s+/, '')
+    .replace(/\n\s*\n\s*\n/g, '\n\n');
   
   return (
     <>
