@@ -2842,6 +2842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint to clean optimized cover letter (remove header, greeting, and sign-off)
+  // Keep backward compatibility with old endpoint
   apiRouter.post("/cover-letters/clean-optimized", async (req: Request, res: Response) => {
     const { optimizedLetter } = req.body;
 
@@ -2857,6 +2858,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanedOptimizedLetter = await cleanOptimizedCoverLetter(optimizedLetter);
       
       return res.json({ cleanedOptimizedLetter });
+    } catch (error) {
+      console.error('Error cleaning optimized cover letter:', error);
+      return res.status(500).json({ 
+        error: 'Failed to clean cover letter',
+        message: (error instanceof Error) ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  // New standardized endpoint for stripping optimized cover letter content
+  apiRouter.post("/api/strip-optimized-cover-letter", async (req: Request, res: Response) => {
+    const { optimizedLetter } = req.body;
+
+    if (!optimizedLetter) {
+      return res.status(400).json({ error: 'Missing optimized letter content' });
+    }
+
+    try {
+      // Import the cleanOptimizedCoverLetter function
+      const { cleanOptimizedCoverLetter } = await import('./utils/openai');
+      
+      // Clean the cover letter to keep only the main body
+      const cleanedLetterBody = await cleanOptimizedCoverLetter(optimizedLetter);
+      
+      return res.json({ cleanedLetterBody });
     } catch (error) {
       console.error('Error cleaning optimized cover letter:', error);
       return res.status(500).json({ 

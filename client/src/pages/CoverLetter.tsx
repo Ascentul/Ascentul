@@ -837,7 +837,7 @@ export default function CoverLetter() {
       // First, clean the optimized letter content using the new API endpoint
       setIsCleaning(true);
       
-      const response = await fetch('/api/cover-letters/clean-optimized', {
+      const response = await fetch('/api/strip-optimized-cover-letter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -854,7 +854,7 @@ export default function CoverLetter() {
       const data = await response.json();
       
       // Get the cleaned version of the letter
-      let contentToCopy = data.cleanedOptimizedLetter;
+      let contentToCopy = data.cleanedLetterBody;
       
       // If cleaning failed, fall back to the original content with placeholder replacement
       if (!contentToCopy) {
