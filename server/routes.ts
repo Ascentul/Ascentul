@@ -41,6 +41,8 @@ import universitiesRouter from "./routes/universities";
 import reviewsRouter from "./routes/reviews";
 // Import settings router
 import settingsRouter from "./routes/settings";
+// Import test email router
+import testEmailRouter from "./routes/test-email";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -464,6 +466,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register settings router
   apiRouter.use('/settings', settingsRouter);
+  
+  // Register test email router for development and testing
+  apiRouter.use('/test', testEmailRouter);
   
   // Create admin and sample users at startup
   try {
