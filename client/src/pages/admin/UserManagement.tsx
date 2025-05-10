@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download, Plus, UserPlus, UserCog } from 'lucide-react';
@@ -102,6 +102,19 @@ const editUserSchema = z.object({
 
 type AddStaffUserFormValues = z.infer<typeof addStaffUserSchema>;
 type EditUserFormValues = z.infer<typeof editUserSchema>;
+
+// Create context for sharing state between components
+interface UserManagementContextType {
+  selectedUser: User | null;
+  isEditUserOpen: boolean;
+  setIsEditUserOpen: (open: boolean) => void;
+  updateUserMutation: any;
+  searchTerm: string;
+  filters: any;
+  currentPage: number;
+}
+
+const UserManagementContext = createContext<UserManagementContextType | null>(null);
 
 interface User {
   id: number;
@@ -327,7 +340,19 @@ export default function UserManagement() {
     alert('This would export the current filtered user list as CSV');
   };
 
+  // Create context value for sharing with EditUserDialog
+  const contextValue: UserManagementContextType = {
+    selectedUser,
+    isEditUserOpen,
+    setIsEditUserOpen,
+    updateUserMutation,
+    searchTerm,
+    filters,
+    currentPage
+  };
+
   return (
+    <UserManagementContext.Provider value={contextValue}>
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
         <div>
@@ -983,7 +1008,11 @@ export default function UserManagement() {
           )}
         </SheetContent>
       </Sheet>
+      
+      {/* Add the EditUserDialog component */}
+      <EditUserDialog />
     </div>
+    </UserManagementContext.Provider>
   );
 }
 
