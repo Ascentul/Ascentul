@@ -196,21 +196,29 @@ export default function AdminOverview() {
           <CardTitle className="text-lg">Feature Usage</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
+          <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={[
-                  { name: 'Resume Builder', usage: 78 },
-                  { name: 'Cover Letters', usage: 62 },
-                  { name: 'Interview Prep', usage: 82 },
-                  { name: 'AI Coach', usage: 91 },
-                  { name: 'Work History', usage: 65 },
-                  { name: 'Goals', usage: 72 },
+                  { name: 'Application Tracker', usage: 83 },
+                  { name: 'Career Goal Tracker', usage: 72 },
+                  { name: 'Network Hub', usage: 68 },
+                  { name: 'CareerPath Explorer', usage: 76 },
+                  { name: 'Project Portfolio', usage: 70 },
+                  { name: 'Resume Studio', usage: 78 },
+                  { name: 'Cover Letter Studio', usage: 65 },
+                  { name: 'AI Career Coach', usage: 91 },
                 ]}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 80 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  tick={{fontSize: 12}}
+                />
                 <YAxis label={{ value: 'Usage %', angle: -90, position: 'insideLeft' }} />
                 <Tooltip />
                 <Bar dataKey="usage" fill="#0C29AB" />
