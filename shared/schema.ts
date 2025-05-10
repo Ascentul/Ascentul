@@ -697,6 +697,9 @@ export const supportTickets = pgTable("support_tickets", {
   attachmentUrl: text("attachment_url"),
   status: text("status").notNull().default("Open"),
   internalNotes: text("internal_notes"),
+  // University-specific fields
+  department: text("department"),
+  contactPerson: text("contact_person"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at"),
   resolvedAt: timestamp("resolved_at"),

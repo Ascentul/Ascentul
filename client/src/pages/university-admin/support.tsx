@@ -17,9 +17,11 @@ const supportFormSchema = z.object({
   subject: z.string().min(5, { message: 'Subject must be at least 5 characters' }),
   issueType: z.string().min(1, { message: 'Please select a category' }),
   description: z.string().min(20, { message: 'Description must be at least 20 characters' }),
-  priority: z.enum(['low', 'medium', 'high'], { 
+  priority: z.enum(['low', 'medium', 'high', 'urgent'], { 
     errorMap: () => ({ message: 'Please select a priority level' }) 
   }),
+  department: z.string().optional(),
+  contactPerson: z.string().optional(),
 });
 
 type SupportFormValues = z.infer<typeof supportFormSchema>;
@@ -37,6 +39,8 @@ export default function UniversityAdminSupportPage() {
       issueType: '',
       description: '',
       priority: 'medium',
+      department: '',
+      contactPerson: '',
     },
   });
 

@@ -4425,7 +4425,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         source = "in-app",
         name,
         email,
-        universityName
+        universityName,
+        department,
+        contactPerson
       } = req.body;
       
       // Get current user from session
@@ -4438,17 +4440,26 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Determine if this is a university admin ticket
+      const isUniversityAdmin = source === "university-admin" || 
+                              user.userType === "university_admin" ||
+                              user.role === "university_admin";
+      
       // Prepare ticket data - use values from body or fallback to user session data
       const ticketData = insertSupportTicketSchema.parse({
         userEmail: email || user.email,
         userName: name || user.name,
         universityName: universityName || user.universityName,
         subject,
-        source: source === "university-admin" ? "university-admin" : "in-app",
+        // Set source based on user type or explicit source parameter
+        source: isUniversityAdmin ? "university-admin" : "in-app",
         issueType,
         description,
         priority,
         attachmentUrl,
+        // Add university-specific fields for university admin tickets
+        department: isUniversityAdmin ? (department || null) : null,
+        contactPerson: isUniversityAdmin ? (contactPerson || null) : null,
         status: "Open",
         updatedAt: new Date()
       });
