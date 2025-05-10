@@ -260,7 +260,7 @@ function SupportSection() {
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
 
-  const { data: tickets, isLoading } = useQuery({
+  const { data: tickets, isLoading, error } = useQuery({
     queryKey: ['supportTickets', source, issueType, status, search],
     queryFn: async () => {
       const queryParams = new URLSearchParams({
@@ -269,9 +269,17 @@ function SupportSection() {
         ...(status !== 'all' && { status }),
         ...(search && { search })
       });
+      console.log('Fetching support tickets with params:', Object.fromEntries(queryParams.entries()));
       const response = await fetch(`/api/admin/support-tickets?${queryParams}`);
-      if (!response.ok) throw new Error('Failed to fetch tickets');
-      return response.json();
+      console.log('Support tickets API response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error fetching support tickets:', errorText);
+        throw new Error(`Failed to fetch tickets: ${errorText}`);
+      }
+      const data = await response.json();
+      console.log('Support tickets data received:', data);
+      return data;
     }
   });
 
@@ -353,6 +361,12 @@ function SupportSection() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center">Loading tickets...</TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-red-500">
+                      Error loading tickets: {error.toString()}
+                    </TableCell>
                   </TableRow>
                 ) : tickets?.length === 0 ? (
                   <TableRow>
