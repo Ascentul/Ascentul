@@ -1327,6 +1327,20 @@ function EditUserDialog() {
   // Component context variables from parent component
   const parentContext = useContext(UserManagementContext);
 
+  // Initialize form with empty defaults first - important for React hooks rules
+  const form = useForm<EditUserFormValues>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      userType: 'regular',
+      university: '',
+      subscriptionPlan: 'free',
+      accountStatus: 'active',
+    },
+  });
+
+  // Early return if no context or selected user - AFTER all hook calls
   if (!parentContext || !parentContext.selectedUser) {
     return null;
   }
@@ -1340,18 +1354,6 @@ function EditUserDialog() {
     filters,
     currentPage
   } = parentContext;
-
-  const form = useForm<EditUserFormValues>({
-    resolver: zodResolver(editUserSchema),
-    defaultValues: {
-      name: selectedUser.name,
-      email: selectedUser.email,
-      userType: selectedUser.userType,
-      university: selectedUser.university || '',
-      subscriptionPlan: selectedUser.subscriptionPlan,
-      accountStatus: selectedUser.accountStatus,
-    },
-  });
 
   // Reset form when selected user changes or dialog opens
   useEffect(() => {
