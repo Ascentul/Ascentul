@@ -80,6 +80,11 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
       href: '/university-admin/settings', 
       icon: <Settings className="h-5 w-5" /> 
     },
+    {
+      name: 'Support',
+      href: '/university-admin/support',
+      icon: <MessageSquare className="h-5 w-5" />
+    },
   ];
   
   return (
@@ -188,15 +193,13 @@ export default function UniversityAdminLayout({ children }: UniversityAdminLayou
               Help Center
             </Button>
             
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mr-2 hidden md:flex"
-              onClick={() => window.location.href = '/university-admin/support'}
+            <Link
+              to="/university-admin/support"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-foreground h-9 px-3 py-2 mr-2 hidden md:flex"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Support
-            </Button>
+            </Link>
           </div>
         </header>
         
