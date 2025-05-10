@@ -4467,23 +4467,38 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   // Admin Support Ticket Routes
 apiRouter.get("/admin/support-tickets", requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { source, issueType, status, search } = req.query;
+    const { source, issueType, status, search, universityName } = req.query;
     
     // Build query filters
-    const filters: any = {};
-    if (source && source !== 'all') filters.source = source;
-    if (issueType && issueType !== 'all') filters.issueType = issueType;
-    if (status && status !== 'all') filters.status = status;
+    const filters: Partial<{
+      source: string;
+      issueType: string;
+      status: string;
+      universityName: string;
+    }> = {};
+    
+    if (source && source !== 'all') filters.source = source.toString();
+    if (issueType && issueType !== 'all') filters.issueType = issueType.toString();
+    if (status && status !== 'all') filters.status = status.toString();
+    if (universityName) filters.universityName = universityName.toString();
     
     let tickets = await storage.getSupportTickets(filters);
     
     // Apply search filter if present
     if (search) {
       const searchStr = search.toString().toLowerCase();
-      tickets = tickets.filter((ticket: any) => (
-        (ticket.userEmail && ticket.userEmail.toLowerCase().includes(searchStr)) ||
-        ticket.description.toLowerCase().includes(searchStr)
-      ));
+      tickets = tickets.filter((ticket) => {
+        // Standard fields
+        const inUserEmail = ticket.userEmail && ticket.userEmail.toLowerCase().includes(searchStr);
+        const inDescription = ticket.description.toLowerCase().includes(searchStr);
+        
+        // University-specific fields
+        const inUniversityName = ticket.universityName && ticket.universityName.toLowerCase().includes(searchStr);
+        const inDepartment = ticket.department && ticket.department.toLowerCase().includes(searchStr);
+        const inContactPerson = ticket.contactPerson && ticket.contactPerson.toLowerCase().includes(searchStr);
+        
+        return inUserEmail || inDescription || inUniversityName || inDepartment || inContactPerson;
+      });
     }
     
     res.status(200).json(tickets);
