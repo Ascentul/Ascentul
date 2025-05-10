@@ -41,6 +41,7 @@ import AdminModelsPage from "@/pages/admin/ModelsPage";
 import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
 import EmailAdmin from "@/pages/admin/EmailAdmin";
 import UniversitiesPage from "@/pages/admin/universities";
+import TestEmailPage from "@/pages/admin/test-email";
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard";
@@ -460,6 +461,11 @@ function App() {
         <Route path="/admin/email">
           <AdminRoute>
             <EmailAdmin />
+          </AdminRoute>
+        </Route>
+        <Route path="/admin/test-email">
+          <AdminRoute>
+            <TestEmailPage />
           </AdminRoute>
         </Route>
         {/* This is the catch-all route for /admin which must come AFTER more specific routes */}
