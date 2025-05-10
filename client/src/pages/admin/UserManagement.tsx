@@ -130,6 +130,7 @@ export default function UserManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const itemsPerPage = 10;
 
   // Redirect if not admin
@@ -244,6 +245,12 @@ export default function UserManagement() {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setIsUserDetailsOpen(true);
+  };
+  
+  // Edit a user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditUserOpen(true);
   };
 
   // Update a user's status
@@ -419,7 +426,7 @@ export default function UserManagement() {
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => 
                                   handleUpdateStatus(
