@@ -398,212 +398,242 @@ export default function AdminSettingsTab() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Application Tracker */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Application Tracker</h3>
                       <p className="text-sm text-muted-foreground">Track job applications and interview progress</p>
                     </div>
-                    <Switch
-                      id="enableApplicationTracker"
-                      checked={displaySettings.features.enableApplicationTracker || true}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableApplicationTracker", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableApplicationTracker"
+                        checked={true}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableApplicationTracker", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/applications" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Core Feature</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Core Feature</Badge>
                   </div>
                 </div>
 
                 {/* Career Goal Tracker */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Career Goal Tracker</h3>
                       <p className="text-sm text-muted-foreground">Set and track career milestones and goals</p>
                     </div>
-                    <Switch
-                      id="enableCareerGoals"
-                      checked={displaySettings.features.enableCareerGoals}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableCareerGoals", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600" 
+                        id="enableCareerGoals"
+                        checked={displaySettings.features.enableCareerGoals}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableCareerGoals", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/goals" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Premium</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Premium</Badge>
                   </div>
                 </div>
 
                 {/* Network Hub */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Network Hub</h3>
                       <p className="text-sm text-muted-foreground">Manage professional connections and interactions</p>
                     </div>
-                    <Switch
-                      id="enableNetworkHub"
-                      checked={displaySettings.features.enableNetworkHub || true}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableNetworkHub", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableNetworkHub"
+                        checked={true}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableNetworkHub", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/network" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Core Feature</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Core Feature</Badge>
                   </div>
                 </div>
 
                 {/* CareerPath Explorer */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">CareerPath Explorer</h3>
                       <p className="text-sm text-muted-foreground">Discover potential career paths and opportunities</p>
                     </div>
-                    <Switch
-                      id="enableCareerPathExplorer"
-                      checked={displaySettings.features.enableCareerPathExplorer || true}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableCareerPathExplorer", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableCareerPathExplorer"
+                        checked={true}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableCareerPathExplorer", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/career-paths" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Premium</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Premium</Badge>
                   </div>
                 </div>
 
                 {/* Project Portfolio */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Project Portfolio</h3>
                       <p className="text-sm text-muted-foreground">Showcase professional projects and achievements</p>
                     </div>
-                    <Switch
-                      id="enableProjectPortfolio"
-                      checked={displaySettings.features.enableProjectPortfolio || true}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableProjectPortfolio", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableProjectPortfolio"
+                        checked={true}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableProjectPortfolio", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/projects" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Core Feature</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Core Feature</Badge>
                   </div>
                 </div>
 
                 {/* Resume Studio */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Resume Studio</h3>
                       <p className="text-sm text-muted-foreground">Create, edit and optimize professional resumes</p>
                     </div>
-                    <Switch
-                      id="enableResumeStudio"
-                      checked={displaySettings.features.enableResumeStudio}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableResumeStudio", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableResumeStudio"
+                        checked={displaySettings.features.enableResumeStudio}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableResumeStudio", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/resume" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Core Feature</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Core Feature</Badge>
                   </div>
                 </div>
 
                 {/* Cover Letter Studio */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Cover Letter Studio</h3>
                       <p className="text-sm text-muted-foreground">Generate and customize targeted cover letters</p>
                     </div>
-                    <Switch
-                      id="enableCoverLetterStudio"
-                      checked={displaySettings.features.enableCoverLetterStudio || true}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableCoverLetterStudio", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableCoverLetterStudio"
+                        checked={true}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableCoverLetterStudio", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/cover-letter" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Premium</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Premium</Badge>
                   </div>
                 </div>
 
                 {/* AI Career Coach */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">AI Career Coach</h3>
                       <p className="text-sm text-muted-foreground">Get personalized career guidance and advice</p>
                     </div>
-                    <Switch
-                      id="enableAICoach"
-                      checked={displaySettings.features.enableAICoach}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableAICoach", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableAICoach"
+                        checked={displaySettings.features.enableAICoach}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableAICoach", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/ai-coach" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Premium</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Premium</Badge>
                   </div>
                 </div>
                 
                 {/* Voice Practice */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">Voice Practice</h3>
                       <p className="text-sm text-muted-foreground">Interactive interview practice with feedback</p>
                     </div>
-                    <Switch
-                      id="enableVoicePractice"
-                      checked={displaySettings.features.enableVoicePractice}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableVoicePractice", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableVoicePractice"
+                        checked={displaySettings.features.enableVoicePractice}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableVoicePractice", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/interview/practice" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Premium</Badge>
+                    <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200">Premium</Badge>
                   </div>
                 </div>
 
                 {/* User Reviews */}
-                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
+                <div className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
                       <h3 className="font-medium text-base">User Reviews</h3>
                       <p className="text-sm text-muted-foreground">Allow users to submit reviews and feedback</p>
                     </div>
-                    <Switch
-                      id="enableReviews"
-                      checked={displaySettings.features.enableReviews}
-                      onCheckedChange={(checked) => handleInputChange("features", "enableReviews", checked)}
-                    />
+                    <div className="flex items-center">
+                      <Switch
+                        className="data-[state=checked]:bg-blue-600"
+                        id="enableReviews"
+                        checked={displaySettings.features.enableReviews}
+                        onCheckedChange={(checked) => handleInputChange("features", "enableReviews", checked)}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="flex items-center justify-between">
+                    <Button variant="outline" size="sm" asChild className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200">
                       <a href="/reviews" target="_blank" rel="noopener noreferrer">View Feature</a>
                     </Button>
-                    <Badge variant="outline">Core Feature</Badge>
+                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">Core Feature</Badge>
                   </div>
                 </div>
               </div>
