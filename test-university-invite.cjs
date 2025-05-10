@@ -6,6 +6,9 @@
  * 2. Creates a university invite
  * 3. Confirms that the email is sent
  */
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 // Helper function to create curl commands
 function curlCommand(method, url, data = null, useCookieJar = true) {
@@ -43,10 +46,6 @@ async function testUniversityInvite() {
     // Execute login command
     const loginCmd = curlCommand('POST', '/api/login', loginData);
     console.log(`Executing: ${loginCmd}`);
-    
-    const { exec } = require('child_process');
-    const util = require('util');
-    const execPromise = util.promisify(exec);
     
     let loginResult;
     try {
