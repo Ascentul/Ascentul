@@ -137,7 +137,7 @@ async function requireAdmin(req: Request, res: Response, next: () => void) {
   }
 
   const user = await storage.getUser(req.session.userId);
-  if (!user || user.userType !== 'admin') {
+  if (!user || (user.userType !== 'admin' && user.role !== 'admin' && user.role !== 'super_admin')) {
     console.log(`Access denied: User ${req.session.userId} tried to access admin route`);
     return res.status(403).json({ message: "Access denied. Admin privileges required." });
   }
