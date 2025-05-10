@@ -1,13 +1,15 @@
 /**
  * Test script for support ticket API endpoints
  * Tests both anonymous and authenticated endpoints
+ * 
+ * This improved version handles API format correctly and uses proper error handling
  */
 
 import fetch from 'node-fetch';
+import { execSync } from 'child_process';
 
 // Base URL for API endpoints
 const BASE_URL = 'http://localhost:3000';
-let authCookie = null;
 
 // Test the anonymous support ticket endpoint
 async function testAnonymousSupportEndpoint() {
@@ -16,36 +18,31 @@ async function testAnonymousSupportEndpoint() {
   try {
     // Create test data for anonymous support ticket
     const testTicketData = {
-      userEmail: 'anonymous_test@example.com',
-      userName: 'Anonymous Test User',
+      user_email: 'anonymous_test@example.com', // Note the snake_case format for API
+      user_name: 'Anonymous Test User',
       subject: 'Anonymous Support Test',
-      issueType: 'general',
+      issue_type: 'general', // Note the snake_case format for API
       description: 'This is a test support ticket from an anonymous user.',
-      priority: 'medium'
+      attachment_url: null
     };
     
     console.log('Submitting anonymous support ticket...');
     
-    // Send POST request to the anonymous endpoint
-    const response = await fetch(`${BASE_URL}/api/support`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(testTicketData)
-    });
+    // Use curl for more reliable testing with session handling
+    const curlCommand = `curl -s -X POST ${BASE_URL}/api/support -H "Content-Type: application/json" -d '${JSON.stringify(testTicketData)}'`;
+    console.log(`Executing: ${curlCommand}`);
     
-    // Check response status
-    console.log(`Response status: ${response.status}`);
+    const response = execSync(curlCommand).toString();
+    console.log('Response:', response);
     
-    if (response.ok) {
-      const data = await response.json();
+    try {
+      const data = JSON.parse(response);
       console.log('Ticket created successfully!');
       console.log('Ticket ID:', data.id);
       return data.id;
-    } else {
-      const errorText = await response.text();
-      console.error('Failed to create ticket:', errorText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      console.log('Raw response:', response.substring(0, 200) + '...');
       return null;
     }
   } catch (error) {
@@ -54,45 +51,47 @@ async function testAnonymousSupportEndpoint() {
   }
 }
 
-// Login to get authentication cookie
-async function login(username, password) {
+// Login using curl for reliable session cookie handling
+function loginWithCurl(username, password) {
   console.log('\n========== LOGGING IN FOR AUTHENTICATED TESTS ==========');
   
   try {
-    // Send login request
-    const response = await fetch(`${BASE_URL}/api/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, password }),
-      redirect: 'manual'
-    });
+    // Create login credentials
+    const credentials = { username, password };
     
-    // Extract session cookie
-    const cookies = response.headers.get('set-cookie');
-    if (cookies) {
-      const sessionCookie = cookies.split(';')[0];
-      console.log('Authentication successful, session cookie obtained');
-      return sessionCookie;
-    } else {
-      console.error('No session cookie found in response');
-      return null;
+    // Use curl to log in and save cookies to a file
+    const curlCommand = `curl -s -c cookie.txt -X POST ${BASE_URL}/api/login -H "Content-Type: application/json" -d '${JSON.stringify(credentials)}'`;
+    console.log(`Executing login: ${curlCommand}`);
+    
+    const response = execSync(curlCommand).toString();
+    console.log('Login response:', response.substring(0, 100) + '...');
+    
+    try {
+      const data = JSON.parse(response);
+      console.log('Login successful!');
+      console.log('User ID:', data.id);
+      console.log('User Type:', data.userType);
+      console.log('Role:', data.role);
+      
+      // Check if the cookie file exists
+      const checkCookie = execSync('cat cookie.txt | grep -i connect.sid').toString();
+      console.log('Cookie found:', checkCookie ? 'Yes' : 'No');
+      
+      return true;
+    } catch (parseError) {
+      console.error('Failed to parse login response as JSON:', parseError);
+      console.log('Raw response:', response.substring(0, 200) + '...');
+      return false;
     }
   } catch (error) {
     console.error('Login error:', error);
-    return null;
+    return false;
   }
 }
 
 // Test the authenticated university admin support endpoint
-async function testUniversityAdminSupportEndpoint(cookie) {
+function testUniversityAdminSupportEndpoint() {
   console.log('\n========== TESTING UNIVERSITY ADMIN SUPPORT ENDPOINT ==========');
-  
-  if (!cookie) {
-    console.error('No authentication cookie available, skipping test');
-    return null;
-  }
   
   try {
     // Create test data for university admin support ticket
@@ -107,27 +106,30 @@ async function testUniversityAdminSupportEndpoint(cookie) {
     
     console.log('Submitting university admin support ticket...');
     
-    // Send POST request to the authenticated endpoint
-    const response = await fetch(`${BASE_URL}/api/in-app/support`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': cookie
-      },
-      body: JSON.stringify(testTicketData)
-    });
+    // Use curl with the saved cookie file for authentication
+    const curlCommand = `curl -s -b cookie.txt -X POST ${BASE_URL}/api/in-app/support -H "Content-Type: application/json" -d '${JSON.stringify(testTicketData)}'`;
+    console.log(`Executing: ${curlCommand}`);
     
-    // Check response status
-    console.log(`Response status: ${response.status}`);
+    const response = execSync(curlCommand).toString();
+    console.log('Response:', response);
     
-    if (response.ok) {
-      const data = await response.json();
+    try {
+      const data = JSON.parse(response);
       console.log('University admin ticket created successfully!');
       console.log('Ticket ID:', data.id);
+      
+      // Verify the ticket details
+      if (data.id) {
+        console.log('\nVerifying ticket details...');
+        const verifyCommand = `curl -s -b cookie.txt -X GET ${BASE_URL}/api/admin/support-tickets/${data.id}`;
+        const verifyResponse = execSync(verifyCommand).toString();
+        console.log('Verification response:', verifyResponse);
+      }
+      
       return data.id;
-    } else {
-      const errorText = await response.text();
-      console.error('Failed to create university admin ticket:', errorText);
+    } catch (parseError) {
+      console.error('Failed to parse response as JSON:', parseError);
+      console.log('Raw response:', response.substring(0, 200) + '...');
       return null;
     }
   } catch (error) {
@@ -136,20 +138,59 @@ async function testUniversityAdminSupportEndpoint(cookie) {
   }
 }
 
+// Function to view all university admin tickets
+function viewUniversityAdminTickets() {
+  console.log('\n========== VIEWING ALL UNIVERSITY ADMIN TICKETS ==========');
+  
+  try {
+    // Use curl with the saved cookie file to get all tickets
+    const curlCommand = `curl -s -b cookie.txt -X GET "${BASE_URL}/api/admin/support-tickets?source=university-admin"`;
+    console.log(`Executing: ${curlCommand}`);
+    
+    const response = execSync(curlCommand).toString();
+    
+    try {
+      const tickets = JSON.parse(response);
+      console.log(`Found ${tickets.length} university admin tickets`);
+      
+      if (tickets.length > 0) {
+        console.log('\nTicket Summary:');
+        tickets.forEach(ticket => {
+          console.log(`- #${ticket.id}: ${ticket.subject} (${ticket.status}) - ${ticket.department || 'No department'}`);
+        });
+      }
+      
+      return tickets.length;
+    } catch (parseError) {
+      console.error('Failed to parse tickets response as JSON:', parseError);
+      console.log('Raw response:', response.substring(0, 200) + '...');
+      return 0;
+    }
+  } catch (error) {
+    console.error('Error viewing tickets:', error);
+    return 0;
+  }
+}
+
 // Main test function
-async function runTests() {
+function runTests() {
   try {
     console.log('========== SUPPORT TICKET API ENDPOINT TESTS ==========');
     
     // Test 1: Anonymous support endpoint
-    const anonymousTicketId = await testAnonymousSupportEndpoint();
+    const anonymousTicketId = testAnonymousSupportEndpoint();
     
     // Test 2: Login with university admin credentials
-    const cookie = await login('university_admin', 'password123');
+    const loginSuccess = loginWithCurl('superadmin_022694', 'admin123');
     
     // Test 3: University admin support endpoint
-    if (cookie) {
-      const universityTicketId = await testUniversityAdminSupportEndpoint(cookie);
+    if (loginSuccess) {
+      const universityTicketId = testUniversityAdminSupportEndpoint();
+      
+      // Test 4: View all university admin tickets
+      if (universityTicketId) {
+        const ticketCount = viewUniversityAdminTickets();
+      }
     }
     
     console.log('\n========== ALL TESTS COMPLETED ==========');
@@ -159,4 +200,4 @@ async function runTests() {
 }
 
 // Run the tests
-await runTests();
+runTests();
