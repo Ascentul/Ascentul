@@ -687,21 +687,30 @@ export const userPersonalAchievementsRelations = relations(userPersonalAchieveme
 export const supportTickets = pgTable("support_tickets", {
   id: serial("id").primaryKey(),
   userEmail: text("user_email"),
+  userName: text("user_name"),
+  universityName: text("university_name"),
+  subject: text("subject"),
   source: text("source").notNull(),
   issueType: text("issue_type").notNull(),
   description: text("description").notNull(),
+  priority: text("priority"),
   attachmentUrl: text("attachment_url"),
   status: text("status").notNull().default("Open"),
   internalNotes: text("internal_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+  resolvedAt: timestamp("resolved_at"),
 });
 
 export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
 }).extend({
-  source: z.enum(["in-app", "marketing-site"]),
-  issueType: z.enum(["Bug", "Billing", "Feedback", "Feature Request", "Other"]),
+  source: z.enum(["in-app", "marketing-site", "university-admin"]),
+  issueType: z.enum(["account_access", "student_management", "reporting", "technical", "billing", "feature_request", "Bug", "Billing", "Feedback", "Feature Request", "Other"]),
+  priority: z.enum(["low", "medium", "high", "critical"]).optional(),
   status: z.enum(["Open", "In Progress", "Resolved"]).optional(),
 });
 

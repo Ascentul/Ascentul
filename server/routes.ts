@@ -21,7 +21,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
 import { eq, desc, and } from "drizzle-orm";
-import { users, userReviews } from "@shared/schema";
+import { users, userReviews, insertSupportTicketSchema } from "@shared/schema";
 import { db } from "./db";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 // Voice Interview routes removed
@@ -259,7 +259,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/mail', mailRouter);
   
   // Register test email router (admin only)
-  import testEmailRouter from './routes/test-email';
   apiRouter.use('/admin', requireAdmin, testEmailRouter);
   
   // Register university invites router
@@ -4417,24 +4416,41 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   apiRouter.post("/api/in-app/support", requireAuth, async (req: Request, res: Response) => {
     try {
-      const { issue_type, description, attachment_url } = req.body;
+      const { 
+        issueType, 
+        subject, 
+        description, 
+        priority, 
+        attachmentUrl, 
+        source = "in-app",
+        name,
+        email,
+        universityName
+      } = req.body;
       
-      // Get current user email from session
+      // Get current user from session
       const user = await getCurrentUser(req);
       if (!user) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      if (!issue_type || !description) {
+      if (!issueType || !description) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Prepare ticket data - use values from body or fallback to user session data
       const ticketData = insertSupportTicketSchema.parse({
-        userEmail: user.email,
-        source: "in-app",
-        issueType: issue_type,
+        userEmail: email || user.email,
+        userName: name || user.name,
+        universityName: universityName || user.universityName,
+        subject,
+        source: source === "university-admin" ? "university-admin" : "in-app",
+        issueType,
         description,
-        attachmentUrl: attachment_url
+        priority,
+        attachmentUrl,
+        status: "Open",
+        updatedAt: new Date()
       });
 
       const ticket = await storage.createSupportTicket(ticketData);

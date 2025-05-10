@@ -3,8 +3,7 @@
  * These routes are for testing purposes only and should be disabled in production
  */
 import express, { Request, Response } from 'express';
-import { sendMail } from '../mail';
-import { sendUniversityInviteEmail } from '../mail/university-invite';
+import { sendEmail } from '../mail';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -44,12 +43,11 @@ router.post('/test-email', async (req: Request, res: Response) => {
     const { recipient, subject, content, template } = validationResult.data;
 
     // Send the email
-    const result = await sendMail({
+    const result = await sendEmail({
       to: recipient,
       subject,
       text: content,
       html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">${content.replace(/\n/g, '<br>')}</div>`,
-      template: template || 'general',
     });
 
     return res.json({
@@ -92,12 +90,32 @@ router.post('/test-university-invite', async (req: Request, res: Response) => {
     // Generate the invitation link
     const invitationLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/auth/university-invite?token=${testToken}`;
 
-    // Send the university invite email
-    const result = await sendUniversityInviteEmail({
-      email: adminEmail,
-      name: adminName,
-      universityName,
-      invitationLink,
+    // Send the university invite email instead of through dedicated function,
+    // we'll use the regular email function for testing purposes
+    const result = await sendEmail({
+      to: adminEmail,
+      subject: `You're Invited to Manage ${universityName} on Ascentul`,
+      text: `Hello ${adminName},
+      
+You've been invited to join Ascentul as an administrator for ${universityName}.
+
+To accept this invitation, please click the following link:
+${invitationLink}
+
+Thank you,
+The Ascentul Team`,
+      html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>University Admin Invitation</h2>
+        <p>Hello ${adminName},</p>
+        <p>You've been invited to join Ascentul as an administrator for <strong>${universityName}</strong>.</p>
+        <p>To accept this invitation, please click the button below:</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${invitationLink}" style="background-color: #1333c2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+        </div>
+        <p>If the button doesn't work, you can copy and paste the following link into your browser:</p>
+        <p><a href="${invitationLink}">${invitationLink}</a></p>
+        <p>Thank you,<br>The Ascentul Team</p>
+      </div>`,
     });
 
     return res.json({
