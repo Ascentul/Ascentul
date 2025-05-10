@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Save, RotateCcw, Check, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +29,11 @@ type PlatformSettings = {
     enableResumeStudio: boolean;
     enableVoicePractice: boolean;
     enableCareerGoals: boolean;
+    enableApplicationTracker?: boolean;
+    enableNetworkHub?: boolean;
+    enableCareerPathExplorer?: boolean;
+    enableProjectPortfolio?: boolean;
+    enableCoverLetterStudio?: boolean;
   };
   userRoles: {
     defaultUserRole: string;
@@ -386,78 +392,220 @@ export default function AdminSettingsTab() {
             <CardHeader>
               <CardTitle>Feature Settings</CardTitle>
               <CardDescription>
-                Toggle platform features on or off globally
+                Toggle platform features on or off globally and manage feature links
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableReviews">User Reviews</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow users to submit reviews and feedback
-                  </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Application Tracker */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Application Tracker</h3>
+                      <p className="text-sm text-muted-foreground">Track job applications and interview progress</p>
+                    </div>
+                    <Switch
+                      id="enableApplicationTracker"
+                      checked={displaySettings.features.enableApplicationTracker || true}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableApplicationTracker", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/applications" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Core Feature</Badge>
+                  </div>
                 </div>
-                <Switch
-                  id="enableReviews"
-                  checked={displaySettings.features.enableReviews}
-                  onCheckedChange={(checked) => handleInputChange("features", "enableReviews", checked)}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableAICoach">AI Career Coach</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable the AI-powered career coaching features
-                  </p>
+
+                {/* Career Goal Tracker */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Career Goal Tracker</h3>
+                      <p className="text-sm text-muted-foreground">Set and track career milestones and goals</p>
+                    </div>
+                    <Switch
+                      id="enableCareerGoals"
+                      checked={displaySettings.features.enableCareerGoals}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableCareerGoals", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/goals" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Premium</Badge>
+                  </div>
                 </div>
-                <Switch
-                  id="enableAICoach"
-                  checked={displaySettings.features.enableAICoach}
-                  onCheckedChange={(checked) => handleInputChange("features", "enableAICoach", checked)}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableResumeStudio">Resume Studio</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable resume creation and editing features
-                  </p>
+
+                {/* Network Hub */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Network Hub</h3>
+                      <p className="text-sm text-muted-foreground">Manage professional connections and interactions</p>
+                    </div>
+                    <Switch
+                      id="enableNetworkHub"
+                      checked={displaySettings.features.enableNetworkHub || true}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableNetworkHub", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/network" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Core Feature</Badge>
+                  </div>
                 </div>
-                <Switch
-                  id="enableResumeStudio"
-                  checked={displaySettings.features.enableResumeStudio}
-                  onCheckedChange={(checked) => handleInputChange("features", "enableResumeStudio", checked)}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableVoicePractice">Voice Practice</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable interview voice practice features
-                  </p>
+
+                {/* CareerPath Explorer */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">CareerPath Explorer</h3>
+                      <p className="text-sm text-muted-foreground">Discover potential career paths and opportunities</p>
+                    </div>
+                    <Switch
+                      id="enableCareerPathExplorer"
+                      checked={displaySettings.features.enableCareerPathExplorer || true}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableCareerPathExplorer", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/career-paths" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Premium</Badge>
+                  </div>
                 </div>
-                <Switch
-                  id="enableVoicePractice"
-                  checked={displaySettings.features.enableVoicePractice}
-                  onCheckedChange={(checked) => handleInputChange("features", "enableVoicePractice", checked)}
-                />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="enableCareerGoals">Career Goals</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable career goal setting and tracking features
-                  </p>
+
+                {/* Project Portfolio */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Project Portfolio</h3>
+                      <p className="text-sm text-muted-foreground">Showcase professional projects and achievements</p>
+                    </div>
+                    <Switch
+                      id="enableProjectPortfolio"
+                      checked={displaySettings.features.enableProjectPortfolio || true}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableProjectPortfolio", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/projects" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Core Feature</Badge>
+                  </div>
                 </div>
-                <Switch
-                  id="enableCareerGoals"
-                  checked={displaySettings.features.enableCareerGoals}
-                  onCheckedChange={(checked) => handleInputChange("features", "enableCareerGoals", checked)}
-                />
+
+                {/* Resume Studio */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Resume Studio</h3>
+                      <p className="text-sm text-muted-foreground">Create, edit and optimize professional resumes</p>
+                    </div>
+                    <Switch
+                      id="enableResumeStudio"
+                      checked={displaySettings.features.enableResumeStudio}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableResumeStudio", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/resume" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Core Feature</Badge>
+                  </div>
+                </div>
+
+                {/* Cover Letter Studio */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Cover Letter Studio</h3>
+                      <p className="text-sm text-muted-foreground">Generate and customize targeted cover letters</p>
+                    </div>
+                    <Switch
+                      id="enableCoverLetterStudio"
+                      checked={displaySettings.features.enableCoverLetterStudio || true}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableCoverLetterStudio", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/cover-letter" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Premium</Badge>
+                  </div>
+                </div>
+
+                {/* AI Career Coach */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">AI Career Coach</h3>
+                      <p className="text-sm text-muted-foreground">Get personalized career guidance and advice</p>
+                    </div>
+                    <Switch
+                      id="enableAICoach"
+                      checked={displaySettings.features.enableAICoach}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableAICoach", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/ai-coach" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Premium</Badge>
+                  </div>
+                </div>
+                
+                {/* Voice Practice */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">Voice Practice</h3>
+                      <p className="text-sm text-muted-foreground">Interactive interview practice with feedback</p>
+                    </div>
+                    <Switch
+                      id="enableVoicePractice"
+                      checked={displaySettings.features.enableVoicePractice}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableVoicePractice", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/interview/practice" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Premium</Badge>
+                  </div>
+                </div>
+
+                {/* User Reviews */}
+                <div className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h3 className="font-medium text-base">User Reviews</h3>
+                      <p className="text-sm text-muted-foreground">Allow users to submit reviews and feedback</p>
+                    </div>
+                    <Switch
+                      id="enableReviews"
+                      checked={displaySettings.features.enableReviews}
+                      onCheckedChange={(checked) => handleInputChange("features", "enableReviews", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/reviews" target="_blank" rel="noopener noreferrer">View Feature</a>
+                    </Button>
+                    <Badge variant="outline">Core Feature</Badge>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
