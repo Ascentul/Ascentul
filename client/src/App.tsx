@@ -92,9 +92,9 @@ import {
   Students as UniAdminStudents,
   Invite as UniAdminInvite,
   Usage as UniAdminUsage,
-  Settings as UniAdminSettings
+  Settings as UniAdminSettings,
+  Support as UniAdminSupport
 } from "@/pages/university-admin";
-import UniversityAdminSupportPage from "@/pages/university-admin/support";
 
 // University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
@@ -425,7 +425,7 @@ function App() {
           path="/university-admin/support" 
           component={() => (
             <UniversityAdminLayout>
-              <UniversityAdminSupportPage />
+              <UniAdminSupport />
             </UniversityAdminLayout>
           )} 
         />
