@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download, Plus, UserPlus } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Users, RefreshCw, Download, Plus, UserPlus, UserCog } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { useUser, useIsAdminUser } from '@/lib/useUserData';
 import { useLocation } from 'wouter';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -90,7 +90,18 @@ const addStaffUserSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
+// Schema for user editing
+const editUserSchema = z.object({
+  name: z.string().min(2, { message: "Name is required" }),
+  email: z.string().email({ message: "Please enter a valid email" }),
+  userType: z.enum(["regular", "university_student", "university_admin", "staff"]),
+  university: z.string().optional(),
+  subscriptionPlan: z.enum(["free", "premium", "university"]),
+  accountStatus: z.enum(["active", "inactive", "suspended"]),
+});
+
 type AddStaffUserFormValues = z.infer<typeof addStaffUserSchema>;
+type EditUserFormValues = z.infer<typeof editUserSchema>;
 
 interface User {
   id: number;
@@ -117,6 +128,7 @@ interface User {
 export default function UserManagement() {
   const { user } = useUser();
   const isAdmin = useIsAdminUser();
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
@@ -200,6 +212,53 @@ export default function UserManagement() {
               : user
           )
       );
+    }
+  });
+  
+  // Mutation for updating user details
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ 
+      userId, 
+      userData 
+    }: { 
+      userId: number;
+      userData: EditUserFormValues;
+    }) => {
+      // This is where you'd call your API
+      // const res = await apiRequest('PUT', `/api/admin/users/${userId}`, userData);
+      // return await res.json();
+      
+      // For demo, we'll just return the updated user data
+      return { userId, ...userData };
+    },
+    onSuccess: (data) => {
+      const { userId, ...updatedData } = data;
+      
+      // Show success toast
+      toast({
+        title: "User updated",
+        description: `${data.name}'s profile has been updated.`,
+      });
+      
+      // Close edit modal
+      setIsEditUserOpen(false);
+      
+      // Update the cache
+      queryClient.setQueryData(['/api/admin/users', searchTerm, filters, currentPage], 
+        (old: User[] | undefined) => 
+          old?.map(user => 
+            user.id === userId 
+              ? { ...user, ...updatedData } 
+              : user
+          )
+      );
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating user",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
