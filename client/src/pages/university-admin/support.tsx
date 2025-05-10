@@ -32,7 +32,7 @@ export default function UniversityAdminSupportPage() {
     resolver: zodResolver(supportFormSchema),
     defaultValues: {
       subject: '',
-      category: '',
+      issueType: '',
       description: '',
       priority: 'medium',
     },
@@ -42,15 +42,15 @@ export default function UniversityAdminSupportPage() {
     setIsSubmitting(true);
     
     try {
-      const universityData = {
-        universityName: user?.universityName || 'Unknown University',
-        universityId: user?.universityId || null,
-      };
+      // Get university name from user data if available
+      const universityName = user?.universityName || 'Unknown University';
       
       await apiRequest('POST', '/api/in-app/support', {
         ...data,
-        source: 'university_admin',
-        ...universityData,
+        source: 'university-admin',
+        name: user?.name,
+        email: user?.email,
+        universityName: universityName
       });
       
       setIsSuccess(true);
@@ -128,7 +128,7 @@ export default function UniversityAdminSupportPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
-                      name="category"
+                      name="issueType"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category</FormLabel>
