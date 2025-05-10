@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,10 +10,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Eye } from 'lucide-react';
 
 export default function SupportPage() {
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [issueTypeFilter, setIssueTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Build query parameters
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    if (sourceFilter !== 'all') params.append('source', sourceFilter);
+    if (issueTypeFilter !== 'all') params.append('issueType', issueTypeFilter);
+    if (statusFilter !== 'all') params.append('status', statusFilter);
+    if (searchQuery) params.append('search', searchQuery);
+    return params.toString();
+  };
+
   const { data: tickets, isLoading } = useQuery({
-    queryKey: ['supportTickets'],
+    queryKey: ['supportTickets', sourceFilter, issueTypeFilter, statusFilter, searchQuery],
     queryFn: async () => {
-      const response = await fetch('/api/admin/support-tickets');
+      const queryParams = getQueryParams();
+      const url = `/api/admin/support-tickets${queryParams ? `?${queryParams}` : ''}`;
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch tickets');
       return response.json();
     }
@@ -21,7 +39,7 @@ export default function SupportPage() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Select defaultValue="all">
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by source" />
           </SelectTrigger>
@@ -29,34 +47,60 @@ export default function SupportPage() {
             <SelectItem value="all">All Sources</SelectItem>
             <SelectItem value="in-app">In-App</SelectItem>
             <SelectItem value="marketing-site">Marketing Site</SelectItem>
+            <SelectItem value="university-admin">University Admin</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select defaultValue="all">
+        <Select value={issueTypeFilter} onValueChange={setIssueTypeFilter}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by issue type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {["Bug", "Billing", "Feedback", "Feature Request", "Other"].map(type => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
+            {[
+              "Bug", 
+              "Billing", 
+              "Feedback", 
+              "Feature Request", 
+              "Other", 
+              "account_access", 
+              "student_management", 
+              "reporting", 
+              "technical"
+            ].map(type => (
+              <SelectItem key={type} value={type}>
+                {type.includes('_') 
+                  ? type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') 
+                  : type}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select defaultValue="all">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            {["Open", "In Progress", "Resolved"].map(type => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
+            {["Open", "In Progress", "Resolved"].map(status => (
+              <SelectItem key={status} value={status}>{status}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Input placeholder="Search by email or keyword..." />
+        <Input 
+          placeholder="Search by email or keyword..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              // Refresh query
+              const inputElement = e.target as HTMLInputElement;
+              setSearchQuery(inputElement.value);
+            }
+          }}
+        />
       </div>
 
       <Card>
@@ -95,7 +139,10 @@ export default function SupportPage() {
                     <TableCell>{ticket.userEmail || "Guest Submission"}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {ticket.source === 'in-app' ? 'In-App' : 'Marketing Site'}
+                        {ticket.source === 'in-app' ? 'In-App' : 
+                         ticket.source === 'marketing-site' ? 'Marketing Site' : 
+                         ticket.source === 'university-admin' ? 'University Admin' : 
+                         ticket.source}
                       </Badge>
                     </TableCell>
                     <TableCell>{ticket.issueType}</TableCell>
