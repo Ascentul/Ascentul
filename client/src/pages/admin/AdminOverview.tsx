@@ -45,7 +45,13 @@ export default function AdminOverview() {
     { name: 'University', value: 1600 },
   ];
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  // Consistent color palette as requested
+  const COLORS = {
+    FREE: '#1E90FF', // Blue
+    PREMIUM: '#28A745', // Green
+    UNIVERSITY: '#F4B400', // Orange
+    REGULAR: '#6F42C1', // Purple
+  };
 
   const { data: userStats } = useQuery({
     queryKey: ['/api/admin/users/stats'],
@@ -136,51 +142,73 @@ export default function AdminOverview() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">User Distribution</CardTitle>
+            <CardTitle className="text-lg">User Distribution Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="h-60">
+            <div className="flex flex-col md:flex-row gap-8 justify-between items-center w-full">
+              <div className="w-full md:w-1/2 h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={userTypeData}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      labelLine={true}
+                      label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
                       fill="#8884d8"
                       dataKey="value"
+                      paddingAngle={2}
                     >
-                      {userTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {userTypeData.map((entry) => (
+                        <Cell 
+                          key={`cell-${entry.name}`} 
+                          fill={entry.name === 'Regular' ? COLORS.REGULAR : COLORS.UNIVERSITY} 
+                        />
                       ))}
                     </Pie>
-                    <Legend />
+                    <Tooltip formatter={(value, name) => [`${value} users`, name]} />
+                    <Legend 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      align="center" 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <p className="text-center text-sm font-medium mt-2">User Types</p>
               </div>
 
-              <div className="h-60">
+              <div className="w-full md:w-1/2 h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={planData}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      labelLine={true}
+                      label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
                       fill="#8884d8"
                       dataKey="value"
+                      paddingAngle={2}
                     >
-                      {planData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                      {planData.map((entry) => {
+                        let color;
+                        if (entry.name === 'Free') color = COLORS.FREE;
+                        else if (entry.name === 'Premium') color = COLORS.PREMIUM;
+                        else color = COLORS.UNIVERSITY;
+                        
+                        return <Cell key={`cell-${entry.name}`} fill={color} />;
+                      })}
                     </Pie>
-                    <Legend />
+                    <Tooltip formatter={(value, name) => [`${value} users`, name]} />
+                    <Legend 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      align="center" 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <p className="text-center text-sm font-medium mt-2">Subscription Plans</p>
