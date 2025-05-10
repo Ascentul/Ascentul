@@ -3438,25 +3438,69 @@ export class MemStorage implements IStorage {
   }
 
   // Support ticket functions
-  async getSupportTickets(filters?: any): Promise<any[]> {
-    // Implement your support ticket retrieval logic here
-    return [];
+  async getSupportTickets(filters?: Partial<{
+    source: string;
+    issueType: string;
+    status: string;
+    universityName: string;
+  }>): Promise<SupportTicket[]> {
+    let tickets = Array.from(this.supportTickets.values());
+    
+    // Apply filters if provided
+    if (filters) {
+      if (filters.source) {
+        tickets = tickets.filter(ticket => ticket.source === filters.source);
+      }
+      
+      if (filters.issueType) {
+        tickets = tickets.filter(ticket => ticket.issueType === filters.issueType);
+      }
+      
+      if (filters.status) {
+        tickets = tickets.filter(ticket => ticket.status === filters.status);
+      }
+      
+      if (filters.universityName) {
+        tickets = tickets.filter(ticket => 
+          ticket.universityName && 
+          ticket.universityName.toLowerCase() === filters.universityName.toLowerCase()
+        );
+      }
+    }
+    
+    // Sort tickets by creation date (newest first)
+    return tickets.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }
 
-  async getSupportTicket(id: number): Promise<any | undefined> {
-    // Implement your support ticket retrieval logic here
-    return undefined;
+  async getSupportTicket(id: number): Promise<SupportTicket | undefined> {
+    return this.supportTickets.get(id);
   }
 
-  async updateSupportTicket(id: number, data: any): Promise<any> {
-    // Implement your support ticket update logic here
-    return {};
+  async updateSupportTicket(id: number, data: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
+    const ticket = this.supportTickets.get(id);
+    if (!ticket) return undefined;
+    
+    const updatedTicket = {
+      ...ticket,
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.supportTickets.set(id, updatedTicket);
+    return updatedTicket;
   }
 
-  async createSupportTicket(data: any): Promise<any> {
+  async createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket> {
     const id = this.supportTicketIdCounter++;
     const now = new Date();
-    const supportTicket = { ...data, id, createdAt: now };
+    const supportTicket = { 
+      ...data, 
+      id, 
+      createdAt: now,
+      updatedAt: now
+    };
     this.supportTickets.set(id, supportTicket);
     return supportTicket;
   }
