@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -56,7 +56,9 @@ export default function UniversityAdminSupportPage() {
         source: 'university-admin',
         name: user?.name,
         email: user?.email,
-        universityName: universityName
+        universityName: universityName,
+        department: data.department || '',
+        contactPerson: data.contactPerson || ''
       });
       
       setIsSuccess(true);
@@ -185,6 +187,42 @@ export default function UniversityAdminSupportPage() {
                               <SelectItem value="urgent">Urgent</SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Department</FormLabel>
+                          <FormControl>
+                            <Input placeholder="E.g. Admissions, Career Services" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Which university department is affected?
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="contactPerson"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Person</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Name of primary contact for this issue" {...field} />
+                          </FormControl>
+                          <FormDescription>
+                            Who should we contact about this issue?
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
