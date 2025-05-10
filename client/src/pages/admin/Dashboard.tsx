@@ -263,9 +263,40 @@ function SupportSection() {
   const { data: tickets, isLoading, error } = useQuery({
     queryKey: ['supportTickets', source, issueType, status, search],
     queryFn: async () => {
+      // Direct testing of the API with credentials
+      console.log('DEBUG: Direct test of API with credentials included');
+      try {
+        const directTestResponse = await fetch('/api/admin/support-tickets', {
+          credentials: 'include', // Important: include credentials (cookies)
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        console.log('DEBUG: Direct test response status:', directTestResponse.status);
+        if (directTestResponse.ok) {
+          const directTestData = await directTestResponse.json();
+          console.log('DEBUG: Direct test returned tickets count:', directTestData.length);
+          console.log('DEBUG: Direct test university admin tickets:', 
+            directTestData.filter(t => t.source === 'university-admin').length);
+          
+          // Log the first ticket details if any exist
+          if (directTestData.length > 0) {
+            console.log('DEBUG: First ticket details:', JSON.stringify(directTestData[0]));
+          }
+        } else {
+          const errorText = await directTestResponse.text();
+          console.error('DEBUG: Direct test error:', errorText);
+        }
+      } catch (e) {
+        console.error('DEBUG: Direct test exception:', e);
+      }
+      
       // First, try to get all tickets to see if they exist
       console.log('DEBUG: Fetching ALL support tickets first to check existence');
-      const allTicketsResponse = await fetch(`/api/admin/support-tickets`);
+      const allTicketsResponse = await fetch(`/api/admin/support-tickets`, {
+        credentials: 'include' // Ensure we send auth cookies
+      });
       console.log('DEBUG: All tickets response status:', allTicketsResponse.status);
       if (allTicketsResponse.ok) {
         const allTicketsData = await allTicketsResponse.json();
@@ -285,7 +316,9 @@ function SupportSection() {
         ...(search && { search })
       });
       console.log('Fetching support tickets with params:', Object.fromEntries(queryParams.entries()));
-      const response = await fetch(`/api/admin/support-tickets?${queryParams}`);
+      const response = await fetch(`/api/admin/support-tickets?${queryParams}`, {
+        credentials: 'include' // Ensure we send auth cookies
+      });
       console.log('Support tickets API response status:', response.status);
       
       if (!response.ok) {
