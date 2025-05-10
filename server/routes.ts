@@ -4476,7 +4476,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   });
 
   // Admin Support Ticket Routes
-apiRouter.get("/admin/support-tickets", requireAdmin, async (req: Request, res: Response) => {
+apiRouter.get("/api/admin/support-tickets", requireAdmin, async (req: Request, res: Response) => {
   try {
     const { source, issueType, status, search, universityName } = req.query;
     
@@ -4519,7 +4519,7 @@ apiRouter.get("/admin/support-tickets", requireAdmin, async (req: Request, res: 
   }
 });
 
-apiRouter.get("/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
+apiRouter.get("/api/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const ticket = await storage.getSupportTicket(parseInt(id));
@@ -4535,7 +4535,7 @@ apiRouter.get("/admin/support-tickets/:id", requireAdmin, async (req: Request, r
   }
 });
 
-apiRouter.put("/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
+apiRouter.put("/api/admin/support-tickets/:id", requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status, internalNotes } = req.body;

@@ -3444,65 +3444,319 @@ export class MemStorage implements IStorage {
     status: string;
     universityName: string;
   }>): Promise<SupportTicket[]> {
-    let tickets = Array.from(this.supportTickets.values());
-    
-    // Apply filters if provided
-    if (filters) {
-      if (filters.source) {
-        tickets = tickets.filter(ticket => ticket.source === filters.source);
+    try {
+      // Start building the query
+      let query = `
+        SELECT * FROM support_tickets
+        WHERE 1=1
+      `;
+      
+      // Add filters to the query
+      const queryParams: any[] = [];
+      const filterConditions: string[] = [];
+      
+      if (filters) {
+        if (filters.source) {
+          queryParams.push(filters.source);
+          filterConditions.push(`source = $${queryParams.length}`);
+        }
+        
+        if (filters.issueType) {
+          queryParams.push(filters.issueType);
+          filterConditions.push(`issue_type = $${queryParams.length}`);
+        }
+        
+        if (filters.status) {
+          queryParams.push(filters.status);
+          filterConditions.push(`status = $${queryParams.length}`);
+        }
+        
+        if (filters.universityName) {
+          queryParams.push(filters.universityName);
+          filterConditions.push(`university_name = $${queryParams.length}`);
+        }
       }
       
-      if (filters.issueType) {
-        tickets = tickets.filter(ticket => ticket.issueType === filters.issueType);
+      // Add all filter conditions to the query
+      if (filterConditions.length > 0) {
+        query += ' AND ' + filterConditions.join(' AND ');
       }
       
-      if (filters.status) {
-        tickets = tickets.filter(ticket => ticket.status === filters.status);
-      }
+      // Add order by to sort by creation date
+      query += ` ORDER BY created_at DESC`;
       
-      if (filters.universityName) {
-        tickets = tickets.filter(ticket => 
-          ticket.universityName && 
-          ticket.universityName.toLowerCase() === filters.universityName.toLowerCase()
-        );
-      }
+      const result = await pool.query(query, queryParams);
+      
+      // Transform the results
+      return result.rows.map(row => ({
+        id: row.id,
+        userEmail: row.user_email,
+        userName: row.user_name,
+        universityName: row.university_name,
+        subject: row.subject,
+        source: row.source,
+        issueType: row.issue_type,
+        description: row.description,
+        priority: row.priority,
+        attachmentUrl: row.attachment_url,
+        status: row.status,
+        internalNotes: row.internal_notes,
+        department: row.department,
+        contactPerson: row.contact_person,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        resolvedAt: row.resolved_at
+      }));
+    } catch (error) {
+      console.error("Error fetching support tickets:", error);
+      return [];
     }
-    
-    // Sort tickets by creation date (newest first)
-    return tickets.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
   }
 
   async getSupportTicket(id: number): Promise<SupportTicket | undefined> {
-    return this.supportTickets.get(id);
+    try {
+      const result = await pool.query(`
+        SELECT * FROM support_tickets WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userEmail: row.user_email,
+        userName: row.user_name,
+        universityName: row.university_name,
+        subject: row.subject,
+        source: row.source,
+        issueType: row.issue_type,
+        description: row.description,
+        priority: row.priority,
+        attachmentUrl: row.attachment_url,
+        status: row.status,
+        internalNotes: row.internal_notes,
+        department: row.department,
+        contactPerson: row.contact_person,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        resolvedAt: row.resolved_at
+      };
+    } catch (error) {
+      console.error(`Error fetching support ticket with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async updateSupportTicket(id: number, data: Partial<SupportTicket>): Promise<SupportTicket | undefined> {
-    const ticket = this.supportTickets.get(id);
-    if (!ticket) return undefined;
-    
-    const updatedTicket = {
-      ...ticket,
-      ...data,
-      updatedAt: new Date()
-    };
-    
-    this.supportTickets.set(id, updatedTicket);
-    return updatedTicket;
+    try {
+      // Get the current support ticket to ensure it exists
+      const ticket = await this.getSupportTicket(id);
+      if (!ticket) return undefined;
+      
+      // Prepare update query
+      const now = new Date();
+      const updateFields: string[] = ['updated_at = $1'];
+      const queryParams: any[] = [now];
+      let paramCounter = 2;
+      
+      // Add fields to update
+      if (data.status !== undefined) {
+        updateFields.push(`status = $${paramCounter}`);
+        queryParams.push(data.status);
+        paramCounter++;
+        
+        // If status is set to 'Resolved', update resolvedAt timestamp
+        if (data.status === 'Resolved') {
+          updateFields.push(`resolved_at = $${paramCounter}`);
+          queryParams.push(now);
+          paramCounter++;
+        }
+      }
+      
+      if (data.internalNotes !== undefined) {
+        updateFields.push(`internal_notes = $${paramCounter}`);
+        queryParams.push(data.internalNotes);
+        paramCounter++;
+      }
+      
+      // Add ticket ID to query params
+      queryParams.push(id);
+      
+      // Execute update query
+      const query = `
+        UPDATE support_tickets
+        SET ${updateFields.join(', ')}
+        WHERE id = $${paramCounter}
+        RETURNING *
+      `;
+      
+      const result = await pool.query(query, queryParams);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      // Map the updated row to a SupportTicket object
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        userEmail: row.user_email,
+        userName: row.user_name,
+        universityName: row.university_name,
+        subject: row.subject,
+        source: row.source,
+        issueType: row.issue_type,
+        description: row.description,
+        priority: row.priority,
+        attachmentUrl: row.attachment_url,
+        status: row.status,
+        internalNotes: row.internal_notes,
+        department: row.department,
+        contactPerson: row.contact_person,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        resolvedAt: row.resolved_at
+      };
+    } catch (error) {
+      console.error(`Error updating support ticket with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket> {
-    const id = this.supportTicketIdCounter++;
-    const now = new Date();
-    const supportTicket = { 
-      ...data, 
-      id, 
-      createdAt: now,
-      updatedAt: now
-    };
-    this.supportTickets.set(id, supportTicket);
-    return supportTicket;
+    try {
+      const now = new Date();
+      
+      // Prepare column names and parameter values
+      const columns = [];
+      const values = [];
+      const placeholders = [];
+      let paramCounter = 1;
+      
+      // User information
+      if (data.userEmail !== undefined) {
+        columns.push('user_email');
+        values.push(data.userEmail);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      if (data.userName !== undefined) {
+        columns.push('user_name');
+        values.push(data.userName);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      if (data.universityName !== undefined) {
+        columns.push('university_name');
+        values.push(data.universityName);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      // Ticket details
+      if (data.subject !== undefined) {
+        columns.push('subject');
+        values.push(data.subject);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      columns.push('source');
+      values.push(data.source);
+      placeholders.push(`$${paramCounter++}`);
+      
+      columns.push('issue_type');
+      values.push(data.issueType);
+      placeholders.push(`$${paramCounter++}`);
+      
+      columns.push('description');
+      values.push(data.description);
+      placeholders.push(`$${paramCounter++}`);
+      
+      if (data.priority !== undefined) {
+        columns.push('priority');
+        values.push(data.priority);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      if (data.attachmentUrl !== undefined) {
+        columns.push('attachment_url');
+        values.push(data.attachmentUrl);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      // University-specific fields
+      if (data.department !== undefined) {
+        columns.push('department');
+        values.push(data.department);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      if (data.contactPerson !== undefined) {
+        columns.push('contact_person');
+        values.push(data.contactPerson);
+        placeholders.push(`$${paramCounter++}`);
+      }
+      
+      // Status and timestamps
+      columns.push('status');
+      values.push(data.status || 'Open');
+      placeholders.push(`$${paramCounter++}`);
+      
+      columns.push('created_at');
+      values.push(now);
+      placeholders.push(`$${paramCounter++}`);
+      
+      columns.push('updated_at');
+      values.push(now);
+      placeholders.push(`$${paramCounter++}`);
+      
+      // Create the query
+      const query = `
+        INSERT INTO support_tickets (${columns.join(', ')})
+        VALUES (${placeholders.join(', ')})
+        RETURNING *
+      `;
+      
+      // Execute the query
+      const result = await pool.query(query, values);
+      const row = result.rows[0];
+      
+      // Return the created ticket
+      return {
+        id: row.id,
+        userEmail: row.user_email,
+        userName: row.user_name,
+        universityName: row.university_name,
+        subject: row.subject,
+        source: row.source,
+        issueType: row.issue_type,
+        description: row.description,
+        priority: row.priority,
+        attachmentUrl: row.attachment_url,
+        status: row.status,
+        internalNotes: row.internal_notes,
+        department: row.department,
+        contactPerson: row.contact_person,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        resolvedAt: row.resolved_at
+      };
+    } catch (error) {
+      console.error(`Error creating support ticket:`, error);
+      // Fallback to in-memory storage if database operation fails
+      const id = this.supportTicketIdCounter++;
+      const now = new Date();
+      const supportTicket = {
+        ...data,
+        id,
+        createdAt: now,
+        updatedAt: now
+      };
+      this.supportTickets.set(id, supportTicket);
+      console.log("Database operation failed, fallback to in-memory storage was used");
+      return supportTicket;
+    }
   }
 
   // Job Listings operations
