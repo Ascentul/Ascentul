@@ -442,16 +442,6 @@ export default function UserManagement() {
                               >
                                 Upgrade to Premium
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => {
-                                  if (user.subscriptionPlan !== 'university') {
-                                    handleUpgradeSubscription(user.id, 'university');
-                                  }
-                                }}
-                                className={user.subscriptionPlan === 'university' ? 'opacity-50 cursor-not-allowed' : ''}
-                              >
-                                Upgrade to University
-                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
