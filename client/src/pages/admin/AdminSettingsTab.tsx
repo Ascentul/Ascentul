@@ -224,6 +224,11 @@ export default function AdminSettingsTab() {
       enableResumeStudio: true,
       enableVoicePractice: true,
       enableCareerGoals: true,
+      enableApplicationTracker: true,
+      enableNetworkHub: true,
+      enableCareerPathExplorer: true,
+      enableProjectPortfolio: true,
+      enableCoverLetterStudio: true,
     },
     userRoles: {
       defaultUserRole: "regular",
@@ -408,7 +413,7 @@ export default function AdminSettingsTab() {
                       <Switch
                         className="data-[state=checked]:bg-blue-600"
                         id="enableApplicationTracker"
-                        checked={true}
+                        checked={displaySettings.features.enableApplicationTracker}
                         onCheckedChange={(checked) => handleInputChange("features", "enableApplicationTracker", checked)}
                       />
                     </div>
@@ -456,7 +461,7 @@ export default function AdminSettingsTab() {
                       <Switch
                         className="data-[state=checked]:bg-blue-600"
                         id="enableNetworkHub"
-                        checked={true}
+                        checked={displaySettings.features.enableNetworkHub}
                         onCheckedChange={(checked) => handleInputChange("features", "enableNetworkHub", checked)}
                       />
                     </div>
@@ -480,7 +485,7 @@ export default function AdminSettingsTab() {
                       <Switch
                         className="data-[state=checked]:bg-blue-600"
                         id="enableCareerPathExplorer"
-                        checked={true}
+                        checked={displaySettings.features.enableCareerPathExplorer}
                         onCheckedChange={(checked) => handleInputChange("features", "enableCareerPathExplorer", checked)}
                       />
                     </div>
@@ -504,7 +509,7 @@ export default function AdminSettingsTab() {
                       <Switch
                         className="data-[state=checked]:bg-blue-600"
                         id="enableProjectPortfolio"
-                        checked={true}
+                        checked={displaySettings.features.enableProjectPortfolio}
                         onCheckedChange={(checked) => handleInputChange("features", "enableProjectPortfolio", checked)}
                       />
                     </div>
@@ -552,7 +557,7 @@ export default function AdminSettingsTab() {
                       <Switch
                         className="data-[state=checked]:bg-blue-600"
                         id="enableCoverLetterStudio"
-                        checked={true}
+                        checked={displaySettings.features.enableCoverLetterStudio}
                         onCheckedChange={(checked) => handleInputChange("features", "enableCoverLetterStudio", checked)}
                       />
                     </div>
