@@ -469,6 +469,17 @@ export interface IStorage {
   updateSkillStackerTaskStatus(planId: number, taskId: string, status: "complete" | "incomplete", rating?: number): Promise<SkillStackerPlan | undefined>;
   completeSkillStackerWeek(planId: number): Promise<SkillStackerPlan | undefined>;
   deleteSkillStackerPlan(id: number): Promise<boolean>;
+  
+  // Support Ticket operations
+  getSupportTickets(filters?: Partial<{
+    source: string;
+    issueType: string;
+    status: string;
+    universityName: string;
+  }>): Promise<SupportTicket[]>;
+  getSupportTicket(id: number): Promise<SupportTicket | undefined>;
+  createSupportTicket(data: InsertSupportTicket): Promise<SupportTicket>;
+  updateSupportTicket(id: number, data: Partial<SupportTicket>): Promise<SupportTicket | undefined>;
 }
 
 export class MemStorage implements IStorage {
