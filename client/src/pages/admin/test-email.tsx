@@ -1,293 +1,403 @@
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Check, AlertTriangle, Mail } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Send, Info, Mail, Building } from 'lucide-react';
+
+// Zod schema for the test email form
+const testEmailSchema = z.object({
+  recipient: z.string().email({ message: "Please enter a valid email address" }),
+  subject: z.string().min(1, { message: "Subject is required" }),
+  template: z.string().optional(),
+  content: z.string().min(1, { message: "Email content is required" }),
+});
+
+type TestEmailFormValues = z.infer<typeof testEmailSchema>;
+
+// Zod schema for the university invite form
+const universityInviteSchema = z.object({
+  universityName: z.string().min(1, { message: "University name is required" }),
+  adminEmail: z.string().email({ message: "Please enter a valid email address" }),
+  adminName: z.string().min(1, { message: "Admin name is required" }),
+});
+
+type UniversityInviteFormValues = z.infer<typeof universityInviteSchema>;
 
 export default function TestEmailPage() {
-  const [email, setEmail] = useState('');
-  const [universityName, setUniversityName] = useState('Test University');
-  const [isSending, setIsSending] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const { toast } = useToast();
-
-  // Fetch the first university to use for testing
-  const { data: universities } = useQuery({
-    queryKey: ['/api/universities'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/universities');
-      if (!response.ok) return [];
-      return response.json();
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message: string;
+    details?: string;
+  } | null>(null);
+  
+  // General test email form
+  const form = useForm<TestEmailFormValues>({
+    resolver: zodResolver(testEmailSchema),
+    defaultValues: {
+      recipient: "",
+      subject: "Test Email from CareerTracker",
+      template: "general",
+      content: "This is a test email from the CareerTracker admin panel. If you're seeing this, the email system is working correctly.",
     },
   });
-
-  const handleTestDirectEmail = async () => {
-    if (!email) {
-      toast({
-        title: 'Email required',
-        description: 'Please enter an email address to test the direct email functionality.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSending(true);
+  
+  // University invite form
+  const inviteForm = useForm<UniversityInviteFormValues>({
+    resolver: zodResolver(universityInviteSchema),
+    defaultValues: {
+      universityName: "",
+      adminEmail: "",
+      adminName: "",
+    },
+  });
+  
+  // Submit handler for general test email
+  const onSubmit = async (values: TestEmailFormValues) => {
+    setIsLoading(true);
     setTestResult(null);
-
+    
     try {
-      // Direct test using Mailgun API
-      const response = await apiRequest('POST', '/api/test/send-direct-email', {
-        email,
-        subject: 'Test Direct Email',
-        text: 'This is a test email sent directly via Mailgun API.',
-        html: `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-                <h1 style="color: #1333c2;">Test Direct Email</h1>
-                <p>This is a test email sent directly via Mailgun API at ${new Date().toISOString()}.</p>
-                <p>Thank you for testing the email functionality!</p>
-              </div>`
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send direct test email');
-      }
-
-      const result = await response.json();
+      const response = await apiRequest("POST", "/api/admin/test-email", values);
+      const data = await response.json();
+      
       setTestResult({
-        success: true,
-        message: `Direct email sent successfully to ${email}! Message ID: ${result.id || 'unknown'}`,
+        success: response.ok,
+        message: response.ok ? "Email sent successfully!" : "Failed to send email",
+        details: data.message || JSON.stringify(data),
       });
-      toast({
-        title: 'Direct email sent',
-        description: `Email was successfully sent to ${email}`,
-      });
+      
+      if (response.ok) {
+        toast({
+          title: "Email Sent",
+          description: "Test email was sent successfully.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send test email. See details below.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error('Error sending direct test email:', error);
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        message: "Error sending email",
+        details: error instanceof Error ? error.message : String(error),
       });
+      
       toast({
-        title: 'Failed to send direct email',
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: 'destructive',
+        title: "Error",
+        description: "An error occurred while sending the test email.",
+        variant: "destructive",
       });
     } finally {
-      setIsSending(false);
+      setIsLoading(false);
     }
   };
-
-  const handleTestUniversityInvite = async () => {
-    if (!email) {
-      toast({
-        title: 'Email required',
-        description: 'Please enter an email address to test the university invite email.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!universityName) {
-      toast({
-        title: 'University name required',
-        description: 'Please enter a university name for the test invite.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSending(true);
+  
+  // Submit handler for university invite test
+  const onInviteSubmit = async (values: UniversityInviteFormValues) => {
+    setIsLoading(true);
     setTestResult(null);
-
+    
     try {
-      let universityId = null;
+      const response = await apiRequest("POST", "/api/admin/test-university-invite", values);
+      const data = await response.json();
       
-      // Use the first university from the list if available
-      if (universities && universities.length > 0) {
-        universityId = universities[0].id;
-      } else {
-        // Create a test university if none exists
-        const createUnivResponse = await apiRequest('POST', '/api/universities', {
-          name: universityName,
-          slug: 'test-university',
-          domain: 'test.edu',
-          licenseSeats: 100,
-          licensePlan: 'Starter',
-          licenseStart: new Date().toISOString(),
-          licenseEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
-        });
-        
-        if (!createUnivResponse.ok) {
-          throw new Error('Failed to create test university');
-        }
-        
-        const newUniversity = await createUnivResponse.json();
-        universityId = newUniversity.id;
-      }
-
-      if (!universityId) {
-        throw new Error('Could not obtain university ID for testing');
-      }
-
-      // Send university invite
-      const response = await apiRequest('POST', '/api/university-invites', {
-        email,
-        universityId,
-        role: 'admin'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send university invite');
-      }
-
-      const result = await response.json();
       setTestResult({
-        success: true,
-        message: `University invite sent successfully to ${email}! ${result.message || ''}`,
+        success: response.ok,
+        message: response.ok ? "University invite email sent successfully!" : "Failed to send university invite",
+        details: data.message || JSON.stringify(data),
       });
-      toast({
-        title: 'University invite sent',
-        description: `Invitation was successfully sent to ${email}`,
-      });
+      
+      if (response.ok) {
+        toast({
+          title: "Invite Sent",
+          description: "University invite email was sent successfully.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to send university invite. See details below.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error('Error sending university invite:', error);
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        message: "Error sending university invite",
+        details: error instanceof Error ? error.message : String(error),
       });
+      
       toast({
-        title: 'Failed to send university invite',
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: 'destructive',
+        title: "Error",
+        description: "An error occurred while sending the university invite.",
+        variant: "destructive",
       });
     } finally {
-      setIsSending(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Email Testing Tool</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Direct Email</CardTitle>
-            <CardDescription>
-              Send a direct test email using the Mailgun API to verify the email configuration.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="direct-email" className="text-sm font-medium">
-                  Recipient Email Address
-                </label>
-                <Input
-                  id="direct-email"
-                  placeholder="test@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              onClick={handleTestDirectEmail}
-              disabled={isSending}
-              className="w-full"
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Test Email
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Test University Invite</CardTitle>
-            <CardDescription>
-              Send a university administrator invitation email to test the invitation workflow.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="invite-email" className="text-sm font-medium">
-                  Invite Email Address
-                </label>
-                <Input
-                  id="invite-email"
-                  placeholder="admin@university.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="university-name" className="text-sm font-medium">
-                  University Name
-                </label>
-                <Input
-                  id="university-name"
-                  placeholder="Stanford University"
-                  value={universityName}
-                  onChange={(e) => setUniversityName(e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              onClick={handleTestUniversityInvite}
-              disabled={isSending}
-              variant="outline"
-              className="w-full"
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send University Invite
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Email Testing Tools</h1>
       </div>
-
-      {testResult && (
-        <Alert
-          className={`mt-6 ${
-            testResult.success ? 'bg-green-50 text-green-800 border-green-200' : 'bg-red-50 text-red-800 border-red-200'
-          }`}
-        >
-          {testResult.success ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <AlertTriangle className="h-4 w-4" />
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="general">
+            <Mail className="w-4 h-4 mr-2" />
+            General Test Email
+          </TabsTrigger>
+          <TabsTrigger value="university">
+            <Building className="w-4 h-4 mr-2" />
+            University Invite
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="general" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Send Test Email</CardTitle>
+              <CardDescription>
+                Test the email delivery system by sending a test email.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="recipient"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recipient Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="test@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="template"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Template (Optional)</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a template" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="welcome">Welcome</SelectItem>
+                            <SelectItem value="password-reset">Password Reset</SelectItem>
+                            <SelectItem value="verification">Email Verification</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select a template or leave as General for a basic test email.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="content"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Content</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            rows={5}
+                            className="resize-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send Test Email
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+          
+          {testResult && (
+            <Card className={testResult.success ? "border-green-500" : "border-red-500"}>
+              <CardHeader className={testResult.success ? "bg-green-50" : "bg-red-50"}>
+                <CardTitle className="flex items-center">
+                  <Info className="mr-2 h-5 w-5" />
+                  {testResult.message}
+                </CardTitle>
+              </CardHeader>
+              {testResult.details && (
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
+                    {testResult.details}
+                  </pre>
+                </CardContent>
+              )}
+            </Card>
           )}
-          <AlertTitle>{testResult.success ? 'Success' : 'Error'}</AlertTitle>
-          <AlertDescription>{testResult.message}</AlertDescription>
-        </Alert>
-      )}
+        </TabsContent>
+        
+        <TabsContent value="university" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test University Invite</CardTitle>
+              <CardDescription>
+                Test the university admin invitation email system.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...inviteForm}>
+                <form onSubmit={inviteForm.handleSubmit(onInviteSubmit)} className="space-y-4">
+                  <FormField
+                    control={inviteForm.control}
+                    name="universityName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>University Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Example University" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={inviteForm.control}
+                    name="adminEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="admin@university.edu" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={inviteForm.control}
+                    name="adminName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Smith" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Send University Invite
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+          
+          {testResult && (
+            <Card className={testResult.success ? "border-green-500" : "border-red-500"}>
+              <CardHeader className={testResult.success ? "bg-green-50" : "bg-red-50"}>
+                <CardTitle className="flex items-center">
+                  <Info className="mr-2 h-5 w-5" />
+                  {testResult.message}
+                </CardTitle>
+              </CardHeader>
+              {testResult.details && (
+                <CardContent>
+                  <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
+                    {testResult.details}
+                  </pre>
+                </CardContent>
+              )}
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -424,6 +424,8 @@ export default function AdminDashboard() {
         return <OpenAILogsPage />;
       case 'email':
         return <EmailAdmin />;
+      case 'test-email':
+        return <TestEmailPage />;
       case 'settings':
         return <AdminSettingsTab />;
       default:
@@ -616,6 +618,20 @@ export default function AdminDashboard() {
           >
             <span className="mr-3"><Mail className="h-5 w-5" /></span>
             <span>Email Management</span>
+          </div>
+          <div
+            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
+              activeTab === 'test-email'
+                ? "bg-[#1333c2] text-white font-medium"
+                : "text-foreground/70 hover:bg-muted/80"
+            }`}
+            onClick={() => {
+              setActiveTab('test-email');
+              window.location.href = '/admin/test-email';
+            }}
+          >
+            <span className="mr-3"><Mail className="h-5 w-5" /></span>
+            <span>Test Email</span>
           </div>
           <div
             className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
