@@ -2,112 +2,118 @@
  * Test routes for email functionality
  * These routes are for testing purposes only and should be disabled in production
  */
-import express from 'express';
+import express, { Request, Response } from 'express';
+import { sendMail } from '../mail';
+import { sendUniversityInviteEmail } from '../mail/university-invite';
 import { z } from 'zod';
-import { sendEmail, sendUniversityInviteEmail } from '../mail';
 
 const router = express.Router();
 
-// Schema for direct email test
-const directEmailSchema = z.object({
-  email: z.string().email(),
-  subject: z.string().optional().default('Test Email'),
-  text: z.string().optional().default('This is a test email.'),
-  html: z.string().optional()
+// Schema for validating test email requests
+const testEmailSchema = z.object({
+  recipient: z.string().email(),
+  subject: z.string(),
+  template: z.string().optional(),
+  content: z.string(),
 });
 
-// Schema for university invite email test
-const universityInviteTestSchema = z.object({
-  email: z.string().email(),
-  universityName: z.string().optional().default('Test University')
+// Schema for validating university invite test requests
+const universityInviteSchema = z.object({
+  universityName: z.string(),
+  adminEmail: z.string().email(),
+  adminName: z.string(),
 });
 
-// Test direct email sending
-router.post('/send-direct-email', async (req, res) => {
-  // Only allow in development or by admins
-  if (process.env.NODE_ENV === 'production') {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    
-    // Check if user is admin
-    const user = req.user;
-    if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-  }
-  
+/**
+ * @route POST /api/admin/test-email
+ * @desc Send a test email
+ * @access Admin only
+ */
+router.post('/test-email', async (req: Request, res: Response) => {
   try {
-    // Validate input
-    const validatedData = directEmailSchema.parse(req.body);
-    
-    // Send test email
-    const result = await sendEmail({
-      to: validatedData.email,
-      subject: validatedData.subject,
-      text: validatedData.text,
-      html: validatedData.html
+    // Validate request body
+    const validationResult = testEmailSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: validationResult.error.format(),
+      });
+    }
+
+    const { recipient, subject, content, template } = validationResult.data;
+
+    // Send the email
+    const result = await sendMail({
+      to: recipient,
+      subject,
+      text: content,
+      html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">${content.replace(/\n/g, '<br>')}</div>`,
+      template: template || 'general',
     });
-    
-    res.json({
+
+    return res.json({
       success: true,
-      message: `Test email sent to ${validatedData.email}`,
-      id: result.id
+      message: 'Test email sent successfully',
+      details: result,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
     console.error('Error sending test email:', error);
-    res.status(500).json({ 
-      error: 'Failed to send test email', 
-      message: error instanceof Error ? error.message : 'Unknown error'
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send test email',
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
-// Test university invite email
-router.post('/send-university-invite', async (req, res) => {
-  // Only allow in development or by admins
-  if (process.env.NODE_ENV === 'production') {
-    if (!req.session?.userId) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    
-    // Check if user is admin
-    const user = req.user;
-    if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
-  }
-  
+/**
+ * @route POST /api/admin/test-university-invite
+ * @desc Test sending a university admin invitation email
+ * @access Admin only
+ */
+router.post('/test-university-invite', async (req: Request, res: Response) => {
   try {
-    // Validate input
-    const validatedData = universityInviteTestSchema.parse(req.body);
-    
-    // Generate a test token
+    // Validate request body
+    const validationResult = universityInviteSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request data',
+        errors: validationResult.error.format(),
+      });
+    }
+
+    const { universityName, adminEmail, adminName } = validationResult.data;
+
+    // Create a mock token for testing (in production this would be a real JWT token)
     const testToken = `test-token-${Date.now()}`;
     
-    // Send university invite test email
-    const result = await sendUniversityInviteEmail(
-      validatedData.email,
-      testToken,
-      validatedData.universityName
-    );
-    
-    res.json({
+    // Generate the invitation link
+    const invitationLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/auth/university-invite?token=${testToken}`;
+
+    // Send the university invite email
+    const result = await sendUniversityInviteEmail({
+      email: adminEmail,
+      name: adminName,
+      universityName,
+      invitationLink,
+    });
+
+    return res.json({
       success: true,
-      message: `University invite test email sent to ${validatedData.email}`,
-      id: result.id
+      message: 'University invite email sent successfully',
+      details: {
+        result,
+        invitationLink,
+      },
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors });
-    }
-    console.error('Error sending university invite test email:', error);
-    res.status(500).json({ 
-      error: 'Failed to send university invite test email', 
-      message: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error sending university invite email:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send university invite email',
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 });

@@ -258,6 +258,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register mail router for email functionality
   apiRouter.use('/mail', mailRouter);
   
+  // Register test email router (admin only)
+  import testEmailRouter from './routes/test-email';
+  apiRouter.use('/admin', requireAdmin, testEmailRouter);
+  
   // Register university invites router
   apiRouter.use('/university-invites', universityInvitesRouter);
   
