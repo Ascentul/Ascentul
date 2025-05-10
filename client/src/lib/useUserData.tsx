@@ -10,6 +10,7 @@ export interface User {
   userType: "regular" | "university_student" | "university_admin" | "admin" | "staff";
   role?: "user" | "staff" | "admin" | "super_admin" | "university_user" | "university_admin"; // Role field from database schema
   universityId?: number;
+  universityName?: string; // Added to match database schema
   departmentId?: number;
   studentId?: string;
   graduationYear?: number;
