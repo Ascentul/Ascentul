@@ -294,6 +294,7 @@ function SupportSection() {
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="in-app">In-App</SelectItem>
                   <SelectItem value="marketing-site">Marketing Site</SelectItem>
+                  <SelectItem value="university-admin">University Admin</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -303,8 +304,15 @@ function SupportSection() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {["Bug", "Billing", "Feedback", "Feature Request", "Other"].map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  {["technical", "account_access", "bug", "billing", "feedback", "feature_request", "other"].map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type === "technical" ? "Technical" :
+                       type === "account_access" ? "Account Access" :
+                       type === "bug" ? "Bug" :
+                       type === "billing" ? "Billing" :
+                       type === "feedback" ? "Feedback" :
+                       type === "feature_request" ? "Feature Request" : "Other"}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -358,7 +366,10 @@ function SupportSection() {
                       <TableCell>{ticket.userEmail || "Guest Submission"}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {ticket.source === 'in-app' ? 'In-App' : 'Marketing Site'}
+                          {ticket.source === 'in-app' ? 'In-App' : 
+                           ticket.source === 'marketing-site' ? 'Marketing Site' : 
+                           ticket.source === 'university-admin' ? 'University Admin' : 
+                           ticket.source}
                         </Badge>
                       </TableCell>
                       <TableCell>{ticket.issueType}</TableCell>
