@@ -44,10 +44,10 @@ interface UserSegmentation {
 
 interface FeatureUsage {
   feature: string;
-  allUsers: number;
-  free: number;
-  pro: number;
-  university: number;
+  allUsers: number; // Total number of sessions for this feature
+  free: number;     // Sessions by free users
+  pro: number;      // Sessions by pro users
+  university: number; // Sessions by university users
 }
 
 interface UniversityLicense {
@@ -360,25 +360,36 @@ export default function AnalyticsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
-                  data={analyticsData?.featureUsage || []}
+                  data={[
+                    { feature: 'Application Tracker', allUsers: 3452, free: 1850, pro: 1120, university: 482 },
+                    { feature: 'Career Goal Tracker', allUsers: 2835, free: 1230, pro: 1060, university: 545 },
+                    { feature: 'Network Hub', allUsers: 2540, free: 1100, pro: 950, university: 490 },
+                    { feature: 'CareerPath Explorer', allUsers: 2105, free: 580, pro: 985, university: 540 },
+                    { feature: 'Project Portfolio', allUsers: 1985, free: 920, pro: 780, university: 285 },
+                    { feature: 'Resume Studio', allUsers: 3680, free: 1950, pro: 1180, university: 550 },
+                    { feature: 'Cover Letter Studio', allUsers: 2890, free: 1050, pro: 1350, university: 490 },
+                    { feature: 'AI Career Coach', allUsers: 2150, free: 450, pro: 1450, university: 250 },
+                    { feature: 'Voice Practice', allUsers: 1850, free: 320, pro: 1280, university: 250 }
+                  ]}
                   layout="vertical"
+                  margin={{ left: 20, right: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} unit="%" />
+                  <XAxis type="number" />
                   <YAxis type="category" dataKey="feature" width={150} />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Usage']} />
+                  <Tooltip formatter={(value) => [`${value.toLocaleString()} sessions`, 'Usage']} />
                   <Legend />
                   <Bar 
                     dataKey={featureFilter === 'all' ? 'allUsers' : 
                             featureFilter === 'free' ? 'free' : 
                             featureFilter === 'pro' ? 'pro' : 'university'} 
-                    fill="#8884d8" 
+                    fill="#1333c2" 
                     name={`${featureFilter === 'all' ? 'All Users' : 
                             featureFilter === 'free' ? 'Free Users' : 
-                            featureFilter === 'pro' ? 'Pro Users' : 'University Users'} Usage`}
+                            featureFilter === 'pro' ? 'Pro Users' : 'University Users'} (Sessions)`}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -571,12 +582,15 @@ function generateMockAnalyticsData(dateRange: { start: Date; end: Date }) {
 
   // Feature usage data
   const featureUsage: FeatureUsage[] = [
-    { feature: 'Resume Builder', allUsers: 78, free: 65, pro: 88, university: 85 },
-    { feature: 'Cover Letter Generator', allUsers: 62, free: 45, pro: 82, university: 70 },
-    { feature: 'Job Tracking', allUsers: 55, free: 40, pro: 75, university: 60 },
-    { feature: 'AI Interview Coach', allUsers: 45, free: 20, pro: 92, university: 80 },
-    { feature: 'Skill Assessment', allUsers: 38, free: 25, pro: 65, university: 55 },
-    { feature: 'Career Path Analysis', allUsers: 32, free: 15, pro: 70, university: 50 }
+    { feature: 'Application Tracker', allUsers: 3452, free: 1850, pro: 1120, university: 482 },
+    { feature: 'Career Goal Tracker', allUsers: 2835, free: 1230, pro: 1060, university: 545 },
+    { feature: 'Network Hub', allUsers: 2540, free: 1100, pro: 950, university: 490 },
+    { feature: 'CareerPath Explorer', allUsers: 2105, free: 580, pro: 985, university: 540 },
+    { feature: 'Project Portfolio', allUsers: 1985, free: 920, pro: 780, university: 285 },
+    { feature: 'Resume Studio', allUsers: 3680, free: 1950, pro: 1180, university: 550 },
+    { feature: 'Cover Letter Studio', allUsers: 2890, free: 1050, pro: 1350, university: 490 },
+    { feature: 'AI Career Coach', allUsers: 2150, free: 450, pro: 1450, university: 250 },
+    { feature: 'Voice Practice', allUsers: 1850, free: 320, pro: 1280, university: 250 }
   ];
 
   // University license data
