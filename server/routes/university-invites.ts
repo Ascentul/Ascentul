@@ -5,6 +5,7 @@ import { db } from '../db';
 import { users, universities, invites, insertInviteSchema } from '@shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { sendUniversityInviteEmail } from '../mail';
 
 const router = express.Router();
 
@@ -155,26 +156,49 @@ router.post('/', async (req, res) => {
     // includes the invite token. They would then complete registration and be
     // automatically added to the university.
     
-    // For now, we'll just return the invite data
     const inviteUrl = existingUser
       ? `/university/invites/accept/${invite.id}?token=${token}`
       : `/sign-up?inviteToken=${token}`;
     
-    res.status(201).json({ 
-      success: true, 
-      message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}`,
-      invite: {
-        id: invite.id,
-        email: invite.email,
-        role: invite.role,
-        universityId: invite.universityId,
-        universityName: invite.universityName,
-        inviteUrl
-      }
-    });
-    
-    // TODO: Send email with invite link (would implement email sending here
-    // using a service like Mailgun or SendGrid)
+    try {
+      // Send invitation email
+      await sendUniversityInviteEmail(
+        validatedData.email,
+        token,
+        university.name
+      );
+      
+      console.log(`University invitation email sent to ${validatedData.email} for ${university.name}`);
+      
+      res.status(201).json({ 
+        success: true, 
+        message: `Invitation sent to ${validatedData.email} to join as ${validatedData.role}`,
+        invite: {
+          id: invite.id,
+          email: invite.email,
+          role: invite.role,
+          universityId: invite.universityId,
+          universityName: invite.universityName,
+          inviteUrl
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send university invitation email:', emailError);
+      
+      // Still return success to UI, but log the email failure
+      res.status(201).json({ 
+        success: true, 
+        message: `Invitation created for ${validatedData.email} but email delivery failed. Please check email settings.`,
+        invite: {
+          id: invite.id,
+          email: invite.email,
+          role: invite.role,
+          universityId: invite.universityId,
+          universityName: invite.universityName,
+          inviteUrl
+        }
+      });
+    }
     
   } catch (error) {
     if (error instanceof z.ZodError) {
