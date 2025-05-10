@@ -94,6 +94,7 @@ import {
   Usage as UniAdminUsage,
   Settings as UniAdminSettings
 } from "@/pages/university-admin";
+import UniversityAdminSupportPage from "@/pages/university-admin/support";
 
 // University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
@@ -417,6 +418,14 @@ function App() {
           component={() => (
             <UniversityAdminLayout>
               <UniAdminSettings />
+            </UniversityAdminLayout>
+          )} 
+        />
+        <UniversityAdminRouteGuard 
+          path="/university-admin/support" 
+          component={() => (
+            <UniversityAdminLayout>
+              <UniversityAdminSupportPage />
             </UniversityAdminLayout>
           )} 
         />
