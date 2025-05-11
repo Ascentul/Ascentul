@@ -21,8 +21,8 @@ async function createNotificationsTable() {
       `);
       
       if (checkResult.rows[0].exists) {
-        console.log('Notifications table already exists. Skipping creation.');
-        return;
+        console.log('Notifications table already exists. Dropping and recreating it.');
+        await client.query(`DROP TABLE notifications;`);
       }
       
       // Create the notifications table
@@ -34,6 +34,7 @@ async function createNotificationsTable() {
           message TEXT NOT NULL,
           type TEXT NOT NULL,
           read BOOLEAN DEFAULT FALSE,
+          link TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );

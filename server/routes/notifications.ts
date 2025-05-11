@@ -77,9 +77,9 @@ notificationsRouter.post('/test', requireAuth, async (req, res) => {
     const testNotification = {
       userId,
       title: 'Test Notification',
-      content: 'This is a test notification created at ' + new Date().toLocaleString(),
+      message: 'This is a test notification created at ' + new Date().toLocaleString(),
       type: 'system',
-      read: false
+      link: null
     };
     
     const notification = await storage.createNotification(testNotification);
