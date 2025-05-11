@@ -33,53 +33,53 @@ export function HeaderBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-16 backdrop-blur-sm border-b bg-background/95">
-      <div className="container h-full flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="ghost" className="p-0">
-              <span className="font-bold text-xl">Ascentul</span>
-            </Button>
-          </Link>
-        </div>
+    <header className="h-[60px] w-full z-40 border-b bg-white flex items-center justify-between px-4 shadow-sm">
+      <div className="flex items-center h-full">
+        {/* Optional left-aligned breadcrumb or page title could go here */}
+      </div>
 
-        <div className="flex items-center gap-4">
-          {user && (
-            <>
-              <NotificationBell />
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="/avatar.png" alt={user.name} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col">
-                      <span>{user.name}</span>
-                      <span className="text-xs text-muted-foreground">{user.email}</span>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={navigateToSettings}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Account Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-        </div>
+      <div className="flex items-center gap-4">
+        {user && (
+          <>
+            <NotificationBell />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage 
+                      src={user.profileImage || ''} 
+                      alt={user.name} 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {getInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col">
+                    <span>{user.name}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={navigateToSettings}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Account Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
       </div>
     </header>
   );
