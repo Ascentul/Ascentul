@@ -98,6 +98,9 @@ import {
   type Skill,
   type InsertSkill,
   languages,
+  notifications,
+  type Notification,
+  type InsertNotification,
   type Language,
   type InsertLanguage
 } from "@shared/schema";

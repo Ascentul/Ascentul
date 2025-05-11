@@ -887,6 +887,33 @@ export type InsertUserPersonalAchievement = z.infer<typeof insertUserPersonalAch
 export type CareerPath = typeof careerPaths.$inferSelect;
 export type InsertCareerPath = z.infer<typeof insertCareerPathSchema>;
 
+// Notifications model
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull().default("info"), // info, success, warning, error, etc.
+  read: boolean("read").notNull().default(false),
+  link: text("link"), // Optional link to navigate to when clicked
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
 // Job Listings model
 export const jobListings = pgTable("job_listings", {
   id: serial("id").primaryKey(),
