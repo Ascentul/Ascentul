@@ -30,34 +30,51 @@ export default function Layout({ children }: LayoutProps) {
   }
   
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Model notification banner */}
-      {hasNewModels && <ModelNotificationContainer />}
-      
-      {/* Global HeaderBar - visible on all screen sizes */}
-      <div className="hidden md:block">
-        <HeaderBar />
-      </div>
-      
-      {/* Mobile header - only visible on mobile */}
-      <MobileHeader onMenuToggle={toggleMobileSidebar} />
-      
-      {/* Mobile overlay backdrop - only visible when mobile sidebar is open */}
-      {mobileSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/30 z-20 md:hidden" 
-          onClick={toggleMobileSidebar}
-          aria-hidden="true"
-        />
+    <div className="flex h-screen bg-gray-50">
+      {/* Model notification banner - appears above everything */}
+      {hasNewModels && (
+        <div className="absolute top-0 left-0 right-0 z-50">
+          <ModelNotificationContainer />
+        </div>
       )}
       
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar isOpen={mobileSidebarOpen} onToggle={toggleMobileSidebar} />
-        <div className="flex-1 overflow-auto">
-          <main className="p-4 md:p-6 max-w-7xl mx-auto">
-            {children}
-          </main>
+      {/* Fixed sidebar on the left */}
+      <aside className="hidden md:block w-[250px] flex-shrink-0">
+        <Sidebar isOpen={true} />
+      </aside>
+      
+      {/* Mobile sidebar with overlay */}
+      {mobileSidebarOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/30 z-40 md:hidden" 
+            onClick={toggleMobileSidebar}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 left-0 z-50 md:hidden">
+            <Sidebar isOpen={mobileSidebarOpen} onToggle={toggleMobileSidebar} />
+          </div>
+        </>
+      )}
+      
+      {/* Content area with header and main content */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Mobile header - only visible on mobile */}
+        <div className="md:hidden">
+          <MobileHeader onMenuToggle={toggleMobileSidebar} />
         </div>
+        
+        {/* Header bar at top of content area */}
+        <div className="h-[60px] flex-shrink-0">
+          <HeaderBar />
+        </div>
+        
+        {/* Main scrollable content */}
+        <main className="flex-1 overflow-auto p-4 md:p-6">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );
