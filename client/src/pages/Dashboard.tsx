@@ -443,31 +443,59 @@ export default function Dashboard() {
   };
 
   return (
-    <motion.div 
-      className="container mx-auto"
-      initial="hidden"
-      animate="visible"
-      variants={fadeIn}
-    >
-      {/* Global Confetti component for goal completion celebrations */}
-      <Confetti active={showConfetti} duration={2000} />
-      <motion.div 
-        className="flex flex-col md:flex-row md:items-center justify-between mb-6 will-change-opacity will-change-transform"
-        variants={subtleUp}
-        style={{ transform: 'translateZ(0)' }}
-      >
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Header Bar */}
+      <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 mb-6">
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
-          <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
+          <h1 className="text-xl font-semibold">Career Dashboard</h1>
         </div>
-        <div className="mt-4 md:mt-0">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white">
-                <Plus className="mr-2 h-4 w-4" />
-                Quick Actions
-              </Button>
-            </DialogTrigger>
+        
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-2 hidden md:flex"
+            onClick={() => window.open('https://ascentul.com/help', '_blank')}
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Help Center
+          </Button>
+          
+          <Link
+            to="/support"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-foreground h-9 px-3 py-2 mr-2 hidden md:flex"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Support
+          </Link>
+        </div>
+      </header>
+
+      <motion.div 
+        className="container mx-auto"
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+      >
+        {/* Global Confetti component for goal completion celebrations */}
+        <Confetti active={showConfetti} duration={2000} />
+        <motion.div 
+          className="flex flex-col md:flex-row md:items-center justify-between mb-6 will-change-opacity will-change-transform"
+          variants={subtleUp}
+          style={{ transform: 'translateZ(0)' }}
+        >
+          <div>
+            <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
+            <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90 text-white">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Quick Actions
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-center">Quick Actions</DialogTitle>
