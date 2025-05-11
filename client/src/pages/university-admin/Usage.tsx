@@ -94,24 +94,27 @@ const programUsageData = [
 ];
 
 const featureUsageData = [
-  { name: 'Resume Builder', value: 420 },
-  { name: 'Career Paths', value: 350 },
-  { name: 'Interview Prep', value: 280 },
-  { name: 'AI Coaching', value: 250 },
-  { name: 'Job Applications', value: 200 },
+  { name: 'Application Tracker', value: 420 },
+  { name: 'Career Goal tracker', value: 380 },
+  { name: 'Network hub', value: 350 },
+  { name: 'CareerPath Explorer', value: 325 },
+  { name: 'Project portfolio', value: 290 },
+  { name: 'Resume Studio', value: 275 },
+  { name: 'Cover letter studio', value: 240 },
+  { name: 'AI Career coach', value: 210 },
 ];
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#A4DE6C'];
 
 const usageBreakdown = [
-  { id: 1, feature: 'Resume Builder', usage: 4250, change: '+12%', status: 'increase' },
-  { id: 2, feature: 'Career Path Explorer', usage: 3570, change: '+8%', status: 'increase' },
-  { id: 3, feature: 'Mock Interviews', usage: 2840, change: '+15%', status: 'increase' },
-  { id: 4, feature: 'AI Coaching', usage: 2350, change: '+20%', status: 'increase' },
-  { id: 5, feature: 'Job Applications', usage: 1920, change: '-3%', status: 'decrease' },
-  { id: 6, feature: 'Skills Assessment', usage: 1650, change: '+5%', status: 'increase' },
-  { id: 7, feature: 'Portfolio Builder', usage: 1280, change: '+2%', status: 'increase' },
-  { id: 8, feature: 'Cover Letter Generator', usage: 960, change: '+18%', status: 'increase' },
+  { id: 1, feature: 'Application Tracker', usage: 4250, change: '+12%', status: 'increase' },
+  { id: 2, feature: 'Career Goal tracker', usage: 3840, change: '+15%', status: 'increase' },
+  { id: 3, feature: 'Network hub', usage: 3570, change: '+8%', status: 'increase' },
+  { id: 4, feature: 'CareerPath Explorer', usage: 3280, change: '+10%', status: 'increase' },
+  { id: 5, feature: 'Project portfolio', usage: 2920, change: '+5%', status: 'increase' },
+  { id: 6, feature: 'Resume Studio', usage: 2750, change: '-3%', status: 'decrease' },
+  { id: 7, feature: 'Cover letter studio', usage: 2350, change: '+18%', status: 'increase' },
+  { id: 8, feature: 'AI Career coach', usage: 2180, change: '+22%', status: 'increase' },
 ];
 
 // Schema for the schedule report form
