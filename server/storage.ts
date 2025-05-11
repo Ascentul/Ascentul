@@ -4559,11 +4559,11 @@ export class MemStorage implements IStorage {
     return newNotification;
   }
 
-  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+  async markNotificationAsRead(id: number): Promise<boolean> {
     const notification = this.notifications.get(id);
     
     if (!notification) {
-      return undefined;
+      return false;
     }
     
     const updatedNotification: Notification = {
@@ -4572,11 +4572,39 @@ export class MemStorage implements IStorage {
     };
     
     this.notifications.set(id, updatedNotification);
-    return updatedNotification;
+    return true;
   }
 
   async deleteNotification(id: number): Promise<boolean> {
     return this.notifications.delete(id);
+  }
+  
+  async getUnreadNotificationsCount(userId: number): Promise<number> {
+    let count = 0;
+    
+    for (const notification of this.notifications.values()) {
+      if (notification.userId === userId && !notification.read) {
+        count++;
+      }
+    }
+    
+    return count;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    let updated = false;
+    
+    for (const [id, notification] of this.notifications.entries()) {
+      if (notification.userId === userId && !notification.read) {
+        this.notifications.set(id, {
+          ...notification,
+          read: true
+        });
+        updated = true;
+      }
+    }
+    
+    return updated;
   }
 }
 
