@@ -536,6 +536,7 @@ export class MemStorage implements IStorage {
   private networkingContacts: Map<number, NetworkingContact>;
   private contactInteractions: Map<number, ContactInteraction>;
   private userReviews: Map<number, UserReview>;
+  private notifications: Map<number, Notification>;
 
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -570,6 +571,7 @@ export class MemStorage implements IStorage {
   private contactInteractionIdCounter: number;
   private userReviewIdCounter: number;
   private dailyRecommendationIdCounter: number;
+  private notificationIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -578,6 +580,7 @@ export class MemStorage implements IStorage {
     this.sessionStore = sessionStore;
 
     this.users = new Map();
+    this.notifications = new Map();
     this.goals = new Map();
     this.workHistory = new Map();
     this.educationHistory = new Map();
@@ -642,6 +645,7 @@ export class MemStorage implements IStorage {
     this.contactInteractionIdCounter = 1;
     this.userReviewIdCounter = 1;
     this.dailyRecommendationIdCounter = 1;
+    this.notificationIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
@@ -4522,6 +4526,57 @@ export class MemStorage implements IStorage {
 
   async deleteContactFollowUp(id: number): Promise<boolean> {
     return this.followupActions.delete(id);
+  }
+
+  // Notification methods
+  async getNotificationsByUser(userId: number): Promise<Notification[]> {
+    const userNotifications: Notification[] = [];
+    
+    for (const notification of this.notifications.values()) {
+      if (notification.userId === userId) {
+        userNotifications.push(notification);
+      }
+    }
+
+    // Sort notifications with newest first
+    return userNotifications.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    const now = new Date();
+    
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      createdAt: now,
+      read: false
+    };
+    
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    
+    if (!notification) {
+      return undefined;
+    }
+    
+    const updatedNotification: Notification = {
+      ...notification,
+      read: true
+    };
+    
+    this.notifications.set(id, updatedNotification);
+    return updatedNotification;
+  }
+
+  async deleteNotification(id: number): Promise<boolean> {
+    return this.notifications.delete(id);
   }
 }
 
