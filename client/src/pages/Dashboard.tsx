@@ -954,6 +954,6 @@ export default function Dashboard() {
           goals={Array.isArray(goals) ? goals : []}
         />
       )}
-      </motion.div>
+    </motion.div>
   );
 }
