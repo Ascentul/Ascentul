@@ -71,10 +71,9 @@ notificationsRouter.post('/mark-all-read', requireAuth, async (req, res) => {
 
 // POST /api/notifications/test - Create a test notification (for development purposes)
 notificationsRouter.post('/test', async (req, res) => {
-  // Auto-assign demo user ID for testing
-  const userId = 2; // Demo user
   try {
-    const userId = req.user!.id;
+    // Auto-assign demo user ID for testing
+    const userId = 2; // Demo user
     
     const testNotification = {
       userId,
