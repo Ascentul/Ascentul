@@ -23,7 +23,7 @@ import { InterviewDebugTools } from '@/components/interview/InterviewDebugTools'
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
   Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp, 
-  Square, CheckSquare, RefreshCw
+  Square, CheckSquare, RefreshCw, BookOpen, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -982,6 +982,7 @@ export default function Dashboard() {
           goals={Array.isArray(goals) ? goals : []}
         />
       )}
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }
