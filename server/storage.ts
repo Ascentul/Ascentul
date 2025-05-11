@@ -1,4 +1,5 @@
-import { pool } from "./db";
+import { pool, db } from "./db";
+import { eq, and, desc, count } from "drizzle-orm";
 import {
   users,
   type User,
@@ -5625,6 +5626,60 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
   
+  // Notification operations
+  async getNotifications(userId: number): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(20);
+  }
+  
+  async getUnreadNotificationsCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.read, false)
+      ));
+    
+    return result[0]?.count || 0;
+  }
+  
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    
+    return newNotification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    
+    return result.length > 0;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ read: true })
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.read, false)
+      ))
+      .returning();
+    
+    return result.length > 0;
+  }
+
   // Networking Contacts
   async getNetworkingContacts(userId: number): Promise<NetworkingContact[]> {
     return db
