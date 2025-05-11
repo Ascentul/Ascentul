@@ -23,7 +23,7 @@ import { InterviewDebugTools } from '@/components/interview/InterviewDebugTools'
 import { 
   Target, Award, FileText, Clock, Plus, Bot, CheckCircle, Send,
   Briefcase, Mail, Users, Eye, Edit, Calendar, ChevronDown, ChevronUp, 
-  Square, CheckSquare, RefreshCw, BookOpen, MessageSquare
+  Square, CheckSquare, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -449,25 +449,25 @@ export default function Dashboard() {
       animate="visible"
       variants={fadeIn}
     >
-        {/* Global Confetti component for goal completion celebrations */}
-        <Confetti active={showConfetti} duration={2000} />
-        <motion.div 
-          className="flex flex-col md:flex-row md:items-center justify-between mb-6 will-change-opacity will-change-transform"
-          variants={subtleUp}
-          style={{ transform: 'translateZ(0)' }}
-        >
-          <div>
-            <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
-            <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
-          </div>
-          <div className="mt-4 md:mt-0">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 text-white">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Quick Actions
-                </Button>
-              </DialogTrigger>
+      {/* Global Confetti component for goal completion celebrations */}
+      <Confetti active={showConfetti} duration={2000} />
+      <motion.div 
+        className="flex flex-col md:flex-row md:items-center justify-between mb-6 will-change-opacity will-change-transform"
+        variants={subtleUp}
+        style={{ transform: 'translateZ(0)' }}
+      >
+        <div>
+          <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
+          <p className="text-neutral-500">Welcome back, {user.name}! Here's your career progress.</p>
+        </div>
+        <div className="mt-4 md:mt-0">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white">
+                <Plus className="mr-2 h-4 w-4" />
+                Quick Actions
+              </Button>
+            </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-center">Quick Actions</DialogTitle>
