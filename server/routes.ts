@@ -43,8 +43,6 @@ import reviewsRouter from "./routes/reviews";
 import settingsRouter from "./routes/settings";
 // Import test email router
 import testEmailRouter from "./routes/test-email";
-// Import notifications router
-import notificationsRouter from "./routes/notifications";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
@@ -268,9 +266,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register universities router
   apiRouter.use('/universities', universitiesRouter);
-  
-  // Register notifications router
-  apiRouter.use('/notifications', notificationsRouter);
   
   // Register reviews router
   // IMPORTANT: Add debugging middleware to diagnose route issues

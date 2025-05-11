@@ -1,5 +1,4 @@
-import { pool, db } from "./db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { pool } from "./db";
 import {
   users,
   type User,
@@ -99,9 +98,6 @@ import {
   type Skill,
   type InsertSkill,
   languages,
-  notifications,
-  type Notification,
-  type InsertNotification,
   type Language,
   type InsertLanguage
 } from "@shared/schema";
@@ -127,13 +123,6 @@ export interface IStorage {
   // Contact interaction operations
   updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined>;
   deleteContactInteraction(id: number): Promise<boolean>;
-  
-  // Notification operations
-  getNotifications(userId: number): Promise<Notification[]>;
-  getUnreadNotificationsCount(userId: number): Promise<number>;
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  markNotificationAsRead(id: number): Promise<boolean>;
-  markAllNotificationsAsRead(userId: number): Promise<boolean>;
   
   // User review operations
   createUserReview(userId: number, reviewData: InsertUserReview): Promise<UserReview>;
@@ -214,13 +203,6 @@ export interface IStorage {
   setCachedData(key: string, data: any, expirationMs?: number): Promise<void>;
   getCachedData(key: string): Promise<any | null>;
   deleteCachedData(key: string): Promise<boolean>;
-  
-  // Notification operations
-  getNotifications(userId: number): Promise<Notification[]>;
-  getUnreadNotificationsCount(userId: number): Promise<number>;
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  markNotificationAsRead(id: number): Promise<boolean>;
-  markAllNotificationsAsRead(userId: number): Promise<boolean>;
 
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -536,7 +518,6 @@ export class MemStorage implements IStorage {
   private networkingContacts: Map<number, NetworkingContact>;
   private contactInteractions: Map<number, ContactInteraction>;
   private userReviews: Map<number, UserReview>;
-  private notifications: Map<number, Notification>;
 
   private userIdCounter: number;
   private goalIdCounter: number;
@@ -571,7 +552,6 @@ export class MemStorage implements IStorage {
   private contactInteractionIdCounter: number;
   private userReviewIdCounter: number;
   private dailyRecommendationIdCounter: number;
-  private notificationIdCounter: number;
 
   public sessionStore: session.Store;
 
@@ -580,7 +560,6 @@ export class MemStorage implements IStorage {
     this.sessionStore = sessionStore;
 
     this.users = new Map();
-    this.notifications = new Map();
     this.goals = new Map();
     this.workHistory = new Map();
     this.educationHistory = new Map();
@@ -645,7 +624,6 @@ export class MemStorage implements IStorage {
     this.contactInteractionIdCounter = 1;
     this.userReviewIdCounter = 1;
     this.dailyRecommendationIdCounter = 1;
-    this.notificationIdCounter = 1;
     
     // Initialize new maps for the Apply feature
     this.projects = new Map();
@@ -4527,85 +4505,6 @@ export class MemStorage implements IStorage {
   async deleteContactFollowUp(id: number): Promise<boolean> {
     return this.followupActions.delete(id);
   }
-
-  // Notification methods
-  async getNotifications(userId: number): Promise<Notification[]> {
-    const userNotifications: Notification[] = [];
-    
-    for (const notification of this.notifications.values()) {
-      if (notification.userId === userId) {
-        userNotifications.push(notification);
-      }
-    }
-
-    // Sort notifications with newest first
-    return userNotifications.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }
-
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const id = this.notificationIdCounter++;
-    const now = new Date();
-    
-    const newNotification: Notification = {
-      ...notification,
-      id,
-      createdAt: now,
-      read: false
-    };
-    
-    this.notifications.set(id, newNotification);
-    return newNotification;
-  }
-
-  async markNotificationAsRead(id: number): Promise<boolean> {
-    const notification = this.notifications.get(id);
-    
-    if (!notification) {
-      return false;
-    }
-    
-    const updatedNotification: Notification = {
-      ...notification,
-      read: true
-    };
-    
-    this.notifications.set(id, updatedNotification);
-    return true;
-  }
-
-  async deleteNotification(id: number): Promise<boolean> {
-    return this.notifications.delete(id);
-  }
-  
-  async getUnreadNotificationsCount(userId: number): Promise<number> {
-    let count = 0;
-    
-    for (const notification of this.notifications.values()) {
-      if (notification.userId === userId && !notification.read) {
-        count++;
-      }
-    }
-    
-    return count;
-  }
-  
-  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
-    let updated = false;
-    
-    for (const [id, notification] of this.notifications.entries()) {
-      if (notification.userId === userId && !notification.read) {
-        this.notifications.set(id, {
-          ...notification,
-          read: true
-        });
-        updated = true;
-      }
-    }
-    
-    return updated;
-  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -5716,60 +5615,6 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
   
-  // Notification operations
-  async getNotifications(userId: number): Promise<Notification[]> {
-    return await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(20);
-  }
-  
-  async getUnreadNotificationsCount(userId: number): Promise<number> {
-    const result = await db
-      .select({ count: count() })
-      .from(notifications)
-      .where(and(
-        eq(notifications.userId, userId),
-        eq(notifications.read, false)
-      ));
-    
-    return result[0]?.count || 0;
-  }
-  
-  async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db
-      .insert(notifications)
-      .values(notification)
-      .returning();
-    
-    return newNotification;
-  }
-  
-  async markNotificationAsRead(id: number): Promise<boolean> {
-    const result = await db
-      .update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.id, id))
-      .returning();
-    
-    return result.length > 0;
-  }
-  
-  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
-    const result = await db
-      .update(notifications)
-      .set({ read: true })
-      .where(and(
-        eq(notifications.userId, userId),
-        eq(notifications.read, false)
-      ))
-      .returning();
-    
-    return result.length > 0;
-  }
-
   // Networking Contacts
   async getNetworkingContacts(userId: number): Promise<NetworkingContact[]> {
     return db
