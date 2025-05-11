@@ -443,40 +443,12 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header Bar */}
-      <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 mb-6">
-        <div>
-          <h1 className="text-xl font-semibold">Career Dashboard</h1>
-        </div>
-        
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-2 hidden md:flex"
-            onClick={() => window.open('https://ascentul.com/help', '_blank')}
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            Help Center
-          </Button>
-          
-          <Link
-            to="/support"
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-foreground h-9 px-3 py-2 mr-2 hidden md:flex"
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Support
-          </Link>
-        </div>
-      </header>
-
-      <motion.div 
-        className="container mx-auto"
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-      >
+    <motion.div 
+      className="container mx-auto"
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
+    >
         {/* Global Confetti component for goal completion celebrations */}
         <Confetti active={showConfetti} duration={2000} />
         <motion.div 
@@ -983,6 +955,5 @@ export default function Dashboard() {
         />
       )}
       </motion.div>
-    </div>
   );
 }
