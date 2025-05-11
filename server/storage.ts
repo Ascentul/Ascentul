@@ -206,6 +206,13 @@ export interface IStorage {
   setCachedData(key: string, data: any, expirationMs?: number): Promise<void>;
   getCachedData(key: string): Promise<any | null>;
   deleteCachedData(key: string): Promise<boolean>;
+  
+  // Notification operations
+  getNotifications(userId: number): Promise<Notification[]>;
+  getUnreadNotificationsCount(userId: number): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<boolean>;
+  markAllNotificationsAsRead(userId: number): Promise<boolean>;
 
   // User operations
   getUser(id: number): Promise<User | undefined>;
