@@ -1,6 +1,6 @@
 import express from 'express';
 import { storage } from '../storage';
-import { requireLogin } from '../auth';
+import { requireAuth } from '../auth';
 import { insertNotificationSchema } from '@shared/schema';
 import { z } from 'zod';
 
@@ -8,7 +8,7 @@ import { z } from 'zod';
 const notificationsRouter = express.Router();
 
 // GET /api/notifications - Get user's notifications
-notificationsRouter.get('/', requireLogin, async (req, res) => {
+notificationsRouter.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
     const notifications = await storage.getNotifications(userId);
@@ -20,7 +20,7 @@ notificationsRouter.get('/', requireLogin, async (req, res) => {
 });
 
 // GET /api/notifications/unread/count - Get count of unread notifications
-notificationsRouter.get('/unread/count', requireLogin, async (req, res) => {
+notificationsRouter.get('/unread/count', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
     const count = await storage.getUnreadNotificationsCount(userId);
@@ -32,7 +32,7 @@ notificationsRouter.get('/unread/count', requireLogin, async (req, res) => {
 });
 
 // POST /api/notifications/mark-read/:id - Mark a specific notification as read
-notificationsRouter.post('/mark-read/:id', requireLogin, async (req, res) => {
+notificationsRouter.post('/mark-read/:id', requireAuth, async (req, res) => {
   try {
     const notificationId = parseInt(req.params.id);
     if (isNaN(notificationId)) {
@@ -53,7 +53,7 @@ notificationsRouter.post('/mark-read/:id', requireLogin, async (req, res) => {
 });
 
 // POST /api/notifications/mark-all-read - Mark all user's notifications as read
-notificationsRouter.post('/mark-all-read', requireLogin, async (req, res) => {
+notificationsRouter.post('/mark-all-read', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
     const success = await storage.markAllNotificationsAsRead(userId);
@@ -70,7 +70,7 @@ notificationsRouter.post('/mark-all-read', requireLogin, async (req, res) => {
 });
 
 // POST /api/notifications/test - Create a test notification (for development purposes)
-notificationsRouter.post('/test', requireLogin, async (req, res) => {
+notificationsRouter.post('/test', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
     

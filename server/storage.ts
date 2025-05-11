@@ -128,6 +128,13 @@ export interface IStorage {
   updateContactInteraction(id: number, data: Partial<ContactInteraction>): Promise<ContactInteraction | undefined>;
   deleteContactInteraction(id: number): Promise<boolean>;
   
+  // Notification operations
+  getNotifications(userId: number): Promise<Notification[]>;
+  getUnreadNotificationsCount(userId: number): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<boolean>;
+  markAllNotificationsAsRead(userId: number): Promise<boolean>;
+  
   // User review operations
   createUserReview(userId: number, reviewData: InsertUserReview): Promise<UserReview>;
 
