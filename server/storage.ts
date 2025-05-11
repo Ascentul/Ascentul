@@ -4529,7 +4529,7 @@ export class MemStorage implements IStorage {
   }
 
   // Notification methods
-  async getNotificationsByUser(userId: number): Promise<Notification[]> {
+  async getNotifications(userId: number): Promise<Notification[]> {
     const userNotifications: Notification[] = [];
     
     for (const notification of this.notifications.values()) {
