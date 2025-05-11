@@ -5,6 +5,7 @@ import { useUser } from '@/lib/useUserData';
 import { Loader2 } from 'lucide-react';
 import { ModelNotificationContainer } from '@/components/ModelNotification';
 import { useModelNotifications } from '@/hooks/use-model-notifications';
+import { HeaderBar } from '@/components/HeaderBar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -33,6 +34,12 @@ export default function Layout({ children }: LayoutProps) {
       {/* Model notification banner */}
       {hasNewModels && <ModelNotificationContainer />}
       
+      {/* Global HeaderBar - visible on all screen sizes */}
+      <div className="hidden md:block">
+        <HeaderBar />
+      </div>
+      
+      {/* Mobile header - only visible on mobile */}
       <MobileHeader onMenuToggle={toggleMobileSidebar} />
       
       {/* Mobile overlay backdrop - only visible when mobile sidebar is open */}
