@@ -43,6 +43,8 @@ import reviewsRouter from "./routes/reviews";
 import settingsRouter from "./routes/settings";
 // Import test email router
 import testEmailRouter from "./routes/test-email";
+// Import notifications router
+import notificationsRouter from "./routes/notifications";
 import * as openai from "./openai";
 import { generateCertificationRecommendations, CertificationRecommendation } from "./ai-certifications";
 import { generateCareerPaths, CareerPath } from "./ai-career-paths";
