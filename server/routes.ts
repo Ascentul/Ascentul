@@ -269,6 +269,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register universities router
   apiRouter.use('/universities', universitiesRouter);
   
+  // Register notifications router
+  apiRouter.use('/notifications', notificationsRouter);
+  
   // Register reviews router
   // IMPORTANT: Add debugging middleware to diagnose route issues
   apiRouter.use('/reviews/*', (req, res, next) => {
