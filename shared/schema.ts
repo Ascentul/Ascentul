@@ -32,7 +32,8 @@ export const users = pgTable("users", {
   stripeSubscriptionId: text("stripe_subscription_id"), // Stripe subscription ID
   subscriptionExpiresAt: timestamp("subscription_expires_at"), // When the subscription expires
   needsUsername: boolean("needs_username").default(false), // Whether the user needs to set a username during onboarding
-  onboardingCompleted: boolean("onboarding_completed").default(false), // Whether the user has completed the onboarding process
+  onboardingCompleted: boolean("onboarding_completed").default(false), // Whether the user has completed the onboarding flow
+  onboardingData: jsonb("onboarding_data"), // User onboarding preferences and data
   emailVerified: boolean("email_verified").default(false), // Whether the user's email has been verified
   verificationToken: text("verification_token"), // Token for email verification
   verificationExpires: timestamp("verification_expires"), // When the verification token expires
@@ -62,6 +63,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 }).extend({
   needsUsername: z.boolean().optional().default(false),
   onboardingCompleted: z.boolean().optional().default(false),
+  onboardingData: z.any().optional(),
   subscriptionStatus: z.string().optional().default("inactive"),
 });
 

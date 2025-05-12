@@ -493,6 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
         subscriptionStatus: "active",
         needsUsername: false, // Admin account already has a username
+        onboardingCompleted: true // Admin accounts don't need onboarding
       });
       
       // Update admin with additional fields
@@ -1085,7 +1086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update only allowed fields
       const updateData: Partial<User> = {};
-      const { name, username, profileImage, email, currentPassword } = req.body;
+      const { name, username, profileImage, email, currentPassword, onboardingCompleted, onboardingData } = req.body;
 
       // Check if username already exists (if changed)
       if (username !== undefined && username !== user.username) {
@@ -1098,10 +1099,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Handle name, username, and profileImage updates directly
+      // Handle name, username, profileImage, and onboarding updates directly
       if (name !== undefined) updateData.name = name;
       if (username !== undefined) updateData.username = username;
       if (profileImage !== undefined) updateData.profileImage = profileImage;
+      if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
+      if (onboardingData !== undefined) updateData.onboardingData = onboardingData;
       
       // Special handling for email changes
       if (email !== undefined && email !== user.email) {
