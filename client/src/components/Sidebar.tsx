@@ -3,8 +3,9 @@ import { useLocation, Link } from 'wouter';
 import { useUser, useIsAdminUser, useIsUniversityUser } from '@/lib/useUserData';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import ProfileImageUploader from './ProfileImageUploader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,8 @@ import {
   ChevronsLeft,
   Menu,
   User as UserIcon,
-  Mic
+  Mic,
+  HelpCircle
 } from 'lucide-react';
 
 // Sidebar section types
@@ -77,6 +79,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     localStorage.getItem('sidebarExpanded') !== 'false'
   );
   const [menuPositions, setMenuPositions] = useState<Record<string, number>>({});
+  
+  // Support ticket related state
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Update menu positions when active section changes
   useEffect(() => {
@@ -135,6 +143,55 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const newState = !expanded;
     setExpanded(newState);
     localStorage.setItem('sidebarExpanded', newState.toString());
+  };
+  
+  // Handle support ticket submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!subject || !description) {
+      alert('Please fill out all required fields');
+      return;
+    }
+    
+    if (!user) {
+      alert('You must be logged in to submit a support ticket');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/support-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject,
+          description,
+          userId: user?.id,
+          userEmail: user?.email,
+          source: 'in-app',
+          issueType: 'other',
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      
+      if (response.ok) {
+        alert('Support ticket submitted successfully!');
+        setShowSupportModal(false);
+        setSubject('');
+        setDescription('');
+      } else {
+        alert('There was an issue submitting your ticket. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting support ticket:', error);
+      alert('An error occurred while submitting your ticket. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!user) return null;
@@ -527,6 +584,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       
       {/* Settings */}
       <div className="border-t py-4">
+        <button 
+          onClick={() => setShowSupportModal(true)}
+          className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
+          title={!expanded ? 'Support' : undefined}
+        >
+          <HelpCircle className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+          {expanded && 'Support'}
+        </button>
+        
         <a 
           href="/account" 
           className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'}`}
@@ -545,5 +611,57 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         </button>
       </div>
     </div>
+
+    {/* Support Ticket Modal */}
+    <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Submit a Support Ticket</DialogTitle>
+          <DialogDescription>
+            Need help with something? Send us a message and we'll get back to you as soon as possible.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <label htmlFor="subject" className="text-sm font-medium">
+              Subject
+            </label>
+            <Input
+              id="subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Briefly describe your issue"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label htmlFor="description" className="text-sm font-medium">
+              Description
+            </label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Please provide details about your issue or question"
+              rows={5}
+              required
+            />
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
