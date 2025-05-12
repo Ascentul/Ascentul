@@ -1,0 +1,79 @@
+// 1. Update Sidebar Component
+// Add a new "Support" button above the "Account Settings" button
+
+Insert the following in your Sidebar component above Account Settings:
+<SidebarButton
+  icon={<HelpCircle />}
+  label="Support"
+  onClick={() => setShowSupportModal(true)}
+/>
+
+// 2. Create State for Modal Toggle
+const [showSupportModal, setShowSupportModal] = useState(false);
+
+// 3. Add Support Modal (Use same style as university invite form modal)
+{showSupportModal && (
+  <Modal title="Submit a Support Ticket" onClose={() => setShowSupportModal(false)}>
+    <form onSubmit={handleSubmit}>
+      <label>
+        Subject
+        <input type="text" value={subject} onChange={e => setSubject(e.target.value)} required />
+      </label>
+      <label>
+        Description
+        <textarea value={description} onChange={e => setDescription(e.target.value)} required />
+      </label>
+      <button type="submit" className="btn-primary">Submit Ticket</button>
+    </form>
+  </Modal>
+)}
+
+// 4. Add Form State Logic
+const [subject, setSubject] = useState('');
+const [description, setDescription] = useState('');
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  const response = await fetch('/api/support-ticket', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subject,
+      description,
+      userId: currentUser.id, // or use auth token-based lookup
+      timestamp: new Date().toISOString(),
+    }),
+  });
+
+  if (response.ok) {
+    alert('Support ticket submitted successfully!');
+    setShowSupportModal(false);
+    setSubject('');
+    setDescription('');
+  } else {
+    alert('There was an issue submitting your ticket. Please try again.');
+  }
+};
+
+// 5. Backend: Create /api/support-ticket route
+// In routes/support.ts or equivalent
+app.post('/api/support-ticket', async (req, res) => {
+  const { subject, description, userId, timestamp } = req.body;
+
+  // Save to DB or relay to super admin ticket inbox
+  await db.insert('support_tickets', {
+    subject,
+    description,
+    userId,
+    status: 'open',
+    timestamp,
+  });
+
+  // Optionally notify super admin
+  // e.g., send email or WebSocket ping
+
+  res.status(200).json({ success: true });
+});
