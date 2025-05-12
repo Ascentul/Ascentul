@@ -64,6 +64,13 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
         description: "You have been logged in successfully.",
       });
       
+      // Check if user needs onboarding first
+      if (user.needsUsername || !user.onboardingCompleted) {
+        console.log("User needs onboarding - redirecting to onboarding flow");
+        window.location.href = '/onboarding';
+        return;
+      }
+      
       // Use redirect path from result if provided
       if (result.redirectPath) {
         console.log("Using server-provided redirect path:", result.redirectPath);
@@ -123,7 +130,7 @@ export default function LoginDialog({ open, onOpenChange, onSuccess, initialTab 
       const tempUsername = `user_${Date.now().toString().slice(-6)}`;
       
       // Make a direct API call for registration - ensure we're using the correct endpoint
-      const response = await fetch('/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
