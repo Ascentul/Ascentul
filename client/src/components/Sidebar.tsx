@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import ProfileImageUploader from './ProfileImageUploader';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,6 +85,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
+  const [issueType, setIssueType] = useState('Other'); // Default issue type
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Update menu positions when active section changes
@@ -173,7 +175,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           userId: user?.id,
           userEmail: user?.email,
           source: 'in-app',
-          issueType: 'other',
+          issueType: issueType,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -183,6 +185,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         setShowSupportModal(false);
         setSubject('');
         setDescription('');
+        setIssueType('Other');
       } else {
         alert('There was an issue submitting your ticket. Please try again.');
       }
@@ -633,6 +636,26 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
                 placeholder="Briefly describe your issue"
                 required
               />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="issueType" className="text-sm font-medium">
+                Issue Type
+              </label>
+              <Select value={issueType} onValueChange={setIssueType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select issue type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="account_access">Account Access</SelectItem>
+                  <SelectItem value="technical">Technical Issue</SelectItem>
+                  <SelectItem value="billing">Billing</SelectItem>
+                  <SelectItem value="feature_request">Feature Request</SelectItem>
+                  <SelectItem value="Bug">Bug Report</SelectItem>
+                  <SelectItem value="Feedback">Feedback</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">
