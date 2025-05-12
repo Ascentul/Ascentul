@@ -16,6 +16,7 @@ export interface User {
   graduationYear?: number;
   isUniversityStudent: boolean;
   needsUsername?: boolean;
+  onboardingCompleted?: boolean; // Added for onboarding flow tracking
   xp: number;
   level: number;
   rank: string;
