@@ -522,6 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
         subscriptionStatus: "active",
         needsUsername: false,
+        onboardingCompleted: true,
       });
       
       // Then update with additional fields
@@ -557,6 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=300&h=300&q=80",
         subscriptionStatus: "active",
         needsUsername: false,
+        onboardingCompleted: true,
       });
       
       // Then update with additional fields
@@ -752,7 +754,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userType: "staff",
         profileImage: null,
         subscriptionStatus: "active",
-        needsUsername: false
+        needsUsername: false,
+        onboardingCompleted: true // Staff user doesn't need onboarding
       });
       
       // Update user with additional fields
