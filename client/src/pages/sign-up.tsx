@@ -84,23 +84,11 @@ export default function SignUpPage() {
         description: "Your account has been created and you are now logged in.",
       });
       
-      // Use the redirect path from the server response, or fall back to role-based redirection
-      if (loginData.redirectPath) {
-        window.location.href = loginData.redirectPath;
-      } else {
-        // Fall back to role-based redirection
-        if (loginData.user.userType === 'regular') {
-          window.location.href = '/dashboard';
-        } else if (loginData.user.userType === 'university_student' || loginData.user.userType === 'university_admin') {
-          window.location.href = '/university';
-        } else if (loginData.user.userType === 'admin') {
-          window.location.href = '/admin';
-        } else if (loginData.user.userType === 'staff') {
-          window.location.href = '/staff';
-        } else {
-          window.location.href = '/dashboard';
-        }
-      }
+      // New users should always go to onboarding first
+      console.log("Registration successful - redirecting to", loginData.redirectPath || "/onboarding");
+      
+      // Always prioritize redirecting to onboarding for new users
+      window.location.href = "/onboarding";
     } catch (error) {
       toast({
         title: "Registration failed",
