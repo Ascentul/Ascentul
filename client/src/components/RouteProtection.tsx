@@ -66,6 +66,19 @@ export function CareerRouteGuard({ children }: { children: ReactNode }) {
     return null;
   }
   
+  // Check if the user needs to complete onboarding
+  if (user.needsUsername || !user.onboardingCompleted) {
+    console.log("User needs to complete onboarding. Redirecting to onboarding flow.");
+    console.log("User details:", {
+      needsUsername: user.needsUsername,
+      onboardingCompleted: user.onboardingCompleted,
+      role: user.role,
+      userType: user.userType
+    });
+    setLocation('/onboarding');
+    return null;
+  }
+  
   // Staff and super_admin users should be redirected to their dashboard
   // Check both role and userType fields
   if (user.role === 'staff' || user.userType === 'staff' || user.role === 'super_admin') {
