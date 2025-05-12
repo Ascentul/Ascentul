@@ -610,58 +610,58 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
           {expanded && 'Logout'}
         </button>
       </div>
-    </div>
-
-    {/* Support Ticket Modal */}
-    <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Submit a Support Ticket</DialogTitle>
-          <DialogDescription>
-            Need help with something? Send us a message and we'll get back to you as soon as possible.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <label htmlFor="subject" className="text-sm font-medium">
-              Subject
-            </label>
-            <Input
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="Briefly describe your issue"
-              required
-            />
-          </div>
+      
+      {/* Support Ticket Modal */}
+      <Dialog open={showSupportModal} onOpenChange={setShowSupportModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Submit a Support Ticket</DialogTitle>
+            <DialogDescription>
+              Need help with something? Send us a message and we'll get back to you as soon as possible.
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium">
-              Description
-            </label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Please provide details about your issue or question"
-              rows={5}
-              required
-            />
-          </div>
-          
-          <DialogFooter className="gap-2 sm:gap-0">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <label htmlFor="subject" className="text-sm font-medium">
+                Subject
+              </label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Briefly describe your issue"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="description" className="text-sm font-medium">
+                Description
+              </label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Please provide details about your issue or question"
+                rows={5}
+                required
+              />
+            </div>
+            
+            <DialogFooter className="gap-2 sm:gap-0">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
               </Button>
-            </DialogClose>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
