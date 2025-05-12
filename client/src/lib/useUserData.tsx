@@ -111,6 +111,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Helper function to determine the redirect path based on user role or userType
   const getRedirectPathByRole = (user: User): string => {
+    // First, check if user needs to complete onboarding
+    if ((user.needsUsername || !user.onboardingCompleted) && 
+        !['admin', 'staff', 'university_admin'].includes(user.userType)) {
+      console.log("getRedirectPathByRole: User needs to complete onboarding, redirecting to /onboarding");
+      return '/onboarding';
+    }
+
     // Check role first
     if (user.role === 'super_admin' || user.role === 'admin') {
       console.log("getRedirectPathByRole: Admin role detected, redirecting to /admin");
