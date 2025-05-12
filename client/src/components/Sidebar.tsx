@@ -74,6 +74,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const { user, logout, updateUser, updateProfile, uploadProfileImage } = useUser();
   const isUnivUser = useIsUniversityUser();
   const isAdmin = useIsAdminUser();
+  // Check if user is on free plan and not a university admin
+  const isFreeUser = user?.planType === 'free' && user?.role !== 'university_admin';
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [hoverSection, setHoverSection] = useState<string | null>(null);
@@ -617,6 +619,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       
       {/* Settings */}
       <div className="border-t py-4">
+        {/* Upgrade Button - Only shown for free users */}
+        {isFreeUser && (
+          <Link 
+            to="/upgrade"
+            className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm mb-2 bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
+            title={!expanded ? 'Upgrade' : undefined}
+          >
+            <ZapIcon className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+            {expanded && 'Upgrade'}
+          </Link>
+        )}
+        
         <button 
           onClick={() => setShowNotifications(true)}
           className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
