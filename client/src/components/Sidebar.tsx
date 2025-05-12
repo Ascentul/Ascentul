@@ -44,7 +44,8 @@ import {
   Menu,
   User as UserIcon,
   Mic,
-  HelpCircle
+  HelpCircle,
+  Bell
 } from 'lucide-react';
 
 // Sidebar section types
@@ -87,6 +88,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   const [description, setDescription] = useState('');
   const [issueType, setIssueType] = useState('Other'); // Default issue type
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Notifications related state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
   
   // Update menu positions when active section changes
   useEffect(() => {
@@ -145,6 +151,30 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const newState = !expanded;
     setExpanded(newState);
     localStorage.setItem('sidebarExpanded', newState.toString());
+  };
+  
+  // Fetch notifications when modal opens
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
+
+  // Fetch notifications function
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/notifications');
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+      
+      // Optionally mark them as read
+      await fetch('/api/notifications/mark-read', { method: 'POST' });
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
   };
   
   // Handle support ticket submission
