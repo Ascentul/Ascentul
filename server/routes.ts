@@ -836,7 +836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImage: null,
         // Only include fields that are in the insertUserSchema
         subscriptionStatus: "inactive",
-        needsUsername: false
+        needsUsername: false,
+        onboardingCompleted: true // Staff members skip onboarding
       });
       
       // Set user in session
@@ -885,7 +886,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         username: tempUsername,
         needsUsername: true,
-        userType: req.body.userType || "regular"
+        userType: req.body.userType || "regular",
+        onboardingCompleted: false // New users need to complete onboarding
       };
       
       // Validate with our schema after adding the required fields
