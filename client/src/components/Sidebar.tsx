@@ -618,6 +618,15 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
       {/* Settings */}
       <div className="border-t py-4">
         <button 
+          onClick={() => setShowNotifications(true)}
+          className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
+          title={!expanded ? 'Notifications' : undefined}
+        >
+          <Bell className={`w-5 h-5 ${expanded ? 'mr-3' : ''}`} />
+          {expanded && 'Notifications'}
+        </button>
+        
+        <button 
           onClick={() => setShowSupportModal(true)}
           className={`flex items-center ${expanded ? 'px-6' : 'px-2 justify-center'} py-2 text-sm hover:bg-primary/5 transition-colors cursor-pointer rounded-md ${expanded ? 'mx-3' : 'mx-1'} w-full text-left`}
           title={!expanded ? 'Support' : undefined}
@@ -713,6 +722,50 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Notifications Modal */}
+      <Dialog open={showNotifications} onOpenChange={setShowNotifications}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Notifications</DialogTitle>
+            <DialogDescription>
+              Your latest updates and alerts
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No new notifications</p>
+              </div>
+            ) : (
+              <ul className="space-y-4">
+                {notifications.map((notif: any) => (
+                  <li key={notif.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-medium">{notif.title}</h4>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(notif.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm">{notif.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
