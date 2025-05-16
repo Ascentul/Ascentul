@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../db";
-import { userReviews, users } from "@shared/schema";
+import { userReviews, users } from "../../utils/schema";
 import { eq, and, desc, sql, like, asc } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin, requireAuth, publicAccess } from "../utils/validateRequest";

@@ -25,7 +25,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertUserPersonalAchievementSchema } from "@shared/schema";
+import { insertUserPersonalAchievementSchema } from "@/utils/schema";
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 

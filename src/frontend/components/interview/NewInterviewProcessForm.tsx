@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { insertInterviewProcessSchema, insertJobApplicationSchema } from '@shared/schema';
+import { insertInterviewProcessSchema, insertJobApplicationSchema } from "@/utils/schema";
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 

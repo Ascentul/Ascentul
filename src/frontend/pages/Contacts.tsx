@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { NetworkingContact } from '@shared/schema';
+import { NetworkingContact } from "@/utils/schema";
 import ContactDetails from '@/components/contacts/ContactDetails';
 import ContactForm from '@/components/contacts/ContactForm';
 import ContactsTable from '@/components/contacts/ContactsTable';

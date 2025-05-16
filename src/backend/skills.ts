@@ -2,7 +2,7 @@ import { Express, Request, Response } from "express";
 import { IStorage } from "./storage";
 import { requireAuth } from "./auth";
 import { z } from "zod";
-import { insertSkillSchema } from "../shared/schema";
+import { insertSkillSchema } from "../utils/schema";
 
 const skillSchema = insertSkillSchema.extend({
   proficiencyLevel: z.number().min(1).max(5),

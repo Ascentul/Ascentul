@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { NetworkingContact } from '@shared/schema';
+import { NetworkingContact } from "@/utils/schema";
 import {
   Table,
   TableBody,

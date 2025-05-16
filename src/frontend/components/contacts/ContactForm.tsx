@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { apiRequest } from '@/lib/queryClient';
-import { NetworkingContact } from '@shared/schema';
+import { NetworkingContact } from "@/utils/schema";
 import { useToast } from '@/hooks/use-toast';
 
 // UI Components

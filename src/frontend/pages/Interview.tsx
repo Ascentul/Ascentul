@@ -56,7 +56,7 @@ import { ApplicationDetails } from '@/components/apply/ApplicationDetails';
 import { ApplicationStatusBadge } from '@/components/apply/ApplicationStatusBadge';
 import { AdzunaJobSearch } from '@/components/apply/AdzunaJobSearch';
 import { ApplicationWizard } from '@/components/apply/ApplicationWizard';
-import { type InterviewProcess, type InterviewStage, type JobApplication } from '@shared/schema';
+import { type InterviewProcess, type InterviewStage, type JobApplication } from "@/utils/schema";
 import { motion } from 'framer-motion';
 import { LoadingState } from '@/components/ui/loading-state';
 import { useLoading } from '@/contexts/loading-context';

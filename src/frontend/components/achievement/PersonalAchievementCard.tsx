@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserPersonalAchievement } from "@shared/schema";
+import { UserPersonalAchievement } from "@/utils/schema";
 
 type IconProps = {
   name: string;

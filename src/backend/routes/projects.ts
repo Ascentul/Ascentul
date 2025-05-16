@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 import { db } from "../db";
-import { projects, insertProjectSchema } from "@shared/schema";
+import { projects, insertProjectSchema } from "../../utils/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 

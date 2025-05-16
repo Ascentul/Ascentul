@@ -46,7 +46,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from '@/lib/queryClient';
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import type { InterviewStage } from '@shared/schema';
+import type { InterviewStage } from "@/utils/schema";
 
 const interviewStageSchema = z.object({
   type: z.string().min(1, { message: "Please select an interview type" }),

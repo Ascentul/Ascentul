@@ -42,7 +42,7 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 
 // Import the schema for consistency
-import { goalChecklistItemSchema, type GoalChecklistItem } from '@shared/schema';
+import { goalChecklistItemSchema, type GoalChecklistItem } from "@/utils/schema";
 
 // Form schema
 const formSchema = z.object({

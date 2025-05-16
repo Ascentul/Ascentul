@@ -21,7 +21,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models";
 import { registerPdfExtractRoutes } from "./routes-pdf";
 import { eq, desc, and } from "drizzle-orm";
-import { users, userReviews, insertSupportTicketSchema } from "@shared/schema";
+import { users, userReviews, insertSupportTicketSchema } from "../utils/schema";
 import { db } from "./db";
 import { registerOpenAILogsRoutes } from "./routes/openai-logs";
 // Voice Interview routes removed
@@ -69,7 +69,7 @@ import {
   insertJobApplicationSchema,
   insertApplicationWizardStepSchema,
   type User
-} from "@shared/schema";
+} from "../utils/schema";
 import { getCareerAdvice, generateResumeSuggestions, generateFullResume, generateCoverLetter, generateCoverLetterSuggestions, generateInterviewQuestions, suggestCareerGoals, analyzeInterviewAnswer, generateRoleInsights, RoleInsightResponse } from "./openai";
 import { generateCoachingResponse } from "./utils/openai";
 import { createPaymentIntent, createPaymentIntentSchema, createSubscription, createSubscriptionSchema, handleSubscriptionUpdated, cancelSubscription, generateEmailVerificationToken, verifyEmail, createSetupIntent, getUserPaymentMethods, stripe } from "./services/stripe";

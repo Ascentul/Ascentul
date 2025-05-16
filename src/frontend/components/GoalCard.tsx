@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import '@/assets/css/goal-card-animations.css';
 
 // Import the checklist item type
-import { type GoalChecklistItem } from '@shared/schema';
+import { type GoalChecklistItem } from "@/utils/schema";
 
 // Import dropdown components
 import {

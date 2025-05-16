@@ -25,7 +25,7 @@ import PersonalAchievementCard from '@/components/achievement/PersonalAchievemen
 import { useUser } from '@/lib/useUserData';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { UserPersonalAchievement } from '@shared/schema';
+import { UserPersonalAchievement } from "@/utils/schema";
 
 export default function Achievements() {
   const { user } = useUser();

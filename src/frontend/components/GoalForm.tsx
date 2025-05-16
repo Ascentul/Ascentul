@@ -47,7 +47,7 @@ import { useToast } from '@/hooks/use-toast';
 import { goalTemplates } from '@/components/goals/GoalTemplates';
 
 // Import the schema for consistency
-import { goalChecklistItemSchema } from '@shared/schema';
+import { goalChecklistItemSchema } from "@/utils/schema";
 
 const goalSchema = z.object({
   title: z.string().min(3, { message: 'Title must be at least 3 characters' }).max(100),

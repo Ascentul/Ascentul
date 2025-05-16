@@ -7,12 +7,22 @@ import { devTokenAuthBypass } from "./auth";
 import publicRouter from "./public-endpoints";
 import path from "path";
 import cors from "cors";
+import { ENV, validateEnv } from "../config/env";
+import { checkDatabaseConnection } from "./db";
+import dotenv from "dotenv";
+
+// Load .env file if it exists
+dotenv.config();
 
 // Log all environment variables for debugging (masking sensitive values)
 console.log('Environment Variables Status:');
 console.log('- OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'present' : 'missing');
-console.log('- PGDATABASE:', process.env.PGDATABASE ? 'present' : 'missing');
-console.log('- DATABASE_URL:', process.env.DATABASE_URL ? 'present' : 'missing');
+console.log('- SUPABASE_URL:', ENV.SUPABASE_URL ? 'present' : 'missing');
+console.log('- SUPABASE_ANON_KEY:', ENV.SUPABASE_ANON_KEY ? 'present' : 'missing');
+console.log('- DATABASE_URL:', ENV.DATABASE_URL ? 'present' : 'missing');
+
+// Validate environment variables
+validateEnv();
 
 // Declare session values on the Express Request type
 declare module "express-session" {
@@ -48,12 +58,12 @@ app.use('/api/public-reviews', cors({ origin: '*' }));
 
 // Configure session middleware
 app.use(session({
-  secret: "career-dev-platform-secret", // In production, use environment variable
+  secret: ENV.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
   cookie: { 
-    secure: process.env.NODE_ENV === "production", // Only secure in production
+    secure: ENV.NODE_ENV === "production", // Only secure in production
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -92,6 +102,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Check database connection before starting server
+  const isConnected = await checkDatabaseConnection();
+  if (!isConnected) {
+    console.error('❌ Database connection failed - please check your configuration');
+    process.exit(1);
+  }
+  console.log('✅ Database connection successful');
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -113,11 +131,11 @@ app.use((req, res, next) => {
 
   // For Replit, we need to detect the correct port
   // Replit sets various environment variables we can use
-  const PORT = process.env.PORT || 3000; // Use port 3000 as default for Replit compatibility
+  const PORT = ENV.PORT || 3000; // Use port 3000 as default for Replit compatibility
   const HOST = "0.0.0.0"; // Always bind to all network interfaces for Replit
   
   console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`);
-  console.log(`✨ Environment: NODE_ENV=${process.env.NODE_ENV || 'development'}`);
+  console.log(`✨ Environment: NODE_ENV=${ENV.NODE_ENV}`);
   console.log(`✨ REPL_ID=${process.env.REPL_ID || 'not set'}, REPL_SLUG=${process.env.REPL_SLUG || 'not set'}`);
   
   try {
@@ -147,7 +165,7 @@ app.use((req, res, next) => {
       
       // Check if frontend dev server is correctly set up
       console.log("\n🔍 Server configuration:");
-      console.log(`- Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`- Environment: ${ENV.NODE_ENV}`);
       console.log(`- Using Vite dev server: ${app.get("env") === "development" ? "Yes" : "No"}`);
       console.log(`- Static files path: ${app.get("env") !== "development" ? path.resolve(__dirname, "public") : "Using Vite"}`);
     }).on('error', (err: NodeJS.ErrnoException) => {

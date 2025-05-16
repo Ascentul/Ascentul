@@ -46,7 +46,7 @@ import { InterviewStageForm } from '@/components/interview/InterviewStageForm';
 import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
 import { Loader2, CalendarIcon, Briefcase, PlusCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { type JobApplication } from '@shared/schema';
+import { type JobApplication } from "@/utils/schema";
 
 // Schema for application editing
 const applicationEditSchema = z.object({

@@ -38,7 +38,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type InterviewProcess } from '@shared/schema';
+import { type InterviewProcess } from "@/utils/schema";
 
 type GamePracticeSessionProps = {
   process?: InterviewProcess;

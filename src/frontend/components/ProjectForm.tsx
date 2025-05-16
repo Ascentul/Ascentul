@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { InsertProject, insertProjectSchema } from '@shared/schema';
+import { InsertProject, insertProjectSchema } from "@/utils/schema";
 import {
   Form,
   FormControl,
