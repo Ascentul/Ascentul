@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { IStorage } from "./storage";
-import { insertNetworkingContactSchema, insertFollowupActionSchema } from "@shared/schema";
+import { insertNetworkingContactSchema, insertFollowupActionSchema } from "../utils/schema";
 import { requireAuth, requireLoginFallback } from "./auth";
 import { z } from "zod";
 

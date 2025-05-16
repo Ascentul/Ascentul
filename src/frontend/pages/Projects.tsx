@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Project } from '@shared/schema';
+import { Project } from "@/utils/schema";
 import { 
   Plus, 
   FolderGit2,

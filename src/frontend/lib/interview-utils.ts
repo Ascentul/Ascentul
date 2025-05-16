@@ -3,7 +3,7 @@
  * This centralizes all operations for interview stages to ensure consistency
  */
 
-import { InterviewStage, JobApplication } from '@shared/schema';
+import { InterviewStage, JobApplication } from "@/utils/schema";
 
 // Constants for localStorage keys
 export const MOCK_STAGES_PREFIX = 'mockStages_';

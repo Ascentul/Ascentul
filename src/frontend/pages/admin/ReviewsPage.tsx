@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { UserReview } from '@shared/schema';
+import { UserReview } from "@/utils/schema";
 import { useToast } from '@/hooks/use-toast';
 import { convertToCSV, generateExportFileName, downloadFile } from '@/utils/csvExport';
 import {

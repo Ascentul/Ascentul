@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { userReviews, users } from "@shared/schema";
+import { userReviews, users } from "../utils/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { db } from "./db";
 import cors from "cors";

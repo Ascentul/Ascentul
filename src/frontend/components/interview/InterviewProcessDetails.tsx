@@ -68,7 +68,7 @@ import {
   GitBranch // Using GitBranch icon as a substitute for Timeline
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type InterviewProcess, type InterviewStage, type FollowupAction } from '@shared/schema';
+import { type InterviewProcess, type InterviewStage, type FollowupAction } from "@/utils/schema";
 import { PracticeSession } from './PracticeSession';
 import { GamePracticeSession } from './GamePracticeSession';
 import InterviewTimeline from './InterviewTimeline';

@@ -15,7 +15,7 @@ import {
   Award,
   Briefcase
 } from 'lucide-react';
-import { type InterviewStage } from '@shared/schema';
+import { type InterviewStage } from "@/utils/schema";
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

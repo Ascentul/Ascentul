@@ -34,7 +34,7 @@ import { FollowupActionForm } from '@/components/interview/FollowupActionForm';
 import { EditInterviewStageForm } from '@/components/interview/EditInterviewStageForm';
 import { EditFollowupForm } from './EditFollowupForm';
 import InterviewTimeline from '@/components/interview/InterviewTimeline';
-import type { InterviewStage, FollowupAction } from '@shared/schema';
+import type { InterviewStage, FollowupAction } from "@/utils/schema";
 import { 
   loadInterviewStagesForApplication, 
   updateInterviewStage, 

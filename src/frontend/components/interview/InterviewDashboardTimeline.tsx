@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { InterviewProcessStatusBadge } from './InterviewProcessStatusBadge';
-import { type InterviewProcess } from '@shared/schema';
+import { type InterviewProcess } from "@/utils/schema";
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 

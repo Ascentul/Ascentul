@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from "../db";
 import { eq } from "drizzle-orm";
-import { platformSettings } from "@shared/schema";
+import { platformSettings } from "../../utils/schema";
 import { requireAdmin } from "../auth";  // Use auth.ts implementation instead of validateRequest.ts
 import { z } from "zod";
 

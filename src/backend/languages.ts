@@ -1,8 +1,8 @@
 import { Express, Request, Response } from "express";
 import { IStorage } from "./storage";
 import { requireAuth } from "./auth";
+import { insertLanguageSchema } from "../utils/schema";
 import { z } from "zod";
-import { insertLanguageSchema } from "../shared/schema";
 
 const languageSchema = insertLanguageSchema.extend({
   proficiencyLevel: z.enum(["beginner", "intermediate", "advanced", "native"])

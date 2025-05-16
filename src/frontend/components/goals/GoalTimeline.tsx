@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Tag
 } from 'lucide-react';
-import { type Goal } from '@shared/schema';
+import { type Goal } from "@/utils/schema";
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

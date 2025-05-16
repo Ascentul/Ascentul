@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { NetworkingContact, ContactInteraction, FollowupAction } from '@shared/schema';
+import { NetworkingContact, ContactInteraction, FollowupAction } from "@/utils/schema";
 import { format } from 'date-fns';
 import ContactForm from './ContactForm';
 import { z } from 'zod';

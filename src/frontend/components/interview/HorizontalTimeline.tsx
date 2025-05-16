@@ -63,7 +63,7 @@ import { InterviewProcessStatusBadge } from './InterviewProcessStatusBadge';
 import { 
   type InterviewProcess,
   type InterviewStage, 
-} from '@shared/schema';
+} from "@/utils/schema";
 
 interface HorizontalTimelineProps {
   processes: InterviewProcess[];

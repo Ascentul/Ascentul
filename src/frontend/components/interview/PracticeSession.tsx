@@ -27,7 +27,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { type InterviewProcess } from '@shared/schema';
+import { type InterviewProcess } from "@/utils/schema";
 
 type PracticeSessionProps = {
   process?: InterviewProcess;
