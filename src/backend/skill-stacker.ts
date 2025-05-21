@@ -1,32 +1,37 @@
-import { OpenAI } from "openai";
-import crypto from "crypto";
-import { z } from "zod";
-import { storage } from "./storage";
+import { Express, Request, Response } from "express"
+import { storage } from "./storage"
+import fs from "fs"
+import path from "path"
+import { openai } from "./utils/openai-client"
+import { fileURLToPath } from "url"
+import { z } from "zod"
 
 // Create OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// const openai = new OpenAI({
+//  apiKey: process.env.OPENAI_API_KEY,
+// });
 
-const hasMockFlag = !process.env.OPENAI_API_KEY;
+const hasMockFlag = !process.env.OPENAI_API_KEY
 if (hasMockFlag) {
-  console.log("OPENAI_API_KEY is not set. Using mock OpenAI mode for skill stacker features.");
+  console.log(
+    "OPENAI_API_KEY is not set. Using mock OpenAI mode for skill stacker features."
+  )
 }
 
 // Interface for AI-generated Skill Stacker tasks
 export interface SkillStackerTaskData {
-  title: string;
-  description: string;
-  type: "learning" | "practice" | "project";
-  estimatedHours: number;
-  resources: string[];
+  title: string
+  description: string
+  type: "learning" | "practice" | "project"
+  estimatedHours: number
+  resources: string[]
 }
 
 // Interface for AI-generated Skill Stacker plan
 export interface SkillStackerPlanData {
-  title: string;
-  description: string;
-  tasks: SkillStackerTaskData[];
+  title: string
+  description: string
+  tasks: SkillStackerTaskData[]
 }
 
 // Schema for the generate plan request
@@ -34,36 +39,40 @@ export const generatePlanRequestSchema = z.object({
   goalId: z.number(),
   week: z.number(),
   currentSkillLevel: z.enum(["beginner", "intermediate", "advanced"])
-});
+})
 
-export type GeneratePlanRequest = z.infer<typeof generatePlanRequestSchema>;
+export type GeneratePlanRequest = z.infer<typeof generatePlanRequestSchema>
 
 // Function to generate a skill stacker plan using AI
 export async function generateSkillStackerPlan(
   userId: number,
   data: GeneratePlanRequest
 ): Promise<SkillStackerPlanData> {
-  let goalTitle = "Your Goal";
-  let goalDescription = "No additional context provided";
-  
+  let goalTitle = "Your Goal"
+  let goalDescription = "No additional context provided"
+
   try {
     // Get goal information
-    const goal = await storage.getGoal(data.goalId);
+    const goal = await storage.getGoal(data.goalId)
     if (!goal) {
-      throw new Error("Goal not found");
+      throw new Error("Goal not found")
     }
-    
-    goalTitle = goal.title;
-    goalDescription = goal.description || "No additional context provided";
-    
+
+    goalTitle = goal.title
+    goalDescription = goal.description || "No additional context provided"
+
     if (hasMockFlag) {
       // Return mock data when no API key is set
-      return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel);
+      return getMockSkillStackerPlan(
+        goalTitle,
+        data.week,
+        data.currentSkillLevel
+      )
     }
-    
+
     // Use OpenAI to generate a skill stacker plan
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o-mini", // Using smaller, faster gpt-4o-mini for better performance and lower cost
       messages: [
         {
           role: "system",
@@ -107,42 +116,48 @@ export async function generateSkillStackerPlan(
       ],
       temperature: 0.7,
       response_format: { type: "json_object" }
-    });
-    
+    })
+
     // Parse the response
-    const responseContent = response.choices[0]?.message?.content;
+    const responseContent = response.choices[0]?.message?.content
     if (!responseContent) {
-      throw new Error("Failed to generate skill stacker plan");
+      throw new Error("Failed to generate skill stacker plan")
     }
-    
-    console.log("OpenAI Response:", responseContent);
-    
+
+    console.log("OpenAI Response:", responseContent)
+
     try {
-      const parsedResponse = JSON.parse(responseContent);
-      
+      const parsedResponse = JSON.parse(responseContent)
+
       // Transform the response to match our expected format
-      const tasks: SkillStackerTaskData[] = parsedResponse.tasks.map((task: any) => ({
-        title: task.title,
-        description: task.description,
-        type: task.type,
-        estimatedHours: Number(task.estimatedHours),
-        resources: Array.isArray(task.resources) ? task.resources : [task.resources]
-      }));
-      
+      const tasks: SkillStackerTaskData[] = parsedResponse.tasks.map(
+        (task: any) => ({
+          title: task.title,
+          description: task.description,
+          type: task.type,
+          estimatedHours: Number(task.estimatedHours),
+          resources: Array.isArray(task.resources)
+            ? task.resources
+            : [task.resources]
+        })
+      )
+
       return {
         title: parsedResponse.title || `Week ${data.week}: ${goalTitle}`,
-        description: parsedResponse.description || `Week ${data.week} skill development plan for ${goalTitle}`,
+        description:
+          parsedResponse.description ||
+          `Week ${data.week} skill development plan for ${goalTitle}`,
         tasks
-      };
+      }
     } catch (parseError) {
-      console.error("Error parsing OpenAI response:", parseError);
-      throw new Error("Failed to parse OpenAI response");
+      console.error("Error parsing OpenAI response:", parseError)
+      throw new Error("Failed to parse OpenAI response")
     }
   } catch (error: any) {
-    console.error("Error generating skill stacker plan:", error);
-    
+    console.error("Error generating skill stacker plan:", error)
+
     // If API fails, return mock data as fallback
-    return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel);
+    return getMockSkillStackerPlan(goalTitle, data.week, data.currentSkillLevel)
   }
 }
 
@@ -162,11 +177,16 @@ function getMockSkillStackerPlan(
         description: `Study the fundamental principles of ${goalTitle} through guided tutorials and documentation.`,
         type: "learning",
         estimatedHours: 3,
-        resources: ["Official Documentation", "Online Tutorials", "YouTube Channels"]
+        resources: [
+          "Official Documentation",
+          "Online Tutorials",
+          "YouTube Channels"
+        ]
       },
       {
         title: "Complete Practice Exercises",
-        description: "Apply your knowledge by solving a set of increasingly difficult problems and exercises.",
+        description:
+          "Apply your knowledge by solving a set of increasingly difficult problems and exercises.",
         type: "practice",
         estimatedHours: 4,
         resources: ["LeetCode", "HackerRank", "Practice Workbooks"]
@@ -180,11 +200,12 @@ function getMockSkillStackerPlan(
       },
       {
         title: "Review and Summarize",
-        description: "Create notes and a summary of what you've learned to reinforce your knowledge.",
+        description:
+          "Create notes and a summary of what you've learned to reinforce your knowledge.",
         type: "learning",
         estimatedHours: 2,
         resources: ["Note-taking Apps", "Mind Mapping Tools"]
       }
     ]
-  };
+  }
 }

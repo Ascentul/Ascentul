@@ -1,61 +1,64 @@
-import { Router, Request, Response } from "express";
-import { storage } from "../storage";
-import { z } from "zod";
-import OpenAI from "openai";
-
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { Router, Request, Response } from "express"
+import { storage } from "../storage"
+import { z } from "zod"
+import { openai } from "../utils/openai-client"
 
 // Helper function to check if user is authenticated
 function requireAuth(req: Request, res: Response, next: () => void) {
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" });
+    return res.status(401).json({ message: "Authentication required" })
   }
-  next();
+  next()
 }
 
 export const registerJobsAIRoutes = (router: Router) => {
   // Route for AI-assisted job application suggestions
-  router.post('/api/jobs/ai-assist', requireAuth, async (req: Request, res: Response) => {
-    try {
-      const { jobTitle, companyName, jobDescription } = req.body;
-      
-      if (!jobTitle || !companyName || !jobDescription) {
-        return res.status(400).json({ 
-          message: "Missing required fields. Please provide jobTitle, companyName, and jobDescription." 
-        });
+  router.post(
+    "/api/jobs/ai-assist",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { jobTitle, companyName, jobDescription } = req.body
+
+        if (!jobTitle || !companyName || !jobDescription) {
+          return res.status(400).json({
+            message:
+              "Missing required fields. Please provide jobTitle, companyName, and jobDescription."
+          })
+        }
+
+        // Get user's most recent resume to personalize suggestions
+        const userId = req.session!.userId
+        const resumes = await storage.getResumesByUserId(userId)
+
+        // Sort by last updated
+        resumes.sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )
+
+        // Get the most recent resume if available
+        const resume = resumes.length > 0 ? resumes[0] : null
+
+        // Generate personalized suggestions based on the job and user's resume
+        const suggestions = await generateJobApplicationSuggestions(
+          jobTitle,
+          companyName,
+          jobDescription,
+          resume?.content || ""
+        )
+
+        res.json(suggestions)
+      } catch (error) {
+        console.error("Error generating AI job application suggestions:", error)
+        res.status(500).json({
+          message: "Failed to generate job application suggestions",
+          error: error instanceof Error ? error.message : "Unknown error"
+        })
       }
-      
-      // Get user's most recent resume to personalize suggestions
-      const userId = req.session!.userId;
-      const resumes = await storage.getResumesByUserId(userId);
-      
-      // Sort by last updated
-      resumes.sort((a, b) => 
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      );
-      
-      // Get the most recent resume if available
-      const resume = resumes.length > 0 ? resumes[0] : null;
-      
-      // Generate personalized suggestions based on the job and user's resume
-      const suggestions = await generateJobApplicationSuggestions(
-        jobTitle,
-        companyName,
-        jobDescription,
-        resume?.content || ""
-      );
-      
-      res.json(suggestions);
-    } catch (error) {
-      console.error("Error generating AI job application suggestions:", error);
-      res.status(500).json({ 
-        message: "Failed to generate job application suggestions",
-        error: error instanceof Error ? error.message : "Unknown error" 
-      });
     }
-  });
-};
+  )
+}
 
 // Helper function to generate AI-powered job application suggestions
 async function generateJobApplicationSuggestions(
@@ -71,15 +74,16 @@ async function generateJobApplicationSuggestions(
       companyName,
       jobDescription,
       resumeContent
-    );
+    )
 
     // Call OpenAI API
     const response = await openai.chat.completions.create({
-      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      model: "gpt-4o-mini", // Using the smaller, faster gpt-4o-mini model instead of gpt-4o
       messages: [
         {
           role: "system",
-          content: "You are an AI job application assistant that helps users customize their application materials for specific job opportunities. Provide concise, actionable suggestions based on the job description and the user's resume."
+          content:
+            "You are an AI job application assistant that helps users customize their application materials for specific job opportunities. Provide concise, actionable suggestions based on the job description and the user's resume."
         },
         {
           role: "user",
@@ -89,16 +93,16 @@ async function generateJobApplicationSuggestions(
       response_format: { type: "json_object" },
       temperature: 0.7,
       max_tokens: 1500
-    });
+    })
 
     // Parse and return the suggestions
-    const suggestionsContent = response.choices[0].message.content;
-    const suggestions = JSON.parse(suggestionsContent || "{}");
-    
-    return suggestions;
+    const suggestionsContent = response.choices[0].message.content
+    const suggestions = JSON.parse(suggestionsContent || "{}")
+
+    return suggestions
   } catch (error) {
-    console.error("Error calling OpenAI API:", error);
-    throw new Error("Failed to generate job application suggestions");
+    console.error("Error calling OpenAI API:", error)
+    throw new Error("Failed to generate job application suggestions")
   }
 }
 
@@ -142,5 +146,5 @@ Format your response as a JSON object with the following structure:
     ]
   }
 }
-`;
+`
 }

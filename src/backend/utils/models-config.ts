@@ -1,30 +1,38 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from "fs"
+import path from "path"
+import { fileURLToPath } from "url"
+import { ENV } from "../../config/env"
 
 // Define the models interface
 export interface OpenAIModel {
-  id: string;
-  label: string;
-  active: boolean;
+  id: string
+  label: string
+  active: boolean
 }
 
 export interface ModelsConfig {
-  models: OpenAIModel[];
+  models: OpenAIModel[]
 }
 
 // Get the directory name in ESM module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CONFIG_PATH = path.join(__dirname, '../models_config.json');
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const CONFIG_PATH = path.join(__dirname, "../models_config.json")
+
+// Define available models
+const AVAILABLE_MODELS = {
+  "gpt-4o-mini": "gpt-4o-mini", // Smaller, faster, more cost-effective model
+  "gpt-4o": "gpt-4o", // Full-sized model, more capable but more expensive
+  "gpt-3.5-turbo": "gpt-3.5-turbo" // Legacy model
+}
 
 // Read the models configuration from the JSON file
 export function getModelsConfig(): ModelsConfig {
   try {
-    const data = fs.readFileSync(CONFIG_PATH, 'utf8');
-    return JSON.parse(data) as ModelsConfig;
+    const data = fs.readFileSync(CONFIG_PATH, "utf8")
+    return JSON.parse(data) as ModelsConfig
   } catch (error) {
-    console.error('Error reading models config:', error);
+    console.error("Error reading models config:", error)
     // Return a default configuration if there's an error
     return {
       models: [
@@ -39,56 +47,73 @@ export function getModelsConfig(): ModelsConfig {
           active: true
         }
       ]
-    };
+    }
   }
 }
 
 // Filter models based on user type (admin or regular user)
 export function getFilteredModels(isAdmin: boolean): OpenAIModel[] {
-  const config = getModelsConfig();
-  
+  const config = getModelsConfig()
+
   // Admins can see all models
   if (isAdmin) {
-    return config.models;
+    return config.models
   }
-  
+
   // Regular users can only see active models
-  return config.models.filter(model => model.active);
+  return config.models.filter((model) => model.active)
 }
 
-// Default model to fall back to if requested model is not available
-export const DEFAULT_MODEL = "gpt-4o";
+// Set the default model to gpt-4o-mini
+export const DEFAULT_MODEL = "gpt-4o-mini"
 
-// Validate if a model ID is valid and active
-export function validateModelAndGetId(modelId: string): string {
-  try {
-    const config = getModelsConfig();
-    const activeModels = config.models.filter(model => model.active);
-    
-    // Check if the requested model exists and is active
-    const model = activeModels.find(m => m.id === modelId);
-    
-    if (model) {
-      return model.id;
-    }
-    
-    // If model is not found or not active, return the default model
-    console.log(`Model ${modelId} not found or not active. Using default model: ${DEFAULT_MODEL}`);
-    return DEFAULT_MODEL;
-  } catch (error) {
-    console.error('Error validating model:', error);
-    return DEFAULT_MODEL;
+// Custom error for invalid model IDs
+class InvalidModelError extends Error {
+  constructor(modelId: string) {
+    super(`Invalid model ID: ${modelId}`)
+    this.name = "InvalidModelError"
   }
+}
+
+/**
+ * Validates a model ID and returns the correct ID if it's valid
+ * @param modelId The model ID to validate
+ * @returns The validated model ID
+ * @throws InvalidModelError if the model ID is invalid
+ */
+export function validateModelAndGetId(modelId: string): string {
+  // Check if the model ID is in the available models
+  if (Object.keys(AVAILABLE_MODELS).includes(modelId)) {
+    return AVAILABLE_MODELS[modelId as keyof typeof AVAILABLE_MODELS]
+  }
+
+  // If not a direct match, try to match a prefix
+  for (const [key, value] of Object.entries(AVAILABLE_MODELS)) {
+    if (modelId.startsWith(key)) {
+      return value
+    }
+  }
+
+  // If we're in development mode, default to the default model
+  if (ENV.NODE_ENV !== "production") {
+    console.warn(
+      `⚠️ Invalid model ID: ${modelId}. Using default model: ${DEFAULT_MODEL}`
+    )
+    return DEFAULT_MODEL
+  }
+
+  // In production, we should throw an error
+  throw new InvalidModelError(modelId)
 }
 
 // Update the models configuration
 export function updateModelsConfig(updatedModels: OpenAIModel[]): boolean {
   try {
-    const config: ModelsConfig = { models: updatedModels };
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
-    return true;
+    const config: ModelsConfig = { models: updatedModels }
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf8")
+    return true
   } catch (error) {
-    console.error('Error updating models config:', error);
-    return false;
+    console.error("Error updating models config:", error)
+    return false
   }
 }

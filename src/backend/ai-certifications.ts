@@ -1,27 +1,26 @@
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { Express, Request, Response } from "express"
+import { openai } from "./utils/openai-client"
 
 export interface CertificationRecommendation {
-  name: string;
-  provider: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  estimatedTimeToComplete: string;
-  relevance: 'highly relevant' | 'relevant' | 'somewhat relevant';
+  name: string
+  provider: string
+  difficulty: "beginner" | "intermediate" | "advanced"
+  estimatedTimeToComplete: string
+  relevance: "highly relevant" | "relevant" | "somewhat relevant"
 }
 
 export async function generateCertificationRecommendations(
   role: string,
   level: string,
-  skills: { name: string, level: string }[]
+  skills: { name: string; level: string }[]
 ): Promise<CertificationRecommendation[]> {
   try {
     // Create a detailed prompt about the role
-    const skillsString = skills.map(s => `${s.name} (${s.level})`).join(", ");
-    
+    const skillsString = skills.map((s) => `${s.name} (${s.level})`).join(", ")
+
     const systemPrompt = `You are a career advisor specializing in professional certifications and training programs.
-    Provide highly specific certification recommendations for professionals based on their job roles and skill levels.`;
-    
+    Provide highly specific certification recommendations for professionals based on their job roles and skill levels.`
+
     const userPrompt = `Provide certification recommendations for a ${level} level ${role}.
     
     Their current skills include: ${skillsString}
@@ -33,36 +32,35 @@ export async function generateCertificationRecommendations(
     - estimatedTimeToComplete: Time to prepare and obtain the certification (e.g., "2-3 months")
     - relevance: One of ["highly relevant", "relevant", "somewhat relevant"]
     
-    Focus on real, recognized certifications that would be valuable for career advancement.`;
+    Focus on real, recognized certifications that would be valuable for career advancement.`
 
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      response_format: { type: "json_object" },
-    });
+      response_format: { type: "json_object" }
+    })
 
-    const jsonString = response.choices[0].message.content;
-    
+    const jsonString = response.choices[0].message.content
+
     if (!jsonString) {
-      throw new Error("Failed to generate certification recommendations");
+      throw new Error("Failed to generate certification recommendations")
     }
-    
-    const parsedResults = JSON.parse(jsonString);
-    
+
+    const parsedResults = JSON.parse(jsonString)
+
     if (Array.isArray(parsedResults.certifications)) {
-      return parsedResults.certifications;
+      return parsedResults.certifications
     } else if (Array.isArray(parsedResults)) {
-      return parsedResults;
+      return parsedResults
     } else {
-      throw new Error("Unexpected response format from OpenAI");
+      throw new Error("Unexpected response format from OpenAI")
     }
-    
   } catch (error) {
-    console.error("Error generating certification recommendations:", error);
-    return [];
+    console.error("Error generating certification recommendations:", error)
+    return []
   }
 }
