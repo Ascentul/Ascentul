@@ -1,75 +1,88 @@
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { openai } from "./utils/openai-client"
 
 export interface CareerSkill {
-  name: string;
-  level: 'basic' | 'intermediate' | 'advanced';
+  name: string
+  level: "basic" | "intermediate" | "advanced"
 }
 
 export interface CareerNode {
-  id: string;
-  title: string;
-  level: 'entry' | 'mid' | 'senior' | 'lead' | 'executive';
-  salaryRange: string;
-  yearsExperience: string;
-  skills: CareerSkill[];
-  description: string;
-  growthPotential: 'low' | 'medium' | 'high';
-  icon: string; // Icon name that will be mapped on the frontend
+  id: string
+  title: string
+  level: "entry" | "mid" | "senior" | "lead" | "executive"
+  salaryRange: string
+  yearsExperience: string
+  skills: CareerSkill[]
+  description: string
+  growthPotential: "low" | "medium" | "high"
+  icon: string // Icon name that will be mapped on the frontend
 }
 
 export interface CareerPath {
-  id: string;
-  name: string;
-  nodes: CareerNode[];
-  description: string;
+  id: string
+  name: string
+  nodes: CareerNode[]
+  description: string
 }
 
-export async function generateCareerPaths(profileData: any): Promise<CareerPath[]> {
+export async function generateCareerPaths(
+  profileData: any
+): Promise<CareerPath[]> {
   try {
     // Extract relevant details from profile data
-    const workHistory = profileData.workHistory || [];
-    const education = profileData.education || [];
-    const skills = profileData.skills || [];
-    const certifications = profileData.certifications || [];
-    const careerSummary = profileData.careerSummary || '';
-    
-    // Format the data for the prompt
-    const workHistoryText = workHistory.map((job: any) => 
-      `${job.title} at ${job.company} (${job.startDate} to ${job.endDate || 'Present'}): ${job.description || ''}`
-    ).join('\n');
-    
-    const educationText = education.map((edu: any) => 
-      `${edu.degree} in ${edu.fieldOfStudy} from ${edu.school} (${edu.graduationYear || 'In progress'})`
-    ).join('\n');
-    
-    const skillsText = skills.map((skill: any) => 
-      `${skill.name} (${skill.level || 'intermediate'})`
-    ).join(', ');
-    
-    const certificationsText = certifications.map((cert: any) => 
-      `${cert.name} from ${cert.issuingOrganization || 'Unknown'}`
-    ).join(', ');
+    const workHistory = profileData.workHistory || []
+    const education = profileData.education || []
+    const skills = profileData.skills || []
+    const certifications = profileData.certifications || []
+    const careerSummary = profileData.careerSummary || ""
 
-    const systemPrompt = `You are a career advisor AI specializing in creating personalized career path roadmaps based on an individual's professional background, education, and skills.`;
-    
+    // Format the data for the prompt
+    const workHistoryText = workHistory
+      .map(
+        (job: any) =>
+          `${job.title} at ${job.company} (${job.startDate} to ${
+            job.endDate || "Present"
+          }): ${job.description || ""}`
+      )
+      .join("\n")
+
+    const educationText = education
+      .map(
+        (edu: any) =>
+          `${edu.degree} in ${edu.fieldOfStudy} from ${edu.school} (${
+            edu.graduationYear || "In progress"
+          })`
+      )
+      .join("\n")
+
+    const skillsText = skills
+      .map((skill: any) => `${skill.name} (${skill.level || "intermediate"})`)
+      .join(", ")
+
+    const certificationsText = certifications
+      .map(
+        (cert: any) =>
+          `${cert.name} from ${cert.issuingOrganization || "Unknown"}`
+      )
+      .join(", ")
+
+    const systemPrompt = `You are a career advisor AI specializing in creating personalized career path roadmaps based on an individual's professional background, education, and skills.`
+
     const userPrompt = `Create three distinct, personalized career paths for a professional with the following profile:
 
 CAREER SUMMARY:
 ${careerSummary}
 
 WORK HISTORY:
-${workHistoryText || 'No work history provided'}
+${workHistoryText || "No work history provided"}
 
 EDUCATION:
-${educationText || 'No education history provided'}
+${educationText || "No education history provided"}
 
 SKILLS:
-${skillsText || 'No skills provided'}
+${skillsText || "No skills provided"}
 
 CERTIFICATIONS:
-${certificationsText || 'No certifications provided'}
+${certificationsText || "No certifications provided"}
 
 For each career path:
 1. Identify one specific track/specialization that leverages their existing skills and background
@@ -102,36 +115,35 @@ Return your response as a JSON object with the following structure:
   ]
 }
 
-Focus on creating realistic, well-structured career paths that reflect actual industry roles and expectations.`;
+Focus on creating realistic, well-structured career paths that reflect actual industry roles and expectations.`
 
     // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7,
-    });
+      temperature: 0.7
+    })
 
-    const jsonString = response.choices[0].message.content;
-    
+    const jsonString = response.choices[0].message.content
+
     if (!jsonString) {
-      throw new Error("Failed to generate career paths");
+      throw new Error("Failed to generate career paths")
     }
-    
+
     // Parse the response from OpenAI
-    const parsedResults = JSON.parse(jsonString);
-    
+    const parsedResults = JSON.parse(jsonString)
+
     if (Array.isArray(parsedResults.paths)) {
-      return parsedResults.paths;
+      return parsedResults.paths
     } else {
-      throw new Error("Unexpected response format from OpenAI");
+      throw new Error("Unexpected response format from OpenAI")
     }
-    
   } catch (error) {
-    console.error("Error generating career paths:", error);
-    return [];
+    console.error("Error generating career paths:", error)
+    return []
   }
 }
