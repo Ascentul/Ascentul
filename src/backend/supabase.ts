@@ -32,6 +32,12 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       }
       return fetch(...args)
     }
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    },
+    disableRealtimeSubscriptions: true
   }
 })
 
@@ -50,6 +56,12 @@ export const supabaseAdmin = createClient<Database>(
   {
     auth: {
       persistSession: false
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      },
+      disableRealtimeSubscriptions: true
     }
   }
 )

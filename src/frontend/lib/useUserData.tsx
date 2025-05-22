@@ -1,64 +1,169 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode
+} from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { apiRequest } from "@/lib/queryClient"
+import supabaseClient from "@/lib/supabase-auth"
 
 export interface User {
-  id: number;
-  username: string;
-  name: string;
-  email: string;
-  userType: "regular" | "university_student" | "university_admin" | "admin" | "staff";
-  role?: "user" | "staff" | "admin" | "super_admin" | "university_user" | "university_admin"; // Role field from database schema
-  universityId?: number;
-  universityName?: string; // Added to match database schema
-  departmentId?: number;
-  studentId?: string;
-  graduationYear?: number;
-  isUniversityStudent: boolean;
-  needsUsername?: boolean;
-  onboardingCompleted?: boolean; // Added for onboarding flow tracking
-  xp: number;
-  level: number;
-  rank: string;
-  profileImage?: string;
-  subscriptionPlan: "free" | "premium" | "university";
-  subscriptionStatus: "active" | "inactive" | "cancelled" | "past_due";
-  subscriptionCycle?: "monthly" | "quarterly" | "annual";
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  subscriptionExpiresAt?: Date;
-  emailVerified: boolean;
-  pendingEmail?: string; // Added for email change verification workflow
-  passwordLastChanged?: Date; // Added for password change tracking
-  passwordLength?: number; // Added for password display purposes
-  redirectPath?: string; // Added for role-based redirection after login
+  id: number | string
+  username: string
+  name: string
+  email: string
+  userType:
+    | "regular"
+    | "university_student"
+    | "university_admin"
+    | "admin"
+    | "staff"
+  role?:
+    | "user"
+    | "staff"
+    | "admin"
+    | "super_admin"
+    | "university_user"
+    | "university_admin" // Role field from database schema
+  universityId?: number
+  universityName?: string // Added to match database schema
+  departmentId?: number
+  studentId?: string
+  graduationYear?: number
+  isUniversityStudent: boolean
+  needsUsername?: boolean
+  onboardingCompleted?: boolean // Added for onboarding flow tracking
+  xp: number
+  level: number
+  rank: string
+  profileImage?: string
+  subscriptionPlan: "free" | "premium" | "university"
+  subscriptionStatus: "active" | "inactive" | "cancelled" | "past_due"
+  subscriptionCycle?: "monthly" | "quarterly" | "annual"
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  subscriptionExpiresAt?: Date
+  emailVerified: boolean
+  pendingEmail?: string // Added for email change verification workflow
+  passwordLastChanged?: Date // Added for password change tracking
+  passwordLength?: number // Added for password display purposes
+  redirectPath?: string // Added for role-based redirection after login
   theme?: {
-    primary: string;
-    appearance: 'light' | 'dark' | 'system';
-    variant: 'professional' | 'tint' | 'vibrant';
-    radius: number;
-  };
+    primary: string
+    appearance: "light" | "dark" | "system"
+    variant: "professional" | "tint" | "vibrant"
+    radius: number
+  }
 }
 
 interface UserContextType {
-  user: User | null;
-  isLoading: boolean;
-  error: Error | null;
-  login: (email: string, password: string, loginType?: 'staff' | 'admin' | 'university' | 'regular') => Promise<{user: User, redirectPath?: string}>;
-  logout: () => void;
-  isAuthenticated: boolean;
-  refetchUser: () => Promise<User | null>;
-  updateProfile: (data: { name?: string; email?: string; username?: string; profileImage?: string }) => Promise<User>;
-  updateUser: (data: Partial<User>) => void;
-  updateTheme: (themeSettings: User['theme']) => Promise<void>;
-  uploadProfileImage: (imageDataUrl: string) => Promise<User>;
+  user: User | null
+  isLoading: boolean
+  error: Error | null
+  login: (
+    email: string,
+    password: string,
+    loginType?: "staff" | "admin" | "university" | "regular"
+  ) => Promise<{ user: User; redirectPath?: string }>
+  logout: () => void
+  isAuthenticated: boolean
+  refetchUser: () => Promise<User | null>
+  updateProfile: (data: {
+    name?: string
+    email?: string
+    username?: string
+    profileImage?: string
+  }) => Promise<User>
+  updateUser: (data: Partial<User>) => void
+  updateTheme: (themeSettings: User["theme"]) => Promise<void>
+  uploadProfileImage: (imageDataUrl: string) => Promise<User>
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default to true for demo
+  const queryClient = useQueryClient()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Check Supabase auth session on load
+  useEffect(() => {
+    const checkAuthSession = async () => {
+      const { data } = await supabaseClient.auth.getSession()
+      setIsAuthenticated(!!data.session)
+    }
+
+    checkAuthSession()
+
+    // Set up auth state change listener
+    const {
+      data: { subscription }
+    } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  // Custom query function for fetching user data - tries both API and Supabase
+  const fetchUserData = async (): Promise<User | null> => {
+    try {
+      // First try the API endpoint
+      const apiResponse = await fetch("/api/users/me")
+      if (apiResponse.ok) {
+        return await apiResponse.json()
+      }
+
+      // If API fails, try getting user from Supabase
+      const { data: authUser } = await supabaseClient.auth.getUser()
+      if (!authUser.user) {
+        return null
+      }
+
+      // Fetch user profile from users table
+      const { data: userData, error } = await supabaseClient
+        .from("users")
+        .select("*")
+        .eq("id", authUser.user.id)
+        .single()
+
+      if (error || !userData) {
+        console.error("Error fetching user data from Supabase:", error)
+        return null
+      }
+
+      // Map Supabase user to our User interface
+      return {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        email: userData.email,
+        userType: userData.user_type as any,
+        role: userData.role as any,
+        universityId: userData.university_id,
+        universityName: userData.university_name,
+        isUniversityStudent: userData.user_type === "university_student",
+        needsUsername: userData.needs_username,
+        onboardingCompleted: userData.onboarding_completed,
+        xp: userData.xp || 0,
+        level: userData.level || 1,
+        rank: userData.rank || "Beginner",
+        profileImage: userData.profile_image,
+        subscriptionPlan: (userData.subscription_plan || "free") as any,
+        subscriptionStatus: (userData.subscription_status || "inactive") as any,
+        subscriptionCycle: userData.subscription_cycle as any,
+        stripeCustomerId: userData.stripe_customer_id,
+        stripeSubscriptionId: userData.stripe_subscription_id,
+        emailVerified: userData.email_verified || false
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error)
+      return null
+    }
+  }
 
   const {
     data: user,
@@ -66,276 +171,475 @@ export function UserProvider({ children }: { children: ReactNode }) {
     isLoading,
     refetch
   } = useQuery<User | null, Error>({
-    queryKey: ['/api/users/me'],
+    queryKey: ["/api/users/me"],
+    queryFn: fetchUserData,
     enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  })
 
   const loginMutation = useMutation({
-    mutationFn: async ({ 
-      email, 
-      password, 
-      loginType 
-    }: { 
-      email: string; 
-      password: string; 
-      loginType?: 'staff' | 'admin' | 'university' | 'regular'
+    mutationFn: async ({
+      email,
+      password,
+      loginType
+    }: {
+      email: string
+      password: string
+      loginType?: "staff" | "admin" | "university" | "regular"
     }) => {
-      const res = await apiRequest('POST', '/api/auth/login', { email, password, loginType });
-      const data = await res.json();
-      // Return both user and redirectPath from the server response
-      return {
-        user: data.user as User,
-        redirectPath: data.redirectPath
-      };
-    },
-    onSuccess: (data) => {
-      if (!data) return;
-      const { user, redirectPath } = data;
+      // Use Supabase auth for login
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      })
 
-      // ✅ Save user data to state
-      queryClient.setQueryData(['/api/users/me'], user);
-      setIsAuthenticated(true);
-
-      // ✅ Force redirect using server-sent redirectPath
-      if (redirectPath) {
-        console.log("✅ Redirecting to", redirectPath);
-        window.location.href = redirectPath;
-        return;
+      if (error) {
+        throw new Error(error.message || "Login failed")
       }
 
-      // 🛑 Optional: Remove fallback logic unless absolutely needed
-      // navigate("/career-dashboard"); // Comment this out to avoid override
+      // Fetch user profile from the database to determine redirect
+      const { data: userData, error: userError } = await supabaseClient
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .single()
+
+      if (userError) {
+        console.error("Error fetching user data after login:", userError)
+        throw new Error("Error loading user profile")
+      }
+
+      // Map the Supabase user data to our User interface
+      const mappedUser: User = {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        email: userData.email,
+        userType: userData.user_type as any,
+        role: userData.role as any,
+        universityId: userData.university_id,
+        universityName: userData.university_name,
+        isUniversityStudent: userData.user_type === "university_student",
+        needsUsername: userData.needs_username,
+        onboardingCompleted: userData.onboarding_completed,
+        xp: userData.xp || 0,
+        level: userData.level || 1,
+        rank: userData.rank || "Beginner",
+        profileImage: userData.profile_image,
+        subscriptionPlan: (userData.subscription_plan || "free") as any,
+        subscriptionStatus: (userData.subscription_status || "inactive") as any,
+        subscriptionCycle: userData.subscription_cycle as any,
+        stripeCustomerId: userData.stripe_customer_id,
+        stripeSubscriptionId: userData.stripe_subscription_id,
+        emailVerified: userData.email_verified || false
+      }
+
+      // Determine redirect path based on user type
+      const redirectPath =
+        userData.user_type === "university"
+          ? "/university"
+          : userData.onboarding_completed
+          ? "/dashboard"
+          : "/onboarding"
+
+      return {
+        user: mappedUser,
+        redirectPath
+      }
     },
-  });
+    onSuccess: (data) => {
+      if (!data) return
+      const { user, redirectPath } = data
 
-  // Helper function to determine the redirect path based on user role or userType
-  const getRedirectPathByRole = (user: User): string => {
-    // First, check if user needs to complete onboarding
-    if ((user.needsUsername || !user.onboardingCompleted) && 
-        !['admin', 'staff', 'university_admin'].includes(user.userType)) {
-      console.log("getRedirectPathByRole: User needs to complete onboarding, redirecting to /onboarding");
-      return '/onboarding';
-    }
+      // Save user data to state
+      queryClient.setQueryData(["/api/users/me"], user)
+      setIsAuthenticated(true)
 
-    // Check role first
-    if (user.role === 'super_admin' || user.role === 'admin') {
-      console.log("getRedirectPathByRole: Admin role detected, redirecting to /admin");
-      return '/admin';
-    } else if (user.role === 'staff') {
-      console.log("getRedirectPathByRole: Staff role detected, redirecting to /admin");
-      return '/admin';
-    } else if (user.role === 'university_admin') {
-      console.log("getRedirectPathByRole: University admin role detected, redirecting to /university-admin/dashboard");
-      return '/university-admin/dashboard';
-    } else if (user.role === 'university_user') {
-      console.log("getRedirectPathByRole: University user role detected, redirecting to /career-dashboard");
-      return '/career-dashboard';
-    } else if (user.role === 'user') {
-      console.log("getRedirectPathByRole: Regular user role detected, redirecting to /career-dashboard");
-      return '/career-dashboard';
+      // Force redirect using server-sent redirectPath
+      if (redirectPath) {
+        console.log("Redirecting to", redirectPath)
+        window.location.href = redirectPath
+      }
     }
-    
-    // Fall back to userType if role doesn't give a definitive answer
-    console.log("getRedirectPathByRole: Falling back to userType:", user.userType);
-    switch (user.userType) {
-      case 'admin':
-        return '/admin';
-      case 'staff':
-        return '/admin';  // Updated to use canonical admin path
-      case 'university_admin':
-        return '/university-admin/dashboard';
-      case 'university_student':
-        return '/career-dashboard';
-      case 'regular':
-      default:
-        return '/career-dashboard';
-    }
-  };
+  })
 
-  const login = async (email: string, password: string, loginType?: 'staff' | 'admin' | 'university' | 'regular') => {
+  const login = async (
+    email: string,
+    password: string,
+    loginType?: "staff" | "admin" | "university" | "regular"
+  ) => {
     // Clear any logout flag that might be set
-    localStorage.removeItem('auth-logout');
-    
-    const result = await loginMutation.mutateAsync({ email, password, loginType });
-    // Return the full result object including redirectPath
-    return result;
-  };
+    localStorage.removeItem("auth-logout")
 
-  const logout = () => {
-    // Make an API call to logout
-    apiRequest('POST', '/api/auth/logout')
-      .then((response) => {
-        // Check for the special header we added for logout
-        const logoutHeader = response.headers.get('X-Auth-Logout');
-        
-        // Set the auth-logout flag in localStorage for future requests
-        localStorage.setItem('auth-logout', 'true');
-        
-        // Clear local data
-        queryClient.setQueryData(['/api/users/me'], null);
-        setIsAuthenticated(false);
-        
-        // Redirect to sign-in page
-        window.location.href = '/sign-in';
-      })
-      .catch(error => {
-        console.error('Logout error:', error);
-        // Still clear local data and redirect even if the API call fails
-        localStorage.setItem('auth-logout', 'true');
-        queryClient.setQueryData(['/api/users/me'], null);
-        setIsAuthenticated(false);
-        window.location.href = '/sign-in';
-      });
-  };
+    const result = await loginMutation.mutateAsync({
+      email,
+      password,
+      loginType
+    })
+    // Return the full result object including redirectPath
+    return result
+  }
+
+  const logout = async () => {
+    try {
+      // Sign out from Supabase
+      await supabaseClient.auth.signOut()
+
+      // Try the API logout as well for compatibility
+      try {
+        await apiRequest("POST", "/api/auth/logout")
+      } catch (error) {
+        console.warn("API logout failed, but Supabase logout succeeded")
+      }
+
+      // Set the auth-logout flag in localStorage for future requests
+      localStorage.setItem("auth-logout", "true")
+
+      // Clear local data
+      queryClient.setQueryData(["/api/users/me"], null)
+      setIsAuthenticated(false)
+
+      // Redirect to sign-in page
+      window.location.href = "/sign-in"
+    } catch (error) {
+      console.error("Logout error:", error)
+      // Still clear local data and redirect even if the API call fails
+      localStorage.setItem("auth-logout", "true")
+      queryClient.setQueryData(["/api/users/me"], null)
+      setIsAuthenticated(false)
+      window.location.href = "/sign-in"
+    }
+  }
 
   const refetchUser = async () => {
-    if (!isAuthenticated) return null;
-    const result = await refetch();
-    return result.data || null;
-  };
-  
+    if (!isAuthenticated) return null
+    const result = await refetch()
+    return result.data || null
+  }
+
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
-      const res = await apiRequest('PUT', '/api/users/profile', data);
-      const responseData = await res.json();
-      // Response data is the user object directly
-      return responseData as User;
+    mutationFn: async (data: {
+      name?: string
+      email?: string
+      username?: string
+      profileImage?: string
+    }) => {
+      // Try updating via Supabase first
+      try {
+        // Get current auth user
+        const { data: authUser } = await supabaseClient.auth.getUser()
+
+        if (!authUser.user) {
+          throw new Error("Not authenticated")
+        }
+
+        // Update auth metadata if name is provided
+        if (data.name) {
+          await supabaseClient.auth.updateUser({
+            data: { name: data.name }
+          })
+        }
+
+        // Update email if provided
+        if (data.email) {
+          await supabaseClient.auth.updateUser({
+            email: data.email
+          })
+        }
+
+        // Update user profile in database
+        const { data: updatedData, error } = await supabaseClient
+          .from("users")
+          .update({
+            name: data.name,
+            username: data.username,
+            profile_image: data.profileImage
+          })
+          .eq("id", authUser.user.id)
+          .select()
+          .single()
+
+        if (error) {
+          throw error
+        }
+
+        // Map to our User type
+        const mappedUser: User = {
+          id: updatedData.id,
+          username: updatedData.username,
+          name: updatedData.name,
+          email: updatedData.email,
+          userType: updatedData.user_type as any,
+          role: updatedData.role as any,
+          universityId: updatedData.university_id,
+          universityName: updatedData.university_name,
+          isUniversityStudent: updatedData.user_type === "university_student",
+          needsUsername: updatedData.needs_username,
+          onboardingCompleted: updatedData.onboarding_completed,
+          xp: updatedData.xp || 0,
+          level: updatedData.level || 1,
+          rank: updatedData.rank || "Beginner",
+          profileImage: updatedData.profile_image,
+          subscriptionPlan: (updatedData.subscription_plan || "free") as any,
+          subscriptionStatus: (updatedData.subscription_status ||
+            "inactive") as any,
+          subscriptionCycle: updatedData.subscription_cycle as any,
+          stripeCustomerId: updatedData.stripe_customer_id,
+          stripeSubscriptionId: updatedData.stripe_subscription_id,
+          emailVerified: updatedData.email_verified || false
+        }
+
+        return mappedUser
+      } catch (supabaseError) {
+        console.error(
+          "Supabase update failed, falling back to API:",
+          supabaseError
+        )
+
+        // Fall back to API endpoint if Supabase update fails
+        const res = await apiRequest("PUT", "/api/users/profile", data)
+        const responseData = await res.json()
+        // Response data is the user object directly
+        return responseData as User
+      }
     },
     onSuccess: (updatedUser) => {
       // Update the cache with the new user data
-      queryClient.setQueryData(['/api/users/me'], updatedUser);
-      
+      queryClient.setQueryData(["/api/users/me"], updatedUser)
+
       // Also invalidate the cache to ensure fresh data on next fetch
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  const updateProfile = async (data: { name?: string; email?: string; username?: string; profileImage?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  const updateProfile = async (data: {
+    name?: string
+    email?: string
+    username?: string
+    profileImage?: string
+  }) => {
     // Add a timestamp to force cache refresh if this is a profile image update
     if (data.profileImage) {
-      data.profileImage = `${data.profileImage}?t=${new Date().getTime()}`;
-      console.log('Setting profile image with timestamp:', data.profileImage);
+      data.profileImage = `${data.profileImage}?t=${new Date().getTime()}`
+      console.log("Setting profile image with timestamp:", data.profileImage)
     }
-    return updateProfileMutation.mutateAsync(data);
-  };
-  
+    return updateProfileMutation.mutateAsync(data)
+  }
+
   const updateUser = (data: Partial<User>) => {
-    if (!user) return;
-    
+    if (!user) return
+
     // Add timestamp to profile image if it's being updated
-    const updatedData = { ...data };
+    const updatedData = { ...data }
     if (updatedData.profileImage) {
       // If the URL already has a timestamp parameter, replace it
-      if (updatedData.profileImage.includes('?')) {
-        updatedData.profileImage = updatedData.profileImage.split('?')[0] + `?t=${new Date().getTime()}`;
+      if (updatedData.profileImage.includes("?")) {
+        updatedData.profileImage =
+          updatedData.profileImage.split("?")[0] + `?t=${new Date().getTime()}`
       } else {
-        updatedData.profileImage = `${updatedData.profileImage}?t=${new Date().getTime()}`;
+        updatedData.profileImage = `${
+          updatedData.profileImage
+        }?t=${new Date().getTime()}`
       }
-      console.log('updateUser setting image with timestamp:', updatedData.profileImage);
+      console.log(
+        "updateUser setting image with timestamp:",
+        updatedData.profileImage
+      )
     }
-    
-    queryClient.setQueryData(['/api/users/me'], { ...user, ...updatedData });
-  };
+
+    queryClient.setQueryData(["/api/users/me"], { ...user, ...updatedData })
+  }
 
   // Function to update theme settings
-  const updateTheme = async (themeSettings: User['theme']) => {
-    if (!user || !themeSettings) return;
-    
+  const updateTheme = async (themeSettings: User["theme"]) => {
+    if (!user || !themeSettings) return
+
     try {
       // Update theme.json via the fetch API
-      const response = await fetch('/api/theme', {
-        method: 'POST',
+      const response = await fetch("/api/theme", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(themeSettings),
-      });
-      
+        body: JSON.stringify(themeSettings)
+      })
+
       if (!response.ok) {
-        throw new Error('Failed to update theme');
+        throw new Error("Failed to update theme")
       }
-      
+
       // Also update the user in the cache with the new theme settings
-      updateUser({ theme: themeSettings });
-      
+      updateUser({ theme: themeSettings })
+
       // In a real implementation with a server, we'd also need to save
       // the theme preference to the user's record in the database
-      
+
       // For now, we'll directly update the theme.json file by simulating it
       // and reload the theme
       setTimeout(() => {
-        window.location.reload();
-      }, 500);
-      
+        window.location.reload()
+      }, 500)
     } catch (error) {
-      console.error('Error updating theme:', error);
-      throw error;
+      console.error("Error updating theme:", error)
+      throw error
     }
-  };
+  }
 
   // Function to upload profile image and update the user profile
   const uploadProfileImage = async (imageDataUrl: string): Promise<User> => {
-    if (!user) throw new Error('User not authenticated');
-    
+    if (!user) throw new Error("User not authenticated")
+
     try {
-      console.log("Starting profile image save process...");
-      
+      console.log("Starting profile image save process...")
+
+      // Try uploading to Supabase storage first
+      try {
+        const { data: authUser } = await supabaseClient.auth.getUser()
+        if (!authUser.user) {
+          throw new Error("Not authenticated")
+        }
+
+        // Convert dataURL to file
+        const base64Data = imageDataUrl.split(",")[1]
+        const byteCharacters = atob(base64Data)
+        const byteArrays = []
+
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteArrays.push(byteCharacters.charCodeAt(i))
+        }
+
+        const byteArray = new Uint8Array(byteArrays)
+        const blob = new Blob([byteArray], { type: "image/png" })
+        const fileName = `profile-${authUser.user.id}-${Date.now()}.png`
+
+        // Upload to Supabase storage
+        const { data: storageData, error: storageError } =
+          await supabaseClient.storage
+            .from("profile-images")
+            .upload(fileName, blob)
+
+        if (storageError) {
+          throw storageError
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabaseClient.storage
+          .from("profile-images")
+          .getPublicUrl(fileName)
+
+        const profileImage = publicUrlData.publicUrl
+
+        // Update user profile
+        const { data: updatedUserData, error: updateError } =
+          await supabaseClient
+            .from("users")
+            .update({ profile_image: profileImage })
+            .eq("id", authUser.user.id)
+            .select()
+            .single()
+
+        if (updateError) {
+          throw updateError
+        }
+
+        // Map to User type and return
+        const updatedUser: User = {
+          id: updatedUserData.id,
+          username: updatedUserData.username,
+          name: updatedUserData.name,
+          email: updatedUserData.email,
+          userType: updatedUserData.user_type as any,
+          role: updatedUserData.role as any,
+          universityId: updatedUserData.university_id,
+          universityName: updatedUserData.university_name,
+          isUniversityStudent:
+            updatedUserData.user_type === "university_student",
+          needsUsername: updatedUserData.needs_username,
+          onboardingCompleted: updatedUserData.onboarding_completed,
+          xp: updatedUserData.xp || 0,
+          level: updatedUserData.level || 1,
+          rank: updatedUserData.rank || "Beginner",
+          profileImage: `${profileImage}?t=${Date.now()}`, // Add timestamp
+          subscriptionPlan: (updatedUserData.subscription_plan ||
+            "free") as any,
+          subscriptionStatus: (updatedUserData.subscription_status ||
+            "inactive") as any,
+          subscriptionCycle: updatedUserData.subscription_cycle as any,
+          stripeCustomerId: updatedUserData.stripe_customer_id,
+          stripeSubscriptionId: updatedUserData.stripe_subscription_id,
+          emailVerified: updatedUserData.email_verified || false
+        }
+
+        // Update query cache
+        queryClient.setQueryData(["/api/users/me"], updatedUser)
+
+        return updatedUser
+      } catch (supabaseError) {
+        console.error(
+          "Supabase upload failed, falling back to API:",
+          supabaseError
+        )
+        // Fall back to legacy API
+      }
+
       // Step 1: Upload image to server
-      const uploadResponse = await fetch('/api/users/profile-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl }),
-      });
-      
+      const uploadResponse = await fetch("/api/users/profile-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageDataUrl })
+      })
+
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload profile image');
+        throw new Error("Failed to upload profile image")
       }
-      
-      const uploadData = await uploadResponse.json();
+
+      const uploadData = await uploadResponse.json()
       if (!uploadData.profileImage) {
-        throw new Error('Profile image URL not returned from server');
+        throw new Error("Profile image URL not returned from server")
       }
-      
+
       // Step 2: Update user profile with the new image URL
-      const profileUpdateResponse = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      const profileUpdateResponse = await fetch("/api/users/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           profileImage: uploadData.profileImage // Send without timestamp
-        }),
-      });
-      
+        })
+      })
+
       if (!profileUpdateResponse.ok) {
-        throw new Error('Failed to update profile with new image');
+        throw new Error("Failed to update profile with new image")
       }
-      
-      const updatedUserData = await profileUpdateResponse.json();
-      
+
+      const updatedUserData = await profileUpdateResponse.json()
+
       // Step 3: Update the local user state with the image URL plus cache-busting timestamp
-      const timestamp = Date.now();
-      const profileImageWithTimestamp = `${uploadData.profileImage}?t=${timestamp}`;
-      
+      const timestamp = Date.now()
+      const profileImageWithTimestamp = `${uploadData.profileImage}?t=${timestamp}`
+
       const updatedUser = {
         ...updatedUserData,
         profileImage: profileImageWithTimestamp // Add timestamp to prevent browser caching
-      };
-      
+      }
+
       // Update query cache with the timestamped URL
-      queryClient.setQueryData(['/api/users/me'], updatedUser);
-      
+      queryClient.setQueryData(["/api/users/me"], updatedUser)
+
       // Step 4: Manually trigger refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+
       // Log success
-      console.log("Image uploaded and profile updated successfully:", updatedUser);
-      
-      return updatedUser;
+      console.log(
+        "Image uploaded and profile updated successfully:",
+        updatedUser
+      )
+
+      return updatedUser
     } catch (error) {
-      console.error('Error in uploadProfileImage:', error);
-      throw error;
+      console.error("Error in uploadProfileImage:", error)
+      throw error
     }
-  };
+  }
 
   return (
     <UserContext.Provider
@@ -350,263 +654,304 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateProfile,
         updateUser,
         updateTheme,
-        uploadProfileImage,
+        uploadProfileImage
       }}
     >
       {children}
     </UserContext.Provider>
-  );
+  )
 }
 
 export function useUser() {
-  const context = useContext(UserContext);
+  const context = useContext(UserContext)
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider")
   }
-  return context;
+  return context
 }
 
 // Utility functions for managing user progress
 export function useAddUserXP() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const addXPMutation = useMutation({
-    mutationFn: async ({ amount, source, description }: { amount: number; source: string; description?: string }) => {
-      const res = await apiRequest('POST', '/api/users/xp', { amount, source, description });
-      const data = await res.json();
-      return data;
+    mutationFn: async ({
+      amount,
+      source,
+      description
+    }: {
+      amount: number
+      source: string
+      description?: string
+    }) => {
+      const res = await apiRequest("POST", "/api/users/xp", {
+        amount,
+        source,
+        description
+      })
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
       // Refetch user data to get updated XP
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return addXPMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return addXPMutation
 }
 
 export function useUserStatistics() {
   return useQuery({
-    queryKey: ['/api/users/statistics'],
-  });
+    queryKey: ["/api/users/statistics"]
+  })
 }
 
 export function useUserXPHistory() {
   return useQuery({
-    queryKey: ['/api/users/xp-history'],
-  });
+    queryKey: ["/api/users/xp-history"]
+  })
 }
 
 // User type helper hooks
 export function useIsRegularUser() {
-  const { user } = useUser();
-  return !!user && (user.role === 'user' || user.userType === 'regular');
+  const { user } = useUser()
+  return !!user && (user.role === "user" || user.userType === "regular")
 }
 
 export function useIsUniversityStudent() {
-  const { user } = useUser();
-  return !!user && (user.role === 'university_user' || user.userType === 'university_student');
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "university_user" || user.userType === "university_student")
+  )
 }
 
 export function useIsUniversityAdmin() {
-  const { user } = useUser();
-  return !!user && (user.role === 'university_admin' || user.userType === 'university_admin');
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "university_admin" || user.userType === "university_admin")
+  )
 }
 
 export function useIsUniversityUser() {
-  const { user } = useUser();
-  return !!user && (
-    user.role === 'university_user' || 
-    user.role === 'university_admin' || 
-    user.userType === 'university_student' || 
-    user.userType === 'university_admin'
-  );
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "university_user" ||
+      user.role === "university_admin" ||
+      user.userType === "university_student" ||
+      user.userType === "university_admin")
+  )
 }
 
 // Check for any admin-like capabilities (broader definition, includes university admins)
 export function useIsAdminUser() {
-  const { user } = useUser();
-  return !!user && (
-    user.role === 'super_admin' || 
-    user.role === 'admin' ||
-    user.userType === 'admin' || 
-    user.id === 1
-  );
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "super_admin" ||
+      user.role === "admin" ||
+      user.userType === "admin" ||
+      user.id === 1)
+  )
 }
 
 // Check specifically for Ascentul system administrators
 export function useIsSystemAdmin() {
-  const { user } = useUser();
-  return !!user && (
-    user.role === 'super_admin' || 
-    user.role === 'admin' ||
-    user.userType === 'admin' || 
-    user.id === 1
-  );
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "super_admin" ||
+      user.role === "admin" ||
+      user.userType === "admin" ||
+      user.id === 1)
+  )
 }
 
 export function useIsStaffUser() {
-  const { user } = useUser();
-  return !!user && (
-    user.role === 'staff' || 
-    user.role === 'admin' || 
-    user.role === 'super_admin' ||
-    user.userType === 'staff' || 
-    user.userType === 'admin'
-  );
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.role === "staff" ||
+      user.role === "admin" ||
+      user.role === "super_admin" ||
+      user.userType === "staff" ||
+      user.userType === "admin")
+  )
 }
 
 // Subscription helper hooks
 export function useIsSubscriptionActive() {
-  const { user } = useUser();
-  return !!user && user.subscriptionStatus === 'active';
+  const { user } = useUser()
+  return !!user && user.subscriptionStatus === "active"
 }
 
 export function useUserPlan() {
-  const { user } = useUser();
-  return user?.subscriptionPlan || 'free';
+  const { user } = useUser()
+  return user?.subscriptionPlan || "free"
 }
 
 export function useCanAccessPremiumFeature() {
-  const { user } = useUser();
-  return !!user && (
-    (user.subscriptionPlan === 'premium' || user.subscriptionPlan === 'university') && 
-    user.subscriptionStatus === 'active'
-  );
+  const { user } = useUser()
+  return (
+    !!user &&
+    (user.subscriptionPlan === "premium" ||
+      user.subscriptionPlan === "university") &&
+    user.subscriptionStatus === "active"
+  )
 }
 
 export function useUpdateUserSubscription() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const updateSubscriptionMutation = useMutation({
-    mutationFn: async ({ 
-      subscriptionPlan, 
+    mutationFn: async ({
+      subscriptionPlan,
       subscriptionStatus,
       subscriptionCycle,
       stripeCustomerId,
       stripeSubscriptionId,
       subscriptionExpiresAt
-    }: { 
-      subscriptionPlan?: 'free' | 'premium' | 'university';
-      subscriptionStatus?: 'active' | 'inactive' | 'cancelled' | 'past_due';
-      subscriptionCycle?: 'monthly' | 'quarterly' | 'annual';
-      stripeCustomerId?: string;
-      stripeSubscriptionId?: string;
-      subscriptionExpiresAt?: Date;
+    }: {
+      subscriptionPlan?: "free" | "premium" | "university"
+      subscriptionStatus?: "active" | "inactive" | "cancelled" | "past_due"
+      subscriptionCycle?: "monthly" | "quarterly" | "annual"
+      stripeCustomerId?: string
+      stripeSubscriptionId?: string
+      subscriptionExpiresAt?: Date
     }) => {
-      const res = await apiRequest('PUT', '/api/users/subscription', {
+      const res = await apiRequest("PUT", "/api/users/subscription", {
         subscriptionPlan,
         subscriptionStatus,
         subscriptionCycle,
         stripeCustomerId,
         stripeSubscriptionId,
         subscriptionExpiresAt
-      });
-      const data = await res.json();
-      return data;
+      })
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return updateSubscriptionMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return updateSubscriptionMutation
 }
 
 export function useVerifyEmail() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const verifyEmailMutation = useMutation({
     mutationFn: async (token: string) => {
-      const res = await apiRequest('POST', '/api/auth/verify-email', { token });
-      const data = await res.json();
-      return data;
+      const res = await apiRequest("POST", "/api/auth/verify-email", { token })
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return verifyEmailMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return verifyEmailMutation
 }
 
 export function useSendVerificationEmail() {
   const sendVerificationMutation = useMutation({
     mutationFn: async (email: string) => {
-      const res = await apiRequest('POST', '/api/auth/send-verification-email', { email });
-      const data = await res.json();
-      return data;
-    },
-  });
-  
-  return sendVerificationMutation;
+      const res = await apiRequest(
+        "POST",
+        "/api/auth/send-verification-email",
+        { email }
+      )
+      const data = await res.json()
+      return data
+    }
+  })
+
+  return sendVerificationMutation
 }
 
 // Hook for changing email
 export function useChangeEmail() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const changeEmailMutation = useMutation({
-    mutationFn: async ({ email, currentPassword }: { email: string; currentPassword: string }) => {
-      const res = await apiRequest('POST', '/api/auth/send-email-change-verification', { 
-        email, 
-        currentPassword 
-      });
-      const data = await res.json();
-      return data;
+    mutationFn: async ({
+      email,
+      currentPassword
+    }: {
+      email: string
+      currentPassword: string
+    }) => {
+      const res = await apiRequest(
+        "POST",
+        "/api/auth/send-email-change-verification",
+        {
+          email,
+          currentPassword
+        }
+      )
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
       // Refetch user data to reflect pending email change
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return changeEmailMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return changeEmailMutation
 }
 
 // Hook for verifying email change
 export function useVerifyEmailChange() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const verifyEmailChangeMutation = useMutation({
     mutationFn: async (token: string) => {
-      const res = await apiRequest('GET', `/api/auth/verify-email-change?token=${token}`);
-      const data = await res.json();
-      return data;
+      const res = await apiRequest(
+        "GET",
+        `/api/auth/verify-email-change?token=${token}`
+      )
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
       // Refetch user data to reflect email change
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return verifyEmailChangeMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return verifyEmailChangeMutation
 }
 
 // Hook for changing password
 export function useChangePassword() {
-  const queryClient = useQueryClient();
-  
+  const queryClient = useQueryClient()
+
   const changePasswordMutation = useMutation({
-    mutationFn: async ({ 
-      currentPassword, 
-      newPassword 
-    }: { 
-      currentPassword: string; 
-      newPassword: string;
+    mutationFn: async ({
+      currentPassword,
+      newPassword
+    }: {
+      currentPassword: string
+      newPassword: string
     }) => {
-      const res = await apiRequest('POST', '/api/auth/change-password', { 
-        currentPassword, 
-        newPassword 
-      });
-      const data = await res.json();
-      return data;
+      const res = await apiRequest("POST", "/api/auth/change-password", {
+        currentPassword,
+        newPassword
+      })
+      const data = await res.json()
+      return data
     },
     onSuccess: () => {
       // Optionally refetch user data if needed
-      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
-    },
-  });
-  
-  return changePasswordMutation;
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+    }
+  })
+
+  return changePasswordMutation
 }

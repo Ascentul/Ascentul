@@ -14,7 +14,11 @@ class SupabaseSessionStore extends session.Store {
         .eq("sid", sid)
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.warn(`Session retrieval error for sid ${sid}:`, error)
+        // Don't fail the operation, just return null session
+        return callback(null, null)
+      }
 
       if (!data) {
         return callback(null, null)
@@ -22,7 +26,13 @@ class SupabaseSessionStore extends session.Store {
 
       callback(null, data.sess)
     } catch (err) {
-      callback(err)
+      console.error(`Unexpected error in session retrieval:`, err)
+      // Don't fail the operation, return null for session in dev mode
+      if (ENV.NODE_ENV === "development") {
+        callback(null, null)
+      } else {
+        callback(err)
+      }
     }
   }
 
@@ -44,11 +54,25 @@ class SupabaseSessionStore extends session.Store {
         }
       )
 
-      if (error) throw error
+      if (error) {
+        console.warn(`Session storage error for sid ${sid}:`, error)
+        // In development, don't fail if we can't store the session
+        if (ENV.NODE_ENV === "development" && callback) {
+          callback()
+          return
+        }
+        throw error
+      }
 
       if (callback) callback()
     } catch (err) {
-      if (callback) callback(err)
+      console.error(`Unexpected error in session storage:`, err)
+      // In development, don't fail if we can't store the session
+      if (ENV.NODE_ENV === "development" && callback) {
+        callback()
+      } else if (callback) {
+        callback(err)
+      }
     }
   }
 
@@ -56,11 +80,77 @@ class SupabaseSessionStore extends session.Store {
     try {
       const { error } = await supabase.from("sessions").delete().eq("sid", sid)
 
-      if (error) throw error
+      if (error) {
+        console.warn(`Session deletion error for sid ${sid}:`, error)
+        // In development, don't fail if we can't delete the session
+        if (ENV.NODE_ENV === "development" && callback) {
+          callback()
+          return
+        }
+        throw error
+      }
+
+      if (callback) callback()
+    } catch (err) {
+      console.error(`Unexpected error in session deletion:`, err)
+      // In development, don't fail if we can't delete the session
+      if (ENV.NODE_ENV === "development" && callback) {
+        callback()
+      } else if (callback) {
+        callback(err)
+      }
+    }
+  }
+}
+
+// Create a lightweight in-memory store for development mode
+class SimpleMemoryStore extends session.Store {
+  private sessions = new Map<string, { sess: any; expires: Date }>()
+
+  constructor() {
+    super()
+    // Periodically clean up expired sessions
+    setInterval(() => this.cleanup(), 15 * 60 * 1000) // 15 min interval
+  }
+
+  get(sid: string, callback: (err: any, session?: any) => void) {
+    const sessionData = this.sessions.get(sid)
+    if (!sessionData || sessionData.expires < new Date()) {
+      if (sessionData) this.sessions.delete(sid) // Cleanup expired session
+      return callback(null, null)
+    }
+    callback(null, sessionData.sess)
+  }
+
+  set(sid: string, session: any, callback?: (err?: any) => void) {
+    try {
+      const now = new Date()
+      const expiresAt = new Date(
+        now.getTime() + (session.cookie.maxAge || 86400000)
+      )
+
+      this.sessions.set(sid, {
+        sess: session,
+        expires: expiresAt
+      })
 
       if (callback) callback()
     } catch (err) {
       if (callback) callback(err)
+    }
+  }
+
+  destroy(sid: string, callback?: (err?: any) => void) {
+    this.sessions.delete(sid)
+    if (callback) callback()
+  }
+
+  private cleanup() {
+    const now = new Date()
+    for (const [sid, sessionData] of this.sessions.entries()) {
+      if (sessionData.expires < now) {
+        this.sessions.delete(sid)
+      }
     }
   }
 }
@@ -69,8 +159,11 @@ class SupabaseSessionStore extends session.Store {
 // Choose between Supabase, PostgreSQL, or in-memory store
 let sessionStore: session.Store
 
-// First check for Supabase configuration
-if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
+// For development mode, use the lightweight in-memory store by default
+if (ENV.NODE_ENV === "development") {
+  sessionStore = new SimpleMemoryStore()
+  console.log("✅ Using lightweight in-memory session store for development")
+} else if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
   try {
     // Use Supabase session store
     sessionStore = new SupabaseSessionStore()
