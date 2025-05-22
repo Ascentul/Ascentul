@@ -39,19 +39,24 @@ export { pool, db, supabase, supabaseAdmin }
 // Check database connection
 export async function checkDatabaseConnection() {
   try {
-    // First try to check Supabase connection
+    // First try to check Supabase connection with a basic query that doesn't trigger WebSocket
     const { data, error } = await supabase
       .from("users")
-      .select("count(*)", { count: "exact" })
+      .select("id", { count: "exact", head: true })
+      .limit(1)
 
     if (error) {
       console.error("Supabase connection failed:", error)
 
       // If Supabase fails, try Neon DB if available
       if (ENV.DATABASE_URL && db) {
-        const result = await pool!.query("SELECT NOW()")
-        console.log("Neon DB connection successful:", result.rows[0])
-        return true
+        try {
+          const result = await pool!.query("SELECT NOW()")
+          console.log("✅ Database connection successful")
+          return true
+        } catch (neonError) {
+          console.error("Neon DB connection failed:", neonError)
+        }
       }
 
       if (ENV.NODE_ENV === "production") {
@@ -64,7 +69,7 @@ export async function checkDatabaseConnection() {
       }
     }
 
-    console.log("✅ Supabase connection successful")
+    console.log("✅ Database connection successful")
     return true
   } catch (error) {
     console.error("All database connections failed:", error)
