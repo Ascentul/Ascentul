@@ -46,14 +46,12 @@ export default defineConfig(async ({ mode }) => {
     // Define environment variables to be accessible in the client code
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-        env.SUPABASE_URL || "https://qyycdduuadsofgabrgip.supabase.co"
+        env.SUPABASE_URL
       ),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(
-        env.SUPABASE_ANON_KEY ||
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5eWNkZHV1YWRzb2ZnYWJyZ2lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc3MDE1MzAsImV4cCI6MjAzMzI3NzUzMH0.YwhEDZfBSGAZ5fTTEeVfK_RGRu52W5T1X9tFdaybr7g"
+        env.SUPABASE_ANON_KEY
       ),
-      // Force DEV mode to be true in development for authentication bypass
-      "import.meta.env.DEV": mode === "development" ? true : false
+      "import.meta.env.DEV": mode === "development"
     }
   }
 })
