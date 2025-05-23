@@ -104,23 +104,27 @@ import {
   generatePlanRequestSchema
 } from "./skill-stacker"
 
-// Helper function to get the current user from the session
+// Helper function to get the current user
 async function getCurrentUser(req: Request): Promise<User | null> {
   try {
-    console.log("Session data:", req.session)
+    // If we already have the user object from the Supabase auth middleware
+    if (req.user) {
+      console.log("Found user from Supabase auth:", req.user.id)
+      return req.user
+    }
 
-    // Check if user is logged in via session
-    if (req.session && req.session.userId) {
-      console.log("User ID from session:", req.session.userId)
-      const user = await storage.getUser(req.session.userId)
+    // If we have a userId but no user object
+    if (req.userId) {
+      console.log("User ID from Supabase token:", req.userId)
+      const user = await storage.getUser(parseInt(req.userId))
       if (user) {
         console.log("Found user:", user.id, user.username)
         return user
       } else {
-        console.log("User not found in database for ID:", req.session.userId)
+        console.log("User not found in database for ID:", req.userId)
       }
     } else {
-      console.log("No user ID in session")
+      console.log("No user ID available")
     }
 
     // Return null if no valid user found
@@ -131,81 +135,105 @@ async function getCurrentUser(req: Request): Promise<User | null> {
   }
 }
 
+// Import Supabase auth middleware
+import { verifySupabaseToken } from "./supabase-auth"
+import { ENV } from "../config/env"
+import { supabaseAdmin } from "./supabase"
+
 // Middleware to check if user is authenticated
-function requireAuth(req: Request, res: Response, next: () => void) {
-  console.log(
-    "Checking auth. Session:",
-    req.session?.userId ? "Has userId" : "No userId"
-  )
-
-  if (!req.session || !req.session.userId) {
-    console.log("Auth check failed - no session or userId")
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  console.log("Auth check passed for user ID:", req.session.userId)
-  next()
+async function requireAuth(req: Request, res: Response, next: () => void) {
+  // Use the Supabase token verification middleware
+  await verifySupabaseToken(req, res, next as any)
 }
 
 // Modified authentication middleware that automatically logs in as demo user
 // This is a temporary solution for development purposes
-function requireLoginFallback(req: Request, res: Response, next: () => void) {
+async function requireLoginFallback(
+  req: Request,
+  res: Response,
+  next: () => void
+) {
   console.log(
-    "Checking auth with fallback enabled. Session:",
-    req.session?.userId ? "Has userId" : "No userId"
+    "Checking auth with fallback enabled. User:",
+    req.userId ? "Has userId" : "No userId"
   )
 
-  if (!req.session || !req.session.userId) {
+  // For development purposes, set a fallback demo user
+  if (ENV.NODE_ENV === "development" && (!req.userId || !req.user)) {
     console.log("Auto-assigning demo user ID")
-    // Set session with the demo user ID
-    req.session.userId = 2 // Demo user ID
+
+    // Get demo user with ID 2 for development
+    const { data: userData } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("id", 2)
+      .single()
+
+    if (userData) {
+      req.user = userData as unknown as User
+      req.userId = userData.id.toString()
+      console.log("DEV MODE: Using fallback user:", userData.email)
+    } else {
+      console.warn("DEV MODE: Could not find fallback user")
+    }
   }
 
-  console.log("Auth check passed for user ID:", req.session.userId)
+  console.log("Auth check passed for user ID:", req.userId)
   next()
 }
 
 // Middleware to check if user is an admin
 async function requireAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
+  // First verify the token and get the user
+  await verifySupabaseToken(req, res, async () => {
+    // Now check if the user attached to the request is an admin
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" })
+    }
 
-  const user = await storage.getUser(req.session.userId)
-  if (
-    !user ||
-    (user.userType !== "admin" &&
-      user.role !== "admin" &&
-      user.role !== "super_admin")
-  ) {
-    console.log(
-      `Access denied: User ${req.session.userId} tried to access admin route`
-    )
-    return res
-      .status(403)
-      .json({ message: "Access denied. Admin privileges required." })
-  }
+    if (
+      req.user.userType !== "admin" &&
+      req.user.role !== "admin" &&
+      req.user.role !== "super_admin"
+    ) {
+      console.log(
+        `Access denied: User ${req.user.id} tried to access admin route`
+      )
+      return res
+        .status(403)
+        .json({ message: "Access denied. Admin privileges required." })
+    }
 
-  next()
+    next()
+  })
 }
 
 // Middleware to check if user is a staff member
 async function requireStaff(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
+  // First verify the token and get the user
+  await verifySupabaseToken(req, res, async () => {
+    // Now check if the user attached to the request is a staff member
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" })
+    }
 
-  const user = await storage.getUser(req.session.userId)
-  if (!user || (user.userType !== "staff" && user.userType !== "admin")) {
-    console.log(
-      `Access denied: User ${req.session.userId} tried to access staff route`
-    )
-    return res
-      .status(403)
-      .json({ message: "Access denied. Staff privileges required." })
-  }
+    if (
+      req.user.userType !== "staff" &&
+      req.user.userType !== "admin" &&
+      req.user.role !== "staff" &&
+      req.user.role !== "admin" &&
+      req.user.role !== "super_admin"
+    ) {
+      console.log(
+        `Access denied: User ${req.user.id} tried to access staff route`
+      )
+      return res
+        .status(403)
+        .json({ message: "Access denied. Staff privileges required." })
+    }
 
-  next()
+    next()
+  })
 }
 
 // User type middleware removed as university-specific features are no longer used
@@ -216,48 +244,45 @@ async function validateUserAccess(
   res: Response,
   next: () => void
 ) {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
+  // First verify the token and get the user
+  await verifySupabaseToken(req, res, async () => {
+    if (!req.user || !req.userId) {
+      return res.status(401).json({ message: "Authentication required" })
+    }
 
-  // Get the requested resource ID (usually from URL params)
-  const resourceId = req.params.id ? parseInt(req.params.id) : null
-  const resourceUserId = req.params.userId ? parseInt(req.params.userId) : null
+    // Get the requested resource ID (usually from URL params)
+    const resourceId = req.params.id ? parseInt(req.params.id) : null
+    const resourceUserId = req.params.userId
+      ? parseInt(req.params.userId)
+      : null
 
-  if (!resourceId && !resourceUserId) {
-    // If no specific resource is targeted, allow the request to proceed
-    return next()
-  }
+    if (!resourceId && !resourceUserId) {
+      // If no specific resource is targeted, allow the request to proceed
+      return next()
+    }
 
-  const user = await storage.getUser(req.session.userId)
-  if (!user) {
-    return res.status(401).json({ message: "User not found" })
-  }
+    // Admins can access any data
+    if (
+      req.user.userType === "admin" ||
+      req.user.role === "admin" ||
+      req.user.role === "super_admin"
+    ) {
+      return next()
+    }
 
-  // Admins can access any data
-  if (user.userType === "admin") {
-    return next()
-  }
+    // For all other cases, only allow access to own data
+    if (resourceUserId && resourceUserId !== parseInt(req.userId)) {
+      console.log(
+        `Data access violation: User ${req.userId} attempted to access data for user ${resourceUserId}`
+      )
+      return res
+        .status(403)
+        .json({ message: "Access denied. You can only access your own data." })
+    }
 
-  // Check if the targeted resource belongs to the user
-  // This will need to be customized based on the specific resource type
-  // For example, for work history: const resource = await storage.getWorkHistory(resourceId);
-  // Then check if resource.userId === user.id
-
-  // University-specific code removed
-
-  // For all other cases, only allow access to own data
-  if (resourceUserId && resourceUserId !== user.id) {
-    console.log(
-      `Data access violation: User ${user.id} attempted to access data for user ${resourceUserId}`
-    )
-    return res
-      .status(403)
-      .json({ message: "Access denied. You can only access your own data." })
-  }
-
-  // Default case - proceed to the route handler
-  next()
+    // Default case - proceed to the route handler
+    next()
+  })
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -481,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Use session user ID if available, otherwise default to user ID 1 for testing
-      const userId = req.session?.userId || 1
+      const userId = req.userId || "1"
 
       console.log("Processing review from user:", userId)
 
@@ -726,12 +751,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check user type based on the login type
       if (loginType) {
         if (loginType === "university" && user.userType === "regular") {
-          return res
-            .status(403)
-            .json({
-              message:
-                "Access denied. This account is not associated with a university."
-            })
+          return res.status(403).json({
+            message:
+              "Access denied. This account is not associated with a university."
+          })
         }
 
         // MODIFICATION: Allow university users to log in through the regular portal
@@ -742,12 +765,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // }
 
         if (loginType === "admin" && user.userType !== "admin") {
-          return res
-            .status(403)
-            .json({
-              message:
-                "Access denied. You do not have administrator privileges."
-            })
+          return res.status(403).json({
+            message: "Access denied. You do not have administrator privileges."
+          })
         }
 
         if (
@@ -755,30 +775,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user.userType !== "staff" &&
           user.userType !== "admin"
         ) {
-          return res
-            .status(403)
-            .json({
-              message: "Access denied. You do not have staff privileges."
-            })
+          return res.status(403).json({
+            message: "Access denied. You do not have staff privileges."
+          })
         }
       }
 
-      // Set the user ID in session
-      req.session.userId = user.id
-
-      // Set a cookie with the user ID
-      res.cookie("userId", user.id, {
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
-        path: "/"
-      })
+      // NOTE: This route is maintained for backward compatibility only
+      // Supabase handles authentication directly in the frontend now
 
       const { password: pwd, ...safeUser } = user
 
       // Use the imported getRedirectByRole utility from the top
-
-      // Store the role in the session to be used by auth middleware
-      req.session.role = user.role || "user"
 
       // Use the utility function to determine redirect path
       const redirectPath = getRedirectByRole(user.role || "user")
@@ -802,33 +810,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/auth/logout", async (req: Request, res: Response) => {
     try {
-      // Clear the session
-      if (req.session) {
-        req.session.userId = undefined
-        req.session.role = undefined
+      // NOTE: This route is maintained for backward compatibility only
+      // Supabase handles logout directly in the frontend now
 
-        // Destroy the session
-        req.session.destroy((err) => {
-          if (err) {
-            return res.status(500).json({ message: "Error destroying session" })
-          }
+      // Clear the cookie
+      res.clearCookie("userId")
+      res.clearCookie("connect.sid")
 
-          // Clear the cookie
-          res.clearCookie("userId")
-          res.clearCookie("connect.sid")
+      // Set a special header to indicate logout for the client (for backward compatibility)
+      res.setHeader("X-Auth-Logout", "true")
 
-          // Set a special header to indicate logout for the client (for backward compatibility)
-          res.setHeader("X-Auth-Logout", "true")
-
-          res.status(200).json({ message: "Logged out successfully" })
-        })
-      } else {
-        // If there's no session, just clear the cookies
-        res.clearCookie("userId")
-        res.clearCookie("connect.sid")
-        res.setHeader("X-Auth-Logout", "true")
-        res.status(200).json({ message: "Logged out successfully" })
-      }
+      res.status(200).json({ message: "Logged out successfully" })
     } catch (error) {
       res.status(500).json({ message: "Error during logout" })
     }
@@ -902,9 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
 
         // Log the action
-        console.log(
-          `Admin ${req.session.userId} created staff user: ${newUser.id}`
-        )
+        console.log(`Admin ${req.userId} created staff user: ${newUser.id}`)
 
         // Return user without password
         const { password: pwd, ...safeUser } = newUser
@@ -976,8 +966,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingCompleted: true // Staff members skip onboarding
       })
 
-      // Set user in session
-      req.session.userId = newUser.id
+      // Set user ID on request
+      req.userId = newUser.id
 
       // Return user without password
       const { password: pwd, ...safeUser } = newUser
@@ -985,7 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the already imported getRedirectByRole utility
 
       // Store the role in the session
-      req.session.role = "staff"
+      // Role is now handled through Supabase JWT and user data
 
       return res.status(201).json({
         success: true,
@@ -1049,8 +1039,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newUser = await storage.createUser(validatedUserData)
       const { password: userPwd, ...safeUser } = newUser
 
-      // Store user ID in session to log them in
-      req.session.userId = newUser.id
+      // Set user ID on request
+      req.userId = newUser.id
 
       // Set a cookie with the user ID
       res.cookie("userId", newUser.id, {
@@ -1170,66 +1160,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   )
 
   // User Routes
-  apiRouter.get("/users/me", async (req: Request, res: Response) => {
-    try {
-      // Check the authorization header
-      const authHeader = req.headers.authorization
+  apiRouter.get(
+    "/users/me",
+    requireLoginFallback,
+    async (req: Request, res: Response) => {
+      try {
+        // The requireLoginFallback middleware will set req.userId
+        // No need to manually check the auth header anymore since it's handled by the middleware
 
-      // Normally we would validate the auth header here
-      // For demo purposes, we'll just check if the header exists
-      // and always return the sample user
+        // Check if the browser has a special logout flag set (from localStorage)
+        const isLoggedOut = req.headers["x-auth-logout"] === "true"
+        if (isLoggedOut) {
+          return res.status(401).json({ message: "Not authenticated" })
+        }
 
-      // Check if the browser has a special logout flag set (from localStorage)
-      const isLoggedOut = req.headers["x-auth-logout"] === "true"
-      if (isLoggedOut) {
-        return res.status(401).json({ message: "Not authenticated" })
+        // Get the user ID from the request (set by Supabase auth middleware)
+        let userId = req.userId ? parseInt(req.userId) : undefined
+
+        // If we still don't have a user ID, use the default "alex" for backward compatibility
+        let user
+        if (userId) {
+          user = await storage.getUser(userId)
+          console.log("Found user by ID:", userId, Boolean(user))
+        }
+
+        // If we couldn't find the user by ID, fall back to the default user
+        if (!user) {
+          console.log("Falling back to default user 'alex'")
+          user = await storage.getUserByUsername("alex")
+          if (user) {
+            console.log("Found fallback user with username 'alex'")
+          } else {
+            console.log("Could not find fallback user with username 'alex'")
+          }
+        }
+
+        if (!user) {
+          console.error(
+            "No user could be found - neither by ID nor by fallback username"
+          )
+          return res.status(404).json({ message: "User not found" })
+        }
+
+        const { password: userPassword, ...safeUser } = user
+
+        // Add password length for visual representation, but never send actual password
+        const passwordLength = userPassword ? userPassword.length : 0
+
+        console.log("Successfully retrieved user, returning response")
+        res.status(200).json({
+          ...safeUser,
+          passwordLength
+        })
+      } catch (error) {
+        console.error("Error in /api/users/me endpoint:", error)
+        res.status(500).json({ message: "Error fetching user" })
       }
-
-      // Get the user ID from the session
-      let userId
-
-      // Try to get user ID from the session
-      if (req.session && req.session.userId) {
-        userId = req.session.userId
-      }
-
-      // If we still don't have a user ID, use the default "alex" for backward compatibility
-      let user
-      if (userId) {
-        user = await storage.getUser(userId)
-      }
-
-      // If we couldn't find the user by ID, fall back to the default user
-      if (!user) {
-        user = await storage.getUserByUsername("alex")
-      }
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" })
-      }
-
-      const { password: userPassword, ...safeUser } = user
-
-      // Add password length for visual representation, but never send actual password
-      const passwordLength = userPassword ? userPassword.length : 0
-
-      res.status(200).json({
-        ...safeUser,
-        passwordLength
-      })
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching user" })
     }
-  })
+  )
 
   // Update user profile
   apiRouter.put("/users/profile", async (req: Request, res: Response) => {
     try {
-      // Get user ID from session
-      let userId
-      if (req.session && req.session.userId) {
-        userId = req.session.userId
-      }
+      // Get user ID from request (set by Supabase auth middleware)
+      const userId = req.userId
 
       // Get the user by ID or fall back to default
       let user
@@ -1354,11 +1348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Profile image upload endpoint called")
 
-        // Get user ID from session
-        let userId
-        if (req.session && req.session.userId) {
-          userId = req.session.userId
-        }
+        // Get user ID from request (set by Supabase auth middleware)
+        const userId = req.userId
 
         // Get the user by ID or fall back to default
         let user
@@ -1821,12 +1812,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Validate the request body against the schema
         const result = insertSkillStackerPlanSchema.safeParse(req.body)
         if (!result.success) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid plan data",
-              errors: result.error.format()
-            })
+          return res.status(400).json({
+            message: "Invalid plan data",
+            errors: result.error.format()
+          })
         }
 
         // Check if the goal exists and belongs to the user
@@ -2075,11 +2064,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
 
         if (!allTasksComplete) {
-          return res
-            .status(400)
-            .json({
-              message: "Cannot complete plan - some tasks are still incomplete"
-            })
+          return res.status(400).json({
+            message: "Cannot complete plan - some tasks are still incomplete"
+          })
         }
 
         // Complete the week
@@ -2191,12 +2178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(workHistoryItem)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid work history data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid work history data",
+            errors: error.errors
+          })
         }
         res.status(500).json({ message: "Error creating work history item" })
       }
@@ -2231,12 +2216,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the work history item belongs to the current user
         if (item.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to update this work history item"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to update this work history item"
+          })
         }
 
         const updatedItem = await storage.updateWorkHistoryItem(
@@ -2278,12 +2261,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the work history item belongs to the current user
         if (item.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to delete this work history item"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to delete this work history item"
+          })
         }
 
         await storage.deleteWorkHistoryItem(itemId)
@@ -2360,12 +2341,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(educationHistoryItem)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid education history data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid education history data",
+            errors: error.errors
+          })
         }
         res
           .status(500)
@@ -2404,12 +2383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the education history item belongs to the current user
         if (item.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to update this education history item"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to update this education history item"
+          })
         }
 
         const updatedItem = await storage.updateEducationHistoryItem(
@@ -2455,12 +2432,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the education history item belongs to the current user
         if (item.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to delete this education history item"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to delete this education history item"
+          })
         }
 
         await storage.deleteEducationHistoryItem(itemId)
@@ -2538,12 +2513,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(certification)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid certification data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid certification data",
+            errors: error.errors
+          })
         }
         res.status(500).json({ message: "Error creating certification" })
       }
@@ -2576,11 +2549,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the certification belongs to the current user
         if (certification.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to update this certification"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this certification"
+          })
         }
 
         const updatedCertification = await storage.updateCertification(
@@ -2621,11 +2592,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the certification belongs to the current user
         if (certification.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to update this certification"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this certification"
+          })
         }
 
         const updatedCertification = await storage.updateCertification(
@@ -2665,11 +2634,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the certification belongs to the current user
         if (certification.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to delete this certification"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this certification"
+          })
         }
 
         await storage.deleteCertification(certificationId)
@@ -2781,11 +2748,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the achievement belongs to the current user
         if (achievement.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to update this achievement"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this achievement"
+          })
         }
 
         const updatedAchievement = await storage.updateUserPersonalAchievement(
@@ -2830,11 +2795,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the achievement belongs to the current user
         if (achievement.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to delete this achievement"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this achievement"
+          })
         }
 
         await storage.deleteUserPersonalAchievement(achievementId)
@@ -2908,11 +2871,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the resume belongs to the current user
         if (resume.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this resume"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this resume"
+          })
         }
 
         // Ensure proper serialization and handle null values or date objects
@@ -2989,11 +2950,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the resume belongs to the current user
         if (resume.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to update this resume"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this resume"
+          })
         }
 
         const updatedResume = await storage.updateResume(resumeId, req.body)
@@ -3030,11 +2989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the resume belongs to the current user
         if (resume.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to delete this resume"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this resume"
+          })
         }
 
         await storage.deleteResume(resumeId)
@@ -3059,10 +3016,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // If we have a logged-in user, use their work history from the database
         let userWorkHistory = workHistory
-        if (req.session.userId && !workHistory) {
-          const userHistoryEntries = await storage.getWorkHistory(
-            req.session.userId
-          )
+        if (req.userId && !workHistory) {
+          const userHistoryEntries = await storage.getWorkHistory(req.userId)
 
           if (userHistoryEntries && userHistoryEntries.length > 0) {
             userWorkHistory = userHistoryEntries
@@ -3095,11 +3050,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         if (!userWorkHistory) {
-          return res
-            .status(400)
-            .json({
-              message: "No work history provided and none found in user profile"
-            })
+          return res.status(400).json({
+            message: "No work history provided and none found in user profile"
+          })
         }
 
         // Generate more specific suggestions that highlight exactly what to emphasize from work history
@@ -3110,11 +3063,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(200).json(suggestions)
       } catch (error: any) {
         console.error("Error generating resume suggestions:", error)
-        res
-          .status(500)
-          .json({
-            message: `Error generating resume suggestions: ${error.message}`
-          })
+        res.status(500).json({
+          message: `Error generating resume suggestions: ${error.message}`
+        })
       }
     }
   )
@@ -3131,14 +3082,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userWorkHistory = workHistory
       let userData: any = null
 
-      if (req.session.userId) {
+      if (req.userId) {
         // Get user data for personal info
         userData = await getCurrentUser(req)
 
         if (!workHistory) {
-          const userHistoryEntries = await storage.getWorkHistory(
-            req.session.userId
-          )
+          const userHistoryEntries = await storage.getWorkHistory(req.userId)
 
           if (userHistoryEntries && userHistoryEntries.length > 0) {
             // Format work history for AI processing
@@ -3176,11 +3125,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!userWorkHistory) {
-        return res
-          .status(400)
-          .json({
-            message: "No work history provided and none found in user profile"
-          })
+        return res.status(400).json({
+          message: "No work history provided and none found in user profile"
+        })
       }
 
       // Generate a complete resume tailored to the job description
@@ -3371,11 +3318,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the cover letter belongs to the current user
         if (letter.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this cover letter"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this cover letter"
+          })
         }
 
         res.status(200).json(letter)
@@ -3461,11 +3406,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the cover letter belongs to the current user
         if (letter.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to update this cover letter"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this cover letter"
+          })
         }
 
         const updatedLetter = await storage.updateCoverLetter(
@@ -3505,11 +3448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Ensure the cover letter belongs to the current user
         if (letter.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to delete this cover letter"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this cover letter"
+          })
         }
 
         await storage.deleteCoverLetter(letterId)
@@ -3814,11 +3755,11 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           let formattedCertifications = "No certifications available"
 
           // If user is logged in, fetch their career data from the database
-          if (req.session.userId) {
+          if (req.userId) {
             try {
               // 1. Get work history
               const workHistoryEntries = await storage.getWorkHistory(
-                req.session.userId
+                req.userId
               )
               if (workHistoryEntries && workHistoryEntries.length > 0) {
                 formattedWorkHistory = workHistoryEntries
@@ -3855,7 +3796,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
               // 2. Get education history
               const educationEntries = await storage.getEducationHistory(
-                req.session.userId
+                req.userId
               )
               if (educationEntries && educationEntries.length > 0) {
                 formattedEducation = educationEntries
@@ -3884,17 +3825,13 @@ Return ONLY the clean body content that contains the applicant's qualifications 
               }
 
               // 3. Get skills
-              const skillEntries = await storage.getUserSkills(
-                req.session.userId
-              )
+              const skillEntries = await storage.getUserSkills(req.userId)
               if (skillEntries && skillEntries.length > 0) {
                 formattedSkills = skillEntries.map((skill: any) => skill.name)
               }
 
               // 4. Get certifications
-              const certEntries = await storage.getCertifications(
-                req.session.userId
-              )
+              const certEntries = await storage.getCertifications(req.userId)
               if (certEntries && certEntries.length > 0) {
                 formattedCertifications = certEntries
                   .map((cert: any) => {
@@ -3913,7 +3850,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
               }
 
               // 5. Get user profile data including name and career summary
-              const userData = await storage.getUser(req.session.userId)
+              const userData = await storage.getUser(req.userId)
               if (userData) {
                 if (userData.careerSummary) {
                   careerSummary = userData.careerSummary
@@ -4379,11 +4316,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the conversation belongs to the current user
         if (conversation.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this conversation"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this conversation"
+          })
         }
 
         const messages = await storage.getMentorChatMessages(conversationId)
@@ -4428,11 +4363,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the conversation belongs to the current user
         if (conversation.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this conversation"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this conversation"
+          })
         }
 
         // Add user message
@@ -4558,11 +4491,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the conversation belongs to the current user
         if (conversation.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this conversation"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this conversation"
+          })
         }
 
         const messages = await storage.getAiCoachMessages(conversationId)
@@ -4607,11 +4538,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the conversation belongs to the current user
         if (conversation.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message: "You don't have permission to access this conversation"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to access this conversation"
+          })
         }
 
         // Add user message
@@ -4799,12 +4728,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         res.status(201).json(process)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid interview process data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid interview process data",
+            errors: error.errors
+          })
         }
         res.status(500).json({ message: "Error creating interview process" })
       }
@@ -4839,12 +4766,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to access this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to access this interview process"
+          })
         }
 
         res.status(200).json(process)
@@ -4882,12 +4807,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to update this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to update this interview process"
+          })
         }
 
         const updatedProcess = await storage.updateInterviewProcess(
@@ -4929,12 +4852,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to delete this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to delete this interview process"
+          })
         }
 
         await storage.deleteInterviewProcess(processId)
@@ -4974,12 +4895,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to access stages for this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to access stages for this interview process"
+          })
         }
 
         const stages = await storage.getInterviewStages(processIdNum)
@@ -5031,12 +4950,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to add stages to this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to add stages to this interview process"
+          })
         }
 
         console.log(`Stage data before parsing:`, req.body)
@@ -5058,12 +4975,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
       } catch (error) {
         console.error("Error adding interview stage:", error)
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid interview stage data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid interview stage data",
+            errors: error.errors
+          })
         }
         res.status(500).json({ message: "Error creating interview stage" })
       }
@@ -5104,12 +5019,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to update this interview stage"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this interview stage"
+          })
         }
 
         const updatedStage = await storage.updateInterviewStage(
@@ -5164,12 +5076,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to delete this interview stage"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this interview stage"
+          })
         }
 
         await storage.deleteInterviewStage(stageId)
@@ -5217,12 +5126,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to access followups for this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to access followups for this interview process"
+          })
         }
 
         let stageIdNum: number | undefined = undefined
@@ -5272,12 +5179,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to add followups to this interview process"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to add followups to this interview process"
+          })
         }
 
         const actionData = insertFollowupActionSchema.parse(req.body)
@@ -5288,12 +5193,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         res.status(201).json(action)
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid followup action data",
-              errors: error.errors
-            })
+          return res.status(400).json({
+            message: "Invalid followup action data",
+            errors: error.errors
+          })
         }
         res.status(500).json({ message: "Error creating followup action" })
       }
@@ -5334,12 +5237,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to update this followup action"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to update this followup action"
+          })
         }
 
         const updatedAction = await storage.updateFollowupAction(
@@ -5387,12 +5287,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to complete this followup action"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to complete this followup action"
+          })
         }
 
         const completedAction = await storage.completeFollowupAction(actionId)
@@ -5437,12 +5335,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to uncomplete this followup action"
-            })
+          return res.status(403).json({
+            message:
+              "You don't have permission to uncomplete this followup action"
+          })
         }
 
         const uncompletedAction = await storage.uncompleteFollowupAction(
@@ -5531,12 +5427,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Ensure the process belongs to the current user
         if (process.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "You don't have permission to delete this followup action"
-            })
+          return res.status(403).json({
+            message: "You don't have permission to delete this followup action"
+          })
         }
 
         await storage.deleteFollowupAction(actionId)
@@ -5970,11 +5863,9 @@ Return ONLY the clean body content that contains the applicant's qualifications 
             process.env.STRIPE_WEBHOOK_SECRET
           )
         } catch (err: any) {
-          return res
-            .status(400)
-            .json({
-              error: `Webhook signature verification failed: ${err.message}`
-            })
+          return res.status(400).json({
+            error: `Webhook signature verification failed: ${err.message}`
+          })
         }
 
         // Handle the event
@@ -6294,12 +6185,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         res.status(200).json(recommendations)
       } catch (error: any) {
         console.error("Error fetching recommendations:", error)
-        res
-          .status(500)
-          .json({
-            message: "Error fetching recommendations",
-            error: error.message
-          })
+        res.status(500).json({
+          message: "Error fetching recommendations",
+          error: error.message
+        })
       }
     }
   )
@@ -6460,12 +6349,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
         // Check if the recommendation belongs to the current user
         if (recommendation.userId !== user.id) {
-          return res
-            .status(403)
-            .json({
-              message:
-                "Access denied. You can only update your own recommendations."
-            })
+          return res.status(403).json({
+            message:
+              "Access denied. You can only update your own recommendations."
+          })
         }
 
         // Complete the recommendation
@@ -6481,12 +6368,10 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         res.status(200).json(completedRecommendation)
       } catch (error: any) {
         console.error("Error completing recommendation:", error)
-        res
-          .status(500)
-          .json({
-            message: "Error completing recommendation",
-            error: error.message
-          })
+        res.status(500).json({
+          message: "Error completing recommendation",
+          error: error.message
+        })
       }
     }
   )
@@ -7070,7 +6955,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     async (req: Request, res: Response) => {
       try {
         // Get the user's profile data
-        const userId = req.session.userId
+        const userId = req.userId
 
         if (!userId) {
           return res.status(401).json({ message: "Authentication required" })

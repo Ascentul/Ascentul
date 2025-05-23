@@ -10,7 +10,7 @@ const router = Router();
 // Create project
 router.post("/", async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
 // Get user's projects
 router.get("/", async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -52,7 +52,7 @@ router.get("/", async (req, res) => {
 // Get single project
 router.get("/:id", async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -74,7 +74,7 @@ router.get("/:id", async (req, res) => {
 // Update project
 router.put("/:id", async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -105,7 +105,7 @@ router.put("/:id", async (req, res) => {
 // Delete project
 router.delete("/:id", async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }

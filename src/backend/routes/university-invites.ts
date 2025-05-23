@@ -18,11 +18,11 @@ const universityInviteSchema = z.object({
 
 // Get all invites for a user
 router.get('/my-invites', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -75,11 +75,11 @@ router.get('/my-invites', async (req, res) => {
 
 // Create an invite
 router.post('/', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -211,7 +211,7 @@ router.post('/', async (req, res) => {
 
 // Accept an invite (for existing users)
 router.post('/accept/:inviteId', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
@@ -224,7 +224,7 @@ router.post('/accept/:inviteId', async (req, res) => {
     }
     
     // Get the user from the session
-    const user = await storage.getUser(req.session.userId);
+    const user = await storage.getUser(req.userId);
     if (!user) {
       return res.status(403).json({ error: 'Unauthorized' });
     }

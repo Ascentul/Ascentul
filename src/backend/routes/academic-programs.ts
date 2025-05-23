@@ -48,13 +48,13 @@ const router = express.Router();
 
 // Middleware to check if user is a university admin
 async function requireUniversityAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
 
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || user.userType !== 'university_admin') {
-    console.log(`Access denied: User ${req.session.userId} tried to access university admin route`);
+    console.log(`Access denied: User ${req.userId} tried to access university admin route`);
     return res.status(403).json({ message: "Access denied. University Admin privileges required." });
   }
   

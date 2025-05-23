@@ -12,7 +12,7 @@ export function registerLanguagesRoutes(app: Express, storage: IStorage) {
   // Get all languages for the current user
   app.get("/api/languages", requireAuth, async (req: Request, res: Response) => {
     try {
-      const languages = await storage.getUserLanguages(req.session.userId!);
+      const languages = await storage.getUserLanguages(req.userId!);
       res.status(200).json(languages);
     } catch (error) {
       console.error("Error fetching languages:", error);
@@ -37,7 +37,7 @@ export function registerLanguagesRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the language belongs to the current user
-      if (language.userId !== req.session.userId) {
+      if (language.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to view this language" });
       }
       
@@ -55,7 +55,7 @@ export function registerLanguagesRoutes(app: Express, storage: IStorage) {
       
       const newLanguage = await storage.createLanguage({
         ...validatedData,
-        userId: req.session.userId!
+        userId: req.userId!
       });
       
       res.status(201).json(newLanguage);
@@ -88,7 +88,7 @@ export function registerLanguagesRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the language belongs to the current user
-      if (existingLanguage.userId !== req.session.userId) {
+      if (existingLanguage.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to update this language" });
       }
       
@@ -121,7 +121,7 @@ export function registerLanguagesRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the language belongs to the current user
-      if (existingLanguage.userId !== req.session.userId) {
+      if (existingLanguage.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to delete this language" });
       }
       

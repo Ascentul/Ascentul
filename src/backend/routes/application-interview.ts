@@ -14,7 +14,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       }
       
       // Get current user from session
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -48,7 +48,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       }
       
       // Get current user from session
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -129,7 +129,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       }
       
       // Get current user from session
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
@@ -163,7 +163,7 @@ export function registerApplicationInterviewRoutes(app: Router, storage: IStorag
       }
       
       // Get current user from session
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
