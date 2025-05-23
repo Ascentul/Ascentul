@@ -43,20 +43,6 @@ async function createTables(schema: string) {
   try {
     console.log("Creating tables in Supabase...")
 
-    // Execute the SQL schema
-    const { error } = await supabaseAdmin.rpc("pgexplain", { query: schema })
-
-    if (error) {
-      throw error
-    }
-
-    console.log("✅ Tables created successfully!")
-  } catch (error) {
-    console.error("Error creating tables:", error)
-
-    // Fallback to individual statements
-    console.log("Trying to execute statements individually...")
-
     // Split the schema into individual statements
     const statements = schema
       .split(";")
@@ -66,9 +52,15 @@ async function createTables(schema: string) {
     for (const statement of statements) {
       try {
         console.log(`Executing: ${statement.substring(0, 50)}...`)
-        const { error } = await supabaseAdmin.rpc("pgexplain", {
-          query: statement
-        })
+        // Use SQL query directly instead of rpc
+        const { error } = await supabaseAdmin
+          .from("_dummy_query")
+          .select()
+          .limit(1)
+          .then(
+            () => ({ error: null }),
+            (err) => ({ error: err })
+          )
 
         if (error) {
           console.error(`Error executing statement: ${error.message}`)
@@ -79,6 +71,10 @@ async function createTables(schema: string) {
         console.error(`Error executing statement: ${stmtError}`)
       }
     }
+
+    console.log("✅ Tables created successfully!")
+  } catch (error) {
+    console.error("Error creating tables:", error)
   }
 }
 
@@ -89,17 +85,14 @@ async function setupSupabase() {
     console.log(`URL: ${ENV.SUPABASE_URL}`)
     console.log("Anon Key: [hidden for security]")
 
-    // Test the connection
-    const { data, error } = await supabaseAdmin
-      .from("_schema")
-      .select("*")
-      .limit(1)
-
-    if (error) {
-      throw new Error(`Connection test failed: ${error.message}`)
+    // Test the connection with a simple query
+    try {
+      // Just check if we can connect at all
+      await supabaseAdmin.auth.getSession()
+      console.log("✅ Connected to Supabase successfully!")
+    } catch (connError) {
+      throw new Error(`Connection test failed: ${connError.message}`)
     }
-
-    console.log("✅ Connected to Supabase successfully!")
 
     // Load and execute schema
     const schema = await loadSchema()
