@@ -112,14 +112,14 @@ export interface IStorage {
   getAllActiveUsers(): Promise<User[]>
 
   // Daily Recommendations operations
-  generateDailyRecommendations(userId: number): Promise<DailyRecommendation[]>
+  generateDailyRecommendations(userId: string): Promise<DailyRecommendation[]>
   getUserDailyRecommendations(
-    userId: number,
+    userId: string,
     date?: Date
   ): Promise<DailyRecommendation[]>
   getRecommendation(id: number): Promise<DailyRecommendation | undefined>
   completeRecommendation(id: number): Promise<DailyRecommendation | undefined>
-  clearTodaysRecommendations(userId: number): Promise<boolean>
+  clearTodaysRecommendations(userId: string): Promise<boolean>
 
   // Contact interaction operations
   updateContactInteraction(
@@ -130,17 +130,17 @@ export interface IStorage {
 
   // User review operations
   createUserReview(
-    userId: number,
+    userId: string,
     reviewData: InsertUserReview
   ): Promise<UserReview>
 
   // Career path operations
   saveCareerPath(
-    userId: number,
+    userId: string,
     name: string,
     pathData: any
   ): Promise<CareerPath>
-  getUserCareerPaths(userId: number): Promise<CareerPath[]>
+  getUserCareerPaths(userId: string): Promise<CareerPath[]>
   getCareerPath(id: number): Promise<CareerPath | undefined>
   deleteCareerPath(id: number): Promise<boolean>
 
@@ -148,7 +148,7 @@ export interface IStorage {
   createSkill(skill: InsertSkill | any): Promise<Skill>
   updateSkill(id: number, data: Partial<Skill>): Promise<Skill | undefined>
   deleteSkill(id: number): Promise<boolean>
-  getUserSkills(userId: number): Promise<Skill[]>
+  getUserSkills(userId: string): Promise<Skill[]>
 
   // System operations
   getSystemMetrics(): Promise<{
@@ -220,7 +220,7 @@ export interface IStorage {
   deleteCachedData(key: string): Promise<boolean>
 
   // User operations
-  getUser(id: number): Promise<User | undefined>
+  getUser(id: string): Promise<User | undefined>
   getUserByUsername(username: string): Promise<User | undefined>
   getUserByEmail(email: string): Promise<User | undefined>
   getUserByStripeSubscriptionId(
@@ -229,9 +229,9 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>
   getUserByPendingEmailToken(token: string): Promise<User | undefined>
   createUser(user: InsertUser): Promise<User>
-  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>
+  updateUser(id: string, userData: Partial<User>): Promise<User | undefined>
   updateUserStripeInfo(
-    userId: number,
+    userId: string,
     stripeInfo: {
       stripeCustomerId?: string
       stripeSubscriptionId?: string
@@ -241,7 +241,7 @@ export interface IStorage {
     }
   ): Promise<User | undefined>
   updateUserVerificationInfo(
-    userId: number,
+    userId: string,
     verificationInfo: {
       emailVerified?: boolean
       verificationToken?: string | null
@@ -249,28 +249,28 @@ export interface IStorage {
     }
   ): Promise<User | undefined>
   updateUserPassword(
-    userId: number,
+    userId: string,
     newPassword: string
   ): Promise<User | undefined>
   updateUserCareerSummary(
-    userId: number,
+    userId: string,
     careerSummary: string
   ): Promise<User | undefined>
   updateUserLinkedInUrl(
-    userId: number,
+    userId: string,
     linkedInUrl: string
   ): Promise<User | undefined>
   addUserXP(
-    userId: number,
+    userId: string,
     amount: number,
     source: string,
     description?: string
   ): Promise<number>
 
   // Goal operations
-  getGoals(userId: number): Promise<Goal[]>
+  getGoals(userId: string): Promise<Goal[]>
   getGoal(id: number): Promise<Goal | undefined>
-  createGoal(userId: number, goal: InsertGoal): Promise<Goal>
+  createGoal(userId: string, goal: InsertGoal): Promise<Goal>
   updateGoal(id: number, goalData: Partial<Goal>): Promise<Goal | undefined>
   deleteGoal(id: number): Promise<boolean>
 
@@ -280,10 +280,10 @@ export interface IStorage {
     goalId: number,
     week: number
   ): Promise<SkillStackerPlan | undefined>
-  getAllSkillStackerPlans(userId: number): Promise<SkillStackerPlan[]>
+  getAllSkillStackerPlans(userId: string): Promise<SkillStackerPlan[]>
   getSkillStackerPlansByGoal(goalId: number): Promise<SkillStackerPlan[]>
   createSkillStackerPlan(
-    userId: number,
+    userId: string,
     plan: InsertSkillStackerPlan
   ): Promise<SkillStackerPlan>
   updateSkillStackerPlan(
@@ -302,10 +302,10 @@ export interface IStorage {
   deleteSkillStackerPlan(id: number): Promise<boolean>
 
   // Work history operations
-  getWorkHistory(userId: number): Promise<WorkHistory[]>
+  getWorkHistory(userId: string): Promise<WorkHistory[]>
   getWorkHistoryItem(id: number): Promise<WorkHistory | undefined>
   createWorkHistoryItem(
-    userId: number,
+    userId: string,
     item: InsertWorkHistory
   ): Promise<WorkHistory>
   updateWorkHistoryItem(
@@ -315,10 +315,10 @@ export interface IStorage {
   deleteWorkHistoryItem(id: number): Promise<boolean>
 
   // Education history operations
-  getEducationHistory(userId: number): Promise<EducationHistory[]>
+  getEducationHistory(userId: string): Promise<EducationHistory[]>
   getEducationHistoryItem(id: number): Promise<EducationHistory | undefined>
   createEducationHistoryItem(
-    userId: number,
+    userId: string,
     item: InsertEducationHistory
   ): Promise<EducationHistory>
   updateEducationHistoryItem(
@@ -328,10 +328,10 @@ export interface IStorage {
   deleteEducationHistoryItem(id: number): Promise<boolean>
 
   // Resume operations
-  getResumes(userId: number): Promise<Resume[]>
-  getResumesByUserId(userId: number): Promise<Resume[]> // Alias for getResumes for clarity
+  getResumes(userId: string): Promise<Resume[]>
+  getResumesByUserId(userId: string): Promise<Resume[]> // Alias for getResumes for clarity
   getResume(id: number): Promise<Resume | undefined>
-  createResume(userId: number, resume: InsertResume): Promise<Resume>
+  createResume(userId: string, resume: InsertResume): Promise<Resume>
   updateResume(
     id: number,
     resumeData: Partial<Resume>
@@ -339,13 +339,13 @@ export interface IStorage {
   deleteResume(id: number): Promise<boolean>
 
   // Skills operations
-  getUserSkills(userId: number): Promise<Skill[]>
+  getUserSkills(userId: string): Promise<Skill[]>
 
   // Cover letter operations
-  getCoverLetters(userId: number): Promise<CoverLetter[]>
+  getCoverLetters(userId: string): Promise<CoverLetter[]>
   getCoverLetter(id: number): Promise<CoverLetter | undefined>
   createCoverLetter(
-    userId: number,
+    userId: string,
     coverLetter: InsertCoverLetter
   ): Promise<CoverLetter>
   updateCoverLetter(
@@ -361,16 +361,16 @@ export interface IStorage {
     question: InsertInterviewQuestion
   ): Promise<InterviewQuestion>
   saveInterviewPractice(
-    userId: number,
+    userId: string,
     practice: InsertInterviewPractice
   ): Promise<InterviewPractice>
-  getUserInterviewPractice(userId: number): Promise<InterviewPractice[]>
+  getUserInterviewPractice(userId: string): Promise<InterviewPractice[]>
 
   // Interview Process Tracking operations
-  getInterviewProcesses(userId: number): Promise<InterviewProcess[]>
+  getInterviewProcesses(userId: string): Promise<InterviewProcess[]>
   getInterviewProcess(id: number): Promise<InterviewProcess | undefined>
   createInterviewProcess(
-    userId: number,
+    userId: string,
     process: InsertInterviewProcess
   ): Promise<InterviewProcess>
   updateInterviewProcess(
@@ -413,22 +413,22 @@ export interface IStorage {
   // Achievement operations
   getAchievements(): Promise<Achievement[]>
   getUserAchievements(
-    userId: number
+    userId: string
   ): Promise<(Achievement & { earnedAt: Date })[]>
-  checkAndAwardAchievements(userId: number): Promise<Achievement[]>
+  checkAndAwardAchievements(userId: string): Promise<Achievement[]>
 
   // AI Coach operations
-  getAiCoachConversations(userId: number): Promise<AiCoachConversation[]>
+  getAiCoachConversations(userId: string): Promise<AiCoachConversation[]>
   getAiCoachConversation(id: number): Promise<AiCoachConversation | undefined>
   createAiCoachConversation(
-    userId: number,
+    userId: string,
     conversation: InsertAiCoachConversation
   ): Promise<AiCoachConversation>
   getAiCoachMessages(conversationId: number): Promise<AiCoachMessage[]>
   addAiCoachMessage(message: InsertAiCoachMessage): Promise<AiCoachMessage>
 
   // XP History operations
-  getXpHistory(userId: number): Promise<XpHistory[]>
+  getXpHistory(userId: string): Promise<XpHistory[]>
 
   // Contact message operations
   createContactMessage(message: InsertContactMessage): Promise<ContactMessage>
@@ -444,19 +444,19 @@ export interface IStorage {
   createSupportTicket(data: any): Promise<any>
 
   // Career Mentor Chat operations
-  getMentorChatConversations(userId: number): Promise<MentorChatConversation[]>
+  getMentorChatConversations(userId: string): Promise<MentorChatConversation[]>
   getMentorChatConversation(
     id: number
   ): Promise<MentorChatConversation | undefined>
 
   // User Reviews operations
-  getUserReviews(userId: number): Promise<UserReview[]>
+  getUserReviews(userId: string): Promise<UserReview[]>
   createUserReview(
-    userId: number,
+    userId: string,
     review: InsertUserReview
   ): Promise<UserReview>
   createMentorChatConversation(
-    userId: number,
+    userId: string,
     conversation: InsertMentorChatConversation
   ): Promise<MentorChatConversation>
   getMentorChatMessages(conversationId: number): Promise<MentorChatMessage[]>
@@ -479,10 +479,10 @@ export interface IStorage {
   deleteJobListing(id: number): Promise<boolean>
 
   // Job Applications operations
-  getJobApplications(userId: number): Promise<JobApplication[]>
+  getJobApplications(userId: string): Promise<JobApplication[]>
   getJobApplication(id: number): Promise<JobApplication | undefined>
   createJobApplication(
-    userId: number,
+    userId: string,
     application: InsertJobApplication
   ): Promise<JobApplication>
   updateJobApplication(
@@ -536,7 +536,7 @@ export interface IStorage {
   ): Promise<MentorChatMessage>
 
   // Stats operations
-  getUserStatistics(userId: number): Promise<{
+  getUserStatistics(userId: string): Promise<{
     activeGoals: number
     achievementsCount: number
     resumesCount: number
@@ -551,7 +551,7 @@ export interface IStorage {
   ): Promise<User | undefined>
   getUserByVerificationToken(token: string): Promise<User | undefined>
   updateUserStripeInfo(
-    userId: number,
+    userId: string,
     stripeInfo: {
       stripeCustomerId?: string
       stripeSubscriptionId?: string
@@ -561,7 +561,7 @@ export interface IStorage {
     }
   ): Promise<User | undefined>
   updateUserVerificationInfo(
-    userId: number,
+    userId: string,
     verificationInfo: {
       emailVerified?: boolean
       verificationToken?: string | null
@@ -570,10 +570,10 @@ export interface IStorage {
   ): Promise<User | undefined>
 
   // Recommendation operations
-  getRecommendations(userId: number): Promise<Recommendation[]>
+  getRecommendations(userId: string): Promise<Recommendation[]>
   getRecommendation(id: number): Promise<Recommendation | undefined>
   createRecommendation(
-    userId: number,
+    userId: string,
     recommendation: InsertRecommendation
   ): Promise<Recommendation>
   updateRecommendation(
@@ -581,14 +581,14 @@ export interface IStorage {
     recommendationData: Partial<Recommendation>
   ): Promise<Recommendation | undefined>
   completeRecommendation(id: number): Promise<Recommendation | undefined>
-  generateDailyRecommendations(userId: number): Promise<Recommendation[]>
-  clearTodaysRecommendations(userId: number): Promise<void>
+  generateDailyRecommendations(userId: string): Promise<Recommendation[]>
+  clearTodaysRecommendations(userId: string): Promise<void>
 
   // Certification operations (to be deprecated)
-  getCertifications(userId: number): Promise<Certification[]>
+  getCertifications(userId: string): Promise<Certification[]>
   getCertification(id: number): Promise<Certification | undefined>
   createCertification(
-    userId: number,
+    userId: string,
     certification: InsertCertification
   ): Promise<Certification>
   updateCertification(
@@ -599,13 +599,13 @@ export interface IStorage {
 
   // User Personal Achievements operations
   getUserPersonalAchievements(
-    userId: number
+    userId: string
   ): Promise<UserPersonalAchievement[]>
   getUserPersonalAchievement(
     id: number
   ): Promise<UserPersonalAchievement | undefined>
   createUserPersonalAchievement(
-    userId: number,
+    userId: string,
     achievement: InsertUserPersonalAchievement
   ): Promise<UserPersonalAchievement>
   updateUserPersonalAchievement(
@@ -616,12 +616,12 @@ export interface IStorage {
 
   // Networking Contacts (Ascentul CRM) operations
   getNetworkingContacts(
-    userId: number,
+    userId: string,
     filters?: { query?: string; relationshipType?: string }
   ): Promise<NetworkingContact[]>
   getNetworkingContact(id: number): Promise<NetworkingContact | undefined>
   createNetworkingContact(
-    userId: number,
+    userId: string,
     contact: InsertNetworkingContact
   ): Promise<NetworkingContact>
   updateNetworkingContact(
