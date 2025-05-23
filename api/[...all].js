@@ -24,8 +24,8 @@ app.get("/api/job-applications", (req, res) => {
 })
 
 app.get("/api/users/me", (req, res) => {
-  // For now, return a basic user object
-  res.json({ id: "1", email: "user@example.com" })
+  // Return a user object with all required fields to prevent onboarding redirects
+    res.json({      id: "1",      email: "user@example.com",      name: "Demo User",      username: "demouser",      needsUsername: false,      onboardingCompleted: true,      userType: "regular",      role: "user",      isUniversityStudent: false,      xp: 0,      level: 1,      rank: "Beginner",      subscriptionPlan: "free",      subscriptionStatus: "inactive",      emailVerified: true    })
 })
 
 app.get("/api/models", (req, res) => {
@@ -80,11 +80,7 @@ export default async function handler(req, res) {
         return res.status(200).json([])
 
       case "/users/me":
-        return res.status(200).json({
-          id: "1",
-          email: "user@example.com",
-          name: "Demo User"
-        })
+                return res.status(200).json({          id: "1",          email: "user@example.com",          name: "Demo User",          username: "demouser",          needsUsername: false,          onboardingCompleted: true,          userType: "regular",          role: "user",          isUniversityStudent: false,          xp: 0,          level: 1,          rank: "Beginner",          subscriptionPlan: "free",          subscriptionStatus: "inactive",          emailVerified: true        })
 
       case "/models":
         return res.status(200).json({ models: [] })
