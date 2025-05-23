@@ -6310,7 +6310,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   // Job Listings API Routes
   apiRouter.get(
-    "/api/job-listings",
+    "/job-listings",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
@@ -6341,7 +6341,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.get(
-    "/api/job-listings/:id",
+    "/job-listings/:id",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
@@ -6361,7 +6361,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.post(
-    "/api/job-listings",
+    "/job-listings",
     requireAuth,
     requireAdmin,
     async (req: Request, res: Response) => {
@@ -6383,7 +6383,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.put(
-    "/api/job-listings/:id",
+    "/job-listings/:id",
     requireAuth,
     requireAdmin,
     async (req: Request, res: Response) => {
@@ -6406,7 +6406,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.delete(
-    "/api/job-listings/:id",
+    "/job-listings/:id",
     requireAuth,
     requireAdmin,
     async (req: Request, res: Response) => {
@@ -6429,7 +6429,27 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   // Job Applications API Routes
   apiRouter.get(
-    "/api/applications",
+    "/applications",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await getCurrentUser(req)
+        if (!user) {
+          return res.status(401).json({ message: "Unauthorized" })
+        }
+
+        const applications = await storage.getJobApplications(user.id)
+        res.json(applications)
+      } catch (error) {
+        console.error("Error fetching job applications:", error)
+        res.status(500).json({ message: "Failed to fetch job applications" })
+      }
+    }
+  )
+
+  // Alias route for job-applications (same as /applications)
+  apiRouter.get(
+    "/job-applications",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
@@ -6448,7 +6468,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.get(
-    "/api/applications/:id",
+    "/applications/:id",
     requireAuth,
     validateUserAccess,
     async (req: Request, res: Response) => {
@@ -6475,7 +6495,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.post(
-    "/api/applications",
+    "/applications",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
@@ -6552,7 +6572,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.put(
-    "/api/applications/:id",
+    "/applications/:id",
     requireAuth,
     validateUserAccess,
     async (req: Request, res: Response) => {
@@ -6577,7 +6597,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.post(
-    "/api/applications/:id/submit",
+    "/applications/:id/submit",
     requireAuth,
     validateUserAccess,
     async (req: Request, res: Response) => {
@@ -6610,7 +6630,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.delete(
-    "/api/applications/:id",
+    "/applications/:id",
     requireAuth,
     validateUserAccess,
     async (req: Request, res: Response) => {
@@ -6632,7 +6652,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   // Application Wizard Steps API Routes
   apiRouter.get(
-    "/api/applications/:applicationId/steps",
+    "/applications/:applicationId/steps",
     requireAuth,
     validateUserAccess,
     async (req: Request, res: Response) => {

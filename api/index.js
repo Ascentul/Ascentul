@@ -10,7 +10,17 @@ app.use(express.json({ limit: "50mb" }))
 app.use(express.urlencoded({ extended: false, limit: "50mb" }))
 app.use(cors())
 
-// Register all your routes
-await registerRoutes(app)
+// Initialize routes
+let routesInitialized = false
 
-export default app
+const initializeRoutes = async () => {
+  if (!routesInitialized) {
+    await registerRoutes(app)
+    routesInitialized = true
+  }
+}
+
+export default async (req, res) => {
+  await initializeRoutes()
+  return app(req, res)
+}
