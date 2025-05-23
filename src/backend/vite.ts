@@ -6,7 +6,7 @@ import { createServer as createViteServer, createLogger } from "vite"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 import { type Server } from "http"
-import viteConfig from "../../vite.config"
+import viteConfig from "../../vite.config.js"
 import { nanoid } from "nanoid"
 
 const viteLogger = createLogger()
@@ -29,8 +29,14 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as true
   }
 
+  // Use the vite config as-is, just add server options
+  const config =
+    typeof viteConfig === "function"
+      ? await viteConfig({ mode: "development", command: "serve" })
+      : viteConfig
+
   const vite = await createViteServer({
-    ...viteConfig,
+    ...config,
     configFile: false,
     customLogger: {
       ...viteLogger,
@@ -40,14 +46,7 @@ export async function setupVite(app: Express, server: Server) {
       }
     },
     server: serverOptions,
-    appType: "custom",
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "..", "frontend"),
-        "@shared": path.resolve(__dirname, "..", "utils"),
-        "@assets": path.resolve(__dirname, "..", "assets")
-      }
-    }
+    appType: "custom"
   })
 
   app.use(vite.middlewares)
@@ -65,8 +64,8 @@ export async function setupVite(app: Express, server: Server) {
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8")
       template = template.replace(
-        `src="/src/frontend/main.tsx"`,
-        `src="/src/frontend/main.tsx?v=${nanoid()}"`
+        `src="./main.tsx"`,
+        `src="./main.tsx?v=${nanoid()}"`
       )
       const page = await vite.transformIndexHtml(url, template)
       res.status(200).set({ "Content-Type": "text/html" }).end(page)
