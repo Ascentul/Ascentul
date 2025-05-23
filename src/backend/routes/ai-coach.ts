@@ -37,12 +37,12 @@ export function registerAICoachRoutes(app: Express) {
   // Get all conversations for the current user
   app.get('/api/ai-coach/conversations', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
       // Get conversations from the storage
-      const userConversations = await storage.getAiCoachConversations(req.session.userId);
+      const userConversations = await storage.getAiCoachConversations(parseInt(req.userId));
       
       res.json(userConversations);
     } catch (error) {
@@ -54,7 +54,7 @@ export function registerAICoachRoutes(app: Express) {
   // Create a new conversation
   app.post('/api/ai-coach/conversations', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -65,7 +65,7 @@ export function registerAICoachRoutes(app: Express) {
       }
 
       // Create a new conversation using the storage interface
-      const newConversation = await storage.createAiCoachConversation(req.session.userId, {
+      const newConversation = await storage.createAiCoachConversation(parseInt(req.userId), {
         title
       });
 
@@ -79,7 +79,7 @@ export function registerAICoachRoutes(app: Express) {
   // Get all messages for a conversation
   app.get('/api/ai-coach/conversations/:id/messages', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -88,7 +88,7 @@ export function registerAICoachRoutes(app: Express) {
       // Check if the conversation exists and belongs to the user
       const conversation = await storage.getAiCoachConversation(conversationId);
       
-      if (!conversation || conversation.userId !== req.session.userId) {
+      if (!conversation || conversation.userId !== parseInt(req.userId)) {
         return res.status(404).json({ error: 'Conversation not found' });
       }
 
@@ -105,7 +105,7 @@ export function registerAICoachRoutes(app: Express) {
   // Send a message to a conversation
   app.post('/api/ai-coach/conversations/:id/messages', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -119,7 +119,7 @@ export function registerAICoachRoutes(app: Express) {
       // Check if the conversation exists and belongs to the user
       const conversation = await storage.getAiCoachConversation(conversationId);
       
-      if (!conversation || conversation.userId !== req.session.userId) {
+      if (!conversation || conversation.userId !== parseInt(req.userId)) {
         return res.status(404).json({ error: 'Conversation not found' });
       }
 
@@ -131,7 +131,7 @@ export function registerAICoachRoutes(app: Express) {
       });
 
       // Fetch user context data to provide to OpenAI
-      const userContext = await getUserContext(req.session.userId);
+      const userContext = await getUserContext(parseInt(req.userId));
 
       // Get the conversation history
       const messages = await storage.getAiCoachMessages(conversationId);
@@ -168,7 +168,7 @@ export function registerAICoachRoutes(app: Express) {
   // Generate a response for the AI Coach
   app.post('/api/ai-coach/generate-response', async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -179,7 +179,7 @@ export function registerAICoachRoutes(app: Express) {
       }
 
       // Fetch user context data
-      const userContext = await getUserContext(req.session.userId);
+      const userContext = await getUserContext(parseInt(req.userId));
 
       // Convert query to ChatCompletionMessageParam
       const userMessage: ChatCompletionMessageParam = { role: 'user', content: query };

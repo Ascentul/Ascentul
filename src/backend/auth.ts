@@ -1,169 +1,64 @@
-import { Request, Response, NextFunction } from 'express';
-import { storage } from './storage';
+import { Request, Response, NextFunction } from "express"
+import { storage } from "./storage"
+import { supabaseAdmin } from "./supabase"
+import { ENV } from "../config/env"
+import {
+  verifySupabaseToken,
+  isAdmin as checkIsAdmin,
+  isStaff as checkIsStaff,
+  requireAdmin as supabaseRequireAdmin,
+  requireStaff as supabaseRequireStaff
+} from "./supabase-auth"
+import { User } from "../utils/schema"
 
-// Add type for augmenting Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username: string;
-        name: string;
-        email: string;
-        userType: string; // "regular", "admin", "staff", "university_admin"
-        role?: string | null;    // "user", "admin", "staff", "university_user", "university_admin", "super_admin"
-        // Add other user fields as needed
-      } | null;
-    }
-    
-    // Role is now defined in index.ts SessionData interface
-  }
-}
-
-// Middleware to check if user is authenticated
+// Middleware to check if user is authenticated - use Supabase token verification
 export function requireAuth(req: Request, res: Response, next: () => void) {
-  // ✅ TEMPORARY DISABLED DEV TOKEN AUTH FOR TESTING
-  // Check for dev token first - DISABLED FOR TESTING
-  /*
-  const devToken = req.headers.authorization?.replace('Bearer ', '');
-  
-  if (process.env.NODE_ENV === 'development' && devToken === 'dev_token') {
-    console.warn('DEV MODE: Bypassing auth with dev_token in requireAuth');
-    req.session = req.session || {};
-    req.session.userId = 2; // Using demo user ID
-    req.session.role = 'user'; // Set default role
-  }
-  */
-  
-  console.log("Checking auth. Session:", req.session?.userId ? "Has userId" : "No userId");
-  
-  if (!req.session || !req.session.userId) {
-    console.log("Auth check failed - no session or userId");
-    return res.status(401).json({ message: "Authentication required" });
-  }
-  
-  // If we already have the user in the request, don't fetch it again
-  if (req.user) {
-    console.log("Auth check passed for user ID:", req.session.userId);
-    return next();
-  }
-  
-  // Fetch the user data to attach to the request
-  storage.getUser(req.session.userId)
-    .then(user => {
-      if (!user) {
-        console.log("Auth check failed - user not found");
-        // Clear the invalid session
-        req.session.destroy((err) => {
-          if (err) console.error("Error destroying session:", err);
-        });
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      // Attach the user to the request
-      req.user = user;
-      console.log("Auth check passed for user ID:", req.session.userId);
-      next();
-    })
-    .catch(err => {
-      console.error("Error fetching user:", err);
-      return res.status(500).json({ message: "Internal server error" });
-    });
+  verifySupabaseToken(req, res, next as any)
 }
 
-// Check if user is an admin
+// Check if user is an admin - delegate to supabase-auth.ts helper
 export function isAdmin(req: Request): boolean {
-  // Check both userType (for backward compatibility) and role field
-  return req.user?.userType === 'admin' || 
-         req.user?.role === 'admin' || 
-         req.user?.role === 'super_admin';
+  // Use type assertion to deal with type compatibility issues
+  return checkIsAdmin(req.user as any)
 }
 
-// Middleware to check if user is an admin
-export function requireAdmin(req: Request, res: Response, next: () => void) {
-  if (!req.user) {
-    return requireAuth(req, res, () => {
-      checkAdminAndProceed();
-    });
-  } else {
-    checkAdminAndProceed();
-  }
-  
-  function checkAdminAndProceed() {
-    if (!isAdmin(req)) {
-      return res.status(403).json({ 
-        error: 'Forbidden',
-        message: 'Admin privileges required to access this resource' 
-      });
-    }
-    next();
-  }
+// Middleware to check if user is an admin - use the supabase-auth implementation
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  supabaseRequireAdmin(req, res, next)
 }
 
 // Dev Token Auth Bypass middleware
-// This middleware checks for the dev_token in Authorization header and bypasses auth in development
-export function devTokenAuthBypass(req: Request, res: Response, next: NextFunction) {
-  // TEMPORARY: Special handling for reviews endpoints to ensure admin access
-  if (req.path.startsWith('/api/reviews')) {
-    console.log('ADMIN REVIEWS FIX: Injecting admin session for reviews API');
-    req.session = req.session || {};
-    req.session.userId = 9; // Super admin user ID 
-    req.session.role = 'super_admin';
-    
-    // Fetch user data and attach to request
-    return storage.getUser(req.session.userId)
-      .then(user => {
-        if (user) {
-          req.user = user;
-          console.log('ADMIN REVIEWS FIX: Successfully attached super_admin user');
-        } else {
-          console.log('ADMIN REVIEWS FIX: Could not find super_admin user');
-        }
-        next();
-      })
-      .catch(err => {
-        console.error("ADMIN REVIEWS FIX: Error fetching user:", err);
-        next(); // Continue anyway
-      });
+// Simplified to handle special cases in a cleaner way
+export function devTokenAuthBypass(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // TEMPORARY: Special handling for reviews endpoints
+  if (req.path.startsWith("/api/reviews")) {
+    console.log(
+      "ADMIN REVIEWS FIX: Redirecting to verifySupabaseToken with admin handling"
+    )
+    // Let verifySupabaseToken handle this - it has proper dev mode support
+    return verifySupabaseToken(req, res, next)
   }
-  
-  console.log("DevTokenAuthBypass middleware is temporarily DISABLED for testing");
-  
-  // Just pass through to the next middleware without modifying session
-  next(); // Continue to normal auth flow
+
+  // For development, let the verifySupabaseToken handle the dev mode
+  if (ENV.NODE_ENV === "development") {
+    console.log("DEV MODE: Redirecting to verifySupabaseToken")
+    return verifySupabaseToken(req, res, next)
+  }
+
+  // If not a special case, continue to normal auth flow
+  next()
 }
 
-// Modified authentication middleware that automatically logs in as a demo user
-// This is a temporary solution for development purposes
-export function requireLoginFallback(req: Request, res: Response, next: () => void) {
-  console.log("Checking auth with fallback enabled. Session:", req.session?.userId ? "Has userId" : "No userId");
-  
-  if (!req.session || !req.session.userId) {
-    console.log("Auto-assigning demo user ID");
-    // Set session with the demo user ID
-    req.session.userId = 2; // Demo user ID
-    req.session.role = 'user'; // Set default role
-  }
-  
-  // If we already have the user in the request, don't fetch it again
-  if (req.user) {
-    console.log("Auth check passed for user ID:", req.session.userId);
-    return next();
-  }
-  
-  // Fetch the user data to attach to the request
-  storage.getUser(req.session.userId)
-    .then(user => {
-      if (user) {
-        // Attach the user to the request
-        req.user = user;
-      }
-      console.log("Auth check passed for user ID:", req.session.userId);
-      next();
-    })
-    .catch(err => {
-      console.error("Error fetching user:", err);
-      // Continue anyway in fallback mode
-      next();
-    });
+// Modified authentication middleware that uses Supabase auth with fallback
+export function requireLoginFallback(
+  req: Request,
+  res: Response,
+  next: () => void
+) {
+  // Simply use the verifySupabaseToken which already has fallback for dev mode
+  verifySupabaseToken(req, res, next as any)
 }

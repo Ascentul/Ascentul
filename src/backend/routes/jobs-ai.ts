@@ -5,7 +5,7 @@ import { openai } from "../utils/openai-client"
 
 // Helper function to check if user is authenticated
 function requireAuth(req: Request, res: Response, next: () => void) {
-  if (!req.session || !req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" })
   }
   next()
@@ -28,7 +28,7 @@ export const registerJobsAIRoutes = (router: Router) => {
         }
 
         // Get user's most recent resume to personalize suggestions
-        const userId = req.session!.userId
+        const userId = req.userId
         const resumes = await storage.getResumesByUserId(userId)
 
         // Sort by last updated

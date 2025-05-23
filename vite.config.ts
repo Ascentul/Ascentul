@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 // Load environment variables
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   // Load environment variables based on mode (development, production, etc.)
   const env = loadEnv(mode, process.cwd(), "")
 
@@ -34,8 +34,12 @@ export default defineConfig(({ mode }) => {
         "@assets": path.resolve(__dirname, "src", "assets")
       }
     },
-    root: path.resolve(__dirname, "src", "frontend"),
+    root: __dirname,
+    publicDir: path.resolve(__dirname, "src", "frontend", "assets"),
     build: {
+      rollupOptions: {
+        input: path.resolve(__dirname, "src", "frontend", "index.html")
+      },
       outDir: path.resolve(__dirname, "dist/public"),
       emptyOutDir: true
     },
@@ -47,7 +51,9 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(
         env.SUPABASE_ANON_KEY ||
           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5eWNkZHV1YWRzb2ZnYWJyZ2lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc3MDE1MzAsImV4cCI6MjAzMzI3NzUzMH0.YwhEDZfBSGAZ5fTTEeVfK_RGRu52W5T1X9tFdaybr7g"
-      )
+      ),
+      // Force DEV mode to be true in development for authentication bypass
+      "import.meta.env.DEV": mode === "development" ? true : false
     }
   }
 })

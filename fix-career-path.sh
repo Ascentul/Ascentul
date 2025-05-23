@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# Read and convert all userId instances in career-path.ts
+echo "Fixing career-path.ts..."
+cat > src/backend/career-path.ts.temp << 'EOL'
 // filepath: /Users/andrew/dev/Ascentul/src/backend/career-path.ts
 import { Express, Request, Response } from "express"
 import { storage } from "./storage"
@@ -97,8 +102,7 @@ async function generateCareerPathFromJobTitle(jobTitle: string) {
       messages: [
         {
           role: "system",
-          content:
-            "You are a career counselor who generates detailed career path information."
+          content: "You are a career counselor who generates detailed career path information."
         },
         {
           role: "user",
@@ -155,8 +159,7 @@ function mockCareerPathResponse(jobTitle: string) {
               { name: "Git", level: "basic" }
             ],
             growthPotential: "high",
-            description:
-              "Entry-level position focusing on front-end development and bug fixes.",
+            description: "Entry-level position focusing on front-end development and bug fixes.",
             icon: "braces"
           },
           {
@@ -171,8 +174,7 @@ function mockCareerPathResponse(jobTitle: string) {
               { name: "SQL", level: "intermediate" }
             ],
             growthPotential: "high",
-            description:
-              "Mid-level role working on complete features and components.",
+            description: "Mid-level role working on complete features and components.",
             icon: "cpu"
           },
           {
@@ -187,26 +189,13 @@ function mockCareerPathResponse(jobTitle: string) {
               { name: "CI/CD", level: "intermediate" }
             ],
             growthPotential: "medium",
-            description:
-              "Senior role leading technical decisions and mentoring junior developers.",
+            description: "Senior role leading technical decisions and mentoring junior developers.",
             icon: "database"
           }
         ],
         skills: {
-          technical: [
-            "JavaScript",
-            "React",
-            "Node.js",
-            "SQL",
-            "Git",
-            "System Design"
-          ],
-          soft: [
-            "Communication",
-            "Problem Solving",
-            "Teamwork",
-            "Time Management"
-          ]
+          technical: ["JavaScript", "React", "Node.js", "SQL", "Git", "System Design"],
+          soft: ["Communication", "Problem Solving", "Teamwork", "Time Management"]
         },
         certifications: [
           {
@@ -246,8 +235,7 @@ function mockCareerPathResponse(jobTitle: string) {
             }
           ]
         },
-        insights:
-          "The software development career path offers strong growth potential with continuous learning requirements. New technologies emerge frequently, so adaptability is key to long-term success."
+        insights: "The software development career path offers strong growth potential with continuous learning requirements. New technologies emerge frequently, so adaptability is key to long-term success."
       }
     ]
   }
@@ -256,23 +244,20 @@ function mockCareerPathResponse(jobTitle: string) {
 // Register all career path related routes
 export function registerCareerPathRoutes(app: Express) {
   // Generate a career path from job title
-  app.post(
-    "/api/career-paths/generate",
-    async (req: Request, res: Response) => {
-      try {
-        const { jobTitle } = req.body
-        if (!jobTitle) {
-          return res.status(400).json({ error: "Job title is required" })
-        }
-
-        const careerPathData = await generateCareerPathFromJobTitle(jobTitle)
-        return res.json(careerPathData)
-      } catch (error: any) {
-        console.error("Career path generation error:", error)
-        return res.status(500).json({ error: error.message })
+  app.post("/api/career-paths/generate", async (req: Request, res: Response) => {
+    try {
+      const { jobTitle } = req.body
+      if (!jobTitle) {
+        return res.status(400).json({ error: "Job title is required" })
       }
+
+      const careerPathData = await generateCareerPathFromJobTitle(jobTitle)
+      return res.json(careerPathData)
+    } catch (error: any) {
+      console.error("Career path generation error:", error)
+      return res.status(500).json({ error: error.message })
     }
-  )
+  })
 
   // Save a career path
   app.post("/api/career-paths", async (req: Request, res: Response) => {
@@ -283,8 +268,7 @@ export function registerCareerPathRoutes(app: Express) {
 
       const { name, pathData } = req.body
       if (!name || !pathData) {
-        return res
-          .status(400)
+        return res.status(400)
           .json({ error: "Name and path data are required" })
       }
 
@@ -308,14 +292,14 @@ export function registerCareerPathRoutes(app: Express) {
       if (!req.userId) {
         return res.status(401).json({ error: "Not authenticated" })
       }
-
+      
       // Convert userId to number for database compatibility
       const userIdNum = req.userId ? parseInt(req.userId) : undefined
       if (!userIdNum) {
         return res.status(401).json({ error: "Not authorized" })
       }
       const paths = await storage.getCareerPaths(userIdNum)
-
+      
       return res.json(paths)
     } catch (error: any) {
       console.error("Error fetching career paths:", error)
@@ -329,31 +313,29 @@ export function registerCareerPathRoutes(app: Express) {
       if (!req.userId) {
         return res.status(401).json({ error: "Not authenticated" })
       }
-
+      
       const pathId = parseInt(req.params.id)
       if (isNaN(pathId)) {
         return res.status(400).json({ error: "Invalid path ID" })
       }
-
+      
       // Convert userId to number for database compatibility
       const userIdNum = req.userId ? parseInt(req.userId) : undefined
       if (!userIdNum) {
         return res.status(401).json({ error: "Not authorized" })
       }
-
+      
       const path = await storage.getCareerPathById(pathId)
-
+      
       if (!path) {
         return res.status(404).json({ error: "Career path not found" })
       }
-
+      
       // Check if this path belongs to the current user
       if (path.userId !== userIdNum) {
-        return res
-          .status(403)
-          .json({ error: "Not authorized to access this career path" })
+        return res.status(403).json({ error: "Not authorized to access this career path" })
       }
-
+      
       return res.json(path)
     } catch (error: any) {
       console.error("Error fetching career path:", error)
@@ -367,30 +349,28 @@ export function registerCareerPathRoutes(app: Express) {
       if (!req.userId) {
         return res.status(401).json({ error: "Not authenticated" })
       }
-
+      
       const pathId = parseInt(req.params.id)
       if (isNaN(pathId)) {
         return res.status(400).json({ error: "Invalid path ID" })
       }
-
+      
       // Convert userId to number for database compatibility
       const userIdNum = req.userId ? parseInt(req.userId) : undefined
       if (!userIdNum) {
         return res.status(401).json({ error: "Not authorized" })
       }
-
+      
       // First check if the path belongs to this user
       const path = await storage.getCareerPathById(pathId)
       if (!path) {
         return res.status(404).json({ error: "Career path not found" })
       }
-
+      
       if (path.userId !== userIdNum) {
-        return res
-          .status(403)
-          .json({ error: "Not authorized to delete this career path" })
+        return res.status(403).json({ error: "Not authorized to delete this career path" })
       }
-
+      
       await storage.deleteCareerPath(pathId)
       return res.status(204).send()
     } catch (error: any) {
@@ -399,3 +379,9 @@ export function registerCareerPathRoutes(app: Express) {
     }
   })
 }
+EOL
+
+# Move the temp file to replace the original
+mv src/backend/career-path.ts.temp src/backend/career-path.ts
+
+echo "Conversion complete!"

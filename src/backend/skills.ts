@@ -13,7 +13,7 @@ export function registerSkillsRoutes(app: Express, storage: IStorage) {
   // Get all skills for the current user
   app.get("/api/skills", requireAuth, async (req: Request, res: Response) => {
     try {
-      const skills = await storage.getUserSkills(req.session.userId!);
+      const skills = await storage.getUserSkills(req.userId!);
       res.status(200).json(skills);
     } catch (error) {
       console.error("Error fetching skills:", error);
@@ -38,7 +38,7 @@ export function registerSkillsRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the skill belongs to the current user
-      if (skill.userId !== req.session.userId) {
+      if (skill.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to view this skill" });
       }
       
@@ -56,7 +56,7 @@ export function registerSkillsRoutes(app: Express, storage: IStorage) {
       
       const newSkill = await storage.createSkill({
         ...validatedData,
-        userId: req.session.userId!
+        userId: req.userId!
       });
       
       res.status(201).json(newSkill);
@@ -89,7 +89,7 @@ export function registerSkillsRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the skill belongs to the current user
-      if (existingSkill.userId !== req.session.userId) {
+      if (existingSkill.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to update this skill" });
       }
       
@@ -122,7 +122,7 @@ export function registerSkillsRoutes(app: Express, storage: IStorage) {
       }
       
       // Ensure the skill belongs to the current user
-      if (existingSkill.userId !== req.session.userId) {
+      if (existingSkill.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to delete this skill" });
       }
       

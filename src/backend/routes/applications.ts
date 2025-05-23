@@ -32,7 +32,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Get all applications for the current user
   app.get('/api/applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const applications = await storage.getJobApplications(userId);
       res.json(applications);
     } catch (error) {
@@ -44,7 +44,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Get all applications for job tracker (alias for /api/applications)
   app.get('/api/job-applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const applications = await storage.getJobApplications(userId);
       res.json(applications);
     } catch (error) {
@@ -57,7 +57,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.get('/api/applications/:id', requireAuth, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       const application = await storage.getJobApplication(id);
       
@@ -86,7 +86,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Create a new application
   app.post('/api/applications', requireLoginFallback, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Validate the input
       const applicationData = insertJobApplicationSchema.parse(req.body);
@@ -153,7 +153,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.put('/api/applications/:id', requireAuth, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Check if the application exists and belongs to the user
       const existingApplication = await storage.getJobApplication(id);
@@ -180,7 +180,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.post('/api/applications/:id/submit', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const { applied = false } = req.body; // Get applied status from request body, default to false
       
       // Check if the application exists and belongs to the user
@@ -219,7 +219,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.delete('/api/applications/:id', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Check if the application exists and belongs to the user
       const existingApplication = await storage.getJobApplication(id);
@@ -248,7 +248,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.get('/api/applications/:id/steps', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const applicationId = parseInt(req.params.id);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Check if the application exists and belongs to the user
       const application = await storage.getJobApplication(applicationId);
@@ -275,7 +275,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.put('/api/applications/steps/:stepId', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const stepId = parseInt(req.params.stepId);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Get the step
       const step = await storage.getApplicationWizardStep(stepId);
@@ -305,7 +305,7 @@ export function registerApplicationRoutes(app: Router, storage: IStorage) {
   app.post('/api/applications/steps/:stepId/complete', requireLoginFallback, async (req: Request, res: Response) => {
     try {
       const stepId = parseInt(req.params.stepId);
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       
       // Get the step
       const step = await storage.getApplicationWizardStep(stepId);

@@ -12,11 +12,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // DEBUG ENDPOINT: Get work history data with detailed debugging info
   app.get("/api/debug/work-history", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       // Get the raw work history items
       const workHistoryItems = await storage.getWorkHistory(userId);
@@ -53,11 +53,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   app.get("/api/career-data", requireAuth, async (req: Request, res: Response) => {
     try {
       // Ensure we have a valid user session
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       // Fetch all career data in parallel
       let workHistory, educationHistory, skills, certifications = [], user;
@@ -202,11 +202,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   app.get("/api/career-data/profile", requireAuth, async (req: Request, res: Response) => {
     try {
       // Ensure we have a valid user session
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       // Fetch all career data in parallel
       let workHistory, education, skills, certifications = [], user;
@@ -259,11 +259,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Work History CRUD endpoints
   app.post("/api/career-data/work-history", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       console.log("⭐️ POST /api/career-data/work-history - Request received for user:", userId);
       console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
@@ -328,7 +328,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.put("/api/career-data/work-history/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -382,7 +382,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.delete("/api/career-data/work-history/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -403,11 +403,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Education History CRUD endpoints
   app.post("/api/career-data/education", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       console.log("⭐️ POST /api/career-data/education - Request received for user:", userId);
       console.log("📦 Raw request body:", JSON.stringify(req.body, null, 2));
@@ -477,7 +477,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.put("/api/career-data/education/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -518,7 +518,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.delete("/api/career-data/education/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -540,11 +540,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Debug endpoint to get skills directly
   app.get("/api/career-data/skills", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       console.log(`DEBUG: Direct skills endpoint - Fetching skills for user ${userId}`);
       
       // Fetch skills directly
@@ -564,11 +564,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
 
   app.post("/api/career-data/skills", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       // Add userId to the request body before creating
       const skillData = { ...req.body, userId };
       console.log(`DEBUG: Creating skill for user ${userId}:`, JSON.stringify(skillData, null, 2));
@@ -585,7 +585,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.put("/api/career-data/skills/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -622,7 +622,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.delete("/api/career-data/skills/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -643,11 +643,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Certifications CRUD endpoints
   app.post("/api/career-data/certifications", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       
       // Process dates to ensure they're Date objects
       const formData = { ...req.body };
@@ -708,7 +708,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.put("/api/career-data/certifications/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -777,7 +777,7 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   
   app.delete("/api/career-data/certifications/:id", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
@@ -798,11 +798,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Career Summary endpoint (updates the user profile)
   app.put("/api/career-data/career-summary", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       const { careerSummary } = req.body;
       
       const updatedUser = await storage.updateUser(userId, { careerSummary });
@@ -822,11 +822,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
   // Update LinkedIn URL endpoint
   app.post("/api/career-data/linkedin-url", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       const { linkedInUrl } = req.body;
       
       if (!linkedInUrl) {
@@ -848,11 +848,11 @@ export function registerCareerDataRoutes(app: Express, storage: IStorage) {
 
   app.post("/api/career-data/optimize", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const userId = req.session.userId;
+      const userId = req.userId;
       const { jobDescription, careerData } = req.body;
       
       if (!jobDescription) {

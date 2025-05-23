@@ -1,15 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express"
 import { registerRoutes } from "./routes"
 import { setupVite, serveStatic, log } from "./vite"
-import session from "express-session"
-import { sessionStore } from "./session-store"
-import { devTokenAuthBypass } from "./auth"
 import publicRouter from "./public-endpoints"
 import path from "path"
 import cors from "cors"
 import { ENV, validateEnv } from "../config/env"
 import { checkDatabaseConnection } from "./db"
 import dotenv from "dotenv"
+import { verifySupabaseToken } from "./supabase-auth"
 
 // Load .env file if it exists
 dotenv.config()
@@ -30,22 +28,7 @@ console.log("- DATABASE_URL:", ENV.DATABASE_URL ? "present" : "missing")
 // Validate environment variables
 validateEnv()
 
-// Declare session values on the Express Request type
-declare module "express-session" {
-  interface SessionData {
-    userId?: number
-    role?: string
-  }
-}
-
-// Extend the Express Request type
-declare global {
-  namespace Express {
-    interface Request {
-      session: session.Session & Partial<session.SessionData>
-    }
-  }
-}
+// No longer need session type declarations with Supabase auth
 
 const app = express()
 app.use(express.json({ limit: "50mb" }))
@@ -54,7 +37,7 @@ app.use(express.urlencoded({ extended: false, limit: "50mb" }))
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")))
 
-// Mount the public router BEFORE session and auth middleware
+// Mount the public router BEFORE auth middleware
 // This ensures public endpoints don't require authentication
 app.use("/api/public", publicRouter)
 console.log("Public API routes mounted at /api/public")
@@ -62,22 +45,8 @@ console.log("Public API routes mounted at /api/public")
 // New WordPress-friendly reviews endpoint with CORS enabled
 app.use("/api/public-reviews", cors({ origin: "*" }))
 
-// Configure session middleware
-app.use(
-  session({
-    secret: ENV.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-      secure: ENV.NODE_ENV === "production", // Only secure in production
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  })
-)
-
-// Add dev token auth bypass middleware (only works in development)
-app.use(devTokenAuthBypass)
+// Comment out Supabase auth middleware so we can apply it in routes.ts
+// app.use("/api", verifySupabaseToken)
 
 app.use((req, res, next) => {
   const start = Date.now()

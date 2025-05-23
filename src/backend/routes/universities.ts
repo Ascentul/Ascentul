@@ -24,11 +24,11 @@ const universitySchema = z.object({
 
 // Get all universities
 router.get('/', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -78,11 +78,11 @@ router.get('/', async (req, res) => {
 
 // Create a university
 router.post('/', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -108,7 +108,7 @@ router.post('/', async (req, res) => {
         licenseStart: new Date(validatedData.licenseStart),
         licenseEnd: new Date(validatedData.licenseEnd),
         status: validatedData.status,
-        createdById: req.session.userId,
+        createdById: req.userId,
         createdAt: new Date(),
         updatedAt: new Date(),
       })
@@ -137,11 +137,11 @@ router.post('/', async (req, res) => {
 
 // Get a specific university
 router.get('/:id', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -194,11 +194,11 @@ router.get('/:id', async (req, res) => {
 
 // Update a university
 router.patch('/:id', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -284,11 +284,11 @@ router.patch('/:id', async (req, res) => {
 
 // Delete a university
 router.delete('/:id', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -336,11 +336,11 @@ router.delete('/:id', async (req, res) => {
 
 // Get all students for a university
 router.get('/:id/students', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
@@ -391,11 +391,11 @@ router.get('/:id/students', async (req, res) => {
 
 // Get all admins for a university
 router.get('/:id/admins', async (req, res) => {
-  if (!req.session?.userId) {
+  if (!req.userId) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  const user = await storage.getUser(req.session.userId);
+  const user = await storage.getUser(req.userId);
   if (!user || (user.userType !== 'admin' && user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Unauthorized' });
   }
