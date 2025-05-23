@@ -27,12 +27,11 @@ export default defineConfig(async ({ mode }) => {
       }
     },
     root: path.resolve(__dirname, "src", "frontend"),
-    publicDir: path.resolve(__dirname, "src", "frontend", "assets"),
+    publicDir: "assets",
     build: {
       outDir: path.resolve(__dirname, "dist", "public"),
       emptyOutDir: true,
       rollupOptions: {
-        input: path.resolve(__dirname, "src", "frontend", "index.html"),
         output: {
           manualChunks: {
             vendor: ["react", "react-dom"],
