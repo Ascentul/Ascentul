@@ -23,8 +23,7 @@ export default defineConfig(async ({ mode }) => {
       alias: {
         "@": path.resolve(__dirname, "src", "frontend"),
         "@shared": path.resolve(__dirname, "src", "utils"),
-        "@assets": path.resolve(__dirname, "src", "assets"),
-        "/src/assets": path.resolve(__dirname, "src", "assets")
+        "@assets": path.resolve(__dirname, "src", "frontend", "assets")
       }
     },
     root: path.resolve(__dirname, "src", "frontend"),
