@@ -19,7 +19,7 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ============ User Operations ============
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -80,7 +80,7 @@ export class SupabaseStorage implements IStorage {
   }
 
   async updateUser(
-    id: number,
+    id: string,
     userData: Partial<User>
   ): Promise<User | undefined> {
     const { data, error } = await supabase
@@ -144,7 +144,7 @@ export class SupabaseStorage implements IStorage {
     return true
   }
 
-  async getUserSkills(userId: number): Promise<Skill[]> {
+  async getUserSkills(userId: string): Promise<Skill[]> {
     const { data, error } = await supabase
       .from("skills")
       .select("*")
@@ -219,7 +219,7 @@ export class SupabaseStorage implements IStorage {
     return true
   }
 
-  async getUserLanguages(userId: number): Promise<Language[]> {
+  async getUserLanguages(userId: string): Promise<Language[]> {
     const { data, error } = await supabase
       .from("languages")
       .select("*")
@@ -286,27 +286,36 @@ export class SupabaseStorage implements IStorage {
     return []
   }
   async getUserDailyRecommendations(
-    userId: number,
+    userId: string,
     date?: Date
   ): Promise<any[]> {
+    // Implementation would go here for daily recommendations
     return []
   }
   async getRecommendation(id: number): Promise<any | undefined> {
+    // Implementation would go here for getting specific recommendations
     return undefined
   }
   async completeRecommendation(id: number): Promise<any | undefined> {
+    // Implementation would go here for completing recommendations
     return undefined
   }
-  async clearTodaysRecommendations(userId: number): Promise<boolean | void> {
+  async clearTodaysRecommendations(userId: string): Promise<boolean | void> {
     try {
-      // Find and delete today's recommendations using Supabase
-      console.log(`Clearing today's recommendations for user ${userId}`)
+      const today = new Date().toISOString().split("T")[0]
+      const { error } = await supabase
+        .from("daily_recommendations")
+        .delete()
+        .eq("user_id", userId)
+        .eq("date", today)
 
-      // When implemented properly, we'd delete any records for today
-      // For now, just stub returning true for the boolean version
+      if (error) {
+        console.error("Error clearing today's recommendations:", error)
+        return false
+      }
       return true
     } catch (error) {
-      console.error(`Error clearing recommendations for user ${userId}:`, error)
+      console.error("Error clearing today's recommendations:", error)
       return false
     }
   }
@@ -319,17 +328,17 @@ export class SupabaseStorage implements IStorage {
   async deleteContactInteraction(id: number): Promise<boolean> {
     return true
   }
-  async createUserReview(userId: number, reviewData: any): Promise<any> {
+  async createUserReview(userId: string, reviewData: any): Promise<any> {
     throw new Error("Not implemented")
   }
   async saveCareerPath(
-    userId: number,
+    userId: string,
     name: string,
     pathData: any
   ): Promise<any> {
     throw new Error("Not implemented")
   }
-  async getUserCareerPaths(userId: number): Promise<any[]> {
+  async getUserCareerPaths(userId: string): Promise<any[]> {
     return []
   }
   async getCareerPath(id: number): Promise<any | undefined> {
@@ -367,50 +376,50 @@ export class SupabaseStorage implements IStorage {
     return undefined
   }
   async updateUserStripeInfo(
-    userId: number,
+    userId: string,
     stripeInfo: any
   ): Promise<User | undefined> {
     return undefined
   }
   async updateUserVerificationInfo(
-    userId: number,
+    userId: string,
     verificationInfo: any
   ): Promise<User | undefined> {
     return undefined
   }
   async updateUserPassword(
-    userId: number,
+    userId: string,
     newPassword: string
   ): Promise<User | undefined> {
     return undefined
   }
   async updateUserCareerSummary(
-    userId: number,
+    userId: string,
     careerSummary: string
   ): Promise<User | undefined> {
     return undefined
   }
   async updateUserLinkedInUrl(
-    userId: number,
+    userId: string,
     linkedInUrl: string
   ): Promise<User | undefined> {
     return undefined
   }
   async addUserXP(
-    userId: number,
+    userId: string,
     amount: number,
     source: string,
     description?: string
   ): Promise<number> {
     return 0
   }
-  async getGoals(userId: number): Promise<any[]> {
+  async getGoals(userId: string): Promise<any[]> {
     return []
   }
   async getGoal(id: number): Promise<any | undefined> {
     return undefined
   }
-  async createGoal(userId: number, goal: any): Promise<any> {
+  async createGoal(userId: string, goal: any): Promise<any> {
     throw new Error("Not implemented")
   }
   async updateGoal(id: number, goalData: any): Promise<any | undefined> {
@@ -428,13 +437,13 @@ export class SupabaseStorage implements IStorage {
   ): Promise<any | undefined> {
     return undefined
   }
-  async getAllSkillStackerPlans(userId: number): Promise<any[]> {
+  async getAllSkillStackerPlans(userId: string): Promise<any[]> {
     return []
   }
   async getSkillStackerPlansByGoal(goalId: number): Promise<any[]> {
     return []
   }
-  async createSkillStackerPlan(userId: number, plan: any): Promise<any> {
+  async createSkillStackerPlan(userId: string, plan: any): Promise<any> {
     throw new Error("Not implemented")
   }
   async updateSkillStackerPlan(
@@ -457,7 +466,7 @@ export class SupabaseStorage implements IStorage {
   async deleteSkillStackerPlan(id: number): Promise<boolean> {
     return true
   }
-  async generateDailyRecommendations(userId: number): Promise<any[]> {
+  async generateDailyRecommendations(userId: string): Promise<any[]> {
     return []
   }
 }

@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query"
+import supabaseClient from "./supabase-auth"
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -27,6 +28,17 @@ async function throwIfResNotOk(res: Response) {
     // Add status code to error object for easier checking
     ;(error as any).status = res.status
     throw error
+  }
+}
+
+// Helper function to get the current Supabase session token
+async function getSupabaseToken(): Promise<string | null> {
+  try {
+    const { data } = await supabaseClient.auth.getSession()
+    return data.session?.access_token || null
+  } catch (error) {
+    console.error("Error getting Supabase token:", error)
+    return null
   }
 }
 
@@ -77,9 +89,16 @@ export async function apiRequest<T>(
     headers["Content-Type"] = "application/json"
   }
 
-  // Add dev token authorization header (always in this environment)
-  console.log("Setting dev_token Authorization header")
-  headers["Authorization"] = "Bearer dev_token"
+  // Get Supabase token and add Authorization header
+  const token = await getSupabaseToken()
+  if (token) {
+    console.log("Using Supabase JWT token for authentication")
+    headers["Authorization"] = `Bearer ${token}`
+  } else {
+    console.log("No Supabase token available, using dev fallback")
+    // Fallback to dev token for development mode
+    headers["Authorization"] = "Bearer dev_token"
+  }
 
   // Check if user is logged out from localStorage
   const isLoggedOut = localStorage.getItem("auth-logout") === "true"
@@ -128,9 +147,16 @@ export const getQueryFn = <T>(options?: { on401?: UnauthorizedBehavior }) => {
     // Create headers object
     const headers: Record<string, string> = {}
 
-    // Add dev token authorization header (for development mode)
-    // Always add the dev_token in dev environment to fix auth issues
-    headers["Authorization"] = "Bearer dev_token"
+    // Get Supabase token and add Authorization header
+    const token = await getSupabaseToken()
+    if (token) {
+      console.log("Using Supabase JWT token for query")
+      headers["Authorization"] = `Bearer ${token}`
+    } else {
+      console.log("No Supabase token available for query, using dev fallback")
+      // Fallback to dev token for development mode
+      headers["Authorization"] = "Bearer dev_token"
+    }
 
     // Check if user is logged out from localStorage
     const isLoggedOut = localStorage.getItem("auth-logout") === "true"

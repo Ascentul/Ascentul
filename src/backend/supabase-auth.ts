@@ -8,7 +8,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: User | null
-      userId?: string
+      userId?: string // Keep as string since Supabase uses UUIDs
     }
   }
 }
@@ -52,22 +52,63 @@ export async function verifySupabaseToken(
         .json({ message: "Invalid or expired authentication token" })
     }
 
-    // Get detailed user information from database
+    console.log("Authenticated Supabase user ID:", data.user.id)
+
+    // Get detailed user information from database using UUID
     const { data: userData, error: userError } = await supabaseAdmin
       .from("users")
       .select("*")
-      .eq("id", data.user.id)
+      .eq("id", data.user.id) // Use UUID directly, no conversion needed
       .single()
 
     if (userError || !userData) {
       console.error("Error fetching user data:", userError)
+
+      // If user doesn't exist in our database but has valid Supabase auth,
+      // create a user record
+      if (userError?.code === "PGRST116") {
+        console.log("Creating user record for authenticated Supabase user")
+
+        const { data: newUserData, error: createError } = await supabaseAdmin
+          .from("users")
+          .insert({
+            id: data.user.id, // Use the Supabase UUID
+            email: data.user.email,
+            name:
+              data.user.user_metadata?.name ||
+              data.user.email?.split("@")[0] ||
+              "User",
+            username: `user_${data.user.id.slice(0, 8)}`,
+            user_type: "regular",
+            needs_username: true,
+            onboarding_completed: false
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error("Error creating user record:", createError)
+          return res
+            .status(500)
+            .json({ message: "Error setting up user account" })
+        }
+
+        // Use the newly created user data
+        req.user = newUserData as unknown as User
+        req.userId = data.user.id // Keep as UUID string
+
+        console.log("Created new user record for:", data.user.email)
+        return next()
+      }
+
       return res.status(500).json({ message: "Error loading user data" })
     }
 
     // Attach the user to the request
     req.user = userData as unknown as User
-    req.userId = data.user.id
+    req.userId = data.user.id // Keep as UUID string
 
+    console.log("Successfully authenticated user:", userData.email)
     next()
   } catch (error) {
     console.error("Authentication error:", error)
@@ -83,43 +124,50 @@ export async function verifySupabaseToken(
 async function handleDevMode(req: Request, next: NextFunction) {
   console.log("DEV MODE: Attempting to find fallback user...")
 
-  // Try to get a valid demo user from the database - first try ID 2, then any user
+  // Try to get a valid demo user from the database - look for existing users
   let userData
 
-  // First try with ID 2
-  const { data: user2Data, error: user2Error } = await supabaseAdmin
+  // First try to get any existing user
+  const { data: anyUserData, error: anyUserError } = await supabaseAdmin
     .from("users")
     .select("*")
-    .eq("id", 2)
+    .limit(1)
     .single()
 
-  if (user2Data) {
-    userData = user2Data
-    console.log("DEV MODE: Found fallback user with ID 2:", user2Data.email)
+  if (anyUserData) {
+    userData = anyUserData
+    console.log("DEV MODE: Found fallback user:", anyUserData.email)
   } else {
-    console.log("DEV MODE: Could not find user with ID 2. Error:", user2Error)
+    console.log("DEV MODE: No existing users found, creating fallback user")
 
-    // Fallback to getting any user
-    const { data: anyUserData, error: anyUserError } = await supabaseAdmin
+    // Create a fallback demo user if none exist
+    const { data: newUserData, error: createError } = await supabaseAdmin
       .from("users")
-      .select("*")
-      .limit(1)
+      .insert({
+        email: "demo@example.com",
+        name: "Demo User",
+        username: "demo_user",
+        user_type: "regular",
+        onboarding_completed: true
+      })
+      .select()
       .single()
 
-    if (anyUserData) {
-      userData = anyUserData
-      console.log(
-        "DEV MODE: Found alternative fallback user:",
-        anyUserData.email
+    if (createError) {
+      console.error("DEV MODE: Failed to create fallback user:", createError)
+      console.warn(
+        "DEV MODE: Could not find any fallback user, authentication will likely fail"
       )
-    } else {
-      console.error("DEV MODE: Failed to find any users:", anyUserError)
+      return next()
     }
+
+    userData = newUserData
+    console.log("DEV MODE: Created fallback user:", newUserData.email)
   }
 
   if (userData) {
     req.user = userData as unknown as User
-    req.userId = userData.id.toString()
+    req.userId = userData.id // This will be a UUID string
     console.log("DEV MODE: Using fallback user ID:", userData.id)
   } else {
     console.warn(

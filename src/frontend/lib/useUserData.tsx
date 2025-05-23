@@ -62,23 +62,18 @@ interface UserContextType {
   user: User | null
   isLoading: boolean
   error: Error | null
-  login: (
-    email: string,
-    password: string,
-    loginType?: "staff" | "admin" | "university" | "regular"
-  ) => Promise<{ user: User; redirectPath?: string }>
-  logout: () => void
-  isAuthenticated: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
   refetchUser: () => Promise<User | null>
   updateProfile: (data: {
     name?: string
     email?: string
     username?: string
     profileImage?: string
-  }) => Promise<User>
-  updateUser: (data: Partial<User>) => void
-  updateTheme: (themeSettings: User["theme"]) => Promise<void>
+  }) => void
   uploadProfileImage: (imageDataUrl: string) => Promise<User>
+  clearUserCache: () => void
+  isAuthenticated: boolean
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -111,14 +106,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Custom query function for fetching user data - tries both API and Supabase
   const fetchUserData = async (): Promise<User | null> => {
     try {
-      // First try the API endpoint
-      const apiResponse = await fetch("/api/users/me")
-      if (apiResponse.ok) {
-        return await apiResponse.json()
+      // First check if we have a Supabase session
+      const { data: authSession } = await supabaseClient.auth.getSession()
+
+      if (!authSession.session) {
+        console.log("No Supabase session found")
+        return null
       }
 
-      // If API fails, try getting user from Supabase
-      const { data: authUser } = await supabaseClient.auth.getUser()
+      console.log(
+        "Found Supabase session for user:",
+        authSession.session.user.email
+      )
+
+      // Try the API endpoint with the Supabase token
+      const token = authSession.session.access_token
+      const apiResponse = await fetch("/api/users/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        credentials: "include"
+      })
+
+      if (apiResponse.ok) {
+        const userData = await apiResponse.json()
+        console.log("Successfully fetched user data from API:", userData.name)
+        return userData
+      }
+
+      // If API fails, try getting user directly from Supabase
+      console.log("API request failed, trying Supabase directly")
+      const { data: authUser } = await supabaseClient.auth.getUser(token)
       if (!authUser.user) {
         return null
       }
@@ -134,6 +153,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching user data from Supabase:", error)
         return null
       }
+
+      console.log(
+        "Successfully fetched user data from Supabase:",
+        userData.name
+      )
 
       // Map Supabase user to our User interface
       return {
@@ -280,6 +304,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return result
   }
 
+  // Function to clear all cached user data and force fresh fetch
+  const clearUserCache = () => {
+    console.log("Clearing user cache and forcing fresh fetch...")
+
+    // Clear React Query cache for user data
+    queryClient.removeQueries({ queryKey: ["/api/users/me"] })
+    queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+
+    // Clear any localStorage items that might be caching user data
+    localStorage.removeItem("auth-logout")
+
+    // Force refetch
+    refetch()
+  }
+
   const logout = async () => {
     try {
       // Sign out from Supabase
@@ -297,6 +336,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // Clear local data
       queryClient.setQueryData(["/api/users/me"], null)
+      queryClient.removeQueries({ queryKey: ["/api/users/me"] })
       setIsAuthenticated(false)
 
       // Redirect to sign-in page
@@ -306,6 +346,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Still clear local data and redirect even if the API call fails
       localStorage.setItem("auth-logout", "true")
       queryClient.setQueryData(["/api/users/me"], null)
+      queryClient.removeQueries({ queryKey: ["/api/users/me"] })
       setIsAuthenticated(false)
       window.location.href = "/sign-in"
     }
@@ -644,17 +685,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return (
     <UserContext.Provider
       value={{
-        user: user || null,
+        user,
         isLoading,
         error,
         login,
         logout,
-        isAuthenticated,
         refetchUser,
-        updateProfile,
-        updateUser,
-        updateTheme,
-        uploadProfileImage
+        updateProfile: updateProfileMutation.mutate,
+        uploadProfileImage,
+        clearUserCache,
+        isAuthenticated
       }}
     >
       {children}

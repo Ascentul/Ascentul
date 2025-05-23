@@ -116,7 +116,7 @@ async function getCurrentUser(req: Request): Promise<User | null> {
     // If we have a userId but no user object
     if (req.userId) {
       console.log("User ID from Supabase token:", req.userId)
-      const user = await storage.getUser(parseInt(req.userId))
+      const user = await storage.getUser(req.userId) // Remove parseInt since we now use string UUIDs
       if (user) {
         console.log("Found user:", user.id, user.username)
         return user
@@ -1162,44 +1162,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Routes
   apiRouter.get(
     "/users/me",
-    requireLoginFallback,
+    requireAuth, // Changed from requireLoginFallback to requireAuth
     async (req: Request, res: Response) => {
       try {
-        // The requireLoginFallback middleware will set req.userId
-        // No need to manually check the auth header anymore since it's handled by the middleware
-
         // Check if the browser has a special logout flag set (from localStorage)
         const isLoggedOut = req.headers["x-auth-logout"] === "true"
         if (isLoggedOut) {
           return res.status(401).json({ message: "Not authenticated" })
         }
 
-        // Get the user ID from the request (set by Supabase auth middleware)
-        let userId = req.userId ? parseInt(req.userId) : undefined
+        // Get the user from the Supabase auth middleware first
+        let user = req.user
 
-        // If we still don't have a user ID, use the default "alex" for backward compatibility
-        let user
-        if (userId) {
-          user = await storage.getUser(userId)
-          console.log("Found user by ID:", userId, Boolean(user))
-        }
+        // If we don't have a user object but have a userId, try to fetch it
+        if (!user && req.userId) {
+          console.log("Fetching user with UUID:", req.userId)
 
-        // If we couldn't find the user by ID, fall back to the default user
-        if (!user) {
-          console.log("Falling back to default user 'alex'")
-          user = await storage.getUserByUsername("alex")
-          if (user) {
-            console.log("Found fallback user with username 'alex'")
+          // Use Supabase to fetch user by UUID (not integer parsing!)
+          const { data: userData, error } = await supabaseAdmin
+            .from("users")
+            .select("*")
+            .eq("id", req.userId) // req.userId is already a UUID string
+            .single()
+
+          if (!error && userData) {
+            user = userData as unknown as User
+            console.log("Found user by UUID:", userData.name)
           } else {
-            console.log("Could not find fallback user with username 'alex'")
+            console.log("Could not find user with UUID:", req.userId, error)
           }
         }
 
         if (!user) {
-          console.error(
-            "No user could be found - neither by ID nor by fallback username"
-          )
-          return res.status(404).json({ message: "User not found" })
+          console.error("No authenticated user found")
+          return res.status(401).json({ message: "Authentication required" })
         }
 
         const { password: userPassword, ...safeUser } = user
@@ -1207,139 +1203,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add password length for visual representation, but never send actual password
         const passwordLength = userPassword ? userPassword.length : 0
 
-        console.log("Successfully retrieved user, returning response")
-        res.status(200).json({
+        // Map snake_case database fields to camelCase for frontend compatibility
+        const mappedUser = {
           ...safeUser,
+          // Map snake_case to camelCase
+          onboardingCompleted: safeUser.onboarding_completed,
+          onboardingData: safeUser.onboarding_data,
+          profileImage: safeUser.profile_image,
           passwordLength
-        })
+        }
+
+        // Remove the snake_case versions to avoid confusion
+        delete mappedUser.onboarding_completed
+        delete mappedUser.onboarding_data
+        delete mappedUser.profile_image
+
+        console.log("Successfully retrieved authenticated user:", user.name)
+        res.status(200).json(mappedUser)
       } catch (error) {
         console.error("Error in /api/users/me endpoint:", error)
         res.status(500).json({ message: "Error fetching user" })
       }
     }
   )
-
-  // Update user profile
-  apiRouter.put("/users/profile", async (req: Request, res: Response) => {
-    try {
-      // Get user ID from request (set by Supabase auth middleware)
-      const userId = req.userId
-
-      // Get the user by ID or fall back to default
-      let user
-      if (userId) {
-        user = await storage.getUser(userId)
-      }
-
-      // If not found, use the sample user for backward compatibility
-      if (!user) {
-        user = await storage.getUserByUsername("alex")
-      }
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" })
-      }
-
-      // Update only allowed fields
-      const updateData: Partial<User> = {}
-      const {
-        name,
-        username,
-        profileImage,
-        email,
-        currentPassword,
-        onboardingCompleted,
-        onboardingData
-      } = req.body
-
-      // Check if username already exists (if changed)
-      if (username !== undefined && username !== user.username) {
-        const existingUser = await storage.getUserByUsername(username)
-        if (existingUser) {
-          return res.status(400).json({
-            message: "Username already taken",
-            field: "username"
-          })
-        }
-      }
-
-      // Handle name, username, profileImage, and onboarding updates directly
-      if (name !== undefined) updateData.name = name
-      if (username !== undefined) updateData.username = username
-      if (profileImage !== undefined) updateData.profileImage = profileImage
-      if (onboardingCompleted !== undefined)
-        updateData.onboardingCompleted = onboardingCompleted
-      if (onboardingData !== undefined)
-        updateData.onboardingData = onboardingData
-
-      // Special handling for email changes
-      if (email !== undefined && email !== user.email) {
-        // Check if email already exists
-        const userWithEmail = await storage.getUserByEmail(email)
-        if (userWithEmail) {
-          return res.status(400).json({
-            message: "Email address already in use",
-            field: "email"
-          })
-        }
-
-        // For security, require current password to change email
-        if (!currentPassword) {
-          return res.status(400).json({
-            message: "Current password is required to change email address"
-          })
-        }
-
-        // In a real app, validate the password here
-        // For demo purposes, we'll assume the password is valid
-
-        // Generate verification token and set expiration (24 hours)
-        const verificationToken =
-          Math.random().toString(36).substring(2, 15) +
-          Math.random().toString(36).substring(2, 15)
-        const verificationExpires = new Date()
-        verificationExpires.setHours(verificationExpires.getHours() + 24)
-
-        // Store the pending email change
-        updateData.pendingEmail = email
-        updateData.pendingEmailToken = verificationToken
-        updateData.pendingEmailExpires = verificationExpires
-
-        // For demo/development purposes, we're setting the email directly without verification
-        // In production, uncomment this to send verification emails and remove the line below
-        // sendVerificationEmail(email, verificationToken);
-
-        // REMOVE THIS IN PRODUCTION - SHOULD USE EMAIL VERIFICATION FLOW
-        updateData.email = email // Set email directly for demo purposes
-        console.log(
-          `Verification link would be sent to ${email} with token: ${verificationToken}`
-        )
-      }
-
-      // Apply the updates
-      const updatedUser = await storage.updateUser(user.id, updateData)
-
-      if (!updatedUser) {
-        return res.status(404).json({ message: "Failed to update user" })
-      }
-
-      const { password: userPassword, ...safeUser } = updatedUser
-
-      // Add a message about email verification if needed
-      if (updateData.pendingEmail) {
-        return res.status(200).json({
-          ...safeUser,
-          message:
-            "A verification email has been sent to your new email address. Please check your inbox to complete the email change."
-        })
-      }
-
-      res.status(200).json(safeUser)
-    } catch (error) {
-      console.error("Error updating user profile:", error)
-      res.status(500).json({ message: "Error updating user profile" })
-    }
-  })
 
   // Profile image upload endpoint
   apiRouter.post(

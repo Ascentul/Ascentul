@@ -25,13 +25,19 @@ After your project is created, you'll need to set up the database schema. You ca
 2. Create the basic tables needed by copying the schemas from our schema.ts file:
 
 ```sql
--- Create users table
+-- Enable UUID extension for proper ID generation
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Drop the existing users table if it exists (be careful in production!)
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Create users table with UUID primary key to match Supabase Auth
 CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   username TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
+  password TEXT DEFAULT 'supabase-auth',  -- Placeholder since Supabase handles auth
   name TEXT NOT NULL,
-  email TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
   user_type TEXT NOT NULL DEFAULT 'regular',
   role TEXT DEFAULT 'user',
   university_id INTEGER,
@@ -49,46 +55,116 @@ CREATE TABLE users (
   subscription_cycle TEXT DEFAULT 'monthly',
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
-  subscription_expires_at TIMESTAMP,
+  subscription_expires_at TIMESTAMPTZ,
   needs_username BOOLEAN DEFAULT FALSE,
   onboarding_completed BOOLEAN DEFAULT FALSE,
   onboarding_data JSONB,
   email_verified BOOLEAN DEFAULT FALSE,
   verification_token TEXT,
-  verification_expires TIMESTAMP,
+  verification_expires TIMESTAMPTZ,
   pending_email TEXT,
   pending_email_token TEXT,
-  pending_email_expires TIMESTAMP,
-  password_last_changed TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  pending_email_expires TIMESTAMPTZ,
+  password_last_changed TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- Create skills table
+-- Create skills table (with UUID user_id reference)
 CREATE TABLE skills (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   proficiency_level INTEGER NOT NULL,
   year_of_experience INTEGER,
-  created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- Create languages table
+-- Create languages table (with UUID user_id reference)
 CREATE TABLE languages (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   proficiency_level TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW() NOT NULL
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- Create sessions table for authentication
+-- Create work_history table (with UUID user_id reference)
+CREATE TABLE work_history (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company TEXT NOT NULL,
+  position TEXT NOT NULL,
+  location TEXT,
+  start_date TIMESTAMPTZ NOT NULL,
+  end_date TIMESTAMPTZ,
+  current_job BOOLEAN NOT NULL DEFAULT FALSE,
+  description TEXT,
+  achievements TEXT[],
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create goals table (with UUID user_id reference)
+CREATE TABLE goals (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  progress INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  due_date TIMESTAMPTZ,
+  completed BOOLEAN NOT NULL DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  checklist JSONB DEFAULT '[]',
+  xp_reward INTEGER NOT NULL DEFAULT 100,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create sessions table for authentication (keep as TEXT for session IDs)
 CREATE TABLE sessions (
   sid TEXT PRIMARY KEY,
   sess JSONB NOT NULL,
-  expire TIMESTAMP NOT NULL
+  expire TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX idx_sessions_expire ON sessions (expire);
+
+-- Create other essential tables with UUID references
+CREATE TABLE xp_history (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  description TEXT,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE achievements (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  xp_reward INTEGER NOT NULL,
+  required_action TEXT NOT NULL,
+  required_value INTEGER NOT NULL
+);
+
+CREATE TABLE user_achievements (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  achievement_id INTEGER NOT NULL REFERENCES achievements(id) ON DELETE CASCADE,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE job_applications (
+  id SERIAL PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company_name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  location TEXT,
+  application_date TIMESTAMPTZ DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'applied',
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
 ## Step 3: Get Your Supabase Credentials
@@ -148,4 +224,4 @@ If you encounter any issues:
 ## Additional Resources
 
 - [Supabase Documentation](https://supabase.com/docs)
-- [Supabase JavaScript Client Documentation](https://supabase.com/docs/reference/javascript/introduction) 
+- [Supabase JavaScript Client Documentation](https://supabase.com/docs/reference/javascript/introduction)
