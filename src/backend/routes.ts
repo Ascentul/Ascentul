@@ -4574,7 +4574,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.get(
-    "/api/interview/processes",
+    "/interview/processes",
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
@@ -4594,7 +4594,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.post(
-    "/api/interview/processes",
+    "/interview/processes",
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
@@ -4625,7 +4625,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   )
 
   apiRouter.get(
-    "/api/interview/processes/:id",
+    "/interview/processes/:id",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
