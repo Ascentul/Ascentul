@@ -50,8 +50,15 @@ export async function setupVite(app: Express, server: Server) {
   })
 
   app.use(vite.middlewares)
+
+  // Only handle non-API routes with Vite
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl
+
+    // Skip API routes - let them be handled by the API router
+    if (url.startsWith("/api/") || url.startsWith("/uploads/")) {
+      return next()
+    }
 
     try {
       const clientTemplate = path.resolve(
