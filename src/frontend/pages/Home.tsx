@@ -23,7 +23,7 @@ import {
   AccordionTrigger
 } from "@/components/ui/accordion"
 import LoginDialog from "@/components/LoginDialog"
-import heroImage from "/src/assets/magnet-me-315vPGsAFUk-unsplash_1743396890960.jpg"
+import heroImage from "../../assets/magnet-me-315vPGsAFUk-unsplash_1743396890960.jpg"
 
 export default function Home() {
   const [showSignupDialog, setShowSignupDialog] = useState(false)

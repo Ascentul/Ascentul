@@ -16,38 +16,36 @@ export default defineConfig(async ({ mode }) => {
   return {
     plugins: [
       react(),
-      runtimeErrorOverlay(),
       themePlugin(),
-      ...(process.env.NODE_ENV !== "production" &&
-      process.env.REPL_ID !== undefined
-        ? [
-            await import("@replit/vite-plugin-cartographer").then((m) =>
-              m.cartographer()
-            )
-          ]
-        : [])
+      ...(mode === "development" ? [runtimeErrorOverlay()] : [])
     ],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "src", "frontend"),
         "@shared": path.resolve(__dirname, "src", "utils"),
-        "@assets": path.resolve(__dirname, "src", "assets")
+        "@assets": path.resolve(__dirname, "src", "assets"),
+        "/src/assets": path.resolve(__dirname, "src", "assets")
       }
     },
-    root: __dirname,
+    root: path.resolve(__dirname, "src", "frontend"),
     publicDir: path.resolve(__dirname, "src", "frontend", "assets"),
     build: {
+      outDir: path.resolve(__dirname, "dist", "public"),
+      emptyOutDir: true,
       rollupOptions: {
-        input: path.resolve(__dirname, "src", "frontend", "index.html")
-      },
-      outDir: path.resolve(__dirname, "dist/public"),
-      emptyOutDir: true
+        input: path.resolve(__dirname, "src", "frontend", "index.html"),
+        output: {
+          manualChunks: {
+            vendor: ["react", "react-dom"],
+            ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
+            utils: ["date-fns", "clsx", "class-variance-authority"]
+          }
+        }
+      }
     },
     // Define environment variables to be accessible in the client code
     define: {
-      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
-        env.SUPABASE_URL
-      ),
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(env.SUPABASE_URL),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(
         env.SUPABASE_ANON_KEY
       ),
