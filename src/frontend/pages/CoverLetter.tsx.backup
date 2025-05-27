@@ -527,7 +527,7 @@ export default function CoverLetter() {
         <head>
           <title>${filename}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 0; }
             .cover-letter-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; }
             h2 { margin-top: 0; }
             p { margin: 0 0 8px; line-height: 1.5; }
