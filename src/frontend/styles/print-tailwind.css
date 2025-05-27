@@ -6,23 +6,23 @@
     margin: 0;
     padding: 0;
   }
-  
+
   /* Hide all elements except the resume */
   body > *:not(.resume-export-container) {
     display: none !important;
   }
-  
+
   /* Page break controls */
   .page-break {
     page-break-after: always;
   }
-  
+
   /* Remove backgrounds and shadows for print */
   .resume-template {
     box-shadow: none !important;
     border: none !important;
   }
-  
+
   /* Remove transitions and animations */
   * {
     transition: none !important;
@@ -36,7 +36,7 @@
   background: white;
   color: black;
   margin: 0 auto;
-  font-family: Arial, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 11pt;
   line-height: 1.5;
 }

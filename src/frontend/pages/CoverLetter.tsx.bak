@@ -429,7 +429,7 @@ export default function CoverLetter() {
       // Create professional letter content with proper formatting
       innerContainer.innerHTML = `
         <div style="text-align: center; margin-bottom: 36px;">
-          <h1 style="font-size: 16pt; font-weight: bold; margin-bottom: 8px; font-family: Georgia, serif;">${letter.content.header.fullName || '[Your Name]'}</h1>
+          <h1 style="font-size: 16pt; font-weight: bold; margin-bottom: 8px; font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;">${letter.content.header.fullName || '[Your Name]'}</h1>
           <p style="margin-bottom: 12px;">${letter.content.header.date || new Date().toLocaleDateString()}</p>
         </div>
 
