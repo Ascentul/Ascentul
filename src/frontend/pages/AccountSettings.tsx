@@ -1,31 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { useUser, useIsSubscriptionActive, useUpdateUserSubscription } from '@/lib/useUserData';
-import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useCareerData } from '@/hooks/use-career-data';
-import { useLocation } from 'wouter';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import React, { useState, useEffect } from "react"
+import {
+  useUser,
+  useIsSubscriptionActive,
+  useUpdateUserSubscription
+} from "@/lib/useUserData"
+import { useToast } from "@/hooks/use-toast"
+import { useMutation } from "@tanstack/react-query"
+import { apiRequest, queryClient } from "@/lib/queryClient"
+import { useCareerData } from "@/hooks/use-career-data"
+import { useLocation } from "wouter"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 
 // Import the form modals
-import { WorkHistoryFormModal } from '@/components/modals/WorkHistoryFormModal';
-import { EducationFormModal } from '@/components/modals/EducationFormModal';
-import { SkillFormModal } from '@/components/modals/SkillFormModal';
-import { CertificationFormModal } from '@/components/modals/CertificationFormModal';
-import { CareerSummaryFormModal } from '@/components/modals/CareerSummaryFormModal';
-import { LinkedInProfileFormModal } from '@/components/modals/LinkedInProfileFormModal';
-import { DeleteConfirmationDialog } from '@/components/modals/DeleteConfirmationDialog';
-import { AddSectionButton } from '@/components/AddSectionButton';
+import { WorkHistoryFormModal } from "@/components/modals/WorkHistoryFormModal"
+import { EducationFormModal } from "@/components/modals/EducationFormModal"
+import { SkillFormModal } from "@/components/modals/SkillFormModal"
+import { CertificationFormModal } from "@/components/modals/CertificationFormModal"
+import { CareerSummaryFormModal } from "@/components/modals/CareerSummaryFormModal"
+import { LinkedInProfileFormModal } from "@/components/modals/LinkedInProfileFormModal"
+import { DeleteConfirmationDialog } from "@/components/modals/DeleteConfirmationDialog"
+import { AddSectionButton } from "@/components/AddSectionButton"
 
-import { 
-  Loader2, 
-  CreditCard, 
-  ShieldCheck, 
-  User, 
-  LogOut, 
-  Mail, 
+import {
+  Loader2,
+  CreditCard,
+  ShieldCheck,
+  User,
+  LogOut,
+  Mail,
   CheckCircle,
   Circle,
   Briefcase,
@@ -40,24 +44,19 @@ import {
   RefreshCw,
   HelpCircle,
   Linkedin
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+  CardTitle
+} from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Form,
   FormControl,
@@ -65,15 +64,22 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ModeToggle } from '@/components/mode-toggle';
+  FormMessage
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ModeToggle } from "@/components/mode-toggle"
 
 // Color pickers removed as per branding decision
 
@@ -81,41 +87,58 @@ import { ModeToggle } from '@/components/mode-toggle';
 const profileFormSchema = z.object({
   name: z.string().nonempty({ message: "Name is required." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
-  currentPassword: z.string().optional().or(z.literal('')), // Optional current password (required for email/password change)
-  password: z.string()
+  currentPassword: z.string().optional().or(z.literal("")), // Optional current password (required for email/password change)
+  password: z
+    .string()
     .min(8, { message: "Password must be at least 8 characters." })
     .optional()
-    .or(z.literal('')), // Allow empty string for no password change
-});
+    .or(z.literal("")) // Allow empty string for no password change
+})
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 export default function AccountSettings() {
-  const { user, isLoading: userLoading, logout, updateProfile } = useUser();
-  const isSubscriptionActive = useIsSubscriptionActive();
-  const { toast } = useToast();
-  const [, navigate] = useLocation();
-  const updateUserSubscription = useUpdateUserSubscription();
+  const { user, isLoading: userLoading, logout, updateProfile } = useUser()
+  const isSubscriptionActive = useIsSubscriptionActive()
+  const { toast } = useToast()
+  const [, navigate] = useLocation()
+  const updateUserSubscription = useUpdateUserSubscription()
   // Theme color customization removed as per branding decision
-  const careerQuery = useCareerData();
-  const { careerData, isLoading: careerDataLoading, refetch: refetchCareerData } = careerQuery;
-  
+  const careerQuery = useCareerData()
+  const {
+    careerData,
+    isLoading: careerDataLoading,
+    refetch: refetchCareerData
+  } = careerQuery
+
+  // Debug logging for career data
+  useEffect(() => {
+    console.log("🔍 Career data in AccountSettings:", {
+      careerData: careerData,
+      careerSummary: careerData?.careerSummary,
+      workHistoryLength: careerData?.workHistory?.length,
+      skillsLength: careerData?.skills?.length,
+      isLoading: careerDataLoading
+    })
+  }, [careerData, careerDataLoading])
+
   // Track the current active tab
-  const [activeTab, setActiveTab] = useState('career');
-  
+  const [activeTab, setActiveTab] = useState("career")
+
   // Track overall page loading state - combines user and career data loading
-  const isPageLoading = userLoading || (activeTab === 'career' && careerDataLoading);
-  
+  const isPageLoading =
+    userLoading || (activeTab === "career" && careerDataLoading)
+
   // Create form first before using it in useEffect
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      currentPassword: '', // Current password field (required for email/password changes)
-      password: '', // Empty password field by default (no password change)
-    },
-  });
+      name: user?.name || "",
+      email: user?.email || "",
+      currentPassword: "", // Current password field (required for email/password changes)
+      password: "" // Empty password field by default (no password change)
+    }
+  })
 
   // No need to force refresh on component mount - rely on React Query's caching
   // This prevents the white flash by not removing cached data
@@ -123,236 +146,252 @@ export default function AccountSettings() {
     // Only refetch if the data is stale, which React Query handles automatically
     // We don't need to manually removeQueries
     if (!careerData) {
-      console.log('Career data not found in cache, fetching');
-      refetchCareerData();
+      console.log("Career data not found in cache, fetching")
+      refetchCareerData()
     }
-    
+
     // Always update form values when user data changes
     if (user) {
       form.reset({
         name: user.name,
         email: user.email,
-        currentPassword: '',
-        password: '',
-      });
+        currentPassword: "",
+        password: ""
+      })
     }
-    
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-  
+  }, [user])
+
   // Only refresh career data when user switches to the Career tab IF data is stale or missing
   useEffect(() => {
-    if (activeTab === 'career' && (!careerData || Object.keys(careerData).length === 0)) {
-      console.log('Career data missing or empty, fetching on tab change');
+    if (
+      activeTab === "career" &&
+      (!careerData || Object.keys(careerData).length === 0)
+    ) {
+      console.log("Career data missing or empty, fetching on tab change")
       refetchCareerData().then(() => {
-        console.log('Career data loaded on tab change');
-      });
+        console.log("Career data loaded on tab change")
+      })
     }
-    
+
     // Update form with latest user data when switching to profile tab
-    if (activeTab === 'profile' && user) {
+    if (activeTab === "profile" && user) {
       form.reset({
         name: user.name,
         email: user.email,
-        currentPassword: '', // Always reset password fields
-        password: '',
-      });
+        currentPassword: "", // Always reset password fields
+        password: ""
+      })
     }
-  }, [activeTab, refetchCareerData, careerData, user, form]);
-  
+  }, [activeTab, refetchCareerData, careerData, user, form])
+
   // Modal state variables for career data forms
   const [workHistoryModal, setWorkHistoryModal] = useState<{
-    open: boolean;
-    mode: 'add' | 'edit';
-    data?: any;
-    id?: number;
-  }>({ open: false, mode: 'add' });
-  
+    open: boolean
+    mode: "add" | "edit"
+    data?: any
+    id?: number
+  }>({ open: false, mode: "add" })
+
   const [educationModal, setEducationModal] = useState<{
-    open: boolean;
-    mode: 'add' | 'edit';
-    data?: any;
-    id?: number;
-  }>({ open: false, mode: 'add' });
-  
+    open: boolean
+    mode: "add" | "edit"
+    data?: any
+    id?: number
+  }>({ open: false, mode: "add" })
+
   const [skillModal, setSkillModal] = useState<{
-    open: boolean;
-  }>({ open: false });
-  
+    open: boolean
+  }>({ open: false })
+
   const [certificationModal, setCertificationModal] = useState<{
-    open: boolean;
-    mode: 'add' | 'edit';
-    data?: any;
-    id?: number;
-  }>({ open: false, mode: 'add' });
-  
+    open: boolean
+    mode: "add" | "edit"
+    data?: any
+    id?: number
+  }>({ open: false, mode: "add" })
+
   const [careerSummaryModal, setCareerSummaryModal] = useState<{
-    open: boolean;
-    defaultValue: string;
-  }>({ open: false, defaultValue: '' });
-  
+    open: boolean
+    defaultValue: string
+  }>({ open: false, defaultValue: "" })
+
   const [linkedInProfileModal, setLinkedInProfileModal] = useState<{
-    open: boolean;
-    defaultValue: string;
-  }>({ open: false, defaultValue: '' });
-  
+    open: boolean
+    defaultValue: string
+  }>({ open: false, defaultValue: "" })
+
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    open: boolean;
-    itemId: number;
-    itemType: string;
-    endpoint: string;
-  }>({ open: false, itemId: 0, itemType: '', endpoint: '' });
+    open: boolean
+    itemId: number
+    itemType: string
+    endpoint: string
+  }>({ open: false, itemId: 0, itemType: "", endpoint: "" })
 
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/payments/cancel-subscription', {});
-      
+      const response = await apiRequest(
+        "POST",
+        "/api/payments/cancel-subscription",
+        {}
+      )
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to cancel subscription');
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to cancel subscription")
       }
-      
-      return await response.json();
+
+      return await response.json()
     },
     onSuccess: () => {
       toast({
         title: "Subscription Cancelled",
-        description: "Your subscription has been cancelled and will end at the end of your billing period.",
-      });
+        description:
+          "Your subscription has been cancelled and will end at the end of your billing period."
+      })
     },
     onError: (error: Error) => {
       toast({
         title: "Cancellation Failed",
         description: error.message,
-        variant: "destructive",
-      });
+        variant: "destructive"
+      })
     }
-  });
+  })
 
   // Theme customization mutation removed as per branding decision
 
   // Send verification email mutation
   const sendVerificationEmailMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/auth/send-verification-email', {});
-      
+      const response = await apiRequest(
+        "POST",
+        "/api/auth/send-verification-email",
+        {}
+      )
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send verification email');
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to send verification email")
       }
-      
-      return await response.json();
+
+      return await response.json()
     },
     onSuccess: (data) => {
       toast({
         title: "Verification Email Sent",
-        description: "Please check your inbox for the verification link.",
-      });
-      
+        description: "Please check your inbox for the verification link."
+      })
+
       // For development only - directly show the verification URL
       if (data.verificationUrl) {
         toast({
           title: "Development Mode",
-          description: "Verification link: " + data.verificationUrl,
-        });
+          description: "Verification link: " + data.verificationUrl
+        })
       }
     },
     onError: (error: Error) => {
       toast({
         title: "Email Send Failed",
         description: error.message,
-        variant: "destructive",
-      });
+        variant: "destructive"
+      })
     }
-  });
+  })
 
   const handleCancelSubscription = async () => {
     if (!user || !isSubscriptionActive) {
-      return;
+      return
     }
-    
-    cancelSubscriptionMutation.mutate();
-  };
+
+    cancelSubscriptionMutation.mutate()
+  }
 
   const handleSendVerificationEmail = async () => {
     if (!user || user.emailVerified) {
-      return;
+      return
     }
-    
-    sendVerificationEmailMutation.mutate();
-  };
+
+    sendVerificationEmailMutation.mutate()
+  }
 
   const handleProfileSubmit = async (data: ProfileFormValues) => {
     try {
       if (!user) {
-        throw new Error("User not found");
+        throw new Error("User not found")
       }
-      
+
       // Validate password requirements for email or password changes
-      const isEmailChanged = data.email !== user.email;
-      const isPasswordChanged = data.password && data.password.trim() !== '';
-      
-      if ((isEmailChanged || isPasswordChanged) && (!data.currentPassword || data.currentPassword.trim() === '')) {
+      const isEmailChanged = data.email !== user.email
+      const isPasswordChanged = data.password && data.password.trim() !== ""
+
+      if (
+        (isEmailChanged || isPasswordChanged) &&
+        (!data.currentPassword || data.currentPassword.trim() === "")
+      ) {
         toast({
           title: "Validation Error",
-          description: "Current password is required when changing email or password.",
+          description:
+            "Current password is required when changing email or password.",
           variant: "destructive"
-        });
-        return;
+        })
+        return
       }
-      
+
       // Prepare update data
       const updateData: any = {
         name: data.name
-      };
-      
+      }
+
       // Only include email and password changes if current password is provided
-      if (data.currentPassword && data.currentPassword.trim() !== '') {
+      if (data.currentPassword && data.currentPassword.trim() !== "") {
         // Add current password for verification
-        updateData.currentPassword = data.currentPassword;
-        
+        updateData.currentPassword = data.currentPassword
+
         // Add email update if changed
         if (isEmailChanged) {
-          updateData.email = data.email;
+          updateData.email = data.email
         }
-        
+
         // Add password update if provided
         if (isPasswordChanged) {
-          updateData.password = data.password;
+          updateData.password = data.password
         }
       } else if (data.name !== user.name) {
         // If only updating name (no password required)
-        updateData.name = data.name;
+        updateData.name = data.name
       }
-      
+
       // Send the update to the server
-      await updateProfile(updateData);
-      
+      await updateProfile(updateData)
+
       // Reset password fields after successful update
-      form.setValue('password', '');
-      form.setValue('currentPassword', '');
-      
+      form.setValue("password", "")
+      form.setValue("currentPassword", "")
+
       // Show success toast
       toast({
         title: "Profile Updated",
-        description: "Your profile information has been updated.",
-      });
+        description: "Your profile information has been updated."
+      })
     } catch (error: any) {
       // Show error toast
       toast({
         title: "Update Failed",
         description: error.message || "Failed to update profile information.",
         variant: "destructive"
-      });
+      })
     }
-  };
+  }
 
   const handleLogout = () => {
-    logout();
-    navigate('/auth');
-  };
-  
+    logout()
+    navigate("/auth")
+  }
+
   // Theme color customization handlers removed as per branding decision
 
   if (userLoading || !user) {
@@ -360,22 +399,27 @@ export default function AccountSettings() {
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    );
+    )
   }
-  
+
   // Show skeleton loading state when page is loading
   if (isPageLoading) {
     return (
       <div className="container py-10">
         <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-        
+
         <div className="space-y-8">
           <div className="flex flex-wrap gap-2 border-b">
-            {["Profile", "Career", "Subscription", "Security"].map((tab, index) => (
-              <div key={index} className="animate-pulse px-4 py-2 rounded-t-lg bg-gray-100 w-24 h-10" />
-            ))}
+            {["Profile", "Career", "Subscription", "Security"].map(
+              (tab, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse px-4 py-2 rounded-t-lg bg-gray-100 w-24 h-10"
+                />
+              )
+            )}
           </div>
-          
+
           <div className="px-6 py-8">
             <div className="space-y-6">
               {/* Skeleton for content section */}
@@ -384,7 +428,7 @@ export default function AccountSettings() {
                   <div className="h-7 bg-gray-200 rounded w-1/3 animate-pulse mb-2" />
                   <div className="h-4 bg-gray-100 rounded w-2/3 animate-pulse" />
                 </div>
-                
+
                 {/* Skeleton form fields */}
                 <div className="space-y-6">
                   {[1, 2].map((i) => (
@@ -393,7 +437,7 @@ export default function AccountSettings() {
                       <div className="h-10 bg-gray-100 rounded w-full animate-pulse" />
                     </div>
                   ))}
-                  
+
                   <div className="flex justify-end">
                     <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
                   </div>
@@ -403,36 +447,39 @@ export default function AccountSettings() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   const formatDate = (date: Date | undefined | null) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+    if (!date) return "N/A"
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    })
+  }
 
   const getPlanName = (plan: string) => {
-    switch(plan) {
-      case 'premium': return 'Premium';
-      case 'university': return 'University Edition';
-      default: return 'Free';
+    switch (plan) {
+      case "premium":
+        return "Premium"
+      case "university":
+        return "University Edition"
+      default:
+        return "Free"
     }
-  };
+  }
 
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-      
-      <Tabs 
-        defaultValue="career" 
+
+      <Tabs
+        defaultValue="career"
         className="space-y-8"
         onValueChange={(value) => {
-          console.log(`Tab changed to: ${value}`);
-          setActiveTab(value);
+          console.log(`Tab changed to: ${value}`)
+          setActiveTab(value)
         }}
       >
         <TabsList className="flex flex-wrap">
@@ -453,22 +500,31 @@ export default function AccountSettings() {
             Security
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="profile" className="px-6 py-8">
           <div className="space-y-6">
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Profile Information</h2>
-                <p className="text-sm text-gray-500 mt-1">Update your personal information and how we can contact you.</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Profile Information
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Update your personal information and how we can contact you.
+                </p>
               </div>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleProfileSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(handleProfileSubmit)}
+                  className="space-y-6"
+                >
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm text-gray-500">Full Name</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">
+                          Full Name
+                        </FormLabel>
                         <FormControl>
                           <Input placeholder="Your name" {...field} />
                         </FormControl>
@@ -476,15 +532,20 @@ export default function AccountSettings() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm text-gray-500">Email Address</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">
+                          Email Address
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="your.email@example.com" {...field} />
+                          <Input
+                            placeholder="your.email@example.com"
+                            {...field}
+                          />
                         </FormControl>
                         <FormDescription>
                           {user.emailVerified ? (
@@ -492,9 +553,9 @@ export default function AccountSettings() {
                               ✅ Verified
                             </span>
                           ) : (
-                            <Button 
-                              variant="link" 
-                              className="p-0 h-auto text-sm" 
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-sm"
                               onClick={handleSendVerificationEmail}
                               disabled={sendVerificationEmailMutation.isPending}
                             >
@@ -513,18 +574,20 @@ export default function AccountSettings() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="currentPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm text-gray-500">Current Password</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">
+                          Current Password
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Required to change email or password" 
-                            {...field} 
+                          <Input
+                            type="password"
+                            placeholder="Required to change email or password"
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
@@ -534,31 +597,34 @@ export default function AccountSettings() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm text-gray-500">New Password</FormLabel>
+                        <FormLabel className="text-sm text-gray-500">
+                          New Password
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Leave blank to keep current password" 
-                            {...field} 
+                          <Input
+                            type="password"
+                            placeholder="Leave blank to keep current password"
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          Must be at least 8 characters. Leave blank to keep your current password.
+                          Must be at least 8 characters. Leave blank to keep
+                          your current password.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="flex justify-end">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={form.formState.isSubmitting}
                       className="w-full sm:w-auto"
                     >
@@ -567,49 +633,65 @@ export default function AccountSettings() {
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Saving...
                         </>
-                      ) : "Save Changes"}
+                      ) : (
+                        "Save Changes"
+                      )}
                     </Button>
                   </div>
                 </form>
               </Form>
             </div>
-            
+
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Account Information</h2>
-                <p className="text-sm text-gray-500 mt-1">View your account details and session information.</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Account Information
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  View your account details and session information.
+                </p>
               </div>
-              
+
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                   <dt className="text-xs text-gray-500 mb-1">Username</dt>
                   <dd className="font-medium">{user.username}</dd>
                 </div>
-                
+
                 <div>
                   <dt className="text-xs text-gray-500 mb-1">Account Type</dt>
-                  <dd className="font-medium capitalize">{user.userType || 'Regular'}</dd>
-                </div>
-                
-                <div>
-                  <dt className="text-xs text-gray-500 mb-1">Account Created</dt>
-                  <dd className="font-medium">
-                    {user.createdAt ? formatDate(new Date(user.createdAt)) : 'N/A'}
+                  <dd className="font-medium capitalize">
+                    {user.userType || "Regular"}
                   </dd>
                 </div>
-                
+
                 <div>
-                  <dt className="text-xs text-gray-500 mb-1">Last Password Change</dt>
+                  <dt className="text-xs text-gray-500 mb-1">
+                    Account Created
+                  </dt>
                   <dd className="font-medium">
-                    {user.passwordLastChanged ? formatDate(new Date(user.passwordLastChanged)) : 'N/A'}
+                    {user.createdAt
+                      ? formatDate(new Date(user.createdAt))
+                      : "N/A"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt className="text-xs text-gray-500 mb-1">
+                    Last Password Change
+                  </dt>
+                  <dd className="font-medium">
+                    {user.passwordLastChanged
+                      ? formatDate(new Date(user.passwordLastChanged))
+                      : "N/A"}
                   </dd>
                 </div>
               </dl>
-              
+
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2" 
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4" />
@@ -619,7 +701,7 @@ export default function AccountSettings() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="career" className="px-6 py-8">
           <div className="space-y-8">
             {/* Career Profile Completion Progress */}
@@ -637,90 +719,155 @@ export default function AccountSettings() {
                 <div className="text-xl font-semibold text-primary">
                   {(() => {
                     // Calculate profile completion percentage
-                    const totalSections = 5; // Career Summary, LinkedIn, Work History, Education, Skills
-                    let completedSections = 0;
-                    
-                    if (careerData?.careerSummary) completedSections++;
-                    if (careerData?.linkedInUrl) completedSections++;
-                    if (careerData?.workHistory && careerData.workHistory.length > 0) completedSections++;
-                    if (careerData?.educationHistory && careerData.educationHistory.length > 0) completedSections++;
-                    if (careerData?.skills && careerData.skills.length > 0) completedSections++;
-                    
-                    const percentage = Math.round((completedSections / totalSections) * 100);
-                    return `${percentage}%`;
+                    const totalSections = 5 // Career Summary, LinkedIn, Work History, Education, Skills
+                    let completedSections = 0
+
+                    if (careerData?.careerSummary) completedSections++
+                    if (careerData?.linkedInUrl) completedSections++
+                    if (
+                      careerData?.workHistory &&
+                      careerData.workHistory.length > 0
+                    )
+                      completedSections++
+                    if (
+                      careerData?.educationHistory &&
+                      careerData.educationHistory.length > 0
+                    )
+                      completedSections++
+                    if (careerData?.skills && careerData.skills.length > 0)
+                      completedSections++
+
+                    const percentage = Math.round(
+                      (completedSections / totalSections) * 100
+                    )
+                    return `${percentage}%`
                   })()}
                 </div>
               </div>
-              
+
               <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-primary h-2.5 rounded-full" 
-                  style={{ 
+                <div
+                  className="bg-primary h-2.5 rounded-full"
+                  style={{
                     width: (() => {
                       // Calculate profile completion percentage for the style
-                      const totalSections = 5; // Career Summary, LinkedIn, Work History, Education, Skills
-                      let completedSections = 0;
-                      
-                      if (careerData?.careerSummary) completedSections++;
-                      if (careerData?.linkedInUrl) completedSections++;
-                      if (careerData?.workHistory && careerData.workHistory.length > 0) completedSections++;
-                      if (careerData?.educationHistory && careerData.educationHistory.length > 0) completedSections++;
-                      if (careerData?.skills && careerData.skills.length > 0) completedSections++;
-                      
-                      return `${(completedSections / totalSections) * 100}%`;
+                      const totalSections = 5 // Career Summary, LinkedIn, Work History, Education, Skills
+                      let completedSections = 0
+
+                      if (careerData?.careerSummary) completedSections++
+                      if (careerData?.linkedInUrl) completedSections++
+                      if (
+                        careerData?.workHistory &&
+                        careerData.workHistory.length > 0
+                      )
+                        completedSections++
+                      if (
+                        careerData?.educationHistory &&
+                        careerData.educationHistory.length > 0
+                      )
+                        completedSections++
+                      if (careerData?.skills && careerData.skills.length > 0)
+                        completedSections++
+
+                      return `${(completedSections / totalSections) * 100}%`
                     })()
                   }}
                 />
               </div>
-              
+
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className={`p-3 rounded-md border ${careerData?.careerSummary ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div
+                  className={`p-3 rounded-md border ${
+                    careerData?.careerSummary
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    {careerData?.careerSummary 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
-                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    {careerData?.careerSummary ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                    )}
                     <span className="text-sm font-medium">Career Summary</span>
                   </div>
                 </div>
-                
-                <div className={`p-3 rounded-md border ${careerData?.linkedInUrl ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+
+                <div
+                  className={`p-3 rounded-md border ${
+                    careerData?.linkedInUrl
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    {careerData?.linkedInUrl 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
-                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
-                    <span className="text-sm font-medium">LinkedIn Profile</span>
+                    {careerData?.linkedInUrl ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                    )}
+                    <span className="text-sm font-medium">
+                      LinkedIn Profile
+                    </span>
                   </div>
                 </div>
-                
-                <div className={`p-3 rounded-md border ${careerData?.workHistory && careerData.workHistory.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+
+                <div
+                  className={`p-3 rounded-md border ${
+                    careerData?.workHistory && careerData.workHistory.length > 0
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    {careerData?.workHistory && careerData.workHistory.length > 0 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
-                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    {careerData?.workHistory &&
+                    careerData.workHistory.length > 0 ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                    )}
                     <span className="text-sm font-medium">Work History</span>
                   </div>
                 </div>
-                
-                <div className={`p-3 rounded-md border ${careerData?.educationHistory && careerData.educationHistory.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+
+                <div
+                  className={`p-3 rounded-md border ${
+                    careerData?.educationHistory &&
+                    careerData.educationHistory.length > 0
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    {careerData?.educationHistory && careerData.educationHistory.length > 0 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
-                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    {careerData?.educationHistory &&
+                    careerData.educationHistory.length > 0 ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                    )}
                     <span className="text-sm font-medium">Education</span>
                   </div>
                 </div>
-                
-                <div className={`p-3 rounded-md border ${careerData?.skills && careerData.skills.length > 0 ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+
+                <div
+                  className={`p-3 rounded-md border ${
+                    careerData?.skills && careerData.skills.length > 0
+                      ? "bg-green-50 border-green-200"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
                   <div className="flex items-center">
-                    {careerData?.skills && careerData.skills.length > 0 
-                      ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> 
-                      : <Circle className="h-5 w-5 text-gray-300 mr-2" />}
+                    {careerData?.skills && careerData.skills.length > 0 ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                    )}
                     <span className="text-sm font-medium">Skills</span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {/* Career Summary Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -729,17 +876,21 @@ export default function AccountSettings() {
                     <FileText className="h-5 w-5 mr-2 text-primary" />
                     Career Summary
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Your professional summary that appears on your profile.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your professional summary that appears on your profile.
+                  </p>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center"
-                  onClick={() => setCareerSummaryModal({
-                    open: true,
-                    defaultValue: careerData?.careerSummary || ''
-                  })}
+                  onClick={() =>
+                    setCareerSummaryModal({
+                      open: true,
+                      defaultValue: careerData?.careerSummary || ""
+                    })
+                  }
                 >
                   {!careerData?.careerSummary ? (
                     <>
@@ -752,18 +903,22 @@ export default function AccountSettings() {
                   )}
                 </Button>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-md text-gray-700 min-h-20">
                 {careerData?.careerSummary ? (
-                  <div className="whitespace-pre-wrap">{careerData.careerSummary}</div>
+                  <div className="whitespace-pre-wrap">
+                    {careerData.careerSummary}
+                  </div>
                 ) : (
                   <div className="text-gray-400 italic">
-                    No career summary yet. Add a professional summary that highlights your career goals, expertise, and what sets you apart.
+                    No career summary yet. Add a professional summary that
+                    highlights your career goals, expertise, and what sets you
+                    apart.
                   </div>
                 )}
               </div>
             </div>
-            
+
             {/* LinkedIn Profile Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -772,17 +927,22 @@ export default function AccountSettings() {
                     <Linkedin className="h-5 w-5 mr-2 text-primary" />
                     LinkedIn Profile
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Your LinkedIn profile URL for networking and professional opportunities.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your LinkedIn profile URL for networking and professional
+                    opportunities.
+                  </p>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center"
-                  onClick={() => setLinkedInProfileModal({
-                    open: true,
-                    defaultValue: careerData?.linkedInUrl || ''
-                  })}
+                  onClick={() =>
+                    setLinkedInProfileModal({
+                      open: true,
+                      defaultValue: careerData?.linkedInUrl || ""
+                    })
+                  }
                 >
                   {!careerData?.linkedInUrl ? (
                     <>
@@ -795,14 +955,18 @@ export default function AccountSettings() {
                   )}
                 </Button>
               </div>
-              
+
               <div className="bg-gray-50 p-4 rounded-md text-gray-700 min-h-12">
                 {careerData?.linkedInUrl ? (
                   <div className="flex items-center">
                     <Linkedin className="h-4 w-4 mr-2 text-[#0077b5]" />
-                    <a 
-                      href={careerData.linkedInUrl.startsWith('http') ? careerData.linkedInUrl : `https://${careerData.linkedInUrl}`} 
-                      target="_blank" 
+                    <a
+                      href={
+                        careerData.linkedInUrl.startsWith("http")
+                          ? careerData.linkedInUrl
+                          : `https://${careerData.linkedInUrl}`
+                      }
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
@@ -811,12 +975,13 @@ export default function AccountSettings() {
                   </div>
                 ) : (
                   <div className="text-gray-400 italic">
-                    No LinkedIn profile added yet. Add your LinkedIn profile URL to enhance your professional presence.
+                    No LinkedIn profile added yet. Add your LinkedIn profile URL
+                    to enhance your professional presence.
                   </div>
                 )}
               </div>
             </div>
-            
+
             {/* Work History Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -825,31 +990,43 @@ export default function AccountSettings() {
                     <Briefcase className="h-5 w-5 mr-2 text-primary" />
                     Work History
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Your professional experience, positions, and achievements.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your professional experience, positions, and achievements.
+                  </p>
                 </div>
-                
-                <AddSectionButton 
+
+                <AddSectionButton
                   label="Add Job"
-                  onClick={() => setWorkHistoryModal({
-                    open: true,
-                    mode: 'add'
-                  })}
+                  onClick={() =>
+                    setWorkHistoryModal({
+                      open: true,
+                      mode: "add"
+                    })
+                  }
                 />
               </div>
-              
-              {!careerData?.workHistory || careerData.workHistory.length === 0 ? (
+
+              {!careerData?.workHistory ||
+              careerData.workHistory.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50">
                   <Briefcase className="mx-auto h-10 w-10 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-semibold text-gray-900">No work history</h3>
-                  <p className="mt-1 text-sm text-gray-500">Add your work experience to help build your professional profile.</p>
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                    No work history
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add your work experience to help build your professional
+                    profile.
+                  </p>
                   <div className="mt-4">
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => setWorkHistoryModal({
-                        open: true,
-                        mode: 'add'
-                      })}
+                      onClick={() =>
+                        setWorkHistoryModal({
+                          open: true,
+                          mode: "add"
+                        })
+                      }
                     >
                       <Briefcase className="h-4 w-4 mr-2" />
                       Add Work Experience
@@ -859,62 +1036,82 @@ export default function AccountSettings() {
               ) : (
                 <div className="space-y-6">
                   {careerData.workHistory.map((work: any) => (
-                    <div key={work.id} className="border border-gray-200 rounded-md p-4 relative group">
+                    <div
+                      key={work.id}
+                      className="border border-gray-200 rounded-md p-4 relative group"
+                    >
                       <div className="opacity-0 group-hover:opacity-100 absolute top-3 right-3 flex gap-1 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setWorkHistoryModal({
-                            open: true,
-                            mode: 'edit',
-                            data: work,
-                            id: work.id
-                          })}
+                          onClick={() =>
+                            setWorkHistoryModal({
+                              open: true,
+                              mode: "edit",
+                              data: work,
+                              id: work.id
+                            })
+                          }
                         >
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
-                        
+
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:text-red-500"
-                          onClick={() => setDeleteConfirmation({
-                            open: true,
-                            itemId: work.id,
-                            itemType: 'work history',
-                            endpoint: 'work-history'
-                          })}
+                          onClick={() =>
+                            setDeleteConfirmation({
+                              open: true,
+                              itemId: work.id,
+                              itemType: "work history",
+                              endpoint: "work-history"
+                            })
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
                         </Button>
                       </div>
-                      
+
                       <div className="flex items-start gap-3">
                         <div>
                           <Badge variant="outline" className="font-normal">
-                            {new Date(work.startDate).getFullYear()} - {work.endDate ? new Date(work.endDate).getFullYear() : 'Present'}
+                            {new Date(work.startDate).getFullYear()} -{" "}
+                            {work.endDate
+                              ? new Date(work.endDate).getFullYear()
+                              : "Present"}
                           </Badge>
-                          <h3 className="text-base font-semibold mt-2">{work.jobTitle}</h3>
-                          <p className="text-sm text-gray-700">{work.company}</p>
+                          <h3 className="text-base font-semibold mt-2">
+                            {work.jobTitle}
+                          </h3>
+                          <p className="text-sm text-gray-700">
+                            {work.company}
+                          </p>
                           <div className="text-xs text-gray-500 mt-1 flex items-center">
                             <MapPin className="h-3 w-3 mr-1 inline" />
-                            {work.location || 'Remote'}
+                            {work.location || "Remote"}
                           </div>
-                          
+
                           {work.description && (
-                            <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{work.description}</div>
+                            <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                              {work.description}
+                            </div>
                           )}
-                          
+
                           {work.highlights && work.highlights.length > 0 && (
                             <div className="mt-2">
-                              <span className="text-xs font-medium text-gray-500">Achievements:</span>
+                              <span className="text-xs font-medium text-gray-500">
+                                Achievements:
+                              </span>
                               <ul className="mt-1 text-sm text-gray-600 list-disc pl-5 space-y-1">
-                                {work.highlights.map((highlight: string, i: number) => (
-                                  <li key={i}>{highlight}</li>
-                                ))}
+                                {work.highlights.map(
+                                  (highlight: string, i: number) => (
+                                    <li key={i}>{highlight}</li>
+                                  )
+                                )}
                               </ul>
                             </div>
                           )}
@@ -925,7 +1122,7 @@ export default function AccountSettings() {
                 </div>
               )}
             </div>
-            
+
             {/* Education Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -934,31 +1131,42 @@ export default function AccountSettings() {
                     <GraduationCap className="h-5 w-5 mr-2 text-primary" />
                     Education
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Your academic background, degrees, and certifications.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your academic background, degrees, and certifications.
+                  </p>
                 </div>
-                
-                <AddSectionButton 
+
+                <AddSectionButton
                   label="Add Education"
-                  onClick={() => setEducationModal({
-                    open: true,
-                    mode: 'add'
-                  })}
+                  onClick={() =>
+                    setEducationModal({
+                      open: true,
+                      mode: "add"
+                    })
+                  }
                 />
               </div>
-              
-              {!careerData?.educationHistory || careerData.educationHistory.length === 0 ? (
+
+              {!careerData?.educationHistory ||
+              careerData.educationHistory.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50">
                   <GraduationCap className="mx-auto h-10 w-10 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-semibold text-gray-900">No education history</h3>
-                  <p className="mt-1 text-sm text-gray-500">Add your degrees, courses, and educational background.</p>
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                    No education history
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add your degrees, courses, and educational background.
+                  </p>
                   <div className="mt-4">
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => setEducationModal({
-                        open: true,
-                        mode: 'add'
-                      })}
+                      onClick={() =>
+                        setEducationModal({
+                          open: true,
+                          mode: "add"
+                        })
+                      }
                     >
                       <GraduationCap className="h-4 w-4 mr-2" />
                       Add Education
@@ -968,61 +1176,82 @@ export default function AccountSettings() {
               ) : (
                 <div className="space-y-6">
                   {careerData.educationHistory.map((edu: any) => (
-                    <div key={edu.id} className="border border-gray-200 rounded-md p-4 relative group">
+                    <div
+                      key={edu.id}
+                      className="border border-gray-200 rounded-md p-4 relative group"
+                    >
                       <div className="opacity-0 group-hover:opacity-100 absolute top-3 right-3 flex gap-1 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setEducationModal({
-                            open: true,
-                            mode: 'edit',
-                            data: edu,
-                            id: edu.id
-                          })}
+                          onClick={() =>
+                            setEducationModal({
+                              open: true,
+                              mode: "edit",
+                              data: edu,
+                              id: edu.id
+                            })
+                          }
                         >
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
-                        
+
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:text-red-500"
-                          onClick={() => setDeleteConfirmation({
-                            open: true,
-                            itemId: edu.id,
-                            itemType: 'education',
-                            endpoint: 'education'
-                          })}
+                          onClick={() =>
+                            setDeleteConfirmation({
+                              open: true,
+                              itemId: edu.id,
+                              itemType: "education",
+                              endpoint: "education"
+                            })
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
                         </Button>
                       </div>
-                      
+
                       <div>
                         <Badge variant="outline" className="font-normal">
-                          {new Date(edu.startDate).getFullYear()} - {edu.endDate ? new Date(edu.endDate).getFullYear() : 'Present'}
+                          {new Date(edu.startDate).getFullYear()} -{" "}
+                          {edu.endDate
+                            ? new Date(edu.endDate).getFullYear()
+                            : "Present"}
                         </Badge>
-                        <h3 className="text-base font-semibold mt-2">{edu.degreeType} {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`}</h3>
-                        <p className="text-sm text-gray-700">{edu.institution}</p>
+                        <h3 className="text-base font-semibold mt-2">
+                          {edu.degreeType}{" "}
+                          {edu.fieldOfStudy && `in ${edu.fieldOfStudy}`}
+                        </h3>
+                        <p className="text-sm text-gray-700">
+                          {edu.institution}
+                        </p>
                         <div className="text-xs text-gray-500 mt-1 flex items-center">
                           <MapPin className="h-3 w-3 mr-1 inline" />
-                          {edu.location || 'Remote'}
+                          {edu.location || "Remote"}
                         </div>
-                        
+
                         {edu.description && (
-                          <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">{edu.description}</div>
+                          <div className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
+                            {edu.description}
+                          </div>
                         )}
-                        
+
                         {edu.achievements && edu.achievements.length > 0 && (
                           <div className="mt-2">
-                            <span className="text-xs font-medium text-gray-500">Achievements:</span>
+                            <span className="text-xs font-medium text-gray-500">
+                              Achievements:
+                            </span>
                             <ul className="mt-1 text-sm text-gray-600 list-disc pl-5 space-y-1">
-                              {edu.achievements.map((achievement: string, i: number) => (
-                                <li key={i}>{achievement}</li>
-                              ))}
+                              {edu.achievements.map(
+                                (achievement: string, i: number) => (
+                                  <li key={i}>{achievement}</li>
+                                )
+                              )}
                             </ul>
                           </div>
                         )}
@@ -1032,7 +1261,7 @@ export default function AccountSettings() {
                 </div>
               )}
             </div>
-            
+
             {/* Skills Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -1041,24 +1270,31 @@ export default function AccountSettings() {
                     <Award className="h-5 w-5 mr-2 text-primary" />
                     Skills
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Technical and professional skills that define your expertise.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Technical and professional skills that define your
+                    expertise.
+                  </p>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex items-center"
                   onClick={() => setSkillModal({ open: true })}
                 >
                   <Pencil className="h-4 w-4 mr-1" /> Manage Skills
                 </Button>
               </div>
-              
+
               {!careerData?.skills || careerData.skills.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50">
                   <Award className="mx-auto h-10 w-10 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-semibold text-gray-900">No skills added</h3>
-                  <p className="mt-1 text-sm text-gray-500">Add your technical, soft, and industry-specific skills.</p>
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                    No skills added
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add your technical, soft, and industry-specific skills.
+                  </p>
                   <div className="mt-4">
                     <Button
                       variant="default"
@@ -1074,27 +1310,33 @@ export default function AccountSettings() {
                 <>
                   {/* Debug info (invisible in production) */}
                   <div className="hidden">
-                    {console.log('Skills data:', careerData.skills)}
+                    {console.log("Skills data:", careerData.skills)}
                     {careerData.skills.forEach((skill: any, i: number) => {
-                      console.log(`Skill ${i}:`, skill);
-                      console.log(`- Name: ${skill.name || 'UNDEFINED'}`);
-                      console.log(`- Type: ${typeof skill}`);
+                      console.log(`Skill ${i}:`, skill)
+                      console.log(`- Name: ${skill.name || "UNDEFINED"}`)
+                      console.log(`- Type: ${typeof skill}`)
                     })}
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2">
                     {careerData.skills.map((skill: any, index: number) => (
-                      <Badge key={index} variant="secondary" className="px-3 py-1">
-                        {typeof skill === 'object' && skill !== null ? 
-                          (skill.name || 'Unknown skill') : 
-                          (typeof skill === 'string' ? skill : 'Invalid skill')}
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="px-3 py-1"
+                      >
+                        {typeof skill === "object" && skill !== null
+                          ? skill.name || "Unknown skill"
+                          : typeof skill === "string"
+                          ? skill
+                          : "Invalid skill"}
                       </Badge>
                     ))}
                   </div>
                 </>
               )}
             </div>
-            
+
             {/* Certifications Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="flex justify-between items-center mb-4">
@@ -1103,31 +1345,43 @@ export default function AccountSettings() {
                     <BookOpen className="h-5 w-5 mr-2 text-primary" />
                     Certifications
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">Professional certifications, licenses, and accreditations.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Professional certifications, licenses, and accreditations.
+                  </p>
                 </div>
-                
-                <AddSectionButton 
+
+                <AddSectionButton
                   label="Add Certification"
-                  onClick={() => setCertificationModal({
-                    open: true,
-                    mode: 'add'
-                  })}
+                  onClick={() =>
+                    setCertificationModal({
+                      open: true,
+                      mode: "add"
+                    })
+                  }
                 />
               </div>
-              
-              {!careerData?.certifications || careerData.certifications.length === 0 ? (
+
+              {!careerData?.certifications ||
+              careerData.certifications.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-gray-300 rounded-md bg-gray-50">
                   <BookOpen className="mx-auto h-10 w-10 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-semibold text-gray-900">No certifications added</h3>
-                  <p className="mt-1 text-sm text-gray-500">Add any professional certifications or credentials you've earned.</p>
+                  <h3 className="mt-2 text-sm font-semibold text-gray-900">
+                    No certifications added
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add any professional certifications or credentials you've
+                    earned.
+                  </p>
                   <div className="mt-4">
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => setCertificationModal({
-                        open: true,
-                        mode: 'add'
-                      })}
+                      onClick={() =>
+                        setCertificationModal({
+                          open: true,
+                          mode: "add"
+                        })
+                      }
                     >
                       <BookOpen className="h-4 w-4 mr-2" />
                       Add Certification
@@ -1137,43 +1391,52 @@ export default function AccountSettings() {
               ) : (
                 <div className="space-y-6">
                   {careerData.certifications.map((cert: any) => (
-                    <div key={cert.id} className="border border-gray-200 rounded-md p-4 relative group">
+                    <div
+                      key={cert.id}
+                      className="border border-gray-200 rounded-md p-4 relative group"
+                    >
                       <div className="opacity-0 group-hover:opacity-100 absolute top-3 right-3 flex gap-1 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => setCertificationModal({
-                            open: true,
-                            mode: 'edit',
-                            data: cert,
-                            id: cert.id
-                          })}
+                          onClick={() =>
+                            setCertificationModal({
+                              open: true,
+                              mode: "edit",
+                              data: cert,
+                              id: cert.id
+                            })
+                          }
                         >
                           <Pencil className="h-4 w-4" />
                           <span className="sr-only">Edit</span>
                         </Button>
-                        
+
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:text-red-500"
-                          onClick={() => setDeleteConfirmation({
-                            open: true,
-                            itemId: cert.id,
-                            itemType: 'certification',
-                            endpoint: 'certifications'
-                          })}
+                          onClick={() =>
+                            setDeleteConfirmation({
+                              open: true,
+                              itemId: cert.id,
+                              itemType: "certification",
+                              endpoint: "certifications"
+                            })
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                           <span className="sr-only">Delete</span>
                         </Button>
                       </div>
-                      
+
                       <div>
                         <h3 className="text-base font-semibold">{cert.name}</h3>
-                        <p className="text-sm text-gray-700">{cert.issuingOrganization}</p>
-                        
+                        <p className="text-sm text-gray-700">
+                          {cert.issuingOrganization}
+                        </p>
+
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                           {cert.issueDate && (
                             <div className="flex items-center">
@@ -1181,26 +1444,27 @@ export default function AccountSettings() {
                               Issued: {formatDate(new Date(cert.issueDate))}
                             </div>
                           )}
-                          
+
                           {cert.expirationDate && (
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
-                              Expires: {formatDate(new Date(cert.expirationDate))}
+                              Expires:{" "}
+                              {formatDate(new Date(cert.expirationDate))}
                             </div>
                           )}
                         </div>
-                        
+
                         {cert.credentialId && (
                           <div className="mt-2 text-xs text-gray-500">
                             Credential ID: {cert.credentialId}
                           </div>
                         )}
-                        
+
                         {cert.credentialUrl && (
                           <div className="mt-2">
-                            <a 
-                              href={cert.credentialUrl} 
-                              target="_blank" 
+                            <a
+                              href={cert.credentialUrl}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-primary hover:underline"
                             >
@@ -1215,139 +1479,173 @@ export default function AccountSettings() {
               )}
             </div>
           </div>
-          
+
           {/* Form modals */}
-          <WorkHistoryFormModal 
+          <WorkHistoryFormModal
             open={workHistoryModal.open}
             mode={workHistoryModal.mode}
             defaultValues={workHistoryModal.data}
             id={workHistoryModal.id}
-            onClose={() => setWorkHistoryModal({ ...workHistoryModal, open: false })}
+            onClose={() =>
+              setWorkHistoryModal({ ...workHistoryModal, open: false })
+            }
             onSuccess={() => {
-              setWorkHistoryModal({ ...workHistoryModal, open: false });
-              refetchCareerData();
+              setWorkHistoryModal({ ...workHistoryModal, open: false })
+              refetchCareerData()
             }}
           />
-          
-          <EducationFormModal 
+
+          <EducationFormModal
             open={educationModal.open}
             mode={educationModal.mode}
             defaultValues={educationModal.data}
             educationId={educationModal.id}
-            onOpenChange={(open) => setEducationModal({ ...educationModal, open })}
+            onOpenChange={(open) =>
+              setEducationModal({ ...educationModal, open })
+            }
             onSuccess={() => {
-              setEducationModal({ ...educationModal, open: false });
-              refetchCareerData();
+              setEducationModal({ ...educationModal, open: false })
+              refetchCareerData()
             }}
           />
-          
-          <SkillFormModal 
+
+          <SkillFormModal
             open={skillModal.open}
             skills={careerData?.skills || []}
             onOpenChange={(open) => setSkillModal({ ...skillModal, open })}
             onSuccess={() => {
-              setSkillModal({ ...skillModal, open: false });
-              refetchCareerData();
+              setSkillModal({ ...skillModal, open: false })
+              refetchCareerData()
             }}
           />
-          
-          <CertificationFormModal 
+
+          <CertificationFormModal
             open={certificationModal.open}
             mode={certificationModal.mode}
             defaultValues={certificationModal.data}
             certificationId={certificationModal.id}
-            onOpenChange={(open) => setCertificationModal({ ...certificationModal, open })}
+            onOpenChange={(open) =>
+              setCertificationModal({ ...certificationModal, open })
+            }
             onSuccess={() => {
-              setCertificationModal({ ...certificationModal, open: false });
-              refetchCareerData();
+              setCertificationModal({ ...certificationModal, open: false })
+              refetchCareerData()
             }}
           />
-          
-          <CareerSummaryFormModal 
+
+          <CareerSummaryFormModal
             open={careerSummaryModal.open}
             defaultValue={careerSummaryModal.defaultValue}
-            onOpenChange={(open) => setCareerSummaryModal({ ...careerSummaryModal, open })}
+            onOpenChange={(open) =>
+              setCareerSummaryModal({ ...careerSummaryModal, open })
+            }
             onSuccess={() => {
-              setCareerSummaryModal({ ...careerSummaryModal, open: false });
-              refetchCareerData();
+              setCareerSummaryModal({ ...careerSummaryModal, open: false })
+              refetchCareerData()
             }}
           />
-          
+
           <DeleteConfirmationDialog
             open={deleteConfirmation.open}
             itemType={deleteConfirmation.itemType}
-            onOpenChange={(open) => setDeleteConfirmation({ ...deleteConfirmation, open })}
+            onOpenChange={(open) =>
+              setDeleteConfirmation({ ...deleteConfirmation, open })
+            }
             onConfirm={async () => {
               try {
-                await apiRequest('DELETE', `/api/career-data/${deleteConfirmation.endpoint}/${deleteConfirmation.itemId}`, {});
+                await apiRequest(
+                  "DELETE",
+                  `/api/career-data/${deleteConfirmation.endpoint}/${deleteConfirmation.itemId}`,
+                  {}
+                )
                 toast({
                   title: "Deleted",
-                  description: `The ${deleteConfirmation.itemType} has been deleted.`,
-                });
-                refetchCareerData();
+                  description: `The ${deleteConfirmation.itemType} has been deleted.`
+                })
+                refetchCareerData()
               } catch (error) {
                 toast({
                   title: "Error",
                   description: `Failed to delete the ${deleteConfirmation.itemType}.`,
-                  variant: "destructive",
-                });
+                  variant: "destructive"
+                })
               } finally {
-                setDeleteConfirmation({ ...deleteConfirmation, open: false });
+                setDeleteConfirmation({ ...deleteConfirmation, open: false })
               }
             }}
           />
         </TabsContent>
-        
+
         <TabsContent value="subscription" className="px-6 py-8">
           <div className="space-y-6">
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Subscription Details</h2>
-                <p className="text-sm text-gray-500 mt-1">Manage your current subscription and billing information.</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Subscription Details
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage your current subscription and billing information.
+                </p>
               </div>
-              
+
               <div className="border border-gray-200 rounded-lg p-6 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Current Plan</span>
-                    <h3 className="text-xl font-semibold mt-1">{getPlanName(user.subscriptionPlan)}</h3>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                      Current Plan
+                    </span>
+                    <h3 className="text-xl font-semibold mt-1">
+                      {getPlanName(user.subscriptionPlan)}
+                    </h3>
                   </div>
-                  
-                  <Badge 
-                    variant={user.subscriptionStatus === 'active' ? 'default' : 'outline'} 
+
+                  <Badge
+                    variant={
+                      user.subscriptionStatus === "active"
+                        ? "default"
+                        : "outline"
+                    }
                     className={
-                      user.subscriptionStatus === 'active' ? 'bg-green-500 text-white' :
-                      user.subscriptionStatus === 'past_due' ? 'bg-amber-500 text-white' :
-                      user.subscriptionStatus === 'cancelled' ? 'border-amber-500 text-amber-500' :
-                      'border-gray-500 text-gray-500'
+                      user.subscriptionStatus === "active"
+                        ? "bg-green-500 text-white"
+                        : user.subscriptionStatus === "past_due"
+                        ? "bg-amber-500 text-white"
+                        : user.subscriptionStatus === "cancelled"
+                        ? "border-amber-500 text-amber-500"
+                        : "border-gray-500 text-gray-500"
                     }
                   >
-                    {user.subscriptionStatus === 'active' ? 'Active' :
-                     user.subscriptionStatus === 'past_due' ? 'Past Due' :
-                     user.subscriptionStatus === 'cancelled' ? 'Cancelled' :
-                     'Inactive'}
+                    {user.subscriptionStatus === "active"
+                      ? "Active"
+                      : user.subscriptionStatus === "past_due"
+                      ? "Past Due"
+                      : user.subscriptionStatus === "cancelled"
+                      ? "Cancelled"
+                      : "Inactive"}
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-4">
-                  {user.subscriptionPlan !== 'free' && (
+                  {user.subscriptionPlan !== "free" && (
                     <>
                       <dl className="grid grid-cols-2 gap-4 mt-4 text-sm">
                         <div>
                           <dt className="text-gray-500">Billing Period</dt>
                           <dd className="font-medium capitalize">
-                            {user.subscriptionCycle || 'Monthly'}
+                            {user.subscriptionCycle || "Monthly"}
                           </dd>
                         </div>
-                        
+
                         <div>
                           <dt className="text-gray-500">Next Billing Date</dt>
                           <dd className="font-medium">
-                            {user.subscriptionExpiresAt ? formatDate(new Date(user.subscriptionExpiresAt)) : 'N/A'}
+                            {user.subscriptionExpiresAt
+                              ? formatDate(new Date(user.subscriptionExpiresAt))
+                              : "N/A"}
                           </dd>
                         </div>
                       </dl>
-                      
+
                       {isSubscriptionActive && (
                         <div className="pt-4 border-t border-gray-100">
                           <Button
@@ -1362,24 +1660,27 @@ export default function AccountSettings() {
                                 Processing...
                               </>
                             ) : (
-                              'Cancel Subscription'
+                              "Cancel Subscription"
                             )}
                           </Button>
                           <p className="text-xs text-gray-500 mt-2">
-                            Your subscription will remain active until the end of your current billing period.
+                            Your subscription will remain active until the end
+                            of your current billing period.
                           </p>
                         </div>
                       )}
                     </>
                   )}
-                  
-                  {user.subscriptionPlan === 'free' && (
+
+                  {user.subscriptionPlan === "free" && (
                     <div className="py-4">
-                      <p className="text-sm text-gray-600">You're currently on the free plan with limited features.</p>
+                      <p className="text-sm text-gray-600">
+                        You're currently on the free plan with limited features.
+                      </p>
                       <Button
                         className="mt-4"
                         onClick={() => {
-                          navigate('/pricing');
+                          navigate("/pricing")
                         }}
                       >
                         Upgrade Now
@@ -1388,10 +1689,10 @@ export default function AccountSettings() {
                   )}
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                 <h3 className="text-base font-semibold mb-2">Plan Features</h3>
-                
+
                 <ul className="space-y-3 text-sm">
                   <li className="flex items-start">
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -1405,8 +1706,8 @@ export default function AccountSettings() {
                     <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                     <span>Application tracking</span>
                   </li>
-                  
-                  {user.subscriptionPlan === 'premium' && (
+
+                  {user.subscriptionPlan === "premium" && (
                     <>
                       <li className="flex items-start">
                         <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
@@ -1427,10 +1728,12 @@ export default function AccountSettings() {
                     </>
                   )}
                 </ul>
-                
-                {user.subscriptionPlan === 'free' && (
+
+                {user.subscriptionPlan === "free" && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-medium mb-2">Premium Features</h4>
+                    <h4 className="text-sm font-medium mb-2">
+                      Premium Features
+                    </h4>
                     <ul className="space-y-3 text-sm text-gray-500">
                       <li className="flex items-start">
                         <HelpCircle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
@@ -1455,56 +1758,83 @@ export default function AccountSettings() {
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="security" className="px-6 py-8">
           <div className="space-y-6">
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Security Settings</h2>
-                <p className="text-sm text-gray-500 mt-1">Manage your account security and privacy settings.</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Security Settings
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage your account security and privacy settings.
+                </p>
               </div>
-              
+
               <div className="space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900">Two-Factor Authentication</h3>
-                    <p className="text-xs text-gray-500">Add an extra layer of security to your account.</p>
+                    <h3 className="text-sm font-medium text-gray-900">
+                      Two-Factor Authentication
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Add an extra layer of security to your account.
+                    </p>
                   </div>
                   <Switch id="two-factor" disabled />
                 </div>
-                
+
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900">Email Notifications</h3>
-                    <p className="text-xs text-gray-500">Receive security alerts about suspicious account activity.</p>
+                    <h3 className="text-sm font-medium text-gray-900">
+                      Email Notifications
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Receive security alerts about suspicious account activity.
+                    </p>
                   </div>
                   <Switch id="email-notifications" defaultChecked />
                 </div>
-                
+
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900">Session Management</h3>
-                    <p className="text-xs text-gray-500">Manage your active sessions and sign out from other devices.</p>
+                    <h3 className="text-sm font-medium text-gray-900">
+                      Session Management
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Manage your active sessions and sign out from other
+                      devices.
+                    </p>
                   </div>
-                  <Button variant="outline" size="sm">Manage Sessions</Button>
+                  <Button variant="outline" size="sm">
+                    Manage Sessions
+                  </Button>
                 </div>
-                
+
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">Password Security</h3>
-                  <p className="text-xs text-gray-500 mb-4">Use the Profile tab to update your password.</p>
-                  
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">
+                    Password Security
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Use the Profile tab to update your password.
+                  </p>
+
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-sm text-gray-700">Password last changed</p>
+                      <p className="text-sm text-gray-700">
+                        Password last changed
+                      </p>
                       <p className="text-xs text-gray-500">
-                        {user.passwordLastChanged ? formatDate(new Date(user.passwordLastChanged)) : 'Never'}
+                        {user.passwordLastChanged
+                          ? formatDate(new Date(user.passwordLastChanged))
+                          : "Never"}
                       </p>
                     </div>
-                    
+
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setActiveTab('profile')}
+                      onClick={() => setActiveTab("profile")}
                     >
                       Change Password
                     </Button>
@@ -1512,13 +1842,17 @@ export default function AccountSettings() {
                 </div>
               </div>
             </div>
-            
+
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Connected Accounts</h2>
-                <p className="text-sm text-gray-500 mt-1">Manage third-party services connected to your account.</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Connected Accounts
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage third-party services connected to your account.
+                </p>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
                   <div className="flex items-center space-x-4">
@@ -1530,9 +1864,11 @@ export default function AccountSettings() {
                       <p className="text-xs text-gray-500">Not connected</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" disabled>Connect</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    Connect
+                  </Button>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
                   <div className="flex items-center space-x-4">
                     <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1543,22 +1879,35 @@ export default function AccountSettings() {
                       <p className="text-xs text-gray-500">Not connected</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" disabled>Connect</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    Connect
+                  </Button>
                 </div>
               </div>
             </div>
-            
+
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-red-600">Danger Zone</h2>
-                <p className="text-sm text-gray-500 mt-1">Permanent actions that cannot be undone.</p>
+                <h2 className="text-lg font-semibold text-red-600">
+                  Danger Zone
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Permanent actions that cannot be undone.
+                </p>
               </div>
-              
+
               <div className="space-y-4">
                 <div className="p-4 border border-red-200 rounded-md bg-red-50">
-                  <h3 className="text-sm font-medium text-red-600 mb-1">Delete Account</h3>
-                  <p className="text-xs text-red-500 mb-3">This action cannot be undone. All your data will be permanently deleted.</p>
-                  <Button variant="destructive" size="sm" disabled>Delete Account</Button>
+                  <h3 className="text-sm font-medium text-red-600 mb-1">
+                    Delete Account
+                  </h3>
+                  <p className="text-xs text-red-500 mb-3">
+                    This action cannot be undone. All your data will be
+                    permanently deleted.
+                  </p>
+                  <Button variant="destructive" size="sm" disabled>
+                    Delete Account
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1567,10 +1916,12 @@ export default function AccountSettings() {
       </Tabs>
       <LinkedInProfileFormModal
         open={linkedInProfileModal.open}
-        onOpenChange={(open) => setLinkedInProfileModal({ ...linkedInProfileModal, open })}
+        onOpenChange={(open) =>
+          setLinkedInProfileModal({ ...linkedInProfileModal, open })
+        }
         defaultValue={linkedInProfileModal.defaultValue}
         onSuccess={() => refetchCareerData()}
       />
     </div>
-  );
+  )
 }

@@ -252,9 +252,7 @@ async function validateUserAccess(
 
     // Get the requested resource ID (usually from URL params)
     const resourceId = req.params.id ? parseInt(req.params.id) : null
-    const resourceUserId = req.params.userId
-      ? parseInt(req.params.userId)
-      : null
+    const resourceUserId = req.params.userId || null // Keep as string (UUID)
 
     if (!resourceId && !resourceUserId) {
       // If no specific resource is targeted, allow the request to proceed
@@ -271,7 +269,7 @@ async function validateUserAccess(
     }
 
     // For all other cases, only allow access to own data
-    if (resourceUserId && resourceUserId !== parseInt(req.userId)) {
+    if (resourceUserId && resourceUserId !== req.userId) {
       console.log(
         `Data access violation: User ${req.userId} attempted to access data for user ${resourceUserId}`
       )

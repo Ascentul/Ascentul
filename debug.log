@@ -1,0 +1,62 @@
+
+> rest-express@1.0.0 dev
+> tsx src/backend/index.ts
+
+Supabase configuration status:
+- SUPABASE_URL: set
+- SUPABASE_ANON_KEY: set
+- SUPABASE_SERVICE_ROLE_KEY: set
+🔌 Supabase client initialized with URL: https://qyycdduuadsofgabrgip.supabase.co
+Attempting to initialize SupabaseStorage...
+✅ SUCCESS: Using SupabaseStorage for data persistence
+✅ OpenAI client initialized with API key
+Job source provider registered: ZipRecruiter
+Job source provider registered: MockProvider
+STRIPE_SECRET_KEY is not set. Using mock Stripe mode.
+Environment Variables Status:
+- OPENAI_API_KEY: present
+- SUPABASE_URL: present
+- SUPABASE_ANON_KEY: present
+Public API routes mounted at /api/public
+✅ Using Supabase for database operations
+✅ Database connection successful
+🔍 Supabase Request: https://qyycdduuadsofgabrgip.supabase.co/rest/v1/users?select=*&username=eq.admin
+Error fetching user by username: {
+  code: 'PGRST116',
+  details: 'The result contains 0 rows',
+  hint: null,
+  message: 'JSON object requested, multiple (or no) rows returned'
+}
+🔨 Creating user with data: {
+  "email": "admin@careertracker.io",
+  "username": "admin"
+}
+🔍 Supabase Request: https://qyycdduuadsofgabrgip.supabase.co/rest/v1/users?select=*
+❌ Error creating user: {
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not find the 'needsUsername' column of 'users' in the schema cache"
+}
+❌ Error code: PGRST204, message: Could not find the 'needsUsername' column of 'users' in the schema cache
+❌ Exception in createUser: Error: Failed to create user: Could not find the 'needsUsername' column of 'users' in the schema cache
+    at SupabaseStorage.createUser (/Users/andrew/dev/Ascentul/src/backend/supabase-storage.ts:110:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async registerRoutes (/Users/andrew/dev/Ascentul/src/backend/routes.ts:597:25)
+    at async <anonymous> (/Users/andrew/dev/Ascentul/src/backend/index.ts:98:18)
+Error creating sample user: Error: Failed to create user: Could not find the 'needsUsername' column of 'users' in the schema cache
+    at SupabaseStorage.createUser (/Users/andrew/dev/Ascentul/src/backend/supabase-storage.ts:110:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async registerRoutes (/Users/andrew/dev/Ascentul/src/backend/routes.ts:597:25)
+    at async <anonymous> (/Users/andrew/dev/Ascentul/src/backend/index.ts:98:18)
+Setting up daily recommendations refresh at 0:0:0
+Next recommendations refresh scheduled for 6/7/2025, 12:00:00 AM
+Registered contacts routes at /api/contacts
+Registering job routes at /api/jobs/...
+HTTP server created for the API and frontend
+✨ Attempting to start server on 0.0.0.0:3002...
+✨ Environment: NODE_ENV=development
+✨ REPL_ID=not set, REPL_SLUG=not set
+❌ SERVER ERROR: listen EADDRINUSE: address already in use 0.0.0.0:3002
+Port 3002 is already in use. Try stopping other servers.
+❌ PORT conflict detected. Exiting.

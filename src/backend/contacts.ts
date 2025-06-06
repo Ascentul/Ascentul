@@ -16,7 +16,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" })
@@ -47,7 +47,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" })
@@ -71,7 +71,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     async (req: Request, res: Response) => {
       try {
         // Use req.userId which is set by verifySupabaseToken middleware
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" })
@@ -143,7 +143,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -179,7 +179,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" })
@@ -214,7 +214,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -256,7 +256,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         console.log(
@@ -318,7 +318,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -366,7 +366,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -405,7 +405,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const interactionId = parseInt(req.params.id)
 
         if (!userId) {
@@ -443,7 +443,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const interactionId = parseInt(req.params.id)
 
         if (!userId) {
@@ -477,7 +477,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -508,50 +508,50 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
         // Validate and safely parse the date
         let parsedDate: Date | null = null
 
-        try {
-          if (req.body.dueDate) {
-            parsedDate = new Date(req.body.dueDate)
-
-            // Validate the parsed date is legitimate
+        if (req.body.followUpDate) {
+          if (req.body.followUpDate instanceof Date) {
+            parsedDate = req.body.followUpDate
+          } else if (typeof req.body.followUpDate === "string") {
+            parsedDate = new Date(req.body.followUpDate)
             if (isNaN(parsedDate.getTime())) {
-              console.error("❌ Invalid date received:", req.body.dueDate)
-              return res.status(400).json({ message: "Invalid date format" })
+              return res.status(400).json({
+                message: "Invalid follow-up date format"
+              })
             }
-
-            // Additional validation: prevent dates from the distant past
-            if (parsedDate.getFullYear() < 2000) {
-              console.error("❌ Suspicious date detected:", parsedDate)
-              return res.status(400).json({ message: "Invalid date" })
-            }
-
-            console.log("✅ Parsed valid date:", parsedDate.toISOString())
+          } else {
+            return res.status(400).json({
+              message:
+                "Follow-up date must be a valid date string or Date object"
+            })
           }
-        } catch (dateError) {
-          console.error("❌ Date parsing error:", dateError)
-          return res.status(400).json({ message: "Failed to parse date" })
         }
 
-        // Create a follow-up record with proper date conversion
+        // Prepare the follow-up action data
         const followUpData = {
-          // Store original type as reminderType for consistent UI display
-          type: req.body.type,
-          reminderType: req.body.type,
-          description: `Follow-up with ${existingContact.fullName}`,
-          notes: req.body.notes,
-          // Use our validated date
+          type: "contact_followup",
+          description: req.body.notes || "Follow up with contact",
           dueDate: parsedDate,
-          completed: false
+          applicationId: contactId, // Using contactId as applicationId for contact follow-ups
+          stageId: null,
+          completed: false,
+          notes: req.body.notes || null
         }
 
-        const followUp = await storage.createContactFollowUp(
+        console.log(
+          "💾 Creating follow-up with data:",
+          JSON.stringify(followUpData, null, 2)
+        )
+
+        // Create the follow-up action
+        const newFollowUp = await storage.createContactFollowUp(
           userId,
           contactId,
           followUpData
         )
 
-        res.status(201).json(followUp)
+        res.status(201).json(newFollowUp)
       } catch (error) {
-        console.error("Error scheduling contact follow-up:", error)
+        console.error("Error scheduling follow-up:", error)
         res.status(500).json({ message: "Failed to schedule follow-up" })
       }
     }
@@ -563,7 +563,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.id)
 
         if (!userId) {
@@ -602,7 +602,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const followupId = parseInt(req.params.followupId)
 
         if (!userId) {
@@ -636,7 +636,7 @@ export const registerContactsRoutes = (app: Router, storage: IStorage) => {
     requireLoginFallback,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.userId ? parseInt(req.userId) : (req as any).user?.id
+        const userId = req.userId || (req as any).user?.id
         const contactId = parseInt(req.params.contactId)
         const followupId = parseInt(req.params.followupId)
 

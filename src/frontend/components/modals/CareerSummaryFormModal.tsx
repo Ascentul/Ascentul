@@ -1,11 +1,11 @@
-import React from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import React from "react"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
+import { apiRequest, queryClient } from "@/lib/queryClient"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2 } from "lucide-react"
 
 import {
   Dialog,
@@ -13,8 +13,8 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  DialogTitle
+} from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
@@ -22,99 +22,136 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+  FormMessage
+} from "@/components/ui/form"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 
 // Define the form schema
 const careerSummaryFormSchema = z.object({
-  summary: z.string().min(1, { message: 'Career summary is required' }).max(750, {
-    message: 'Career summary must not exceed 750 characters',
-  }),
-});
+  summary: z
+    .string()
+    .min(1, { message: "Career summary is required" })
+    .max(750, {
+      message: "Career summary must not exceed 750 characters"
+    })
+})
 
-type CareerSummaryFormValues = z.infer<typeof careerSummaryFormSchema>;
+type CareerSummaryFormValues = z.infer<typeof careerSummaryFormSchema>
 
 interface CareerSummaryFormModalProps {
-  open: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onClose?: () => void;
-  defaultValue?: string;
-  onSuccess?: () => void;
+  open: boolean
+  onOpenChange?: (open: boolean) => void
+  onClose?: () => void
+  defaultValue?: string
+  onSuccess?: () => void
 }
 
 export function CareerSummaryFormModal({
   open,
   onOpenChange,
   onClose,
-  defaultValue = '',
-  onSuccess,
+  defaultValue = "",
+  onSuccess
 }: CareerSummaryFormModalProps) {
-  const { toast } = useToast();
+  const { toast } = useToast()
 
   // Initialize the form
   const form = useForm<CareerSummaryFormValues>({
     resolver: zodResolver(careerSummaryFormSchema),
     defaultValues: {
-      summary: defaultValue || '',
-    },
-  });
+      summary: defaultValue || ""
+    }
+  })
+
+  // Update form when defaultValue changes or dialog opens
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        summary: defaultValue || ""
+      })
+    }
+  }, [open, defaultValue, form])
 
   // Form submission mutation
   const mutation = useMutation({
     mutationFn: async (values: CareerSummaryFormValues) => {
-      const response = await apiRequest('PUT', '/api/career-data/career-summary', {
-        careerSummary: values.summary,
-      });
+      console.log(
+        "⭐️ Submitting career summary form with length:",
+        values.summary.length
+      )
+
+      const response = await apiRequest(
+        "PUT",
+        "/api/career-data/career-summary",
+        {
+          careerSummary: values.summary
+        }
+      )
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save career summary');
+        console.error("❌ API request failed with status:", response.status)
+        // Try to get more detailed error information
+        try {
+          const errorData = await response.json()
+          console.error("Error details:", errorData)
+          throw new Error(
+            errorData.error ||
+              errorData.message ||
+              "Failed to save career summary"
+          )
+        } catch (parseError) {
+          console.error("Could not parse error response:", parseError)
+          throw new Error(
+            `Failed to save career summary (${response.status}: ${response.statusText})`
+          )
+        }
       }
 
-      return await response.json();
+      console.log("✅ Career summary saved successfully")
+      return await response.json()
     },
     onSuccess: () => {
       // Show success toast
       toast({
-        title: 'Career summary updated',
-        description: 'Your career summary has been saved successfully.',
-      });
+        title: "Career summary updated",
+        description: "Your career summary has been saved successfully."
+      })
 
       // Invalidate queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/career-data'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/career-data"] })
 
       // Close the modal
-      handleDialogOpenChange(false);
+      handleDialogOpenChange(false)
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
-        onSuccess();
+        onSuccess()
       }
     },
     onError: (error: Error) => {
+      console.error("❌ Mutation error:", error)
       toast({
-        title: 'Error',
+        title: "Error",
         description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+        variant: "destructive"
+      })
+    }
+  })
 
   // Custom handler for dialog close events
   const handleDialogOpenChange = (openState: boolean) => {
     if (onOpenChange) {
-      onOpenChange(openState);
+      onOpenChange(openState)
     } else if (!openState && onClose) {
-      onClose();
+      onClose()
     }
-  };
+  }
 
   // Submit handler
   const onSubmit = (values: CareerSummaryFormValues) => {
-    mutation.mutate(values);
-  };
+    mutation.mutate(values)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -122,7 +159,8 @@ export function CareerSummaryFormModal({
         <DialogHeader>
           <DialogTitle>Edit Career Summary</DialogTitle>
           <DialogDescription>
-            Provide a concise overview of your professional background, skills, and career aspirations.
+            Provide a concise overview of your professional background, skills,
+            and career aspirations.
           </DialogDescription>
         </DialogHeader>
 
@@ -142,7 +180,7 @@ export function CareerSummaryFormModal({
                     />
                   </FormControl>
                   <FormDescription>
-                    {form.watch('summary')?.length || 0}/750 characters
+                    {form.watch("summary")?.length || 0}/750 characters
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -150,24 +188,21 @@ export function CareerSummaryFormModal({
             />
 
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => handleDialogOpenChange(false)}
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={mutation.isPending}
-              >
+              <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  'Save Summary'
+                  "Save Summary"
                 )}
               </Button>
             </DialogFooter>
@@ -175,5 +210,5 @@ export function CareerSummaryFormModal({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
