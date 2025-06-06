@@ -1,4 +1,4 @@
-import { pool } from "./db"
+// Removed pool import since we're using Supabase directly
 import {
   users,
   type User,
@@ -102,7 +102,7 @@ import {
   type InsertLanguage
 } from "../utils/schema"
 // Session imports removed - using Supabase auth tokens now
-import { db } from "./db"
+// import { db } from "./db" - Removed since we use Supabase directly
 import { eq, sql, desc } from "drizzle-orm"
 import { ENV } from "../config/env"
 import { SupabaseStorage } from "./supabase-storage"
@@ -629,12 +629,12 @@ export interface IStorage {
     contactData: Partial<NetworkingContact>
   ): Promise<NetworkingContact | undefined>
   deleteNetworkingContact(id: number): Promise<boolean>
-  getContactsNeedingFollowUp(userId: number): Promise<NetworkingContact[]>
+  getContactsNeedingFollowup(userId: string): Promise<NetworkingContact[]>
 
   // Contact Interactions operations
   getContactInteractions(contactId: number): Promise<ContactInteraction[]>
   createContactInteraction(
-    userId: number,
+    userId: string,
     contactId: number,
     interaction: InsertContactInteraction
   ): Promise<ContactInteraction>
@@ -642,7 +642,7 @@ export interface IStorage {
   // Contact Follow-ups operations
   getContactFollowUps(contactId: number): Promise<FollowupAction[]>
   createContactFollowUp(
-    userId: number,
+    userId: string,
     contactId: number,
     followUp: Partial<InsertFollowupAction>
   ): Promise<FollowupAction>
@@ -6706,12 +6706,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Networking Contacts
-  async getNetworkingContacts(userId: number): Promise<NetworkingContact[]> {
-    return db
+  async getNetworkingContacts(
+    userId: string,
+    filters?: { query?: string; relationshipType?: string }
+  ): Promise<NetworkingContact[]> {
+    let query = db
       .select()
       .from(networkingContacts)
       .where(eq(networkingContacts.userId, userId))
-      .orderBy(networkingContacts.createdAt)
+
+    // Apply filters if provided
+    if (filters?.query) {
+      query = query.where(
+        sql`${networkingContacts.fullName} ILIKE ${
+          "%" + filters.query + "%"
+        } OR 
+            ${networkingContacts.company} ILIKE ${"%" + filters.query + "%"} OR 
+            ${networkingContacts.email} ILIKE ${"%" + filters.query + "%"}`
+      )
+    }
+
+    if (filters?.relationshipType) {
+      query = query.where(
+        eq(networkingContacts.relationshipType, filters.relationshipType)
+      )
+    }
+
+    return query.orderBy(networkingContacts.createdAt)
   }
 
   async getNetworkingContact(
@@ -6725,7 +6746,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNetworkingContact(
-    userId: number,
+    userId: string,
     contact: InsertNetworkingContact
   ): Promise<NetworkingContact> {
     const [newContact] = await db
@@ -6753,7 +6774,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContactsNeedingFollowup(
-    userId: number
+    userId: string
   ): Promise<NetworkingContact[]> {
     // Use raw SQL query with proper columns matching the actual database schema
     // For now, we'll fetch all contacts where last_contacted_date is older than 30 days
@@ -6776,7 +6797,7 @@ export class DatabaseStorage implements IStorage {
 
   // Alias for backward compatibility
   async getContactsNeedingFollowUp(
-    userId: number
+    userId: string
   ): Promise<NetworkingContact[]> {
     return this.getContactsNeedingFollowup(userId)
   }
@@ -6793,7 +6814,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContactInteraction(
-    userId: number,
+    userId: string,
     contactId: number,
     interaction: InsertContactInteraction
   ): Promise<ContactInteraction> {
@@ -7916,45 +7937,19 @@ export class DatabaseStorage implements IStorage {
 
 // Flag to control which storage implementation to use
 // This allows us to explicitly choose which storage to use for testing
-const USE_DATABASE_STORAGE = true // Set to true to use PostgreSQL or false to use memory
+const USE_SUPABASE_STORAGE = true // Set to true to use Supabase or false to use memory
 
 // Create storage instance with proper error handling
 let storage: IStorage
 
 try {
-  if (USE_DATABASE_STORAGE) {
-    console.log("Attempting to initialize DatabaseStorage with PostgreSQL...")
+  if (USE_SUPABASE_STORAGE) {
+    console.log("Attempting to initialize SupabaseStorage...")
 
-    // Check if required environment variables are present
-    if (!process.env.DATABASE_URL) {
-      console.error("❌ DATABASE_URL environment variable is missing")
-      throw new Error("Missing required database configuration")
-    }
+    // Initialize Supabase storage (no DATABASE_URL needed)
+    storage = new SupabaseStorage()
 
-    // Initialize database storage
-    storage = new DatabaseStorage()
-
-    // Test database connection after initialization
-    // We don't await this promise because we can't use top-level await
-    // But we log the result for diagnostic purposes
-    ;(async () => {
-      const connectionSuccessful = await (
-        storage as DatabaseStorage
-      ).testDatabaseConnection()
-      if (connectionSuccessful) {
-        console.log(
-          "✅ DATABASE CONNECTION VERIFIED: PostgreSQL is working properly"
-        )
-      } else {
-        console.error(
-          "⚠️ DATABASE CONNECTION TEST FAILED: Using DatabaseStorage but connection is not working properly"
-        )
-      }
-    })()
-
-    console.log(
-      "✅ SUCCESS: Using DatabaseStorage with PostgreSQL for data persistence"
-    )
+    console.log("✅ SUCCESS: Using SupabaseStorage for data persistence")
   } else {
     console.log(
       "⚠️ USING IN-MEMORY STORAGE BY CONFIGURATION: All data will be lost on server restart"
@@ -7962,7 +7957,7 @@ try {
     storage = new MemStorage()
   }
 } catch (error) {
-  console.error("❌ ERROR: Failed to initialize DatabaseStorage:", error)
+  console.error("❌ ERROR: Failed to initialize SupabaseStorage:", error)
   console.log(
     "⚠️ FALLING BACK to MemStorage. ALL DATA WILL BE LOST ON SERVER RESTART!"
   )
@@ -7972,11 +7967,27 @@ try {
 // Health check method to verify storage status
 // This is exported for use in API health checks
 export async function checkStorageHealth(): Promise<{
-  type: "memory" | "database"
+  type: "memory" | "database" | "supabase"
   status: "healthy" | "degraded" | "failing"
   details: string
 }> {
-  if (storage instanceof DatabaseStorage) {
+  if (storage instanceof SupabaseStorage) {
+    try {
+      // Test Supabase connection with a simple query
+      const testUser = await storage.getUser("test-connection-id")
+      return {
+        type: "supabase",
+        status: "healthy",
+        details: "Supabase storage connection working properly"
+      }
+    } catch (error) {
+      return {
+        type: "supabase",
+        status: "failing",
+        details: `Supabase storage error: ${(error as Error).message}`
+      }
+    }
+  } else if (storage instanceof DatabaseStorage) {
     try {
       const connectionTest = await (
         storage as DatabaseStorage

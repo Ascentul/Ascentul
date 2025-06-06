@@ -1,14 +1,19 @@
-import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv"
+config({ path: ".env" })
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+  console.warn(
+    "DATABASE_URL not set - Drizzle migrations will not be available. Using Supabase directly instead."
+  )
 }
 
-export default defineConfig({
-  out: "./src/backend/migrations",
+export default {
   schema: "./src/utils/schema.ts",
-  dialect: "postgresql",
+  out: "./migrations",
+  dialect: "postgresql" as const,
   dbCredentials: {
-    url: process.env.DATABASE_URL,
-  },
-});
+    url:
+      process.env.DATABASE_URL ||
+      "postgresql://placeholder:placeholder@localhost:5432/placeholder"
+  }
+}

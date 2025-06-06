@@ -11,23 +11,19 @@ const __dirname = path.dirname(__filename)
 
 // Environment variables with defaults
 export const ENV = {
-  // Supabase Configuration
-  SUPABASE_URL: process.env.SUPABASE_URL || "",
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-
-  // Session Secret
-  SESSION_SECRET:
-    process.env.SESSION_SECRET || "dev_secret_change_in_production",
-
-  // Port for the server
-  PORT: parseInt(process.env.PORT || "3002", 10),
-
-  // Node environment
   NODE_ENV: process.env.NODE_ENV || "development",
-
-  // Database URL (used by the existing code)
-  DATABASE_URL: process.env.DATABASE_URL || ""
+  PORT: parseInt(process.env.PORT || "3002"),
+  SESSION_SECRET: process.env.SESSION_SECRET || "default-secret",
+  SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
+  SUPABASE_ANON_KEY:
+    process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "",
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+  ALLOWED_ORIGINS:
+    process.env.ALLOWED_ORIGINS ||
+    "http://localhost:3000,http://localhost:3001,http://localhost:3002"
 }
 
 // Validate required env vars

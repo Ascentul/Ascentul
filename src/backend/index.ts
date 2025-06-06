@@ -23,7 +23,6 @@ console.log(
   "- SUPABASE_ANON_KEY:",
   ENV.SUPABASE_ANON_KEY ? "present" : "missing"
 )
-console.log("- DATABASE_URL:", ENV.DATABASE_URL ? "present" : "missing")
 
 // Validate environment variables
 validateEnv()
