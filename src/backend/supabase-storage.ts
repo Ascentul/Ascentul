@@ -2166,4 +2166,876 @@ export class SupabaseStorage implements IStorage {
       throw exception
     }
   }
+
+  // ============ AI Coach Operations ============
+  async getAiCoachConversations(userId: string): Promise<any[]> {
+    try {
+      console.log(`🤖 AI COACH - Getting conversations for user: ${userId}`)
+
+      const { data, error } = await supabase
+        .from("ai_coach_conversations")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("❌ Error fetching AI coach conversations:", error)
+        return []
+      }
+
+      console.log(`✅ Found ${data?.length || 0} AI coach conversations`)
+      return data || []
+    } catch (exception) {
+      console.error("❌ Exception in getAiCoachConversations:", exception)
+      return []
+    }
+  }
+
+  async getAiCoachConversation(id: number): Promise<any | undefined> {
+    try {
+      console.log(`🤖 AI COACH - Getting conversation: ${id}`)
+
+      const { data, error } = await supabase
+        .from("ai_coach_conversations")
+        .select("*")
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("❌ Error fetching AI coach conversation:", error)
+        return undefined
+      }
+
+      return data
+    } catch (exception) {
+      console.error("❌ Exception in getAiCoachConversation:", exception)
+      return undefined
+    }
+  }
+
+  async createAiCoachConversation(
+    userId: string,
+    conversation: any
+  ): Promise<any> {
+    try {
+      console.log(`🤖 AI COACH - Creating conversation for user: ${userId}`)
+      console.log(
+        "📝 Conversation data:",
+        JSON.stringify(conversation, null, 2)
+      )
+
+      const { data, error } = await supabase
+        .from("ai_coach_conversations")
+        .insert({
+          user_id: userId,
+          title: conversation.title,
+          created_at: new Date()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error creating AI coach conversation:", error)
+        throw new Error(
+          `Failed to create AI coach conversation: ${error.message}`
+        )
+      }
+
+      console.log(`✅ Created AI coach conversation ${data.id}`)
+      return data
+    } catch (exception) {
+      console.error("❌ Exception in createAiCoachConversation:", exception)
+      throw exception
+    }
+  }
+
+  async getAiCoachMessages(conversationId: number): Promise<any[]> {
+    try {
+      console.log(
+        `🤖 AI COACH - Getting messages for conversation: ${conversationId}`
+      )
+
+      const { data, error } = await supabase
+        .from("ai_coach_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("timestamp", { ascending: true })
+
+      if (error) {
+        console.error("❌ Error fetching AI coach messages:", error)
+        return []
+      }
+
+      console.log(`✅ Found ${data?.length || 0} AI coach messages`)
+      return data || []
+    } catch (exception) {
+      console.error("❌ Exception in getAiCoachMessages:", exception)
+      return []
+    }
+  }
+
+  async addAiCoachMessage(message: any): Promise<any> {
+    try {
+      console.log(
+        `🤖 AI COACH - Adding message to conversation: ${message.conversationId}`
+      )
+      console.log("📝 Message data:", JSON.stringify(message, null, 2))
+
+      const { data, error } = await supabase
+        .from("ai_coach_messages")
+        .insert({
+          conversation_id: message.conversationId,
+          is_user: message.isUser,
+          message: message.message,
+          timestamp: new Date()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error adding AI coach message:", error)
+        throw new Error(`Failed to add AI coach message: ${error.message}`)
+      }
+
+      console.log(`✅ Added AI coach message ${data.id}`)
+
+      // If it's a user message, add XP reward
+      if (message.isUser) {
+        const conversation = await this.getAiCoachConversation(
+          message.conversationId
+        )
+        if (conversation) {
+          await this.addUserXP(
+            conversation.user_id,
+            10,
+            "ai_coach_interaction",
+            "Interacted with AI Coach"
+          )
+        }
+      }
+
+      return data
+    } catch (exception) {
+      console.error("❌ Exception in addAiCoachMessage:", exception)
+      throw exception
+    }
+  }
+
+  // ============ Personal Achievements Operations ============
+  async getUserPersonalAchievements(userId: string): Promise<any[]> {
+    try {
+      console.log(`🏆 Getting personal achievements for user: ${userId}`)
+
+      const { data, error } = await supabase
+        .from("user_personal_achievements")
+        .select("*")
+        .eq("user_id", userId)
+        .order("achievement_date", { ascending: false })
+
+      if (error) {
+        console.error("❌ Error fetching personal achievements:", error)
+        return []
+      }
+
+      // Map database field names to frontend field names
+      const mappedAchievements = (data || []).map((achievement: any) => ({
+        id: achievement.id,
+        userId: achievement.user_id, // Map user_id to userId
+        title: achievement.title,
+        description: achievement.description,
+        achievementDate: achievement.achievement_date, // Map achievement_date to achievementDate
+        issuingOrganization: achievement.issuing_organization, // Map issuing_organization to issuingOrganization
+        proofUrl: achievement.proof_url, // Map proof_url to proofUrl
+        skills: achievement.skills,
+        category: achievement.category,
+        icon: achievement.icon,
+        xpValue: achievement.xp_value, // Map xp_value to xpValue
+        isHighlighted: achievement.is_highlighted, // Map is_highlighted to isHighlighted
+        createdAt: achievement.created_at, // Map created_at to createdAt
+        updatedAt: achievement.updated_at // Map updated_at to updatedAt
+      }))
+
+      console.log(`✅ Found ${mappedAchievements.length} personal achievements`)
+      return mappedAchievements
+    } catch (exception) {
+      console.error("❌ Exception in getUserPersonalAchievements:", exception)
+      return []
+    }
+  }
+
+  async getUserPersonalAchievement(id: number): Promise<any | undefined> {
+    try {
+      console.log(`🏆 Getting personal achievement: ${id}`)
+
+      const { data, error } = await supabase
+        .from("user_personal_achievements")
+        .select("*")
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("❌ Error fetching personal achievement:", error)
+        return undefined
+      }
+
+      // Map database field names to frontend field names
+      return {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        title: data.title,
+        description: data.description,
+        achievementDate: data.achievement_date, // Map achievement_date to achievementDate
+        issuingOrganization: data.issuing_organization, // Map issuing_organization to issuingOrganization
+        proofUrl: data.proof_url, // Map proof_url to proofUrl
+        skills: data.skills,
+        category: data.category,
+        icon: data.icon,
+        xpValue: data.xp_value, // Map xp_value to xpValue
+        isHighlighted: data.is_highlighted, // Map is_highlighted to isHighlighted
+        createdAt: data.created_at, // Map created_at to createdAt
+        updatedAt: data.updated_at // Map updated_at to updatedAt
+      }
+    } catch (exception) {
+      console.error("❌ Exception in getUserPersonalAchievement:", exception)
+      return undefined
+    }
+  }
+
+  async createUserPersonalAchievement(
+    userId: string,
+    achievement: any
+  ): Promise<any> {
+    try {
+      console.log(`🏆 Creating personal achievement for user: ${userId}`)
+      console.log("📝 Achievement data:", JSON.stringify(achievement, null, 2))
+
+      // Map frontend field names to database column names
+      const mappedAchievement = {
+        user_id: userId,
+        title: achievement.title,
+        description: achievement.description || null,
+        achievement_date: achievement.achievementDate || new Date(), // Map achievementDate to achievement_date
+        issuing_organization: achievement.issuingOrganization || null, // Map issuingOrganization to issuing_organization
+        proof_url: achievement.proofUrl || null, // Map proofUrl to proof_url
+        skills: achievement.skills || null,
+        category: achievement.category,
+        icon: achievement.icon || "award",
+        xp_value: achievement.xpValue || 50, // Map xpValue to xp_value
+        is_highlighted: achievement.isHighlighted || false, // Map isHighlighted to is_highlighted
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+
+      console.log(
+        "🔍 Mapped achievement for Supabase:",
+        JSON.stringify(mappedAchievement, null, 2)
+      )
+
+      const { data, error } = await supabase
+        .from("user_personal_achievements")
+        .insert(mappedAchievement)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error creating personal achievement:", error)
+        throw new Error(
+          `Failed to create personal achievement: ${error.message}`
+        )
+      }
+
+      console.log("✅ Successfully created personal achievement:", data)
+
+      // Award XP for adding a personal achievement
+      await this.addUserXP(
+        userId,
+        75,
+        "personal_achievement_added",
+        "Added personal achievement"
+      )
+
+      // Map the returned data back to frontend format
+      return {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        title: data.title,
+        description: data.description,
+        achievementDate: data.achievement_date, // Map achievement_date to achievementDate
+        issuingOrganization: data.issuing_organization, // Map issuing_organization to issuingOrganization
+        proofUrl: data.proof_url, // Map proof_url to proofUrl
+        skills: data.skills,
+        category: data.category,
+        icon: data.icon,
+        xpValue: data.xp_value, // Map xp_value to xpValue
+        isHighlighted: data.is_highlighted, // Map is_highlighted to isHighlighted
+        createdAt: data.created_at, // Map created_at to createdAt
+        updatedAt: data.updated_at // Map updated_at to updatedAt
+      }
+    } catch (exception) {
+      console.error("❌ Exception in createUserPersonalAchievement:", exception)
+      throw exception
+    }
+  }
+
+  async updateUserPersonalAchievement(
+    id: number,
+    achievementData: any
+  ): Promise<any | undefined> {
+    try {
+      console.log(`🏆 Updating personal achievement: ${id}`)
+      console.log("📝 Update data:", JSON.stringify(achievementData, null, 2))
+
+      // Map frontend field names to database column names
+      const mappedData: any = {
+        updated_at: new Date()
+      }
+
+      if (achievementData.title !== undefined)
+        mappedData.title = achievementData.title
+      if (achievementData.description !== undefined)
+        mappedData.description = achievementData.description
+      if (achievementData.achievementDate !== undefined)
+        mappedData.achievement_date = achievementData.achievementDate
+      if (achievementData.issuingOrganization !== undefined)
+        mappedData.issuing_organization = achievementData.issuingOrganization
+      if (achievementData.proofUrl !== undefined)
+        mappedData.proof_url = achievementData.proofUrl
+      if (achievementData.skills !== undefined)
+        mappedData.skills = achievementData.skills
+      if (achievementData.category !== undefined)
+        mappedData.category = achievementData.category
+      if (achievementData.icon !== undefined)
+        mappedData.icon = achievementData.icon
+      if (achievementData.xpValue !== undefined)
+        mappedData.xp_value = achievementData.xpValue
+      if (achievementData.isHighlighted !== undefined)
+        mappedData.is_highlighted = achievementData.isHighlighted
+
+      const { data, error } = await supabase
+        .from("user_personal_achievements")
+        .update(mappedData)
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error updating personal achievement:", error)
+        return undefined
+      }
+
+      console.log("✅ Successfully updated personal achievement:", data)
+
+      // Map the returned data back to frontend format
+      return {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        title: data.title,
+        description: data.description,
+        achievementDate: data.achievement_date, // Map achievement_date to achievementDate
+        issuingOrganization: data.issuing_organization, // Map issuing_organization to issuingOrganization
+        proofUrl: data.proof_url, // Map proof_url to proofUrl
+        skills: data.skills,
+        category: data.category,
+        icon: data.icon,
+        xpValue: data.xp_value, // Map xp_value to xpValue
+        isHighlighted: data.is_highlighted, // Map is_highlighted to isHighlighted
+        createdAt: data.created_at, // Map created_at to createdAt
+        updatedAt: data.updated_at // Map updated_at to updatedAt
+      }
+    } catch (exception) {
+      console.error("❌ Exception in updateUserPersonalAchievement:", exception)
+      return undefined
+    }
+  }
+
+  async deleteUserPersonalAchievement(id: number): Promise<boolean> {
+    try {
+      console.log(`🏆 Deleting personal achievement: ${id}`)
+
+      const { error } = await supabase
+        .from("user_personal_achievements")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        console.error("❌ Error deleting personal achievement:", error)
+        return false
+      }
+
+      console.log("✅ Successfully deleted personal achievement")
+      return true
+    } catch (exception) {
+      console.error("❌ Exception in deleteUserPersonalAchievement:", exception)
+      return false
+    }
+  }
+
+  // ============ System Achievements Operations ============
+  async getAchievements(): Promise<any[]> {
+    try {
+      console.log("🏆 Getting system achievements")
+
+      const { data, error } = await supabase
+        .from("achievements")
+        .select("*")
+        .order("id", { ascending: true })
+
+      if (error) {
+        console.error("❌ Error fetching achievements:", error)
+        return []
+      }
+
+      console.log(`✅ Found ${data?.length || 0} system achievements`)
+      return data || []
+    } catch (exception) {
+      console.error("❌ Exception in getAchievements:", exception)
+      return []
+    }
+  }
+
+  async getUserAchievements(userId: string): Promise<any[]> {
+    try {
+      console.log(`🏆 Getting user achievements for: ${userId}`)
+
+      const { data, error } = await supabase
+        .from("user_achievements")
+        .select(
+          `
+          *,
+          achievements (*)
+        `
+        )
+        .eq("user_id", userId)
+        .order("earned_at", { ascending: false })
+
+      if (error) {
+        console.error("❌ Error fetching user achievements:", error)
+        return []
+      }
+
+      // Map the joined data to return achievements with earnedAt
+      const mappedAchievements = (data || []).map((userAchievement: any) => ({
+        id: userAchievement.achievements.id,
+        name: userAchievement.achievements.name,
+        description: userAchievement.achievements.description,
+        icon: userAchievement.achievements.icon,
+        xpReward: userAchievement.achievements.xp_reward,
+        requiredAction: userAchievement.achievements.required_action,
+        requiredValue: userAchievement.achievements.required_value,
+        earnedAt: userAchievement.earned_at
+      }))
+
+      console.log(`✅ Found ${mappedAchievements.length} user achievements`)
+      return mappedAchievements
+    } catch (exception) {
+      console.error("❌ Exception in getUserAchievements:", exception)
+      return []
+    }
+  }
+
+  async checkAndAwardAchievements(userId: string): Promise<any[]> {
+    try {
+      console.log(`🏆 Checking achievements for user: ${userId}`)
+
+      const allAchievements = await this.getAchievements()
+      const userAchievements = await this.getUserAchievements(userId)
+      const earnedAchievementIds = userAchievements.map((a) => a.id)
+      const newlyEarnedAchievements: any[] = []
+
+      // Check each achievement that hasn't been earned yet
+      for (const achievement of allAchievements) {
+        if (earnedAchievementIds.includes(achievement.id)) continue
+
+        // Check if user meets the requirements
+        let meetsRequirements = false
+
+        switch (achievement.required_action) {
+          case "resumes_created":
+            const resumes = await this.getResumes(userId)
+            meetsRequirements = resumes.length >= achievement.required_value
+            break
+          case "goals_created":
+            const goals = await this.getGoals(userId)
+            meetsRequirements = goals.length >= achievement.required_value
+            break
+          case "goals_completed":
+            const completedGoals = (await this.getGoals(userId)).filter(
+              (g: any) => g.completed
+            )
+            meetsRequirements =
+              completedGoals.length >= achievement.required_value
+            break
+          case "work_history_added":
+            const workHistory = await this.getWorkHistory(userId)
+            meetsRequirements = workHistory.length >= achievement.required_value
+            break
+          case "education_added":
+            const education = await this.getEducationHistory(userId)
+            meetsRequirements = education.length >= achievement.required_value
+            break
+          case "skills_added":
+            const skills = await this.getUserSkills(userId)
+            meetsRequirements = skills.length >= achievement.required_value
+            break
+          case "certifications_added":
+            const certifications = await this.getCertifications(userId)
+            meetsRequirements =
+              certifications.length >= achievement.required_value
+            break
+          case "networking_contacts_added":
+            const contacts = await this.getNetworkingContacts(userId)
+            meetsRequirements = contacts.length >= achievement.required_value
+            break
+          // Add more achievement checks as needed
+        }
+
+        if (meetsRequirements) {
+          // Award the achievement
+          const { data, error } = await supabase
+            .from("user_achievements")
+            .insert({
+              user_id: userId,
+              achievement_id: achievement.id,
+              earned_at: new Date()
+            })
+            .select()
+            .single()
+
+          if (!error && data) {
+            // Award XP for earning an achievement
+            await this.addUserXP(
+              userId,
+              achievement.xp_reward,
+              "achievement_earned",
+              `Earned achievement: ${achievement.name}`
+            )
+
+            newlyEarnedAchievements.push({
+              ...achievement,
+              earnedAt: data.earned_at
+            })
+
+            console.log(`✅ Awarded achievement: ${achievement.name}`)
+          }
+        }
+      }
+
+      console.log(
+        `🏆 Awarded ${newlyEarnedAchievements.length} new achievements`
+      )
+      return newlyEarnedAchievements
+    } catch (exception) {
+      console.error("❌ Exception in checkAndAwardAchievements:", exception)
+      return []
+    }
+  }
+
+  // ============ Interview Process Operations ============
+  async getInterviewProcesses(userId: string): Promise<any[]> {
+    try {
+      console.log(`🎤 Getting interview processes for user: ${userId}`)
+
+      const { data, error } = await supabase
+        .from("interview_processes")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("❌ Error fetching interview processes:", error)
+        return []
+      }
+
+      // Map database field names to frontend field names
+      const mappedProcesses = (data || []).map((process: any) => ({
+        id: process.id,
+        userId: process.user_id, // Map user_id to userId
+        companyName: process.company_name, // Map company_name to companyName
+        jobTitle: process.job_title, // Map job_title to jobTitle
+        status: process.status,
+        applicationDate: process.application_date, // Map application_date to applicationDate
+        nextStepDate: process.next_step_date, // Map next_step_date to nextStepDate
+        nextStep: process.next_step, // Map next_step to nextStep
+        notes: process.notes,
+        contactEmail: process.contact_email, // Map contact_email to contactEmail
+        contactName: process.contact_name, // Map contact_name to contactName
+        salaryRange: process.salary_range, // Map salary_range to salaryRange
+        jobLocation: process.job_location, // Map job_location to jobLocation
+        jobDescription: process.job_description, // Map job_description to jobDescription
+        requirements: process.requirements,
+        benefits: process.benefits,
+        createdAt: process.created_at, // Map created_at to createdAt
+        updatedAt: process.updated_at // Map updated_at to updatedAt
+      }))
+
+      console.log(
+        `✅ Found ${mappedProcesses.length} interview processes for user ${userId}`
+      )
+      return mappedProcesses
+    } catch (exception) {
+      console.error("❌ Exception in getInterviewProcesses:", exception)
+      return []
+    }
+  }
+
+  async getInterviewProcess(id: number): Promise<any | undefined> {
+    try {
+      console.log(`🎤 Getting interview process by ID: ${id}`)
+
+      const { data, error } = await supabase
+        .from("interview_processes")
+        .select("*")
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("❌ Error fetching interview process:", error)
+        return undefined
+      }
+
+      if (!data) {
+        return undefined
+      }
+
+      // Map database field names to frontend field names
+      const mappedProcess = {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        companyName: data.company_name, // Map company_name to companyName
+        jobTitle: data.job_title, // Map job_title to jobTitle
+        status: data.status,
+        applicationDate: data.application_date, // Map application_date to applicationDate
+        nextStepDate: data.next_step_date, // Map next_step_date to nextStepDate
+        nextStep: data.next_step, // Map next_step to nextStep
+        notes: data.notes,
+        contactEmail: data.contact_email, // Map contact_email to contactEmail
+        contactName: data.contact_name, // Map contact_name to contactName
+        salaryRange: data.salary_range, // Map salary_range to salaryRange
+        jobLocation: data.job_location, // Map job_location to jobLocation
+        jobDescription: data.job_description, // Map job_description to jobDescription
+        requirements: data.requirements,
+        benefits: data.benefits,
+        createdAt: data.created_at, // Map created_at to createdAt
+        updatedAt: data.updated_at // Map updated_at to updatedAt
+      }
+
+      console.log(`✅ Found interview process ${id}`)
+      return mappedProcess
+    } catch (exception) {
+      console.error("❌ Exception in getInterviewProcess:", exception)
+      return undefined
+    }
+  }
+
+  async createInterviewProcess(userId: string, processData: any): Promise<any> {
+    try {
+      console.log("🎤 INTERVIEW PROCESS FIX - UNIQUE MARKER 2024-06-06-12:05PM")
+      console.log(
+        "📝 Raw interview process data:",
+        JSON.stringify(processData, null, 2)
+      )
+
+      // Map frontend field names to database column names
+      const mappedProcess = {
+        user_id: userId,
+        company_name:
+          processData.companyName ||
+          processData.company_name ||
+          "Unknown Company",
+        job_title:
+          processData.jobTitle || processData.job_title || "Unknown Position",
+        status: processData.status || "applied",
+        application_date:
+          processData.applicationDate || processData.application_date,
+        next_step_date: processData.nextStepDate || processData.next_step_date,
+        next_step: processData.nextStep || processData.next_step,
+        notes: processData.notes,
+        contact_email: processData.contactEmail || processData.contact_email,
+        contact_name: processData.contactName || processData.contact_name,
+        salary_range: processData.salaryRange || processData.salary_range,
+        job_location: processData.jobLocation || processData.job_location,
+        job_description:
+          processData.jobDescription || processData.job_description,
+        requirements: processData.requirements,
+        benefits: processData.benefits,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+
+      console.log(
+        "🔧 Mapped interview process data:",
+        JSON.stringify(mappedProcess, null, 2)
+      )
+
+      const { data, error } = await supabase
+        .from("interview_processes")
+        .insert(mappedProcess)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error creating interview process:", error)
+        throw new Error(`Failed to create interview process: ${error.message}`)
+      }
+
+      // Map back to frontend format
+      const result = {
+        id: data.id,
+        userId: data.user_id,
+        companyName: data.company_name,
+        jobTitle: data.job_title,
+        status: data.status,
+        applicationDate: data.application_date,
+        nextStepDate: data.next_step_date,
+        nextStep: data.next_step,
+        notes: data.notes,
+        contactEmail: data.contact_email,
+        contactName: data.contact_name,
+        salaryRange: data.salary_range,
+        jobLocation: data.job_location,
+        jobDescription: data.job_description,
+        requirements: data.requirements,
+        benefits: data.benefits,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+
+      console.log("✅ Successfully created interview process:", result.id)
+      return result
+    } catch (exception) {
+      console.error("❌ Exception in createInterviewProcess:", exception)
+      throw exception
+    }
+  }
+
+  async updateInterviewProcess(
+    id: number,
+    processData: any
+  ): Promise<any | undefined> {
+    try {
+      console.log(
+        `🎤 Updating interview process ${id} with data:`,
+        JSON.stringify(processData, null, 2)
+      )
+
+      // Map frontend field names to database column names
+      const mappedData: any = {
+        updated_at: new Date()
+      }
+
+      if (processData.companyName !== undefined)
+        mappedData.company_name = processData.companyName
+      if (processData.company_name !== undefined)
+        mappedData.company_name = processData.company_name
+      if (processData.jobTitle !== undefined)
+        mappedData.job_title = processData.jobTitle
+      if (processData.job_title !== undefined)
+        mappedData.job_title = processData.job_title
+      if (processData.status !== undefined)
+        mappedData.status = processData.status
+      if (processData.applicationDate !== undefined)
+        mappedData.application_date = processData.applicationDate
+      if (processData.application_date !== undefined)
+        mappedData.application_date = processData.application_date
+      if (processData.nextStepDate !== undefined)
+        mappedData.next_step_date = processData.nextStepDate
+      if (processData.next_step_date !== undefined)
+        mappedData.next_step_date = processData.next_step_date
+      if (processData.nextStep !== undefined)
+        mappedData.next_step = processData.nextStep
+      if (processData.next_step !== undefined)
+        mappedData.next_step = processData.next_step
+      if (processData.notes !== undefined) mappedData.notes = processData.notes
+      if (processData.contactEmail !== undefined)
+        mappedData.contact_email = processData.contactEmail
+      if (processData.contact_email !== undefined)
+        mappedData.contact_email = processData.contact_email
+      if (processData.contactName !== undefined)
+        mappedData.contact_name = processData.contactName
+      if (processData.contact_name !== undefined)
+        mappedData.contact_name = processData.contact_name
+      if (processData.salaryRange !== undefined)
+        mappedData.salary_range = processData.salaryRange
+      if (processData.salary_range !== undefined)
+        mappedData.salary_range = processData.salary_range
+      if (processData.jobLocation !== undefined)
+        mappedData.job_location = processData.jobLocation
+      if (processData.job_location !== undefined)
+        mappedData.job_location = processData.job_location
+      if (processData.jobDescription !== undefined)
+        mappedData.job_description = processData.jobDescription
+      if (processData.job_description !== undefined)
+        mappedData.job_description = processData.job_description
+      if (processData.requirements !== undefined)
+        mappedData.requirements = processData.requirements
+      if (processData.benefits !== undefined)
+        mappedData.benefits = processData.benefits
+
+      const { data, error } = await supabase
+        .from("interview_processes")
+        .update(mappedData)
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error updating interview process:", error)
+        return undefined
+      }
+
+      if (!data) {
+        return undefined
+      }
+
+      // Map back to frontend format
+      const result = {
+        id: data.id,
+        userId: data.user_id,
+        companyName: data.company_name,
+        jobTitle: data.job_title,
+        status: data.status,
+        applicationDate: data.application_date,
+        nextStepDate: data.next_step_date,
+        nextStep: data.next_step,
+        notes: data.notes,
+        contactEmail: data.contact_email,
+        contactName: data.contact_name,
+        salaryRange: data.salary_range,
+        jobLocation: data.job_location,
+        jobDescription: data.job_description,
+        requirements: data.requirements,
+        benefits: data.benefits,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+
+      console.log(`✅ Successfully updated interview process ${id}`)
+      return result
+    } catch (exception) {
+      console.error("❌ Exception in updateInterviewProcess:", exception)
+      return undefined
+    }
+  }
+
+  async deleteInterviewProcess(id: number): Promise<boolean> {
+    try {
+      console.log(`🎤 Deleting interview process with ID: ${id}`)
+
+      const { error } = await supabase
+        .from("interview_processes")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        console.error("❌ Error deleting interview process:", error)
+        return false
+      }
+
+      console.log(`✅ Successfully deleted interview process ${id}`)
+      return true
+    } catch (exception) {
+      console.error("❌ Exception in deleteInterviewProcess:", exception)
+      return false
+    }
+  }
 }

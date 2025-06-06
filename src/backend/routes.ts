@@ -8,7 +8,7 @@ import crypto from "crypto"
 import fs from "fs"
 import path from "path"
 import { registerCareerPathRoutes } from "./career-path"
-import { registerAICoachRoutes } from "./routes/ai-coach"
+// import { registerAICoachRoutes } from "./routes/ai-coach" // Disabled - using inline routes with proper Supabase auth
 import { registerSkillsRoutes } from "./skills"
 import { registerLanguagesRoutes } from "./languages"
 import { registerContactsRoutes } from "./contacts"
@@ -4523,11 +4523,22 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   // Interview Process Tracking Routes
   // Generate a response for the AI coach mini-conversation on the dashboard
   apiRouter.post(
-    "/api/ai-coach/generate-response",
+    "/ai-coach/generate-response",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
         const { query, conversationHistory = [] } = req.body
+
+        console.log("🤖 AI Coach generate-response request:")
+        console.log("Query:", JSON.stringify(query))
+        console.log("ConversationHistory:", JSON.stringify(conversationHistory))
+
+        // Validate query
+        if (!query || typeof query !== "string" || query.trim() === "") {
+          return res.status(400).json({
+            message: "Query is required and must be a non-empty string"
+          })
+        }
 
         // Get current user data for context
         const user = await getCurrentUser(req)
@@ -4555,11 +4566,28 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         const formattedMessages =
           Array.isArray(conversationHistory) && conversationHistory.length > 0
             ? conversationHistory
-            : [{ role: "user", content: query }]
+            : [{ role: "user", content: query.trim() }]
+
+        // Validate that all messages have valid content
+        const validMessages = formattedMessages.filter(
+          (msg) =>
+            msg && typeof msg.content === "string" && msg.content.trim() !== ""
+        )
+
+        if (validMessages.length === 0) {
+          return res
+            .status(400)
+            .json({ message: "No valid messages found in conversation" })
+        }
+
+        console.log(
+          "🔍 Final formatted messages:",
+          JSON.stringify(validMessages, null, 2)
+        )
 
         // Generate response
         const response = await generateCoachingResponse(
-          formattedMessages,
+          validMessages,
           userContext
         )
 
@@ -6270,7 +6298,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   registerCareerPathRoutes(app)
 
   // Register AI coach routes
-  registerAICoachRoutes(app)
+  // registerAICoachRoutes(app) // Disabled - using inline routes with proper Supabase auth
 
   // Register models routes for AI model management
   registerModelsRoutes(app)
