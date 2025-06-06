@@ -1422,19 +1422,256 @@ export class SupabaseStorage implements IStorage {
     return 0
   }
   async getGoals(userId: string): Promise<any[]> {
-    return []
+    try {
+      console.log(`🎯 Getting goals for user: ${userId}`)
+
+      const { data, error } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("❌ Error fetching goals:", error)
+        return []
+      }
+
+      // Map database field names to frontend field names
+      const mappedGoals = (data || []).map((goal: any) => ({
+        id: goal.id,
+        userId: goal.user_id, // Map user_id to userId
+        title: goal.title,
+        description: goal.description,
+        progress: goal.progress,
+        status: goal.status,
+        dueDate: goal.due_date, // Map due_date to dueDate
+        completed: goal.completed,
+        completedAt: goal.completed_at, // Map completed_at to completedAt
+        checklist: goal.checklist || [],
+        xpReward: goal.xp_reward, // Map xp_reward to xpReward
+        createdAt: goal.created_at // Map created_at to createdAt
+      }))
+
+      console.log(`✅ Found ${mappedGoals.length} goals for user ${userId}`)
+      return mappedGoals
+    } catch (exception) {
+      console.error("❌ Exception in getGoals:", exception)
+      return []
+    }
   }
   async getGoal(id: number): Promise<any | undefined> {
-    return undefined
+    try {
+      console.log(`🎯 Getting goal by ID: ${id}`)
+
+      const { data, error } = await supabase
+        .from("goals")
+        .select("*")
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        console.error("❌ Error fetching goal:", error)
+        return undefined
+      }
+
+      if (!data) {
+        return undefined
+      }
+
+      // Map database field names to frontend field names
+      const mappedGoal = {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        title: data.title,
+        description: data.description,
+        progress: data.progress,
+        status: data.status,
+        dueDate: data.due_date, // Map due_date to dueDate
+        completed: data.completed,
+        completedAt: data.completed_at, // Map completed_at to completedAt
+        checklist: data.checklist || [],
+        xpReward: data.xp_reward, // Map xp_reward to xpReward
+        createdAt: data.created_at // Map created_at to createdAt
+      }
+
+      console.log(`✅ Found goal:`, mappedGoal)
+      return mappedGoal
+    } catch (exception) {
+      console.error("❌ Exception in getGoal:", exception)
+      return undefined
+    }
   }
   async createGoal(userId: string, goal: any): Promise<any> {
-    throw new Error("Not implemented")
+    try {
+      console.log("🎯 GOALS FIX - UNIQUE MARKER 2024-06-06-11:25AM")
+      console.log("📝 Raw goal data:", JSON.stringify(goal, null, 2))
+
+      // Map frontend field names to database column names
+      const mappedGoal = {
+        user_id: userId,
+        title: goal.title || "Untitled Goal",
+        description: goal.description,
+        progress: goal.progress || 0,
+        status: goal.status || "not_started",
+        due_date: goal.dueDate, // Map dueDate to due_date
+        completed: goal.completed || false,
+        completed_at: goal.completedAt || null, // Map completedAt to completed_at
+        checklist: goal.checklist || [],
+        xp_reward: goal.xpReward || 100 // Map xpReward to xp_reward
+        // Let Supabase handle created_at automatically
+      }
+
+      console.log(
+        "🔍 Mapped goal item for Supabase:",
+        JSON.stringify(mappedGoal, null, 2)
+      )
+
+      const { data, error } = await supabase
+        .from("goals")
+        .insert(mappedGoal)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error creating goal:", error)
+        throw new Error(`Failed to create goal: ${error.message}`)
+      }
+
+      console.log("✅ Successfully created goal:", data)
+
+      // Award XP for creating a goal
+      await this.addUserXP(
+        userId,
+        50,
+        "goals_created",
+        "Created a new career goal"
+      )
+
+      return data
+    } catch (exception) {
+      console.error("❌ Exception in createGoal:", exception)
+      throw exception
+    }
   }
   async updateGoal(id: number, goalData: any): Promise<any | undefined> {
-    return undefined
+    try {
+      console.log(
+        `🎯 Updating goal ${id} with data:`,
+        JSON.stringify(goalData, null, 2)
+      )
+
+      // First get the current goal to check completion status
+      const currentGoal = await this.getGoal(id)
+      if (!currentGoal) {
+        console.log(`❌ Goal ${id} not found`)
+        return undefined
+      }
+
+      // Check if the goal is being completed
+      const completingGoal =
+        !currentGoal.completed && goalData.completed === true
+
+      // Map frontend field names to database column names
+      const mappedData: any = {}
+
+      if (goalData.title !== undefined) mappedData.title = goalData.title
+      if (goalData.description !== undefined)
+        mappedData.description = goalData.description
+      if (goalData.progress !== undefined)
+        mappedData.progress = goalData.progress
+      if (goalData.status !== undefined) mappedData.status = goalData.status
+      if (goalData.dueDate !== undefined) mappedData.due_date = goalData.dueDate // Map dueDate to due_date
+      if (goalData.completed !== undefined)
+        mappedData.completed = goalData.completed
+      if (goalData.completedAt !== undefined)
+        mappedData.completed_at = goalData.completedAt // Map completedAt to completed_at
+      if (goalData.checklist !== undefined)
+        mappedData.checklist = goalData.checklist
+      if (goalData.xpReward !== undefined)
+        mappedData.xp_reward = goalData.xpReward // Map xpReward to xp_reward
+
+      // If completing the goal, set completedAt and other fields
+      if (completingGoal) {
+        mappedData.completed_at = new Date()
+        mappedData.progress = 100
+        mappedData.status = "completed"
+        mappedData.completed = true
+      }
+
+      // Also check if the status is being set to 'completed' directly
+      if (goalData.status === "completed" && !currentGoal.completed) {
+        mappedData.completed = true
+        mappedData.completed_at = mappedData.completed_at || new Date()
+        mappedData.progress = 100
+      }
+
+      console.log(`🔍 Mapped update data for Supabase:`, mappedData)
+
+      const { data, error } = await supabase
+        .from("goals")
+        .update(mappedData)
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error updating goal:", error)
+        return undefined
+      }
+
+      // If goal was completed, award XP
+      if (
+        completingGoal ||
+        (goalData.status === "completed" && !currentGoal.completed)
+      ) {
+        await this.addUserXP(
+          currentGoal.userId,
+          currentGoal.xpReward || 100,
+          "goals_completed",
+          `Completed goal: ${currentGoal.title}`
+        )
+      }
+
+      // Map the returned data back to frontend format
+      const mappedGoal = {
+        id: data.id,
+        userId: data.user_id, // Map user_id to userId
+        title: data.title,
+        description: data.description,
+        progress: data.progress,
+        status: data.status,
+        dueDate: data.due_date, // Map due_date to dueDate
+        completed: data.completed,
+        completedAt: data.completed_at, // Map completed_at to completedAt
+        checklist: data.checklist || [],
+        xpReward: data.xp_reward, // Map xp_reward to xpReward
+        createdAt: data.created_at // Map created_at to createdAt
+      }
+
+      console.log(`✅ Successfully updated goal:`, mappedGoal)
+      return mappedGoal
+    } catch (exception) {
+      console.error("❌ Exception in updateGoal:", exception)
+      return undefined
+    }
   }
   async deleteGoal(id: number): Promise<boolean> {
-    return true
+    try {
+      console.log(`🎯 Deleting goal with ID: ${id}`)
+
+      const { error } = await supabase.from("goals").delete().eq("id", id)
+
+      if (error) {
+        console.error("❌ Error deleting goal:", error)
+        return false
+      }
+
+      console.log(`✅ Successfully deleted goal ${id}`)
+      return true
+    } catch (exception) {
+      console.error("❌ Exception in deleteGoal:", exception)
+      return false
+    }
   }
   async getSkillStackerPlan(id: number): Promise<any | undefined> {
     return undefined
