@@ -18,6 +18,113 @@ export class SupabaseStorage implements IStorage {
     // Session store removed in Supabase auth migration
   }
 
+  // Helper function to map snake_case database fields to camelCase for frontend
+  private mapDatabaseUserToFrontend(dbUser: any): User {
+    if (!dbUser) return dbUser
+
+    const mappedUser = { ...dbUser }
+
+    // Map snake_case to camelCase for ALL user fields
+    if ("linkedin_url" in mappedUser) {
+      mappedUser.linkedInUrl = mappedUser.linkedin_url
+      delete mappedUser.linkedin_url
+    }
+    if ("career_summary" in mappedUser) {
+      mappedUser.careerSummary = mappedUser.career_summary
+      delete mappedUser.career_summary
+    }
+    if ("profile_image" in mappedUser) {
+      mappedUser.profileImage = mappedUser.profile_image
+      delete mappedUser.profile_image
+    }
+    if ("user_type" in mappedUser) {
+      mappedUser.userType = mappedUser.user_type
+      delete mappedUser.user_type
+    }
+    if ("subscription_plan" in mappedUser) {
+      mappedUser.subscriptionPlan = mappedUser.subscription_plan
+      delete mappedUser.subscription_plan
+    }
+    if ("subscription_status" in mappedUser) {
+      mappedUser.subscriptionStatus = mappedUser.subscription_status
+      delete mappedUser.subscription_status
+    }
+    if ("subscription_cycle" in mappedUser) {
+      mappedUser.subscriptionCycle = mappedUser.subscription_cycle
+      delete mappedUser.subscription_cycle
+    }
+    if ("stripe_customer_id" in mappedUser) {
+      mappedUser.stripeCustomerId = mappedUser.stripe_customer_id
+      delete mappedUser.stripe_customer_id
+    }
+    if ("stripe_subscription_id" in mappedUser) {
+      mappedUser.stripeSubscriptionId = mappedUser.stripe_subscription_id
+      delete mappedUser.stripe_subscription_id
+    }
+    if ("subscription_expires_at" in mappedUser) {
+      mappedUser.subscriptionExpiresAt = mappedUser.subscription_expires_at
+      delete mappedUser.subscription_expires_at
+    }
+    if ("email_verified" in mappedUser) {
+      mappedUser.emailVerified = mappedUser.email_verified
+      delete mappedUser.email_verified
+    }
+    if ("verification_token" in mappedUser) {
+      mappedUser.verificationToken = mappedUser.verification_token
+      delete mappedUser.verification_token
+    }
+    if ("verification_expires" in mappedUser) {
+      mappedUser.verificationExpires = mappedUser.verification_expires
+      delete mappedUser.verification_expires
+    }
+    if ("pending_email" in mappedUser) {
+      mappedUser.pendingEmail = mappedUser.pending_email
+      delete mappedUser.pending_email
+    }
+    if ("pending_email_token" in mappedUser) {
+      mappedUser.pendingEmailToken = mappedUser.pending_email_token
+      delete mappedUser.pending_email_token
+    }
+    if ("pending_email_expires" in mappedUser) {
+      mappedUser.pendingEmailExpires = mappedUser.pending_email_expires
+      delete mappedUser.pending_email_expires
+    }
+    if ("university_id" in mappedUser) {
+      mappedUser.universityId = mappedUser.university_id
+      delete mappedUser.university_id
+    }
+    if ("university_name" in mappedUser) {
+      mappedUser.universityName = mappedUser.university_name
+      delete mappedUser.university_name
+    }
+    if ("remote_preference" in mappedUser) {
+      mappedUser.remotePreference = mappedUser.remote_preference
+      delete mappedUser.remote_preference
+    }
+    if ("password_last_changed" in mappedUser) {
+      mappedUser.passwordLastChanged = mappedUser.password_last_changed
+      delete mappedUser.password_last_changed
+    }
+    if ("created_at" in mappedUser) {
+      mappedUser.createdAt = mappedUser.created_at
+      delete mappedUser.created_at
+    }
+    if ("needs_username" in mappedUser) {
+      mappedUser.needsUsername = mappedUser.needs_username
+      delete mappedUser.needs_username
+    }
+    if ("onboarding_completed" in mappedUser) {
+      mappedUser.onboardingCompleted = mappedUser.onboarding_completed
+      delete mappedUser.onboarding_completed
+    }
+    if ("onboarding_data" in mappedUser) {
+      mappedUser.onboardingData = mappedUser.onboarding_data
+      delete mappedUser.onboarding_data
+    }
+
+    return mappedUser as User
+  }
+
   // ============ User Operations ============
   async getUser(id: string): Promise<User | undefined> {
     console.log(`🔍 Looking up user with ID: "${id}" (type: ${typeof id})`)
@@ -45,7 +152,7 @@ export class SupabaseStorage implements IStorage {
           data.email || data.username || "no email/username"
         }`
       )
-      return data as unknown as User
+      return this.mapDatabaseUserToFrontend(data)
     } catch (exception) {
       console.error(`❌ Exception in getUser for ${id}:`, exception)
       return undefined
@@ -64,7 +171,7 @@ export class SupabaseStorage implements IStorage {
       return undefined
     }
 
-    return data as unknown as User
+    return this.mapDatabaseUserToFrontend(data)
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -79,7 +186,7 @@ export class SupabaseStorage implements IStorage {
       return undefined
     }
 
-    return data as unknown as User
+    return this.mapDatabaseUserToFrontend(data)
   }
 
   async createUser(user: InsertUser): Promise<User> {
@@ -98,9 +205,108 @@ export class SupabaseStorage implements IStorage {
     )
 
     try {
+      // Map camelCase fields to snake_case for database columns
+      const mappedUser = { ...user }
+      if ("linkedInUrl" in mappedUser) {
+        mappedUser.linkedin_url = mappedUser.linkedInUrl
+        delete mappedUser.linkedInUrl
+      }
+      if ("careerSummary" in mappedUser) {
+        mappedUser.career_summary = mappedUser.careerSummary
+        delete mappedUser.careerSummary
+      }
+      if ("profileImage" in mappedUser) {
+        mappedUser.profile_image = mappedUser.profileImage
+        delete mappedUser.profileImage
+      }
+      if ("userType" in mappedUser) {
+        mappedUser.user_type = mappedUser.userType
+        delete mappedUser.userType
+      }
+      if ("subscriptionPlan" in mappedUser) {
+        mappedUser.subscription_plan = mappedUser.subscriptionPlan
+        delete mappedUser.subscriptionPlan
+      }
+      if ("subscriptionStatus" in mappedUser) {
+        mappedUser.subscription_status = mappedUser.subscriptionStatus
+        delete mappedUser.subscriptionStatus
+      }
+      if ("subscriptionCycle" in mappedUser) {
+        mappedUser.subscription_cycle = mappedUser.subscriptionCycle
+        delete mappedUser.subscriptionCycle
+      }
+      if ("stripeCustomerId" in mappedUser) {
+        mappedUser.stripe_customer_id = mappedUser.stripeCustomerId
+        delete mappedUser.stripeCustomerId
+      }
+      if ("stripeSubscriptionId" in mappedUser) {
+        mappedUser.stripe_subscription_id = mappedUser.stripeSubscriptionId
+        delete mappedUser.stripeSubscriptionId
+      }
+      if ("subscriptionExpiresAt" in mappedUser) {
+        mappedUser.subscription_expires_at = mappedUser.subscriptionExpiresAt
+        delete mappedUser.subscriptionExpiresAt
+      }
+      if ("emailVerified" in mappedUser) {
+        mappedUser.email_verified = mappedUser.emailVerified
+        delete mappedUser.emailVerified
+      }
+      if ("verificationToken" in mappedUser) {
+        mappedUser.verification_token = mappedUser.verificationToken
+        delete mappedUser.verificationToken
+      }
+      if ("verificationExpires" in mappedUser) {
+        mappedUser.verification_expires = mappedUser.verificationExpires
+        delete mappedUser.verificationExpires
+      }
+      if ("pendingEmail" in mappedUser) {
+        mappedUser.pending_email = mappedUser.pendingEmail
+        delete mappedUser.pendingEmail
+      }
+      if ("pendingEmailToken" in mappedUser) {
+        mappedUser.pending_email_token = mappedUser.pendingEmailToken
+        delete mappedUser.pendingEmailToken
+      }
+      if ("pendingEmailExpires" in mappedUser) {
+        mappedUser.pending_email_expires = mappedUser.pendingEmailExpires
+        delete mappedUser.pendingEmailExpires
+      }
+      if ("universityId" in mappedUser) {
+        mappedUser.university_id = mappedUser.universityId
+        delete mappedUser.universityId
+      }
+      if ("universityName" in mappedUser) {
+        mappedUser.university_name = mappedUser.universityName
+        delete mappedUser.universityName
+      }
+      if ("remotePreference" in mappedUser) {
+        mappedUser.remote_preference = mappedUser.remotePreference
+        delete mappedUser.remotePreference
+      }
+      if ("passwordLastChanged" in mappedUser) {
+        mappedUser.password_last_changed = mappedUser.passwordLastChanged
+        delete mappedUser.passwordLastChanged
+      }
+      if ("createdAt" in mappedUser) {
+        mappedUser.created_at = mappedUser.createdAt
+        delete mappedUser.createdAt
+      }
+      if ("needsUsername" in mappedUser) {
+        mappedUser.needs_username = mappedUser.needsUsername
+        delete mappedUser.needsUsername
+      }
+      if ("onboardingCompleted" in mappedUser) {
+        mappedUser.onboarding_completed = mappedUser.onboardingCompleted
+        delete mappedUser.onboardingCompleted
+      }
+      if ("onboardingData" in mappedUser) {
+        mappedUser.onboarding_data = mappedUser.onboardingData
+        delete mappedUser.onboardingData
+      }
+
       const { data, error } = await supabase
         .from("users")
-        .insert(user)
+        .insert(mappedUser)
         .select()
         .single()
 
@@ -116,7 +322,7 @@ export class SupabaseStorage implements IStorage {
       }
 
       console.log(`✅ User created successfully: ${data.id}`)
-      return data as unknown as User
+      return this.mapDatabaseUserToFrontend(data)
     } catch (exception) {
       console.error(`❌ Exception in createUser:`, exception)
       throw exception
@@ -175,6 +381,98 @@ export class SupabaseStorage implements IStorage {
         mappedUserData.career_summary = mappedUserData.careerSummary
         delete mappedUserData.careerSummary
       }
+      if ("profileImage" in mappedUserData) {
+        mappedUserData.profile_image = mappedUserData.profileImage
+        delete mappedUserData.profileImage
+      }
+      if ("userType" in mappedUserData) {
+        mappedUserData.user_type = mappedUserData.userType
+        delete mappedUserData.userType
+      }
+      if ("subscriptionPlan" in mappedUserData) {
+        mappedUserData.subscription_plan = mappedUserData.subscriptionPlan
+        delete mappedUserData.subscriptionPlan
+      }
+      if ("subscriptionStatus" in mappedUserData) {
+        mappedUserData.subscription_status = mappedUserData.subscriptionStatus
+        delete mappedUserData.subscriptionStatus
+      }
+      if ("subscriptionCycle" in mappedUserData) {
+        mappedUserData.subscription_cycle = mappedUserData.subscriptionCycle
+        delete mappedUserData.subscriptionCycle
+      }
+      if ("stripeCustomerId" in mappedUserData) {
+        mappedUserData.stripe_customer_id = mappedUserData.stripeCustomerId
+        delete mappedUserData.stripeCustomerId
+      }
+      if ("stripeSubscriptionId" in mappedUserData) {
+        mappedUserData.stripe_subscription_id =
+          mappedUserData.stripeSubscriptionId
+        delete mappedUserData.stripeSubscriptionId
+      }
+      if ("subscriptionExpiresAt" in mappedUserData) {
+        mappedUserData.subscription_expires_at =
+          mappedUserData.subscriptionExpiresAt
+        delete mappedUserData.subscriptionExpiresAt
+      }
+      if ("emailVerified" in mappedUserData) {
+        mappedUserData.email_verified = mappedUserData.emailVerified
+        delete mappedUserData.emailVerified
+      }
+      if ("verificationToken" in mappedUserData) {
+        mappedUserData.verification_token = mappedUserData.verificationToken
+        delete mappedUserData.verificationToken
+      }
+      if ("verificationExpires" in mappedUserData) {
+        mappedUserData.verification_expires = mappedUserData.verificationExpires
+        delete mappedUserData.verificationExpires
+      }
+      if ("pendingEmail" in mappedUserData) {
+        mappedUserData.pending_email = mappedUserData.pendingEmail
+        delete mappedUserData.pendingEmail
+      }
+      if ("pendingEmailToken" in mappedUserData) {
+        mappedUserData.pending_email_token = mappedUserData.pendingEmailToken
+        delete mappedUserData.pendingEmailToken
+      }
+      if ("pendingEmailExpires" in mappedUserData) {
+        mappedUserData.pending_email_expires =
+          mappedUserData.pendingEmailExpires
+        delete mappedUserData.pendingEmailExpires
+      }
+      if ("universityId" in mappedUserData) {
+        mappedUserData.university_id = mappedUserData.universityId
+        delete mappedUserData.universityId
+      }
+      if ("universityName" in mappedUserData) {
+        mappedUserData.university_name = mappedUserData.universityName
+        delete mappedUserData.universityName
+      }
+      if ("remotePreference" in mappedUserData) {
+        mappedUserData.remote_preference = mappedUserData.remotePreference
+        delete mappedUserData.remotePreference
+      }
+      if ("passwordLastChanged" in mappedUserData) {
+        mappedUserData.password_last_changed =
+          mappedUserData.passwordLastChanged
+        delete mappedUserData.passwordLastChanged
+      }
+      if ("createdAt" in mappedUserData) {
+        mappedUserData.created_at = mappedUserData.createdAt
+        delete mappedUserData.createdAt
+      }
+      if ("needsUsername" in mappedUserData) {
+        mappedUserData.needs_username = mappedUserData.needsUsername
+        delete mappedUserData.needsUsername
+      }
+      if ("onboardingCompleted" in mappedUserData) {
+        mappedUserData.onboarding_completed = mappedUserData.onboardingCompleted
+        delete mappedUserData.onboardingCompleted
+      }
+      if ("onboardingData" in mappedUserData) {
+        mappedUserData.onboarding_data = mappedUserData.onboardingData
+        delete mappedUserData.onboardingData
+      }
 
       // User exists, proceed with update
       const { data, error } = await supabase
@@ -198,7 +496,7 @@ export class SupabaseStorage implements IStorage {
         `✅ User ${id} updated successfully with fields:`,
         Object.keys(userData).join(", ")
       )
-      return data as unknown as User
+      return this.mapDatabaseUserToFrontend(data)
     } catch (error) {
       console.error("❌ Exception in updateUser:", error)
       throw error

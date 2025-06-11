@@ -34,8 +34,15 @@ export default function SignInPage() {
   if (user) {
     if (user.userType === "regular") {
       setLocation("/dashboard")
-    } else {
+    } else if (
+      user.userType === "university_student" ||
+      user.userType === "university_admin"
+    ) {
       setLocation("/university")
+    } else if (user.userType === "admin" || user.userType === "staff") {
+      setLocation("/admin")
+    } else {
+      setLocation("/dashboard")
     }
     return null
   }
@@ -77,7 +84,8 @@ export default function SignInPage() {
 
       // Determine redirect path based on user type
       const redirectPath =
-        userData?.user_type === "university"
+        userData?.user_type === "university_student" ||
+        userData?.user_type === "university_admin"
           ? "/university"
           : userData?.onboarding_completed
           ? "/dashboard"
@@ -85,7 +93,11 @@ export default function SignInPage() {
 
       // Redirect to the appropriate page
       console.log(`Login successful - redirecting to ${redirectPath}`)
-      window.location.href = redirectPath
+
+      // Use setTimeout to avoid React state update warning
+      setTimeout(() => {
+        window.location.href = redirectPath
+      }, 0)
     } catch (error) {
       toast({
         title: "Login failed",
@@ -196,7 +208,7 @@ export default function SignInPage() {
                     />
                   </div>
                 </div>
-                <div className="pt-2">
+                <div className="pt-2 space-y-3">
                   <Button
                     type="submit"
                     className="w-full"
@@ -209,11 +221,72 @@ export default function SignInPage() {
                       ? "Sign In to University Portal"
                       : "Sign In"}
                   </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={isLoginLoading}
+                    onClick={async () => {
+                      setIsLoginLoading(true)
+                      try {
+                        const { error } =
+                          await supabaseClient.auth.signInWithOtp({
+                            email: loginEmail,
+                            options: {
+                              emailRedirectTo: `${window.location.origin}/auth/callback`
+                            }
+                          })
+
+                        if (error) {
+                          throw new Error(error.message)
+                        }
+
+                        toast({
+                          title: "Magic link sent!",
+                          description: "Check your inbox for a sign-in link."
+                        })
+                      } catch (error) {
+                        toast({
+                          title: "Failed to send magic link",
+                          description:
+                            error instanceof Error
+                              ? error.message
+                              : "Please check your email address and try again.",
+                          variant: "destructive"
+                        })
+                      } finally {
+                        setIsLoginLoading(false)
+                      }
+                    }}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Magic Link
+                  </Button>
                 </div>
               </form>
             </CardContent>
-            <CardFooter className="flex justify-center">
-              <p className="text-sm text-muted-foreground">
+            <CardFooter className="flex flex-col space-y-3">
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
                 Don't have an account?{" "}
                 <Link href="/sign-up" className="text-primary hover:underline">
                   Sign up

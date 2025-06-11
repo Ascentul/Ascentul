@@ -1,113 +1,123 @@
-import React, { useEffect } from "react";
-import { Switch, Route, useLocation, Link } from "wouter";
-import { Loader2 } from "lucide-react";
-import Layout from "@/components/Layout";
-import Dashboard from "@/pages/Dashboard";
-import Goals from "@/pages/Goals";
-import Resume from "@/pages/Resume";
-import PdfTestPage from "@/pages/PdfTestPage";
+import React, { useEffect } from "react"
+import { Switch, Route, useLocation, Link } from "wouter"
+import { Loader2 } from "lucide-react"
+import Layout from "@/components/Layout"
+import Dashboard from "@/pages/Dashboard"
+import Goals from "@/pages/Goals"
+import Resume from "@/pages/Resume"
+import PdfTestPage from "@/pages/PdfTestPage"
 
-import CoverLetter from "@/pages/CoverLetter";
-import Interview from "@/pages/Interview";
-import WorkHistory from "@/pages/WorkHistory";
-import EducationHistory from "@/pages/EducationHistory";
-import Achievements from "@/pages/Achievements";
-import AICoach from "@/pages/AICoach";
+import CoverLetter from "@/pages/CoverLetter"
+import Interview from "@/pages/Interview"
+import WorkHistory from "@/pages/WorkHistory"
+import EducationHistory from "@/pages/EducationHistory"
+import Achievements from "@/pages/Achievements"
+import AICoach from "@/pages/AICoach"
 // LinkedIn Optimizer removed
-import CareerPathExplorer from "@/pages/CareerPathExplorer";
-import Projects from "@/pages/Projects";
-import CanvaEditor from "@/pages/CanvaEditor";
-import Profile from "@/pages/Profile";
-import AccountSettings from "@/pages/AccountSettings";
+import CareerPathExplorer from "@/pages/CareerPathExplorer"
+import Projects from "@/pages/Projects"
+import CanvaEditor from "@/pages/CanvaEditor"
+import Profile from "@/pages/Profile"
+import AccountSettings from "@/pages/AccountSettings"
 // SkillStacker removed
-import Apply from "@/pages/Apply";
-import CareerProfile from "@/pages/CareerProfile";
-import Contacts from "@/pages/Contacts";
+import Apply from "@/pages/Apply"
+import CareerProfile from "@/pages/CareerProfile"
+import Contacts from "@/pages/Contacts"
 // Voice Interview Practice removed
-import SignIn from "@/pages/sign-in";
-import SignUp from "@/pages/sign-up";
-import AdminLogin from "@/pages/admin-login";
-import StaffLogin from "@/pages/staff-login";
-import StaffSignup from "@/pages/staff-signup";
-import NotFound from "@/pages/not-found";
-import AuthTest from "@/pages/AuthTest";
-import { LoadingProvider } from "@/contexts/loading-context";
-import { ScrollToTop } from "@/components/ScrollToTop";
+import SignIn from "@/pages/sign-in"
+import SignUp from "@/pages/sign-up"
+import ForgotPassword from "@/pages/forgot-password"
+import ResetPassword from "@/pages/reset-password"
+import AuthCallback from "@/pages/auth/callback"
+import AdminLogin from "@/pages/admin-login"
+import StaffLogin from "@/pages/staff-login"
+import StaffSignup from "@/pages/staff-signup"
+import NotFound from "@/pages/not-found"
+import AuthTest from "@/pages/AuthTest"
+import { LoadingProvider } from "@/contexts/loading-context"
+import { ScrollToTop } from "@/components/ScrollToTop"
 
 // Admin Pages
-import AdminDashboard from "@/pages/admin/Dashboard";
-import SupportPage from "@/pages/admin/SupportPage";
-import AdminModelsPage from "@/pages/admin/ModelsPage";
-import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage";
-import EmailAdmin from "@/pages/admin/EmailAdmin";
-import UniversitiesPage from "@/pages/admin/universities";
-import TestEmailPage from "@/pages/admin/test-email";
+import AdminDashboard from "@/pages/admin/Dashboard"
+import SupportPage from "@/pages/admin/SupportPage"
+import AdminModelsPage from "@/pages/admin/ModelsPage"
+import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage"
+import EmailAdmin from "@/pages/admin/EmailAdmin"
+import UniversitiesPage from "@/pages/admin/universities"
+import TestEmailPage from "@/pages/admin/test-email"
 
 // Staff Pages
-import StaffDashboard from "@/pages/staff/Dashboard";
-import StaffLayout from "@/components/StaffLayout";
+import StaffDashboard from "@/pages/staff/Dashboard"
+import StaffLayout from "@/components/StaffLayout"
 // We'll directly use the Layout component already imported below
 
 // Public Pages
-import Home from "@/pages/Home";
-import Pricing from "@/pages/Pricing";
-import Solutions from "@/pages/Solutions";
-import WhoWeServe from "@/pages/WhoWeServe";
-import PaymentPortal from "@/pages/PaymentPortal";
-import Checkout from "@/pages/Checkout";
-import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
-import PlanSelection from "@/pages/PlanSelection";
-import BillingCycle from "@/pages/BillingCycle";
-import OnboardingFlow from "@/components/OnboardingFlow";
+import Home from "@/pages/Home"
+import Pricing from "@/pages/Pricing"
+import Solutions from "@/pages/Solutions"
+import WhoWeServe from "@/pages/WhoWeServe"
+import PaymentPortal from "@/pages/PaymentPortal"
+import Checkout from "@/pages/Checkout"
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess"
+import PlanSelection from "@/pages/PlanSelection"
+import BillingCycle from "@/pages/BillingCycle"
+import OnboardingFlow from "@/components/OnboardingFlow"
 
 // Public Layout
-import { PublicLayout } from "@/components/PublicLayout";
+import { PublicLayout } from "@/components/PublicLayout"
 
 // Route Protection Components
-import { 
-  ProtectedRoute, 
+import {
+  ProtectedRoute,
   PublicRoute,
   AdminRoute,
   UniversityRoute,
   UniversityAdminRoute,
   StaffRoute,
   CareerRoute
-} from "@/components/RouteProtection";
+} from "@/components/RouteProtection"
 
 // Import the university admin route guard
-import UniversityAdminRouteGuard from "@/components/UniversityAdminRouteGuard";
+import UniversityAdminRouteGuard from "@/components/UniversityAdminRouteGuard"
 
 // User data hooks
-import { useUser, useIsUniversityAdmin, useIsAdminUser } from "@/lib/useUserData";
+import {
+  useUser,
+  useIsUniversityAdmin,
+  useIsAdminUser
+} from "@/lib/useUserData"
 
 // University Edition Components
-import UniversityAdminDashboard from "@/pages/university/AdminDashboard";
-import StudyPlan from "@/pages/university/StudyPlan";
-import LearningModules from "@/pages/university/LearningModules";
+import UniversityAdminDashboard from "@/pages/university/AdminDashboard"
+import StudyPlan from "@/pages/university/StudyPlan"
+import LearningModules from "@/pages/university/LearningModules"
 
 // University Admin Components
-import UniversityAdminLayout from "@/layouts/UniversityAdminLayout";
-import { 
+import UniversityAdminLayout from "@/layouts/UniversityAdminLayout"
+import {
   Dashboard as UniAdminDashboard,
   Students as UniAdminStudents,
   Invite as UniAdminInvite,
   Usage as UniAdminUsage,
   Settings as UniAdminSettings,
   Support as UniAdminSupport
-} from "@/pages/university-admin";
+} from "@/pages/university-admin"
 
 // University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { user } = useUser();
-  const isAdmin = user?.userType === 'university_admin';
+  const [location] = useLocation()
+  const { user } = useUser()
+  const isAdmin = user?.userType === "university_admin"
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center">
-            <Link href="/university" className="mr-6 flex items-center space-x-2">
+            <Link
+              href="/university"
+              className="mr-6 flex items-center space-x-2"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -129,7 +139,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                   <Link
                     href="/university/admin"
                     className={`transition-colors hover:text-foreground/80 ${
-                      location === "/university/admin" ? "text-foreground" : "text-foreground/60"
+                      location === "/university/admin"
+                        ? "text-foreground"
+                        : "text-foreground/60"
                     }`}
                   >
                     Admin Dashboard
@@ -137,7 +149,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                   <Link
                     href="/university-admin"
                     className={`transition-colors hover:text-foreground/80 ${
-                      location.startsWith("/university-admin") ? "text-foreground" : "text-foreground/60"
+                      location.startsWith("/university-admin")
+                        ? "text-foreground"
+                        : "text-foreground/60"
                     }`}
                   >
                     Admin Portal
@@ -147,7 +161,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
               <Link
                 href="/university/study-plan"
                 className={`transition-colors hover:text-foreground/80 ${
-                  location === "/university/study-plan" ? "text-foreground" : "text-foreground/60"
+                  location === "/university/study-plan"
+                    ? "text-foreground"
+                    : "text-foreground/60"
                 }`}
               >
                 Study Plan
@@ -155,7 +171,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
               <Link
                 href="/university/learning"
                 className={`transition-colors hover:text-foreground/80 ${
-                  location === "/university/learning" ? "text-foreground" : "text-foreground/60"
+                  location === "/university/learning"
+                    ? "text-foreground"
+                    : "text-foreground/60"
                 }`}
               >
                 Learning Modules
@@ -164,7 +182,7 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <Link 
+            <Link
               href="/career-dashboard"
               className="flex items-center space-x-1 text-sm font-medium px-3 py-1.5 rounded-md border border-foreground/20 bg-background hover:bg-background/80 transition-colors cursor-pointer"
             >
@@ -189,7 +207,11 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
                 <span className="text-sm text-foreground/60">{user.name}</span>
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   {user.profileImage ? (
-                    <img src={user.profileImage} alt={user.name} className="w-8 h-8 rounded-full" />
+                    <img
+                      src={user.profileImage}
+                      alt={user.name}
+                      className="w-8 h-8 rounded-full"
+                    />
                   ) : (
                     user.name.charAt(0)
                   )}
@@ -201,76 +223,108 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
       </header>
       <main className="container mx-auto py-6 px-4">{children}</main>
     </div>
-  );
+  )
 }
 
 function App() {
-  const [location, navigate] = useLocation();
-  const isUniversityRoute = location.startsWith("/university") || location === "/university-dashboard";
-  const isSignInRoute = location === "/sign-in";
-  const isSignUpRoute = location === "/sign-up";
+  const [location, navigate] = useLocation()
+  const isUniversityRoute =
+    location.startsWith("/university") || location === "/university-dashboard"
+  const isSignInRoute = location === "/sign-in"
+  const isSignUpRoute = location === "/sign-up"
   // Remove auth route check since this route doesn't exist (using sign-in instead)
   // const isAuthRoute = location === "/auth" || location.startsWith("/auth?");
-  
+
   // Load the html2pdf.js library for PDF exports
   useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-    script.defer = true;
-    document.body.appendChild(script);
-    
+    const script = document.createElement("script")
+    script.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+    script.defer = true
+    document.body.appendChild(script)
+
     return () => {
       // Clean up the script when component unmounts
       if (document.body.contains(script)) {
-        document.body.removeChild(script);
+        document.body.removeChild(script)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   // Always show public pages at public routes, regardless of authentication
-  const isPublicRoute = ["/home", "/pricing", "/solutions", "/who-we-serve", "/sign-in", "/sign-up", "/admin-login", "/staff-login", "/staff-signup", "/auth-test"].includes(location);
+  const isPublicRoute = [
+    "/home",
+    "/pricing",
+    "/solutions",
+    "/who-we-serve",
+    "/sign-in",
+    "/sign-up",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",
+    "/admin-login",
+    "/staff-login",
+    "/staff-signup",
+    "/auth-test"
+  ].includes(location)
 
   // Payment portal routes
-  const isPaymentPortalRoute = location.startsWith("/payment-portal");
-  const isCheckoutRoute = location.startsWith("/checkout");
-  const isSubscriptionSuccessRoute = location === "/subscription-success";
+  const isPaymentPortalRoute = location.startsWith("/payment-portal")
+  const isCheckoutRoute = location.startsWith("/checkout")
+  const isSubscriptionSuccessRoute = location === "/subscription-success"
 
   // Onboarding and plan selection routes
-  const isOnboardingRoute = location === "/onboarding";
-  const isPlanSelectionRoute = location === "/plan-selection";
-  const isBillingCycleRoute = location.startsWith("/billing-cycle");
+  const isOnboardingRoute = location === "/onboarding"
+  const isPlanSelectionRoute = location === "/plan-selection"
+  const isBillingCycleRoute = location.startsWith("/billing-cycle")
 
   // Root path redirects to sign-in using useEffect to avoid render loop
   useEffect(() => {
     if (location === "/") {
-      navigate("/sign-in");
+      navigate("/sign-in")
     }
-  }, [location, navigate]);
-  
+  }, [location, navigate])
+
   // Special fix for super admin redirect issue - always ensure super_admin users go to /admin
-  const { user } = useUser();
-  
+  const { user } = useUser()
+
   useEffect(() => {
     // If a user with super_admin role is detected on a non-admin route, redirect them
-    if (user && 
-        (user.role === 'super_admin') && 
-        location === '/career-dashboard') {
-      console.log('SUPER ADMIN FIX: Detected super_admin at incorrect route, redirecting to /admin');
-      navigate('/admin');
+    if (
+      user &&
+      user.role === "super_admin" &&
+      location === "/career-dashboard"
+    ) {
+      console.log(
+        "SUPER ADMIN FIX: Detected super_admin at incorrect route, redirecting to /admin"
+      )
+      navigate("/admin")
     }
-  }, [user, location, navigate]);
+  }, [user, location, navigate])
 
   // Authentication routes always take precedence
-  if (isSignInRoute || isSignUpRoute || location === "/admin-login" || location === "/staff-login" || location === "/staff-signup") {
+  if (
+    isSignInRoute ||
+    isSignUpRoute ||
+    location === "/forgot-password" ||
+    location === "/reset-password" ||
+    location === "/auth/callback" ||
+    location === "/admin-login" ||
+    location === "/staff-login" ||
+    location === "/staff-signup"
+  ) {
     return (
       <Switch>
         <Route path="/sign-in" component={SignIn} />
         <Route path="/sign-up" component={SignUp} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/auth/callback" component={AuthCallback} />
         <Route path="/admin-login" component={AdminLogin} />
         <Route path="/staff-login" component={StaffLogin} />
         <Route path="/staff-signup" component={StaffSignup} />
       </Switch>
-    );
+    )
   }
 
   // Root redirect is handled above
@@ -283,7 +337,7 @@ function App() {
           <Route path="/payment-portal/:planType" component={PaymentPortal} />
         </Switch>
       </PublicLayout>
-    );
+    )
   }
 
   // Checkout Route
@@ -294,7 +348,7 @@ function App() {
           <Route path="/checkout" component={Checkout} />
         </Switch>
       </PublicLayout>
-    );
+    )
   }
 
   // Subscription Success Route
@@ -305,7 +359,7 @@ function App() {
           <Route path="/subscription-success" component={SubscriptionSuccess} />
         </Switch>
       </PublicLayout>
-    );
+    )
   }
 
   // Onboarding Flow Route
@@ -318,7 +372,7 @@ function App() {
           </ProtectedRoute>
         </Route>
       </Switch>
-    );
+    )
   }
 
   // Plan Selection Route
@@ -331,7 +385,7 @@ function App() {
           </ProtectedRoute>
         </Route>
       </Switch>
-    );
+    )
   }
 
   // Billing Cycle Route
@@ -344,7 +398,7 @@ function App() {
           </ProtectedRoute>
         </Route>
       </Switch>
-    );
+    )
   }
 
   // Use PublicLayout for public routes (excluding auth routes which are handled above)
@@ -357,80 +411,84 @@ function App() {
           <Route path="/pricing" component={Pricing} />
           <Route path="/solutions" component={Solutions} />
           <Route path="/who-we-serve" component={WhoWeServe} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/auth/callback" component={AuthCallback} />
           <Route path="/auth-test" component={AuthTest} />
         </Switch>
       </PublicLayout>
-    );
+    )
   }
 
   // Define admin routes with the canonical /admin path
-  const isAdminRoute = location.startsWith("/admin") && location !== "/admin-login";
-  
+  const isAdminRoute =
+    location.startsWith("/admin") && location !== "/admin-login"
+
   // University Admin routes check
-  const isUniversityAdminRoute = location.startsWith("/university-admin");
+  const isUniversityAdminRoute = location.startsWith("/university-admin")
 
   // University Admin Dashboard has its own layout
   if (isUniversityAdminRoute) {
     return (
       <Switch>
-        <UniversityAdminRouteGuard 
-          path="/university-admin/dashboard" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/dashboard"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminDashboard />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin" 
+        <UniversityAdminRouteGuard
+          path="/university-admin"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminDashboard />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin/students" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/students"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminStudents />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin/invite" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/invite"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminInvite />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin/usage" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/usage"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminUsage />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin/settings" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/settings"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminSettings />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
-        <UniversityAdminRouteGuard 
-          path="/university-admin/support" 
+        <UniversityAdminRouteGuard
+          path="/university-admin/support"
           component={() => (
             <UniversityAdminLayout>
               <UniAdminSupport />
             </UniversityAdminLayout>
-          )} 
+          )}
         />
       </Switch>
-    );
+    )
   }
 
   // Admin Dashboard has its own layout
@@ -442,9 +500,9 @@ function App() {
           {() => {
             // Use useEffect to perform the redirect
             React.useEffect(() => {
-              navigate('/admin');
-            }, []);
-            return null;
+              navigate("/admin")
+            }, [])
+            return null
           }}
         </Route>
         <Route path="/admin/support">
@@ -484,10 +542,12 @@ function App() {
           </AdminRoute>
         </Route>
       </Switch>
-    );
+    )
   }
 
-  const isStaffRoute = (location.startsWith("/staff") && location !== "/staff-login") || location === "/staff-dashboard";
+  const isStaffRoute =
+    (location.startsWith("/staff") && location !== "/staff-login") ||
+    location === "/staff-dashboard"
 
   // Staff Dashboard has its own layout
   if (isStaffRoute) {
@@ -504,11 +564,11 @@ function App() {
           </StaffRoute>
         </Route>
       </Switch>
-    );
+    )
   }
 
   // Choose layout based on route
-  const LayoutComponent = isUniversityRoute ? UniversityLayout : Layout;
+  const LayoutComponent = isUniversityRoute ? UniversityLayout : Layout
 
   return (
     <LayoutComponent>
@@ -650,13 +710,13 @@ function App() {
         <Route component={NotFound} />
       </Switch>
     </LayoutComponent>
-  );
+  )
 }
 
 // Import Providers
-import { PendingTasksProvider } from '@/context/PendingTasksContext';
-import { UpcomingInterviewsProvider } from '@/context/UpcomingInterviewsContext';
-import { AuthProvider } from '@/hooks/use-auth';
+import { PendingTasksProvider } from "@/context/PendingTasksContext"
+import { UpcomingInterviewsProvider } from "@/context/UpcomingInterviewsContext"
+import { AuthProvider } from "@/hooks/use-auth"
 
 // Wrap the app with all providers
 const AppWithLoading = () => {
@@ -671,7 +731,7 @@ const AppWithLoading = () => {
         </PendingTasksProvider>
       </AuthProvider>
     </LoadingProvider>
-  );
-};
+  )
+}
 
-export default AppWithLoading;
+export default AppWithLoading

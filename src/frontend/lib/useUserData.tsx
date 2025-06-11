@@ -64,6 +64,7 @@ interface UserContextType {
   error: Error | null
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  forceLogout: () => Promise<void>
   refetchUser: () => Promise<User | null>
   updateProfile: (data: {
     name?: string
@@ -132,6 +133,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (apiResponse.ok) {
         const userData = await apiResponse.json()
         console.log("Successfully fetched user data from API:", userData.name)
+        console.log(
+          "API userData userType:",
+          userData.userType,
+          "role:",
+          userData.role
+        )
         return userData
       }
 
@@ -157,6 +164,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log(
         "Successfully fetched user data from Supabase:",
         userData.name
+      )
+      console.log(
+        "Supabase userData user_type:",
+        userData.user_type,
+        "role:",
+        userData.role
       )
 
       // Map Supabase user to our User interface
@@ -260,7 +273,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
       // Determine redirect path based on user type
       const redirectPath =
-        userData.user_type === "university"
+        userData.user_type === "university_student" ||
+        userData.user_type === "university_admin"
           ? "/university"
           : userData.onboarding_completed
           ? "/dashboard"
@@ -321,6 +335,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      console.log("Starting logout process...")
+
       // Sign out from Supabase
       await supabaseClient.auth.signOut()
 
@@ -331,20 +347,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.warn("API logout failed, but Supabase logout succeeded")
       }
 
+      // Clear all localStorage items that might contain auth data
+      localStorage.clear()
+
       // Set the auth-logout flag in localStorage for future requests
       localStorage.setItem("auth-logout", "true")
 
-      // Clear local data
+      // Clear all React Query cache
+      queryClient.clear()
       queryClient.setQueryData(["/api/users/me"], null)
       queryClient.removeQueries({ queryKey: ["/api/users/me"] })
       setIsAuthenticated(false)
 
-      // Redirect to sign-in page
+      console.log("Logout completed, redirecting to sign-in...")
+
+      // Force a hard redirect to completely reset the app state
       window.location.href = "/sign-in"
     } catch (error) {
       console.error("Logout error:", error)
       // Still clear local data and redirect even if the API call fails
+      localStorage.clear()
       localStorage.setItem("auth-logout", "true")
+      queryClient.clear()
       queryClient.setQueryData(["/api/users/me"], null)
       queryClient.removeQueries({ queryKey: ["/api/users/me"] })
       setIsAuthenticated(false)
@@ -357,6 +381,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const result = await refetch()
     return result.data || null
   }
+
+  // Debug function to force clear all auth state (useful for development)
+  const forceLogout = async () => {
+    console.log("Force clearing all authentication state...")
+
+    // Sign out from Supabase without waiting
+    try {
+      await supabaseClient.auth.signOut()
+    } catch (e) {
+      console.warn("Supabase signOut failed:", e)
+    }
+
+    // Clear all storage
+    localStorage.clear()
+    sessionStorage.clear()
+
+    // Clear all React Query cache
+    queryClient.clear()
+    setIsAuthenticated(false)
+
+    // Hard reload to reset everything
+    window.location.reload()
+  }
+
+  // Make debug functions available globally for development
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      process.env.NODE_ENV === "development"
+    ) {
+      ;(window as any).debugAuth = {
+        forceLogout,
+        clearCache: clearUserCache,
+        currentUser: user,
+        isAuthenticated
+      }
+    }
+  }, [user, isAuthenticated])
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: {
@@ -690,6 +752,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         error,
         login,
         logout,
+        forceLogout,
         refetchUser,
         updateProfile: updateProfileMutation.mutate,
         uploadProfileImage,

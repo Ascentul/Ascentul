@@ -27,11 +27,6 @@ export async function verifySupabaseToken(
 
     // Check if the header exists and starts with "Bearer "
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      // Special handling for development environment
-      if (ENV.NODE_ENV === "development") {
-        console.log("DEV MODE: No auth token provided, using fallback user")
-        return handleDevMode(req, next)
-      }
       return res.status(401).json({ message: "Authentication required" })
     }
 
@@ -42,11 +37,6 @@ export async function verifySupabaseToken(
     const { data, error } = await supabaseAdmin.auth.getUser(token)
 
     if (error || !data.user) {
-      // Special handling for development environment
-      if (ENV.NODE_ENV === "development") {
-        console.log("DEV MODE: Invalid token, using fallback user")
-        return handleDevMode(req, next)
-      }
       return res
         .status(401)
         .json({ message: "Invalid or expired authentication token" })
@@ -119,64 +109,8 @@ export async function verifySupabaseToken(
 }
 
 /**
- * Special handling for development mode
+ * No special handling for development mode - always require proper authentication
  */
-async function handleDevMode(req: Request, next: NextFunction) {
-  console.log("DEV MODE: Attempting to find fallback user...")
-
-  // Try to get a valid demo user from the database - look for existing users
-  let userData
-
-  // First try to get any existing user
-  const { data: anyUserData, error: anyUserError } = await supabaseAdmin
-    .from("users")
-    .select("*")
-    .limit(1)
-    .single()
-
-  if (anyUserData) {
-    userData = anyUserData
-    console.log("DEV MODE: Found fallback user:", anyUserData.email)
-  } else {
-    console.log("DEV MODE: No existing users found, creating fallback user")
-
-    // Create a fallback demo user if none exist
-    const { data: newUserData, error: createError } = await supabaseAdmin
-      .from("users")
-      .insert({
-        email: "demo@example.com",
-        name: "Demo User",
-        username: "demo_user",
-        user_type: "regular",
-        onboarding_completed: true
-      })
-      .select()
-      .single()
-
-    if (createError) {
-      console.error("DEV MODE: Failed to create fallback user:", createError)
-      console.warn(
-        "DEV MODE: Could not find any fallback user, authentication will likely fail"
-      )
-      return next()
-    }
-
-    userData = newUserData
-    console.log("DEV MODE: Created fallback user:", newUserData.email)
-  }
-
-  if (userData) {
-    req.user = userData as unknown as User
-    req.userId = userData.id // This will be a UUID string
-    console.log("DEV MODE: Using fallback user ID:", userData.id)
-  } else {
-    console.warn(
-      "DEV MODE: Could not find any fallback user, authentication will likely fail"
-    )
-  }
-
-  next()
-}
 
 /**
  * Middleware to check if user is an admin
