@@ -53,12 +53,12 @@ export function devTokenAuthBypass(
   next()
 }
 
-// Modified authentication middleware that uses Supabase auth with fallback
+// Standard authentication middleware - no fallback behavior
 export function requireLoginFallback(
   req: Request,
   res: Response,
   next: () => void
 ) {
-  // Simply use the verifySupabaseToken which already has fallback for dev mode
+  // Simply use the standard verifySupabaseToken - no fallback behavior
   verifySupabaseToken(req, res, next as any)
 }

@@ -146,41 +146,8 @@ async function requireAuth(req: Request, res: Response, next: () => void) {
   await verifySupabaseToken(req, res, next as any)
 }
 
-// Modified authentication middleware that automatically logs in as demo user
-// This is a temporary solution for development purposes
-async function requireLoginFallback(
-  req: Request,
-  res: Response,
-  next: () => void
-) {
-  console.log(
-    "Checking auth with fallback enabled. User:",
-    req.userId ? "Has userId" : "No userId"
-  )
-
-  // For development purposes, set a fallback demo user
-  if (ENV.NODE_ENV === "development" && (!req.userId || !req.user)) {
-    console.log("Auto-assigning demo user ID")
-
-    // Get demo user with ID 2 for development
-    const { data: userData } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("id", 2)
-      .single()
-
-    if (userData) {
-      req.user = userData as unknown as User
-      req.userId = userData.id.toString()
-      console.log("DEV MODE: Using fallback user:", userData.email)
-    } else {
-      console.warn("DEV MODE: Could not find fallback user")
-    }
-  }
-
-  console.log("Auth check passed for user ID:", req.userId)
-  next()
-}
+// Note: requireLoginFallback auto-login has been removed
+// All routes now use standard authentication middleware
 
 // Middleware to check if user is an admin
 async function requireAdmin(req: Request, res: Response, next: () => void) {
@@ -1204,23 +1171,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Map snake_case database fields to camelCase for frontend compatibility
         const mappedUser = {
           ...safeUser,
-          // Map snake_case to camelCase
+          // Map snake_case to camelCase for critical fields
+          userType: safeUser.user_type,
           onboardingCompleted: safeUser.onboarding_completed,
           onboardingData: safeUser.onboarding_data,
           profileImage: safeUser.profile_image,
+          subscriptionStatus: safeUser.subscription_status,
+          subscriptionPlan: safeUser.subscription_plan,
+          subscriptionCycle: safeUser.subscription_cycle,
+          emailVerified: safeUser.email_verified,
+          universityId: safeUser.university_id,
+          universityName: safeUser.university_name,
+          stripeCustomerId: safeUser.stripe_customer_id,
+          stripeSubscriptionId: safeUser.stripe_subscription_id,
+          subscriptionExpiresAt: safeUser.subscription_expires_at,
+          needsUsername: safeUser.needs_username,
+          verificationToken: safeUser.verification_token,
+          verificationExpires: safeUser.verification_expires,
+          pendingEmail: safeUser.pending_email,
+          pendingEmailToken: safeUser.pending_email_token,
+          pendingEmailExpires: safeUser.pending_email_expires,
+          passwordLastChanged: safeUser.password_last_changed,
           passwordLength
         }
 
         // Remove the snake_case versions to avoid confusion
+        delete mappedUser.user_type
         delete mappedUser.onboarding_completed
         delete mappedUser.onboarding_data
         delete mappedUser.profile_image
+        delete mappedUser.subscription_status
+        delete mappedUser.subscription_plan
+        delete mappedUser.subscription_cycle
+        delete mappedUser.email_verified
+        delete mappedUser.university_id
+        delete mappedUser.university_name
+        delete mappedUser.stripe_customer_id
+        delete mappedUser.stripe_subscription_id
+        delete mappedUser.subscription_expires_at
+        delete mappedUser.needs_username
+        delete mappedUser.verification_token
+        delete mappedUser.verification_expires
+        delete mappedUser.pending_email
+        delete mappedUser.pending_email_token
+        delete mappedUser.pending_email_expires
+        delete mappedUser.password_last_changed
 
         console.log("Successfully retrieved authenticated user:", user.name)
+        console.log("Original user object keys:", Object.keys(user))
+        console.log("User type from database:", (user as any).user_type)
+        console.log("User type (camelCase):", (user as any).userType)
+        console.log("Mapped user userType:", mappedUser.userType)
         res.status(200).json(mappedUser)
       } catch (error) {
         console.error("Error in /api/users/me endpoint:", error)
         res.status(500).json({ message: "Error fetching user" })
+      }
+    }
+  )
+
+  // Profile update endpoint
+  apiRouter.put(
+    "/users/profile",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        console.log("Profile update endpoint called")
+
+        // Get user ID from request (set by Supabase auth middleware)
+        const userId = req.userId
+
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" })
+        }
+
+        // Get current user
+        const user = await storage.getUser(userId)
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" })
+        }
+
+        console.log("Updating profile for user:", user.email)
+
+        // Extract the update data from request body
+        const updateData = req.body
+
+        // Update the user profile
+        const updatedUser = await storage.updateUser(userId, updateData)
+
+        if (!updatedUser) {
+          return res
+            .status(404)
+            .json({ message: "Failed to update user profile" })
+        }
+
+        console.log("User profile updated successfully")
+
+        // Remove password before sending response
+        const { password: userPassword, ...safeUser } = updatedUser
+
+        res.status(200).json(safeUser)
+      } catch (error) {
+        console.error("Error updating profile:", error)
+        res.status(500).json({ message: "Error updating profile" })
       }
     }
   )
@@ -4601,7 +4655,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   apiRouter.get(
     "/interview/processes",
-    requireLoginFallback,
+    requireAuth,
     async (req: Request, res: Response) => {
       try {
         // Get current user from session
@@ -4621,7 +4675,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
 
   apiRouter.post(
     "/interview/processes",
-    requireLoginFallback,
+    requireAuth,
     async (req: Request, res: Response) => {
       try {
         const processData = insertInterviewProcessSchema.parse(req.body)
@@ -6883,7 +6937,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
   // API endpoint for generating personalized career paths based on user profile
   apiRouter.post(
     "/api/career-paths/generate",
-    requireLoginFallback,
+    requireAuth,
     async (req: Request, res: Response) => {
       try {
         // Get the user's profile data

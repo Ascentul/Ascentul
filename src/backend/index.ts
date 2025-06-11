@@ -114,9 +114,8 @@ app.use((req, res, next) => {
     serveStatic(app)
   }
 
-  // For Replit, we need to detect the correct port
-  // Replit sets various environment variables we can use
-  const PORT = ENV.PORT || 3000 // Use port 3000 as default for Replit compatibility
+  // Force port 3000 for consistent development experience
+  const PORT = 3000 // Always use port 3000
   const HOST = "0.0.0.0" // Always bind to all network interfaces for Replit
 
   console.log(`✨ Attempting to start server on ${HOST}:${PORT}...`)

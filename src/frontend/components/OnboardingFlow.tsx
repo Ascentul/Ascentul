@@ -41,6 +41,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
+import { queryClient } from "@/lib/queryClient"
 
 type CareerStage = "student" | "early-career" | "mid-senior"
 type StudentType = "undergraduate" | "graduate" | "none"
@@ -228,12 +229,17 @@ export default function OnboardingFlow() {
   }
 
   const handleStudentInfoChange = (key: string, value: any) => {
-    setData({
-      ...data,
-      studentInfo: {
-        ...data.studentInfo,
-        [key]: value
+    console.log(`handleStudentInfoChange: Setting ${key} to ${value}`)
+    setData((prevData) => {
+      const newData = {
+        ...prevData,
+        studentInfo: {
+          ...prevData.studentInfo,
+          [key]: value
+        }
       }
+      console.log("Updated student info:", newData.studentInfo)
+      return newData
     })
   }
 
@@ -316,12 +322,12 @@ export default function OnboardingFlow() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || "Failed to update username")
+        const responseData = await response.json()
+        throw new Error(responseData.message || "Failed to update username")
       }
 
-      // Set username in onboarding data
-      setData({ ...data, username })
+      // Set username in onboarding data (fix: use the correct data state, not the API response)
+      setData((prevData) => ({ ...prevData, username }))
 
       // Username is set, proceed with career stage selection
       setStep(1)
@@ -391,6 +397,11 @@ export default function OnboardingFlow() {
     try {
       setIsSavingOnboarding(true)
 
+      console.log("=== SAVING ONBOARDING DATA ===")
+      console.log("Current data state:", JSON.stringify(data, null, 2))
+      console.log("User type:", user?.userType)
+      console.log("Student info:", data.studentInfo)
+
       // Use apiRequest from queryClient for consistency with the rest of the app
       const response = await apiRequest("PUT", "/api/users/profile", {
         onboardingCompleted: true,
@@ -405,8 +416,22 @@ export default function OnboardingFlow() {
 
       console.log("Onboarding data saved successfully")
 
+      // Clear the cache to force a fresh fetch
+      console.log("Clearing user cache and forcing refetch...")
+      queryClient.removeQueries({ queryKey: ["/api/users/me"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/users/me"] })
+
       // Refresh user data to ensure the UI and route guards see the updated data
-      await refetchUser()
+      const updatedUser = await refetchUser()
+
+      console.log("Updated user data after refetch:", {
+        onboardingCompleted: updatedUser?.onboardingCompleted,
+        userType: updatedUser?.userType,
+        needsUsername: updatedUser?.needsUsername
+      })
+
+      // Wait a bit more to ensure the cache is properly updated
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
       return true
     } catch (error) {
@@ -1033,7 +1058,13 @@ export default function OnboardingFlow() {
                     onClick={async () => {
                       const success = await saveOnboardingData()
                       if (success) {
-                        window.location.href = "/dashboard"
+                        // Redirect based on user type using React Router navigation
+                        const redirectUrl =
+                          user?.userType === "university_student"
+                            ? "/university"
+                            : "/dashboard"
+                        console.log(`Redirecting to: ${redirectUrl}`)
+                        setLocation(redirectUrl)
                       }
                     }}
                     variant="outline"
@@ -1086,7 +1117,13 @@ export default function OnboardingFlow() {
                     onClick={async () => {
                       const success = await saveOnboardingData()
                       if (success) {
-                        window.location.href = "/dashboard"
+                        // Redirect based on user type using React Router navigation
+                        const redirectUrl =
+                          user?.userType === "university_student"
+                            ? "/university"
+                            : "/dashboard"
+                        console.log(`Redirecting to: ${redirectUrl}`)
+                        setLocation(redirectUrl)
                       }
                     }}
                     className="w-full bg-[#1333c2] hover:bg-[#0f2aae]"

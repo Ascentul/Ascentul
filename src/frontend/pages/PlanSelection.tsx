@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { Check, AlertCircle, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from "react"
+import { useLocation } from "wouter"
+import { Check, AlertCircle, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -11,147 +10,171 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
+  DialogClose
+} from "@/components/ui/dialog"
 import {
   Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { useUser, useUpdateUserSubscription } from '@/lib/useUserData';
-import { useToast } from '@/hooks/use-toast';
+  CardTitle
+} from "@/components/ui/card"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { useUser, useUpdateUserSubscription } from "@/lib/useUserData"
+import { useToast } from "@/hooks/use-toast"
 
 const planFeatures = {
   free: [
-    'Resume Builder (1 resume)',
-    'Cover Letter Generator (1 letter)',
-    'Basic Goal Tracking',
-    'Work History Management',
-    'Limited Interview Practice Questions',
-    'Community Access'
+    "Resume Builder (1 resume)",
+    "Cover Letter Generator (1 letter)",
+    "Basic Goal Tracking",
+    "Work History Management",
+    "Limited Interview Practice Questions",
+    "Community Access"
   ],
   pro: [
-    'Unlimited Resumes & Templates',
-    'Unlimited Cover Letters',
-    'Advanced Interview Preparation',
-    'AI Career Coach (100 messages/month)',
-    'Advanced Goal Planning & Tracking',
-    'Custom Dashboards',
-    'Export in Multiple Formats',
-    'Email & Priority Support'
-  ],
-};
+    "Unlimited Resumes & Templates",
+    "Unlimited Cover Letters",
+    "Advanced Interview Preparation",
+    "AI Career Coach (100 messages/month)",
+    "Advanced Goal Planning & Tracking",
+    "Custom Dashboards",
+    "Export in Multiple Formats",
+    "Email & Priority Support"
+  ]
+}
 
 export default function PlanSelection() {
-  const [, setLocation] = useLocation();
-  const [selectedPlan, setSelectedPlan] = useState<string>('free');
-  const [billingCycle, setBillingCycle] = useState<string>('monthly');
-  const { user, isLoading } = useUser();
-  const updateSubscriptionMutation = useUpdateUserSubscription();
-  const { toast } = useToast();
+  const [, setLocation] = useLocation()
+  const [selectedPlan, setSelectedPlan] = useState<string>("free")
+  const [billingCycle, setBillingCycle] = useState<string>("monthly")
+  const { user, isLoading } = useUser()
+  const updateSubscriptionMutation = useUpdateUserSubscription()
+  const { toast } = useToast()
 
   // Check if user is authenticated
   useEffect(() => {
     if (!isLoading && !user) {
       // Redirect to sign in if not authenticated
-      setLocation('/sign-in');
+      setLocation("/sign-in")
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, setLocation])
 
   // Handle user loading and subscription status
   useEffect(() => {
     if (isLoading || !user) {
-      return; // Wait for user data to load
+      return // Wait for user data to load
     }
 
-    // If already subscribed, redirect to dashboard
-    if (user.subscriptionPlan && user.subscriptionPlan !== 'free' && user.subscriptionStatus === 'active') {
-      setLocation('/dashboard');
+    // If already subscribed, redirect to appropriate page
+    if (
+      user.subscriptionPlan &&
+      user.subscriptionPlan !== "free" &&
+      user.subscriptionStatus === "active"
+    ) {
+      if (
+        user.userType === "university_student" ||
+        user.userType === "university_admin"
+      ) {
+        setLocation("/university")
+      } else {
+        setLocation("/dashboard")
+      }
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, setLocation])
 
   const handlePlanSelect = (plan: string) => {
-    setSelectedPlan(plan);
+    setSelectedPlan(plan)
 
     // Different actions based on selected plan
-    if (plan === 'free') {
+    if (plan === "free") {
       // For free plan, handle directly
-      handleContinue();
+      handleContinue()
     } else {
-      // For pro plan, navigate to billing cycle selection 
-      setLocation('/billing-cycle?plan=pro');
+      // For pro plan, navigate to billing cycle selection
+      setLocation("/billing-cycle?plan=pro")
     }
-  };
+  }
 
   const calculatePrice = (plan: string, cycle: string): number => {
-    if (plan === 'free') return 0;
+    if (plan === "free") return 0
 
     // Pro plan pricing
-    if (cycle === 'monthly') return 15; 
-    if (cycle === 'quarterly') return 30; // $10/month, billed quarterly
-    if (cycle === 'yearly') return 72; // $6/month, billed yearly
+    if (cycle === "monthly") return 15
+    if (cycle === "quarterly") return 30 // $10/month, billed quarterly
+    if (cycle === "yearly") return 72 // $6/month, billed yearly
 
-    return 0;
-  };
+    return 0
+  }
 
   const calculateSavings = (plan: string, cycle: string): number => {
-    if (plan === 'free' || cycle === 'monthly') return 0;
+    if (plan === "free" || cycle === "monthly") return 0
 
-    const monthlyPrice = 15; // Monthly price for pro plan
+    const monthlyPrice = 15 // Monthly price for pro plan
 
-    if (cycle === 'quarterly') {
-      const quarterlyTotal = monthlyPrice * 3; // 3 months
-      return quarterlyTotal - 30; // Savings compared to 3 months paid monthly
+    if (cycle === "quarterly") {
+      const quarterlyTotal = monthlyPrice * 3 // 3 months
+      return quarterlyTotal - 30 // Savings compared to 3 months paid monthly
     }
 
-    if (cycle === 'yearly') {
-      const yearlyTotal = monthlyPrice * 12; // 12 months
-      return yearlyTotal - 72; // Savings compared to 12 months paid monthly
+    if (cycle === "yearly") {
+      const yearlyTotal = monthlyPrice * 12 // 12 months
+      return yearlyTotal - 72 // Savings compared to 12 months paid monthly
     }
 
-    return 0;
-  };
+    return 0
+  }
 
   const handleContinue = async () => {
-    if (selectedPlan === 'free') {
+    if (selectedPlan === "free") {
       try {
         // Update user with free plan using the server-side API
         await updateSubscriptionMutation.mutateAsync({
-          subscriptionPlan: 'free',
-          subscriptionStatus: 'active',
+          subscriptionPlan: "free",
+          subscriptionStatus: "active",
           subscriptionCycle: undefined
-        });
+        })
 
         toast({
-          title: 'Free plan activated',
-          description: 'You now have access to all free features of CareerTracker.io',
-        });
+          title: "Free plan activated",
+          description:
+            "You now have access to all free features of CareerTracker.io"
+        })
 
-        // Redirect to dashboard with a slight delay to ensure data is updated
+        // Redirect to appropriate page based on user type with a slight delay to ensure data is updated
         setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 500);
+          if (
+            user.userType === "university_student" ||
+            user.userType === "university_admin"
+          ) {
+            window.location.href = "/university"
+          } else {
+            window.location.href = "/dashboard"
+          }
+        }, 500)
       } catch (error) {
-        console.error('Error activating free plan:', error);
+        console.error("Error activating free plan:", error)
         toast({
-          title: 'Error activating plan',
-          description: 'There was an error activating your plan. Please try again.',
-          variant: 'destructive',
-        });
+          title: "Error activating plan",
+          description:
+            "There was an error activating your plan. Please try again.",
+          variant: "destructive"
+        })
       }
     } else {
       // For pro plan, redirect to checkout
-      setLocation(`/checkout?plan=${selectedPlan}&cycle=${billingCycle}`);
+      setLocation(`/checkout?plan=${selectedPlan}&cycle=${billingCycle}`)
     }
-  };
+  }
 
   if (!user) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        Loading...
+      </div>
+    )
   }
 
   return (
@@ -171,8 +194,12 @@ export default function PlanSelection() {
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
                   <CardHeader className="pb-8 px-6 md:px-8">
-                    <p className="text-sm text-muted-foreground mb-4">For individuals</p>
-                    <CardTitle className="text-3xl font-bold mb-4">Free Plan</CardTitle>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      For individuals
+                    </p>
+                    <CardTitle className="text-3xl font-bold mb-4">
+                      Free Plan
+                    </CardTitle>
                     <CardDescription className="text-sm mb-8">
                       Get started with basic career management tools
                     </CardDescription>
@@ -182,10 +209,10 @@ export default function PlanSelection() {
                     </div>
                   </CardHeader>
                   <div className="px-6 md:px-8 mb-16">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full h-11"
-                      onClick={() => handlePlanSelect('free')}
+                      onClick={() => handlePlanSelect("free")}
                     >
                       Create account
                     </Button>
@@ -214,8 +241,12 @@ export default function PlanSelection() {
               <div className="pt-10">
                 <Card className="relative overflow-hidden border rounded-lg">
                   <CardHeader className="pb-8 px-6 md:px-8">
-                    <p className="text-sm text-muted-foreground mb-4">For individuals and teams</p>
-                    <CardTitle className="text-3xl font-bold mb-4">Pro Plan</CardTitle>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      For individuals and teams
+                    </p>
+                    <CardTitle className="text-3xl font-bold mb-4">
+                      Pro Plan
+                    </CardTitle>
                     <CardDescription className="text-sm mb-8">
                       Advanced features for serious career development
                     </CardDescription>
@@ -225,10 +256,10 @@ export default function PlanSelection() {
                     </div>
                   </CardHeader>
                   <div className="px-6 md:px-8 mb-16">
-                    <Button 
-                      variant="default" 
+                    <Button
+                      variant="default"
                       className="w-full h-11 bg-primary"
-                      onClick={() => handlePlanSelect('pro')}
+                      onClick={() => handlePlanSelect("pro")}
                     >
                       Get started
                     </Button>
@@ -238,7 +269,9 @@ export default function PlanSelection() {
                     </p>
                   </div>
                   <CardContent className="pb-6 px-6 md:px-8">
-                    <p className="font-semibold mb-4">Everything in Free, plus:</p>
+                    <p className="font-semibold mb-4">
+                      Everything in Free, plus:
+                    </p>
                     <ul className="space-y-6">
                       {planFeatures.pro.map((feature, index) => (
                         <li key={index} className="flex items-start">
@@ -258,12 +291,13 @@ export default function PlanSelection() {
           <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start max-w-2xl">
             <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-yellow-700">
-              You can change or cancel your plan at any time from your account settings. 
-              Pro plan features will be immediately available after payment processing.
+              You can change or cancel your plan at any time from your account
+              settings. Pro plan features will be immediately available after
+              payment processing.
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -242,7 +242,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       console.error("Error updating pending followup count:", error)
       return pendingFollowupCount // Return current count on error
     }
-  }, [])
+  }, []) // Empty dependency array to make it stable
 
   // Function to update a task's status and sync the pending count
   const updateTaskStatus = useCallback(
@@ -314,15 +314,15 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
               })
             )
 
-            // Force refresh the count
-            updatePendingFollowupCount()
+            // Note: We're not calling updatePendingFollowupCount() here anymore
+            // since we already updated the count manually above
           }
         }
       } catch (error) {
         console.error("Error updating task status:", error)
       }
     },
-    [updatePendingFollowupCount]
+    []
   )
 
   // Helper function to mark a task as completed
@@ -403,7 +403,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       )
       clearInterval(interval)
     }
-  }, [updatePendingFollowupCount])
+  }, []) // Empty dependency array to prevent infinite re-runs
 
   // Create the context value
   const contextValue: PendingTasksContextType = {
