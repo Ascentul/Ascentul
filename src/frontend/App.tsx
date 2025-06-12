@@ -45,6 +45,12 @@ import AdminOpenAILogsPage from "@/pages/admin/OpenAILogsPage"
 import EmailAdmin from "@/pages/admin/EmailAdmin"
 import UniversitiesPage from "@/pages/admin/universities"
 import TestEmailPage from "@/pages/admin/test-email"
+import UserManagement from "@/pages/admin/UserManagement"
+import AnalyticsPage from "@/pages/admin/AnalyticsPage"
+import BillingPage from "@/pages/admin/BillingPage"
+import ReviewsPage from "@/pages/admin/ReviewsPage"
+import AdminSettingsTab from "@/pages/admin/AdminSettingsTab"
+import SystemSecurity from "@/pages/admin/SystemSecurity"
 
 // Staff Pages
 import StaffDashboard from "@/pages/staff/Dashboard"
@@ -106,7 +112,7 @@ import {
 // University Edition Layout
 function UniversityLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
-  const { user } = useUser()
+  const { user, logout } = useUser()
   const isAdmin = user?.userType === "university_admin"
 
   return (
@@ -203,18 +209,103 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
             </Link>
 
             {user && (
-              <div className="flex items-center space-x-1">
-                <span className="text-sm text-foreground/60">{user.name}</span>
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  {user.profileImage ? (
-                    <img
-                      src={user.profileImage}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    user.name.charAt(0)
-                  )}
+              <div className="relative group">
+                <button className="flex items-center space-x-2 text-sm font-medium px-3 py-1.5 rounded-md hover:bg-foreground/5 transition-colors">
+                  <span className="text-foreground/80">{user.name}</span>
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold">
+                    {user.profileImage ? (
+                      <img
+                        src={user.profileImage}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      user.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4 text-foreground/60"
+                  >
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-2">
+                    <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border mb-1">
+                      {user.email}
+                    </div>
+
+                    <Link
+                      href="/profile"
+                      className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-foreground/5 rounded-sm transition-colors"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 mr-2"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                      </svg>
+                      Profile
+                    </Link>
+
+                    <Link
+                      href="/account"
+                      className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-foreground/5 rounded-sm transition-colors"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 mr-2"
+                      >
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l11 11z"></path>
+                      </svg>
+                      Settings
+                    </Link>
+
+                    <hr className="my-1 border-border" />
+
+                    <button
+                      onClick={() => logout()}
+                      className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-sm transition-colors"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 mr-2"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16,17 21,12 16,7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                      </svg>
+                      Sign out
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -225,6 +316,9 @@ function UniversityLayout({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+// Import Admin Layout
+import AdminLayout from "@/layouts/AdminLayout"
 
 function App() {
   const [location, navigate] = useLocation()
@@ -494,54 +588,91 @@ function App() {
   // Admin Dashboard has its own layout
   if (isAdminRoute) {
     return (
-      <Switch>
-        {/* Redirect /admin-dashboard to /admin for backward compatibility */}
-        <Route path="/admin-dashboard">
-          {() => {
-            // Use useEffect to perform the redirect
-            React.useEffect(() => {
-              navigate("/admin")
-            }, [])
-            return null
-          }}
-        </Route>
-        <Route path="/admin/support">
-          <AdminRoute>
-            <SupportPage />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/support/:id">
-          <AdminRoute>
-            <SupportPage />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/models">
-          <AdminRoute>
-            <AdminModelsPage />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/openai-logs">
-          <AdminRoute>
-            <AdminOpenAILogsPage />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/email">
-          <AdminRoute>
-            <EmailAdmin />
-          </AdminRoute>
-        </Route>
-        <Route path="/admin/test-email">
-          <AdminRoute>
-            <TestEmailPage />
-          </AdminRoute>
-        </Route>
-        {/* This is the catch-all route for /admin which must come AFTER more specific routes */}
-        <Route path="/admin">
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        </Route>
-      </Switch>
+      <AdminLayout>
+        <Switch>
+          {/* Redirect /admin-dashboard to /admin for backward compatibility */}
+          <Route path="/admin-dashboard">
+            {() => {
+              // Use useEffect to perform the redirect
+              React.useEffect(() => {
+                navigate("/admin")
+              }, [])
+              return null
+            }}
+          </Route>
+          <Route path="/admin/universities">
+            <AdminRoute>
+              <UniversitiesPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/users">
+            <AdminRoute>
+              <UserManagement />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/analytics">
+            <AdminRoute>
+              <AnalyticsPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/reviews">
+            <AdminRoute>
+              <ReviewsPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/support">
+            <AdminRoute>
+              <SupportPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/support/:id">
+            <AdminRoute>
+              <SupportPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/models">
+            <AdminRoute>
+              <AdminModelsPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/openai-logs">
+            <AdminRoute>
+              <AdminOpenAILogsPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/email">
+            <AdminRoute>
+              <EmailAdmin />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/test-email">
+            <AdminRoute>
+              <TestEmailPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/billing">
+            <AdminRoute>
+              <BillingPage />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/settings">
+            <AdminRoute>
+              <AdminSettingsTab />
+            </AdminRoute>
+          </Route>
+          <Route path="/admin/system-security">
+            <AdminRoute>
+              <SystemSecurity />
+            </AdminRoute>
+          </Route>
+          {/* This is the catch-all route for /admin which must come AFTER more specific routes */}
+          <Route path="/admin">
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          </Route>
+        </Switch>
+      </AdminLayout>
     )
   }
 
