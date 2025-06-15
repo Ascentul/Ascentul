@@ -24,8 +24,11 @@ app.get("/api/job-applications", (req, res) => {
 })
 
 app.get("/api/users/me", (req, res) => {
-  // Return a user object with all required fields to prevent onboarding redirects
-    res.json({      id: "1",      email: "user@example.com",      name: "Demo User",      username: "demouser",      needsUsername: false,      onboardingCompleted: true,      userType: "regular",      role: "user",      isUniversityStudent: false,      xp: 0,      level: 1,      rank: "Beginner",      subscriptionPlan: "free",      subscriptionStatus: "inactive",      emailVerified: true    })
+  // Return 401 to require proper authentication instead of demo user
+  res.status(401).json({ 
+    error: "Authentication required",
+    message: "Please log in to access user information"
+  })
 })
 
 app.get("/api/models", (req, res) => {
@@ -80,7 +83,11 @@ export default async function handler(req, res) {
         return res.status(200).json([])
 
       case "/users/me":
-                return res.status(200).json({          id: "1",          email: "user@example.com",          name: "Demo User",          username: "demouser",          needsUsername: false,          onboardingCompleted: true,          userType: "regular",          role: "user",          isUniversityStudent: false,          xp: 0,          level: 1,          rank: "Beginner",          subscriptionPlan: "free",          subscriptionStatus: "inactive",          emailVerified: true        })
+        // Return 401 to require proper authentication instead of demo user
+        return res.status(401).json({
+          error: "Authentication required",
+          message: "Please log in to access user information"
+        })
 
       case "/models":
         return res.status(200).json({ models: [] })
