@@ -58,7 +58,9 @@ try {
     )
     console.log("✅ Supabase client initialized successfully")
   } else {
-    console.error("❌ Cannot initialize Supabase client - missing URL or service role key")
+    console.error(
+      "❌ Cannot initialize Supabase client - missing URL or service role key"
+    )
   }
 } catch (error) {
   console.error("❌ Error initializing Supabase client:", error)
@@ -167,7 +169,6 @@ export default async function handler(req, res) {
 
     console.log(`API Request: ${req.method} ${path}`)
 
-  try {
     // Route handling - check for nested routes first
     if (path.startsWith("/career-data/")) {
       const subPath = path.replace("/career-data/", "")
@@ -222,7 +223,9 @@ export default async function handler(req, res) {
               .json({ message: "Error updating career summary" })
           }
         }
+        return res.status(405).json({ error: "Method not allowed" })
       }
+      return res.status(404).json({ error: "Career data endpoint not found" })
     }
 
     // Handle simple routes
@@ -383,7 +386,9 @@ export default async function handler(req, res) {
 
       case "/users/statistics":
         // User statistics endpoint
-        const statsAuthResult = await verifySupabaseToken(req.headers.authorization)
+        const statsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
 
         if (statsAuthResult.error) {
           return res.status(statsAuthResult.status).json({
