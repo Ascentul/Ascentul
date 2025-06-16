@@ -13,7 +13,7 @@ const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 }
 
-// Validate environment variables
+// Validate environment variables (non-blocking)
 function validateEnv() {
   const required = [
     "SUPABASE_URL",
@@ -36,29 +36,41 @@ function validateEnv() {
         ENV.SUPABASE_SERVICE_ROLE_KEY ? "SET" : "MISSING"
       }`
     )
-    throw new Error("Environment validation failed")
+    return { valid: false, missing }
   }
 
   console.log("✅ Environment validation passed")
-  return true
+  return { valid: true, missing: [] }
 }
 
-// Validate environment on startup
-validateEnv()
-
 // Create Supabase admin client for token verification
-const supabaseAdmin = createClient(
-  ENV.SUPABASE_URL,
-  ENV.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      persistSession: false
-    }
+let supabaseAdmin
+try {
+  if (ENV.SUPABASE_URL && ENV.SUPABASE_SERVICE_ROLE_KEY) {
+    supabaseAdmin = createClient(
+      ENV.SUPABASE_URL,
+      ENV.SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          persistSession: false
+        }
+      }
+    )
+    console.log("✅ Supabase client initialized successfully")
+  } else {
+    console.error("❌ Cannot initialize Supabase client - missing URL or service role key")
   }
-)
+} catch (error) {
+  console.error("❌ Error initializing Supabase client:", error)
+}
 
 // Authentication helper function
 async function verifySupabaseToken(authHeader) {
+  if (!supabaseAdmin) {
+    console.error("Supabase client not initialized")
+    return { error: "Server configuration error", status: 500 }
+  }
+
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return { error: "Authentication required", status: 401 }
   }
@@ -120,28 +132,40 @@ async function verifySupabaseToken(authHeader) {
 // Remove the Express app routes since we're handling everything in the main handler function
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader("Access-Control-Allow-Credentials", true)
-  res.setHeader("Access-Control-Allow-Origin", "*")
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,OPTIONS,PATCH,DELETE,POST,PUT"
-  )
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-  )
+  try {
+    // Validate environment variables first
+    const envValidation = validateEnv()
+    if (!envValidation.valid) {
+      console.error("Environment validation failed in request handler")
+      return res.status(500).json({
+        error: "Server configuration error",
+        message: "Missing required environment variables",
+        missing: envValidation.missing
+      })
+    }
 
-  // Handle OPTIONS request
-  if (req.method === "OPTIONS") {
-    res.status(200).end()
-    return
-  }
+    // Set CORS headers
+    res.setHeader("Access-Control-Allow-Credentials", true)
+    res.setHeader("Access-Control-Allow-Origin", "*")
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+    )
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+    )
 
-  // Get the API path
-  const path = req.url.replace("/api", "") || "/"
+    // Handle OPTIONS request
+    if (req.method === "OPTIONS") {
+      res.status(200).end()
+      return
+    }
 
-  console.log(`API Request: ${req.method} ${path}`)
+    // Get the API path
+    const path = req.url.replace("/api", "") || "/"
+
+    console.log(`API Request: ${req.method} ${path}`)
 
   try {
     // Route handling - check for nested routes first
