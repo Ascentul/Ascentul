@@ -277,18 +277,18 @@ export default async function handler(req, res) {
       case "/career-data":
         if (req.method === "GET") {
           // Get career data for authenticated user
-          const authResult = await verifySupabaseToken(
+          const careerAuthResult = await verifySupabaseToken(
             req.headers.authorization
           )
 
-          if (authResult.error) {
-            return res.status(authResult.status).json({
-              error: authResult.error,
+          if (careerAuthResult.error) {
+            return res.status(careerAuthResult.status).json({
+              error: careerAuthResult.error,
               message: "Please log in to access career data"
             })
           }
 
-          const userId = authResult.userId
+          const userId = careerAuthResult.userId
 
           try {
             // Fetch career data from Supabase
@@ -314,8 +314,8 @@ export default async function handler(req, res) {
               .select("*")
               .eq("user_id", userId)
 
-            const careerSummary = authResult.user.career_summary || ""
-            const linkedInUrl = authResult.user.linkedin_url || ""
+            const careerSummary = careerAuthResult.user.career_summary || ""
+            const linkedInUrl = careerAuthResult.user.linkedin_url || ""
 
             return res.status(200).json({
               workHistory: workHistory || [],
@@ -340,13 +340,13 @@ export default async function handler(req, res) {
       case "/resumes":
         if (req.method === "GET") {
           // Get resumes for authenticated user
-          const authResult = await verifySupabaseToken(
+          const resumesAuthResult = await verifySupabaseToken(
             req.headers.authorization
           )
 
-          if (authResult.error) {
-            return res.status(authResult.status).json({
-              error: authResult.error,
+          if (resumesAuthResult.error) {
+            return res.status(resumesAuthResult.status).json({
+              error: resumesAuthResult.error,
               message: "Please log in to access resumes"
             })
           }
@@ -359,13 +359,13 @@ export default async function handler(req, res) {
       case "/recommendations/daily":
         if (req.method === "GET") {
           // Get daily recommendations for authenticated user
-          const authResult = await verifySupabaseToken(
+          const recommendationsAuthResult = await verifySupabaseToken(
             req.headers.authorization
           )
 
-          if (authResult.error) {
-            return res.status(authResult.status).json({
-              error: authResult.error,
+          if (recommendationsAuthResult.error) {
+            return res.status(recommendationsAuthResult.status).json({
+              error: recommendationsAuthResult.error,
               message: "Please log in to access recommendations"
             })
           }
@@ -383,11 +383,11 @@ export default async function handler(req, res) {
 
       case "/users/statistics":
         // User statistics endpoint
-        const authResult = await verifySupabaseToken(req.headers.authorization)
+        const statsAuthResult = await verifySupabaseToken(req.headers.authorization)
 
-        if (authResult.error) {
-          return res.status(authResult.status).json({
-            error: authResult.error,
+        if (statsAuthResult.error) {
+          return res.status(statsAuthResult.status).json({
+            error: statsAuthResult.error,
             message: "Please log in to access statistics"
           })
         }
