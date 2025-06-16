@@ -1,48 +1,83 @@
-import express from "express"
-import cors from "cors"
+import { createClient } from "@supabase/supabase-js"
 import dotenv from "dotenv"
 
-// Import all backend modules directly to ensure they're bundled
-import { fileURLToPath } from "url"
-import { dirname, join } from "path"
-
+// Load environment variables
 dotenv.config()
 
-const app = express()
-app.use(express.json({ limit: "50mb" }))
-app.use(express.urlencoded({ extended: false, limit: "50mb" }))
-app.use(cors())
+// Supabase configuration
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseAnonKey =
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
 
-// Since we can't import from ../src in Vercel, we'll inline the essential routes
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() })
+// Create Supabase admin client for token verification
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    persistSession: false
+  }
 })
 
-app.get("/api/job-applications", (req, res) => {
-  // For now, return empty array - this needs proper storage setup
-  res.json([])
-})
+// Authentication helper function
+async function verifySupabaseToken(authHeader) {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return { error: "Authentication required", status: 401 }
+  }
 
-app.get("/api/users/me", (req, res) => {
-  // Return 401 to require proper authentication instead of demo user
-  res.status(401).json({ 
-    error: "Authentication required",
-    message: "Please log in to access user information"
-  })
-})
+  const token = authHeader.split(" ")[1]
 
-app.get("/api/models", (req, res) => {
-  res.json({ models: [] })
-})
+  try {
+    // Verify the JWT with Supabase
+    const { data, error } = await supabaseAdmin.auth.getUser(token)
 
-app.get("/api/contacts/all-followups", (req, res) => {
-  res.json([])
-})
+    if (error || !data.user) {
+      return { error: "Invalid or expired authentication token", status: 401 }
+    }
 
-// Handle all other API routes with a 404
-app.use("/api/*", (req, res) => {
-  res.status(404).json({ error: "API route not found" })
-})
+    // Get detailed user information from database
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("id", data.user.id)
+      .single()
+
+    if (userError || !userData) {
+      // If user doesn't exist in our database but has valid Supabase auth, create a user record
+      if (userError?.code === "PGRST116") {
+        const { data: newUserData, error: createError } = await supabaseAdmin
+          .from("users")
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            name:
+              data.user.user_metadata?.name ||
+              data.user.email?.split("@")[0] ||
+              "User",
+            username: `user_${data.user.id.slice(0, 8)}`,
+            user_type: "regular",
+            needs_username: true,
+            onboarding_completed: false
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          return { error: "Error setting up user account", status: 500 }
+        }
+
+        return { user: newUserData, userId: data.user.id }
+      }
+
+      return { error: "Error loading user data", status: 500 }
+    }
+
+    return { user: userData, userId: data.user.id }
+  } catch (error) {
+    console.error("Authentication error:", error)
+    return { error: "Internal server error during authentication", status: 500 }
+  }
+}
+
+// Remove the Express app routes since we're handling everything in the main handler function
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -54,7 +89,7 @@ export default async function handler(req, res) {
   )
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
   )
 
   // Handle OPTIONS request
@@ -79,15 +114,47 @@ export default async function handler(req, res) {
           path: path
         })
 
+      case "/users/me":
+        // This endpoint requires authentication
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to access user information"
+          })
+        }
+
+        // Map user data to expected format
+        const user = authResult.user
+        const mappedUser = {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          userType: user.user_type,
+          role: user.role,
+          universityId: user.university_id,
+          universityName: user.university_name,
+          isUniversityStudent: user.user_type === "university_student",
+          needsUsername: user.needs_username,
+          onboardingCompleted: user.onboarding_completed,
+          xp: user.xp || 0,
+          level: user.level || 1,
+          rank: user.rank || "Beginner",
+          profileImage: user.profile_image,
+          subscriptionPlan: user.subscription_plan || "free",
+          subscriptionStatus: user.subscription_status || "inactive",
+          subscriptionCycle: user.subscription_cycle,
+          stripeCustomerId: user.stripe_customer_id,
+          stripeSubscriptionId: user.stripe_subscription_id,
+          emailVerified: user.email_verified || false
+        }
+
+        return res.status(200).json(mappedUser)
+
       case "/job-applications":
         return res.status(200).json([])
-
-      case "/users/me":
-        // Return 401 to require proper authentication instead of demo user
-        return res.status(401).json({
-          error: "Authentication required",
-          message: "Please log in to access user information"
-        })
 
       case "/models":
         return res.status(200).json({ models: [] })
