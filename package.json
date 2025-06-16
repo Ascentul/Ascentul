@@ -9,6 +9,7 @@
     "vercel-build": "vite build",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
+    "check:env": "node check-vercel-env.js",
     "db:push": "drizzle-kit push",
     "setup:supabase": "tsx src/scripts/setup-supabase.ts",
     "create:admins": "tsx scripts/create-admin-accounts.js"
