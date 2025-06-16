@@ -4,18 +4,58 @@ import dotenv from "dotenv"
 // Load environment variables
 dotenv.config()
 
-// Supabase configuration
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const supabaseAnonKey =
-  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+// Environment variables with validation (same as src/config/env.ts)
+const ENV = {
+  NODE_ENV: process.env.NODE_ENV || "production", // Default to production in Vercel
+  SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
+  SUPABASE_ANON_KEY:
+    process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "",
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+}
+
+// Validate environment variables
+function validateEnv() {
+  const required = [
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ]
+  const missing = required.filter((key) => !ENV[key])
+
+  if (missing.length > 0) {
+    console.error(
+      `❌ Missing required environment variables: ${missing.join(", ")}`
+    )
+    console.error("Current env values:")
+    console.error(`- SUPABASE_URL: ${ENV.SUPABASE_URL ? "SET" : "MISSING"}`)
+    console.error(
+      `- SUPABASE_ANON_KEY: ${ENV.SUPABASE_ANON_KEY ? "SET" : "MISSING"}`
+    )
+    console.error(
+      `- SUPABASE_SERVICE_ROLE_KEY: ${
+        ENV.SUPABASE_SERVICE_ROLE_KEY ? "SET" : "MISSING"
+      }`
+    )
+    throw new Error("Environment validation failed")
+  }
+
+  console.log("✅ Environment validation passed")
+  return true
+}
+
+// Validate environment on startup
+validateEnv()
 
 // Create Supabase admin client for token verification
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: {
-    persistSession: false
+const supabaseAdmin = createClient(
+  ENV.SUPABASE_URL,
+  ENV.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false
+    }
   }
-})
+)
 
 // Authentication helper function
 async function verifySupabaseToken(authHeader) {
@@ -104,7 +144,64 @@ export default async function handler(req, res) {
   console.log(`API Request: ${req.method} ${path}`)
 
   try {
-    // Route handling
+    // Route handling - check for nested routes first
+    if (path.startsWith("/career-data/")) {
+      const subPath = path.replace("/career-data/", "")
+
+      if (subPath === "career-summary") {
+        if (req.method === "PUT") {
+          // Update career summary for authenticated user
+          const authResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to update career summary"
+            })
+          }
+
+          const userId = authResult.userId
+          const { careerSummary } = req.body
+
+          if (careerSummary === undefined) {
+            return res.status(400).json({
+              message: "Career summary is required",
+              error: "Missing careerSummary field"
+            })
+          }
+
+          try {
+            // Update career summary in Supabase
+            const { data: updatedUser, error } = await supabaseAdmin
+              .from("users")
+              .update({ career_summary: careerSummary })
+              .eq("id", userId)
+              .select()
+              .single()
+
+            if (error || !updatedUser) {
+              console.error("Error updating career summary:", error)
+              return res
+                .status(500)
+                .json({ message: "Error updating career summary" })
+            }
+
+            return res
+              .status(200)
+              .json({ careerSummary: updatedUser.career_summary })
+          } catch (error) {
+            console.error("Error updating career summary:", error)
+            return res
+              .status(500)
+              .json({ message: "Error updating career summary" })
+          }
+        }
+      }
+    }
+
+    // Handle simple routes
     switch (path) {
       case "/health":
         return res.status(200).json({
@@ -153,13 +250,145 @@ export default async function handler(req, res) {
 
         return res.status(200).json(mappedUser)
 
+      case "/career-data":
+        if (req.method === "GET") {
+          // Get career data for authenticated user
+          const authResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to access career data"
+            })
+          }
+
+          const userId = authResult.userId
+
+          try {
+            // Fetch career data from Supabase
+            const { data: workHistory } = await supabaseAdmin
+              .from("work_history")
+              .select("*")
+              .eq("user_id", userId)
+              .order("start_date", { ascending: false })
+
+            const { data: educationHistory } = await supabaseAdmin
+              .from("education_history")
+              .select("*")
+              .eq("user_id", userId)
+              .order("start_date", { ascending: false })
+
+            const { data: skills } = await supabaseAdmin
+              .from("user_skills")
+              .select("*")
+              .eq("user_id", userId)
+
+            const { data: certifications } = await supabaseAdmin
+              .from("certifications")
+              .select("*")
+              .eq("user_id", userId)
+
+            const careerSummary = authResult.user.career_summary || ""
+            const linkedInUrl = authResult.user.linkedin_url || ""
+
+            return res.status(200).json({
+              workHistory: workHistory || [],
+              educationHistory: educationHistory || [],
+              skills: skills || [],
+              certifications: certifications || [],
+              careerSummary,
+              linkedInUrl
+            })
+          } catch (error) {
+            console.error("Error fetching career data:", error)
+            return res
+              .status(500)
+              .json({ message: "Error fetching career data" })
+          }
+        }
+        break
+
       case "/job-applications":
         return res.status(200).json([])
+
+      case "/resumes":
+        if (req.method === "GET") {
+          // Get resumes for authenticated user
+          const authResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to access resumes"
+            })
+          }
+
+          // For now, return empty array until resumes table is properly set up
+          return res.status(200).json([])
+        }
+        break
+
+      case "/recommendations/daily":
+        if (req.method === "GET") {
+          // Get daily recommendations for authenticated user
+          const authResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to access recommendations"
+            })
+          }
+
+          // For now, return empty array until recommendations are implemented
+          return res.status(200).json([])
+        }
+        break
 
       case "/models":
         return res.status(200).json({ models: [] })
 
       case "/contacts/all-followups":
+        return res.status(200).json([])
+
+      case "/users/statistics":
+        // User statistics endpoint
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to access statistics"
+          })
+        }
+
+        // Return basic statistics
+        return res.status(200).json({
+          applications: 0,
+          interviews: 0,
+          offers: 0,
+          connections: 0
+        })
+
+      case "/conversations":
+        // AI Coach conversations endpoint
+        const conversationsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
+
+        if (conversationsAuthResult.error) {
+          return res.status(conversationsAuthResult.status).json({
+            error: conversationsAuthResult.error,
+            message: "Please log in to access conversations"
+          })
+        }
+
         return res.status(200).json([])
 
       default:
