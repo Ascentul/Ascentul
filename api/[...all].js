@@ -349,10 +349,10 @@ export default async function handler(req, res) {
           email, 
           phone, 
           company, 
-          position, 
+          jobTitle,  // Frontend sends jobTitle, not position
           linkedinUrl, 
           relationshipType, 
-          lastContactDate, 
+          lastContactedDate,  // Frontend sends lastContactedDate, not lastContactDate
           notes 
         } = req.body
 
@@ -364,14 +364,14 @@ export default async function handler(req, res) {
           .from("networking_contacts")
           .insert({
             user_id: authResult.userId,
-            full_name: fullName,
+            name: fullName,  // Database column is 'name', not 'full_name'
             email: email || null,
             phone: phone || null,
             company: company || null,
-            position: position || null,
+            position: jobTitle || null,  // Map jobTitle to position in database
             linkedin_url: linkedinUrl || null,
-            relationship_type: relationshipType || "professional",
-            last_contact_date: lastContactDate || null,
+            relationship: relationshipType || "professional",  // Database column is 'relationship', not 'relationship_type'
+            last_contact_date: lastContactedDate || null,  // Map lastContactedDate to last_contact_date
             notes: notes || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -414,10 +414,10 @@ export default async function handler(req, res) {
           email, 
           phone, 
           company, 
-          position, 
+          jobTitle,  // Frontend sends jobTitle, not position
           linkedinUrl, 
           relationshipType, 
-          lastContactDate, 
+          lastContactedDate,  // Frontend sends lastContactedDate, not lastContactDate
           notes 
         } = req.body
 
@@ -436,14 +436,14 @@ export default async function handler(req, res) {
         const { data: contact, error } = await supabaseAdmin
           .from("networking_contacts")
           .update({
-            full_name: fullName,
+            name: fullName,  // Database column is 'name', not 'full_name'
             email: email || null,
             phone: phone || null,
             company: company || null,
-            position: position || null,
+            position: jobTitle || null,  // Map jobTitle to position in database
             linkedin_url: linkedinUrl || null,
-            relationship_type: relationshipType || "professional",
-            last_contact_date: lastContactDate || null,
+            relationship: relationshipType || "professional",  // Database column is 'relationship', not 'relationship_type'
+            last_contact_date: lastContactedDate || null,  // Map lastContactedDate to last_contact_date
             notes: notes || null,
             updated_at: new Date().toISOString()
           })
@@ -1108,7 +1108,16 @@ export default async function handler(req, res) {
               .eq("user_id", contactsAuthResult.userId)
               .order("created_at", { ascending: false })
 
-            return res.status(200).json(contacts || [])
+            // Map database fields to frontend expected fields
+            const mappedContacts = contacts?.map(contact => ({
+              ...contact,
+              fullName: contact.name,  // Map name to fullName for frontend
+              jobTitle: contact.position,  // Map position to jobTitle for frontend
+              relationshipType: contact.relationship,  // Map relationship to relationshipType for frontend
+              lastContactedDate: contact.last_contact_date  // Map last_contact_date to lastContactedDate for frontend
+            })) || []
+
+            return res.status(200).json(mappedContacts)
           } catch (error) {
             console.error("Error fetching contacts:", error)
             return res.status(500).json({ message: "Failed to fetch contacts" })
@@ -1125,25 +1134,19 @@ export default async function handler(req, res) {
           })
         }
 
-        try {
-          // Get contacts that need follow-up (have pending follow-ups that are due)
-          const { data: contacts } = await supabaseAdmin
-            .from("networking_contacts")
-            .select(`
-              *,
-              followup_actions(*)
-            `)
-            .eq("user_id", needFollowupAuthResult.userId)
+                  try {
+            // For now, return contacts that haven't been contacted in 30+ days
+            // since the followup_actions table doesn't have contact_id support yet
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-          const contactsNeedingFollowup = contacts?.filter(contact => {
-            return contact.followup_actions?.some(followup => 
-              !followup.completed && 
-              followup.due_date && 
-              new Date(followup.due_date) <= new Date()
-            )
-          }) || []
+            const { data: contacts } = await supabaseAdmin
+              .from("networking_contacts")
+              .select("*")
+              .eq("user_id", needFollowupAuthResult.userId)
+              .lt("last_contact_date", thirtyDaysAgo.toISOString())
 
-          return res.status(200).json(contactsNeedingFollowup)
+            return res.status(200).json(contacts || [])
         } catch (error) {
           console.error("Error fetching contacts needing follow-up:", error)
           return res.status(500).json({ message: "Failed to fetch contacts needing follow-up" })
@@ -1159,46 +1162,10 @@ export default async function handler(req, res) {
         }
 
         try {
-          // Get all contacts and their pending follow-ups
-          const { data: contacts } = await supabaseAdmin
-            .from("networking_contacts")
-            .select("*")
-            .eq("user_id", followupsAuthResult.userId)
-
-          const allFollowUps = []
-
-          if (contacts && contacts.length > 0) {
-            for (const contact of contacts) {
-              const { data: followUps } = await supabaseAdmin
-                .from("followup_actions")
-                .select("*")
-                .eq("contact_id", contact.id)
-                .eq("completed", false)
-                .gte("due_date", new Date().toISOString())
-
-              if (followUps) {
-                followUps.forEach(followUp => {
-                  allFollowUps.push({
-                    ...followUp,
-                    contact: {
-                      id: contact.id,
-                      fullName: contact.full_name,
-                      company: contact.company,
-                      email: contact.email,
-                      phone: contact.phone
-                    }
-                  })
-                })
-              }
-            }
-          }
-
-          // Sort by due date
-          allFollowUps.sort((a, b) => 
-            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-          )
-
-          return res.status(200).json(allFollowUps)
+          // Contact followups are not yet implemented in the database schema
+          // The followup_actions table only supports interview/application followups
+          // Return empty array for now
+          return res.status(200).json([])
         } catch (error) {
           console.error("Error fetching follow-ups:", error)
           return res.status(500).json({ message: "Failed to fetch follow-ups" })

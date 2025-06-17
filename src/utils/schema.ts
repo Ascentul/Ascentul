@@ -1129,46 +1129,78 @@ export const jobApplicationsRelations = relations(
   })
 )
 
-// User Skills model
+// Skills master table
 export const skills = pgTable("skills", {
   id: serial("id").primaryKey(),
-  userId: uuid("user_id").notNull(),
   name: text("name").notNull(),
-  proficiencyLevel: integer("proficiency_level").notNull().default(1), // 1-5 scale
-  category: text("category").notNull().default("technical"), // technical, soft, language, etc.
-  yearOfExperience: integer("year_of_experience"),
-  tags: text("tags").array(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  category: text("category").notNull(),
+  description: text("description"),
+  icon: text("icon").default("code"),
+  popularity: integer("popularity").default(0),
+  isTechnical: boolean("is_technical").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+})
+
+// User Skills junction table
+export const userSkills = pgTable("user_skills", {
+  id: serial("id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  skillId: integer("skill_id").notNull(),
+  proficiency: integer("proficiency").notNull().default(1), // 1-5 scale
+  yearsExperience: integer("years_experience").default(0),
+  isHighlighted: boolean("is_highlighted").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 })
 
 export const insertSkillSchema = createInsertSchema(skills).omit({
   id: true,
+  createdAt: true
+})
+
+export const insertUserSkillSchema = createInsertSchema(userSkills).omit({
+  id: true,
   userId: true,
-  createdAt: true,
-  updatedAt: true
+  createdAt: true
 })
 
 export type Skill = typeof skills.$inferSelect
 export type InsertSkill = z.infer<typeof insertSkillSchema>
+export type UserSkill = typeof userSkills.$inferSelect
+export type InsertUserSkill = z.infer<typeof insertUserSkillSchema>
 
-// User Languages model
-export const languages = pgTable("languages", {
+// User Languages model (junction table)
+export const userLanguages = pgTable("user_languages", {
   id: serial("id").primaryKey(),
   userId: uuid("user_id").notNull(),
+  languageId: integer("language_id").notNull(),
+  proficiency: text("proficiency").notNull().default("elementary"), // Fixed: database uses 'proficiency', not 'proficiency_level'
+  isNative: boolean("is_native").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+})
+
+// Languages master table
+export const languages = pgTable("languages", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  proficiencyLevel: text("proficiency_level").notNull().default("beginner"), // beginner, intermediate, advanced, native
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  isoCode: text("iso_code").notNull(),
+  proficiencyLevels: jsonb("proficiency_levels"),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+})
+
+export const insertUserLanguageSchema = createInsertSchema(userLanguages).omit({
+  id: true,
+  userId: true,
+  createdAt: true
 })
 
 export const insertLanguageSchema = createInsertSchema(languages).omit({
   id: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true
+  createdAt: true
 })
 
+export type UserLanguage = typeof userLanguages.$inferSelect
+export type InsertUserLanguage = z.infer<typeof insertUserLanguageSchema>
 export type Language = typeof languages.$inferSelect
 export type InsertLanguage = z.infer<typeof insertLanguageSchema>
 
@@ -1181,14 +1213,19 @@ export type InsertEducationHistory = z.infer<
 export const networkingContacts = pgTable("networking_contacts", {
   id: serial("id").primaryKey(),
   userId: uuid("user_id").notNull(),
-  fullName: text("full_name").notNull(),
-  jobTitle: text("job_title").notNull(),
-  company: text("company").notNull(),
-  relationshipType: text("relationship_type").notNull(), // Mentor, Recruiter, Peer, Leader, etc.
+  name: text("name").notNull(), // Fixed: database uses 'name', not 'full_name'
+  position: text("position"), // Fixed: database uses 'position', not 'job_title'
+  company: text("company"),
+  relationship: text("relationship"), // Fixed: database uses 'relationship', not 'relationship_type'
   email: text("email"),
   phone: text("phone"),
-  linkedInUrl: text("linkedin_url"),
-  lastContactedDate: timestamp("last_contacted_date"),
+  linkedinUrl: text("linkedin_url"),
+  lastContactDate: timestamp("last_contact_date"), // Fixed: database uses 'last_contact_date'
+  nextContactDate: timestamp("next_contact_date"), // Added missing field
+  contactSource: text("contact_source"), // Added missing field
+  relationshipStrength: integer("relationship_strength").default(1), // Added missing field
+  importance: integer("importance").default(3), // Added missing field
+  tags: text("tags").array(), // Added missing field
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -1204,8 +1241,14 @@ export const insertNetworkingContactSchema = createInsertSchema(
     updatedAt: true
   })
   .extend({
-    // Convert lastContactedDate string to Date object if it's not already a Date
-    lastContactedDate: z
+    // Convert lastContactDate string to Date object if it's not already a Date
+    lastContactDate: z
+      .date()
+      .optional()
+      .nullable()
+      .or(z.string().transform((val) => (val ? new Date(val) : null))),
+    // Convert nextContactDate string to Date object if it's not already a Date  
+    nextContactDate: z
       .date()
       .optional()
       .nullable()

@@ -2141,12 +2141,12 @@ export class SupabaseStorage implements IStorage {
       // Apply filters if provided
       if (filters?.query) {
         query = query.or(
-          `full_name.ilike.%${filters.query}%,company.ilike.%${filters.query}%,email.ilike.%${filters.query}%`
+          `name.ilike.%${filters.query}%,company.ilike.%${filters.query}%,email.ilike.%${filters.query}%`
         )
       }
 
       if (filters?.relationshipType) {
-        query = query.eq("relationship_type", filters.relationshipType)
+        query = query.eq("relationship", filters.relationshipType)
       }
 
       const { data, error } = await query.order("created_at", {
