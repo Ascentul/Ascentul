@@ -333,6 +333,185 @@ export default async function handler(req, res) {
       }
     }
 
+    // CONTACTS ROUTES - Critical missing route for adding contacts
+    if (path === "/contacts" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to create contacts"
+        })
+      }
+
+      try {
+        const { 
+          fullName, 
+          email, 
+          phone, 
+          company, 
+          position, 
+          linkedinUrl, 
+          relationshipType, 
+          lastContactDate, 
+          notes 
+        } = req.body
+
+        if (!fullName) {
+          return res.status(400).json({ message: "Full name is required" })
+        }
+
+        const { data: contact, error } = await supabaseAdmin
+          .from("networking_contacts")
+          .insert({
+            user_id: authResult.userId,
+            full_name: fullName,
+            email: email || null,
+            phone: phone || null,
+            company: company || null,
+            position: position || null,
+            linkedin_url: linkedinUrl || null,
+            relationship_type: relationshipType || "professional",
+            last_contact_date: lastContactDate || null,
+            notes: notes || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating contact:", error)
+          return res.status(500).json({ message: "Error creating contact" })
+        }
+
+        return res.status(201).json(contact)
+      } catch (error) {
+        console.error("Error creating contact:", error)
+        return res.status(500).json({ message: "Error creating contact" })
+      }
+    }
+
+    // UPDATE CONTACT - PUT /contacts/:id
+    if (path.startsWith("/contacts/") && req.method === "PUT") {
+      const pathParts = path.split("/")
+      const contactId = parseInt(pathParts[2])
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" })
+      }
+
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to update contacts"
+        })
+      }
+
+      try {
+        const { 
+          fullName, 
+          email, 
+          phone, 
+          company, 
+          position, 
+          linkedinUrl, 
+          relationshipType, 
+          lastContactDate, 
+          notes 
+        } = req.body
+
+        // First check if the contact belongs to the user
+        const { data: existingContact } = await supabaseAdmin
+          .from("networking_contacts")
+          .select("id")
+          .eq("id", contactId)
+          .eq("user_id", authResult.userId)
+          .single()
+
+        if (!existingContact) {
+          return res.status(404).json({ message: "Contact not found" })
+        }
+
+        const { data: contact, error } = await supabaseAdmin
+          .from("networking_contacts")
+          .update({
+            full_name: fullName,
+            email: email || null,
+            phone: phone || null,
+            company: company || null,
+            position: position || null,
+            linkedin_url: linkedinUrl || null,
+            relationship_type: relationshipType || "professional",
+            last_contact_date: lastContactDate || null,
+            notes: notes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", contactId)
+          .eq("user_id", authResult.userId)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error updating contact:", error)
+          return res.status(500).json({ message: "Error updating contact" })
+        }
+
+        return res.status(200).json(contact)
+      } catch (error) {
+        console.error("Error updating contact:", error)
+        return res.status(500).json({ message: "Error updating contact" })
+      }
+    }
+
+    // DELETE CONTACT - DELETE /contacts/:id
+    if (path.startsWith("/contacts/") && req.method === "DELETE") {
+      const pathParts = path.split("/")
+      const contactId = parseInt(pathParts[2])
+      
+      if (isNaN(contactId)) {
+        return res.status(400).json({ message: "Invalid contact ID" })
+      }
+
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to delete contacts"
+        })
+      }
+
+      try {
+        // First check if the contact belongs to the user
+        const { data: existingContact } = await supabaseAdmin
+          .from("networking_contacts")
+          .select("id")
+          .eq("id", contactId)
+          .eq("user_id", authResult.userId)
+          .single()
+
+        if (!existingContact) {
+          return res.status(404).json({ message: "Contact not found" })
+        }
+
+        const { error } = await supabaseAdmin
+          .from("networking_contacts")
+          .delete()
+          .eq("id", contactId)
+          .eq("user_id", authResult.userId)
+
+        if (error) {
+          console.error("Error deleting contact:", error)
+          return res.status(500).json({ message: "Error deleting contact" })
+        }
+
+        return res.status(200).json({ message: "Contact deleted successfully" })
+      } catch (error) {
+        console.error("Error deleting contact:", error)
+        return res.status(500).json({ message: "Error deleting contact" })
+      }
+    }
+
     // SKILLS ROUTES
     if (path === "/career-data/skills" && req.method === "POST") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
@@ -912,8 +1091,118 @@ export default async function handler(req, res) {
       case "/models":
         return res.status(200).json({ models: [] })
 
+      case "/contacts":
+        if (req.method === "GET") {
+          const contactsAuthResult = await verifySupabaseToken(req.headers.authorization)
+          if (contactsAuthResult.error) {
+            return res.status(contactsAuthResult.status).json({
+              error: contactsAuthResult.error,
+              message: "Please log in to access contacts"
+            })
+          }
+
+          try {
+            const { data: contacts } = await supabaseAdmin
+              .from("networking_contacts")
+              .select("*")
+              .eq("user_id", contactsAuthResult.userId)
+              .order("created_at", { ascending: false })
+
+            return res.status(200).json(contacts || [])
+          } catch (error) {
+            console.error("Error fetching contacts:", error)
+            return res.status(500).json({ message: "Failed to fetch contacts" })
+          }
+        }
+        break
+
+      case "/contacts/need-followup":
+        const needFollowupAuthResult = await verifySupabaseToken(req.headers.authorization)
+        if (needFollowupAuthResult.error) {
+          return res.status(needFollowupAuthResult.status).json({
+            error: needFollowupAuthResult.error,
+            message: "Please log in to access follow-ups"
+          })
+        }
+
+        try {
+          // Get contacts that need follow-up (have pending follow-ups that are due)
+          const { data: contacts } = await supabaseAdmin
+            .from("networking_contacts")
+            .select(`
+              *,
+              followup_actions(*)
+            `)
+            .eq("user_id", needFollowupAuthResult.userId)
+
+          const contactsNeedingFollowup = contacts?.filter(contact => {
+            return contact.followup_actions?.some(followup => 
+              !followup.completed && 
+              followup.due_date && 
+              new Date(followup.due_date) <= new Date()
+            )
+          }) || []
+
+          return res.status(200).json(contactsNeedingFollowup)
+        } catch (error) {
+          console.error("Error fetching contacts needing follow-up:", error)
+          return res.status(500).json({ message: "Failed to fetch contacts needing follow-up" })
+        }
+
       case "/contacts/all-followups":
-        return res.status(200).json([])
+        const followupsAuthResult = await verifySupabaseToken(req.headers.authorization)
+        if (followupsAuthResult.error) {
+          return res.status(followupsAuthResult.status).json({
+            error: followupsAuthResult.error,
+            message: "Please log in to access follow-ups"
+          })
+        }
+
+        try {
+          // Get all contacts and their pending follow-ups
+          const { data: contacts } = await supabaseAdmin
+            .from("networking_contacts")
+            .select("*")
+            .eq("user_id", followupsAuthResult.userId)
+
+          const allFollowUps = []
+
+          if (contacts && contacts.length > 0) {
+            for (const contact of contacts) {
+              const { data: followUps } = await supabaseAdmin
+                .from("followup_actions")
+                .select("*")
+                .eq("contact_id", contact.id)
+                .eq("completed", false)
+                .gte("due_date", new Date().toISOString())
+
+              if (followUps) {
+                followUps.forEach(followUp => {
+                  allFollowUps.push({
+                    ...followUp,
+                    contact: {
+                      id: contact.id,
+                      fullName: contact.full_name,
+                      company: contact.company,
+                      email: contact.email,
+                      phone: contact.phone
+                    }
+                  })
+                })
+              }
+            }
+          }
+
+          // Sort by due date
+          allFollowUps.sort((a, b) => 
+            new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+          )
+
+          return res.status(200).json(allFollowUps)
+        } catch (error) {
+          console.error("Error fetching follow-ups:", error)
+          return res.status(500).json({ message: "Failed to fetch follow-ups" })
+        }
 
       case "/conversations":
         // AI Coach conversations endpoint
