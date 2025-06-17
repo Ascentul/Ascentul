@@ -391,6 +391,36 @@ export default async function handler(req, res) {
       }
     }
 
+    // AI COACH GENERATE RESPONSE ROUTE
+    if (path === "/ai-coach/generate-response" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to use AI Coach"
+        })
+      }
+
+      try {
+        const { query, conversationHistory = [], selectedModel = "gpt-4o-mini" } = req.body
+
+        if (!query || typeof query !== "string") {
+          return res.status(400).json({ error: "Query is required" })
+        }
+
+        // For now, return a helpful response since OpenAI integration would require API keys
+        // In production, this would integrate with OpenAI API
+        const response = {
+          content: `I understand you're asking about: "${query}". As your AI Career Coach, I'd be happy to help with career planning, resume feedback, interview preparation, and job search strategies. However, the full AI integration is currently being set up. Please check back soon for complete AI-powered responses!`
+        }
+
+        return res.status(200).json({ response: response.content })
+      } catch (error) {
+        console.error("Error generating AI response:", error)
+        return res.status(500).json({ error: "Failed to generate AI response" })
+      }
+    }
+
     // UPDATE CONTACT - PUT /contacts/:id
     if (path.startsWith("/contacts/") && req.method === "PUT") {
       const pathParts = path.split("/")
@@ -1171,7 +1201,7 @@ export default async function handler(req, res) {
           return res.status(500).json({ message: "Failed to fetch follow-ups" })
         }
 
-      case "/conversations":
+      case "/ai-coach/conversations":
         // AI Coach conversations endpoint
         const conversationsAuthResult = await verifySupabaseToken(
           req.headers.authorization
@@ -1180,6 +1210,21 @@ export default async function handler(req, res) {
         if (conversationsAuthResult.error) {
           return res.status(conversationsAuthResult.status).json({
             error: conversationsAuthResult.error,
+            message: "Please log in to access conversations"
+          })
+        }
+
+        return res.status(200).json([])
+
+      case "/conversations":
+        // Legacy conversations endpoint - redirect to ai-coach
+        const legacyConversationsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
+
+        if (legacyConversationsAuthResult.error) {
+          return res.status(legacyConversationsAuthResult.status).json({
+            error: legacyConversationsAuthResult.error,
             message: "Please log in to access conversations"
           })
         }
@@ -1210,6 +1255,93 @@ export default async function handler(req, res) {
           console.error("Error fetching achievements:", error)
           return res.status(500).json({ message: "Error fetching achievements" })
         }
+
+      case "/work-history":
+        // Work History endpoint for AI Coach context
+        if (req.method === "GET") {
+          const workHistoryAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (workHistoryAuthResult.error) {
+            return res.status(workHistoryAuthResult.status).json({
+              error: workHistoryAuthResult.error,
+              message: "Please log in to access work history"
+            })
+          }
+
+          try {
+            const { data: workHistory } = await supabaseAdmin
+              .from("work_history")
+              .select("*")
+              .eq("user_id", workHistoryAuthResult.userId)
+              .order("start_date", { ascending: false })
+
+            return res.status(200).json(workHistory || [])
+          } catch (error) {
+            console.error("Error fetching work history:", error)
+            return res.status(500).json({ message: "Error fetching work history" })
+          }
+        }
+        break
+
+      case "/personal-achievements":
+        // Personal Achievements endpoint for AI Coach context
+        if (req.method === "GET") {
+          const achievementsAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (achievementsAuthResult.error) {
+            return res.status(achievementsAuthResult.status).json({
+              error: achievementsAuthResult.error,
+              message: "Please log in to access achievements"
+            })
+          }
+
+          try {
+            const { data: achievements } = await supabaseAdmin
+              .from("user_personal_achievements")
+              .select("*")
+              .eq("user_id", achievementsAuthResult.userId)
+              .order("created_at", { ascending: false })
+
+            return res.status(200).json(achievements || [])
+          } catch (error) {
+            console.error("Error fetching personal achievements:", error)
+            return res.status(500).json({ message: "Error fetching personal achievements" })
+          }
+        }
+        break
+
+      case "/interview/processes":
+        // Interview Processes endpoint for AI Coach context
+        if (req.method === "GET") {
+          const interviewAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (interviewAuthResult.error) {
+            return res.status(interviewAuthResult.status).json({
+              error: interviewAuthResult.error,
+              message: "Please log in to access interview processes"
+            })
+          }
+
+          try {
+            const { data: processes } = await supabaseAdmin
+              .from("interview_processes")
+              .select("*")
+              .eq("user_id", interviewAuthResult.userId)
+              .order("created_at", { ascending: false })
+
+            return res.status(200).json(processes || [])
+          } catch (error) {
+            console.error("Error fetching interview processes:", error)
+            return res.status(500).json({ message: "Error fetching interview processes" })
+          }
+        }
+        break
 
       case "/skill-stacker":
         // Skill Stacker endpoint

@@ -45,6 +45,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         return {};
       }
     },
+    refetchInterval: 5000, // Refetch every 5 seconds to keep data fresh
+    staleTime: 0, // Always consider data stale to ensure updates
   });
   
   // Fetch network contacts to check if the user has added any
@@ -59,6 +61,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         return [];
       }
     },
+    refetchInterval: 5000, // Refetch every 5 seconds to keep data fresh
+    staleTime: 0, // Always consider data stale to ensure updates
   });
   
   // Fetch user goals to check if they've created any
@@ -73,6 +77,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         return [];
       }
     },
+    refetchInterval: 5000, // Refetch every 5 seconds to keep data fresh
+    staleTime: 0, // Always consider data stale to ensure updates
   });
   
   // Fetch job applications to check if they've added any
@@ -87,6 +93,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         return [];
       }
     },
+    refetchInterval: 5000, // Refetch every 5 seconds to keep data fresh
+    staleTime: 0, // Always consider data stale to ensure updates
   });
   
   // Fetch user resumes to check if they've created any
@@ -101,6 +109,8 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
         return [];
       }
     },
+    refetchInterval: 5000, // Refetch every 5 seconds to keep data fresh
+    staleTime: 0, // Always consider data stale to ensure updates
   });
   
   // State to track checklist items
@@ -337,10 +347,7 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   // No need to check completed items count
 
   // Track if we need to update the state of the checklist items
-  const [hasUpdatedContactItem, setHasUpdatedContactItem] = useState(false);
-  const [hasUpdatedGoalItem, setHasUpdatedGoalItem] = useState(false);
-  const [hasUpdatedApplicationItem, setHasUpdatedApplicationItem] = useState(false);
-  const [hasUpdatedResumeItem, setHasUpdatedResumeItem] = useState(false);
+  // State flag to prevent duplicate toast notifications for career profile completion
   const [hasUpdatedCareerProfileItem, setHasUpdatedCareerProfileItem] = useState(false);
   
   // Calculate career profile completion percentage
@@ -364,135 +371,95 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
   
   // Update the network contact checklist item based on actual data
   useEffect(() => {
-    if (!networkContacts || !Array.isArray(networkContacts) || hasUpdatedContactItem) return;
+    if (!networkContacts || !Array.isArray(networkContacts)) return;
     
     // Check if the user has added at least one contact
     const hasAtLeastOneContact = networkContacts.length > 0;
     
     console.log(`User has ${networkContacts.length} contacts in the Network Hub`);
     
-    // We only want to update if there are contacts and the item isn't already marked as completed
-    const contactItem = checklistItems.find(item => item.id === 'network-contact');
-    
-    if (hasAtLeastOneContact && contactItem && !contactItem.completed) {
-      console.log('Marking network-contact checklist item as completed based on actual contacts');
-      
-      // Update only the network-contact item based on actual data
-      setChecklistItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
-          if (item.id === 'network-contact') {
-            return { ...item, completed: true };
-          }
-          return item;
-        });
-        
-        return updatedItems;
+    // Update the network-contact item based on actual data
+    setChecklistItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === 'network-contact') {
+          return { ...item, completed: hasAtLeastOneContact };
+        }
+        return item;
       });
-    }
-    
-    // Mark that we've processed this check to avoid further updates
-    setHasUpdatedContactItem(true);
-  }, [networkContacts, checklistItems, hasUpdatedContactItem]);
+      
+      return updatedItems;
+    });
+  }, [networkContacts]);
   
   // Update the career goal checklist item based on actual data
   useEffect(() => {
-    if (!userGoals || !Array.isArray(userGoals) || hasUpdatedGoalItem) return;
+    if (!userGoals || !Array.isArray(userGoals)) return;
     
     // Check if the user has created at least one goal
     const hasAtLeastOneGoal = userGoals.length > 0;
     
     console.log(`User has ${userGoals.length} career goals`);
     
-    // We only want to update if there are goals and the item isn't already marked as completed
-    const goalItem = checklistItems.find(item => item.id === 'career-goal');
-    
-    if (hasAtLeastOneGoal && goalItem && !goalItem.completed) {
-      console.log('Marking career-goal checklist item as completed based on actual goals');
-      
-      // Update only the career-goal item based on actual data
-      setChecklistItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
-          if (item.id === 'career-goal') {
-            return { ...item, completed: true };
-          }
-          return item;
-        });
-        
-        return updatedItems;
+    // Update the career-goal item based on actual data
+    setChecklistItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === 'career-goal') {
+          return { ...item, completed: hasAtLeastOneGoal };
+        }
+        return item;
       });
-    }
-    
-    // Mark that we've processed this check to avoid further updates
-    setHasUpdatedGoalItem(true);
-  }, [userGoals, checklistItems, hasUpdatedGoalItem]);
+      
+      return updatedItems;
+    });
+  }, [userGoals]);
   
   // Update the job application checklist item based on actual data
   useEffect(() => {
-    if (!jobApplications || !Array.isArray(jobApplications) || hasUpdatedApplicationItem) return;
+    if (!jobApplications || !Array.isArray(jobApplications)) return;
     
     // Check if the user has added at least one application
     const hasAtLeastOneApplication = jobApplications.length > 0;
     
     console.log(`User has ${jobApplications.length} job applications`);
     
-    // We only want to update if there are applications and the item isn't already marked as completed
-    const applicationItem = checklistItems.find(item => item.id === 'job-application');
-    
-    if (hasAtLeastOneApplication && applicationItem && !applicationItem.completed) {
-      console.log('Marking job-application checklist item as completed based on actual applications');
-      
-      // Update only the job-application item based on actual data
-      setChecklistItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
-          if (item.id === 'job-application') {
-            return { ...item, completed: true };
-          }
-          return item;
-        });
-        
-        return updatedItems;
+    // Update the job-application item based on actual data
+    setChecklistItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === 'job-application') {
+          return { ...item, completed: hasAtLeastOneApplication };
+        }
+        return item;
       });
-    }
-    
-    // Mark that we've processed this check to avoid further updates
-    setHasUpdatedApplicationItem(true);
-  }, [jobApplications, checklistItems, hasUpdatedApplicationItem]);
+      
+      return updatedItems;
+    });
+  }, [jobApplications]);
   
   // Update the resume checklist item based on actual data
   useEffect(() => {
-    if (!userResumes || !Array.isArray(userResumes) || hasUpdatedResumeItem) return;
+    if (!userResumes || !Array.isArray(userResumes)) return;
     
     // Check if the user has created at least one resume
     const hasAtLeastOneResume = userResumes.length > 0;
     
     console.log(`User has ${userResumes.length} resumes`);
     
-    // We only want to update if there are resumes and the item isn't already marked as completed
-    const resumeItem = checklistItems.find(item => item.id === 'resume-creation');
-    
-    if (hasAtLeastOneResume && resumeItem && !resumeItem.completed) {
-      console.log('Marking resume-creation checklist item as completed based on actual resumes');
-      
-      // Update only the resume-creation item based on actual data
-      setChecklistItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
-          if (item.id === 'resume-creation') {
-            return { ...item, completed: true };
-          }
-          return item;
-        });
-        
-        return updatedItems;
+    // Update the resume-creation item based on actual data
+    setChecklistItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === 'resume-creation') {
+          return { ...item, completed: hasAtLeastOneResume };
+        }
+        return item;
       });
-    }
-    
-    // Mark that we've processed this check to avoid further updates
-    setHasUpdatedResumeItem(true);
-  }, [userResumes, checklistItems, hasUpdatedResumeItem]);
+      
+      return updatedItems;
+    });
+  }, [userResumes]);
   
   // Update the career profile checklist item based on profile completion
   useEffect(() => {
-    if (!careerData || hasUpdatedCareerProfileItem) return;
+    if (!careerData) return;
     
     // Calculate profile completion
     const sections = [
@@ -509,48 +476,36 @@ export function GetStartedChecklist({ userId }: GetStartedChecklistProps) {
     
     console.log(`Career profile completion: ${percentageComplete}% (${completedSections}/${totalSections} sections)`);
     
-    // We only want to update if profile is 100% complete and the item isn't already marked as completed
-    const profileItem = checklistItems.find(item => item.id === 'career-profile');
+    // Check if profile is 100% complete
+    const isProfileComplete = percentageComplete === 100;
     
-    if (percentageComplete === 100 && profileItem && !profileItem.completed) {
-      console.log('Marking career-profile checklist item as completed based on 100% profile completion');
-      
-      // Update only the career-profile item based on completion
-      setChecklistItems(prevItems => {
-        const updatedItems = prevItems.map(item => {
-          if (item.id === 'career-profile') {
-            return { ...item, completed: true };
-          }
-          return item;
-        });
-        
-        return updatedItems;
+    // Update the career-profile item based on completion
+    setChecklistItems(prevItems => {
+      const updatedItems = prevItems.map(item => {
+        if (item.id === 'career-profile') {
+          return { ...item, completed: isProfileComplete };
+        }
+        return item;
       });
       
+      return updatedItems;
+    });
+    
+    // Show toast only when profile becomes complete (not on every update)
+    if (isProfileComplete && !hasUpdatedCareerProfileItem) {
       toast({
         title: "Career Profile Complete!",
         description: "You've completed your career profile. Great job!",
       });
+      setHasUpdatedCareerProfileItem(true);
     }
-    
-    // Mark that we've processed this check to avoid further updates
-    setHasUpdatedCareerProfileItem(true);
-  }, [careerData, checklistItems, hasUpdatedCareerProfileItem, toast]);
+  }, [careerData, toast]);
   
   // Save progress whenever checklist items change
   useEffect(() => {
-    // Only update localStorage when we have processed all data
-    if ((hasUpdatedContactItem || !Array.isArray(networkContacts)) && 
-        (hasUpdatedGoalItem || !Array.isArray(userGoals)) &&
-        (hasUpdatedApplicationItem || !Array.isArray(jobApplications)) &&
-        (hasUpdatedResumeItem || !Array.isArray(userResumes)) &&
-        (hasUpdatedCareerProfileItem || !careerData)) {
-      // Save the updated progress to local storage
-      saveProgress(checklistItems, reviewItem.completed);
-    }
-  }, [checklistItems, reviewItem.completed, hasUpdatedContactItem, hasUpdatedGoalItem, 
-      hasUpdatedApplicationItem, hasUpdatedResumeItem, hasUpdatedCareerProfileItem, 
-      networkContacts, userGoals, jobApplications, userResumes, careerData, userId]);
+    // Save the updated progress to local storage whenever checklist items change
+    saveProgress(checklistItems, reviewItem.completed);
+  }, [checklistItems, reviewItem.completed, userId]);
   
   // Only auto-hide the checklist when ALL tasks are completed AND user has marked the checklist as complete
   // We've intentionally changed this to make sure the checklist persists
