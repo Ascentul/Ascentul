@@ -4,16 +4,16 @@ import dotenv from "dotenv"
 // Load environment variables
 dotenv.config()
 
-// Environment variables with validation (same as src/config/env.ts)
+// Environment variables with validation
 const ENV = {
-  NODE_ENV: process.env.NODE_ENV || "production", // Default to production in Vercel
+  NODE_ENV: process.env.NODE_ENV || "production",
   SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
   SUPABASE_ANON_KEY:
     process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "",
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 }
 
-// Validate environment variables (non-blocking)
+// Validate environment variables
 function validateEnv() {
   const required = [
     "SUPABASE_URL",
@@ -25,16 +25,6 @@ function validateEnv() {
   if (missing.length > 0) {
     console.error(
       `❌ Missing required environment variables: ${missing.join(", ")}`
-    )
-    console.error("Current env values:")
-    console.error(`- SUPABASE_URL: ${ENV.SUPABASE_URL ? "SET" : "MISSING"}`)
-    console.error(
-      `- SUPABASE_ANON_KEY: ${ENV.SUPABASE_ANON_KEY ? "SET" : "MISSING"}`
-    )
-    console.error(
-      `- SUPABASE_SERVICE_ROLE_KEY: ${
-        ENV.SUPABASE_SERVICE_ROLE_KEY ? "SET" : "MISSING"
-      }`
     )
     return { valid: false, missing }
   }
@@ -131,17 +121,13 @@ async function verifySupabaseToken(authHeader) {
   }
 }
 
-// Remove the Express app routes since we're handling everything in the main handler function
-
 export default async function handler(req, res) {
   try {
     // Validate environment variables first
     const envValidation = validateEnv()
     if (!envValidation.valid) {
-      console.error("Environment validation failed in request handler")
       return res.status(500).json({
         error: "Server configuration error",
-        message: "Missing required environment variables",
         missing: envValidation.missing
       })
     }
@@ -169,7 +155,367 @@ export default async function handler(req, res) {
 
     console.log(`API Request: ${req.method} ${path}`)
 
-    // Route handling - check for nested routes first
+    // Route handling with comprehensive coverage
+    
+    // USERNAME AVAILABILITY CHECK - Critical missing route
+    if (path === "/users/check-username" && req.method === "GET") {
+      try {
+        const { username } = req.query
+
+        if (!username || typeof username !== "string") {
+          return res.status(400).json({ message: "Username parameter is required" })
+        }
+
+        // Check if the username is valid format
+        if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+          return res.status(400).json({
+            message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores",
+            available: false
+          })
+        }
+
+        // Check if username already exists
+        const { data: existingUser } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("username", username)
+          .single()
+
+        return res.status(200).json({ available: !existingUser })
+      } catch (error) {
+        console.error("Error checking username availability:", error)
+        return res.status(500).json({ message: "Error checking username availability" })
+      }
+    }
+
+    // UPDATE USERNAME - Critical for new user onboarding
+    if (path === "/users/update-username" && req.method === "POST") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to update username"
+          })
+        }
+
+        const { username } = req.body
+
+        if (!username) {
+          return res.status(400).json({ message: "Username is required" })
+        }
+
+        // Check if the username is valid format
+        if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
+          return res.status(400).json({
+            message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores"
+          })
+        }
+
+        // Check if username already exists
+        const { data: existingUser } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("username", username)
+          .single()
+
+        if (existingUser) {
+          return res.status(400).json({ message: "Username already taken" })
+        }
+
+        // Update the username and set needsUsername to false
+        const { data: updatedUser, error } = await supabaseAdmin
+          .from("users")
+          .update({
+            username,
+            needs_username: false
+          })
+          .eq("id", authResult.userId)
+          .select()
+          .single()
+
+        if (error || !updatedUser) {
+          return res.status(500).json({ message: "Failed to update username" })
+        }
+
+        // Map user data to expected format
+        const mappedUser = {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          userType: updatedUser.user_type,
+          role: updatedUser.role,
+          universityId: updatedUser.university_id,
+          universityName: updatedUser.university_name,
+          needsUsername: updatedUser.needs_username,
+          onboardingCompleted: updatedUser.onboarding_completed,
+          xp: updatedUser.xp || 0,
+          level: updatedUser.level || 1,
+          rank: updatedUser.rank || "Beginner",
+          profileImage: updatedUser.profile_image,
+          subscriptionPlan: updatedUser.subscription_plan || "free",
+          subscriptionStatus: updatedUser.subscription_status || "inactive"
+        }
+
+        return res.status(200).json(mappedUser)
+      } catch (error) {
+        console.error("Error updating username:", error)
+        return res.status(500).json({ message: "Error updating username" })
+      }
+    }
+
+    // WORK HISTORY ROUTES - Critical for creating records
+    if (path === "/career-data/work-history" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to add work history"
+        })
+      }
+
+      try {
+        const workData = {
+          ...req.body,
+          user_id: authResult.userId
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("work_history")
+          .insert(workData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating work history:", error)
+          return res.status(500).json({ message: "Error creating work history" })
+        }
+
+        return res.status(201).json(data)
+      } catch (error) {
+        console.error("Error creating work history:", error)
+        return res.status(500).json({ message: "Error creating work history" })
+      }
+    }
+
+    // EDUCATION HISTORY ROUTES
+    if (path === "/career-data/education-history" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to add education history"
+        })
+      }
+
+      try {
+        const educationData = {
+          ...req.body,
+          user_id: authResult.userId
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("education_history")
+          .insert(educationData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating education history:", error)
+          return res.status(500).json({ message: "Error creating education history" })
+        }
+
+        return res.status(201).json(data)
+      } catch (error) {
+        console.error("Error creating education history:", error)
+        return res.status(500).json({ message: "Error creating education history" })
+      }
+    }
+
+    // SKILLS ROUTES
+    if (path === "/career-data/skills" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to add skills"
+        })
+      }
+
+      try {
+        const skillData = {
+          ...req.body,
+          user_id: authResult.userId
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("user_skills")
+          .insert(skillData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating skill:", error)
+          return res.status(500).json({ message: "Error creating skill" })
+        }
+
+        return res.status(201).json(data)
+      } catch (error) {
+        console.error("Error creating skill:", error)
+        return res.status(500).json({ message: "Error creating skill" })
+      }
+    }
+
+    // CERTIFICATIONS ROUTES
+    if (path === "/career-data/certifications" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to add certifications"
+        })
+      }
+
+      try {
+        const certData = {
+          ...req.body,
+          user_id: authResult.userId
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("certifications")
+          .insert(certData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating certification:", error)
+          return res.status(500).json({ message: "Error creating certification" })
+        }
+
+        return res.status(201).json(data)
+      } catch (error) {
+        console.error("Error creating certification:", error)
+        return res.status(500).json({ message: "Error creating certification" })
+      }
+    }
+
+    // ADMIN ANALYTICS ROUTES - For charts and stats
+    if (path === "/admin/analytics" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to access analytics"
+        })
+      }
+
+      // Check if user has admin privileges
+      if (!["admin", "super_admin", "university_admin"].includes(authResult.user.user_type)) {
+        return res.status(403).json({ error: "Insufficient permissions" })
+      }
+
+      try {
+        // Get user statistics
+        const { data: userStats } = await supabaseAdmin
+          .from("users")
+          .select("user_type, created_at")
+
+        // Process user growth data
+        const userGrowth = userStats?.reduce((acc, user) => {
+          const date = new Date(user.created_at).toISOString().split('T')[0]
+          acc[date] = (acc[date] || 0) + 1
+          return acc
+        }, {}) || {}
+
+        const userGrowthArray = Object.entries(userGrowth).map(([date, count]) => ({
+          date,
+          users: count
+        }))
+
+        // Get user type distribution
+        const userTypeDistribution = userStats?.reduce((acc, user) => {
+          acc[user.user_type] = (acc[user.user_type] || 0) + 1
+          return acc
+        }, {}) || {}
+
+        const analyticsData = {
+          userGrowth: userGrowthArray,
+          userTypeDistribution,
+          totalUsers: userStats?.length || 0
+        }
+
+        return res.status(200).json(analyticsData)
+      } catch (error) {
+        console.error("Error fetching analytics:", error)
+        return res.status(500).json({ message: "Error fetching analytics data" })
+      }
+    }
+
+    // USER STATISTICS - Real data instead of dummy data
+    if (path === "/users/statistics" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to access statistics"
+        })
+      }
+
+      try {
+        const userId = authResult.userId
+
+        // Get actual user statistics from database
+        const { data: workHistory } = await supabaseAdmin
+          .from("work_history")
+          .select("id")
+          .eq("user_id", userId)
+
+        const { data: educationHistory } = await supabaseAdmin
+          .from("education_history")
+          .select("id")
+          .eq("user_id", userId)
+
+        const { data: skills } = await supabaseAdmin
+          .from("user_skills")
+          .select("id")
+          .eq("user_id", userId)
+
+        const { data: certifications } = await supabaseAdmin
+          .from("certifications")
+          .select("id")
+          .eq("user_id", userId)
+
+        // Return real statistics
+        return res.status(200).json({
+          workExperience: workHistory?.length || 0,
+          education: educationHistory?.length || 0,
+          skills: skills?.length || 0,
+          certifications: certifications?.length || 0,
+          applications: 0, // This would come from job applications table when implemented
+          interviews: 0,
+          offers: 0,
+          connections: 0,
+          monthlyXp: [] // Add empty array for chart compatibility
+        })
+      } catch (error) {
+        console.error("Error fetching user statistics:", error)
+        return res.status(500).json({
+          workExperience: 0,
+          education: 0,
+          skills: 0,
+          certifications: 0,
+          applications: 0,
+          interviews: 0,
+          offers: 0,
+          connections: 0,
+          monthlyXp: []
+        })
+      }
+    }
+
+    // Handle nested routes for career data
     if (path.startsWith("/career-data/")) {
       const subPath = path.replace("/career-data/", "")
 
@@ -384,27 +730,6 @@ export default async function handler(req, res) {
       case "/contacts/all-followups":
         return res.status(200).json([])
 
-      case "/users/statistics":
-        // User statistics endpoint
-        const statsAuthResult = await verifySupabaseToken(
-          req.headers.authorization
-        )
-
-        if (statsAuthResult.error) {
-          return res.status(statsAuthResult.status).json({
-            error: statsAuthResult.error,
-            message: "Please log in to access statistics"
-          })
-        }
-
-        // Return basic statistics
-        return res.status(200).json({
-          applications: 0,
-          interviews: 0,
-          offers: 0,
-          connections: 0
-        })
-
       case "/conversations":
         // AI Coach conversations endpoint
         const conversationsAuthResult = await verifySupabaseToken(
@@ -424,7 +749,8 @@ export default async function handler(req, res) {
         return res.status(404).json({
           error: "API route not found",
           path: path,
-          method: req.method
+          method: req.method,
+          hint: "This route may not be implemented yet in the Vercel deployment"
         })
     }
   } catch (error) {
@@ -434,4 +760,4 @@ export default async function handler(req, res) {
       message: error.message
     })
   }
-}
+} 
