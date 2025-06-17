@@ -574,6 +574,191 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "Career data endpoint not found" })
     }
 
+    // GOALS ROUTES - Critical missing routes
+    if (path === "/goals" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to access goals"
+        })
+      }
+
+      try {
+        const { data: goals } = await supabaseAdmin
+          .from("goals")
+          .select("*")
+          .eq("user_id", authResult.userId)
+          .order("created_at", { ascending: false })
+
+        return res.status(200).json(goals || [])
+      } catch (error) {
+        console.error("Error fetching goals:", error)
+        return res.status(500).json({ message: "Error fetching goals" })
+      }
+    }
+
+    if (path === "/goals" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to create goals"
+        })
+      }
+
+      try {
+        const goalData = {
+          ...req.body,
+          user_id: authResult.userId,
+          status: req.body.status || "not_started"
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("goals")
+          .insert(goalData)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Error creating goal:", error)
+          return res.status(500).json({ message: "Error creating goal" })
+        }
+
+        return res.status(201).json(data)
+      } catch (error) {
+        console.error("Error creating goal:", error)
+        return res.status(500).json({ message: "Error creating goal" })
+      }
+    }
+
+    // Individual goal operations (PUT, DELETE)
+    if (path.startsWith("/goals/") && path !== "/goals/suggest") {
+      const goalId = path.split("/goals/")[1]
+      
+      if (req.method === "PUT") {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to update goals"
+          })
+        }
+
+        try {
+          const { data: goal } = await supabaseAdmin
+            .from("goals")
+            .select("*")
+            .eq("id", goalId)
+            .eq("user_id", authResult.userId)
+            .single()
+
+          if (!goal) {
+            return res.status(404).json({ message: "Goal not found or access denied" })
+          }
+
+          const { data: updatedGoal, error } = await supabaseAdmin
+            .from("goals")
+            .update(req.body)
+            .eq("id", goalId)
+            .eq("user_id", authResult.userId)
+            .select()
+            .single()
+
+          if (error) {
+            console.error("Error updating goal:", error)
+            return res.status(500).json({ message: "Error updating goal" })
+          }
+
+          return res.status(200).json(updatedGoal)
+        } catch (error) {
+          console.error("Error updating goal:", error)
+          return res.status(500).json({ message: "Error updating goal" })
+        }
+      }
+
+      if (req.method === "DELETE") {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to delete goals"
+          })
+        }
+
+        try {
+          const { data: goal } = await supabaseAdmin
+            .from("goals")
+            .select("*")
+            .eq("id", goalId)
+            .eq("user_id", authResult.userId)
+            .single()
+
+          if (!goal) {
+            return res.status(404).json({ message: "Goal not found or access denied" })
+          }
+
+          const { error } = await supabaseAdmin
+            .from("goals")
+            .delete()
+            .eq("id", goalId)
+            .eq("user_id", authResult.userId)
+
+          if (error) {
+            console.error("Error deleting goal:", error)
+            return res.status(500).json({ message: "Error deleting goal" })
+          }
+
+          return res.status(204).send()
+        } catch (error) {
+          console.error("Error deleting goal:", error)
+          return res.status(500).json({ message: "Error deleting goal" })
+        }
+      }
+    }
+
+    // GOAL SUGGESTIONS ROUTE
+    if (path === "/goals/suggest" && req.method === "POST") {
+      try {
+        // For now, return basic goal suggestions until AI integration is set up
+        const { currentPosition, desiredPosition, timeframe, skills } = req.body
+
+        if (!currentPosition || !desiredPosition || !timeframe) {
+          return res.status(400).json({ message: "Missing required fields" })
+        }
+
+        // Basic goal suggestions based on input
+        const suggestions = [
+          {
+            title: `Develop ${desiredPosition} Skills`,
+            description: `Build core competencies required for ${desiredPosition} role`,
+            category: "skill_development",
+            priority: "high",
+            timeframe: timeframe
+          },
+          {
+            title: "Network Building",
+            description: `Connect with professionals in ${desiredPosition} field`,
+            category: "networking",
+            priority: "medium",
+            timeframe: timeframe
+          },
+          {
+            title: "Portfolio Development",
+            description: `Create projects showcasing ${desiredPosition} capabilities`,
+            category: "portfolio",
+            priority: "high",
+            timeframe: timeframe
+          }
+        ]
+
+        return res.status(200).json(suggestions)
+      } catch (error) {
+        console.error("Error generating goal suggestions:", error)
+        return res.status(500).json({ message: "Error generating goal suggestions" })
+      }
+    }
+
     // Handle simple routes
     switch (path) {
       case "/health":
@@ -745,12 +930,56 @@ export default async function handler(req, res) {
 
         return res.status(200).json([])
 
+      case "/achievements":
+        // Achievements endpoint
+        const achievementsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
+
+        if (achievementsAuthResult.error) {
+          return res.status(achievementsAuthResult.status).json({
+            error: achievementsAuthResult.error,
+            message: "Please log in to access achievements"
+          })
+        }
+
+        try {
+          const { data: achievements } = await supabaseAdmin
+            .from("achievements")
+            .select("*")
+            .eq("user_id", achievementsAuthResult.userId)
+
+          return res.status(200).json(achievements || [])
+        } catch (error) {
+          console.error("Error fetching achievements:", error)
+          return res.status(500).json({ message: "Error fetching achievements" })
+        }
+
+      case "/skill-stacker":
+        // Skill Stacker endpoint
+        if (req.method === "GET") {
+          const skillStackerAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (skillStackerAuthResult.error) {
+            return res.status(skillStackerAuthResult.status).json({
+              error: skillStackerAuthResult.error,
+              message: "Please log in to access skill stacker"
+            })
+          }
+
+          // Return empty array for now - can be expanded later
+          return res.status(200).json([])
+        }
+        break
+
       default:
         return res.status(404).json({
           error: "API route not found",
           path: path,
           method: req.method,
-          hint: "This route may not be implemented yet in the Vercel deployment"
+          hint: "This route may not be implemented yet in the Vercel deployment. Available routes: /users/me, /career-data, /goals, /admin/analytics, /users/statistics"
         })
     }
   } catch (error) {

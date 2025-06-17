@@ -35,6 +35,13 @@ Your Vercel deployment had several critical problems that were causing the funct
 - `POST /career-data/certifications` - Add certifications
 - `GET /admin/analytics` - Real analytics data for admin dashboards
 - `GET /users/statistics` - Real user statistics instead of dummy data
+- `GET /goals` - Fetch user goals
+- `POST /goals` - Create new goals
+- `PUT /goals/:id` - Update existing goals
+- `DELETE /goals/:id` - Delete goals
+- `POST /goals/suggest` - AI goal suggestions
+- `GET /achievements` - User achievements
+- `GET /skill-stacker` - Skill stacker functionality
 
 ### Enhanced Existing Routes:
 - `/users/me` - Improved user data mapping
@@ -69,6 +76,9 @@ After deploying these changes, test these scenarios:
 2. Add education history → Should work now  
 3. Add skills → Should work now
 4. Add certifications → Should work now
+5. **Create career goals → Should work now** ⭐
+6. Edit and delete goals → Should work now
+7. Get goal suggestions → Should work now
 
 ### ✅ Admin Dashboards (University Admin & Super Admin)
 1. Check analytics charts → Should show real data now
@@ -89,6 +99,9 @@ After deploying these changes, test these scenarios:
 - ✅ New user onboarding completion  
 - ✅ Creating records (work, education, skills, certifications)
 - ✅ Real data in admin charts and statistics
+- ✅ **Career Goals functionality** - Create, edit, delete goals
+- ✅ Goal suggestions and planning features
+- ✅ Achievements and skill stacker access
 - ✅ Proper error handling and authentication
 - ✅ All user types can now use the app fully
 
