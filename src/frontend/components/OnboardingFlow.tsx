@@ -197,9 +197,9 @@ export default function OnboardingFlow() {
     // If the user needs to set a username, we'll add a step (so 5 steps total including Discord)
     // Without username: 5 steps total [career, details, interests, discord, plan]
     if (needsUsername) {
-      setProgress(step * 16.67) // 6 steps total (0, 1, 2, 3, 4, 5)
+      setProgress(Math.floor((step / 6) * 100)) // 6 steps total (0, 1, 2, 3, 4, 5)
     } else {
-      setProgress(step * 20) // 5 steps total (1, 2, 3, 4, 5)
+      setProgress(Math.floor((step / 5) * 100)) // 5 steps total (1, 2, 3, 4, 5)
     }
   }, [step, needsUsername])
 

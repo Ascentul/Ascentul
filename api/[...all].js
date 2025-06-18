@@ -272,6 +272,67 @@ export default async function handler(req, res) {
       }
     }
 
+    // UPDATE USER PROFILE - Critical for onboarding completion
+    if (path === "/users/profile" && req.method === "PUT") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to update profile"
+          })
+        }
+
+        const { onboardingCompleted, onboardingData } = req.body
+
+        // Update the user profile with onboarding completion
+        const updateData = {}
+        if (onboardingCompleted !== undefined) {
+          updateData.onboarding_completed = onboardingCompleted
+        }
+        if (onboardingData) {
+          updateData.onboarding_data = onboardingData
+        }
+
+        const { data: updatedUser, error } = await supabaseAdmin
+          .from("users")
+          .update(updateData)
+          .eq("id", authResult.userId)
+          .select()
+          .single()
+
+        if (error || !updatedUser) {
+          console.error("Error updating user profile:", error)
+          return res.status(500).json({ message: "Failed to update profile" })
+        }
+
+        // Map user data to expected format
+        const mappedUser = {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          userType: updatedUser.user_type,
+          role: updatedUser.role,
+          universityId: updatedUser.university_id,
+          universityName: updatedUser.university_name,
+          needsUsername: updatedUser.needs_username,
+          onboardingCompleted: updatedUser.onboarding_completed,
+          xp: updatedUser.xp || 0,
+          level: updatedUser.level || 1,
+          rank: updatedUser.rank || "Beginner",
+          profileImage: updatedUser.profile_image,
+          subscriptionPlan: updatedUser.subscription_plan || "free",
+          subscriptionStatus: updatedUser.subscription_status || "inactive"
+        }
+
+        return res.status(200).json(mappedUser)
+      } catch (error) {
+        console.error("Error updating user profile:", error)
+        return res.status(500).json({ message: "Error updating profile" })
+      }
+    }
+
     // WORK HISTORY ROUTES - Critical for creating records
     if (path === "/career-data/work-history" && req.method === "POST") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
