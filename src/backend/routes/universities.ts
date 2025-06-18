@@ -5,35 +5,31 @@ import { supabase, supabaseAdmin } from "../db"
 
 const router = express.Router()
 
-// Schema for creating or updating a university based on actual table structure
+// Schema for creating or updating a university - accepting frontend field names
 const universitySchema = z.object({
   name: z.string().min(3, "University name must be at least 3 characters"),
-  domain: z.string().min(3, "Domain must be at least 3 characters"),
-  country: z.string().min(2, "Country must be at least 2 characters"),
+  // Frontend fields
+  licensePlan: z.enum(["Starter", "Basic", "Pro", "Enterprise"]).optional(),
+  licenseSeats: z.number().min(1).optional(),
+  licenseStart: z.string().or(z.date()).optional(),
+  licenseEnd: z.string().or(z.date()).optional(),
+  adminEmail: z.string().email().optional(),
+  // Backend fields (optional for backwards compatibility)
+  domain: z.string().optional(),
+  country: z.string().optional(),
   state: z.string().optional(),
   city: z.string().optional(),
   address: z.string().optional(),
   website: z.string().url("Please enter a valid website URL").optional(),
   logo_url: z.string().url("Please enter a valid logo URL").optional(),
   primary_color: z.string().default("#4A56E2"),
-  subscription_tier: z
-    .enum(["basic", "premium", "enterprise"])
-    .default("basic"),
-  subscription_status: z
-    .enum(["active", "inactive", "suspended"])
-    .default("active")
+  subscription_tier: z.enum(["basic", "premium", "enterprise"]).optional(),
+  subscription_status: z.enum(["active", "inactive", "suspended"]).optional()
 })
 
 // Get all universities
 router.get("/", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     console.log("Fetching universities from Supabase...")
@@ -85,7 +81,14 @@ router.get("/", async (req, res) => {
         studentCount,
         adminCount,
         // Map fields for frontend compatibility
-        licensePlan: university.subscription_tier,
+        licensePlan:
+          university.subscription_tier === "basic"
+            ? "Starter"
+            : university.subscription_tier === "premium"
+            ? "Pro"
+            : university.subscription_tier === "enterprise"
+            ? "Enterprise"
+            : "Basic",
         licenseSeats: 100, // Default value since not in schema
         licenseUsed: studentCount + adminCount,
         licenseStart: university.created_at,
@@ -110,37 +113,50 @@ router.get("/", async (req, res) => {
 
 // Create a university
 router.post("/", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     // Validate input
     const validatedData = universitySchema.parse(req.body)
 
+    // Map frontend fields to backend schema
+    const mappedData = {
+      name: validatedData.name,
+      domain:
+        validatedData.domain ||
+        validatedData.name
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "") + ".edu",
+      country: validatedData.country || "US",
+      state: validatedData.state,
+      city: validatedData.city,
+      address: validatedData.address,
+      website: validatedData.website,
+      logo_url: validatedData.logo_url,
+      primary_color: validatedData.primary_color || "#4A56E2",
+      subscription_tier:
+        validatedData.subscription_tier ||
+        (validatedData.licensePlan
+          ? validatedData.licensePlan.toLowerCase() === "starter"
+            ? "basic"
+            : validatedData.licensePlan.toLowerCase() === "pro"
+            ? "premium"
+            : validatedData.licensePlan.toLowerCase() === "enterprise"
+            ? "enterprise"
+            : validatedData.licensePlan.toLowerCase() === "basic"
+            ? "basic"
+            : "basic"
+          : "basic"),
+      subscription_status: validatedData.subscription_status || "active",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     // Create the university
     const { data: university, error } = await supabaseAdmin
       .from("universities")
-      .insert({
-        name: validatedData.name,
-        domain: validatedData.domain,
-        country: validatedData.country,
-        state: validatedData.state,
-        city: validatedData.city,
-        address: validatedData.address,
-        website: validatedData.website,
-        logo_url: validatedData.logo_url,
-        primary_color: validatedData.primary_color,
-        subscription_tier: validatedData.subscription_tier,
-        subscription_status: validatedData.subscription_status,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(mappedData)
       .select()
       .single()
 
@@ -154,15 +170,22 @@ router.post("/", async (req, res) => {
       studentCount: 0,
       adminCount: 0,
       // Map fields for frontend compatibility
-      licensePlan: university.subscription_tier,
-      licenseSeats: 100,
+      licensePlan:
+        university.subscription_tier === "basic"
+          ? "Starter"
+          : university.subscription_tier === "premium"
+          ? "Pro"
+          : university.subscription_tier === "enterprise"
+          ? "Enterprise"
+          : "Basic",
+      licenseSeats: validatedData.licenseSeats || 100,
       licenseUsed: 0,
       licenseStart: university.created_at,
       licenseEnd: null,
       status:
         university.subscription_status === "active" ? "Active" : "Inactive",
       slug: university.domain,
-      adminEmail: null
+      adminEmail: validatedData.adminEmail || null
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -175,14 +198,7 @@ router.post("/", async (req, res) => {
 
 // Get a specific university
 router.get("/:id", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     const universityId = parseInt(req.params.id)
@@ -229,7 +245,14 @@ router.get("/:id", async (req, res) => {
       studentCount,
       adminCount,
       // Map fields for frontend compatibility
-      licensePlan: university.subscription_tier,
+      licensePlan:
+        university.subscription_tier === "basic"
+          ? "Starter"
+          : university.subscription_tier === "premium"
+          ? "Pro"
+          : university.subscription_tier === "enterprise"
+          ? "Enterprise"
+          : "Basic",
       licenseSeats: 100,
       licenseUsed: studentCount + adminCount,
       licenseStart: university.created_at,
@@ -247,14 +270,7 @@ router.get("/:id", async (req, res) => {
 
 // Update a university
 router.patch("/:id", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     const universityId = parseInt(req.params.id)
@@ -265,23 +281,43 @@ router.patch("/:id", async (req, res) => {
     // Validate input
     const validatedData = universitySchema.parse(req.body)
 
+    // Map frontend fields to backend schema
+    const updateData = {
+      name: validatedData.name,
+      domain: validatedData.domain,
+      country: validatedData.country,
+      state: validatedData.state,
+      city: validatedData.city,
+      address: validatedData.address,
+      website: validatedData.website,
+      logo_url: validatedData.logo_url,
+      primary_color: validatedData.primary_color,
+      subscription_tier:
+        validatedData.subscription_tier ||
+        (validatedData.licensePlan
+          ? validatedData.licensePlan.toLowerCase() === "starter"
+            ? "basic"
+            : validatedData.licensePlan.toLowerCase() === "pro"
+            ? "premium"
+            : validatedData.licensePlan.toLowerCase() === "enterprise"
+            ? "enterprise"
+            : validatedData.licensePlan.toLowerCase() === "basic"
+            ? "basic"
+            : "basic"
+          : undefined),
+      subscription_status: validatedData.subscription_status,
+      updated_at: new Date().toISOString()
+    }
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(
+      (key) => updateData[key] === undefined && delete updateData[key]
+    )
+
     // Update the university
     const { data: updatedUniversity, error: updateError } = await supabaseAdmin
       .from("universities")
-      .update({
-        name: validatedData.name,
-        domain: validatedData.domain,
-        country: validatedData.country,
-        state: validatedData.state,
-        city: validatedData.city,
-        address: validatedData.address,
-        website: validatedData.website,
-        logo_url: validatedData.logo_url,
-        primary_color: validatedData.primary_color,
-        subscription_tier: validatedData.subscription_tier,
-        subscription_status: validatedData.subscription_status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq("id", universityId)
       .select()
       .single()
@@ -294,8 +330,15 @@ router.patch("/:id", async (req, res) => {
     res.json({
       ...updatedUniversity,
       // Map fields for frontend compatibility
-      licensePlan: updatedUniversity.subscription_tier,
-      licenseSeats: 100,
+      licensePlan:
+        updatedUniversity.subscription_tier === "basic"
+          ? "Starter"
+          : updatedUniversity.subscription_tier === "premium"
+          ? "Pro"
+          : updatedUniversity.subscription_tier === "enterprise"
+          ? "Enterprise"
+          : "Basic",
+      licenseSeats: validatedData.licenseSeats || 100,
       licenseUsed: 0,
       licenseStart: updatedUniversity.created_at,
       licenseEnd: null,
@@ -304,7 +347,7 @@ router.patch("/:id", async (req, res) => {
           ? "Active"
           : "Inactive",
       slug: updatedUniversity.domain,
-      adminEmail: null
+      adminEmail: validatedData.adminEmail || null
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -317,14 +360,7 @@ router.patch("/:id", async (req, res) => {
 
 // Delete a university
 router.delete("/:id", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     const universityId = parseInt(req.params.id)
@@ -355,14 +391,7 @@ router.delete("/:id", async (req, res) => {
 
 // Get university students
 router.get("/:id/students", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     const universityId = parseInt(req.params.id)
@@ -390,14 +419,7 @@ router.get("/:id/students", async (req, res) => {
 
 // Get university admins
 router.get("/:id/admins", async (req, res) => {
-  if (!req.userId) {
-    return res.status(401).json({ message: "Authentication required" })
-  }
-
-  const user = await storage.getUser(req.userId)
-  if (!user || (user.userType !== "admin" && user.role !== "super_admin")) {
-    return res.status(403).json({ error: "Unauthorized" })
-  }
+  // Authentication and admin check is handled by middleware
 
   try {
     const universityId = parseInt(req.params.id)
