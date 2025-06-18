@@ -910,6 +910,41 @@ export default async function handler(req, res) {
       }
     }
 
+    // ADMIN SUPPORT ANALYTICS ENDPOINT
+    if (path === "/admin/support/analytics" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to access support analytics"
+        })
+      }
+
+      // Check if user has admin privileges
+      if (!["admin", "super_admin"].includes(authResult.user.user_type)) {
+        return res.status(403).json({ error: "Insufficient permissions" })
+      }
+
+      try {
+        // Since we don't have a support ticket system yet, return empty data
+        // This would be replaced with real support ticket queries
+        const supportAnalytics = {
+          openTickets: 0,
+          avgResponseTime: "N/A",
+          resolvedToday: 0,
+          satisfaction: "N/A",
+          chartData: []
+        }
+
+        return res.status(200).json(supportAnalytics)
+      } catch (error) {
+        console.error("Error fetching support analytics:", error)
+        return res
+          .status(500)
+          .json({ message: "Error fetching support analytics" })
+      }
+    }
+
     // USER STATISTICS - Real data instead of dummy data
     if (path === "/users/statistics" && req.method === "GET") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
