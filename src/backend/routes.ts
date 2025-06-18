@@ -317,8 +317,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register university invites router
   apiRouter.use("/university-invites", universityInvitesRouter)
 
-  // Register universities router
-  apiRouter.use("/universities", universitiesRouter)
+  // Register universities router (requires admin access)
+  apiRouter.use("/universities", requireAdmin, universitiesRouter)
 
   // Register reviews router
   // IMPORTANT: Add debugging middleware to diagnose route issues
