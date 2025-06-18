@@ -1,7 +1,8 @@
 import { ENV } from "../config/env"
+import { supabase, supabaseAdmin } from "./supabase"
 
-// Simplified database configuration for Supabase-only setup
-// No direct PostgreSQL connection needed since we use Supabase client
+// Export Supabase clients for database operations
+export { supabase, supabaseAdmin }
 
 // Legacy exports for backward compatibility (can be removed later)
 export const pool = null
@@ -10,9 +11,18 @@ export const db = null
 // Database health check function
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
-    // For Supabase, we don't need to test the connection here
-    // The Supabase client handles connection management automatically
-    console.log("✅ Using Supabase for database operations")
+    // Test Supabase connection with a simple query
+    const { data, error } = await supabase
+      .from("users")
+      .select("count")
+      .limit(1)
+
+    if (error) {
+      console.error("Supabase connection test failed:", error)
+      return false
+    }
+
+    console.log("✅ Supabase connection is healthy")
     return true
   } catch (error) {
     console.error("Database connection test failed:", error)
