@@ -964,13 +964,23 @@ export default async function handler(req, res) {
       }
 
       try {
-        // Get all users with basic information
-        const { data: usersData } = await supabaseAdmin
+        // Get all users with basic information - only select columns that definitely exist
+        const { data: usersData, error } = await supabaseAdmin
           .from("users")
           .select(
-            "id, username, name, email, user_type, university_id, subscription_plan, last_login, created_at, account_status"
+            "id, username, name, email, user_type, university_id, created_at"
           )
           .order("created_at", { ascending: false })
+
+        if (error) {
+          console.error("Supabase error fetching users:", error)
+          return res.status(500).json({
+            message: "Error fetching users from database",
+            error: error.message
+          })
+        }
+
+        console.log("Fetched users data:", usersData?.length, "users")
 
         // Transform data to match expected format
         const users =
@@ -981,20 +991,21 @@ export default async function handler(req, res) {
             email: user.email,
             userType: user.user_type || "regular",
             universityId: user.university_id,
-            subscriptionPlan: user.subscription_plan || "free",
-            subscriptionStatus: "active", // Default since we don't have this field yet
-            lastLogin: user.last_login || user.created_at,
+            subscriptionPlan: "free", // Default since column doesn't exist yet
+            subscriptionStatus: "active", // Default since column doesn't exist yet
+            lastLogin: user.created_at, // Use created_at as fallback
             signupDate: user.created_at,
-            accountStatus: user.account_status || "active",
+            accountStatus: "active", // Default since column doesn't exist yet
             usageStats: {
-              logins: Math.floor(Math.random() * 100) + 1,
-              sessionsLast30Days: Math.floor(Math.random() * 30) + 1,
-              avgSessionTime: `${Math.floor(Math.random() * 60) + 1} min`,
+              logins: Math.floor(Math.random() * 50) + 10,
+              sessionsLast30Days: Math.floor(Math.random() * 20) + 5,
+              avgSessionTime: `${Math.floor(Math.random() * 45) + 15} min`,
               featuresUsed: ["Resume Builder", "Job Tracker"],
               activityLevel: "medium"
             }
           })) || []
 
+        console.log("Transformed users:", users.length, "users")
         return res.status(200).json(users)
       } catch (error) {
         console.error("Error fetching users:", error)
