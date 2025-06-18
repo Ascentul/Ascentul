@@ -333,6 +333,47 @@ export default async function handler(req, res) {
       }
     }
 
+    // UNIVERSITY LEARNING MODULES ENDPOINTS
+    if (path === "/university/learning-modules" && req.method === "GET") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to access learning modules"
+          })
+        }
+
+        // Since we don't have learning_modules table yet, return empty array
+        // University admins would need to create learning modules first
+        return res.status(200).json([])
+      } catch (error) {
+        console.error("University learning modules error:", error)
+        return res.status(500).json({ error: "Internal server error" })
+      }
+    }
+
+    if (
+      path === "/university/learning-modules/enrolled" &&
+      req.method === "GET"
+    ) {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to access enrolled modules"
+          })
+        }
+
+        // Since we don't have learning_module_enrollments table yet, return empty array
+        return res.status(200).json([])
+      } catch (error) {
+        console.error("University enrolled modules error:", error)
+        return res.status(500).json({ error: "Internal server error" })
+      }
+    }
+
     // WORK HISTORY ROUTES - Critical for creating records
     if (path === "/career-data/work-history" && req.method === "POST") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
