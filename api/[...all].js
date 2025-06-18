@@ -374,6 +374,46 @@ export default async function handler(req, res) {
       }
     }
 
+    // UNIVERSITY STUDY PLANS ENDPOINTS
+    if (path === "/university/study-plans" && req.method === "GET") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to access study plans"
+          })
+        }
+
+        // Since we don't have study_plans table yet, return empty array
+        // Students would need to create study plans first
+        return res.status(200).json([])
+      } catch (error) {
+        console.error("University study plans error:", error)
+        return res.status(500).json({ error: "Internal server error" })
+      }
+    }
+
+    if (path === "/university/study-plans" && req.method === "POST") {
+      try {
+        const authResult = await verifySupabaseToken(req.headers.authorization)
+        if (authResult.error) {
+          return res.status(authResult.status).json({
+            error: authResult.error,
+            message: "Please log in to create study plans"
+          })
+        }
+
+        // Return empty response for now - would create study plan in database
+        return res
+          .status(201)
+          .json({ message: "Study plan creation not implemented yet" })
+      } catch (error) {
+        console.error("University study plans creation error:", error)
+        return res.status(500).json({ error: "Internal server error" })
+      }
+    }
+
     // WORK HISTORY ROUTES - Critical for creating records
     if (path === "/career-data/work-history" && req.method === "POST") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
