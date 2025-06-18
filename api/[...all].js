@@ -833,6 +833,83 @@ export default async function handler(req, res) {
       }
     }
 
+    // ADMIN USER STATS ENDPOINT
+    if (path === "/admin/users/stats" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({
+          error: authResult.error,
+          message: "Please log in to access user stats"
+        })
+      }
+
+      // Check if user has admin privileges
+      if (
+        !["admin", "super_admin", "university_admin"].includes(
+          authResult.user.user_type
+        )
+      ) {
+        return res.status(403).json({ error: "Insufficient permissions" })
+      }
+
+      try {
+        // Get user statistics
+        const { data: userStats } = await supabaseAdmin
+          .from("users")
+          .select("user_type, subscription_plan, university_id")
+
+        // Count different user types and plans
+        const stats = userStats?.reduce(
+          (acc, user) => {
+            // Count by user type
+            if (user.user_type === "university_user") {
+              acc.universityUsers++
+            } else if (user.subscription_plan === "pro") {
+              acc.premiumUsers++
+            } else {
+              acc.freeUsers++
+            }
+
+            // Count universities
+            if (
+              user.university_id &&
+              !acc.universityIds.has(user.university_id)
+            ) {
+              acc.universityIds.add(user.university_id)
+              acc.universities++
+            }
+
+            acc.totalUsers++
+            return acc
+          },
+          {
+            totalUsers: 0,
+            freeUsers: 0,
+            premiumUsers: 0,
+            universityUsers: 0,
+            universities: 0,
+            universityIds: new Set()
+          }
+        )
+
+        // Remove the Set from the response
+        const { universityIds, ...responseStats } = stats || {
+          totalUsers: 0,
+          freeUsers: 0,
+          premiumUsers: 0,
+          universityUsers: 0,
+          universities: 0
+        }
+
+        return res.status(200).json(responseStats)
+      } catch (error) {
+        console.error("Error fetching user stats:", error)
+        return res
+          .status(500)
+          .json({ message: "Error fetching user statistics" })
+      }
+    }
+
     // USER STATISTICS - Real data instead of dummy data
     if (path === "/users/statistics" && req.method === "GET") {
       const authResult = await verifySupabaseToken(req.headers.authorization)
