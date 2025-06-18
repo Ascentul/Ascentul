@@ -150,26 +150,30 @@ export default async function handler(req, res) {
       return
     }
 
-    // Get the API path
-    const path = req.url.replace("/api", "") || "/"
+    // Get the API path (remove query parameters for route matching)
+    const fullPath = req.url.replace("/api", "") || "/"
+    const path = fullPath.split("?")[0] // Remove query parameters for route matching
 
     console.log(`API Request: ${req.method} ${path}`)
 
     // Route handling with comprehensive coverage
-    
+
     // USERNAME AVAILABILITY CHECK - Critical missing route
     if (path === "/users/check-username" && req.method === "GET") {
       try {
         const { username } = req.query
 
         if (!username || typeof username !== "string") {
-          return res.status(400).json({ message: "Username parameter is required" })
+          return res
+            .status(400)
+            .json({ message: "Username parameter is required" })
         }
 
         // Check if the username is valid format
         if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
           return res.status(400).json({
-            message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores",
+            message:
+              "Username must be at least 3 characters and can only contain letters, numbers, and underscores",
             available: false
           })
         }
@@ -184,7 +188,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ available: !existingUser })
       } catch (error) {
         console.error("Error checking username availability:", error)
-        return res.status(500).json({ message: "Error checking username availability" })
+        return res
+          .status(500)
+          .json({ message: "Error checking username availability" })
       }
     }
 
@@ -208,7 +214,8 @@ export default async function handler(req, res) {
         // Check if the username is valid format
         if (!/^[a-zA-Z0-9_]{3,}$/.test(username)) {
           return res.status(400).json({
-            message: "Username must be at least 3 characters and can only contain letters, numbers, and underscores"
+            message:
+              "Username must be at least 3 characters and can only contain letters, numbers, and underscores"
           })
         }
 
@@ -289,7 +296,9 @@ export default async function handler(req, res) {
 
         if (error) {
           console.error("Error creating work history:", error)
-          return res.status(500).json({ message: "Error creating work history" })
+          return res
+            .status(500)
+            .json({ message: "Error creating work history" })
         }
 
         return res.status(201).json(data)
@@ -323,13 +332,17 @@ export default async function handler(req, res) {
 
         if (error) {
           console.error("Error creating education history:", error)
-          return res.status(500).json({ message: "Error creating education history" })
+          return res
+            .status(500)
+            .json({ message: "Error creating education history" })
         }
 
         return res.status(201).json(data)
       } catch (error) {
         console.error("Error creating education history:", error)
-        return res.status(500).json({ message: "Error creating education history" })
+        return res
+          .status(500)
+          .json({ message: "Error creating education history" })
       }
     }
 
@@ -344,16 +357,16 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { 
-          fullName, 
-          email, 
-          phone, 
-          company, 
-          jobTitle,  // Frontend sends jobTitle, not position
-          linkedinUrl, 
-          relationshipType, 
-          lastContactedDate,  // Frontend sends lastContactedDate, not lastContactDate
-          notes 
+        const {
+          fullName,
+          email,
+          phone,
+          company,
+          jobTitle, // Frontend sends jobTitle, not position
+          linkedinUrl,
+          relationshipType,
+          lastContactedDate, // Frontend sends lastContactedDate, not lastContactDate
+          notes
         } = req.body
 
         if (!fullName) {
@@ -364,14 +377,14 @@ export default async function handler(req, res) {
           .from("networking_contacts")
           .insert({
             user_id: authResult.userId,
-            name: fullName,  // Database column is 'name', not 'full_name'
+            name: fullName, // Database column is 'name', not 'full_name'
             email: email || null,
             phone: phone || null,
             company: company || null,
-            position: jobTitle || null,  // Map jobTitle to position in database
+            position: jobTitle || null, // Map jobTitle to position in database
             linkedin_url: linkedinUrl || null,
-            relationship: relationshipType || "professional",  // Database column is 'relationship', not 'relationship_type'
-            last_contact_date: lastContactedDate || null,  // Map lastContactedDate to last_contact_date
+            relationship: relationshipType || "professional", // Database column is 'relationship', not 'relationship_type'
+            last_contact_date: lastContactedDate || null, // Map lastContactedDate to last_contact_date
             notes: notes || null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -402,7 +415,11 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { query, conversationHistory = [], selectedModel = "gpt-4o-mini" } = req.body
+        const {
+          query,
+          conversationHistory = [],
+          selectedModel = "gpt-4o-mini"
+        } = req.body
 
         if (!query || typeof query !== "string") {
           return res.status(400).json({ error: "Query is required" })
@@ -425,7 +442,7 @@ export default async function handler(req, res) {
     if (path.startsWith("/contacts/") && req.method === "PUT") {
       const pathParts = path.split("/")
       const contactId = parseInt(pathParts[2])
-      
+
       if (isNaN(contactId)) {
         return res.status(400).json({ message: "Invalid contact ID" })
       }
@@ -439,16 +456,16 @@ export default async function handler(req, res) {
       }
 
       try {
-        const { 
-          fullName, 
-          email, 
-          phone, 
-          company, 
-          jobTitle,  // Frontend sends jobTitle, not position
-          linkedinUrl, 
-          relationshipType, 
-          lastContactedDate,  // Frontend sends lastContactedDate, not lastContactDate
-          notes 
+        const {
+          fullName,
+          email,
+          phone,
+          company,
+          jobTitle, // Frontend sends jobTitle, not position
+          linkedinUrl,
+          relationshipType,
+          lastContactedDate, // Frontend sends lastContactedDate, not lastContactDate
+          notes
         } = req.body
 
         // First check if the contact belongs to the user
@@ -466,14 +483,14 @@ export default async function handler(req, res) {
         const { data: contact, error } = await supabaseAdmin
           .from("networking_contacts")
           .update({
-            name: fullName,  // Database column is 'name', not 'full_name'
+            name: fullName, // Database column is 'name', not 'full_name'
             email: email || null,
             phone: phone || null,
             company: company || null,
-            position: jobTitle || null,  // Map jobTitle to position in database
+            position: jobTitle || null, // Map jobTitle to position in database
             linkedin_url: linkedinUrl || null,
-            relationship: relationshipType || "professional",  // Database column is 'relationship', not 'relationship_type'
-            last_contact_date: lastContactedDate || null,  // Map lastContactedDate to last_contact_date
+            relationship: relationshipType || "professional", // Database column is 'relationship', not 'relationship_type'
+            last_contact_date: lastContactedDate || null, // Map lastContactedDate to last_contact_date
             notes: notes || null,
             updated_at: new Date().toISOString()
           })
@@ -498,7 +515,7 @@ export default async function handler(req, res) {
     if (path.startsWith("/contacts/") && req.method === "DELETE") {
       const pathParts = path.split("/")
       const contactId = parseInt(pathParts[2])
-      
+
       if (isNaN(contactId)) {
         return res.status(400).json({ message: "Invalid contact ID" })
       }
@@ -600,7 +617,9 @@ export default async function handler(req, res) {
 
         if (error) {
           console.error("Error creating certification:", error)
-          return res.status(500).json({ message: "Error creating certification" })
+          return res
+            .status(500)
+            .json({ message: "Error creating certification" })
         }
 
         return res.status(201).json(data)
@@ -621,7 +640,11 @@ export default async function handler(req, res) {
       }
 
       // Check if user has admin privileges
-      if (!["admin", "super_admin", "university_admin"].includes(authResult.user.user_type)) {
+      if (
+        !["admin", "super_admin", "university_admin"].includes(
+          authResult.user.user_type
+        )
+      ) {
         return res.status(403).json({ error: "Insufficient permissions" })
       }
 
@@ -632,22 +655,26 @@ export default async function handler(req, res) {
           .select("user_type, created_at")
 
         // Process user growth data
-        const userGrowth = userStats?.reduce((acc, user) => {
-          const date = new Date(user.created_at).toISOString().split('T')[0]
-          acc[date] = (acc[date] || 0) + 1
-          return acc
-        }, {}) || {}
+        const userGrowth =
+          userStats?.reduce((acc, user) => {
+            const date = new Date(user.created_at).toISOString().split("T")[0]
+            acc[date] = (acc[date] || 0) + 1
+            return acc
+          }, {}) || {}
 
-        const userGrowthArray = Object.entries(userGrowth).map(([date, count]) => ({
-          date,
-          users: count
-        }))
+        const userGrowthArray = Object.entries(userGrowth).map(
+          ([date, count]) => ({
+            date,
+            users: count
+          })
+        )
 
         // Get user type distribution
-        const userTypeDistribution = userStats?.reduce((acc, user) => {
-          acc[user.user_type] = (acc[user.user_type] || 0) + 1
-          return acc
-        }, {}) || {}
+        const userTypeDistribution =
+          userStats?.reduce((acc, user) => {
+            acc[user.user_type] = (acc[user.user_type] || 0) + 1
+            return acc
+          }, {}) || {}
 
         const analyticsData = {
           userGrowth: userGrowthArray,
@@ -658,7 +685,9 @@ export default async function handler(req, res) {
         return res.status(200).json(analyticsData)
       } catch (error) {
         console.error("Error fetching analytics:", error)
-        return res.status(500).json({ message: "Error fetching analytics data" })
+        return res
+          .status(500)
+          .json({ message: "Error fetching analytics data" })
       }
     }
 
@@ -844,7 +873,7 @@ export default async function handler(req, res) {
     // Individual goal operations (PUT, DELETE)
     if (path.startsWith("/goals/") && path !== "/goals/suggest") {
       const goalId = path.split("/goals/")[1]
-      
+
       if (req.method === "PUT") {
         const authResult = await verifySupabaseToken(req.headers.authorization)
         if (authResult.error) {
@@ -863,7 +892,9 @@ export default async function handler(req, res) {
             .single()
 
           if (!goal) {
-            return res.status(404).json({ message: "Goal not found or access denied" })
+            return res
+              .status(404)
+              .json({ message: "Goal not found or access denied" })
           }
 
           const { data: updatedGoal, error } = await supabaseAdmin
@@ -904,7 +935,9 @@ export default async function handler(req, res) {
             .single()
 
           if (!goal) {
-            return res.status(404).json({ message: "Goal not found or access denied" })
+            return res
+              .status(404)
+              .json({ message: "Goal not found or access denied" })
           }
 
           const { error } = await supabaseAdmin
@@ -964,7 +997,9 @@ export default async function handler(req, res) {
         return res.status(200).json(suggestions)
       } catch (error) {
         console.error("Error generating goal suggestions:", error)
-        return res.status(500).json({ message: "Error generating goal suggestions" })
+        return res
+          .status(500)
+          .json({ message: "Error generating goal suggestions" })
       }
     }
 
@@ -1123,7 +1158,9 @@ export default async function handler(req, res) {
 
       case "/contacts":
         if (req.method === "GET") {
-          const contactsAuthResult = await verifySupabaseToken(req.headers.authorization)
+          const contactsAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
           if (contactsAuthResult.error) {
             return res.status(contactsAuthResult.status).json({
               error: contactsAuthResult.error,
@@ -1139,13 +1176,14 @@ export default async function handler(req, res) {
               .order("created_at", { ascending: false })
 
             // Map database fields to frontend expected fields
-            const mappedContacts = contacts?.map(contact => ({
-              ...contact,
-              fullName: contact.name,  // Map name to fullName for frontend
-              jobTitle: contact.position,  // Map position to jobTitle for frontend
-              relationshipType: contact.relationship,  // Map relationship to relationshipType for frontend
-              lastContactedDate: contact.last_contact_date  // Map last_contact_date to lastContactedDate for frontend
-            })) || []
+            const mappedContacts =
+              contacts?.map((contact) => ({
+                ...contact,
+                fullName: contact.name, // Map name to fullName for frontend
+                jobTitle: contact.position, // Map position to jobTitle for frontend
+                relationshipType: contact.relationship, // Map relationship to relationshipType for frontend
+                lastContactedDate: contact.last_contact_date // Map last_contact_date to lastContactedDate for frontend
+              })) || []
 
             return res.status(200).json(mappedContacts)
           } catch (error) {
@@ -1156,7 +1194,9 @@ export default async function handler(req, res) {
         break
 
       case "/contacts/need-followup":
-        const needFollowupAuthResult = await verifySupabaseToken(req.headers.authorization)
+        const needFollowupAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
         if (needFollowupAuthResult.error) {
           return res.status(needFollowupAuthResult.status).json({
             error: needFollowupAuthResult.error,
@@ -1164,26 +1204,30 @@ export default async function handler(req, res) {
           })
         }
 
-                  try {
-            // For now, return contacts that haven't been contacted in 30+ days
-            // since the followup_actions table doesn't have contact_id support yet
-            const thirtyDaysAgo = new Date()
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        try {
+          // For now, return contacts that haven't been contacted in 30+ days
+          // since the followup_actions table doesn't have contact_id support yet
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-            const { data: contacts } = await supabaseAdmin
-              .from("networking_contacts")
-              .select("*")
-              .eq("user_id", needFollowupAuthResult.userId)
-              .lt("last_contact_date", thirtyDaysAgo.toISOString())
+          const { data: contacts } = await supabaseAdmin
+            .from("networking_contacts")
+            .select("*")
+            .eq("user_id", needFollowupAuthResult.userId)
+            .lt("last_contact_date", thirtyDaysAgo.toISOString())
 
-            return res.status(200).json(contacts || [])
+          return res.status(200).json(contacts || [])
         } catch (error) {
           console.error("Error fetching contacts needing follow-up:", error)
-          return res.status(500).json({ message: "Failed to fetch contacts needing follow-up" })
+          return res
+            .status(500)
+            .json({ message: "Failed to fetch contacts needing follow-up" })
         }
 
       case "/contacts/all-followups":
-        const followupsAuthResult = await verifySupabaseToken(req.headers.authorization)
+        const followupsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
         if (followupsAuthResult.error) {
           return res.status(followupsAuthResult.status).json({
             error: followupsAuthResult.error,
@@ -1253,7 +1297,9 @@ export default async function handler(req, res) {
           return res.status(200).json(achievements || [])
         } catch (error) {
           console.error("Error fetching achievements:", error)
-          return res.status(500).json({ message: "Error fetching achievements" })
+          return res
+            .status(500)
+            .json({ message: "Error fetching achievements" })
         }
 
       case "/work-history":
@@ -1280,7 +1326,9 @@ export default async function handler(req, res) {
             return res.status(200).json(workHistory || [])
           } catch (error) {
             console.error("Error fetching work history:", error)
-            return res.status(500).json({ message: "Error fetching work history" })
+            return res
+              .status(500)
+              .json({ message: "Error fetching work history" })
           }
         }
         break
@@ -1309,7 +1357,9 @@ export default async function handler(req, res) {
             return res.status(200).json(achievements || [])
           } catch (error) {
             console.error("Error fetching personal achievements:", error)
-            return res.status(500).json({ message: "Error fetching personal achievements" })
+            return res
+              .status(500)
+              .json({ message: "Error fetching personal achievements" })
           }
         }
         break
@@ -1338,7 +1388,9 @@ export default async function handler(req, res) {
             return res.status(200).json(processes || [])
           } catch (error) {
             console.error("Error fetching interview processes:", error)
-            return res.status(500).json({ message: "Error fetching interview processes" })
+            return res
+              .status(500)
+              .json({ message: "Error fetching interview processes" })
           }
         }
         break
@@ -1377,4 +1429,4 @@ export default async function handler(req, res) {
       message: error.message
     })
   }
-} 
+}
