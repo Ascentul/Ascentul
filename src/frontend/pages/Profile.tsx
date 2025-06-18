@@ -416,80 +416,142 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Education Item */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
-                    <GraduationCap className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">
-                        Bachelor of Science in Computer Science
-                      </h3>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEditItem("education", 1)}
-                        >
-                          <span className="sr-only">Edit</span>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      University of Washington
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>2014 - 2018</span>
-                    </div>
-                    <p className="mt-2 text-sm">
-                      Graduated with honors. Focused on software engineering and
-                      artificial intelligence. Senior project: Developed a
-                      machine learning model for predicting traffic patterns.
-                    </p>
-                  </div>
-                </div>
+                {/* Education History */}
+                {careerData?.educationHistory &&
+                careerData.educationHistory.length > 0
+                  ? careerData.educationHistory.map(
+                      (education: any, index: number) => (
+                        <div key={education.id}>
+                          <div className="flex gap-4">
+                            <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
+                              <GraduationCap className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between">
+                                <h3 className="font-medium">
+                                  {education.degree}{" "}
+                                  {education.fieldOfStudy &&
+                                    `in ${education.fieldOfStudy}`}
+                                </h3>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() =>
+                                      handleEditItem("education", education.id)
+                                    }
+                                  >
+                                    <span className="sr-only">Edit</span>
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {education.institution}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>
+                                  {new Date(education.startDate).getFullYear()}{" "}
+                                  -{" "}
+                                  {education.endDate
+                                    ? new Date(education.endDate).getFullYear()
+                                    : "Present"}
+                                </span>
+                              </div>
+                              {education.description && (
+                                <p className="mt-2 text-sm">
+                                  {education.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          {index < careerData.educationHistory.length - 1 && (
+                            <Separator />
+                          )}
+                        </div>
+                      )
+                    )
+                  : null}
 
-                <Separator />
+                {/* Certifications */}
+                {careerData?.certifications &&
+                  careerData.certifications.length > 0 && (
+                    <>
+                      {careerData?.educationHistory &&
+                        careerData.educationHistory.length > 0 && <Separator />}
+                      {careerData.certifications.map(
+                        (cert: any, index: number) => (
+                          <div key={cert.id}>
+                            <div className="flex gap-4">
+                              <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
+                                <Award className="h-6 w-6 text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex justify-between">
+                                  <h3 className="font-medium">{cert.name}</h3>
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() =>
+                                        handleEditItem("certification", cert.id)
+                                      }
+                                    >
+                                      <span className="sr-only">Edit</span>
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {cert.issuer}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>
+                                    Issued{" "}
+                                    {new Date(
+                                      cert.dateEarned
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      year: "numeric"
+                                    })}
+                                    {cert.expirationDate &&
+                                      ` · Expires ${new Date(
+                                        cert.expirationDate
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        year: "numeric"
+                                      })}`}
+                                  </span>
+                                </div>
+                                {cert.description && (
+                                  <p className="mt-2 text-sm">
+                                    {cert.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            {index < careerData.certifications.length - 1 && (
+                              <Separator />
+                            )}
+                          </div>
+                        )
+                      )}
+                    </>
+                  )}
 
-                {/* Certification Item */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-md flex items-center justify-center">
-                    <Award className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">
-                        AWS Certified Solutions Architect
-                      </h3>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEditItem("certification", 1)}
-                        >
-                          <span className="sr-only">Edit</span>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Amazon Web Services
+                {/* Empty state */}
+                {(!careerData?.educationHistory ||
+                  careerData.educationHistory.length === 0) &&
+                  (!careerData?.certifications ||
+                    careerData.certifications.length === 0) && (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No education or certifications added yet
                     </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>Issued Jan 2022 · Expires Jan 2025</span>
-                    </div>
-                    <p className="mt-2 text-sm">
-                      Professional certification for designing distributed
-                      systems on AWS platform.
-                    </p>
-                  </div>
-                </div>
+                  )}
               </div>
             </CardContent>
           </Card>
@@ -509,101 +571,150 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium mb-3">Technical Skills</h3>
-                  <div className="space-y-4">
-                    {/* Skill Item */}
+                {/* Technical Skills */}
+                {careerData?.skills &&
+                  careerData.skills.filter(
+                    (skill: any) => skill.category === "technical"
+                  ).length > 0 && (
                     <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">JavaScript</span>
-                        <span className="text-xs text-muted-foreground">
-                          32 endorsements
-                        </span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div
-                          className="h-2 bg-primary rounded-full"
-                          style={{ width: "90%" }}
-                        ></div>
+                      <h3 className="font-medium mb-3">Technical Skills</h3>
+                      <div className="space-y-4">
+                        {careerData.skills
+                          .filter(
+                            (skill: any) => skill.category === "technical"
+                          )
+                          .map((skill: any) => (
+                            <div key={skill.id}>
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">
+                                  {skill.name}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {skill.proficiencyLevel || "Beginner"}
+                                </span>
+                              </div>
+                              <div className="h-2 bg-primary/10 rounded-full">
+                                <div
+                                  className="h-2 bg-primary rounded-full"
+                                  style={{
+                                    width: `${
+                                      skill.proficiencyLevel === "Expert"
+                                        ? 90
+                                        : skill.proficiencyLevel === "Advanced"
+                                        ? 75
+                                        : skill.proficiencyLevel ===
+                                          "Intermediate"
+                                        ? 60
+                                        : 40
+                                    }%`
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          ))}
                       </div>
                     </div>
+                  )}
 
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">React</span>
-                        <span className="text-xs text-muted-foreground">
-                          28 endorsements
-                        </span>
+                {/* Soft Skills */}
+                {careerData?.skills &&
+                  careerData.skills.filter(
+                    (skill: any) => skill.category === "soft"
+                  ).length > 0 && (
+                    <>
+                      {careerData.skills.filter(
+                        (skill: any) => skill.category === "technical"
+                      ).length > 0 && <Separator />}
+                      <div>
+                        <h3 className="font-medium mb-3">Soft Skills</h3>
+                        <div className="space-y-4">
+                          {careerData.skills
+                            .filter((skill: any) => skill.category === "soft")
+                            .map((skill: any) => (
+                              <div key={skill.id}>
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-sm font-medium">
+                                    {skill.name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {skill.proficiencyLevel || "Beginner"}
+                                  </span>
+                                </div>
+                                <div className="h-2 bg-primary/10 rounded-full">
+                                  <div
+                                    className="h-2 bg-primary rounded-full"
+                                    style={{
+                                      width: `${
+                                        skill.proficiencyLevel === "Expert"
+                                          ? 90
+                                          : skill.proficiencyLevel ===
+                                            "Advanced"
+                                          ? 75
+                                          : skill.proficiencyLevel ===
+                                            "Intermediate"
+                                          ? 60
+                                          : 40
+                                      }%`
+                                    }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div
-                          className="h-2 bg-primary rounded-full"
-                          style={{ width: "85%" }}
-                        ></div>
+                    </>
+                  )}
+
+                {/* All Skills (if no categories) */}
+                {careerData?.skills &&
+                  careerData.skills.length > 0 &&
+                  careerData.skills.filter(
+                    (skill: any) =>
+                      skill.category === "technical" ||
+                      skill.category === "soft"
+                  ).length === 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Skills</h3>
+                      <div className="space-y-4">
+                        {careerData.skills.map((skill: any) => (
+                          <div key={skill.id}>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-sm font-medium">
+                                {skill.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {skill.proficiencyLevel || "Beginner"}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-primary/10 rounded-full">
+                              <div
+                                className="h-2 bg-primary rounded-full"
+                                style={{
+                                  width: `${
+                                    skill.proficiencyLevel === "Expert"
+                                      ? 90
+                                      : skill.proficiencyLevel === "Advanced"
+                                      ? 75
+                                      : skill.proficiencyLevel ===
+                                        "Intermediate"
+                                      ? 60
+                                      : 40
+                                  }%`
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">Node.js</span>
-                        <span className="text-xs text-muted-foreground">
-                          24 endorsements
-                        </span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div
-                          className="h-2 bg-primary rounded-full"
-                          style={{ width: "80%" }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-medium mb-3">Soft Skills</h3>
-                  <div className="space-y-4">
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">
-                          Team Leadership
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          18 endorsements
-                        </span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div
-                          className="h-2 bg-primary rounded-full"
-                          style={{ width: "75%" }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Skill Item */}
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium">
-                          Problem Solving
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          22 endorsements
-                        </span>
-                      </div>
-                      <div className="h-2 bg-primary/10 rounded-full">
-                        <div
-                          className="h-2 bg-primary rounded-full"
-                          style={{ width: "82%" }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {/* Empty state */}
+                {(!careerData?.skills || careerData.skills.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No skills added yet
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -620,61 +731,49 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Achievement Item */}
-                <Card className="border-primary/10 overflow-hidden">
-                  <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
-                  <CardContent className="pt-6">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Award className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="font-medium">Resume Master</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Created 5 different resumes tailored to specific job
-                      postings.
+                {/* Real Achievements */}
+                {achievements && achievements.length > 0 ? (
+                  achievements.map((achievement: any) => (
+                    <Card
+                      key={achievement.id}
+                      className="border-primary/10 overflow-hidden"
+                    >
+                      <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
+                      <CardContent className="pt-6">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                          <Award className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-medium">{achievement.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {achievement.description}
+                        </p>
+                        {achievement.xpReward && (
+                          <div className="mt-2 text-xs text-primary">
+                            +{achievement.xpReward} XP
+                          </div>
+                        )}
+                        <Badge className="mt-4" variant="outline">
+                          {achievement.unlockedAt
+                            ? `Unlocked ${new Date(
+                                achievement.unlockedAt
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              })}`
+                            : "Locked"}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-8">
+                    <p className="text-muted-foreground">
+                      No achievements unlocked yet. Start completing goals and
+                      using features to earn achievements!
                     </p>
-                    <div className="mt-2 text-xs text-primary">+100 XP</div>
-                    <Badge className="mt-4" variant="outline">
-                      Unlocked May 20, 2024
-                    </Badge>
-                  </CardContent>
-                </Card>
-
-                {/* Achievement Item */}
-                <Card className="border-primary/10 overflow-hidden">
-                  <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
-                  <CardContent className="pt-6">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      <Star className="h-6 w-6 text-primary" />
-                    </div>
-                    <h3 className="font-medium">Goal Achiever</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Completed 10 career goals ahead of schedule.
-                    </p>
-                    <div className="mt-2 text-xs text-primary">+150 XP</div>
-                    <Badge className="mt-4" variant="outline">
-                      Unlocked Jun 12, 2024
-                    </Badge>
-                  </CardContent>
-                </Card>
-
-                {/* Achievement Item - Locked */}
-                <Card className="border-gray-200 overflow-hidden opacity-60">
-                  <div className="h-2 bg-gray-200"></div>
-                  <CardContent className="pt-6">
-                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                      <Award className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <h3 className="font-medium">Interview Expert</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Complete 20 practice interviews with high confidence
-                      ratings.
-                    </p>
-                    <div className="mt-2 text-xs text-gray-400">+200 XP</div>
-                    <Badge className="mt-4" variant="outline">
-                      Locked
-                    </Badge>
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
               </div>
 
               <div className="mt-8">
@@ -682,13 +781,15 @@ export default function Profile() {
                 <div className="h-2 bg-gray-100 rounded-full mb-2">
                   <div
                     className="h-2 bg-primary rounded-full"
-                    style={{ width: "68%" }}
+                    style={{
+                      width: `${Math.min(((user?.xp || 0) / 1000) * 100, 100)}%`
+                    }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Level {user.level}</span>
-                  <span>{user.xp} / 1000 XP</span>
-                  <span>Level {user.level + 1}</span>
+                  <span>Level {user?.level || 1}</span>
+                  <span>{user?.xp || 0} / 1000 XP</span>
+                  <span>Level {(user?.level || 1) + 1}</span>
                 </div>
               </div>
             </CardContent>
