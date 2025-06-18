@@ -201,12 +201,31 @@ export default function UserManagement() {
   const queryClient = useQueryClient()
 
   // Fetch users with search and filters
-  const { data: users, isLoading } = useQuery<User[]>({
+  const {
+    data: users,
+    isLoading,
+    error
+  } = useQuery<User[]>({
     queryKey: ["/api/admin/users", searchTerm, filters, currentPage],
     queryFn: async () => {
-      const response = await apiRequest("/api/admin/users")
-      return response
+      console.log("Fetching users from API...")
+      try {
+        const response = await apiRequest({ url: "/api/admin/users" })
+        console.log("API response:", response)
+        return response
+      } catch (error) {
+        console.error("Error fetching users:", error)
+        throw error
+      }
     }
+  })
+
+  // Debug logging
+  console.log("Users query state:", {
+    users,
+    isLoading,
+    error,
+    userCount: users?.length
   })
 
   // Mutation for updating user status
@@ -506,6 +525,25 @@ export default function UserManagement() {
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin h-8 w-8 rounded-full border-4 border-primary border-t-transparent"></div>
+              </div>
+            ) : error ? (
+              <div className="flex justify-center py-8">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-red-600 mb-2">
+                    Error Loading Users
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {error instanceof Error
+                      ? error.message
+                      : "Failed to load user data"}
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Retry
+                  </button>
+                </div>
               </div>
             ) : (
               <>
