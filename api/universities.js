@@ -151,14 +151,27 @@ export default async function handler(req, res) {
     // Handle POST request - create new university
     if (req.method === "POST") {
       try {
-        const { name, licensePlan, licenseSeats, adminEmail, domain, country } =
-          req.body
+        const {
+          name,
+          licensePlan,
+          licenseSeats,
+          licenseStart,
+          licenseEnd,
+          adminEmail
+        } = req.body
 
-        if (!name || !domain || !country) {
+        if (!name) {
           return res
             .status(400)
-            .json({ message: "Name, domain, and country are required" })
+            .json({ message: "University name is required" })
         }
+
+        // Generate domain from name if not provided
+        const domain =
+          name
+            .toLowerCase()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "") + ".edu"
 
         // Map frontend fields to backend schema
         const subscription_tier =
@@ -175,7 +188,7 @@ export default async function handler(req, res) {
           .insert({
             name,
             domain,
-            country,
+            country: "US", // Default country
             subscription_tier,
             subscription_status: "active"
           })
@@ -193,10 +206,10 @@ export default async function handler(req, res) {
           studentCount: 0,
           adminCount: 0,
           licensePlan: licensePlan || "Starter",
-          licenseSeats: licenseSeats || 100,
+          licenseSeats: licenseSeats || 50,
           licenseUsed: 0,
-          licenseStart: university.created_at,
-          licenseEnd: null,
+          licenseStart: licenseStart || university.created_at,
+          licenseEnd: licenseEnd || null,
           status: "Active",
           slug: university.domain,
           adminEmail: adminEmail || null
