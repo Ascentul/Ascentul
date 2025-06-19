@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS public.universities (
   website VARCHAR,
   logo_url VARCHAR,
   primary_color VARCHAR DEFAULT '#4A56E2',
+  license_seats INTEGER DEFAULT 50,
+  license_used INTEGER DEFAULT 0,
   subscription_tier VARCHAR NOT NULL DEFAULT 'basic',
   subscription_status VARCHAR NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
