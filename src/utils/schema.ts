@@ -1247,7 +1247,7 @@ export const insertNetworkingContactSchema = createInsertSchema(
       .optional()
       .nullable()
       .or(z.string().transform((val) => (val ? new Date(val) : null))),
-    // Convert nextContactDate string to Date object if it's not already a Date  
+    // Convert nextContactDate string to Date object if it's not already a Date
     nextContactDate: z
       .date()
       .optional()
@@ -1334,6 +1334,8 @@ export const platformSettings = pgTable("platform_settings", {
   email: jsonb("email").notNull(),
   api: jsonb("api").notNull(),
   security: jsonb("security").notNull(),
+  xpSystem: jsonb("xp_system").notNull(),
+  admin: jsonb("admin").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 })

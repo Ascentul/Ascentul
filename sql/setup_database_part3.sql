@@ -202,4 +202,20 @@ CREATE TABLE IF NOT EXISTS public.job_listings (
   source VARCHAR NOT NULL,
   source_id VARCHAR,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Create platform_settings table
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  id SERIAL PRIMARY KEY,
+  general JSONB NOT NULL,
+  features JSONB NOT NULL,
+  user_roles JSONB NOT NULL,
+  university JSONB NOT NULL,
+  email JSONB NOT NULL,
+  api JSONB NOT NULL,
+  security JSONB NOT NULL,
+  xp_system JSONB NOT NULL,
+  admin JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 ); 
