@@ -2753,7 +2753,7 @@ export class SupabaseStorage implements IStorage {
       // Award XP for adding a personal achievement
       await this.addUserXP(
         userId,
-        await settingsService.getXpReward('personalAchievementCreationReward'),
+        await settingsService.getXpReward("personalAchievementCreationReward"),
         "personal_achievement_added",
         "Added personal achievement"
       )
@@ -2765,3 +2765,21 @@ export class SupabaseStorage implements IStorage {
         title: data.title,
         description: data.description,
         achievementDate: data.achievement_date, // Map achievement_date to achievementDate
+        issuingOrganization: data.issuing_organization, // Map issuing_organization to issuingOrganization
+        proofUrl: data.proof_url, // Map proof_url to proofUrl
+        skills: data.skills,
+        category: data.category,
+        icon: data.icon,
+        xpValue: data.xp_value, // Map xp_value to xpValue
+        isHighlighted: data.is_highlighted, // Map is_highlighted to isHighlighted
+        createdAt: data.created_at, // Map created_at to createdAt
+        updatedAt: data.updated_at // Map updated_at to updatedAt
+      }
+    } catch (exception) {
+      console.error("❌ Exception in createUserPersonalAchievement:", exception)
+      throw exception
+    }
+  }
+}
+
+export default new SupabaseStorage()

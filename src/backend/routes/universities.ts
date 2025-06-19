@@ -61,6 +61,9 @@ router.get("/", async (req, res) => {
       // Continue without user counts rather than failing completely
     }
 
+    // Get default license seats once for all universities
+    const defaultLicenseSeats = await settingsService.getDefaultLicenseSeats()
+
     // Process the results to get university information with counts
     const universitiesWithCounts = (universityList || []).map((university) => {
       const studentCount =
@@ -90,9 +93,7 @@ router.get("/", async (req, res) => {
             : university.subscription_tier === "enterprise"
             ? "Enterprise"
             : "Basic",
-        licenseSeats:
-          university.license_seats ||
-          (await settingsService.getDefaultLicenseSeats()), // Use actual value from database or settings default
+        licenseSeats: university.license_seats || defaultLicenseSeats, // Use actual value from database or settings default
         licenseUsed: studentCount + adminCount,
         licenseStart: university.created_at,
         licenseEnd: null,
@@ -122,6 +123,9 @@ router.post("/", async (req, res) => {
     // Validate input
     const validatedData = universitySchema.parse(req.body)
 
+    // Get default license seats once
+    const defaultLicenseSeats = await settingsService.getDefaultLicenseSeats()
+
     // Map frontend fields to backend schema
     const mappedData = {
       name: validatedData.name,
@@ -138,9 +142,7 @@ router.post("/", async (req, res) => {
       website: validatedData.website,
       logo_url: validatedData.logo_url,
       primary_color: validatedData.primary_color || "#4A56E2",
-      license_seats:
-        validatedData.licenseSeats ||
-        (await settingsService.getDefaultLicenseSeats()), // Use settings for default license seats
+      license_seats: validatedData.licenseSeats || defaultLicenseSeats, // Use settings for default license seats
       license_used: 0, // New universities start with 0 used licenses
       subscription_tier:
         validatedData.subscription_tier ||
@@ -185,9 +187,7 @@ router.post("/", async (req, res) => {
           : university.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats:
-        university.license_seats ||
-        (await settingsService.getDefaultLicenseSeats()), // Use actual value from database or settings default
+      licenseSeats: university.license_seats || defaultLicenseSeats, // Use actual value from database or settings default
       licenseUsed: university.license_used || 0, // Use actual value from database
       licenseStart: university.created_at,
       licenseEnd: null,
@@ -249,6 +249,9 @@ router.get("/:id", async (req, res) => {
       }
     })
 
+    // Get default license seats once
+    const defaultLicenseSeats = await settingsService.getDefaultLicenseSeats()
+
     res.json({
       ...university,
       studentCount,
@@ -262,9 +265,7 @@ router.get("/:id", async (req, res) => {
           : university.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats:
-        university.license_seats ||
-        (await settingsService.getDefaultLicenseSeats()), // Use actual value from database or settings default
+      licenseSeats: university.license_seats || defaultLicenseSeats, // Use actual value from database or settings default
       licenseUsed: studentCount + adminCount,
       licenseStart: university.created_at,
       licenseEnd: null,
@@ -339,6 +340,9 @@ router.patch("/:id", async (req, res) => {
       return res.status(500).json({ error: "Failed to update university" })
     }
 
+    // Get default license seats once
+    const defaultLicenseSeats = await settingsService.getDefaultLicenseSeats()
+
     res.json({
       ...updatedUniversity,
       // Map fields for frontend compatibility
@@ -350,9 +354,7 @@ router.patch("/:id", async (req, res) => {
           : updatedUniversity.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats:
-        updatedUniversity.license_seats ||
-        (await settingsService.getDefaultLicenseSeats()), // Use actual value from database or settings default
+      licenseSeats: updatedUniversity.license_seats || defaultLicenseSeats, // Use actual value from database or settings default
       licenseUsed: updatedUniversity.license_used || 0, // Use actual value from database
       licenseStart: updatedUniversity.created_at,
       licenseEnd: null,

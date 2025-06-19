@@ -546,6 +546,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register test email router for development and testing
   apiRouter.use("/test", testEmailRouter)
 
+  // Admin users endpoint for user management
+  apiRouter.get(
+    "/admin/users",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        console.log("Admin users endpoint accessed by user:", req.userId)
+
+        // Get all users with basic information from Supabase
+        const { data: usersData, error } = await supabaseAdmin
+          .from("users")
+          .select(
+            "id, username, name, email, user_type, university_id, created_at, subscription_plan, subscription_status, xp, level"
+          )
+          .order("created_at", { ascending: false })
+
+        if (error) {
+          console.error("Supabase error fetching users:", error)
+          return res.status(500).json({
+            message: "Error fetching users from database",
+            error: error.message
+          })
+        }
+
+        console.log("Fetched users data:", usersData?.length, "users")
+
+        // Format users for frontend
+        const formattedUsers = (usersData || []).map((user: any) => ({
+          id: user.id,
+          username: user.username || "",
+          name: user.name || "",
+          email: user.email || "",
+          userType: user.user_type || "user",
+          universityId: user.university_id,
+          subscriptionPlan: user.subscription_plan || "free",
+          subscriptionStatus: user.subscription_status || "inactive",
+          xp: user.xp || 0,
+          level: user.level || 1,
+          createdAt: user.created_at,
+          lastActive: user.created_at, // Placeholder since we don't track last_active yet
+          lastLogin: user.created_at, // Placeholder for lastLogin
+          signupDate: user.created_at, // Map createdAt to signupDate for frontend compatibility
+          accountStatus:
+            user.subscription_status === "active" ? "active" : "inactive", // Map subscription status to account status
+          university: user.university_id
+            ? `University ${user.university_id}`
+            : undefined, // Placeholder for university name
+          // Add usageStats object that the frontend expects
+          usageStats: {
+            logins: Math.floor(Math.random() * 100) + 10, // Mock data - replace with real data later
+            sessionsLast30Days: Math.floor(Math.random() * 50) + 5,
+            avgSessionTime: `${Math.floor(Math.random() * 30) + 15}m`,
+            featuresUsed: [
+              "Resume Builder",
+              "Career Paths",
+              "Interview Prep"
+            ].slice(0, Math.floor(Math.random() * 3) + 1),
+            activityLevel: ["high", "medium", "low"][
+              Math.floor(Math.random() * 3)
+            ] as "high" | "medium" | "low"
+          }
+        }))
+
+        return res.status(200).json(formattedUsers)
+      } catch (error) {
+        console.error("Error in admin users endpoint:", error)
+        return res.status(500).json({
+          message: "Internal server error fetching users"
+        })
+      }
+    }
+  )
+
+  // Admin user stats endpoint
+  apiRouter.get(
+    "/admin/users/stats",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        // Get user statistics from Supabase
+        const { data: userStats, error } = await supabaseAdmin
+          .from("users")
+          .select("user_type, subscription_plan, university_id")
+
+        if (error) {
+          console.error("Error fetching user stats:", error)
+          return res
+            .status(500)
+            .json({ message: "Error fetching user statistics" })
+        }
+
+        // Count different user types and plans
+        const stats = userStats?.reduce(
+          (acc, user) => {
+            // Count by user type
+            if (
+              user.user_type === "university_student" ||
+              user.user_type === "university_admin"
+            ) {
+              acc.universityUsers++
+            } else if (
+              user.subscription_plan === "pro" ||
+              user.subscription_plan === "premium"
+            ) {
+              acc.premiumUsers++
+            } else {
+              acc.freeUsers++
+            }
+
+            // Count universities
+            if (
+              user.university_id &&
+              !acc.universityIds.has(user.university_id)
+            ) {
+              acc.universityIds.add(user.university_id)
+              acc.universities++
+            }
+
+            acc.totalUsers++
+            return acc
+          },
+          {
+            totalUsers: 0,
+            freeUsers: 0,
+            premiumUsers: 0,
+            universityUsers: 0,
+            universities: 0,
+            universityIds: new Set()
+          }
+        )
+
+        // Remove the Set from the response
+        const { universityIds, ...responseStats } = stats || {
+          totalUsers: 0,
+          freeUsers: 0,
+          premiumUsers: 0,
+          universityUsers: 0,
+          universities: 0
+        }
+
+        return res.status(200).json(responseStats)
+      } catch (error) {
+        console.error("Error fetching user stats:", error)
+        return res
+          .status(500)
+          .json({ message: "Error fetching user statistics" })
+      }
+    }
+  )
+
   // Create admin and sample users at startup
   try {
     // Create founder/admin account
