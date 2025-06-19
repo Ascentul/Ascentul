@@ -89,7 +89,7 @@ router.get("/", async (req, res) => {
             : university.subscription_tier === "enterprise"
             ? "Enterprise"
             : "Basic",
-        licenseSeats: 100, // Default value since not in schema
+        licenseSeats: university.license_seats || 50, // Use actual value from database
         licenseUsed: studentCount + adminCount,
         licenseStart: university.created_at,
         licenseEnd: null,
@@ -135,6 +135,8 @@ router.post("/", async (req, res) => {
       website: validatedData.website,
       logo_url: validatedData.logo_url,
       primary_color: validatedData.primary_color || "#4A56E2",
+      license_seats: validatedData.licenseSeats || 50, // Include license seats in database insert
+      license_used: 0, // New universities start with 0 used licenses
       subscription_tier:
         validatedData.subscription_tier ||
         (validatedData.licensePlan
@@ -178,8 +180,8 @@ router.post("/", async (req, res) => {
           : university.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats: validatedData.licenseSeats || 100,
-      licenseUsed: 0,
+      licenseSeats: university.license_seats || 50, // Use actual value from database
+      licenseUsed: university.license_used || 0, // Use actual value from database
       licenseStart: university.created_at,
       licenseEnd: null,
       status:
@@ -253,7 +255,7 @@ router.get("/:id", async (req, res) => {
           : university.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats: 100,
+      licenseSeats: university.license_seats || 50,
       licenseUsed: studentCount + adminCount,
       licenseStart: university.created_at,
       licenseEnd: null,
@@ -292,6 +294,7 @@ router.patch("/:id", async (req, res) => {
       website: validatedData.website,
       logo_url: validatedData.logo_url,
       primary_color: validatedData.primary_color,
+      license_seats: validatedData.licenseSeats, // Include license seats in update
       subscription_tier:
         validatedData.subscription_tier ||
         (validatedData.licensePlan
@@ -338,8 +341,8 @@ router.patch("/:id", async (req, res) => {
           : updatedUniversity.subscription_tier === "enterprise"
           ? "Enterprise"
           : "Basic",
-      licenseSeats: validatedData.licenseSeats || 100,
-      licenseUsed: 0,
+      licenseSeats: updatedUniversity.license_seats || 50,
+      licenseUsed: updatedUniversity.license_used || 0, // Use actual value from database
       licenseStart: updatedUniversity.created_at,
       licenseEnd: null,
       status:
