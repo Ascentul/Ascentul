@@ -1,9 +1,7 @@
 import express from "express"
-import { db } from "../db"
-import { eq } from "drizzle-orm"
-import { platformSettings } from "../../utils/schema"
 import { requireAdmin } from "../auth" // Use auth.ts implementation instead of validateRequest.ts
 import { z } from "zod"
+import { supabase } from "../supabase"
 
 const router = express.Router()
 
@@ -126,28 +124,54 @@ function getDefaultSettings() {
 // Get platform settings
 router.get("/", requireAdmin, async (req, res) => {
   try {
-    console.log("⭐ GET /api/settings request received")
-    console.log("⭐ User authenticated:", req.user ? "Yes" : "No")
-    console.log("⭐ User role:", req.user?.role)
-    console.log("⭐ User details:", req.user)
+    console.log("🔧 GET /api/settings request received")
+    console.log("🔧 User authenticated:", req.user ? "Yes" : "No")
+    console.log("🔧 User role:", req.user?.role)
+    console.log("🔧 User email:", req.user?.email)
+    console.log("🔧 User ID:", req.user?.id)
 
-    // Try to fetch existing settings
-    const settings = await db.select().from(platformSettings).limit(1)
-    console.log("⭐ Settings query result:", JSON.stringify(settings))
+    // Try to fetch existing settings using Supabase
+    console.log(
+      "🔧 Attempting to fetch settings from database using Supabase..."
+    )
+    const { data: settings, error } = await supabase
+      .from("platform_settings")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+
+    if (error) {
+      console.error("🔧 Supabase query error:", error)
+      // If there's an error (like table doesn't exist or is empty), return defaults
+      console.log("🔧 Database error, returning default settings")
+      const defaultSettings = getDefaultSettings()
+      console.log("🔧 Default settings keys:", Object.keys(defaultSettings))
+      return res.status(200).json(defaultSettings)
+    }
+
+    console.log("🔧 Settings query result count:", settings?.length)
+    console.log(
+      "🔧 Settings query result:",
+      settings?.length > 0 ? "Found data" : "No data"
+    )
 
     if (settings && settings.length > 0) {
-      console.log("⭐ Returning existing settings")
+      console.log("🔧 Returning existing settings with ID:", settings[0].id)
       return res.status(200).json(settings[0])
     }
 
     // If no settings exist yet, return defaults
-    console.log("⭐ No settings found, returning defaults")
+    console.log("🔧 No settings found in database, returning default settings")
     const defaultSettings = getDefaultSettings()
-    console.log("⭐ Default settings:", JSON.stringify(defaultSettings))
+    console.log("🔧 Default settings keys:", Object.keys(defaultSettings))
     return res.status(200).json(defaultSettings)
   } catch (error) {
-    console.error("⭐ Error fetching platform settings:", error)
-    return res.status(500).json({ error: "Failed to fetch platform settings" })
+    console.error("🔧 Error in settings endpoint:", error)
+    console.error("🔧 Error stack:", error.stack)
+    return res.status(500).json({
+      error: "Failed to fetch platform settings",
+      details: error.message
+    })
   }
 })
 
@@ -159,37 +183,56 @@ router.put("/", requireAdmin, async (req, res) => {
     // Validate settings
     const validatedSettings = settingsSchema.parse(settingsData)
 
-    // Check if settings exist
-    const existingSettings = await db.select().from(platformSettings).limit(1)
+    // Check if settings exist using Supabase
+    const { data: existingSettings, error: fetchError } = await supabase
+      .from("platform_settings")
+      .select("*")
+      .limit(1)
+
+    if (fetchError) {
+      console.error("Error fetching existing settings:", fetchError)
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch existing settings" })
+    }
 
     if (existingSettings && existingSettings.length > 0) {
       // Update existing settings
-      await db
-        .update(platformSettings)
-        .set({
+      const { data: updatedSettings, error: updateError } = await supabase
+        .from("platform_settings")
+        .update({
           ...validatedSettings,
-          updatedAt: new Date()
+          updated_at: new Date().toISOString()
         })
-        .where(eq(platformSettings.id, existingSettings[0].id))
+        .eq("id", existingSettings[0].id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error("Error updating settings:", updateError)
+        return res.status(500).json({ error: "Failed to update settings" })
+      }
 
       return res.json({
         message: "Settings updated successfully",
-        settings: {
-          ...existingSettings[0],
-          ...validatedSettings,
-          updatedAt: new Date()
-        }
+        settings: updatedSettings
       })
     } else {
       // Create new settings
-      const [newSettings] = await db
-        .insert(platformSettings)
-        .values({
+      const { data: newSettings, error: insertError } = await supabase
+        .from("platform_settings")
+        .insert({
           ...validatedSettings,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
-        .returning()
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error("Error creating settings:", insertError)
+        return res.status(500).json({ error: "Failed to create settings" })
+      }
 
       return res.json({
         message: "Settings created successfully",
@@ -212,24 +255,48 @@ router.put("/", requireAdmin, async (req, res) => {
 router.post("/reset", requireAdmin, async (req, res) => {
   try {
     const defaultSettings = getDefaultSettings()
-    const existingSettings = await db.select().from(platformSettings).limit(1)
+
+    // Check if settings exist using Supabase
+    const { data: existingSettings, error: fetchError } = await supabase
+      .from("platform_settings")
+      .select("*")
+      .limit(1)
+
+    if (fetchError) {
+      console.error("Error fetching existing settings:", fetchError)
+      return res
+        .status(500)
+        .json({ error: "Failed to fetch existing settings" })
+    }
 
     if (existingSettings && existingSettings.length > 0) {
       // Update existing settings with defaults
-      await db
-        .update(platformSettings)
-        .set({
+      const { error: updateError } = await supabase
+        .from("platform_settings")
+        .update({
           ...defaultSettings,
-          updatedAt: new Date()
+          updated_at: new Date().toISOString()
         })
-        .where(eq(platformSettings.id, existingSettings[0].id))
+        .eq("id", existingSettings[0].id)
+
+      if (updateError) {
+        console.error("Error updating settings:", updateError)
+        return res.status(500).json({ error: "Failed to reset settings" })
+      }
     } else {
       // Create new settings with defaults
-      await db.insert(platformSettings).values({
-        ...defaultSettings,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
+      const { error: insertError } = await supabase
+        .from("platform_settings")
+        .insert({
+          ...defaultSettings,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.error("Error creating settings:", insertError)
+        return res.status(500).json({ error: "Failed to create settings" })
+      }
     }
 
     return res.json({

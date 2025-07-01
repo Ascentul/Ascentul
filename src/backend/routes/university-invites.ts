@@ -2,8 +2,6 @@ import express from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { db } from '../db';
-import { users, universities, invites, insertInviteSchema } from "../../utils/schema";
-import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { sendUniversityInviteEmail } from '../mail';
 

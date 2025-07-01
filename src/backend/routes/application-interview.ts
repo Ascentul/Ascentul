@@ -2,7 +2,6 @@ import { Request, Response, Router } from 'express';
 import { IStorage } from '../storage';
 import { requireAuth, requireLoginFallback } from '../auth';
 import { z } from 'zod';
-import { insertInterviewStageSchema, insertFollowupActionSchema } from "../../utils/schema";
 
 export function registerApplicationInterviewRoutes(app: Router, storage: IStorage) {
   // Get interview stages for an application

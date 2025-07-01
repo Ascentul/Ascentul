@@ -109,8 +109,21 @@ export default function AdminSettingsTab() {
     isLoading,
     error
   } = useQuery({
-    queryKey: ["/api/settings"]
-    // Use the default queryFn which includes credentials and proper auth headers
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      console.log("🔧 Frontend: Fetching settings from /api/settings")
+      try {
+        const response = await apiRequest("GET", "/api/settings")
+        const data = await response.json()
+        console.log("🔧 Frontend: Settings data received:", !!data)
+        return data
+      } catch (error) {
+        console.error("🔧 Frontend: Settings fetch error:", error)
+        throw error
+      }
+    },
+    retry: 1,
+    staleTime: 0
   })
 
   // Update settings mutation
@@ -334,12 +347,26 @@ export default function AdminSettingsTab() {
   }
 
   if (error) {
+    console.error("🔧 Frontend: Settings error details:", error)
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex flex-col justify-center items-center h-64 space-y-4">
         <AlertCircle className="w-10 h-10 text-destructive" />
-        <span className="ml-4 text-lg">
-          Failed to load settings. Please try again later.
-        </span>
+        <div className="text-center">
+          <div className="text-lg mb-2">
+            Failed to load settings. Please try again later.
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Error: {error?.message || "Unknown error"}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Reload Page
+          </Button>
+        </div>
       </div>
     )
   }
