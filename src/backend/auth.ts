@@ -9,7 +9,7 @@ import {
   requireAdmin as supabaseRequireAdmin,
   requireStaff as supabaseRequireStaff
 } from "./supabase-auth"
-import { User } from "../utils/schema"
+import { User } from "../types/database"
 
 // Middleware to check if user is authenticated - use Supabase token verification
 export function requireAuth(req: Request, res: Response, next: () => void) {

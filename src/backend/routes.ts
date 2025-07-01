@@ -20,9 +20,9 @@ import { registerApplicationRoutes } from "./routes/applications"
 import { registerApplicationInterviewRoutes } from "./routes/application-interview"
 import { registerModelsRoutes } from "./routes/models"
 import { registerPdfExtractRoutes } from "./routes-pdf"
-import { eq, desc, and } from "drizzle-orm"
-import { users, userReviews, insertSupportTicketSchema } from "../utils/schema"
-import { db } from "./db"
+import { supabaseHelpers } from "./supabase"
+
+
 import { registerOpenAILogsRoutes } from "./routes/openai-logs"
 // Voice Interview routes removed
 import { registerCareerDataRoutes } from "./career-data"
@@ -49,30 +49,6 @@ import {
   CertificationRecommendation
 } from "./ai-certifications"
 import { generateCareerPaths, CareerPath } from "./ai-career-paths"
-import {
-  insertUserSchema,
-  insertGoalSchema,
-  insertWorkHistorySchema,
-  insertEducationHistorySchema,
-  insertResumeSchema,
-  insertCoverLetterSchema,
-  insertInterviewPracticeSchema,
-  insertInterviewProcessSchema,
-  insertInterviewStageSchema,
-  insertFollowupActionSchema,
-  insertContactMessageSchema,
-  insertMentorChatConversationSchema,
-  insertMentorChatMessageSchema,
-  insertRecommendationSchema,
-  insertCertificationSchema,
-  insertUserPersonalAchievementSchema,
-  insertSkillStackerPlanSchema,
-  skillStackerTaskSchema,
-  insertJobListingSchema,
-  insertJobApplicationSchema,
-  insertApplicationWizardStepSchema,
-  type User
-} from "../utils/schema"
 import {
   getCareerAdvice,
   generateResumeSuggestions,

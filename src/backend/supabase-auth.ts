@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import { supabase, supabaseAdmin } from "./supabase"
-import { User } from "../utils/schema"
+import { User } from "../types/database"
 import { ENV } from "../config/env"
 
 // Add type for augmenting Express Request
