@@ -9,7 +9,7 @@ import {
   InsertSkill,
   Language,
   InsertLanguage
-} from "../utils/schema"
+} from "../types/database"
 import { settingsService } from "./services/settingsService"
 
 // SupabaseStore class removed in Supabase auth migration

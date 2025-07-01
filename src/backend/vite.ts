@@ -56,7 +56,7 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl
 
     // Skip API routes - let them be handled by the API router
-    if (url.startsWith("/api/") || url.startsWith("/uploads/")) {
+    if (url.startsWith("/api/") || url.startsWith("/uploads/") || url.startsWith("/_next/")) {
       return next()
     }
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from "../../utils/schema";
+import { User } from "../../types/database";
 import { storage } from '../storage';
 
 // Extend Express Request to include auth methods

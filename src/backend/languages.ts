@@ -1,11 +1,16 @@
 import { Express, Request, Response } from "express";
 import { IStorage } from "./storage";
 import { requireAuth } from "./auth";
-import { insertLanguageSchema } from "../utils/schema";
+import { InsertLanguage } from "../types/database";
 import { z } from "zod";
 
-const languageSchema = insertLanguageSchema.extend({
-  proficiencyLevel: z.enum(["beginner", "intermediate", "advanced", "native"])
+// Create a new Zod schema for language validation
+const languageSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  proficiencyLevel: z.enum(["beginner", "intermediate", "advanced", "native"]),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional()
 });
 
 export function registerLanguagesRoutes(app: Express, storage: IStorage) {

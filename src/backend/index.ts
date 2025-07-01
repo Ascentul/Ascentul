@@ -8,6 +8,8 @@ import { ENV, validateEnv } from "../config/env"
 import { checkDatabaseConnection } from "./db"
 import dotenv from "dotenv"
 import { verifySupabaseToken } from "./supabase-auth"
+import { checkStorageHealth } from "./storage"
+import { supabaseHelpers } from "./supabase"
 
 // Load .env file if it exists
 dotenv.config()
@@ -29,7 +31,7 @@ validateEnv()
 
 // No longer need session type declarations with Supabase auth
 
-const app = express()
+export const app = express()
 app.use(express.json({ limit: "50mb" }))
 app.use(express.urlencoded({ extended: false, limit: "50mb" }))
 
@@ -42,10 +44,66 @@ app.use("/api/public", publicRouter)
 console.log("Public API routes mounted at /api/public")
 
 // New WordPress-friendly reviews endpoint with CORS enabled
-app.use("/api/public-reviews", cors({ origin: "*" }))
+
+
+// Health check endpoint (public, no auth)
+app.get("/api/health", async (_req, res) => {
+  try {
+    const health = await checkStorageHealth()
+    const statusCode = health.status === "healthy" ? 200 : 503
+    res.status(statusCode).json(health)
+  } catch (error) {
+    res.status(500).json({ message: "Health check failed" })
+  }
+})
 
 // Apply Supabase auth middleware to all /api routes (except public ones above)
-app.use("/api", verifySupabaseToken)
+// Auth middleware for protected API endpoints under /api
+app.use("/api", (req, res, next) => {
+  const path = req.path
+  // Skip auth for health and public routes
+  if (
+    path === "/health" ||
+    path.startsWith("/public") ||
+    path === "/public-reviews" ||
+    path.startsWith("/career-paths")
+  ) {
+    return next()
+  }
+  return verifySupabaseToken(req, res, next)
+})
+
+// Expose public WordPress-friendly reviews endpoint directly
+app.get(
+  "/api/public-reviews",
+  cors({ origin: "*" }),
+  async (req, res) => {
+    try {
+      const results = await supabaseHelpers.query("reviews", q =>
+        q.select("*, users(*)").eq("is_public", true).eq("status", "approved").order("created_at", { ascending: false })
+      )
+      const formatted = (results as any[]).map(row => ({
+        id: row.id,
+        name: row.users?.name || "Verified User",
+        rating: row.rating,
+        body: row.feedback || "",
+        date: row.created_at
+      }))
+      res.header("Access-Control-Allow-Origin", "*")
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept"
+      )
+      res.status(200).json(formatted)
+    } catch (error) {
+      console.error("Error fetching WordPress reviews:", error)
+      res.status(500).json({ error: "Failed to fetch reviews", message: "Error retrieving reviews" })
+    }
+  }
+)
+
+// Apply Supabase auth middleware to all other /api routes
+
 
 app.use((req, res, next) => {
   const start = Date.now()
