@@ -441,8 +441,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(
           `[REVIEWS ROUTER BYPASS] Skipping router for special path: ${path}`
         )
-        // These endpoints are handled directly above
-        return res.status(404).json({ message: "Not found in reviews router" })
+        // These endpoints are handled directly above, so skip to next middleware
+        return next("route") // This will skip to the next route instead of returning 404
       }
       console.log(`[REVIEWS ROUTER] Processing path: ${path}`)
       next()

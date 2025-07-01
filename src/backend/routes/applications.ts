@@ -2,7 +2,6 @@ import { Request, Response, Router } from 'express';
 import { IStorage } from '../storage';
 import { requireAuth, requireLoginFallback } from '../auth';
 import { z } from 'zod';
-import { insertJobApplicationSchema } from "../../utils/schema";
 
 export function registerApplicationRoutes(app: Router, storage: IStorage) {
   // Debug route to check all existing applications (remove in production)

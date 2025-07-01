@@ -44,8 +44,8 @@ console.log("Public API routes mounted at /api/public")
 // New WordPress-friendly reviews endpoint with CORS enabled
 app.use("/api/public-reviews", cors({ origin: "*" }))
 
-// Comment out Supabase auth middleware so we can apply it in routes.ts
-// app.use("/api", verifySupabaseToken)
+// Apply Supabase auth middleware to all /api routes (except public ones above)
+app.use("/api", verifySupabaseToken)
 
 app.use((req, res, next) => {
   const start = Date.now()
