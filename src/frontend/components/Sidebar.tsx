@@ -154,6 +154,9 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
     const newState = !expanded;
     setExpanded(newState);
     localStorage.setItem('sidebarExpanded', newState.toString());
+    if (!newState) {
+      setActiveSection(null);
+    }
   };
   
   // Fetch notifications when modal opens
