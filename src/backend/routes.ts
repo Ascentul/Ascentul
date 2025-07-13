@@ -43,6 +43,8 @@ import reviewsRouter from "./routes/reviews"
 import settingsRouter from "./routes/settings"
 // Import test email router
 import testEmailRouter from "./routes/test-email"
+// Import notifications router
+import notificationsRouter from "./routes/notifications"
 import * as openai from "./openai"
 import {
   generateCertificationRecommendations,
@@ -277,6 +279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
     }
   })
+
+  // Register notifications router
+  apiRouter.use("/notifications", notificationsRouter)
 
   // Register user role router for admin access
   apiRouter.use("/user-role", userRoleRouter)
