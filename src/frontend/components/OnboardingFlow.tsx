@@ -656,8 +656,7 @@ export default function OnboardingFlow() {
                 Are you a college student, a graduate student, or an intern?
               </CardTitle>
               <CardDescription>
-                This helps us tailor CareerTracker.io to your specific
-                educational journey.
+                This helps us tailor Ascentul to your specific educational journey.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -952,8 +951,7 @@ export default function OnboardingFlow() {
                 Which features are you most interested in?
               </CardTitle>
               <CardDescription>
-                Select the features you're most excited to use in
-                CareerTracker.io.
+                Select the features you're most excited to use in Ascentul.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1146,8 +1144,8 @@ export default function OnboardingFlow() {
     <div className="min-h-screen bg-muted/30 py-10">
       <div className="container max-w-4xl mx-auto px-4">
         <div className="text-center mb-4">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome to CareerTracker.io
+          <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">
+            Welcome to Ascentul
           </h1>
           <p className="text-muted-foreground">
             Help us personalize your experience with a few questions

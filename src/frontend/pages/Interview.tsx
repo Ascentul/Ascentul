@@ -697,7 +697,7 @@ const Interview = () => {
       >
         <div>
           <h1 className="text-3xl font-bold mb-2 text-[#0C29AB]">Application Tracker</h1>
-          <p className="text-muted-foreground">Manage your job applications from first save to final offer</p>
+          <p className="text-muted-foreground">Track every job from first click to final offer: applications, interviews, follow-ups, and more.</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)}>
           <Plus className="h-4 w-4 mr-2" />

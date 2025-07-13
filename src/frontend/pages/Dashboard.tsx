@@ -320,7 +320,7 @@ export default function Dashboard() {
   // States for dashboard AI coach mini-conversation
   const [userQuestion, setUserQuestion] = useState('');
   const [miniCoachMessages, setMiniCoachMessages] = useState<Array<{role: string, content: string}>>([
-    { role: 'assistant', content: 'Welcome to CareerQuest! I\'m your AI career coach. How can I help you today?' }
+    { role: 'assistant', content: 'Welcome to Ascentul! I\'m your AI career coach. How can I help you today?' }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const conversationRef = useRef<HTMLDivElement>(null);
@@ -518,7 +518,7 @@ export default function Dashboard() {
                       <Users className="h-5 w-5 text-green-500" />
                     </div>
                     <div>
-                      <div className="font-medium">Start Interview Process</div>
+                      <div className="font-medium">Track an Application</div>
                       <div className="text-xs text-muted-foreground">Track your job applications</div>
                     </div>
                   </div>

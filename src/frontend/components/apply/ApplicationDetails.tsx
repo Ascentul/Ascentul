@@ -678,7 +678,7 @@ export function ApplicationDetails({ application, onClose, onDelete, onStatusCha
           </Card>
 
           {/* Materials Used Section */}
-          <Card className="bg-white rounded-lg shadow p-4 mt-6">
+          <Card className="mt-6">
             <CardHeader>
               <CardTitle>Materials Used</CardTitle>
               <CardDescription>Resume and cover letter used for this application</CardDescription>
