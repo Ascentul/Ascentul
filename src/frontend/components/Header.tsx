@@ -1,4 +1,5 @@
 import { Menu, Bell, Settings, GraduationCap } from 'lucide-react';
+import { NotificationBell } from '@/components/NotificationBell';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/lib/useUserData';
@@ -37,12 +38,8 @@ export default function Header({ onMenuToggle }: HeaderProps) {
               </Link>
           )}
           
-          <Button variant="ghost" size="icon" className="relative text-neutral-700 hover:text-primary">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-              3
-            </span>
-          </Button>
+          {/* Notifications Bell */}
+          <NotificationBell />
           <Button
             variant="ghost"
             size="icon"

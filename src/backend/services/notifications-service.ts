@@ -33,3 +33,31 @@ export async function markNotificationsRead(userId: string): Promise<void> {
     console.error('Error marking notifications as read:', error);
   }
 }
+
+export async function markNotificationReadById(userId: string, notificationId: number): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('id', notificationId);
+  if (error) {
+    console.error('Error marking notification as read:', error);
+  }
+}
+
+export async function createNotification({ userId, title, body }: { userId: string; title: string; body: string }): Promise<void> {
+  const { error } = await supabase
+    .from('notifications')
+    .insert([
+      {
+        user_id: userId,
+        title,
+        body,
+        timestamp: new Date().toISOString(),
+        read: false
+      }
+    ])
+  if (error) {
+    console.error('Error creating notification:', error)
+  }
+}

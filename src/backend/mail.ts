@@ -370,9 +370,50 @@ The Ascentul Team`;
   });
 }
 
+/**
+ * Send a support ticket confirmation email to the user
+ * @param email User's email address
+ * @param subject Ticket subject
+ * @returns Promise that resolves with Mailgun API response
+ */
+async function sendSupportConfirmationEmail(email: string, subject: string): Promise<MessagesSendResult> {
+  const confSubject = `Support Ticket Received: ${subject}`;
+  const text = `Hello,
+
+We have received your support request with the subject: "${subject}".
+Our team will review your ticket and get back to you as soon as possible.
+
+Thank you for reaching out to Ascentul Support!
+
+Best,
+The Ascentul Team`;
+  const html = `<div style="font-family: Arial, sans-serif; color: #222;">
+    <h2>Support Ticket Received</h2>
+    <p>We have received your support request with the subject: <strong>"${subject}"</strong>.</p>
+    <p>Our team will review your ticket and get back to you as soon as possible.</p>
+    <p>Thank you for reaching out to Ascentul Support!</p>
+    <br />
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+      <p>© 2025 Ascentul, Inc. All rights reserved.</p>
+      <p>
+        <a href="https://ascentul.io/privacy" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
+        <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
+        <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
+      </p>
+    </div>
+  </div>`;
+  return sendEmail({
+    to: email,
+    subject: confSubject,
+    text,
+    html
+  });
+}
+
 export {
   sendEmail,
   sendWelcomeEmail,
   sendApplicationUpdateEmail,
-  sendUniversityInviteEmail
+  sendUniversityInviteEmail,
+  sendSupportConfirmationEmail
 };
