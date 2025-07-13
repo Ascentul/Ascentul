@@ -45,6 +45,7 @@ import settingsRouter from "./routes/settings"
 import testEmailRouter from "./routes/test-email"
 // Import notifications router
 import notificationsRouter from "./routes/notifications"
+import supportRouter from "./routes/support"
 import * as openai from "./openai"
 import {
   generateCertificationRecommendations,
@@ -282,6 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register notifications router
   apiRouter.use("/notifications", notificationsRouter)
+  apiRouter.use("/support", supportRouter)
 
   // Register user role router for admin access
   apiRouter.use("/user-role", userRoleRouter)
@@ -6393,6 +6395,18 @@ Return ONLY the clean body content that contains the applicant's qualifications 
               // Clear and regenerate recommendations for each user
               await storage.clearTodaysRecommendations(user.id)
               await storage.generateDailyRecommendations(user.id)
+              // Create in-app notification for new recommendations
+              try {
+                const { createNotification } = await import('./services/notifications-service');
+                await createNotification({
+                  userId: user.id,
+                  title: 'New Daily Recommendations',
+                  body: 'Your daily job recommendations are ready! Check them out to stay on track with your career goals.'
+                });
+                console.log(`Notification created for user ${user.id}`);
+              } catch (notifError) {
+                console.error(`Failed to create notification for user ${user.id}:`, notifError);
+              }
               console.log(
                 `Successfully refreshed recommendations for user ${user.id}`
               )
