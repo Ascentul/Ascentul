@@ -1184,7 +1184,7 @@ export default function Resume() {
           >
             <Card className="w-full bg-gradient-to-b from-white to-[#f0f6ff] shadow-md shadow-gray-200">
               <CardContent className="pt-3 px-5 pb-6 bg-transparent">
-                <h3 className="text-xl font-semibold mb-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Generate the Perfect Resume with AI</h3>
+                <h3 className="text-xl font-semibold mb-2.5 text-[#0C29AB]">Generate the Perfect Resume with AI</h3>
                 <div className="space-y-4 w-full">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Job Description</label>
