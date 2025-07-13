@@ -292,7 +292,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
   return (
     <div 
       ref={sidebarRef}
-      className={`flex-col transition-all duration-300 ease-in-out bg-white shadow-md z-30 
+      className={`flex-col overflow-hidden transition-all duration-300 ease-in-out bg-white shadow-md z-30 
         ${expanded ? 'w-64' : 'w-16'} 
         ${isOpen ? 'flex fixed inset-y-0 left-0 md:relative' : 'hidden md:flex'}`} 
       data-expanded={expanded ? 'true' : 'false'}
