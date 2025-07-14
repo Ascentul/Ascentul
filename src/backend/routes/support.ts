@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { supabase } from '../supabase';
 import { sendSupportConfirmationEmail } from '../mail';
-import { verifySupabaseToken } from '../supabase-auth';
+import { verifySupabaseToken, requireAdmin } from '../supabase-auth';
 
 const router = express.Router();
 
@@ -47,7 +47,7 @@ router.post('/', verifySupabaseToken, async (req, res) => {
 });
 
 // Admin: Get all support tickets
-router.get('/all', verifySupabaseToken, async (req, res) => {
+router.get('/all', verifySupabaseToken, requireAdmin, async (req, res) => {
   // Optionally, check if user is admin here
   const { data, error } = await supabase
     .from('support_tickets')
@@ -60,7 +60,7 @@ router.get('/all', verifySupabaseToken, async (req, res) => {
 });
 
 // Admin: Update ticket status
-router.post('/:id/status', verifySupabaseToken, async (req, res) => {
+router.post('/:id/status', verifySupabaseToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   if (!['open', 'closed'].includes(status)) {
