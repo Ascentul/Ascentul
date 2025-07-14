@@ -25,11 +25,11 @@ Below are all open and in-progress bugs (excluding those marked as Done) from th
   **Status:** In progress  
   **Priority:**  
 
-- [ ] **Career App Nav Bar - support button**  
+- [x] **Career App Nav Bar - support button**  
   **Date:** 5/24/25  
   **Feature:** Career App Nav Bar - support button  
   **Bug:** Support button: Ensure that support tickets created by the support button form are routed to the super admin portal and saved in the Support feature so the super admin can address issues.  
-  **Status:** In progress  
+  **Status:** Done  
   **Priority:**  
   **Comments:** This feature should also be able to send the user an email letting them know we received their support ticket
 

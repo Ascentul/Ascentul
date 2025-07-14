@@ -72,7 +72,7 @@ export async function verifySupabaseToken(
             user_type: "regular",
             needs_username: true,
             onboarding_completed: false
-          })
+          }, { onConflict: 'email' })
           .select()
           .single()
 
