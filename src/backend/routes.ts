@@ -21,6 +21,7 @@ import { registerApplicationInterviewRoutes } from "./routes/application-intervi
 import { registerModelsRoutes } from "./routes/models"
 import { registerPdfExtractRoutes } from "./routes-pdf"
 import { supabaseHelpers } from "./supabase"
+import type { User } from "../types/database"
 
 
 import { registerOpenAILogsRoutes } from "./routes/openai-logs"
@@ -1454,58 +1455,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           const imageType = matches[1]
+        // Upload image to Supabase storage
           const base64Data = matches[2]
           const buffer = Buffer.from(base64Data, "base64")
 
-          // Create a unique filename
+          // Create unique filename
           const timestamp = Date.now()
-          const filename = `profile_${user.id}_${timestamp}.${
-            imageType === "jpeg" ? "jpg" : imageType
-          }`
-          const fullPath = path.join(
-            process.cwd(),
-            "uploads",
-            "images",
-            filename
-          )
-          const filepath = `/uploads/images/${filename}`
+          const extension = imageType === "jpeg" ? "jpg" : imageType
+          const filename = `profile_${user.id}_${timestamp}.${extension}`
+          const filePathInBucket = `images/${filename}`
 
-          console.log("Saving image to:", fullPath)
-
-          // Create the uploads/images directory if it doesn't exist
-          const dir = path.join(process.cwd(), "uploads", "images")
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true })
+          // Upload to Supabase storage
+          const { data: uploadData, error: uploadError } =
+            await supabaseAdmin.storage.from("images").upload(
+              filePathInBucket,
+              buffer,
+              { contentType: `image/${imageType}` }
+            )
+          if (uploadError) {
+            console.error("Error uploading image to Supabase:", uploadError)
+            return res.status(500).json({ message: "Error uploading image" })
           }
 
-          // Write the file
-          fs.writeFileSync(fullPath, buffer)
-          console.log("Image saved successfully")
+          // Get public URL
+          const { data: { publicUrl } } =
+            supabaseAdmin.storage.from("images").getPublicUrl(filePathInBucket)
 
-          // Update the user profile with the image URL
-          const updatedUser = await storage.updateUser(user.id, {
-            profileImage: filepath
-          })
-
+          // Update the user profile in the database
+          const updatedUser = await storage.updateUser(user.id.toString(), { profileImage: publicUrl })
           if (!updatedUser) {
             console.error("Failed to update user profile with new image URL")
-            return res
-              .status(404)
-              .json({ message: "Failed to update profile image" })
+            return res.status(404).json({ message: "Failed to update profile image" })
           }
-
-          console.log("User profile updated with new image URL:", filepath)
+          console.log("User profile updated with new image URL:", publicUrl)
 
           // Return success response
-          return res.status(200).json({
-            message: "Profile image updated successfully",
-            profileImage: filepath
-          })
-        }
-
-        // If no image data found, log error and return error response
-        console.error("No image data found in request")
-        return res.status(400).json({ message: "No image data provided" })
+          return res.status(200).json({ message: "Profile image updated successfully", profileImage: publicUrl })
       } catch (error) {
         console.error("Error updating profile image:", error)
         res.status(500).json({ message: "Error updating profile image" })
@@ -1560,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update the user
-      const updatedUser = await storage.updateUser(user.id, updateData)
+      const updatedUser = await storage.updateUser(user.id.toString(), updateData)
 
       if (!updatedUser) {
         return res
@@ -3249,28 +3234,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const base64Data = matches[2]
           const buffer = Buffer.from(base64Data, "base64")
 
-          // Create a unique filename
+          // Upload resume to Supabase storage
           const timestamp = Date.now()
           const filename = `resume_${user.id}_${timestamp}.${fileType}`
-          const dir = path.join(process.cwd(), "uploads", "resumes")
-          const fullPath = path.join(dir, filename)
-          const filepath = `/uploads/resumes/${filename}`
-
-          // Create the uploads/resumes directory if it doesn't exist
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true })
+          const filePathInBucket = `resumes/${filename}`
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage.from("resumes").upload(filePathInBucket, buffer, { contentType: `application/${fileType}` })
+          if (uploadError) {
+            console.error("Error uploading resume to Supabase:", uploadError)
+            return res.status(500).json({ message: "Error uploading resume" })
           }
 
-          // Write the file
-          fs.writeFileSync(fullPath, buffer)
-          console.log("Resume file saved successfully")
+          // Get public URL
+          const { data: { publicUrl } } = supabaseAdmin.storage.from("resumes").getPublicUrl(filePathInBucket)
+          console.log("Resume uploaded to Supabase:", publicUrl)
 
-          // Return the file path to the client
-          res.json({
-            success: true,
-            filePath: filepath,
-            message: "Resume uploaded successfully"
-          })
+          // Return the public URL to the client
+          return res.json({ success: true, filePath: publicUrl, message: "Resume uploaded successfully" })
         } else {
           return res.status(400).json({ message: "No file data provided" })
         }
@@ -4188,28 +4167,22 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           const base64Data = matches[2]
           const buffer = Buffer.from(base64Data, "base64")
 
-          // Create a unique filename
+          // Upload resume to Supabase storage
           const timestamp = Date.now()
           const filename = `resume_${user.id}_${timestamp}.${fileType}`
-          const dir = path.join(process.cwd(), "uploads", "resumes")
-          const fullPath = path.join(dir, filename)
-          const filepath = `/uploads/resumes/${filename}`
-
-          // Create the uploads/resumes directory if it doesn't exist
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true })
+          const filePathInBucket = `resumes/${filename}`
+          const { data: uploadData, error: uploadError } = await supabaseAdmin.storage.from("resumes").upload(filePathInBucket, buffer, { contentType: `application/${fileType}` })
+          if (uploadError) {
+            console.error("Error uploading resume to Supabase:", uploadError)
+            return res.status(500).json({ message: "Error uploading resume" })
           }
 
-          // Write the file
-          fs.writeFileSync(fullPath, buffer)
-          console.log("Resume file saved successfully")
+          // Get public URL
+          const { data: { publicUrl } } = supabaseAdmin.storage.from("resumes").getPublicUrl(filePathInBucket)
+          console.log("Resume uploaded to Supabase:", publicUrl)
 
-          // Return the file path to the client
-          res.json({
-            success: true,
-            filePath: filepath,
-            message: "Resume uploaded successfully"
-          })
+          // Return the public URL to the client
+          return res.json({ success: true, filePath: publicUrl, message: "Resume uploaded successfully" })
         } else {
           return res.status(400).json({ message: "No file data provided" })
         }
@@ -5884,7 +5857,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         fs.writeFileSync(themePath, JSON.stringify(themeData, null, 2))
 
         // Save theme preferences to user
-        await storage.updateUser(user.id, {
+        await storage.updateUser(user.id.toString(), {
           theme: JSON.stringify(themeData)
         })
 
@@ -6113,7 +6086,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         tokenExpires.setHours(tokenExpires.getHours() + 24)
 
         // Store the pending email change
-        await storage.updateUser(user.id, {
+        await storage.updateUser(user.id.toString(), {
           pendingEmail: email,
           pendingEmailToken: token,
           pendingEmailExpires: tokenExpires
@@ -6246,7 +6219,7 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         }
 
         // Update user's email
-        const updatedUser = await storage.updateUser(user.id, {
+        const updatedUser = await storage.updateUser(user.id.toString(), {
           email: user.pendingEmail,
           emailVerified: true,
           pendingEmail: null,
