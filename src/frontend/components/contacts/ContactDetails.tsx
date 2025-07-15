@@ -357,6 +357,7 @@ export default function ContactDetails({ contactId, onClose }: ContactDetailsPro
       queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contactId}/followups`] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contacts/need-followup'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts/all-followups'] }); // Invalidate dashboard follow-up overview
       toast({
         title: 'Follow-up scheduled',
         description: 'Follow-up reminder has been scheduled successfully.',
