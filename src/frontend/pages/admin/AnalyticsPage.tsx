@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>

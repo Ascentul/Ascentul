@@ -156,7 +156,253 @@ export default async function handler(req, res) {
 
     console.log(`API Request: ${req.method} ${path}`)
 
+    // Handle dynamic university routes
+    const universityMatch = path.match(/^\/universities\/(\d+)(?:\/(.+))?$/)
+    if (universityMatch) {
+      const universityId = parseInt(universityMatch[1])
+      const subPath = universityMatch[2]
+
+      if (subPath === "admins") {
+        // GET /universities/{id}/admins - Get university admins
+        if (req.method === "GET") {
+          const adminsAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (adminsAuthResult.error) {
+            return res.status(adminsAuthResult.status).json({
+              error: adminsAuthResult.error,
+              message: "Please log in to access university admins"
+            })
+          }
+
+          // Check if user is admin
+          if (adminsAuthResult.user.role !== "super_admin" && 
+              adminsAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            // Get university admins - for now return empty array as this would require
+            // a separate university_admins table or similar structure
+            return res.status(200).json([])
+          } catch (error) {
+            console.error("Error fetching university admins:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to fetch university admins"
+            })
+          }
+        }
+      } else if (!subPath) {
+        // PUT /universities/{id} - Update university
+        if (req.method === "PUT") {
+          const updateAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (updateAuthResult.error) {
+            return res.status(updateAuthResult.status).json({
+              error: updateAuthResult.error,
+              message: "Please log in to update universities"
+            })
+          }
+
+          // Check if user is admin
+          if (updateAuthResult.user.role !== "super_admin" && 
+              updateAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { licensePlan, licenseSeats, licenseStart, licenseEnd } = req.body
+
+            // Update university
+            const { data: university, error: updateError } = await supabaseAdmin
+              .from("universities")
+              .update({
+                license_plan: licensePlan,
+                license_seats: licenseSeats,
+                license_start: licenseStart,
+                license_end: licenseEnd || null,
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", universityId)
+              .select()
+              .single()
+
+            if (updateError) {
+              console.error("Error updating university:", updateError)
+              return res.status(500).json({
+                error: "Database error",
+                message: "Failed to update university"
+              })
+            }
+
+            // Transform response to match frontend expectations
+            const transformedUniversity = {
+              id: university.id,
+              name: university.name,
+              slug: university.slug,
+              licensePlan: university.license_plan,
+              licenseSeats: university.license_seats,
+              licenseUsed: university.license_used,
+              licenseStart: university.license_start,
+              licenseEnd: university.license_end,
+              status: university.status,
+              adminEmail: university.admin_email,
+              createdById: university.created_by_id,
+              createdAt: university.created_at,
+              updatedAt: university.updated_at
+            }
+
+            return res.status(200).json(transformedUniversity)
+          } catch (error) {
+            console.error("Error updating university:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to update university"
+            })
+          }
+        }
+      }
+    }
+
     // Route handling with comprehensive coverage
+
+    // MAIL API ROUTES - Mailgun integration
+    if (path.startsWith("/mail/")) {
+      const mailPath = path.replace("/mail/", "")
+      
+      // GET /api/mail/status - Check mail service status
+      if (mailPath === "status" && req.method === "GET") {
+        try {
+          // Check for Mailgun API key - try different potential environment variable names
+          const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY
+          const hasMailgunApiKey = !!mailgunKey
+          
+          // Check if mail domain is set
+          const mailDomain = process.env.MAILGUN_DOMAIN || 'mail.ascentul.io'
+          const hasCustomDomain = !!process.env.MAILGUN_DOMAIN
+          
+          console.log('Mail service status check:')
+          console.log('- MAILGUN API KEY status:', hasMailgunApiKey ? 'configured' : 'not configured')
+          console.log('- MAILGUN_DOMAIN status:', hasCustomDomain ? 'configured' : 'using default')
+          console.log('- Default domain:', mailDomain)
+          
+          return res.status(200).json({
+            success: true,
+            service: 'Mailgun Email',
+            configured: hasMailgunApiKey,
+            apiKey: hasMailgunApiKey,
+            domain: hasCustomDomain,
+            defaultDomain: mailDomain,
+            timestamp: new Date().toISOString(),
+            env: process.env.NODE_ENV || 'development',
+            message: hasMailgunApiKey 
+              ? 'Mail service is properly configured and operational.' 
+              : 'Mailgun API key is not set. Email functionality will not work.'
+          })
+        } catch (error) {
+          console.error('Error checking mail status:', error)
+          return res.status(500).json({
+            success: false,
+            configured: false,
+            apiKey: false,
+            domain: false,
+            message: error.message || 'Failed to check mail status'
+          })
+        }
+      }
+      
+      // POST /api/mail/test - Send test email
+      if (mailPath === "test" && req.method === "POST") {
+        try {
+          // Check authentication for production
+          const isProduction = process.env.NODE_ENV === 'production'
+          if (isProduction) {
+            const authResult = await verifySupabaseToken(req.headers.authorization)
+            if (authResult.error) {
+              return res.status(authResult.status).json({
+                error: authResult.error,
+                message: "Please log in to send test emails"
+              })
+            }
+            
+            // Check if user is admin
+            if (authResult.user.role !== "super_admin" && 
+                authResult.user.role !== "admin" && 
+                authResult.user.role !== "university_admin") {
+              return res.status(403).json({
+                error: "Access denied",
+                message: "Admin access required to send test emails"
+              })
+            }
+          }
+          
+          // Make sure we have the Mailgun API key
+          if (!process.env.MAILGUN_API_KEY) {
+            return res.status(500).json({ 
+              error: 'Mailgun API key not configured',
+              details: 'The MAILGUN_API_KEY environment variable is not set.' 
+            })
+          }
+          
+          // Get recipient email from request body
+          const { recipient, name } = req.body
+          let toEmail = recipient
+          let toName = name
+          
+          // Final fallback - require an email address
+          if (!toEmail) {
+            return res.status(400).json({ 
+              error: 'No recipient email provided',
+              details: 'Please provide a recipient email address in the request body'
+            })
+          }
+          
+          // Import and use the sendEmail function
+          const { sendEmail } = await import('../src/backend/mail.js')
+          
+          // Send the test email
+          const result = await sendEmail({
+            to: toEmail,
+            subject: '🎉 Test Email from Ascentul',
+            text: 'This is a test email sent via Mailgun. If you see this, the email service is working correctly!',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #1333c2;">🎉 Test Email Success!</h2>
+                <p>Hello ${toName || 'there'},</p>
+                <p>This is a test email sent via <strong>Mailgun</strong>.</p>
+                <p>If you're seeing this message, it means the email service is working correctly!</p>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <p style="margin: 0; color: #28a745;"><strong>✅ Email service is operational</strong></p>
+                </div>
+                <p>Best regards,<br>The Ascentul Team</p>
+              </div>
+            `
+          })
+          
+          return res.status(200).json({ 
+            success: true, 
+            message: `Test email sent successfully to ${toEmail}`,
+            details: result
+          })
+        } catch (error) {
+          console.error('Error sending test email:', error)
+          return res.status(500).json({ 
+            error: 'Failed to send test email', 
+            details: error.message || String(error)
+          })
+        }
+      }
+    }
 
     // USERNAME AVAILABILITY CHECK - Critical missing route
     if (path === "/users/check-username" && req.method === "GET") {
@@ -1009,7 +1255,140 @@ export default async function handler(req, res) {
         return res.status(200).json(users)
       } catch (error) {
         console.error("Error fetching users:", error)
-        return res.status(500).json({ message: "Error fetching user data" })
+        return res.status(500).json({ message: "Error fetching analytics" })
+      }
+    }
+
+    // SUBSCRIPTION ANALYTICS ENDPOINT - New endpoint for subscription metrics
+    if (path === "/admin/subscription-analytics" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      if (authResult.user.role !== "super_admin" && authResult.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" })
+      }
+      
+      try {
+        // Get all users with subscription data
+        const { data: users, error: usersError } = await supabaseAdmin
+          .from("users")
+          .select(`
+            id, 
+            created_at, 
+            subscription_plan, 
+            subscription_status, 
+            subscription_cycle,
+            stripe_customer_id,
+            stripe_subscription_id
+          `)
+          
+        if (usersError) {
+          console.error("Error fetching subscription data:", usersError)
+          return res.status(500).json({ error: "Failed to fetch subscription data" })
+        }
+        
+        // Calculate subscription metrics
+        const totalUsers = users?.length || 0
+        const freeUsers = users?.filter(u => !u.subscription_plan || u.subscription_plan === 'free').length || 0
+        const premiumUsers = users?.filter(u => u.subscription_plan === 'premium').length || 0
+        const universityUsers = users?.filter(u => u.subscription_plan === 'university').length || 0
+        const activeSubscriptions = users?.filter(u => u.subscription_status === 'active' && u.subscription_plan !== 'free').length || 0
+        const pastDueSubscriptions = users?.filter(u => u.subscription_status === 'past_due').length || 0
+        const cancelledSubscriptions = users?.filter(u => u.subscription_status === 'cancelled').length || 0
+        
+        // Calculate conversion rate
+        const conversionRate = totalUsers > 0 ? ((activeSubscriptions / totalUsers) * 100).toFixed(1) : '0.0'
+        
+        // Calculate Monthly Recurring Revenue (MRR) - Mock calculation based on plan pricing
+        const premiumMRR = premiumUsers * 15 // $15/month for premium
+        const universityMRR = universityUsers * 25 // $25/month for university
+        const totalMRR = premiumMRR + universityMRR
+        
+        // Calculate subscription growth over last 30 days
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        
+        const subscriptionGrowth = []
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date()
+          date.setDate(date.getDate() - i)
+          const dateStr = date.toISOString().split('T')[0]
+          
+          // Count new subscriptions on this date
+          const newSubscriptionsOnDate = users?.filter(user => {
+            const userDate = new Date(user.created_at).toISOString().split('T')[0]
+            return userDate === dateStr && user.subscription_plan && user.subscription_plan !== 'free'
+          }).length || 0
+          
+          subscriptionGrowth.push({
+            date: dateStr,
+            newSubscriptions: newSubscriptionsOnDate,
+            mrr: newSubscriptionsOnDate * 20 // Average of $15 and $25
+          })
+        }
+        
+        // Plan distribution data
+        const planDistribution = [
+          { name: 'Free', value: freeUsers, percentage: ((freeUsers / totalUsers) * 100).toFixed(1) },
+          { name: 'Premium', value: premiumUsers, percentage: ((premiumUsers / totalUsers) * 100).toFixed(1) },
+          { name: 'University', value: universityUsers, percentage: ((universityUsers / totalUsers) * 100).toFixed(1) }
+        ]
+        
+        // Billing cycle distribution for paid users
+        const paidUsers = users?.filter(u => u.subscription_plan && u.subscription_plan !== 'free') || []
+        const monthlyUsers = paidUsers.filter(u => u.subscription_cycle === 'monthly').length
+        const quarterlyUsers = paidUsers.filter(u => u.subscription_cycle === 'quarterly').length
+        const annualUsers = paidUsers.filter(u => u.subscription_cycle === 'annual').length
+        
+        const billingCycleDistribution = [
+          { name: 'Monthly', value: monthlyUsers },
+          { name: 'Quarterly', value: quarterlyUsers },
+          { name: 'Annual', value: annualUsers }
+        ]
+        
+        // Subscription status breakdown
+        const subscriptionStatusBreakdown = [
+          { name: 'Active', value: activeSubscriptions, color: '#22c55e' },
+          { name: 'Past Due', value: pastDueSubscriptions, color: '#f59e0b' },
+          { name: 'Cancelled', value: cancelledSubscriptions, color: '#ef4444' }
+        ]
+        
+        const subscriptionAnalytics = {
+          // Key metrics
+          totalUsers,
+          activeSubscriptions,
+          totalMRR,
+          conversionRate,
+          
+          // User breakdown
+          freeUsers,
+          premiumUsers,
+          universityUsers,
+          pastDueSubscriptions,
+          cancelledSubscriptions,
+          
+          // Growth data
+          subscriptionGrowth,
+          
+          // Distribution data
+          planDistribution,
+          billingCycleDistribution,
+          subscriptionStatusBreakdown,
+          
+          // Revenue breakdown
+          premiumMRR,
+          universityMRR
+        }
+        
+        return res.status(200).json(subscriptionAnalytics)
+        
+      } catch (error) {
+        console.error("Error fetching subscription analytics:", error)
+        return res.status(500).json({ 
+          error: "Failed to fetch subscription analytics",
+          message: error.message 
+        })
       }
     }
 
@@ -1067,16 +1446,14 @@ export default async function handler(req, res) {
 
     // BILLING DATA ENDPOINT
     if (path === "/admin/billing" && req.method === "GET") {
-      const authResult = await verifySupabaseToken(req.headers.authorization)
-      if (authResult.error) {
-        return res.status(authResult.status).json({
-          error: authResult.error,
+      const billingAuthResult = await verifySupabaseToken(
+        req.headers.authorization
+      )
+      if (billingAuthResult.error) {
+        return res.status(billingAuthResult.status).json({
+          error: billingAuthResult.error,
           message: "Please log in to access billing data"
         })
-      }
-
-      if (!["admin", "super_admin"].includes(authResult.user.user_type)) {
-        return res.status(403).json({ error: "Insufficient permissions" })
       }
 
       try {
@@ -1086,6 +1463,316 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error("Error fetching billing data:", error)
         return res.status(500).json({ message: "Error fetching billing data" })
+      }
+    }
+
+    // STRIPE SUBSCRIPTION MANAGEMENT ROUTES
+    
+    // Admin route to upgrade a user's subscription
+    if (path.startsWith("/admin/users/") && path.endsWith("/subscription") && req.method === "PUT") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      
+      if (authResult.user.role !== "super_admin" && authResult.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" })
+      }
+      
+      const userId = path.split("/")[3] // Extract user ID from path
+      const { plan, interval = 'monthly' } = req.body
+      
+      if (!plan || !["free", "premium", "university"].includes(plan)) {
+        return res.status(400).json({ error: "Invalid subscription plan" })
+      }
+      
+      try {
+        // Import Stripe service
+        const { createSubscription, cancelSubscription } = await import('../src/backend/services/stripe.ts')
+        
+        // Get user details
+        const { data: user, error: userError } = await supabaseAdmin
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .single()
+          
+        if (userError || !user) {
+          return res.status(404).json({ error: "User not found" })
+        }
+        
+        if (plan === "free") {
+          // Cancel existing subscription if downgrading to free
+          if (user.stripe_subscription_id) {
+            await cancelSubscription(userId)
+          }
+          
+          // Update user to free plan
+          const { error: updateError } = await supabaseAdmin
+            .from("users")
+            .update({
+              subscription_plan: "free",
+              subscription_status: "active",
+              stripe_subscription_id: null
+            })
+            .eq("id", userId)
+            
+          if (updateError) {
+            throw new Error("Failed to update user subscription")
+          }
+        } else {
+          // Create or update subscription for premium/university
+          const subscriptionData = {
+            plan,
+            interval,
+            email: user.email,
+            userId: parseInt(userId),
+            userName: user.name
+          }
+          
+          const result = await createSubscription(subscriptionData)
+          
+          // Update user subscription info
+          const { error: updateError } = await supabaseAdmin
+            .from("users")
+            .update({
+              subscription_plan: plan,
+              subscription_status: "active",
+              subscription_cycle: interval
+            })
+            .eq("id", userId)
+            
+          if (updateError) {
+            throw new Error("Failed to update user subscription")
+          }
+        }
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: `User subscription updated to ${plan}`,
+          userId: parseInt(userId),
+          plan
+        })
+        
+      } catch (error) {
+        console.error("Error updating user subscription:", error)
+        return res.status(500).json({ 
+          error: "Failed to update subscription",
+          message: error.message 
+        })
+      }
+    }
+    
+    // User route to upgrade their own subscription
+    if (path === "/subscription/upgrade" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      
+      const { plan, interval = 'monthly' } = req.body
+      const userId = authResult.userId
+      
+      if (!plan || !["premium", "university"].includes(plan)) {
+        return res.status(400).json({ error: "Invalid subscription plan" })
+      }
+      
+      try {
+        const { createSubscription } = await import('../src/backend/services/stripe.ts')
+        
+        const user = authResult.user
+        const subscriptionData = {
+          plan,
+          interval,
+          email: user.email,
+          userId,
+          userName: user.name
+        }
+        
+        const result = await createSubscription(subscriptionData)
+        
+        // Update user subscription info
+        const { error: updateError } = await supabaseAdmin
+          .from("users")
+          .update({
+            subscription_plan: plan,
+            subscription_status: "active",
+            subscription_cycle: interval
+          })
+          .eq("id", userId)
+          
+        if (updateError) {
+          throw new Error("Failed to update user subscription")
+        }
+        
+        return res.status(200).json({ 
+          success: true,
+          clientSecret: result.clientSecret,
+          subscriptionId: result.subscriptionId
+        })
+        
+      } catch (error) {
+        console.error("Error creating subscription:", error)
+        return res.status(500).json({ 
+          error: "Failed to create subscription",
+          message: error.message 
+        })
+      }
+    }
+    
+    // User route to cancel subscription
+    if (path === "/subscription/cancel" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      
+      const userId = authResult.userId
+      
+      try {
+        const { cancelSubscription } = await import('../src/backend/services/stripe.ts')
+        
+        await cancelSubscription(userId)
+        
+        return res.status(200).json({ 
+          success: true,
+          message: "Subscription cancelled successfully"
+        })
+        
+      } catch (error) {
+        console.error("Error cancelling subscription:", error)
+        return res.status(500).json({ 
+          error: "Failed to cancel subscription",
+          message: error.message 
+        })
+      }
+    }
+    
+    // Get user's payment methods
+    if (path === "/payment-methods" && req.method === "GET") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      
+      try {
+        const { getUserPaymentMethods } = await import('../src/backend/services/stripe.ts')
+        
+        const paymentMethods = await getUserPaymentMethods(authResult.userId)
+        
+        return res.status(200).json(paymentMethods)
+        
+      } catch (error) {
+        console.error("Error fetching payment methods:", error)
+        return res.status(500).json({ 
+          error: "Failed to fetch payment methods",
+          message: error.message 
+        })
+      }
+    }
+    
+    // Create setup intent for adding payment methods
+    if (path === "/setup-intent" && req.method === "POST") {
+      const authResult = await verifySupabaseToken(req.headers.authorization)
+      if (authResult.error) {
+        return res.status(authResult.status).json({ error: authResult.error })
+      }
+      
+      try {
+        const { createSetupIntent } = await import('../src/backend/services/stripe.ts')
+        
+        const setupIntent = await createSetupIntent(authResult.userId)
+        
+        return res.status(200).json(setupIntent)
+        
+      } catch (error) {
+        console.error("Error creating setup intent:", error)
+        return res.status(500).json({ 
+          error: "Failed to create setup intent",
+          message: error.message 
+        })
+      }
+    }
+    
+    // Stripe webhook endpoint
+    if (path === "/webhooks/stripe" && req.method === "POST") {
+      try {
+        const { stripe } = await import('../src/backend/services/stripe.ts')
+        const { handleSubscriptionUpdated } = await import('../src/backend/services/stripe.ts')
+        
+        const sig = req.headers['stripe-signature']
+        const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
+        
+        if (!endpointSecret) {
+          console.warn('Stripe webhook secret not configured, skipping signature verification')
+          // In development, we might not have webhook secret configured
+          // Still process the event but log a warning
+        }
+        
+        let event
+        
+        if (endpointSecret && sig) {
+          try {
+            // Verify webhook signature
+            event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret)
+          } catch (err) {
+            console.error('Webhook signature verification failed:', err.message)
+            return res.status(400).json({ error: 'Invalid signature' })
+          }
+        } else {
+          // For development/testing without webhook secret
+          event = req.body
+        }
+        
+        console.log('Received Stripe webhook event:', event.type)
+        
+        // Handle the event
+        switch (event.type) {
+          case 'customer.subscription.created':
+          case 'customer.subscription.updated':
+          case 'customer.subscription.deleted':
+            const subscription = event.data.object
+            await handleSubscriptionUpdated(subscription.id)
+            break
+            
+          case 'invoice.payment_succeeded':
+            const invoice = event.data.object
+            if (invoice.subscription) {
+              await handleSubscriptionUpdated(invoice.subscription)
+            }
+            break
+            
+          case 'invoice.payment_failed':
+            const failedInvoice = event.data.object
+            if (failedInvoice.subscription) {
+              // Update subscription status to past_due
+              const { data: user } = await supabaseAdmin
+                .from("users")
+                .select("id")
+                .eq("stripe_subscription_id", failedInvoice.subscription)
+                .single()
+                
+              if (user) {
+                await supabaseAdmin
+                  .from("users")
+                  .update({ subscription_status: "past_due" })
+                  .eq("id", user.id)
+              }
+            }
+            break
+            
+          default:
+            console.log(`Unhandled event type: ${event.type}`)
+        }
+        
+        return res.status(200).json({ received: true })
+        
+      } catch (error) {
+        console.error('Error processing webhook:', error)
+        return res.status(500).json({ 
+          error: 'Webhook processing failed',
+          message: error.message 
+        })
       }
     }
 
@@ -1809,6 +2496,531 @@ export default async function handler(req, res) {
 
           // Return empty array for now - can be expanded later
           return res.status(200).json([])
+        }
+        break
+
+      case "/admin/analytics":
+        // Admin Analytics endpoint
+        if (req.method === "GET") {
+          const analyticsAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (analyticsAuthResult.error) {
+            return res.status(analyticsAuthResult.status).json({
+              error: analyticsAuthResult.error,
+              message: "Please log in to access analytics"
+            })
+          }
+
+          // Check if user is admin
+          if (analyticsAuthResult.user.role !== "super_admin" && 
+              analyticsAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            // Get total users count
+            const { count: totalUsers } = await supabaseAdmin
+              .from("users")
+              .select("*", { count: "exact", head: true })
+
+            // Get user type distribution
+            const { data: userTypes } = await supabaseAdmin
+              .from("users")
+              .select("user_type")
+
+            const userTypeDistribution = userTypes?.reduce((acc, user) => {
+              const type = user.user_type || "regular"
+              acc[type] = (acc[type] || 0) + 1
+              return acc
+            }, {}) || {}
+
+            // Get user growth data (last 30 days)
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+            const { data: recentUsers } = await supabaseAdmin
+              .from("users")
+              .select("created_at")
+              .gte("created_at", thirtyDaysAgo.toISOString())
+
+            // Group by day for growth chart
+            const userGrowth = []
+            for (let i = 29; i >= 0; i--) {
+              const date = new Date()
+              date.setDate(date.getDate() - i)
+              const dateStr = date.toISOString().split('T')[0]
+              
+              const usersOnDay = recentUsers?.filter(user => 
+                user.created_at.startsWith(dateStr)
+              ).length || 0
+              
+              userGrowth.push({
+                date: dateStr,
+                users: usersOnDay,
+                name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              })
+            }
+
+            const analyticsData = {
+              totalUsers: totalUsers || 0,
+              userTypeDistribution,
+              userGrowth,
+              lastUpdated: new Date().toISOString()
+            }
+
+            return res.status(200).json(analyticsData)
+          } catch (error) {
+            console.error("Error fetching analytics:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to fetch analytics data"
+            })
+          }
+        }
+        break
+
+      case "/admin/users/stats":
+        // Admin User Statistics endpoint
+        if (req.method === "GET") {
+          const statsAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (statsAuthResult.error) {
+            return res.status(statsAuthResult.status).json({
+              error: statsAuthResult.error,
+              message: "Please log in to access user statistics"
+            })
+          }
+
+          // Check if user is admin
+          if (statsAuthResult.user.role !== "super_admin" && 
+              statsAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            // Get user counts by subscription type
+            const { data: users } = await supabaseAdmin
+              .from("users")
+              .select("subscription_type, user_type")
+
+            const stats = {
+              freeUsers: 0,
+              premiumUsers: 0,
+              universityUsers: 0,
+              totalUsers: users?.length || 0
+            }
+
+            users?.forEach(user => {
+              if (user.user_type === "university_user" || user.user_type === "university_admin") {
+                stats.universityUsers++
+              } else if (user.subscription_type === "premium") {
+                stats.premiumUsers++
+              } else {
+                stats.freeUsers++
+              }
+            })
+
+            return res.status(200).json(stats)
+          } catch (error) {
+            console.error("Error fetching user stats:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to fetch user statistics"
+            })
+          }
+        }
+        break
+
+      case "/universities":
+        // Universities management endpoint
+        if (req.method === "GET") {
+          const universitiesAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (universitiesAuthResult.error) {
+            return res.status(universitiesAuthResult.status).json({
+              error: universitiesAuthResult.error,
+              message: "Please log in to access universities"
+            })
+          }
+
+          // Check if user is admin
+          if (universitiesAuthResult.user.role !== "super_admin" && 
+              universitiesAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { data: universities } = await supabaseAdmin
+              .from("universities")
+              .select(`
+                id,
+                name,
+                slug,
+                license_plan,
+                license_seats,
+                license_used,
+                license_start,
+                license_end,
+                status,
+                admin_email,
+                created_by_id,
+                created_at,
+                updated_at
+              `)
+              .order("created_at", { ascending: false })
+
+            // Transform the data to match frontend expectations
+            const transformedUniversities = universities?.map(uni => ({
+              id: uni.id,
+              name: uni.name,
+              slug: uni.slug,
+              licensePlan: uni.license_plan,
+              licenseSeats: uni.license_seats,
+              licenseUsed: uni.license_used || 0,
+              licenseStart: uni.license_start,
+              licenseEnd: uni.license_end,
+              status: uni.status,
+              adminEmail: uni.admin_email,
+              createdById: uni.created_by_id,
+              createdAt: uni.created_at,
+              updatedAt: uni.updated_at
+            })) || []
+
+            return res.status(200).json(transformedUniversities)
+          } catch (error) {
+            console.error("Error fetching universities:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to fetch universities"
+            })
+          }
+        }
+
+        if (req.method === "POST") {
+          const createUniversityAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (createUniversityAuthResult.error) {
+            return res.status(createUniversityAuthResult.status).json({
+              error: createUniversityAuthResult.error,
+              message: "Please log in to create universities"
+            })
+          }
+
+          // Check if user is admin
+          if (createUniversityAuthResult.user.role !== "super_admin" && 
+              createUniversityAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { name, licensePlan, licenseSeats, licenseStart, licenseEnd, adminEmail } = req.body
+
+            // Validate required fields
+            if (!name || !licensePlan || !licenseSeats || !licenseStart) {
+              return res.status(400).json({
+                error: "Missing required fields",
+                message: "Name, license plan, seats, and start date are required"
+              })
+            }
+
+            // Create slug from name
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+            // Insert university
+            const { data: university, error: insertError } = await supabaseAdmin
+              .from("universities")
+              .insert({
+                name,
+                slug,
+                license_plan: licensePlan,
+                license_seats: licenseSeats,
+                license_used: 0,
+                license_start: licenseStart,
+                license_end: licenseEnd || null,
+                status: "active",
+                admin_email: adminEmail || null,
+                created_by_id: createUniversityAuthResult.userId
+              })
+              .select()
+              .single()
+
+            if (insertError) {
+              console.error("Error creating university:", insertError)
+              return res.status(500).json({
+                error: "Database error",
+                message: "Failed to create university"
+              })
+            }
+
+            // Transform response to match frontend expectations
+            const transformedUniversity = {
+              id: university.id,
+              name: university.name,
+              slug: university.slug,
+              licensePlan: university.license_plan,
+              licenseSeats: university.license_seats,
+              licenseUsed: university.license_used,
+              licenseStart: university.license_start,
+              licenseEnd: university.license_end,
+              status: university.status,
+              adminEmail: university.admin_email,
+              createdById: university.created_by_id,
+              createdAt: university.created_at,
+              updatedAt: university.updated_at
+            }
+
+            return res.status(201).json(transformedUniversity)
+          } catch (error) {
+            console.error("Error creating university:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to create university"
+            })
+          }
+        }
+        break
+
+      case "/university-invites":
+        // University admin invitations endpoint
+        if (req.method === "POST") {
+          const inviteAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (inviteAuthResult.error) {
+            return res.status(inviteAuthResult.status).json({
+              error: inviteAuthResult.error,
+              message: "Please log in to send invitations"
+            })
+          }
+
+          // Check if user is admin
+          if (inviteAuthResult.user.role !== "super_admin" && 
+              inviteAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { email, universityId } = req.body
+
+            if (!email || !universityId) {
+              return res.status(400).json({
+                error: "Missing required fields",
+                message: "Email and university ID are required"
+              })
+            }
+
+            // For now, just return success - actual email sending would be implemented later
+            return res.status(200).json({
+              message: "Invitation sent successfully",
+              email,
+              universityId
+            })
+          } catch (error) {
+            console.error("Error sending invitation:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to send invitation"
+            })
+          }
+        }
+        break
+
+      case "/admin/users":
+        // Admin Users management endpoint
+        if (req.method === "GET") {
+          const usersAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (usersAuthResult.error) {
+            return res.status(usersAuthResult.status).json({
+              error: usersAuthResult.error,
+              message: "Please log in to access users"
+            })
+          }
+
+          // Check if user is admin
+          if (usersAuthResult.user.role !== "super_admin" && 
+              usersAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { data: users } = await supabaseAdmin
+              .from("users")
+              .select(`
+                id,
+                username,
+                name,
+                email,
+                user_type,
+                university_id,
+                subscription_type,
+                subscription_status,
+                last_login,
+                created_at,
+                updated_at,
+                role
+              `)
+              .order("created_at", { ascending: false })
+
+            // Transform the data to match frontend expectations
+            const transformedUsers = users?.map(user => ({
+              id: user.id,
+              username: user.username || `user_${user.id.toString().slice(0, 8)}`,
+              name: user.name || "Unknown User",
+              email: user.email,
+              userType: user.user_type || "regular",
+              university: user.university_id ? `University ${user.university_id}` : undefined,
+              universityId: user.university_id,
+              subscriptionPlan: user.subscription_type || "free",
+              subscriptionStatus: user.subscription_status || "active",
+              lastLogin: user.last_login || user.created_at,
+              signupDate: user.created_at,
+              accountStatus: user.role === "suspended" ? "suspended" : "active",
+              usageStats: {
+                logins: Math.floor(Math.random() * 100) + 1, // Mock data
+                sessionsLast30Days: Math.floor(Math.random() * 30) + 1,
+                avgSessionTime: `${Math.floor(Math.random() * 60) + 5}m`,
+                featuresUsed: ["Resume Builder", "Application Tracker", "AI Coach"],
+                activityLevel: ["high", "medium", "low"][Math.floor(Math.random() * 3)]
+              }
+            })) || []
+
+            return res.status(200).json(transformedUsers)
+          } catch (error) {
+            console.error("Error fetching users:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to fetch users"
+            })
+          }
+        }
+        break
+
+      case "/admin/create-staff":
+        // Create staff user endpoint
+        if (req.method === "POST") {
+          const createStaffAuthResult = await verifySupabaseToken(
+            req.headers.authorization
+          )
+
+          if (createStaffAuthResult.error) {
+            return res.status(createStaffAuthResult.status).json({
+              error: createStaffAuthResult.error,
+              message: "Please log in to create staff users"
+            })
+          }
+
+          // Check if user is admin
+          if (createStaffAuthResult.user.role !== "super_admin" && 
+              createStaffAuthResult.user.role !== "admin") {
+            return res.status(403).json({
+              error: "Access denied",
+              message: "Admin access required"
+            })
+          }
+
+          try {
+            const { username, name, email, password } = req.body
+
+            // Validate required fields
+            if (!username || !name || !email || !password) {
+              return res.status(400).json({
+                error: "Missing required fields",
+                message: "Username, name, email, and password are required"
+              })
+            }
+
+            // Create user in Supabase Auth
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+              email,
+              password,
+              email_confirm: true,
+              user_metadata: {
+                name,
+                username
+              }
+            })
+
+            if (authError) {
+              console.error("Error creating auth user:", authError)
+              return res.status(500).json({
+                error: "Authentication error",
+                message: "Failed to create user account"
+              })
+            }
+
+            // Create user record in database
+            const { data: user, error: insertError } = await supabaseAdmin
+              .from("users")
+              .insert({
+                id: authUser.user.id,
+                username,
+                name,
+                email,
+                user_type: "staff",
+                role: "staff",
+                subscription_type: "premium",
+                subscription_status: "active",
+                onboarding_completed: true,
+                needs_username: false
+              })
+              .select()
+              .single()
+
+            if (insertError) {
+              console.error("Error creating user record:", insertError)
+              return res.status(500).json({
+                error: "Database error",
+                message: "Failed to create user record"
+              })
+            }
+
+            return res.status(201).json({
+              message: "Staff user created successfully",
+              user: {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                email: user.email,
+                userType: user.user_type
+              }
+            })
+          } catch (error) {
+            console.error("Error creating staff user:", error)
+            return res.status(500).json({
+              error: "Internal server error",
+              message: "Failed to create staff user"
+            })
+          }
         }
         break
 

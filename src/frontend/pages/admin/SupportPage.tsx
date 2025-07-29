@@ -37,7 +37,7 @@ export default function SupportPage() {
   });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
           <SelectTrigger>

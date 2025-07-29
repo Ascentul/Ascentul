@@ -264,11 +264,19 @@ export default function UserManagement() {
       userId: number
       plan: "free" | "premium" | "university"
     }) => {
-      // This is where you'd call your API
-      // await apiRequest('PUT', `/api/admin/users/${userId}/subscription`, { plan });
-      return { userId, plan }
+      const res = await apiRequest("PUT", `/api/admin/users/${userId}/subscription`, { plan })
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || "Failed to update subscription")
+      }
+      return await res.json()
     },
     onSuccess: (data) => {
+      toast({
+        title: "Subscription updated",
+        description: `User subscription updated to ${data.plan}`
+      })
+      
       // Update the cache
       queryClient.setQueryData(
         ["/api/admin/users", searchTerm, filters, currentPage],
@@ -283,6 +291,13 @@ export default function UserManagement() {
               : user
           )
       )
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating subscription",
+        description: error.message,
+        variant: "destructive"
+      })
     }
   })
 
@@ -417,11 +432,11 @@ export default function UserManagement() {
   }
 
   // Create context value for sharing with EditUserDialog
-  const contextValue: UserManagementContextType = {
+  const contextValue = {
     selectedUser,
     isEditUserOpen,
     setIsEditUserOpen,
-    updateUserMutation,
+    updateUserMutation: updateUserMutation,
     searchTerm,
     filters,
     currentPage
@@ -429,7 +444,7 @@ export default function UserManagement() {
 
   return (
     <UserManagementContext.Provider value={contextValue}>
-      <div>
+      <div className="p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">User Management</h1>
@@ -1576,12 +1591,17 @@ function AddStaffUserDialog() {
 }
 
 function EditUserDialog() {
-  const [isOpen, setIsOpen] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   // Component context variables from parent component
   const parentContext = useContext(UserManagementContext)
+  
+  if (!parentContext) {
+    return null // Don't render if context is not available
+  }
+  
+  const { selectedUser, isEditUserOpen, setIsEditUserOpen, updateUserMutation } = parentContext
 
   // Initialize form with empty defaults first - important for React hooks rules
   const form = useForm<EditUserFormValues>({
@@ -1596,23 +1616,8 @@ function EditUserDialog() {
     }
   })
 
-  // Early return if no context or selected user - AFTER all hook calls
-  if (!parentContext || !parentContext.selectedUser) {
-    return null
-  }
-
-  const {
-    selectedUser,
-    isEditUserOpen,
-    setIsEditUserOpen,
-    updateUserMutation,
-    searchTerm,
-    filters,
-    currentPage
-  } = parentContext
-
-  // Reset form when selected user changes or dialog opens
-  useEffect(() => {
+  // Update form when selectedUser changes
+  React.useEffect(() => {
     if (selectedUser && isEditUserOpen) {
       form.reset({
         name: selectedUser.name,
@@ -1624,6 +1629,16 @@ function EditUserDialog() {
       })
     }
   }, [selectedUser, isEditUserOpen, form])
+
+  // Reset form when selected user changes or dialog opens (duplicate effect removed)
+  // This effect is already handled above
+
+  // Early return if no selected user - AFTER all hook calls
+  if (!selectedUser) {
+    return null
+  }
+
+  // Duplicate useEffect removed - form reset is handled above
 
   function onSubmit(values: EditUserFormValues) {
     if (!selectedUser) return

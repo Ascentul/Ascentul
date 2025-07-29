@@ -4,17 +4,416 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocation } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 // Import UI components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   User, CreditCard, ShieldCheck, Edit, Building, GraduationCap, Trophy, 
-  BookOpen, Award, Languages, MapPin, Settings, CheckCircle
+  BookOpen, Award, Languages, MapPin, Settings, CheckCircle, Calendar,
+  DollarSign, AlertCircle, Check, X, Plus
 } from 'lucide-react';
 import { z } from 'zod';
+
+// Subscription Management Component
+function SubscriptionManagement({ user }: { user: any }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'premium' | 'university'>('premium');
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
+
+  // Fetch payment methods
+  const { data: paymentMethods, isLoading: paymentMethodsLoading } = useQuery({
+    queryKey: ['/api/payment-methods'],
+    queryFn: async () => {
+      const response = await apiRequest({ url: '/api/payment-methods' });
+      return response;
+    },
+  });
+
+  // Upgrade subscription mutation
+  const upgradeSubscriptionMutation = useMutation({
+    mutationFn: async ({ plan, interval }: { plan: 'premium' | 'university'; interval: 'monthly' | 'quarterly' | 'annual' }) => {
+      const res = await apiRequest('POST', '/api/subscription/upgrade', { plan, interval });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to upgrade subscription');
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Subscription upgraded!',
+        description: `Your subscription has been upgraded to ${selectedPlan}.`,
+      });
+      setUpgradeDialogOpen(false);
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Upgrade failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/subscription/cancel');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to cancel subscription');
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Subscription cancelled',
+        description: 'Your subscription has been cancelled successfully.',
+      });
+      setCancelDialogOpen(false);
+      // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Cancellation failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleUpgrade = () => {
+    upgradeSubscriptionMutation.mutate({ plan: selectedPlan, interval: selectedInterval });
+  };
+
+  const handleCancel = () => {
+    cancelSubscriptionMutation.mutate();
+  };
+
+  // Plan pricing information
+  const planPricing = {
+    premium: {
+      monthly: { price: 15, label: '$15/month' },
+      quarterly: { price: 30, label: '$30/quarter ($10/month)' },
+      annual: { price: 72, label: '$72/year ($6/month)' },
+    },
+    university: {
+      monthly: { price: 25, label: '$25/month' },
+      quarterly: { price: 60, label: '$60/quarter ($20/month)' },
+      annual: { price: 200, label: '$200/year ($16.67/month)' },
+    },
+  };
+
+  const getStatusBadge = (plan: string, status: string) => {
+    if (plan === 'free') {
+      return <Badge variant="outline">Free Plan</Badge>;
+    }
+    
+    const variant = status === 'active' ? 'default' : status === 'past_due' ? 'destructive' : 'secondary';
+    const label = plan === 'premium' ? 'Premium' : plan === 'university' ? 'University' : plan;
+    
+    return (
+      <Badge variant={variant} className="capitalize">
+        {label} - {status.replace('_', ' ')}
+      </Badge>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Current Subscription */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Current Subscription
+              </CardTitle>
+              <CardDescription>Manage your subscription plan and billing</CardDescription>
+            </div>
+            {getStatusBadge(user.subscriptionPlan, user.subscriptionStatus)}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Plan</p>
+              <p className="font-medium capitalize">{user.subscriptionPlan || 'Free'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="font-medium capitalize">{user.subscriptionStatus?.replace('_', ' ') || 'Active'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Billing Cycle</p>
+              <p className="font-medium capitalize">{user.subscriptionCycle || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex gap-3">
+            {user.subscriptionPlan === 'free' ? (
+              <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Upgrade Plan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Upgrade Your Subscription</DialogTitle>
+                    <DialogDescription>
+                      Choose a plan that fits your needs and unlock premium features.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Select Plan</label>
+                      <Select value={selectedPlan} onValueChange={(value: 'premium' | 'university') => setSelectedPlan(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="premium">Premium Plan</SelectItem>
+                          <SelectItem value="university">University Plan</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium">Billing Interval</label>
+                      <Select value={selectedInterval} onValueChange={(value: 'monthly' | 'quarterly' | 'annual') => setSelectedInterval(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Monthly - {planPricing[selectedPlan].monthly.label}</SelectItem>
+                          <SelectItem value="quarterly">Quarterly - {planPricing[selectedPlan].quarterly.label}</SelectItem>
+                          <SelectItem value="annual">Annual - {planPricing[selectedPlan].annual.label}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="bg-muted p-3 rounded-lg">
+                      <p className="text-sm font-medium">Selected Plan</p>
+                      <p className="text-lg font-bold">{planPricing[selectedPlan][selectedInterval].label}</p>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleUpgrade} disabled={upgradeSubscriptionMutation.isPending}>
+                      {upgradeSubscriptionMutation.isPending ? 'Processing...' : 'Upgrade Now'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <>
+                <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Change Plan
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Change Your Subscription</DialogTitle>
+                      <DialogDescription>
+                        Update your current subscription plan.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Select Plan</label>
+                        <Select value={selectedPlan} onValueChange={(value: 'premium' | 'university') => setSelectedPlan(value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="premium">Premium Plan</SelectItem>
+                            <SelectItem value="university">University Plan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm font-medium">Billing Interval</label>
+                        <Select value={selectedInterval} onValueChange={(value: 'monthly' | 'quarterly' | 'annual') => setSelectedInterval(value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly - {planPricing[selectedPlan].monthly.label}</SelectItem>
+                            <SelectItem value="quarterly">Quarterly - {planPricing[selectedPlan].quarterly.label}</SelectItem>
+                            <SelectItem value="annual">Annual - {planPricing[selectedPlan].annual.label}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleUpgrade} disabled={upgradeSubscriptionMutation.isPending}>
+                        {upgradeSubscriptionMutation.isPending ? 'Processing...' : 'Update Plan'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive">
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel Subscription
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Cancel Subscription</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to cancel your subscription? You'll lose access to premium features.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="bg-destructive/10 p-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                        <p className="text-sm font-medium">This action cannot be undone</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Your subscription will be cancelled immediately and you'll be moved to the free plan.
+                      </p>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                        Keep Subscription
+                      </Button>
+                      <Button variant="destructive" onClick={handleCancel} disabled={cancelSubscriptionMutation.isPending}>
+                        {cancelSubscriptionMutation.isPending ? 'Cancelling...' : 'Cancel Subscription'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Payment Methods
+          </CardTitle>
+          <CardDescription>Manage your payment methods and billing information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {paymentMethodsLoading ? (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">Loading payment methods...</p>
+            </div>
+          ) : paymentMethods?.payment_methods?.length > 0 ? (
+            <div className="space-y-3">
+              {paymentMethods.payment_methods.map((method: any) => (
+                <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-4 w-4" />
+                    <div>
+                      <p className="font-medium">
+                        •••• •••• •••• {method.card?.last4}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {method.card?.brand?.toUpperCase()} • Expires {method.card?.exp_month}/{method.card?.exp_year}
+                      </p>
+                    </div>
+                  </div>
+                  {method.id === paymentMethods.default_payment_method && (
+                    <Badge variant="secondary">Default</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <CreditCard className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">No payment methods added</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add a payment method to manage your subscription
+              </p>
+              <Button variant="outline" className="mt-3">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Payment Method
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Billing History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Billing History
+          </CardTitle>
+          <CardDescription>View your past invoices and payments</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-muted-foreground">No billing history available</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your billing history will appear here after your first payment
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function Account() {
   const { user } = useUser();
@@ -324,15 +723,7 @@ export default function Account() {
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription</CardTitle>
-              <CardDescription>Your subscription plan details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>This section is coming soon.</p>
-            </CardContent>
-          </Card>
+          <SubscriptionManagement user={user} />
         </TabsContent>
 
         <TabsContent value="career" className="space-y-6">
