@@ -35,33 +35,33 @@ Below are all open and in-progress bugs (excluding those marked as Done) from th
 
 ## Application Tracker & Follow-Ups
 
-- [ ] **Follow up action overview**  
+- [x] **Follow up action overview**  
   **Date:** 5/21/25  
   **Feature:** Follow up action overview  
   **URL:** /career-dashboard  
   **Bug:** Contact follow-up actions are not showing up in the follow up actions overview element on the dashboard  
   **Steps to Reproduce:** Create a follow up action on a contact  
   **Expected Result:** Follow-up actions show up right away when created.  
-  **Status:** Not started  
+  **Status:** Done  
   **Priority:** Low
 
-- [ ] **AI Coach**  
+- [x] **AI Coach**  
   **Date:** 5/22/25  
   **Feature:** AI Coach  
   **URL:** /career-dashboard  
   **Bug:** AI Coach element does not mirror the functionality of the AI Career coach  
   **Steps to Reproduce:** Use feature  
   **Expected Result:** AI Coach element should mirror the functionality of the AI Career coach, it should be the same agent  
-  **Status:** Not started  
+  **Status:** Done  
   **Priority:** Medium
 
-- [ ] **Today's Recommendations**  
+- [x] **Today's Recommendations**  
   **Date:** 5/22/25  
   **Feature:** Today's Recommendations  
   **URL:** /career-dashboard  
   **Bug:** We need to generate more intelligent recommendations based on (user career profile + user goals + user applications + AI suggestion prompt)  
   **Expected Result:** Fresh recommendations that refresh every 24 hours, that are context-based and provide the user with guidance, and best practices to move forward.  
-  **Status:** Not started  
+  **Status:** Done  
   **Priority:** Medium  
   **Comments:** Prompt Template: AI Career Strategist Recommendations
 You are a world-class career strategist and job search coach with 15+ years of experience helping ambitious professionals land competitive roles and accelerate their growth. Your role is to provide tailored, strategic guidance based on each user’s real data: career profile, goals, applications, contacts, and follow-up actions.
