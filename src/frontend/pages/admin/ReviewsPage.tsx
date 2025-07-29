@@ -442,7 +442,7 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>

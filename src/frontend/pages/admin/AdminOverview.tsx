@@ -18,7 +18,11 @@ import {
   TrendingUp,
   BookOpen,
   ExternalLink,
-  ArrowRight
+  ArrowRight,
+  CreditCard,
+  DollarSign,
+  Percent,
+  Target
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -64,8 +68,17 @@ export default function AdminOverview() {
     }
   })
 
+  // Fetch subscription analytics
+  const { data: subscriptionData, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ["/api/admin/subscription-analytics"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/admin/subscription-analytics")
+      return response
+    }
+  })
+
   // Loading state
-  if (analyticsLoading || statsLoading) {
+  if (analyticsLoading || statsLoading || subscriptionLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -74,7 +87,7 @@ export default function AdminOverview() {
   }
 
   // If no data available, show empty state
-  if (!analyticsData || !userStats) {
+  if (!analyticsData || !userStats || !subscriptionData) {
     return (
       <div className="max-w-4xl mx-auto p-4 md:p-6">
         <Card>
@@ -125,164 +138,226 @@ export default function AdminOverview() {
         </div>
       </div>
 
-      {/* Quick stats */}
+      {/* Subscription Overview Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          icon={<DollarSign className="h-5 w-5 text-green-500" />}
+          title="Monthly Revenue"
+          value={`$${(subscriptionData?.totalMRR || 0).toLocaleString()}`}
+          trend="Total MRR"
+          trendUp={true}
+        />
+        <StatCard
+          icon={<Target className="h-5 w-5 text-blue-500" />}
+          title="Active Subscriptions"
+          value={(subscriptionData?.activeSubscriptions || 0).toLocaleString()}
+          trend="Paying customers"
+          trendUp={true}
+        />
+        <StatCard
+          icon={<Percent className="h-5 w-5 text-purple-500" />}
+          title="Conversion Rate"
+          value={`${subscriptionData?.conversionRate || '0.0'}%`}
+          trend="Free to paid"
+          trendUp={true}
+        />
         <StatCard
           icon={<Users className="h-5 w-5 text-primary" />}
           title="Total Users"
-          value={(analyticsData?.totalUsers || 0).toLocaleString()}
-          trend="Total registered users"
-          trendUp={true}
-        />
-        <StatCard
-          icon={<Activity className="h-5 w-5 text-green-500" />}
-          title="User Types"
-          value={Object.keys(
-            analyticsData?.userTypeDistribution || {}
-          ).length.toString()}
-          trend="Different user types"
-          trendUp={true}
-        />
-        <StatCard
-          icon={<Building className="h-5 w-5 text-blue-500" />}
-          title="Universities"
-          value={(userStats?.universities || 0).toString()}
-          trend="Partner institutions"
-          trendUp={true}
-        />
-        <StatCard
-          icon={<Calendar className="h-5 w-5 text-orange-500" />}
-          title="Growth Rate"
-          value={
-            userGrowthData.length > 0 ? userGrowthData.length.toString() : "0"
-          }
-          trend="Data points available"
+          value={(subscriptionData?.totalUsers || 0).toLocaleString()}
+          trend="All registered users"
           trendUp={true}
         />
       </div>
 
-      {/* Charts section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">User Growth</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={userGrowthData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="users"
-                    stroke="#0C29AB"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Subscription Breakdown Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          icon={<Users className="h-5 w-5 text-gray-500" />}
+          title="Free Users"
+          value={(subscriptionData?.freeUsers || 0).toLocaleString()}
+          trend="On free plan"
+          trendUp={false}
+        />
+        <StatCard
+          icon={<CreditCard className="h-5 w-5 text-amber-500" />}
+          title="Premium Users"
+          value={(subscriptionData?.premiumUsers || 0).toLocaleString()}
+          trend={`$${subscriptionData?.premiumMRR || 0} MRR`}
+          trendUp={true}
+        />
+        <StatCard
+          icon={<Building className="h-5 w-5 text-blue-500" />}
+          title="University Users"
+          value={(subscriptionData?.universityUsers || 0).toLocaleString()}
+          trend={`$${subscriptionData?.universityMRR || 0} MRR`}
+          trendUp={true}
+        />
+        <StatCard
+          icon={<Activity className="h-5 w-5 text-red-500" />}
+          title="Past Due"
+          value={(subscriptionData?.pastDueSubscriptions || 0).toLocaleString()}
+          trend="Needs attention"
+          trendUp={false}
+        />
+      </div>
 
+      {/* Subscription Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Subscription Growth Chart */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">
-              User Distribution Overview
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Subscription Growth (30 Days)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row gap-8 justify-between items-center w-full">
-              <div className="w-full md:w-1/2 h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={userTypeData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) =>
-                        `${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                      paddingAngle={2}
-                    >
-                      {userTypeData.map((entry) => (
-                        <Cell
-                          key={`cell-${entry.name}`}
-                          fill={
-                            entry.name === "Regular"
-                              ? COLORS.REGULAR
-                              : COLORS.UNIVERSITY
-                          }
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [`${value} users`, name]}
-                    />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                      wrapperStyle={{ paddingTop: "20px" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <p className="text-center text-sm font-medium mt-2">
-                  User Types
-                </p>
+            {subscriptionData?.subscriptionGrowth?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={subscriptionData.subscriptionGrowth}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    formatter={(value, name) => [
+                      name === 'newSubscriptions' ? `${value} new subs` : `$${value}`,
+                      name === 'newSubscriptions' ? 'New Subscriptions' : 'MRR Impact'
+                    ]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="newSubscriptions"
+                    stroke="#8884d8"
+                    strokeWidth={2}
+                    name="newSubscriptions"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="mrr"
+                    stroke="#82ca9d"
+                    strokeWidth={2}
+                    name="mrr"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No subscription growth data available
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              <div className="w-full md:w-1/2 h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={planData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) =>
-                        `${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                      paddingAngle={2}
-                    >
-                      {planData.map((entry) => {
-                        let color
-                        if (entry.name === "Free") color = COLORS.FREE
-                        else if (entry.name === "Premium")
-                          color = COLORS.PREMIUM
-                        else color = COLORS.UNIVERSITY
-
-                        return <Cell key={`cell-${entry.name}`} fill={color} />
-                      })}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [`${value} users`, name]}
-                    />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                      wrapperStyle={{ paddingTop: "20px" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <p className="text-center text-sm font-medium mt-2">
-                  Subscription Plans
-                </p>
+        {/* Plan Distribution Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart4 className="h-5 w-5" />
+              Subscription Plan Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {subscriptionData?.planDistribution?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={subscriptionData.planDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percentage }) => `${name}: ${percentage}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {subscriptionData.planDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={[
+                        '#94a3b8', // Free - gray
+                        '#f59e0b', // Premium - amber
+                        '#3b82f6'  // University - blue
+                      ][index % 3]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value} users`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No plan distribution data available
               </div>
-            </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Subscription Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Billing Cycle Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Billing Cycle Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {subscriptionData?.billingCycleDistribution?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={subscriptionData.billingCycleDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`${value} users`, 'Count']} />
+                  <Bar dataKey="value" fill="#8b5cf6" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No billing cycle data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Subscription Status Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Subscription Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {subscriptionData?.subscriptionStatusBreakdown?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={subscriptionData.subscriptionStatusBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {subscriptionData.subscriptionStatusBreakdown.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name) => [`${value} subscriptions`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                No subscription status data available
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

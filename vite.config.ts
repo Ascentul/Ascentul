@@ -26,6 +26,14 @@ export default defineConfig(async ({ mode }) => {
         "@assets": path.resolve(__dirname, "src", "frontend", "assets")
       }
     },
+    server: {
+      port: 5173,
+      host: true
+    },
+    preview: {
+      port: 5173,
+      host: true
+    },
     root: path.resolve(__dirname, "src", "frontend"),
     publicDir: "assets",
     build: {

@@ -51,12 +51,17 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use(vite.middlewares)
 
-  // Only handle non-API routes with Vite
+  // Only handle non-API routes with Vite - SPA fallback for client-side routing
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl
 
     // Skip API routes - let them be handled by the API router
     if (url.startsWith("/api/") || url.startsWith("/uploads/") || url.startsWith("/_next/")) {
+      return next()
+    }
+
+    // Skip static assets (js, css, images, etc.)
+    if (url.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
       return next()
     }
 
@@ -68,15 +73,24 @@ export async function setupVite(app: Express, server: Server) {
         "index.html"
       )
 
-      // always reload the index.html file from disk incase it changes
+      // Check if the file exists
+      if (!fs.existsSync(clientTemplate)) {
+        console.error(`Template file not found: ${clientTemplate}`)
+        return res.status(500).send('Template file not found')
+      }
+
+      // always reload the index.html file from disk in case it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8")
       template = template.replace(
         `src="./main.tsx"`,
         `src="./main.tsx?v=${nanoid()}"`
       )
+      
+      // Transform and serve the HTML for all client-side routes
       const page = await vite.transformIndexHtml(url, template)
       res.status(200).set({ "Content-Type": "text/html" }).end(page)
     } catch (e) {
+      console.error('Vite SPA routing error:', e)
       vite.ssrFixStacktrace(e as Error)
       next(e)
     }

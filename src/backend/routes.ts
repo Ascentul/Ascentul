@@ -1491,6 +1491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Return success response
           return res.status(200).json({ message: "Profile image updated successfully", profileImage: publicUrl })
+        }
       } catch (error) {
         console.error("Error updating profile image:", error)
         res.status(500).json({ message: "Error updating profile image" })

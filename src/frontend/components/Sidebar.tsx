@@ -601,8 +601,8 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         <div className="flex-1"></div>
       </nav>
       
-      {/* Admin Dashboard - only show for admin users */}
-      {isAdmin && (
+      {/* Admin Dashboard - only show for admin users but not super admins */}
+      {isAdmin && user?.role !== "super_admin" && (
         <div className="border-t py-2">
           {expanded && (
             <div className="px-6 py-2 text-xs font-medium text-neutral-400 uppercase">

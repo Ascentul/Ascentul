@@ -582,6 +582,9 @@ export default function AdminDashboard() {
   const [isUniversitiesRoute] = useRoute("/admin/universities")
   const [activeTab, setActiveTab] = useState("overview")
   const { toast } = useToast()
+  
+  // Check if user is super admin to conditionally hide certain nav sections
+  const isSuperAdmin = user?.role === "super_admin"
 
   // Add support tab content
   const TabContent = () => {
@@ -681,250 +684,32 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className="hidden md:flex w-64 flex-col bg-muted/40 border-r p-4">
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-primary">Admin Dashboard</h2>
-          <p className="text-sm text-muted-foreground">CareerTracker.io</p>
-        </div>
-
-        <nav className="space-y-1">
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "overview"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("overview")}
-          >
-            <span className="mr-3">
-              <BarChart className="h-5 w-5" />
-            </span>
-            <span>Overview</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "users"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("users")}
-          >
-            <span className="mr-3">
-              <Users className="h-5 w-5" />
-            </span>
-            <span>User Management</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "universities" || isUniversitiesRoute
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("universities")}
-          >
-            <span className="mr-3">
-              <Building className="h-5 w-5" />
-            </span>
-            <span>Universities</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "reviews"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("reviews")}
-          >
-            <span className="mr-3">
-              <Star className="h-5 w-5" />
-            </span>
-            <span>Customer Reviews</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "analytics"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("analytics")}
-          >
-            <span className="mr-3">
-              <Activity className="h-5 w-5" />
-            </span>
-            <span>Analytics</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "support"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("support")}
-          >
-            <span className="mr-3">
-              <HelpCircle className="h-5 w-5" />
-            </span>
-            <span>Support</span>
-          </div>{" "}
-          {/* Added Support Sidebar Item */}
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "billing"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("billing")}
-          >
-            <span className="mr-3">
-              <CreditCard className="h-5 w-5" />
-            </span>
-            <span>Billing</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "ai-models"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("ai-models")}
-          >
-            <span className="mr-3">
-              <Cpu className="h-5 w-5" />
-            </span>
-            <span>AI Models</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "openai-logs"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("openai-logs")}
-          >
-            <span className="mr-3">
-              <Activity className="h-5 w-5" />
-            </span>
-            <span>OpenAI Logs</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "email"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("email")}
-          >
-            <span className="mr-3">
-              <Mail className="h-5 w-5" />
-            </span>
-            <span>Email Management</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "test-email"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => {
-              setActiveTab("test-email")
-              window.location.href = "/admin/test-email"
-            }}
-          >
-            <span className="mr-3">
-              <Mail className="h-5 w-5" />
-            </span>
-            <span>Test Email</span>
-          </div>
-          <div
-            className={`flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer ${
-              activeTab === "settings"
-                ? "bg-[#1333c2] text-white font-medium"
-                : "text-foreground/70 hover:bg-muted/80"
-            }`}
-            onClick={() => setActiveTab("settings")}
-          >
-            <span className="mr-3">
-              <Settings className="h-5 w-5" />
-            </span>
-            <span>Settings</span>
-          </div>
-        </nav>
-
-        <div className="mt-auto pt-4">
-          <button
-            onClick={async () => {
-              try {
-                // First log out from the server using the correct endpoint
-                const response = await fetch("/api/auth/logout", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  credentials: "include" // Include cookies for session-based auth
-                })
-
-                if (response.ok) {
-                  toast({
-                    title: "Success",
-                    description: "Exited admin mode successfully."
-                  })
-                  // Then redirect to the regular dashboard
-                  setTimeout(() => {
-                    window.location.href = "/dashboard"
-                  }, 500) // Short delay to allow toast to be seen
-                } else {
-                  console.error("Logout failed with status:", response.status)
-                  toast({
-                    title: "Logout Failed",
-                    description: "Could not exit admin mode. Please try again.",
-                    variant: "destructive"
-                  })
-                }
-              } catch (error) {
-                console.error("Logout error:", error)
-                toast({
-                  title: "Logout Failed",
-                  description: "Network error. Please try again.",
-                  variant: "destructive"
-                })
-              }
-            }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border bg-background hover:bg-accent transition-colors"
-          >
-            <span>Exit Admin Mode</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
+    <div className="min-h-screen bg-background">
+      {/* Content area - Full Width */}
+      <main className="p-6">
         {/* Mobile header */}
-        <header className="flex md:hidden items-center border-b p-4">
+        <header className="flex md:hidden items-center border-b p-4 mb-6">
           <h1 className="text-lg font-bold">Admin Dashboard</h1>
-
-          {/* Mobile dropdown menu would go here */}
         </header>
 
-        {/* Content area */}
-        <main className="flex-1 p-6">
-          <div className="mx-auto max-w-1440 w-full px-6 md:px-8 lg:px-10">
-            <Tabs
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="md:hidden grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-              </TabsList>
+        {/* Main Content */}
+        <div className="mx-auto max-w-7xl w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="md:hidden grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value={activeTab} className="mt-0">
-                <TabContent />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
-      </div>
+            <TabsContent value={activeTab} className="mt-0">
+              <TabContent />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
     </div>
   )
 }

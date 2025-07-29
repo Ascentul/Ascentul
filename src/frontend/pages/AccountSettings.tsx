@@ -26,7 +26,6 @@ import { AddSectionButton } from "@/components/AddSectionButton"
 import {
   Loader2,
   CreditCard,
-  ShieldCheck,
   User,
   LogOut,
   Mail,
@@ -253,9 +252,20 @@ export default function AccountSettings() {
       })
     },
     onError: (error: Error) => {
+      let errorMessage = error.message
+      
+      // Handle specific error cases with more user-friendly messages
+      if (error.message.includes("no active subscription")) {
+        errorMessage = "You don't currently have an active subscription to cancel. If you believe this is an error, please contact support."
+      } else if (error.message.includes("already cancelled")) {
+        errorMessage = "Your subscription has already been cancelled."
+      } else if (error.message.includes("not found")) {
+        errorMessage = "Subscription not found. Please refresh the page and try again."
+      }
+      
       toast({
         title: "Cancellation Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       })
     }
@@ -303,7 +313,30 @@ export default function AccountSettings() {
   })
 
   const handleCancelSubscription = async () => {
-    if (!user || !isSubscriptionActive) {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not found. Please refresh the page and try again.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!isSubscriptionActive) {
+      toast({
+        title: "No Active Subscription",
+        description: "You don't have an active subscription to cancel.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (user.subscriptionPlan === "free") {
+      toast({
+        title: "No Subscription to Cancel",
+        description: "You're currently on the free plan and don't have a subscription to cancel.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -482,7 +515,7 @@ export default function AccountSettings() {
           setActiveTab(value)
         }}
       >
-        <TabsList className="flex flex-wrap">
+        <TabsList className="inline-flex flex-wrap w-auto">
           <TabsTrigger value="career" className="flex items-center">
             <Briefcase className="mr-2 h-4 w-4" />
             Career
@@ -495,10 +528,7 @@ export default function AccountSettings() {
             <CreditCard className="mr-2 h-4 w-4" />
             Subscription
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center">
-            <ShieldCheck className="mr-2 h-4 w-4" />
-            Security
-          </TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="profile" className="px-6 py-8">
@@ -704,169 +734,143 @@ export default function AccountSettings() {
 
         <TabsContent value="career" className="px-6 py-8">
           <div className="space-y-8">
-            {/* Career Profile Completion Progress */}
-            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <CheckCircle className="h-5 w-5 mr-2 text-primary" />
-                    Profile Completion
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Complete your career profile to maximize opportunities.
-                  </p>
-                </div>
-                <div className="text-xl font-semibold text-primary">
-                  {(() => {
-                    // Calculate profile completion percentage
-                    const totalSections = 5 // Career Summary, LinkedIn, Work History, Education, Skills
-                    let completedSections = 0
+            {/* Career Profile Completion Progress - Only show if profile is incomplete */}
+            {(() => {
+              // Calculate if profile is complete
+              const totalSections = 5 // Career Summary, LinkedIn, Work History, Education, Skills
+              let completedSections = 0
 
-                    if (careerData?.careerSummary) completedSections++
-                    if (careerData?.linkedInUrl) completedSections++
-                    if (
-                      careerData?.workHistory &&
-                      careerData.workHistory.length > 0
-                    )
-                      completedSections++
-                    if (
-                      careerData?.educationHistory &&
-                      careerData.educationHistory.length > 0
-                    )
-                      completedSections++
-                    if (careerData?.skills && careerData.skills.length > 0)
-                      completedSections++
+              if (careerData?.careerSummary) completedSections++
+              if (careerData?.linkedInUrl) completedSections++
+              if (careerData?.workHistory && careerData.workHistory.length > 0) completedSections++
+              if (careerData?.educationHistory && careerData.educationHistory.length > 0) completedSections++
+              if (careerData?.skills && careerData.skills.length > 0) completedSections++
 
-                    const percentage = Math.round(
-                      (completedSections / totalSections) * 100
-                    )
-                    return `${percentage}%`
-                  })()}
-                </div>
-              </div>
+              const isProfileComplete = completedSections === totalSections
+              
+              // Only show checklist if profile is not complete
+              if (isProfileComplete) return null
+              
+              return (
+                <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <CheckCircle className="h-5 w-5 mr-2 text-primary" />
+                        Profile Completion
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Complete your career profile to maximize opportunities.
+                      </p>
+                    </div>
+                    <div className="text-xl font-semibold text-primary">
+                      {Math.round((completedSections / totalSections) * 100)}%
+                    </div>
+                  </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-primary h-2.5 rounded-full"
-                  style={{
-                    width: (() => {
-                      // Calculate profile completion percentage for the style
-                      const totalSections = 5 // Career Summary, LinkedIn, Work History, Education, Skills
-                      let completedSections = 0
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-primary h-2.5 rounded-full"
+                      style={{
+                        width: `${(completedSections / totalSections) * 100}%`
+                      }}
+                    />
+                  </div>
 
-                      if (careerData?.careerSummary) completedSections++
-                      if (careerData?.linkedInUrl) completedSections++
-                      if (
-                        careerData?.workHistory &&
-                        careerData.workHistory.length > 0
-                      )
-                        completedSections++
-                      if (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div
+                      className={`p-3 rounded-md border ${
+                        careerData?.careerSummary
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {careerData?.careerSummary ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">Career Summary</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-3 rounded-md border ${
+                        careerData?.linkedInUrl
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {careerData?.linkedInUrl ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">
+                          LinkedIn Profile
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-3 rounded-md border ${
+                        careerData?.workHistory && careerData.workHistory.length > 0
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {careerData?.workHistory &&
+                        careerData.workHistory.length > 0 ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">Work History</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`p-3 rounded-md border ${
                         careerData?.educationHistory &&
                         careerData.educationHistory.length > 0
-                      )
-                        completedSections++
-                      if (careerData?.skills && careerData.skills.length > 0)
-                        completedSections++
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {careerData?.educationHistory &&
+                        careerData.educationHistory.length > 0 ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">Education</span>
+                      </div>
+                    </div>
 
-                      return `${(completedSections / totalSections) * 100}%`
-                    })()
-                  }}
-                />
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div
-                  className={`p-3 rounded-md border ${
-                    careerData?.careerSummary
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {careerData?.careerSummary ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
-                    )}
-                    <span className="text-sm font-medium">Career Summary</span>
+                    <div
+                      className={`p-3 rounded-md border ${
+                        careerData?.skills && careerData.skills.length > 0
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        {careerData?.skills && careerData.skills.length > 0 ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <Circle className="h-5 w-5 text-gray-300 mr-2" />
+                        )}
+                        <span className="text-sm font-medium">Skills</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <div
-                  className={`p-3 rounded-md border ${
-                    careerData?.linkedInUrl
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {careerData?.linkedInUrl ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
-                    )}
-                    <span className="text-sm font-medium">
-                      LinkedIn Profile
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  className={`p-3 rounded-md border ${
-                    careerData?.workHistory && careerData.workHistory.length > 0
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {careerData?.workHistory &&
-                    careerData.workHistory.length > 0 ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
-                    )}
-                    <span className="text-sm font-medium">Work History</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`p-3 rounded-md border ${
-                    careerData?.educationHistory &&
-                    careerData.educationHistory.length > 0
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {careerData?.educationHistory &&
-                    careerData.educationHistory.length > 0 ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
-                    )}
-                    <span className="text-sm font-medium">Education</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`p-3 rounded-md border ${
-                    careerData?.skills && careerData.skills.length > 0
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-center">
-                    {careerData?.skills && careerData.skills.length > 0 ? (
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <Circle className="h-5 w-5 text-gray-300 mr-2" />
-                    )}
-                    <span className="text-sm font-medium">Skills</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              )
+            })()}
 
             {/* Career Summary Section */}
             <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
@@ -1690,229 +1694,12 @@ export default function AccountSettings() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <h3 className="text-base font-semibold mb-2">Plan Features</h3>
 
-                <ul className="space-y-3 text-sm">
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Career profile management</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Resume builder (basic templates)</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Application tracking</span>
-                  </li>
-
-                  {user.subscriptionPlan === "premium" && (
-                    <>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>AI-powered resume feedback</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Cover letter generator</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Interview preparation tools</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Advanced analytics and insights</span>
-                      </li>
-                    </>
-                  )}
-                </ul>
-
-                {user.subscriptionPlan === "free" && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-medium mb-2">
-                      Premium Features
-                    </h4>
-                    <ul className="space-y-3 text-sm text-gray-500">
-                      <li className="flex items-start">
-                        <HelpCircle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>AI-powered resume feedback</span>
-                      </li>
-                      <li className="flex items-start">
-                        <HelpCircle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Cover letter generator</span>
-                      </li>
-                      <li className="flex items-start">
-                        <HelpCircle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Interview preparation tools</span>
-                      </li>
-                      <li className="flex items-start">
-                        <HelpCircle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Advanced analytics and insights</span>
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="security" className="px-6 py-8">
-          <div className="space-y-6">
-            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Security Settings
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Manage your account security and privacy settings.
-                </p>
-              </div>
 
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">
-                      Two-Factor Authentication
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Add an extra layer of security to your account.
-                    </p>
-                  </div>
-                  <Switch id="two-factor" disabled />
-                </div>
-
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">
-                      Email Notifications
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Receive security alerts about suspicious account activity.
-                    </p>
-                  </div>
-                  <Switch id="email-notifications" defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">
-                      Session Management
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Manage your active sessions and sign out from other
-                      devices.
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Manage Sessions
-                  </Button>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">
-                    Password Security
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Use the Profile tab to update your password.
-                  </p>
-
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        Password last changed
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {user.passwordLastChanged
-                          ? formatDate(new Date(user.passwordLastChanged))
-                          : "Never"}
-                      </p>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setActiveTab("profile")}
-                    >
-                      Change Password
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Connected Accounts
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Manage third-party services connected to your account.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      G
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium">Google</h3>
-                      <p className="text-xs text-gray-500">Not connected</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" disabled>
-                    Connect
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-md">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      L
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium">LinkedIn</h3>
-                      <p className="text-xs text-gray-500">Not connected</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" disabled>
-                    Connect
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-white shadow-sm p-6 border border-gray-200">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-red-600">
-                  Danger Zone
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Permanent actions that cannot be undone.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-4 border border-red-200 rounded-md bg-red-50">
-                  <h3 className="text-sm font-medium text-red-600 mb-1">
-                    Delete Account
-                  </h3>
-                  <p className="text-xs text-red-500 mb-3">
-                    This action cannot be undone. All your data will be
-                    permanently deleted.
-                  </p>
-                  <Button variant="destructive" size="sm" disabled>
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
       </Tabs>
       <LinkedInProfileFormModal
         open={linkedInProfileModal.open}

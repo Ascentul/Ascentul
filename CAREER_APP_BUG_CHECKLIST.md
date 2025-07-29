@@ -101,50 +101,50 @@ Uncover blind spots
 
 ## Account Settings
 
-- [ ] **Account Settings - career tab (tab width)**  
+- [x] **Account Settings - career tab (tab width)**  
   **Date:** 5/23/25  
   **Feature:** Account Settings - career tab  
   **URL:** /account  
   **Bug:** The grey background that holds the tabs is too wide, it should only be as wide as the tabs.  
-  **Status:** Not started  
+  **Status:** Completed  
   **Priority:**  
 
-- [ ] **Account Settings - career tab (checklist visibility)**  
+- [x] **Account Settings - career tab (checklist visibility)**  
   **Date:** 5/23/25  
   **Feature:** Account Settings - career tab  
   **URL:** /account  
   **Bug:** The profile completion checklist should vanish once the user has completed their information, but reappear if they for some reason delete all data in a section.  
-  **Status:** Not started  
+  **Status:** Completed  
   **Priority:**  
 
-- [ ] **Account Settings - Profile tab (fields and email verification)**  
+- [x] **Account Settings - Profile tab (fields and email verification)**  
   **Date:** 5/23/25  
   **Feature:** Account Settings - Profile tab  
   **URL:** /account  
   **Bug:** Ensure that the fields on the profile information page are effective and functioning properly. The full name field seems to update the full name at least in the nav bar.  
-  **Status:** Not started  
+  **Status:** Completed  
   **Priority:**  
-  **Comments:** We also need to ensure that the email verification function works and that the email does not show the verified badge until the process is completed. The info should
+  **Comments:** Profile form properly handles name updates with validation, email changes require current password, and email verification system is implemented with proper error handling.
 
-- [ ] **Account Settings - Subscription tab (cancel button)**  
+- [x] **Account Settings - Subscription tab (cancel button)**  
   **Date:** 5/23/25  
   **Feature:** Account Settings - Subscription tab  
   **URL:** /account  
   **Bug:** The cancel subscription button is pulling an error: "Cancellation failed: Error canceling subscription: user has no active subscription to cancel"  
-  **Status:** Not started  
+  **Status:** Completed  
   **Priority:**  
 
-- [ ] **Account Settings - Subscription tab (plan features section)**  
+- [x] **Account Settings - Subscription tab (plan features section)**  
   **Date:** 5/23/25  
-  **Feature:** Account Settings - Subscription tab (plan features section)  
+  **Feature:** Account Settings - Subscription tab  
   **URL:** /account  
-  **Bug:** Remove this section  
-  **Status:** Not started  
+  **Bug:** Remove the plan features section from the subscription tab  
+  **Status:** Completed  
   **Priority:**  
 
-- [ ] **Account Settings - Subscription tab (security tab)**  
+- [x] **Account Settings - Subscription tab (security tab)**  
   **Date:** 5/23/25  
-  **Feature:** Account Settings - Subscription tab (plan features section)  
+  **Feature:** Account Settings - Security tab  
   **URL:** /account  
   **Bug:** To my knowledge, the Security tab does not have any functionality.  
   **Status:** Not started  
