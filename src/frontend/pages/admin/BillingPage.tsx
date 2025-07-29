@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { DrawerContent, DrawerClose, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, Drawer } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
 
 // Customer interface
 interface Customer {
@@ -46,125 +47,7 @@ interface PaymentRecord {
   invoiceUrl?: string;
 }
 
-// Generate mock data for development purposes
-function generateMockData(): Customer[] {
-  const customers: Customer[] = [];
-  
-  // Pro users
-  for (let i = 1; i <= 10; i++) {
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 12));
-    
-    const renewalDate = new Date(startDate);
-    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-    
-    const nextPaymentDate = new Date();
-    nextPaymentDate.setDate(nextPaymentDate.getDate() + Math.floor(Math.random() * 30));
-    
-    const paymentHistory: PaymentRecord[] = [];
-    let totalPaid = 0;
-    
-    // Generate payment history
-    for (let j = 0; j < Math.floor(Math.random() * 8) + 1; j++) {
-      const paymentDate = new Date(startDate);
-      paymentDate.setMonth(paymentDate.getMonth() + j);
-      
-      const amount = 15.00; // Standard monthly rate
-      totalPaid += amount;
-      
-      paymentHistory.push({
-        id: `inv_${Math.random().toString(36).substring(2, 10)}`,
-        date: paymentDate.toISOString(),
-        amount: amount,
-        status: Math.random() > 0.1 ? 'Paid' : (Math.random() > 0.5 ? 'Failed' : 'Pending'),
-        invoiceUrl: `https://stripe.com/invoice/${Math.random().toString(36).substring(2, 10)}`
-      });
-    }
-    
-    customers.push({
-      id: i,
-      stripeCustomerId: `cus_${Math.random().toString(36).substring(2, 10)}`,
-      name: `User ${i}`,
-      email: `user${i}@example.com`,
-      userType: 'Pro',
-      status: Math.random() > 0.2 ? 'Active' : (Math.random() > 0.5 ? 'Canceled' : 'Trialing'),
-      nextPaymentDate: nextPaymentDate.toISOString(),
-      totalAmountPaid: parseFloat(totalPaid.toFixed(2)),
-      currentPlan: 'Pro Monthly',
-      paymentMethod: {
-        type: 'card',
-        brand: ['Visa', 'Mastercard', 'Amex'][Math.floor(Math.random() * 3)],
-        last4: Math.floor(1000 + Math.random() * 9000).toString(),
-        expMonth: Math.floor(1 + Math.random() * 12),
-        expYear: new Date().getFullYear() + Math.floor(Math.random() * 5)
-      },
-      paymentHistory,
-      subscriptionStart: startDate.toISOString(),
-      subscriptionRenewal: renewalDate.toISOString()
-    });
-  }
-  
-  // University customers
-  for (let i = 1; i <= 5; i++) {
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - Math.floor(Math.random() * 10));
-    
-    const renewalDate = new Date(startDate);
-    renewalDate.setFullYear(renewalDate.getFullYear() + 1);
-    
-    const nextPaymentDate = new Date();
-    nextPaymentDate.setDate(nextPaymentDate.getDate() + Math.floor(Math.random() * 90));
-    
-    const seats = Math.floor(Math.random() * 900) + 100;
-    const usedSeats = Math.floor(Math.random() * seats);
-    
-    const paymentHistory: PaymentRecord[] = [];
-    let totalPaid = 0;
-    
-    // Generate payment history for universities
-    for (let j = 0; j < Math.floor(Math.random() * 4) + 1; j++) {
-      const paymentDate = new Date(startDate);
-      paymentDate.setMonth(paymentDate.getMonth() + j * 3); // Quarterly payments
-      
-      const amount = seats * 10; // $10 per seat
-      totalPaid += amount;
-      
-      paymentHistory.push({
-        id: `inv_${Math.random().toString(36).substring(2, 10)}`,
-        date: paymentDate.toISOString(),
-        amount: amount,
-        status: Math.random() > 0.05 ? 'Paid' : (Math.random() > 0.5 ? 'Failed' : 'Pending'),
-        invoiceUrl: `https://stripe.com/invoice/${Math.random().toString(36).substring(2, 10)}`
-      });
-    }
-    
-    customers.push({
-      id: i + 10,
-      stripeCustomerId: `cus_${Math.random().toString(36).substring(2, 10)}`,
-      name: `University ${i}`,
-      email: `admin@university${i}.edu`,
-      userType: 'University',
-      status: Math.random() > 0.1 ? 'Active' : (Math.random() > 0.5 ? 'Canceled' : 'Trialing'),
-      nextPaymentDate: nextPaymentDate.toISOString(),
-      totalAmountPaid: parseFloat(totalPaid.toFixed(2)),
-      currentPlan: 'University Plan',
-      seats,
-      usedSeats,
-      paymentMethod: {
-        type: 'card',
-        brand: ['Visa', 'Mastercard', 'Amex'][Math.floor(Math.random() * 3)],
-        last4: Math.floor(1000 + Math.random() * 9000).toString(),
-        expMonth: Math.floor(1 + Math.random() * 12),
-        expYear: new Date().getFullYear() + Math.floor(Math.random() * 5)
-      },
-      paymentHistory,
-      subscriptionStart: startDate.toISOString(),
-      subscriptionRenewal: renewalDate.toISOString()
-    });
-  }
-  
-  return customers;
-}
+// Removed mock data generation - now using real Stripe billing data from API
 
 // Utility function to get status badge variant
 function getBadgeVariantForStatus(status: string): "default" | "destructive" | "outline" | "secondary" | null | undefined {
@@ -188,17 +71,16 @@ export default function BillingPage() {
   const [customerFilter, setCustomerFilter] = useState('all');
 
   // Fetch customers data
-  const { data: customers = [], isLoading, refetch } = useQuery({
-    queryKey: ['customers'],
+  const { data: customers, isLoading, error, refetch } = useQuery({
+    queryKey: ['/api/admin/billing'],
     queryFn: async () => {
-      // In a real application, this would be an API call
-      // For now, we'll use mock data
-      return generateMockData();
-    },
+      const response = await apiRequest('/api/admin/billing');
+      return response;
+    }
   });
 
   // Filter customers based on search query and customer type filter
-  const filteredCustomers = customers.filter((customer) => {
+  const filteredCustomers = customers?.filter((customer) => {
     const matchesSearch = 
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -210,7 +92,7 @@ export default function BillingPage() {
       (customerFilter === 'university' && customer.userType === 'University');
     
     return matchesSearch && matchesFilter;
-  });
+  }) || [];
 
   // Handle customer row click
   const handleCustomerRowClick = (customer: Customer) => {
@@ -221,9 +103,8 @@ export default function BillingPage() {
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async (customerId: number) => {
-      // In a real app, this would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      return { success: true };
+      const response = await apiRequest('POST', '/api/admin/billing/cancel', { customerId });
+      return response;
     },
     onSuccess: () => {
       toast({
@@ -245,9 +126,8 @@ export default function BillingPage() {
   // Reactivate subscription mutation
   const reactivateSubscriptionMutation = useMutation({
     mutationFn: async (customerId: number) => {
-      // In a real app, this would call an API
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      return { success: true };
+      const response = await apiRequest('POST', '/api/admin/billing/reactivate', { customerId });
+      return response;
     },
     onSuccess: () => {
       toast({
