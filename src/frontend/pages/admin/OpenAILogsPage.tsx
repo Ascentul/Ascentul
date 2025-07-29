@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import { apiRequest } from '@/lib/queryClient';
 
 // Define interfaces
 interface OpenAILogEntry {
@@ -54,18 +55,30 @@ export default function AdminOpenAILogsPage() {
   // Fetch OpenAI logs from API
   const { data: logs, isLoading: isLogsLoading, error: logsError } = useQuery<OpenAILogEntry[], Error>({
     queryKey: ['/api/admin/openai-logs'],
+    queryFn: async () => {
+      const response = await apiRequest({ url: '/api/admin/openai-logs' });
+      return response;
+    },
     refetchInterval: 60000, // Refetch every minute
   });
 
   // Fetch model stats from API
   const { data: modelStats, isLoading: isModelStatsLoading, error: modelStatsError } = useQuery<Record<string, ModelStats>, Error>({
     queryKey: ['/api/admin/openai-stats/models'],
+    queryFn: async () => {
+      const response = await apiRequest({ url: '/api/admin/openai-stats/models' });
+      return response;
+    },
     refetchInterval: 60000, // Refetch every minute
   });
 
   // Fetch user stats from API
   const { data: userStats, isLoading: isUserStatsLoading, error: userStatsError } = useQuery<Record<string, UserStats>, Error>({
     queryKey: ['/api/admin/openai-stats/users'],
+    queryFn: async () => {
+      const response = await apiRequest({ url: '/api/admin/openai-stats/users' });
+      return response;
+    },
     refetchInterval: 60000, // Refetch every minute
   });
 

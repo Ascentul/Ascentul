@@ -1617,7 +1617,7 @@ function EditUserDialog() {
   })
 
   // Update form when selectedUser changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedUser && isEditUserOpen) {
       form.reset({
         name: selectedUser.name,

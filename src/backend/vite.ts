@@ -83,7 +83,7 @@ export async function setupVite(app: Express, server: Server) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8")
       template = template.replace(
         `src="./main.tsx"`,
-        `src="./main.tsx?v=${nanoid()}"`
+        `src="/main.tsx?v=${nanoid()}"`
       )
       
       // Transform and serve the HTML for all client-side routes
