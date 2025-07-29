@@ -142,27 +142,24 @@ export default function TodaysRecommendations() {
     
     setRefreshing(true);
     try {
-      // First invalidate and remove existing recommendations
-      await queryClient.invalidateQueries({ queryKey: ['/api/recommendations/daily'] });
-      await queryClient.removeQueries({ queryKey: ['/api/recommendations/daily'] });
-      
-      // Get new recommendations with refresh flag
-      const res = await apiRequest('GET', '/api/recommendations/daily?refresh=true');
+      // Call the refresh API endpoint to clear existing and generate new recommendations
+      const res = await apiRequest('POST', '/api/recommendations/refresh');
       if (!res.ok) {
         throw new Error('Failed to refresh recommendations');
       }
       
-      // Get fresh data
-      const newRecommendations = await res.json();
+      // Invalidate and refetch the daily recommendations
+      await queryClient.invalidateQueries({ queryKey: ['/api/recommendations/daily'] });
       
-      // Force update cache and trigger rerender
-      queryClient.setQueryData(['/api/recommendations/daily'], newRecommendations);
+      // Trigger a refetch to get the new recommendations
+      await refetch();
       
       toast({
         title: "Recommendations refreshed",
-        description: "New recommendations have been generated for you.",
+        description: "New AI-powered recommendations have been generated based on your current career profile and goals.",
       });
     } catch (error) {
+      console.error('Error refreshing recommendations:', error);
       toast({
         title: "Failed to refresh recommendations",
         description: "Please try again later.",

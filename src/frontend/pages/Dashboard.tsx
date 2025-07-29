@@ -336,16 +336,19 @@ export default function Dashboard() {
       { role: 'user', content: userQuestion.trim() }
     ];
     setMiniCoachMessages(newMessages);
+    const currentQuestion = userQuestion.trim();
     setUserQuestion('');
     setIsTyping(true);
 
     try {
-      // Call the OpenAI API through our backend
+      // Use the same API format as the standalone AI Coach
       const response = await apiRequest("POST", "/api/ai-coach/generate-response", {
-        messages: newMessages.map(msg => ({
+        query: currentQuestion,
+        conversationHistory: newMessages.map(msg => ({
           role: msg.role,
           content: msg.content
-        }))
+        })),
+        selectedModel: "gpt-4o-mini" // Use the same default model as standalone coach
       });
 
       if (!response.ok) {
@@ -354,7 +357,8 @@ export default function Dashboard() {
 
       const data = await response.json();
 
-      setMiniCoachMessages([...newMessages, { role: 'assistant', content: data.content }]);
+      // Use the same response format as standalone coach
+      setMiniCoachMessages([...newMessages, { role: 'assistant', content: data.response }]);
 
     } catch (error) {
       console.error('Error getting AI response:', error);

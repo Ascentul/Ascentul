@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
 import {
   Card,
   CardContent,
@@ -103,7 +104,10 @@ export default function AdminSettingsTab() {
   const [allowedIp, setAllowedIp] = useState("")
   const [isDirty, setIsDirty] = useState(false)
 
-  // Fetch settings from the API
+  // Get authentication state
+  const { user, isLoading: authLoading } = useAuth()
+  
+  // Only fetch settings when user is authenticated
   const {
     data: settingsData,
     isLoading,
@@ -123,16 +127,32 @@ export default function AdminSettingsTab() {
       }
     },
     retry: 1,
-    staleTime: 0
+    staleTime: 0,
+    enabled: !!user && !authLoading // Only run when user is authenticated
   })
 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (updatedSettings: PlatformSettings) => {
-      const res = await apiRequest("PUT", "/api/settings", updatedSettings)
-      return res.json()
+      console.log('🔧 Frontend: Starting settings mutation with data:', updatedSettings)
+      try {
+        const res = await apiRequest("PUT", "/api/settings", updatedSettings) as Response
+        console.log('🔧 Frontend: API request completed, status:', res.status)
+        
+        if (!res.ok) {
+          throw new Error(`API request failed with status ${res.status}`)
+        }
+        
+        const responseData = await res.json()
+        console.log('🔧 Frontend: Response data received:', responseData)
+        return responseData
+      } catch (error) {
+        console.error('🔧 Frontend: API request failed:', error)
+        throw error
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🔧 Frontend: Mutation successful, response:', data)
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] })
       toast({
         title: "Settings Updated",
@@ -142,6 +162,7 @@ export default function AdminSettingsTab() {
       setIsDirty(false)
     },
     onError: (error: Error, variables) => {
+      console.error('🔧 Frontend: Mutation failed:', error)
       console.error("Error updating settings:", error)
       toast({
         title: "Update Failed",
@@ -259,8 +280,33 @@ export default function AdminSettingsTab() {
 
   // Handler for saving settings
   const handleSaveSettings = () => {
-    if (settings) {
-      updateSettingsMutation.mutate(settings)
+    if (!user || authLoading) {
+      console.log('🔧 Frontend: Cannot save settings - user not authenticated')
+      toast({
+        title: "Authentication Required",
+        description: "Please ensure you are logged in before saving settings.",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    if (settings && settingsData) {
+      // Ensure we send complete settings by merging current changes with original data
+      const completeSettings = {
+        ...settingsData, // Start with the original complete data
+        ...settings      // Override with any local changes
+      }
+      
+      console.log('🔧 Frontend: Saving complete settings for authenticated user:', user.email)
+      console.log('🔧 Frontend: Complete settings object:', completeSettings)
+      updateSettingsMutation.mutate(completeSettings)
+    } else {
+      console.log('🔧 Frontend: Cannot save - settings or settingsData not available')
+      toast({
+        title: "Settings Not Ready",
+        description: "Settings data is not yet loaded. Please wait and try again.",
+        variant: "destructive"
+      })
     }
   }
 
