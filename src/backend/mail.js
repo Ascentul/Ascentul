@@ -4,98 +4,72 @@
  */
 import formData from 'form-data';
 import Mailgun from 'mailgun.js';
-
 // Initialize mailgun client
 const mailgun = new Mailgun(formData);
-
 // API key will be provided via environment variable
 // The domain is mail.ascentul.io
 const DEFAULT_DOMAIN = 'mail.ascentul.io';
 const DEFAULT_FROM = 'no-reply@mail.ascentul.io';
-
 /**
  * Send an email using Mailgun
- * @param {Object} options Email options
- * @param {string} options.to Recipient email address
- * @param {string} options.from Sender email address (defaults to no-reply@mail.ascentul.io)
- * @param {string} options.subject Email subject line
- * @param {string} options.text Plain text email body
- * @param {string} options.html HTML email body (optional)
- * @param {string} options.domain Mail domain (defaults to mail.ascentul.io)
- * @returns {Promise} Promise that resolves with Mailgun API response
+ * @param options Email options
+ * @returns Promise that resolves with Mailgun API response
  */
-async function sendEmail({
-  to,
-  from = DEFAULT_FROM,
-  subject,
-  text,
-  html,
-  domain = DEFAULT_DOMAIN
-}) {
-  // Validate required parameters
-  if (!to || !subject || !text) {
-    throw new Error('Missing required email parameters: to, subject, and text are required.');
-  }
-
-  // Check for Mailgun API key - try different potential environment variable names
-  const mailgunKey = process.env.MAILGUN_API_KEY || process.env.MAILGUN_KEY || process.env.MG_API_KEY || null;
-  
-  // Log all available environment variables (excluding those with sensitive names)
-  console.log('Looking for Mailgun API key...');
-  console.log('Available env vars:', Object.keys(process.env)
-    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
-    .join(', '));
-  
-  if (!mailgunKey) {
-    throw new Error('Mailgun API key environment variable is not set. Tried: MAILGUN_API_KEY, MAILGUN_KEY, MG_API_KEY');
-  }
-
-  try {
-    // Create mailgun client with API key
-    const mg = mailgun.client({
-      username: 'api',
-      key: mailgunKey
-    });
-
-    // Create email data object
-    const emailData = {
-      from,
-      to: Array.isArray(to) ? to.join(',') : to,
-      subject,
-      text
-    };
-
-    // Add HTML content if provided
-    if (html) {
-      emailData.html = html;
+async function sendEmail({ to, from = DEFAULT_FROM, subject, text, html, domain = DEFAULT_DOMAIN }) {
+    // Validate required parameters
+    if (!to || !subject || !text) {
+        throw new Error('Missing required email parameters: to, subject, and text are required.');
     }
-
-    // Send email via Mailgun
-    const result = await mg.messages.create(domain, emailData);
-    
-    console.log('Email sent successfully:', {
-      to,
-      subject,
-      messageId: result.id
-    });
-    
-    return result;
-  } catch (error) {
-    console.error('Mailgun email error:', error);
-    throw error;
-  }
+    // Check for Mailgun API key
+    if (!process.env.MAILGUN_API_KEY) {
+        throw new Error('MAILGUN_API_KEY environment variable is not set.');
+    }
+    try {
+        // Create mailgun client with API key
+        const mg = mailgun.client({
+            username: 'api',
+            key: process.env.MAILGUN_API_KEY
+        });
+        // Create email data object with optional properties
+        const emailData = {
+            from,
+            to: Array.isArray(to) ? to.join(',') : to,
+            subject,
+            text
+        };
+        // Add HTML content if provided
+        if (html) {
+            emailData.html = html;
+        }
+        // Send email via Mailgun
+        const mailgunResult = await mg.messages.create(domain, emailData);
+        // Convert to our internal type
+        const result = {
+            id: mailgunResult.id || `msg_${Date.now()}`,
+            message: mailgunResult.message || 'Email sent',
+            status: 200
+        };
+        console.log('Email sent successfully:', {
+            to,
+            subject,
+            messageId: result.id
+        });
+        return result;
+    }
+    catch (error) {
+        console.error('Mailgun email error:', error);
+        throw error;
+    }
 }
-
 /**
  * Send a welcome email to a new user
- * @param {string} email User's email address
- * @param {string} name User's name
- * @returns {Promise} Promise that resolves with Mailgun API response
+ * @param email User's email address
+ * @param name User's name
+ * @returns Promise that resolves with Mailgun API response
  */
 async function sendWelcomeEmail(email, name) {
-  const subject = '🎉 Welcome to Ascentul - Your Career Growth Partner';
-  
-  const text = `Hello ${name || 'there'},
+    const subject = '🎉 Welcome to Ascentul - Your Career Growth Partner';
+    const text = `Hello ${name || 'there'},
 
 Welcome to Ascentul! We're excited to have you join our platform.
 
@@ -110,8 +84,7 @@ If you have any questions or need assistance, don't hesitate to reach out to our
 
 Best regards,
 The Ascentul Team`;
-
-  const html = `
+    const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
         <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
@@ -128,18 +101,15 @@ The Ascentul Team`;
         <ul style="padding-left: 20px;">
           <li>Complete your professional profile</li>
           <li>Set your first career goal</li>
-          <li>Explore our AI-powered resume and LinkedIn optimization tools</li>
-          <li>Track your job applications in one place</li>
+          <li>Explore our AI tools to optimize your resume and LinkedIn profile</li>
         </ul>
       </div>
       
-      <p>Our AI-driven platform adapts to your unique career journey, providing personalized recommendations and insights to help you achieve your professional goals.</p>
-      
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://app.ascentul.io/dashboard" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Start Exploring Now</a>
+        <a href="https://app.ascentul.io/dashboard" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Go to Dashboard</a>
       </div>
       
-      <p>If you have any questions or need assistance, our support team is always here to help.</p>
+      <p>We're excited to be part of your professional journey and help you reach new heights in your career.</p>
       
       <p>Best regards,<br>The Ascentul Team</p>
       
@@ -153,68 +123,70 @@ The Ascentul Team`;
       </div>
     </div>
   `;
-  
-  return sendEmail({
-    to: email,
-    subject,
-    text,
-    html
-  });
+    return sendEmail({
+        to: email,
+        subject,
+        text,
+        html
+    });
 }
-
 /**
  * Send a notification email when a user's application status changes
- * @param {string} email User's email address
- * @param {string} name User's name
- * @param {string} companyName Company name
- * @param {string} positionTitle Job position title
- * @param {string} newStatus New application status
- * @returns {Promise} Promise that resolves with Mailgun API response
+ * @param email User's email address
+ * @param name User's name
+ * @param companyName Company name
+ * @param positionTitle Job position title
+ * @param newStatus New application status
+ * @returns Promise that resolves with Mailgun API response
  */
 async function sendApplicationUpdateEmail(email, name, companyName, positionTitle, newStatus) {
-  // Generate a subject line based on the status
-  let subject = '';
-  let statusMessage = '';
-  
-  switch(newStatus.toLowerCase()) {
-    case 'applied':
-      subject = `Application Submitted: ${positionTitle} at ${companyName}`;
-      statusMessage = `Your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> has been successfully submitted.`;
-      break;
-    case 'interview':
-    case 'interviewing':
-      subject = `Interview Stage: ${positionTitle} at ${companyName}`;
-      statusMessage = `Your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> has progressed to the interview stage.`;
-      break;
-    case 'offer':
-      subject = `Congratulations! Job Offer for ${positionTitle} at ${companyName}`;
-      statusMessage = `Great news! You've received a job offer for <strong>${positionTitle}</strong> at <strong>${companyName}</strong>.`;
-      break;
-    case 'rejected':
-      subject = `Application Update: ${positionTitle} at ${companyName}`;
-      statusMessage = `We're sorry to inform you that your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> was not selected to move forward.`;
-      break;
-    case 'closed':
-      subject = `Application Closed: ${positionTitle} at ${companyName}`;
-      statusMessage = `Your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> has been closed.`;
-      break;
-    default:
-      subject = `Application Status Update: ${positionTitle} at ${companyName}`;
-      statusMessage = `Your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> has been updated to <strong>${newStatus}</strong>.`;
-  }
-  
-  const text = `Hello ${name || 'there'},
+    // Generate appropriate subject and status message based on the new status
+    let subject = '';
+    let statusMessage = '';
+    // Customize message based on application status
+    switch (newStatus.toLowerCase()) {
+        case 'applied':
+            subject = `Application Submitted: ${positionTitle} at ${companyName}`;
+            statusMessage = 'Your application has been successfully submitted!';
+            break;
+        case 'interview':
+            subject = `Interview Scheduled: ${positionTitle} at ${companyName}`;
+            statusMessage = 'Congratulations! You have been selected for an interview.';
+            break;
+        case 'offer':
+            subject = `Job Offer Received: ${positionTitle} at ${companyName}`;
+            statusMessage = 'Congratulations! You have received a job offer.';
+            break;
+        case 'rejected':
+            subject = `Application Update: ${positionTitle} at ${companyName}`;
+            statusMessage = 'Thank you for your interest. The company has decided to move forward with other candidates.';
+            break;
+        case 'accepted':
+            subject = `Offer Accepted: ${positionTitle} at ${companyName}`;
+            statusMessage = 'Congratulations on accepting the offer! We wish you success in your new role.';
+            break;
+        default:
+            subject = `Application Status Update: ${positionTitle} at ${companyName}`;
+            statusMessage = `Your application status has been updated to "${newStatus}".`;
+    }
+    // Plain text email version
+    const text = `Hello ${name},
 
-Application Status Update
+Your application for ${positionTitle} at ${companyName} has been updated.
 
-${statusMessage.replace(/<\/?strong>/g, '')}
+${statusMessage}
 
-You can view the full details and track your application progress in your Ascentul dashboard.
+Application Details:
+- Position: ${positionTitle}
+- Company: ${companyName}
+- Status: ${newStatus}
+
+You can view all your applications in the Ascentul Application Tracker.
 
 Best regards,
 The Ascentul Team`;
-
-  const html = `
+    // HTML email version with styling
+    const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
         <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
@@ -222,7 +194,9 @@ The Ascentul Team`;
       
       <h1 style="color: #1333c2; font-size: 24px; margin-bottom: 20px;">Application Status Update</h1>
       
-      <p>Hello ${name || 'there'},</p>
+      <p>Hello ${name},</p>
+      
+      <p>Your application for <strong>${positionTitle}</strong> at <strong>${companyName}</strong> has been updated.</p>
       
       <div style="background-color: #f5f7ff; border-left: 4px solid #1333c2; padding: 15px; margin: 20px 0;">
         <p style="margin: 0; font-size: 16px;">${statusMessage}</p>
@@ -261,90 +235,57 @@ The Ascentul Team`;
       </div>
     </div>
   `;
-  
-  return sendEmail({
-    to: email,
-    subject,
-    text,
-    html
-  });
+    return sendEmail({
+        to: email,
+        subject,
+        text,
+        html
+    });
 }
-
 /**
- * Send a university admin invitation email with a tokenized signup link
- * @param {Object} options - Invitation options
- * @param {string} options.to - Recipient email address
- * @param {string} options.universityName - Name of the university
- * @param {string} options.inviteToken - Secure invitation token
- * @returns {Promise} Promise that resolves with Mailgun API response
+ * Send a university administrator invitation email
+ * @param email Recipient email address
+ * @param inviteToken The token for verifying and accepting the invitation
+ * @param universityName Name of the university
+ * @returns Promise that resolves with Mailgun API response
  */
-async function sendUniversityInviteEmail(options) {
-  const { to, universityName, inviteToken } = options;
-  
-  if (!to || !universityName || !inviteToken) {
-    throw new Error('Missing required parameters for university invite email');
-  }
-  
-  const subject = `You're Invited to Manage ${universityName} on Ascentul`;
-  
-  // URL with the invite token
-  const inviteUrl = `https://app.ascentul.io/university-register?token=${inviteToken}`;
-  
-  const text = `Hello,
+async function sendUniversityInviteEmail(email, inviteToken, universityName) {
+    const subject = `Invitation to Join Ascentul as University Administrator`;
+    const verifyUrl = `https://app.ascentul.io/verify-invite/${inviteToken}`;
+    // Plain text email version
+    const text = `Hello,
 
-You've been invited to join Ascentul as the administrator for ${universityName}.
+You have been invited to join Ascentul as a University Administrator for ${universityName}.
 
-Ascentul provides career development tools and resources to help your students succeed in their professional journeys. As a university administrator, you'll be able to:
+To accept this invitation, please click the link below:
+${verifyUrl}
 
-- Manage student accounts
-- Track career development progress
-- Access detailed analytics and reporting
-- Customize resources for your university's needs
-
-To accept this invitation and set up your account, please visit:
-${inviteUrl}
-
-This invitation link will expire in 7 days.
-
-Thank you for partnering with Ascentul to support your students' career success!
+This invitation will expire in 7 days.
 
 Best regards,
 The Ascentul Team`;
-
-  const html = `
+    // HTML email version with styling
+    const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
       <div style="text-align: center; margin-bottom: 20px;">
         <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
       </div>
       
-      <h1 style="color: #1333c2; font-size: 24px; margin-bottom: 20px;">University Admin Invitation</h1>
+      <h1 style="color: #1333c2; font-size: 24px; margin-bottom: 20px;">University Administrator Invitation</h1>
       
       <p>Hello,</p>
       
-      <p>You've been invited to join Ascentul as the administrator for <strong>${universityName}</strong>.</p>
+      <p>You have been invited to join Ascentul as a <strong>University Administrator</strong> for <strong>${universityName}</strong>.</p>
       
       <div style="background-color: #f5f7ff; border-left: 4px solid #1333c2; padding: 15px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #1333c2;">What You'll Be Able to Do</h3>
-        <ul style="padding-left: 20px;">
-          <li>Manage student accounts and access</li>
-          <li>Track student career development progress</li>
-          <li>Access detailed analytics and reporting</li>
-          <li>Customize resources for your university</li>
-        </ul>
+        <p style="margin: 0; font-size: 16px;">As a University Administrator, you'll be able to manage university-specific resources, student access, and reporting.</p>
       </div>
-      
-      <p>Ascentul provides comprehensive career development tools and resources designed to help your students succeed in their professional journeys.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${inviteUrl}" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
+        <a href="${verifyUrl}" style="background-color: #1333c2; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Accept Invitation</a>
       </div>
       
-      <p style="font-size: 13px;">Or copy and paste this URL into your browser:</p>
-      <p style="font-size: 13px; word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">${inviteUrl}</p>
-      
-      <p><strong>Note:</strong> This invitation link will expire in 7 days.</p>
-      
-      <p>Thank you for partnering with Ascentul to support your students' career success!</p>
+      <p style="font-size: 14px; color: #666;">This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.</p>
       
       <p>Best regards,<br>The Ascentul Team</p>
       
@@ -355,22 +296,53 @@ The Ascentul Team`;
           <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> | 
           <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
         </p>
-        <p>If you received this invitation in error, please disregard this email.</p>
       </div>
     </div>
   `;
-
-  return sendEmail({
-    to,
-    subject,
-    text,
-    html
-  });
+    return sendEmail({
+        to: email,
+        subject,
+        text,
+        html
+    });
 }
+/**
+ * Send a support ticket confirmation email to the user
+ * @param email User's email address
+ * @param subject Ticket subject
+ * @returns Promise that resolves with Mailgun API response
+ */
+async function sendSupportConfirmationEmail(email, subject) {
+    const confSubject = `Support Ticket Received: ${subject}`;
+    const text = `Hello,
 
-export {
-  sendEmail,
-  sendWelcomeEmail,
-  sendApplicationUpdateEmail,
-  sendUniversityInviteEmail
-};
+We have received your support request with the subject: "${subject}".
+Our team will review your ticket and get back to you as soon as possible.
+
+Thank you for reaching out to Ascentul Support!
+
+Best,
+The Ascentul Team`;
+    const html = `<div style="font-family: Arial, sans-serif; color: #222;">
+    <h2>Support Ticket Received</h2>
+    <p>We have received your support request with the subject: <strong>"${subject}"</strong>.</p>
+    <p>Our team will review your ticket and get back to you as soon as possible.</p>
+    <p>Thank you for reaching out to Ascentul Support!</p>
+    <br />
+    <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+      <p>© 2025 Ascentul, Inc. All rights reserved.</p>
+      <p>
+        <a href="https://ascentul.io/privacy" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
+        <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
+        <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
+      </p>
+    </div>
+  </div>`;
+    return sendEmail({
+        to: email,
+        subject: confSubject,
+        text,
+        html
+    });
+}
+export { sendEmail, sendWelcomeEmail, sendApplicationUpdateEmail, sendUniversityInviteEmail, sendSupportConfirmationEmail };

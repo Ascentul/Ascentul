@@ -1,0 +1,11 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+import { Toaster } from "./components/ui/toaster";
+import { UserProvider } from "@/lib/useUserData";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+import { AuthProvider } from "@/hooks/use-auth";
+import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthProvider";
+createRoot(document.getElementById("root")).render(_jsx(QueryClientProvider, { client: queryClient, children: _jsx(SupabaseAuthProvider, { children: _jsx(UserProvider, { children: _jsxs(AuthProvider, { children: [_jsx(App, {}), _jsx(Toaster, {})] }) }) }) }));

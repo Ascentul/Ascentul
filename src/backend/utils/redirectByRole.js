@@ -1,0 +1,22 @@
+/**
+ * Utility to get the correct redirect path based on user role
+ * Used by authentication system to route users appropriately after login
+ */
+export function getRedirectByRole(role) {
+    switch (role) {
+        case 'super_admin':
+            return '/admin';
+        case 'admin':
+            return '/admin';
+        case 'staff':
+            return '/admin'; // Updated to use canonical admin path
+        case 'university_admin':
+            return '/university-admin';
+        case 'university_user':
+            return '/university';
+        case 'user':
+            return '/career-dashboard';
+        default:
+            return '/career-dashboard';
+    }
+}

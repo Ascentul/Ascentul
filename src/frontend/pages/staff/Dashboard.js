@@ -1,0 +1,70 @@
+import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import StaffLayout from '@/components/StaffLayout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUser } from '@/lib/useUserData';
+import { BarChart3, Users, CreditCard, Activity, TicketCheck, CalendarClock, TrendingUp, AlertTriangle, Zap, Shield } from 'lucide-react';
+import SystemStatusModal from '@/components/staff/SystemStatusModal';
+import QuickActionsModal from '@/components/staff/QuickActionsModal';
+export default function StaffDashboard() {
+    const { user } = useUser();
+    const [activeTab, setActiveTab] = useState('overview');
+    const [systemStatusOpen, setSystemStatusOpen] = useState(false);
+    const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+    const { data: systemStatus } = useQuery({
+        queryKey: ['systemStatus'],
+        queryFn: async () => {
+            const response = await fetch('/api/system/status');
+            return response.json();
+        }
+    });
+    const { data: userStats } = useQuery({
+        queryKey: ['userStats'],
+        queryFn: async () => {
+            const response = await fetch('/api/users/statistics');
+            return response.json();
+        }
+    });
+    const dashboardData = {
+        activeUsers: userStats?.totalUsers || 0,
+        supportTickets: userStats?.activeTickets || 0,
+        revenue: userStats?.monthlyRevenue || 0,
+        conversionRate: userStats?.conversionRate || 0,
+        newSignups: userStats?.newSignups24h || 0,
+        sessions: userStats?.activeSessions || 0,
+        premiumUsers: userStats?.premiumUsers || 0,
+        universityUsers: userStats?.universityUsers || 0,
+        systemHealth: systemStatus?.overall?.uptime || 0,
+        alertsCount: systemStatus?.alerts?.length || 0
+    };
+    return (_jsxs(StaffLayout, { children: [_jsxs("div", { className: "space-y-6", children: [_jsxs("div", { className: "flex flex-col md:flex-row md:items-center md:justify-between", children: [_jsxs("div", { children: [_jsxs("h1", { className: "text-2xl font-bold tracking-tight", children: ["Welcome back, ", user?.name] }), _jsx("p", { className: "text-muted-foreground", children: "Here's what's happening with CareerTracker.io today" })] }), _jsxs("div", { className: "flex items-center mt-4 gap-4 md:mt-0", children: [_jsxs(Button, { className: "flex items-center", variant: "outline", onClick: () => setSystemStatusOpen(true), children: [_jsx(Shield, { className: "mr-2 h-4 w-4" }), "System Status"] }), _jsxs(Button, { className: "flex items-center", onClick: () => setQuickActionsOpen(true), children: [_jsx(Zap, { className: "mr-2 h-4 w-4" }), "Quick Actions"] })] })] }), _jsxs(Tabs, { defaultValue: "overview", onValueChange: setActiveTab, children: [_jsxs("div", { className: "flex justify-between items-center", children: [_jsxs(TabsList, { children: [_jsx(TabsTrigger, { value: "overview", children: "Overview" }), _jsx(TabsTrigger, { value: "users", children: "Users" }), _jsx(TabsTrigger, { value: "revenue", children: "Revenue" }), _jsx(TabsTrigger, { value: "tickets", children: "Support" })] }), _jsxs("div", { className: "text-sm text-muted-foreground", children: ["Last updated: ", new Date().toLocaleString()] })] }), _jsxs(TabsContent, { value: "overview", className: "space-y-6", children: [_jsxs("div", { className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4", children: [_jsxs(Card, { children: [_jsxs(CardHeader, { className: "flex flex-row items-center justify-between space-y-0 pb-2", children: [_jsx(CardTitle, { className: "text-sm font-medium", children: "Total Users" }), _jsx(Users, { className: "h-4 w-4 text-muted-foreground" })] }), _jsxs(CardContent, { children: [_jsx("div", { className: "text-2xl font-bold", children: dashboardData.activeUsers.toLocaleString() }), _jsxs("p", { className: "text-xs text-muted-foreground", children: ["+", dashboardData.newSignups, " in the last 24 hours"] })] })] }), _jsxs(Card, { children: [_jsxs(CardHeader, { className: "flex flex-row items-center justify-between space-y-0 pb-2", children: [_jsx(CardTitle, { className: "text-sm font-medium", children: "Active Tickets" }), _jsx(TicketCheck, { className: "h-4 w-4 text-muted-foreground" })] }), _jsxs(CardContent, { children: [_jsx("div", { className: "text-2xl font-bold", children: dashboardData.supportTickets }), _jsx("p", { className: "text-xs text-muted-foreground", children: dashboardData.supportTickets > 0 ? 'Requires attention' : 'All tickets resolved' })] })] }), _jsxs(Card, { children: [_jsxs(CardHeader, { className: "flex flex-row items-center justify-between space-y-0 pb-2", children: [_jsx(CardTitle, { className: "text-sm font-medium", children: "Monthly Revenue" }), _jsx(CreditCard, { className: "h-4 w-4 text-muted-foreground" })] }), _jsxs(CardContent, { children: [_jsxs("div", { className: "text-2xl font-bold", children: ["$", dashboardData.revenue.toLocaleString()] }), _jsxs("p", { className: "text-xs text-muted-foreground", children: [dashboardData.conversionRate, "% conversion rate"] })] })] }), _jsxs(Card, { children: [_jsxs(CardHeader, { className: "flex flex-row items-center justify-between space-y-0 pb-2", children: [_jsx(CardTitle, { className: "text-sm font-medium", children: "Active Sessions" }), _jsx(Activity, { className: "h-4 w-4 text-muted-foreground" })] }), _jsxs(CardContent, { children: [_jsx("div", { className: "text-2xl font-bold", children: dashboardData.sessions.toLocaleString() }), _jsx("p", { className: "text-xs text-muted-foreground", children: "Current active user sessions" })] })] })] }), _jsxs("div", { className: "grid gap-4 grid-cols-1 md:grid-cols-2", children: [_jsxs(Card, { className: "col-span-1", children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "User Distribution" }), _jsx(CardDescription, { children: "Breakdown of user types across the platform" })] }), _jsx(CardContent, { className: "px-2", children: _jsxs("div", { className: "h-[200px] flex flex-col", children: [_jsxs("div", { className: "text-center space-y-4 w-full px-6 flex-grow", children: [_jsxs("div", { className: "flex justify-between items-center px-4", children: [_jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: "w-3 h-3 rounded-full bg-primary mr-3" }), _jsx("span", { children: "Free Users" })] }), _jsx("span", { children: dashboardData.activeUsers - dashboardData.premiumUsers - dashboardData.universityUsers })] }), _jsxs("div", { className: "flex justify-between items-center px-4", children: [_jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: "w-3 h-3 rounded-full bg-green-500 mr-3" }), _jsx("span", { children: "Premium Users" })] }), _jsx("span", { children: dashboardData.premiumUsers })] }), _jsxs("div", { className: "flex justify-between items-center px-4", children: [_jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: "w-3 h-3 rounded-full bg-blue-500 mr-3" }), _jsx("span", { children: "University Users" })] }), _jsx("span", { children: dashboardData.universityUsers })] })] }), _jsxs("div", { className: "text-sm text-muted-foreground text-center pb-2", children: [((dashboardData.premiumUsers + dashboardData.universityUsers) / dashboardData.activeUsers * 100).toFixed(1), "% paid conversion"] })] }) })] }), _jsxs(Card, { className: "col-span-1", children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "System Status" }), _jsx(CardDescription, { children: "Current platform health and alerts" })] }), _jsx(CardContent, { children: _jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "flex justify-between items-center", children: [_jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: `w-3 h-3 rounded-full ${dashboardData.systemHealth > 99 ? 'bg-green-500' : 'bg-yellow-500'} mr-2` }), _jsx("span", { children: "System Uptime" })] }), _jsxs("span", { children: [dashboardData.systemHealth, "%"] })] }), _jsxs("div", { className: "flex justify-between items-center", children: [_jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: `w-3 h-3 rounded-full ${dashboardData.alertsCount === 0 ? 'bg-green-500' : 'bg-red-500'} mr-2` }), _jsx("span", { children: "Active Alerts" })] }), _jsx("span", { children: dashboardData.alertsCount })] }), dashboardData.alertsCount > 0 && (_jsx("div", { className: "bg-red-50 p-3 rounded-md mt-2", children: _jsxs("div", { className: "flex", children: [_jsx(AlertTriangle, { className: "h-5 w-5 text-red-500 mr-2" }), _jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-red-800", children: "Payment processor slowdown" }), _jsx("p", { className: "text-xs text-red-700", children: "Stripe payments processing with 2-5 second delay" })] })] }) })), _jsxs(Button, { variant: "outline", className: "w-full mt-2", children: [_jsx(BarChart3, { className: "mr-2 h-4 w-4" }), "View Detailed Reports"] })] }) })] })] }), _jsx("div", { className: "grid gap-4 grid-cols-1", children: _jsxs(Card, { children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "Recent Activity" }), _jsx(CardDescription, { children: "Latest platform events" })] }), _jsx(CardContent, { children: _jsx("div", { className: "space-y-4", children: [
+                                                            {
+                                                                icon: _jsx(Users, { className: "h-4 w-4" }),
+                                                                text: "New university admin registered from Stanford University",
+                                                                time: "10 minutes ago"
+                                                            },
+                                                            {
+                                                                icon: _jsx(CreditCard, { className: "h-4 w-4" }),
+                                                                text: "Successful payment of $72.00 for annual premium plan",
+                                                                time: "35 minutes ago"
+                                                            },
+                                                            {
+                                                                icon: _jsx(TicketCheck, { className: "h-4 w-4" }),
+                                                                text: "Support ticket #283 closed: 'Resume template issue'",
+                                                                time: "1 hour ago"
+                                                            },
+                                                            {
+                                                                icon: _jsx(TrendingUp, { className: "h-4 w-4" }),
+                                                                text: "Spike in AI Coach usage detected - 205% increase",
+                                                                time: "3 hours ago"
+                                                            },
+                                                            {
+                                                                icon: _jsx(CalendarClock, { className: "h-4 w-4" }),
+                                                                text: "Content update scheduled: New interview questions database",
+                                                                time: "Yesterday at 4:30 PM"
+                                                            }
+                                                        ].map((activity, index) => (_jsxs("div", { className: "flex", children: [_jsx("div", { className: "mr-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10", children: _jsx("span", { className: "text-primary", children: activity.icon }) }), _jsxs("div", { className: "flex-1 space-y-1", children: [_jsx("p", { className: "text-sm font-medium leading-none", children: activity.text }), _jsx("p", { className: "text-xs text-muted-foreground", children: activity.time })] })] }, index))) }) })] }) })] }), _jsx(TabsContent, { value: "users", className: "space-y-4", children: _jsxs(Card, { children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "User Management" }), _jsx(CardDescription, { children: "This section is under construction" })] }), _jsx(CardContent, { children: _jsx("div", { className: "flex items-center justify-center h-40", children: _jsx("p", { className: "text-muted-foreground", children: "User management tools will appear here" }) }) })] }) }), _jsx(TabsContent, { value: "revenue", className: "space-y-4", children: _jsxs(Card, { children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "Revenue Analytics" }), _jsx(CardDescription, { children: "This section is under construction" })] }), _jsx(CardContent, { children: _jsx("div", { className: "flex items-center justify-center h-40", children: _jsx("p", { className: "text-muted-foreground", children: "Revenue charts and reports will appear here" }) }) })] }) }), _jsx(TabsContent, { value: "tickets", className: "space-y-4", children: _jsxs(Card, { children: [_jsxs(CardHeader, { children: [_jsx(CardTitle, { children: "Support Tickets" }), _jsx(CardDescription, { children: "This section is under construction" })] }), _jsx(CardContent, { children: _jsx("div", { className: "flex items-center justify-center h-40", children: _jsx("p", { className: "text-muted-foreground", children: "Support ticket management will appear here" }) }) })] }) })] })] }), _jsx(SystemStatusModal, { open: systemStatusOpen, onOpenChange: setSystemStatusOpen }), _jsx(QuickActionsModal, { open: quickActionsOpen, onOpenChange: setQuickActionsOpen })] }));
+}

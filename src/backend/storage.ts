@@ -187,7 +187,7 @@ export interface IStorage {
   deleteCachedData(key: string): Promise<boolean>
 
   // User operations
-  getUser(id: string): Promise<User | undefined>
+  getUser(id: number): Promise<User | undefined>
   getUserByUsername(username: string): Promise<User | undefined>
   getUserByEmail(email: string): Promise<User | undefined>
   getUserByStripeSubscriptionId(
@@ -198,17 +198,18 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>
   updateUser(id: string, userData: Partial<User>): Promise<User | undefined>
   updateUserStripeInfo(
-    userId: string,
+    userId: number,
     stripeInfo: {
       stripeCustomerId?: string
       stripeSubscriptionId?: string
       subscriptionStatus?: "active" | "inactive" | "cancelled" | "past_due"
       subscriptionPlan?: "free" | "premium" | "university"
+      subscriptionCycle?: "monthly" | "quarterly" | "annual"
       subscriptionExpiresAt?: Date
     }
   ): Promise<User | undefined>
   updateUserVerificationInfo(
-    userId: string,
+    userId: number,
     verificationInfo: {
       emailVerified?: boolean
       verificationToken?: string | null
@@ -7940,12 +7941,14 @@ export async function checkStorageHealth(): Promise<{
 }> {
   if (storage instanceof SupabaseStorage) {
     try {
-      // Test Supabase connection with a simple query
-      const testUser = await storage.getUser("test-connection-id")
+      // Test Supabase connection with a simple query using the storage's helper
+      const connectionOk = await (storage as SupabaseStorage).testDatabaseConnection()
       return {
         type: "supabase",
-        status: "healthy",
-        details: "Supabase storage connection working properly"
+        status: connectionOk ? "healthy" : "degraded",
+        details: connectionOk
+          ? "Supabase storage connection working properly"
+          : "Supabase connection test failed"
       }
     } catch (error) {
       return {
