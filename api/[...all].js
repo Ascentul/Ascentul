@@ -2493,12 +2493,28 @@ export default async function handler(req, res) {
             ])
             
             // Check if we have fresh recommendations (within 24 hours)
-            const { data: existingRecommendations } = await supabaseAdmin
-              .from('daily_recommendations')
-              .select('*')
-              .eq('user_id', userId)
-              .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-              .order('created_at', { ascending: false })
+            let existingRecommendations = null
+            try {
+              const { data, error } = await supabaseAdmin
+                .from('daily_recommendations')
+                .select('*')
+                .eq('user_id', userId)
+                .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+                .order('created_at', { ascending: false })
+              
+              if (error && error.code === 'PGRST204') {
+                console.log('⚠️ daily_recommendations table does not exist, will generate fallback recommendations')
+                existingRecommendations = null
+              } else if (error) {
+                console.error('Error checking existing recommendations:', error)
+                existingRecommendations = null
+              } else {
+                existingRecommendations = data
+              }
+            } catch (error) {
+              console.error('Error querying recommendations table:', error)
+              existingRecommendations = null
+            }
             
             if (existingRecommendations && existingRecommendations.length > 0) {
               console.log(`✅ Found ${existingRecommendations.length} fresh recommendations for user ${userId}`)
@@ -2605,18 +2621,29 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
               created_at: new Date().toISOString()
             }))
             
-            const { data: savedRecommendations, error: saveError } = await supabaseAdmin
-              .from('daily_recommendations')
-              .insert(recommendationsToSave)
-              .select()
-            
-            if (saveError) {
-              console.error('Error saving recommendations:', saveError)
-              // Return generated recommendations even if save fails
-              return res.status(200).json(recommendationsToSave)
+            // Try to save to database, but handle gracefully if table doesn't exist
+            let savedRecommendations = null
+            try {
+              const { data, error: saveError } = await supabaseAdmin
+                .from('daily_recommendations')
+                .insert(recommendationsToSave)
+                .select()
+              
+              if (saveError && saveError.code === 'PGRST204') {
+                console.log('⚠️ daily_recommendations table does not exist, returning recommendations without saving')
+                savedRecommendations = recommendationsToSave
+              } else if (saveError) {
+                console.error('Error saving recommendations:', saveError)
+                savedRecommendations = recommendationsToSave
+              } else {
+                savedRecommendations = data
+                console.log(`✅ Generated and saved ${savedRecommendations.length} AI recommendations for user ${userId}`)
+              }
+            } catch (error) {
+              console.error('Error saving recommendations to database:', error)
+              savedRecommendations = recommendationsToSave
             }
             
-            console.log(`✅ Generated and saved ${savedRecommendations.length} AI recommendations for user ${userId}`)
             return res.status(200).json(savedRecommendations)
             
           } catch (error) {
@@ -2658,16 +2685,25 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
           }
           
           try {
-            // Delete existing recommendations for today
-            await supabaseAdmin
-              .from('daily_recommendations')
-              .delete()
-              .eq('user_id', refreshAuthResult.userId)
-              .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            // Try to delete existing recommendations for today (if table exists)
+            try {
+              await supabaseAdmin
+                .from('daily_recommendations')
+                .delete()
+                .eq('user_id', refreshAuthResult.userId)
+                .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+              console.log('✅ Cleared existing recommendations for refresh')
+            } catch (deleteError) {
+              // If table doesn't exist, that's fine - we'll just generate new recommendations
+              console.log('⚠️ Could not delete existing recommendations (table may not exist):', deleteError.message)
+            }
             
-            // Redirect to daily recommendations endpoint to generate new ones
-            req.url = '/api/recommendations/daily'
-            // Continue to daily recommendations case
+            // Return success - the frontend will then call the daily endpoint
+            return res.status(200).json({ 
+              success: true, 
+              message: 'Recommendations cleared, ready for refresh' 
+            })
+            
           } catch (error) {
             console.error('Error refreshing recommendations:', error)
             return res.status(500).json({ error: 'Failed to refresh recommendations' })
