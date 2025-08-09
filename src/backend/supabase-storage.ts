@@ -127,8 +127,8 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ============ User Operations ============
-  async getUser(id: string): Promise<User | undefined> {
-    console.log(`🔍 Looking up user with ID: "${id}" (type: ${typeof id})`)
+  async getUser(id: number): Promise<User | undefined> {
+    console.log(`🔍 Looking up user with ID: ${id} (type: ${typeof id})`)
 
     try {
       const { data, error } = await supabase
@@ -341,18 +341,20 @@ export class SupabaseStorage implements IStorage {
 
     try {
       // First, check if user exists
-      const existingUser = await this.getUser(id)
+      const existingUser = await this.getUser(Number(id))
       if (!existingUser) {
         console.warn(
           `⚠️ User ${id} not found in database, attempting to create basic user record...`
         )
 
         // Create a basic user record with minimal required fields
+        const idStr = String(id)
+        const idNum = Number(id)
         const basicUserData = {
-          id: id,
-          email: `user-${id}@temp.local`, // Temporary email - should be updated later
-          username: `user-${id.substring(0, 8)}`, // Short username from ID
-          displayName: `User ${id.substring(0, 8)}`,
+          id: idNum,
+          email: `user-${idStr}@temp.local`, // Temporary email - should be updated later
+          username: `user-${idStr.substring(0, 8)}`, // Short username from ID
+          displayName: `User ${idStr.substring(0, 8)}`,
           emailVerified: false,
           subscriptionPlan: "free" as const,
           subscriptionStatus: "active" as const,
@@ -479,7 +481,7 @@ export class SupabaseStorage implements IStorage {
       const { data, error } = await supabase
         .from("users")
         .update(mappedUserData)
-        .eq("id", id)
+        .eq("id", Number(id))
         .select()
         .single()
 
@@ -1648,25 +1650,146 @@ export class SupabaseStorage implements IStorage {
   async getUserByStripeSubscriptionId(
     subscriptionId: string
   ): Promise<User | undefined> {
-    return undefined
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("stripe_subscription_id", subscriptionId)
+        .single()
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.error("❌ Error fetching user by subscription ID:", error)
+        }
+        return undefined
+      }
+      if (!data) return undefined
+      return this.mapDatabaseUserToFrontend(data)
+    } catch (e) {
+      console.error("❌ Exception in getUserByStripeSubscriptionId:", e)
+      return undefined
+    }
   }
   async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    return undefined
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("verification_token", token)
+        .single()
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.error("❌ Error fetching user by verification token:", error)
+        }
+        return undefined
+      }
+      if (!data) return undefined
+      return this.mapDatabaseUserToFrontend(data)
+    } catch (e) {
+      console.error("❌ Exception in getUserByVerificationToken:", e)
+      return undefined
+    }
   }
   async getUserByPendingEmailToken(token: string): Promise<User | undefined> {
-    return undefined
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("pending_email_token", token)
+        .single()
+
+      if (error) {
+        if (error.code !== "PGRST116") {
+          console.error("❌ Error fetching user by pending email token:", error)
+        }
+        return undefined
+      }
+      if (!data) return undefined
+      return this.mapDatabaseUserToFrontend(data)
+    } catch (e) {
+      console.error("❌ Exception in getUserByPendingEmailToken:", e)
+      return undefined
+    }
   }
   async updateUserStripeInfo(
-    userId: string,
-    stripeInfo: any
+    userId: number,
+    stripeInfo: {
+      stripeCustomerId?: string
+      stripeSubscriptionId?: string
+      subscriptionStatus?: "active" | "inactive" | "cancelled" | "past_due"
+      subscriptionPlan?: "free" | "premium" | "university"
+      subscriptionCycle?: "monthly" | "quarterly" | "annual"
+      subscriptionExpiresAt?: Date
+    }
   ): Promise<User | undefined> {
-    return undefined
+    try {
+      const payload: any = {}
+      if ("stripeCustomerId" in stripeInfo)
+        payload.stripe_customer_id = stripeInfo.stripeCustomerId
+      if ("stripeSubscriptionId" in stripeInfo)
+        payload.stripe_subscription_id = stripeInfo.stripeSubscriptionId
+      if ("subscriptionStatus" in stripeInfo)
+        payload.subscription_status = stripeInfo.subscriptionStatus
+      if ("subscriptionPlan" in stripeInfo)
+        payload.subscription_plan = stripeInfo.subscriptionPlan
+      if ("subscriptionCycle" in stripeInfo)
+        payload.subscription_cycle = stripeInfo.subscriptionCycle
+      if ("subscriptionExpiresAt" in stripeInfo)
+        payload.subscription_expires_at = stripeInfo.subscriptionExpiresAt
+
+      const { data, error } = await supabase
+        .from("users")
+        .update(payload)
+        .eq("id", userId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error updating user stripe info:", error)
+        return undefined
+      }
+      if (!data) return undefined
+      return this.mapDatabaseUserToFrontend(data)
+    } catch (e) {
+      console.error("❌ Exception in updateUserStripeInfo:", e)
+      return undefined
+    }
   }
   async updateUserVerificationInfo(
-    userId: string,
-    verificationInfo: any
+    userId: number,
+    verificationInfo: {
+      emailVerified?: boolean
+      verificationToken?: string | null
+      verificationExpires?: Date | null
+    }
   ): Promise<User | undefined> {
-    return undefined
+    try {
+      const payload: any = {}
+      if ("emailVerified" in verificationInfo)
+        payload.email_verified = verificationInfo.emailVerified
+      if ("verificationToken" in verificationInfo)
+        payload.verification_token = verificationInfo.verificationToken
+      if ("verificationExpires" in verificationInfo)
+        payload.verification_expires = verificationInfo.verificationExpires
+
+      const { data, error } = await supabase
+        .from("users")
+        .update(payload)
+        .eq("id", userId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("❌ Error updating user verification info:", error)
+        return undefined
+      }
+      if (!data) return undefined
+      return this.mapDatabaseUserToFrontend(data)
+    } catch (e) {
+      console.error("❌ Exception in updateUserVerificationInfo:", e)
+      return undefined
+    }
   }
   async updateUserPassword(
     userId: string,

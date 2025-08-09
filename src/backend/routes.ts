@@ -603,6 +603,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   )
 
+  // Admin: update a user's subscription plan
+  apiRouter.put(
+    "/admin/users/:id/subscription",
+    requireAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const idParam = req.params.id
+        const userId = Number(idParam)
+        if (!idParam || Number.isNaN(userId)) {
+          return res.status(400).json({ message: "Invalid user id" })
+        }
+
+        const targetUser = await storage.getUser(userId)
+        if (!targetUser) {
+          return res.status(404).json({ message: "User not found" })
+        }
+
+        const { plan, interval } = req.body || {}
+        if (!plan) {
+          return res.status(400).json({ message: "Missing plan" })
+        }
+
+        // Handle downgrade to free without Stripe
+        if (plan === "free") {
+          await storage.updateUserStripeInfo(userId, {
+            subscriptionPlan: "free",
+            subscriptionStatus: "inactive",
+            subscriptionCycle: null,
+            stripeSubscriptionId: null,
+            subscriptionExpiresAt: null
+          })
+          return res.status(200).json({ userId, plan: "free" })
+        }
+
+        // Create Stripe subscription for paid plans
+        const input: any = {
+          plan,
+          email: targetUser.email,
+          userId: targetUser.id,
+          userName: targetUser.name
+        }
+        if (interval) input.interval = interval
+
+        const data = createSubscriptionSchema.parse(input)
+        await createSubscription(data)
+        return res.status(200).json({ userId, plan })
+      } catch (error: any) {
+        console.error("Admin user subscription update error:", error)
+        return res.status(400).json({ message: error.message })
+      }
+    }
+  )
   // Admin user stats endpoint
   apiRouter.get(
     "/admin/users/stats",
@@ -5977,6 +6029,26 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     }
   )
 
+  // Alias: frontend expects /api/payment-methods
+  apiRouter.get(
+    "/payment-methods",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const user = await getCurrentUser(req)
+
+        if (!user) {
+          return res.status(401).json({ message: "Authentication required" })
+        }
+
+        const paymentMethods = await getUserPaymentMethods(user.id)
+        res.status(200).json(paymentMethods)
+      } catch (error: any) {
+        res.status(400).json({ error: error.message })
+      }
+    }
+  )
+
   apiRouter.post(
     "/payments/create-setup-intent",
     requireAuth,
@@ -5997,8 +6069,59 @@ Return ONLY the clean body content that contains the applicant's qualifications 
     }
   )
 
+  // Alias: frontend expects /api/subscription/upgrade
+  apiRouter.post(
+    "/subscription/upgrade",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        // Get current user from session
+        const user = await getCurrentUser(req)
+
+        if (!user) {
+          return res.status(401).json({ message: "Authentication required" })
+        }
+
+        const input: any = {
+          plan: req.body?.plan,
+          email: user.email,
+          userId: user.id,
+          userName: user.name
+        }
+        if (req.body?.interval) input.interval = req.body.interval
+
+        const data = createSubscriptionSchema.parse(input)
+        const result = await createSubscription(data)
+        res.status(200).json(result)
+      } catch (error: any) {
+        res.status(400).json({ error: error.message })
+      }
+    }
+  )
+
   apiRouter.post(
     "/payments/cancel-subscription",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        // Get current user from session
+        const user = await getCurrentUser(req)
+
+        if (!user) {
+          return res.status(401).json({ message: "Authentication required" })
+        }
+
+        const result = await cancelSubscription(user.id)
+        res.status(200).json(result)
+      } catch (error: any) {
+        res.status(400).json({ error: error.message })
+      }
+    }
+  )
+
+  // Alias: frontend expects /api/subscription/cancel
+  apiRouter.post(
+    "/subscription/cancel",
     requireAuth,
     async (req: Request, res: Response) => {
       try {

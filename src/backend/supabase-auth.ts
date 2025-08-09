@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express"
-import { supabase, supabaseAdmin } from "./supabase"
+import { supabaseAdmin } from "./supabase"
+import { storage } from "./storage"
 import { User } from "../types/database"
 import { ENV } from "../config/env"
 
@@ -8,7 +9,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: User | null
-      userId?: string // Keep as string since Supabase uses UUIDs
+      userId?: number // Use numeric DB user ID consistently
     }
   }
 }
@@ -42,63 +43,25 @@ export async function verifySupabaseToken(
         .json({ message: "Invalid or expired authentication token" })
     }
 
-    console.log("Authenticated Supabase user ID:", data.user.id)
+    console.log("Authenticated Supabase auth user:", data.user.email)
 
-    // Get detailed user information from database using UUID
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("id", data.user.id) // Use UUID directly, no conversion needed
-      .single()
-
-    if (userError || !userData) {
-      console.error("Error fetching user data:", userError)
-
-      // If user doesn't exist in our database but has valid Supabase auth,
-      // create a user record
-      if (userError?.code === "PGRST116") {
-        console.log("Creating user record for authenticated Supabase user")
-
-        const { data: newUserData, error: createError } = await supabaseAdmin
-          .from("users")
-          .insert({
-            id: data.user.id, // Use the Supabase UUID
-            email: data.user.email,
-            name:
-              data.user.user_metadata?.name ||
-              data.user.email?.split("@")[0] ||
-              "User",
-            username: `user_${data.user.id.slice(0, 8)}`,
-            user_type: "regular",
-            needs_username: true,
-            onboarding_completed: false
-          }, { onConflict: 'email' })
-          .select()
-          .single()
-
-        if (createError) {
-          console.error("Error creating user record:", createError)
-          return res
-            .status(500)
-            .json({ message: "Error setting up user account" })
-        }
-
-        // Use the newly created user data
-        req.user = newUserData as unknown as User
-        req.userId = data.user.id // Keep as UUID string
-
-        console.log("Created new user record for:", data.user.email)
-        return next()
-      }
-
-      return res.status(500).json({ message: "Error loading user data" })
+    // Align with DB: look up app user by email to get numeric ID
+    const email = data.user.email
+    if (!email) {
+      return res.status(401).json({ message: "Authenticated user has no email" })
     }
 
-    // Attach the user to the request
-    req.user = userData as unknown as User
-    req.userId = data.user.id // Keep as UUID string
+    const appUser = await storage.getUserByEmail(email)
+    if (!appUser) {
+      console.error("No matching app user found for email:", email)
+      return res.status(403).json({ message: "User not provisioned in app" })
+    }
 
-    console.log("Successfully authenticated user:", userData.email)
+    // Attach the app user and numeric userId
+    req.user = appUser
+    req.userId = appUser.id
+
+    console.log("Successfully authenticated app user:", appUser.email)
     next()
   } catch (error) {
     console.error("Authentication error:", error)

@@ -1,0 +1,356 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useState, useCallback, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChevronDown, ChevronUp, ExternalLink, Loader2, Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { ApplicationWizard } from './ApplicationWizard';
+export function AdzunaJobSearch({ onSelectJob }) {
+    const { toast } = useToast();
+    const [searchParams, setSearchParams] = useState({
+        keywords: '',
+        location: '',
+        remoteOnly: false,
+    });
+    const [searchHistory, setSearchHistory] = useState([]);
+    const [shouldFetch, setShouldFetch] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
+    const [directIsLoading, setDirectIsLoading] = useState(false);
+    const [expandedDescription, setExpandedDescription] = useState(false);
+    // Reset search results when search params change
+    useEffect(() => {
+        setShouldFetch(false);
+        setSearchResults([]);
+    }, [searchParams]);
+    // Log shouldFetch changes
+    useEffect(() => {
+        console.log('shouldFetch state changed to:', shouldFetch);
+    }, [shouldFetch]);
+    // Direct fetch function (alternative approach)
+    const directFetch = useCallback(async () => {
+        if (!searchParams.keywords) {
+            toast({
+                title: "Search Error",
+                description: "Please enter keywords for your job search",
+                variant: "destructive"
+            });
+            return;
+        }
+        setDirectIsLoading(true);
+        console.log('Direct fetch initiated with params:', searchParams);
+        try {
+            const params = new URLSearchParams();
+            params.append('keywords', searchParams.keywords);
+            if (searchParams.location) {
+                params.append('location', searchParams.location);
+            }
+            params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
+            // Important: Make sure this matches the server-side endpoint
+            const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
+            console.log('Directly fetching from:', endpointUrl);
+            const timeout = setTimeout(() => {
+                // Show a loading message if it's taking longer than expected
+                toast({
+                    title: "Searching...",
+                    description: "This may take a moment to connect to the job database",
+                });
+            }, 3000);
+            const response = await fetch(endpointUrl);
+            console.log('Fetching from API using endpoint:', endpointUrl);
+            clearTimeout(timeout);
+            console.log('Direct fetch response status:', response.status);
+            // Check if response is ok
+            if (!response.ok) {
+                let errorMessage = "Failed to fetch job listings";
+                try {
+                    const errorData = await response.json();
+                    console.error('API error in direct fetch:', errorData);
+                    errorMessage = errorData.error || errorMessage;
+                }
+                catch (e) {
+                    // If we can't parse as JSON, try plain text
+                    const errorText = await response.text();
+                    console.error('API error in direct fetch:', errorText);
+                    errorMessage = `${errorMessage}: ${errorText}`;
+                }
+                toast({
+                    title: "Search Error",
+                    description: "There was a problem with the job search service. Please try again later.",
+                    variant: "destructive"
+                });
+                throw new Error(errorMessage);
+            }
+            // Parse response data
+            const data = await response.json();
+            console.log('Direct fetch received data:', data);
+            // Check if there's an error field in the response
+            if (data.error) {
+                toast({
+                    title: "Search Error",
+                    description: data.error || "Failed to fetch job listings",
+                    variant: "destructive"
+                });
+                throw new Error(data.error);
+            }
+            // Check if results exist and have items
+            if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+                setSearchResults(data.results);
+                // Automatically switch to results tab when results are available
+                setActiveTab('results');
+                // Show success message with count
+                toast({
+                    title: "Search Complete",
+                    description: `Found ${data.results.length} job listings matching your search`,
+                });
+            }
+            else {
+                // If no results, show a message
+                setSearchResults([]);
+                setActiveTab('results');
+                toast({
+                    title: "No Results Found",
+                    description: "Try different keywords or location, or remove filters",
+                });
+            }
+        }
+        catch (error) {
+            console.error('Direct fetch error:', error);
+            // Error message already shown in the earlier try-catch
+        }
+        finally {
+            setDirectIsLoading(false);
+        }
+    }, [searchParams, toast]);
+    // Fetch jobs from Adzuna API
+    const { isLoading: queryIsLoading, data, error } = useQuery({
+        queryKey: ['jobs', searchParams, shouldFetch],
+        queryFn: async () => {
+            if (!shouldFetch) {
+                console.log('Search is not enabled yet');
+                return null;
+            }
+            const params = new URLSearchParams();
+            params.append('keywords', searchParams.keywords);
+            if (searchParams.location) {
+                params.append('location', searchParams.location);
+            }
+            params.append('remoteOnly', searchParams.remoteOnly ? 'true' : 'false');
+            // Important: Make sure this matches the server-side endpoint
+            const endpointUrl = `/api/adzuna/jobs?${params.toString()}`;
+            console.log('Fetching from:', endpointUrl);
+            try {
+                const response = await fetch(endpointUrl);
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API error:', errorText);
+                    throw new Error(`Failed to fetch jobs: ${errorText}`);
+                }
+                const data = await response.json();
+                console.log('Received data:', data);
+                return data;
+            }
+            catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        },
+        enabled: shouldFetch,
+        refetchOnWindowFocus: false
+    });
+    // Update loading state to combine both loading indicators
+    const isLoading = queryIsLoading || directIsLoading;
+    // Log any errors
+    useEffect(() => {
+        if (error) {
+            console.error('Query error:', error);
+        }
+    }, [error]);
+    // Update search results when data changes
+    useEffect(() => {
+        if (data && data.results) {
+            setSearchResults(data.results);
+        }
+    }, [data]);
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setSearchParams((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+    const handleRemoteOnlyChange = (checked) => {
+        setSearchParams((prev) => ({
+            ...prev,
+            remoteOnly: checked,
+        }));
+    };
+    const handleSearch = useCallback(() => {
+        // Validate inputs
+        if (!searchParams.keywords.trim()) {
+            alert('Please enter keywords for your job search');
+            return;
+        }
+        console.log('Search initiated with params:', searchParams);
+        // Add to search history
+        setSearchHistory((prev) => [
+            { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
+            ...prev.slice(0, 9), // Keep only the 10 most recent searches
+        ]);
+        // Trigger fetch
+        console.log('Setting shouldFetch to true');
+        setShouldFetch(true);
+        console.log('shouldFetch should now be true');
+    }, [searchParams]);
+    // State to store selected job
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [showApplicationWizard, setShowApplicationWizard] = useState(false);
+    const [applicationJob, setApplicationJob] = useState(null);
+    // Handle starting an application
+    const handleStartApplication = async (job) => {
+        try {
+            // Open the job URL in a new tab
+            window.open(job.redirect_url, '_blank');
+            // Directly create the application with "In Progress" status
+            const now = new Date().toISOString();
+            const newApplication = {
+                jobId: 0, // Local job entry from Adzuna data
+                title: job.title,
+                jobTitle: job.title,
+                position: job.title,
+                company: job.company.display_name,
+                companyName: job.company.display_name,
+                location: job.location.display_name || 'Remote',
+                jobLocation: job.location.display_name || 'Remote',
+                description: job.description,
+                status: 'In Progress',
+                adzunaJobId: job.id || '',
+                externalJobUrl: job.redirect_url || '',
+                jobLink: job.redirect_url || '',
+                notes: '',
+                source: 'Adzuna',
+                applicationDate: now,
+                createdAt: now,
+                updatedAt: now
+            };
+            try {
+                // Try to use the API first
+                const response = await apiRequest({
+                    url: '/api/applications',
+                    method: 'POST',
+                    data: newApplication
+                });
+                // Invalidate queries to refresh the UI
+                queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/job-applications'] });
+                console.log('Application created:', response);
+            }
+            catch (error) {
+                console.error('API error, falling back to localStorage:', error);
+                // Fallback to localStorage for demo mode
+                const mockId = Date.now();
+                const mockApp = {
+                    id: mockId,
+                    ...newApplication
+                };
+                // Store application in localStorage
+                const storedApplications = JSON.parse(localStorage.getItem('mockJobApplications') || '[]');
+                storedApplications.push(mockApp);
+                localStorage.setItem('mockJobApplications', JSON.stringify(storedApplications));
+                // Dispatch event to notify application status change
+                window.dispatchEvent(new Event('applicationStatusChange'));
+            }
+            // Show success toast
+            toast({
+                title: "Added to Application Tracker",
+                description: `${job.title} at ${job.company.display_name} has been added to your tracker`,
+            });
+        }
+        catch (error) {
+            console.error('Error starting application:', error);
+            toast({
+                title: "Error",
+                description: "Failed to start application. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+    const handleSelectJob = (job) => {
+        // Reset expanded description when selecting a new job
+        setExpandedDescription(false);
+        // Store the full job object
+        setSelectedJob(job);
+        // Keep user on results tab - job details will be shown in the same tab
+        setActiveTab('results');
+        // Pass job info to parent component if callback exists
+        if (onSelectJob) {
+            onSelectJob({
+                title: job.title,
+                company: job.company.display_name,
+                url: job.redirect_url,
+                description: job.description,
+                location: job.location?.display_name
+            });
+        }
+    };
+    const handleHistoryItemClick = (item) => {
+        setSearchParams((prev) => ({
+            ...prev,
+            keywords: item.keywords,
+            location: item.location,
+        }));
+    };
+    const clearSearchHistory = () => {
+        setSearchHistory([]);
+    };
+    // Format salary if available
+    const formatSalary = (job) => {
+        if (job.salary_min && job.salary_max) {
+            return `$${Math.round(job.salary_min).toLocaleString()} - $${Math.round(job.salary_max).toLocaleString()}${job.salary_is_predicted ? ' (estimated)' : ''}`;
+        }
+        else if (job.salary_min) {
+            return `$${Math.round(job.salary_min).toLocaleString()}${job.salary_is_predicted ? ' (estimated)' : ''}`;
+        }
+        else if (job.salary_max) {
+            return `Up to $${Math.round(job.salary_max).toLocaleString()}${job.salary_is_predicted ? ' (estimated)' : ''}`;
+        }
+        return 'Salary not specified';
+    };
+    // State for active tab
+    const [activeTab, setActiveTab] = useState('search');
+    // Automatically switch to results tab when search results are received
+    useEffect(() => {
+        if (searchResults.length > 0) {
+            setActiveTab('results');
+        }
+    }, [searchResults]);
+    return (_jsxs(_Fragment, { children: [_jsxs(Card, { className: "w-full", children: [_jsxs(CardHeader, { children: [_jsxs(CardTitle, { className: "flex items-center gap-2", children: [_jsx(Search, { className: "h-5 w-5" }), "Job Search"] }), _jsx(CardDescription, { children: "Search for jobs on Adzuna directly within the application" })] }), _jsx(CardContent, { children: _jsxs(Tabs, { value: activeTab, onValueChange: setActiveTab, children: [_jsxs(TabsList, { className: "w-full mb-4", children: [_jsx(TabsTrigger, { value: "search", className: "flex-1", children: "Search" }), _jsx(TabsTrigger, { value: "history", className: "flex-1", children: "History" }), searchResults.length > 0 && (_jsxs(TabsTrigger, { value: "results", className: "flex-1", children: ["Results (", searchResults.length, ")"] }))] }), _jsxs(TabsContent, { value: "search", className: "space-y-4", children: [_jsxs("div", { className: "space-y-2", children: [_jsx(Label, { htmlFor: "keywords", children: "Keywords" }), _jsx(Input, { id: "keywords", name: "keywords", placeholder: "Software Engineer, Product Manager, etc.", value: searchParams.keywords, onChange: handleInputChange })] }), _jsxs("div", { className: "space-y-2", children: [_jsx(Label, { htmlFor: "location", children: "Location (Optional)" }), _jsx(Input, { id: "location", name: "location", placeholder: "Chicago, Boston, etc.", value: searchParams.location, onChange: handleInputChange })] }), _jsxs("div", { className: "flex items-center space-x-2 mt-4", children: [_jsx(Checkbox, { id: "remoteOnly", checked: searchParams.remoteOnly, onCheckedChange: handleRemoteOnlyChange }), _jsx(Label, { htmlFor: "remoteOnly", children: "Remote jobs only" })] }), _jsx(Button, { onClick: (e) => {
+                                                console.log('Search button clicked!');
+                                                e.preventDefault();
+                                                // Update search history
+                                                if (searchParams.keywords.trim()) {
+                                                    setSearchHistory((prev) => [
+                                                        { keywords: searchParams.keywords, location: searchParams.location, timestamp: new Date() },
+                                                        ...prev.slice(0, 9), // Keep only the 10 most recent searches
+                                                    ]);
+                                                    // Use direct fetch instead of the query
+                                                    directFetch();
+                                                }
+                                            }, disabled: isLoading || !searchParams.keywords.trim(), className: "w-full mt-2", children: isLoading ? (_jsxs(_Fragment, { children: [_jsx(Loader2, { className: "mr-2 h-4 w-4 animate-spin" }), "Searching..."] })) : ('Search Jobs') })] }), _jsx(TabsContent, { value: "results", children: searchResults.length > 0 ? (_jsxs("div", { className: "space-y-4", children: [!selectedJob && (_jsx("div", { className: "space-y-4 max-h-[500px] overflow-y-auto", children: searchResults.map((job) => (_jsxs("div", { className: "p-4 border rounded-md hover:bg-gray-50 cursor-pointer", onClick: () => handleSelectJob(job), children: [_jsxs("div", { className: "flex justify-between items-start", children: [_jsx("h3", { className: "font-semibold text-lg", children: job.title }), _jsxs("div", { className: "flex gap-1", children: [_jsx(Button, { size: "sm", variant: "outline", className: "h-6 gap-1", onClick: (e) => {
+                                                                                e.stopPropagation();
+                                                                                handleStartApplication(job);
+                                                                            }, children: "Add to Tracker" }), _jsxs(Button, { size: "sm", variant: "ghost", className: "h-6 gap-1", children: [_jsx(ExternalLink, { className: "h-3 w-3" }), "View"] })] })] }), _jsx("p", { className: "text-sm font-medium", children: job.company.display_name }), _jsx("p", { className: "text-sm text-gray-500", children: job.location.display_name }), (job.salary_min || job.salary_max) && (_jsx("p", { className: "text-sm text-gray-700 mt-1", children: formatSalary(job) })), _jsx("p", { className: "mt-2 text-sm line-clamp-2 text-gray-600", children: job.description }), _jsxs("p", { className: "text-xs text-gray-400 mt-2", children: ["Posted: ", new Date(job.created).toLocaleDateString()] })] }, job.id))) })), selectedJob && (_jsxs("div", { className: "flex flex-col", children: [_jsxs("div", { className: "flex justify-between items-center mb-4", children: [_jsx("h3", { className: "text-lg font-semibold", children: "Job Details" }), _jsxs("div", { className: "flex gap-2", children: [_jsxs(Button, { variant: "outline", size: "sm", onClick: () => window.open(selectedJob.redirect_url, '_blank'), children: [_jsx(ExternalLink, { className: "h-4 w-4 mr-1" }), "Apply on Adzuna"] }), _jsx(Button, { variant: "outline", size: "sm", onClick: () => handleStartApplication(selectedJob), children: "Add to Tracker" }), _jsx(Button, { variant: "secondary", size: "sm", onClick: () => setSelectedJob(null), children: "Back to Results" })] })] }), _jsxs("div", { className: "mb-6 overflow-auto max-h-[600px]", children: [_jsx("h2", { className: "text-2xl font-bold mb-2", children: selectedJob.title }), _jsxs("div", { className: "flex flex-wrap gap-2 mb-4 text-sm", children: [_jsx("span", { className: "font-medium", children: selectedJob.company.display_name }), _jsx("span", { className: "text-gray-500", children: "\u2022" }), _jsx("span", { className: "text-gray-600", children: selectedJob.location.display_name })] }), (selectedJob.salary_min || selectedJob.salary_max) && (_jsxs("div", { className: "mb-4 p-3 bg-gray-50 rounded-md inline-block", children: [_jsx("span", { className: "font-medium", children: "Salary: " }), _jsx("span", { children: formatSalary(selectedJob) })] })), selectedJob.contract_time && (_jsx("div", { className: "mb-4", children: _jsx("span", { className: "px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs", children: selectedJob.contract_time === 'full_time' ? 'Full-time' :
+                                                                        selectedJob.contract_time === 'part_time' ? 'Part-time' :
+                                                                            selectedJob.contract_time }) })), _jsxs("div", { className: "mt-6", children: [_jsx("h3", { className: "text-lg font-semibold mb-2", children: "Job Description" }), _jsxs("div", { children: [_jsxs("div", { className: `text-gray-700 whitespace-pre-line ${!expandedDescription && selectedJob.description.length > 500
+                                                                                    ? "max-h-[300px] overflow-hidden relative"
+                                                                                    : ""}`, children: [selectedJob.description, !expandedDescription && selectedJob.description.length > 500 && (_jsx("div", { className: "absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent" }))] }), selectedJob.description.length > 500 && (_jsx("button", { onClick: () => {
+                                                                                    console.log('Toggle description', !expandedDescription);
+                                                                                    setExpandedDescription(prevState => !prevState);
+                                                                                }, className: "mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center", children: expandedDescription ? (_jsxs(_Fragment, { children: [_jsx(ChevronUp, { className: "h-4 w-4 mr-1" }), "Show Less"] })) : (_jsxs(_Fragment, { children: [_jsx(ChevronDown, { className: "h-4 w-4 mr-1" }), "Show More"] })) }))] })] }), _jsx("div", { className: "mt-6", children: _jsxs("span", { className: "text-sm text-gray-500", children: ["Posted: ", new Date(selectedJob.created).toLocaleDateString()] }) })] })] }))] })) : (_jsx("div", { className: "text-center py-8", children: isLoading ? (_jsxs("div", { className: "flex flex-col items-center", children: [_jsx(Loader2, { className: "h-8 w-8 animate-spin mb-2" }), _jsx("p", { children: "Searching for jobs..." })] })) : (_jsx("p", { className: "text-gray-500", children: "No job results found. Try a different search." })) })) }), _jsx(TabsContent, { value: "history", children: searchHistory.length > 0 ? (_jsxs(_Fragment, { children: [_jsx("div", { className: "space-y-2 max-h-[300px] overflow-y-auto", children: searchHistory.map((item, index) => (_jsxs("div", { className: "p-3 border rounded-md hover:bg-gray-50 cursor-pointer flex justify-between items-center", onClick: () => handleHistoryItemClick(item), children: [_jsxs("div", { children: [_jsx("p", { className: "font-medium", children: item.keywords }), _jsx("p", { className: "text-sm text-gray-500", children: item.location || 'No location' })] }), _jsxs("p", { className: "text-xs text-gray-400", children: [item.timestamp.toLocaleDateString(), " ", item.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })] })] }, index))) }), _jsx(Button, { variant: "outline", size: "sm", onClick: clearSearchHistory, className: "mt-4", children: "Clear History" })] })) : (_jsx("p", { className: "text-center py-8 text-gray-500", children: "No search history available" })) })] }) })] }), applicationJob && (_jsx(ApplicationWizard, { isOpen: showApplicationWizard, onClose: () => setShowApplicationWizard(false), jobDetails: applicationJob }))] }));
+}
