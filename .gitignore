@@ -13,3 +13,5 @@ vite.config.ts.*
 .env.test
 .env.test.local
 .vercel
+
+TEST_ACCOUNTS.md
