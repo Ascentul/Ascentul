@@ -133,9 +133,43 @@ export default async function handler(req, res) {
       })
     }
 
-    // Set CORS headers
-    res.setHeader("Access-Control-Allow-Credentials", true)
-    res.setHeader("Access-Control-Allow-Origin", "*")
+    // Set CORS headers (dynamic allow-listed origin for credentialed requests)
+    const isProduction = process.env.NODE_ENV === "production"
+    const allowedOriginsEnv =
+      process.env.ALLOWED_ORIGINS ||
+      "http://localhost:3000,http://localhost:3001,http://localhost:3002,https://ascentul.io,https://www.ascentul.io"
+    const allowedOrigins = allowedOriginsEnv
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
+
+    const requestOrigin = req.headers.origin
+    let allowOriginToUse = ""
+
+    if (requestOrigin) {
+      try {
+        const url = new URL(requestOrigin)
+        const host = url.host || ""
+        const isVercelPreview = host.endsWith(".vercel.app")
+        const explicitlyAllowed = allowedOrigins.includes(requestOrigin)
+
+        // In production: only allow explicit list or vercel preview domains
+        // In non-production: allow any requesting origin to simplify local dev
+        if (!isProduction || explicitlyAllowed || isVercelPreview) {
+          allowOriginToUse = requestOrigin
+        }
+      } catch (_) {
+        // Invalid Origin header; ignore
+      }
+    }
+
+    if (allowOriginToUse) {
+      res.setHeader("Access-Control-Allow-Origin", allowOriginToUse)
+      // Ensure caches consider Origin when varying the response
+      res.setHeader("Vary", "Origin")
+    }
+
+    res.setHeader("Access-Control-Allow-Credentials", "true")
     res.setHeader(
       "Access-Control-Allow-Methods",
       "GET,OPTIONS,PATCH,DELETE,POST,PUT"
@@ -144,8 +178,9 @@ export default async function handler(req, res) {
       "Access-Control-Allow-Headers",
       "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
     )
+    res.setHeader("Access-Control-Max-Age", "86400")
 
-    // Handle OPTIONS request
+    // Handle preflight request early
     if (req.method === "OPTIONS") {
       res.status(200).end()
       return
