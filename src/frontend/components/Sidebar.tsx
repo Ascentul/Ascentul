@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from '@/components/ui/button';
 import ProfileImageUploader from './ProfileImageUploader';
+import { NotificationBell } from '@/components/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 import ascentulLogo from '@/assets/ascentul-logo.png';
 import { 
@@ -306,15 +307,18 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps = {}) {
         )}
         
         {/* Desktop sidebar toggle */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={toggleSidebar}
-          className="ml-auto hidden md:flex"
-          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {expanded ? <PanelLeft size={18} /> : <PanelRight size={18} />}
-        </Button>
+        <div className="ml-auto hidden md:flex items-center gap-1">
+          {/* In-app notifications bell for desktop */}
+          <NotificationBell />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={toggleSidebar}
+            aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {expanded ? <PanelLeft size={18} /> : <PanelRight size={18} />}
+          </Button>
+        </div>
         
         {/* Mobile close button */}
         {isOpen && (

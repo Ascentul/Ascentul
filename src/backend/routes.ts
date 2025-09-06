@@ -47,6 +47,7 @@ import testEmailRouter from "./routes/test-email"
 // Import notifications router
 import notificationsRouter from "./routes/notifications"
 import supportRouter from "./routes/support"
+import { sendSupportAcknowledgementEmail } from "./mail"
 import * as openai from "./openai"
 import {
   generateCertificationRecommendations,
@@ -1454,6 +1455,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("User profile updated successfully")
 
+        // Create in-app notification for profile update (system/account)
+        try {
+          const { createNotification } = await import('./services/notifications-service')
+          await createNotification({
+            userId: userId.toString(),
+            title: 'Profile Updated',
+            meta: {
+              text: 'Your profile has been updated successfully.',
+              category: 'account',
+              channel: 'in_app',
+              cadence: 'immediate',
+              ctaText: 'View profile',
+              ctaUrl: '/account'
+            }
+          })
+        } catch (notifErr) {
+          console.error('Failed to create profile update notification:', notifErr)
+        }
+
         // Remove password before sending response
         const { password: userPassword, ...safeUser } = updatedUser
 
@@ -1468,24 +1488,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Profile image upload endpoint
   apiRouter.post(
     "/users/profile-image",
+    requireAuth,
     async (req: Request, res: Response) => {
       try {
         console.log("Profile image upload endpoint called")
 
         // Get user ID from request (set by Supabase auth middleware)
         const userId = req.userId
-
-        // Get the user by ID or fall back to default
-        let user
-        if (userId) {
-          user = await storage.getUser(userId)
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" })
         }
-
-        // If not found, use the sample user for backward compatibility
-        if (!user) {
-          user = await storage.getUserByUsername("alex")
-        }
-
+        // Get the user by ID
+        const user = await storage.getUser(userId)
         if (!user) {
           return res.status(404).json({ message: "User not found" })
         }
@@ -1679,6 +1693,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const goal = await storage.createGoal(user.id, goalData)
 
+      // In-app notification: Goal created confirmation
+      try {
+        const { createNotification } = await import('./services/notifications-service')
+        await createNotification({
+          userId: user.id.toString(),
+          title: 'Career Goal Created',
+          meta: {
+            text: `You created a new goal: ${goal.title}`,
+            category: 'goal',
+            channel: 'in_app',
+            cadence: 'immediate',
+            ctaText: 'View Goals',
+            ctaUrl: '/goals'
+          }
+        })
+      } catch (notifErr) {
+        console.error('Failed to create goal creation notification:', notifErr)
+      }
+
       // Invalidate statistics cache since this affects the "Active Goals" count
       res.setHeader(
         "X-Invalidate-Cache",
@@ -1727,6 +1760,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ message: "You don't have permission to update this goal" })
         }
 
+        const prevProgress = typeof goal.progress === 'number' ? goal.progress : 0
+        const prevStatus = goal.status
         const updatedGoal = await storage.updateGoal(goalId, req.body)
 
         // Invalidate statistics cache since this affects the "Active Goals" count
@@ -1734,6 +1769,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "X-Invalidate-Cache",
           JSON.stringify([`/api/users/statistics`])
         )
+
+        // Detect milestone crossings and completion
+        try {
+          const { createNotification } = await import('./services/notifications-service')
+          const newProgress = typeof updatedGoal?.progress === 'number' ? updatedGoal.progress : prevProgress
+          const crossed50 = prevProgress < 50 && newProgress >= 50
+          const crossed100 = (prevProgress < 100 && newProgress >= 100) || (prevStatus !== 'completed' && updatedGoal?.status === 'completed')
+          if (crossed50) {
+            await createNotification({
+              userId: user.id.toString(),
+              title: 'Goal Milestone Reached — 50% Complete',
+              meta: {
+                text: `Congrats — you finished 50% of your Career Goal: ${updatedGoal?.title}!`,
+                category: 'goal',
+                channel: 'in_app',
+                cadence: 'immediate',
+                ctaText: 'Review goal',
+                ctaUrl: '/goals'
+              }
+            })
+          }
+          if (crossed100) {
+            await createNotification({
+              userId: user.id.toString(),
+              title: 'Goal Completed',
+              meta: {
+                text: `Fantastic work — you completed your goal: ${updatedGoal?.title}!`,
+                category: 'goal',
+                channel: 'in_app',
+                cadence: 'immediate',
+                ctaText: 'Set next goal',
+                ctaUrl: '/goals'
+              }
+            })
+          }
+        } catch (notifErr) {
+          console.error('Failed to create goal milestone notification:', notifErr)
+        }
 
         res.status(200).json(updatedGoal)
       } catch (error) {
@@ -3021,6 +3094,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const resume = await storage.createResume(user.id, resumeData)
+
+        // Create in-app notification for resume upload
+        try {
+          const { createNotification } = await import('./services/notifications-service')
+          await createNotification({
+            userId: user.id.toString(),
+            title: 'Resume Uploaded',
+            meta: {
+              text: 'Your resume was uploaded successfully. Want improvement suggestions?',
+              category: 'resume',
+              channel: 'in_app',
+              cadence: 'immediate',
+              ctaText: 'Open Resume Studio',
+              ctaUrl: '/resume'
+            }
+          })
+        } catch (notifErr) {
+          console.error('Failed to create resume upload notification:', notifErr)
+        }
+
         res.status(201).json(resume)
       } catch (error) {
         if (error instanceof z.ZodError) {
@@ -3169,6 +3262,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userWorkHistory,
           jobDescription
         )
+        // Notification: scanned improvements on resume
+        try {
+          if (req.userId) {
+            const { createNotification } = await import('./services/notifications-service')
+            await createNotification({
+              userId: req.userId,
+              title: 'Resume Improvement Suggestions',
+              meta: {
+                text: `We scanned ${Array.isArray(suggestions) ? suggestions.length : 0} improvement opportunities on your resume.`,
+                category: 'resume',
+                channel: 'in_app',
+                cadence: 'immediate',
+                ctaText: 'Open Resume Studio',
+                ctaUrl: '/resume'
+              }
+            })
+          }
+        } catch (notifErr) {
+          console.error('Failed to create resume suggestions notification:', notifErr)
+        }
         res.status(200).json(suggestions)
       } catch (error: any) {
         console.error("Error generating resume suggestions:", error)
@@ -3245,6 +3358,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobDescription,
         userData
       )
+      // Notification: resume tailored, suggest generating cover letter
+      try {
+        if (req.userId) {
+          const jobTitle = (typeof jobDescription === 'string') ? (jobDescription.split('\n')[0] || '').trim() : ''
+          const { createNotification } = await import('./services/notifications-service')
+          await createNotification({
+            userId: req.userId,
+            title: `Your resume was tailored${jobTitle ? ` for ${jobTitle}` : ''}`,
+            meta: {
+              text: 'Want to generate a matching cover letter?',
+              category: 'cover_letter',
+              channel: 'in_app',
+              cadence: 'immediate',
+              ctaText: 'Generate Cover Letter',
+              ctaUrl: '/cover-letter'
+            }
+          })
+        }
+      } catch (notifErr) {
+        console.error('Failed to create tailored resume notification:', notifErr)
+      }
 
       // Return the generated resume
       res.status(200).json(resumeContent)
@@ -5096,6 +5230,27 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           JSON.stringify([`/api/users/statistics`])
         )
 
+        // Notification: Interview scheduled/added
+        try {
+          const { createNotification } = await import('./services/notifications-service')
+          const proc = await storage.getInterviewProcess(processIdNum)
+          const company = (proc as any)?.companyName || (proc as any)?.company || 'the company'
+          await createNotification({
+            userId: user.id.toString(),
+            title: `Interview scheduled for ${company}`,
+            meta: {
+              text: 'Interview scheduled — prep with AI Career Coach.',
+              category: 'application',
+              channel: 'in_app',
+              cadence: 'immediate',
+              ctaText: 'Open AI Career Coach',
+              ctaUrl: '/ai-coach'
+            }
+          })
+        } catch (notifErr) {
+          console.error('Failed to create interview scheduled notification:', notifErr)
+        }
+
         res.status(201).json(stage)
       } catch (error) {
         console.error("Error adding interview stage:", error)
@@ -5159,6 +5314,32 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           "X-Invalidate-Cache",
           JSON.stringify([`/api/users/statistics`])
         )
+
+        // If the update just scheduled an interview (previously unscheduled -> now scheduled), notify
+        try {
+          const scheduledFields = ['scheduledAt','scheduledTime','date','dateTime']
+          const hadSchedule = scheduledFields.some((f) => (stage as any)?.[f])
+          const hasSchedule = scheduledFields.some((f) => (updatedStage as any)?.[f])
+          if (!hadSchedule && hasSchedule) {
+            const { createNotification } = await import('./services/notifications-service')
+            const proc = await storage.getInterviewProcess(stage.processId)
+            const company = (proc as any)?.companyName || (proc as any)?.company || 'the company'
+            await createNotification({
+              userId: user.id.toString(),
+              title: `Interview scheduled for ${company}`,
+              meta: {
+                text: 'Interview scheduled — prep with AI Career Coach.',
+                category: 'application',
+                channel: 'in_app',
+                cadence: 'immediate',
+                ctaText: 'Open AI Career Coach',
+                ctaUrl: '/ai-coach'
+              }
+            })
+          }
+        } catch (notifErr) {
+          console.error('Failed to create interview scheduled notification:', notifErr)
+        }
 
         res.status(200).json(updatedStage)
       } catch (error) {
@@ -5574,16 +5755,32 @@ Return ONLY the clean body content that contains the applicant's qualifications 
         return res.status(400).json({ message: "Missing required fields" })
       }
 
-      const ticketData = insertSupportTicketSchema.parse({
-        userEmail: user_email,
-        source: "marketing-site",
-        issueType: issue_type,
-        description,
-        attachmentUrl: attachment_url
-      })
+      // Store ticket directly in Supabase so Super Admin app sees it
+      const { data, error } = await supabaseAdmin
+        .from("support_tickets")
+        .insert({
+          email: user_email,
+          subject: (req.body.subject || issue_type) ?? "Support Request",
+          message: description,
+          status: "open"
+        })
+        .select("*")
+        .single()
 
-      const ticket = await storage.createSupportTicket(ticketData)
-      res.status(201).json(ticket)
+      if (error) {
+        console.error("Supabase error creating support ticket:", error)
+        return res.status(500).json({ message: "Error creating support ticket" })
+      }
+
+      // Send acknowledgement email to user
+      try {
+        const firstName = (req.body.first_name || req.body.name || "").toString().split(" ")[0] || ""
+        await sendSupportAcknowledgementEmail(user_email, firstName)
+      } catch (mailErr) {
+        console.error("Support acknowledgement email failed:", mailErr)
+      }
+
+      res.status(201).json(data)
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res
@@ -5630,27 +5827,32 @@ Return ONLY the clean body content that contains the applicant's qualifications 
           user.userType === "university_admin" ||
           user.role === "university_admin"
 
-        // Prepare ticket data - use values from body or fallback to user session data
-        const ticketData = insertSupportTicketSchema.parse({
-          userEmail: email || user.email,
-          userName: name || user.name,
-          universityName: universityName || user.universityName,
-          subject,
-          // Set source based on user type or explicit source parameter
-          source: isUniversityAdmin ? "university-admin" : "in-app",
-          issueType,
-          description,
-          priority,
-          attachmentUrl,
-          // Add university-specific fields for university admin tickets
-          department: isUniversityAdmin ? department || null : null,
-          contactPerson: isUniversityAdmin ? contactPerson || null : null,
-          status: "Open",
-          updatedAt: new Date()
-        })
+        // Insert ticket into Supabase directly for Super Admin visibility
+        const { data, error } = await supabaseAdmin
+          .from("support_tickets")
+          .insert({
+            email: email || user.email,
+            subject: (subject || issueType) ?? "Support Request",
+            message: description,
+            status: "open"
+          })
+          .select("*")
+          .single()
 
-        const ticket = await storage.createSupportTicket(ticketData)
-        res.status(201).json(ticket)
+        if (error) {
+          console.error("Supabase error creating in-app support ticket:", error)
+          return res.status(500).json({ message: "Error creating support ticket" })
+        }
+
+        // Acknowledgement email
+        try {
+          const firstName = ((name || user.name || "").toString().split(" ")[0]) || (user.email?.split("@")[0] ?? "")
+          await sendSupportAcknowledgementEmail(email || user.email, firstName)
+        } catch (mailErr) {
+          console.error("Support acknowledgement email failed:", mailErr)
+        }
+
+        res.status(201).json(data)
       } catch (error) {
         if (error instanceof z.ZodError) {
           return res
@@ -6498,7 +6700,14 @@ Return ONLY the clean body content that contains the applicant's qualifications 
                 await createNotification({
                   userId: user.id,
                   title: 'New Daily Recommendations',
-                  body: 'Your daily job recommendations are ready! Check them out to stay on track with your career goals.'
+                  meta: {
+                    text: 'Your daily job recommendations are ready! Check them out to stay on track with your career goals.',
+                    category: 'recommendation',
+                    channel: 'in_app',
+                    cadence: 'daily',
+                    ctaText: 'View recommendations',
+                    ctaUrl: '/career-dashboard'
+                  }
                 });
                 console.log(`Notification created for user ${user.id}`);
               } catch (notifError) {
@@ -6507,6 +6716,46 @@ Return ONLY the clean body content that contains the applicant's qualifications 
               console.log(
                 `Successfully refreshed recommendations for user ${user.id}`
               )
+
+              // 7-day application follow-up notifications
+              try {
+                const apps = await storage.getJobApplications(user.id)
+                const nowMs = Date.now()
+                const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+                // Lazy duplicate guard using notifications list
+                const { getUserNotifications, createNotification } = await import('./services/notifications-service')
+                const existingNotifs = await getUserNotifications(user.id)
+                const alreadyNotifiedKeys = new Set(
+                  existingNotifs
+                    .filter((n: any) => n.title?.startsWith('Follow up on'))
+                    .map((n: any) => n.title)
+                )
+                for (const app of apps) {
+                  if (app.status === 'submitted') {
+                    const appliedAt = new Date((app.appliedDate as any) || (app.createdAt as any)).getTime()
+                    if (!isNaN(appliedAt) && nowMs - appliedAt >= sevenDaysMs) {
+                      const keyTitle = `Follow up on ${app.jobId ? 'your application' : 'your job application'}`
+                      if (!alreadyNotifiedKeys.has(keyTitle)) {
+                        await createNotification({
+                          userId: user.id,
+                          title: keyTitle,
+                          meta: {
+                            text: "It's been 7 days since you applied. Want to follow up?",
+                            category: 'application',
+                            channel: 'in_app',
+                            cadence: 'daily',
+                            ctaText: 'Open Application Tracker',
+                            ctaUrl: '/application-tracker'
+                          }
+                        })
+                        console.log(`Follow-up notification created for user ${user.id}`)
+                      }
+                    }
+                  }
+                }
+              } catch (followErr) {
+                console.error('Error creating follow-up notifications:', followErr)
+              }
             } catch (userError) {
               console.error(
                 `Error refreshing recommendations for user ${user.id}:`,
@@ -6514,6 +6763,78 @@ Return ONLY the clean body content that contains the applicant's qualifications 
               )
               // Continue with other users even if one fails
             }
+          }
+
+          // Weekly recap email (every Sunday)
+          try {
+            const today = new Date()
+            const isSunday = today.getDay() === 0
+            if (isSunday) {
+              for (const user of users) {
+                try {
+                  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+                  const [apps, goals, contacts] = await Promise.all([
+                    storage.getJobApplications(user.id),
+                    storage.getGoals(user.id),
+                    storage.getNetworkingContacts(user.id)
+                  ])
+                  const appliedThisWeek = apps.filter(a => new Date((a.appliedDate as any) || (a.createdAt as any)) >= weekAgo).length
+                  const goalsThisWeek = goals.filter(g => new Date(g.createdAt as any) >= weekAgo).length
+                  const contactsThisWeek = contacts.filter(c => new Date((c.createdAt as any)) >= weekAgo).length
+
+                  const subject = 'Your Weekly Career Recap'
+                  const summary = `This week, you applied to ${appliedThisWeek} job(s), set ${goalsThisWeek} new goal(s), and made ${contactsThisWeek} new connection(s).`
+
+                  if (process.env.SENDGRID_API_KEY && (user as any).email) {
+                    const sg = await import('@sendgrid/mail')
+                    sg.setApiKey(process.env.SENDGRID_API_KEY)
+                    try {
+                      await sg.send({
+                        to: (user as any).email,
+                        from: process.env.SENDGRID_FROM || 'no-reply@ascentul.com',
+                        subject,
+                        text: summary,
+                        html: `<p>${summary}</p><p><a href="${process.env.APP_BASE_URL || ''}/career-dashboard">Open Ascentul</a></p>`
+                      } as any)
+                      console.log(`Weekly recap email sent to ${user.id}`)
+                    } catch (emailErr) {
+                      console.error('SendGrid error, falling back to in-app recap:', emailErr)
+                      const { createNotification } = await import('./services/notifications-service')
+                      await createNotification({
+                        userId: user.id,
+                        title: 'Weekly Career Recap',
+                        meta: {
+                          text: summary,
+                          category: 'system',
+                          channel: 'in_app',
+                          cadence: 'weekly',
+                          ctaText: 'Open Dashboard',
+                          ctaUrl: '/career-dashboard'
+                        }
+                      })
+                    }
+                  } else {
+                    const { createNotification } = await import('./services/notifications-service')
+                    await createNotification({
+                      userId: user.id,
+                      title: 'Weekly Career Recap',
+                      meta: {
+                        text: summary,
+                        category: 'system',
+                        channel: 'in_app',
+                        cadence: 'weekly',
+                        ctaText: 'Open Dashboard',
+                        ctaUrl: '/career-dashboard'
+                      }
+                    })
+                  }
+                } catch (weeklyErr) {
+                  console.error(`Weekly recap error for user ${user.id}:`, weeklyErr)
+                }
+              }
+            }
+          } catch (weeklyBlockErr) {
+            console.error('Error in weekly recap block:', weeklyBlockErr)
           }
         } catch (error) {
           console.error(

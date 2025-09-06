@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/lib/useUserData';
 import ProfileImageUploader from './ProfileImageUploader';
 import { ModelNotificationIcon } from './ModelNotification';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface MobileHeaderProps {
   onMenuToggle: () => void;
@@ -30,6 +31,10 @@ export default function MobileHeader({ onMenuToggle }: MobileHeaderProps) {
         <div className="flex items-center">
           {/* Dynamic AI Model notification icon */}
           <ModelNotificationIcon />
+          {/* In-app notifications bell */}
+          <div className="ml-1">
+            <NotificationBell />
+          </div>
           <Button
             variant="ghost"
             size="icon"

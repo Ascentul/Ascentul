@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { supabase } from '../supabase';
-import { sendSupportConfirmationEmail } from '../mail';
+import { sendSupportAcknowledgementEmail } from '../mail';
 import { verifySupabaseToken, requireAdmin } from '../supabase-auth';
 
 const router = express.Router();
@@ -35,9 +35,10 @@ router.post('/', verifySupabaseToken, async (req, res) => {
     return res.status(500).json({ error: 'Failed to create support ticket' });
   }
 
-  // Send confirmation email
+  // Send acknowledgement email with provided template
   try {
-    await sendSupportConfirmationEmail(email, subject);
+    const firstName = (email?.split('@')[0] || 'there').split('.')[0]
+    await sendSupportAcknowledgementEmail(email, firstName);
   } catch (e) {
     // Log but don't fail the ticket creation if email fails
     console.error('Support confirmation email failed:', e);

@@ -685,36 +685,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Fall back to legacy API
       }
 
-      // Step 1: Upload image to server
-      const uploadResponse = await fetch("/api/users/profile-image", {
+      // Step 1: Upload image to server (include Supabase auth token via apiRequest)
+      const uploadData = await apiRequest<{ profileImage: string }>({
+        url: "/api/users/profile-image",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageDataUrl })
+        data: { imageDataUrl }
       })
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload profile image")
-      }
-
-      const uploadData = await uploadResponse.json()
       if (!uploadData.profileImage) {
         throw new Error("Profile image URL not returned from server")
       }
 
       // Step 2: Update user profile with the new image URL
-      const profileUpdateResponse = await fetch("/api/users/profile", {
+      const updatedUserData = await apiRequest<User>({
+        url: "/api/users/profile",
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profileImage: uploadData.profileImage // Send without timestamp
-        })
+        data: { profileImage: uploadData.profileImage }
       })
-
-      if (!profileUpdateResponse.ok) {
-        throw new Error("Failed to update profile with new image")
-      }
-
-      const updatedUserData = await profileUpdateResponse.json()
 
       // Step 3: Update the local user state with the image URL plus cache-busting timestamp
       const timestamp = Date.now()

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 
 interface ProfileImageUploaderProps {
-  onImageUploaded: (imageUrl: string) => void;
+  onImageUploaded: (imageDataUrl: string) => Promise<any>;
   currentImage?: string;
   children: React.ReactNode;
 }
@@ -23,7 +23,7 @@ export default function ProfileImageUploader({
   children 
 }: ProfileImageUploaderProps) {
   const [image, setImage] = useState<string | null>(null);
-  const [zoom, setZoom] = useState<number>(0.8); // Lower initial zoom for better framing
+  const [zoom, setZoom] = useState<number>(1); // Start at cover size
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -32,41 +32,62 @@ export default function ProfileImageUploader({
   
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Natural image size and computed base (object-fit: cover) size within the container at zoom=1
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [baseSize, setBaseSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 256, h: 256 });
   
   // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
       setImage(null);
-      setZoom(0.8); // Match the initial zoom
+      setZoom(1);
       setPosition({ x: 0, y: 0 });
+      setNaturalSize(null);
+      setBaseSize({ w: 0, h: 0 });
+      // Measure container size when dialog opens
+      setTimeout(() => {
+        if (imageContainerRef.current) {
+          const rect = imageContainerRef.current.getBoundingClientRect();
+          setContainerSize({ w: rect.width, h: rect.height });
+        }
+      }, 0);
     }
   }, [isOpen]);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImage(event.target?.result as string);
-        
-        // Reset zoom and position with a lower initial zoom
-        setZoom(0.8);
-        setPosition({ x: 0, y: 0 });
-        
-        // Center the image after it loads
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setImage(dataUrl);
+      setZoom(1);
+      // Load the image to get natural dimensions
+      const img = new Image();
+      img.onload = () => {
+        const nat = { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height };
+        setNaturalSize(nat);
+        // Measure container and compute base cover size
         setTimeout(() => {
-          if (imageContainerRef.current) {
-            const container = imageContainerRef.current;
-            const rect = container.getBoundingClientRect();
-            setPosition({ 
-              x: (rect.width - rect.width * zoom) / 2, 
-              y: (rect.height - rect.height * zoom) / 2 
-            });
-          }
-        }, 100);
+          if (!imageContainerRef.current) return;
+          const rect = imageContainerRef.current.getBoundingClientRect();
+          const containerW = rect.width;
+          const containerH = rect.height;
+          setContainerSize({ w: containerW, h: containerH });
+          const scale = Math.max(containerW / nat.w, containerH / nat.h);
+          const baseW = nat.w * scale;
+          const baseH = nat.h * scale;
+          setBaseSize({ w: baseW, h: baseH });
+          // Center image
+          setPosition({ x: (containerW - baseW) / 2, y: (containerH - baseH) / 2 });
+        }, 0);
       };
-      reader.readAsDataURL(file);
-    }
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
   };
   
   const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -77,198 +98,136 @@ export default function ProfileImageUploader({
       y: e.clientY - position.y
     });
   };
+  // Touch support for mobile dragging
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const t = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: t.clientX - position.x, y: t.clientY - position.y });
+  };
   
   const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging) {
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
-      
-      // Apply boundaries to prevent dragging the image completely out of view
-      const container = imageContainerRef.current;
-      if (container) {
-        const containerRect = container.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-        
-        // Limit the position so the image can't be dragged completely out of view
-        const imageWidth = containerWidth * zoom;
-        const imageHeight = containerHeight * zoom;
-        
-        // Calculate boundaries to keep image within view
-        const minX = containerWidth - imageWidth;
-        const minY = containerHeight - imageHeight;
-        
-        // Apply boundaries
-        const boundedX = Math.min(Math.max(newX, minX), 0);
-        const boundedY = Math.min(Math.max(newY, minY), 0);
-        
-        setPosition({
-          x: boundedX,
-          y: boundedY,
-        });
-      }
+
+      const displayW = baseSize.w * zoom;
+      const displayH = baseSize.h * zoom;
+      const minX = containerSize.w - displayW;
+      const minY = containerSize.h - displayH;
+      const boundedX = Math.min(Math.max(newX, minX), 0);
+      const boundedY = Math.min(Math.max(newY, minY), 0);
+      setPosition({ x: boundedX, y: boundedY });
+    }
+  };
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      const t = e.touches[0];
+      const newX = t.clientX - dragStart.x;
+      const newY = t.clientY - dragStart.y;
+      const displayW = baseSize.w * zoom;
+      const displayH = baseSize.h * zoom;
+      const minX = containerSize.w - displayW;
+      const minY = containerSize.h - displayH;
+      const boundedX = Math.min(Math.max(newX, minX), 0);
+      const boundedY = Math.min(Math.max(newY, minY), 0);
+      setPosition({ x: boundedX, y: boundedY });
     }
   };
   
   const handleDragEnd = () => {
     setIsDragging(false);
   };
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
   
   const handleZoomChange = (value: number[]) => {
     const newZoom = value[0];
     const oldZoom = zoom;
-    
-    // Adjust position after zoom to keep the image centered
-    if (imageContainerRef.current) {
-      const container = imageContainerRef.current;
-      const rect = container.getBoundingClientRect();
-      
-      // Get the center point of the container
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      
-      // Calculate the scaling factor between old and new zoom
-      const scale = newZoom / oldZoom;
-      
-      // Calculate new position to keep center point the same
-      const newX = centerX - (centerX - position.x) * scale;
-      const newY = centerY - (centerY - position.y) * scale;
-      
-      // Apply bounds to prevent excessive panning
-      const imageSize = rect.width * newZoom;
-      const minX = rect.width - imageSize;
-      const minY = rect.height - imageSize;
-      
-      const boundedX = Math.min(Math.max(newX, minX), 0);
-      const boundedY = Math.min(Math.max(newY, minY), 0);
-      
-      setPosition({ x: boundedX, y: boundedY });
-    }
-    
+
+    // Keep the container center stable while zooming
+    const centerX = containerSize.w / 2;
+    const centerY = containerSize.h / 2;
+    const scale = newZoom / oldZoom;
+    const newX = centerX - (centerX - position.x) * scale;
+    const newY = centerY - (centerY - position.y) * scale;
+
+    const displayW = baseSize.w * newZoom;
+    const displayH = baseSize.h * newZoom;
+    const minX = containerSize.w - displayW;
+    const minY = containerSize.h - displayH;
+    const boundedX = Math.min(Math.max(newX, minX), 0);
+    const boundedY = Math.min(Math.max(newY, minY), 0);
+
+    setPosition({ x: boundedX, y: boundedY });
     setZoom(newZoom);
+    console.log("Zoom updated", { newZoom, position: { x: boundedX, y: boundedY } });
   };
   
   const getImageStyle = () => {
+    const displayW = baseSize.w * zoom;
+    const displayH = baseSize.h * zoom;
     return {
-      width: `${zoom * 100}%`,
-      height: `${zoom * 100}%`,
-      transform: `translate(${position.x}px, ${position.y}px)`,
+      width: `${displayW}px`,
+      height: `${displayH}px`,
+      top: `${position.y}px`,
+      left: `${position.x}px`,
       cursor: isDragging ? 'grabbing' : 'grab',
       objectFit: 'cover' as const,
       objectPosition: 'center',
+      position: 'absolute' as const,
     };
   };
   
   const handleSave = async () => {
-    if (!image) return;
-    
+    if (!image || !naturalSize) return;
+
     try {
       setIsLoading(true);
       console.log('Starting profile image save process...');
-      
-      // Instead of recalculating the crop, we'll take a "screenshot" of what's visible in the container
-      const container = imageContainerRef.current;
-      if (!container) return;
-      
-      // Create a temporary canvas to render the visible content exactly as seen in the preview
-      const tempCanvas = document.createElement('canvas');
-      const containerRect = container.getBoundingClientRect();
-      
-      // First render at actual display size
-      tempCanvas.width = containerRect.width;
-      tempCanvas.height = containerRect.height;
-      
-      // Get a context for the temp canvas
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) return;
-      
-      // Create a final high-resolution canvas for output
+
+      // Prepare the final square canvas
+      const outputSize = 800; // High-res output
       const finalCanvas = document.createElement('canvas');
-      const outputSize = 800; // Higher resolution for better quality
       finalCanvas.width = outputSize;
       finalCanvas.height = outputSize;
-      const finalCtx = finalCanvas.getContext('2d');
-      if (!finalCtx) return;
-      
-      // Fill background with white
-      tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-      
-      // Wait for the image to be ready
+      const ctx = finalCanvas.getContext('2d');
+      if (!ctx) return;
+
+      // Fill background and clip to circle
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, outputSize, outputSize);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Load the image
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.src = image;
-      
       await new Promise<void>((resolve) => {
         img.onload = () => resolve();
       });
-      
-      // Draw with the exact styling from the preview
-      tempCtx.save();
-      tempCtx.beginPath();
-      tempCtx.arc(
-        tempCanvas.width / 2,
-        tempCanvas.height / 2,
-        tempCanvas.width / 2,
-        0,
-        Math.PI * 2
-      );
-      tempCtx.clip();
-      
-      // Apply the same transformations as in the preview
-      tempCtx.translate(position.x, position.y);
-      tempCtx.drawImage(
-        img,
-        0, 0, img.width, img.height,
-        0, 0, img.width * zoom, img.height * zoom
-      );
-      
-      tempCtx.restore();
-      
-      // Now draw the temp canvas onto the final high-res canvas
-      finalCtx.fillStyle = '#FFFFFF';
-      finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-      
-      // Draw the circular clipped image
-      finalCtx.save();
-      finalCtx.beginPath();
-      finalCtx.arc(
-        finalCanvas.width / 2,
-        finalCanvas.height / 2,
-        finalCanvas.width / 2,
-        0,
-        Math.PI * 2
-      );
-      finalCtx.clip();
-      
-      // Scale up the temp canvas
-      finalCtx.drawImage(
-        tempCanvas,
-        0, 0, tempCanvas.width, tempCanvas.height,
-        0, 0, finalCanvas.width, finalCanvas.height
-      );
-      
-      finalCtx.restore();
-      
+
+      // Draw the same rectangle visible in the editor, scaled up to output size
+      const scaleOut = outputSize / containerSize.w;
+      const destX = position.x * scaleOut;
+      const destY = position.y * scaleOut;
+      const destW = baseSize.w * zoom * scaleOut;
+      const destH = baseSize.h * zoom * scaleOut;
+      ctx.drawImage(img, 0, 0, naturalSize.w, naturalSize.h, destX, destY, destW, destH);
+
+      ctx.restore();
+
+      // Convert to data URL and upload
       console.log('Image cropped exactly as visible in preview, converting to data URL...');
-      
-      // Convert to data URL with high quality
       const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
-      
-      // Use the callback to upload the image and update the user profile
-      // This will be handled by the useUserData context's uploadProfileImage function
       const updatedUser = await onImageUploaded(dataUrl);
       console.log('Image uploaded and profile updated successfully:', updatedUser);
-      
-      // Close the dialog
+
+      // Close the dialog; rely on state/cache update to reflect UI without full reload
       setIsOpen(false);
-      
-      // Add a delay before reloading to ensure the server has processed the image
-      setTimeout(() => {
-        console.log("Reloading page to refresh all components with new image");
-        window.location.reload();
-      }, 800);
-      
     } catch (error) {
       console.error('Error saving image:', error);
       alert('Failed to save profile image. Please try again.');
@@ -322,13 +281,17 @@ export default function ProfileImageUploader({
                 onMouseMove={handleDragMove}
                 onMouseUp={handleDragEnd}
                 onMouseLeave={handleDragEnd}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 <img 
+                  ref={imgRef}
                   src={image} 
                   alt="Profile Preview" 
                   style={getImageStyle()}
                   draggable={false}
-                  className="absolute top-0 left-0"
+                  className="absolute"
                 />
               </div>
               
@@ -338,8 +301,8 @@ export default function ProfileImageUploader({
                   <span className="text-sm text-gray-500">{Math.round(zoom * 100)}%</span>
                 </div>
                 <Slider
-                  defaultValue={[0.8]}
-                  min={0.5}
+                  defaultValue={[1]}
+                  min={1}
                   max={3}
                   step={0.1}
                   value={[zoom]}
@@ -358,7 +321,7 @@ export default function ProfileImageUploader({
             variant="outline"
             onClick={() => {
               setImage(null);
-              setZoom(0.8);
+              setZoom(1);
             }}
             disabled={!image || isLoading}
           >

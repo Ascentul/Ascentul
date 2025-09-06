@@ -9,6 +9,30 @@ export interface Notification {
   read: boolean;
 }
 
+export type NotificationCategory =
+  | 'system'
+  | 'account'
+  | 'application'
+  | 'goal'
+  | 'resume'
+  | 'cover_letter'
+  | 'career_path'
+  | 'network'
+  | 'project'
+  | 'recommendation'
+
+export type NotificationChannel = 'in_app' | 'email' | 'push' | 'slack'
+export type NotificationCadence = 'immediate' | 'daily' | 'weekly' | 'monthly' | 'quarterly'
+
+export interface NotificationMeta {
+  text?: string
+  category?: NotificationCategory
+  channel?: NotificationChannel
+  cadence?: NotificationCadence
+  ctaText?: string
+  ctaUrl?: string
+}
+
 export async function getUserNotifications(userId: string): Promise<Notification[]> {
   const { data, error } = await supabase
     .from('notifications')
@@ -45,7 +69,16 @@ export async function markNotificationReadById(userId: string, notificationId: n
   }
 }
 
-export async function createNotification({ userId, title, body }: { userId: string; title: string; body: string }): Promise<void> {
+export async function createNotification(
+  params:
+    | { userId: string; title: string; body: string }
+    | { userId: string; title: string; meta: NotificationMeta }
+): Promise<void> {
+  const { userId, title } = params as any
+  const body = 'meta' in params
+    ? JSON.stringify({ text: params.meta.text, ...params.meta })
+    : (params as any).body
+
   const { error } = await supabase
     .from('notifications')
     .insert([
@@ -54,8 +87,8 @@ export async function createNotification({ userId, title, body }: { userId: stri
         title,
         body,
         timestamp: new Date().toISOString(),
-        read: false
-      }
+        read: false,
+      },
     ])
   if (error) {
     console.error('Error creating notification:', error)

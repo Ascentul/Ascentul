@@ -410,6 +410,74 @@ The Ascentul Team`;
   });
 }
 
+/**
+ * Send support acknowledgement email using the provided template
+ * Subject: We’ve received your support request 
+ * Body:
+ * Hi {{first_name}},
+ * Thanks for reaching out to the Ascentul team - we’ve received your support request and our team is reviewing it now.
+ * Here’s what happens next:
+ * We’ll assign your ticket to the right team member.
+ * You’ll get a follow-up within 72 hours with an update or solution.
+ * If we need more details, we’ll contact you directly.
+ * We’re here to make sure you get the most out of Ascentul. Thanks for giving us the chance to help.
+ * Best,
+ * The Ascentul Team
+ */
+export async function sendSupportAcknowledgementEmail(
+  email: string,
+  firstName: string
+): Promise<MessagesSendResult> {
+  const subject = `We’ve received your support request ✅`;
+  const safeFirst = firstName && firstName.trim().length > 0 ? firstName.trim() : 'there';
+  const text = `Hi ${safeFirst},
+
+Thanks for reaching out to the Ascentul team - we’ve received your support request and our team is reviewing it now.
+
+Here’s what happens next:
+• We’ll assign your ticket to the right team member.
+• You’ll get a follow-up within 72 hours with an update or solution.
+• If we need more details, we’ll contact you directly.
+
+We’re here to make sure you get the most out of Ascentul. Thanks for giving us the chance to help.
+
+Best,
+The Ascentul Team`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://ascentul.io/logo.png" alt="Ascentul Logo" style="max-width: 150px;">
+      </div>
+      <p>Hi ${safeFirst},</p>
+      <p>Thanks for reaching out to the Ascentul team – we’ve received your support request and our team is reviewing it now.</p>
+      <p>Here’s what happens next:</p>
+      <ul>
+        <li>We’ll assign your ticket to the right team member.</li>
+        <li>You’ll get a follow-up within <strong>72 hours</strong> with an update or solution.</li>
+        <li>If we need more details, we’ll contact you directly.</li>
+      </ul>
+      <p>We’re here to make sure you get the most out of Ascentul. Thanks for giving us the chance to help.</p>
+      <p>Best,<br/>The Ascentul Team</p>
+      <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center;">
+        <p>© ${new Date().getFullYear()} Ascentul, Inc. All rights reserved.</p>
+        <p>
+          <a href="https://ascentul.io/privacy" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Privacy Policy</a> |
+          <a href="https://ascentul.io/terms" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Terms of Service</a> |
+          <a href="mailto:support@ascentul.io" style="color: #1333c2; text-decoration: none; margin: 0 10px;">Contact Support</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject,
+    text,
+    html
+  });
+}
+
 export {
   sendEmail,
   sendWelcomeEmail,
