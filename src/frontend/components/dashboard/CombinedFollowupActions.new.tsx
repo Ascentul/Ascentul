@@ -204,7 +204,6 @@ export function CombinedFollowupActions({ limit = 5, showTitle = true }: Combine
   };
 
   // Sort all followups by due date
-  const sortFollowups = (followups: CombinedFollowup[]): CombinedFollowup[] => {
     return followups.sort((a, b) => {
       // Sort by due date first (earliest due dates first)
       if (a.dueDate && b.dueDate) {

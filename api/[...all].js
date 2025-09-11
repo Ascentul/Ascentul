@@ -181,7 +181,6 @@ export default async function handler(req, res) {
     const fullPath = req.url.replace("/api", "") || "/"
     const path = fullPath.split("?")[0] // Remove query parameters for route matching
 
-    console.log(`API Request: ${req.method} ${path}`)
 
     // Handle dynamic university routes
     const universityMatch = path.match(/^\/universities\/(\d+)(?:\/(.+))?$/)
@@ -318,10 +317,6 @@ export default async function handler(req, res) {
           const mailDomain = process.env.MAILGUN_DOMAIN || 'mail.ascentul.io'
           const hasCustomDomain = !!process.env.MAILGUN_DOMAIN
           
-          console.log('Mail service status check:')
-          console.log('- MAILGUN API KEY status:', hasMailgunApiKey ? 'configured' : 'not configured')
-          console.log('- MAILGUN_DOMAIN status:', hasCustomDomain ? 'configured' : 'using default')
-          console.log('- Default domain:', mailDomain)
           
           return res.status(200).json({
             success: true,
@@ -451,13 +446,11 @@ export default async function handler(req, res) {
           })
         }
 
-        console.log('🔧 API: Fetching platform settings')
         
         // Import and use the settings service
         const { settingsService } = await import('../src/backend/services/settingsService.js')
         const settings = await settingsService.getSettings()
         
-        console.log('🔧 API: Settings fetched successfully')
         return res.status(200).json(settings)
       } catch (error) {
         console.error('Error fetching settings:', error)
@@ -470,14 +463,10 @@ export default async function handler(req, res) {
 
     if (path === "/settings" && req.method === "PUT") {
       try {
-        console.log('🔧 API: Settings PUT request received')
-        console.log('🔧 API: Authorization header:', req.headers.authorization ? 'Present' : 'Missing')
         
         const authResult = await verifySupabaseToken(req.headers.authorization)
-        console.log('🔧 API: Auth result:', { error: authResult.error, status: authResult.status, userRole: authResult.user?.role })
         
         if (authResult.error) {
-          console.log('🔧 API: Authentication failed:', authResult.error)
           return res.status(authResult.status).json({
             error: authResult.error,
             message: "Please log in to update settings"
@@ -492,8 +481,6 @@ export default async function handler(req, res) {
           })
         }
 
-        console.log('🔧 API: Updating platform settings')
-        console.log('Request body:', JSON.stringify(req.body, null, 2))
         
         const updatedSettings = req.body
         
@@ -503,14 +490,12 @@ export default async function handler(req, res) {
         
         // For now, bypass database storage and return success
         // This allows the admin interface to work while we fix the database schema
-        console.log('🔧 API: Settings update bypassing database, returning success')
         
         // Clear cache in settings service
         try {
           const { settingsService } = await import('../src/backend/services/settingsService.js')
           settingsService.clearCache()
         } catch (cacheError) {
-          console.log('🔧 API: Cache clear failed, continuing anyway:', cacheError.message)
         }
         
         return res.status(200).json({
@@ -545,7 +530,6 @@ export default async function handler(req, res) {
         const isAdmin = authResult.user.role === "super_admin" || 
                        authResult.user.role === "admin"
         
-        console.log('🤖 API: Fetching AI models configuration')
         
         // Return default models configuration with GPT-4o Mini as primary
         const models = [
@@ -574,7 +558,6 @@ export default async function handler(req, res) {
         // Filter models based on user role
         const filteredModels = isAdmin ? models : models.filter(model => model.active)
         
-        console.log('🤖 API: Models fetched successfully, count:', filteredModels.length)
         return res.status(200).json(filteredModels)
       } catch (error) {
         console.error('Error fetching models:', error)
@@ -604,7 +587,6 @@ export default async function handler(req, res) {
           })
         }
 
-        console.log('🤖 API: Updating AI models configuration')
         
         const { models } = req.body
         
@@ -642,7 +624,6 @@ export default async function handler(req, res) {
         
         // For now, just return success - in a real implementation, 
         // this would save to database or configuration file
-        console.log('🤖 API: Models updated successfully')
         return res.status(200).json({
           success: true,
           message: 'Models configuration updated successfully',
@@ -1552,7 +1533,6 @@ export default async function handler(req, res) {
           })
         }
 
-        console.log("Fetched users data:", usersData?.length, "users")
 
         // Transform data to match expected format with real subscription and usage data
         const users =
@@ -1596,7 +1576,6 @@ export default async function handler(req, res) {
             }
           }) || []
 
-        console.log("Transformed users:", users.length, "users")
         return res.status(200).json(users)
       } catch (error) {
         console.error("Error fetching users:", error)
@@ -2049,7 +2028,6 @@ export default async function handler(req, res) {
         const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
         
         if (!endpointSecret) {
-          console.warn('Stripe webhook secret not configured, skipping signature verification')
           // In development, we might not have webhook secret configured
           // Still process the event but log a warning
         }
@@ -2069,7 +2047,6 @@ export default async function handler(req, res) {
           event = req.body
         }
         
-        console.log('Received Stripe webhook event:', event.type)
         
         // Handle the event
         switch (event.type) {
@@ -2107,7 +2084,6 @@ export default async function handler(req, res) {
             break
             
           default:
-            console.log(`Unhandled event type: ${event.type}`)
         }
         
         return res.status(200).json({ received: true })
@@ -2602,7 +2578,6 @@ export default async function handler(req, res) {
                 .order('created_at', { ascending: false })
               
               if (error && error.code === 'PGRST204') {
-                console.log('⚠️ daily_recommendations table does not exist, will generate fallback recommendations')
                 existingRecommendations = null
               } else if (error) {
                 console.error('Error checking existing recommendations:', error)
@@ -2616,12 +2591,10 @@ export default async function handler(req, res) {
             }
             
             if (existingRecommendations && existingRecommendations.length > 0) {
-              console.log(`✅ Found ${existingRecommendations.length} fresh recommendations for user ${userId}`)
               return res.status(200).json(existingRecommendations)
             }
             
             // Generate new AI-powered recommendations
-            console.log(`🤖 Generating new AI recommendations for user ${userId}`)
             
             // Prepare context for AI
             const userContext = {
@@ -2729,14 +2702,12 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
                 .select()
               
               if (saveError && saveError.code === 'PGRST204') {
-                console.log('⚠️ daily_recommendations table does not exist, returning recommendations without saving')
                 savedRecommendations = recommendationsToSave
               } else if (saveError) {
                 console.error('Error saving recommendations:', saveError)
                 savedRecommendations = recommendationsToSave
               } else {
                 savedRecommendations = data
-                console.log(`✅ Generated and saved ${savedRecommendations.length} AI recommendations for user ${userId}`)
               }
             } catch (error) {
               console.error('Error saving recommendations to database:', error)
@@ -2791,10 +2762,8 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
                 .delete()
                 .eq('user_id', refreshAuthResult.userId)
                 .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-              console.log('✅ Cleared existing recommendations for refresh')
             } catch (deleteError) {
               // If table doesn't exist, that's fine - we'll just generate new recommendations
-              console.log('⚠️ Could not delete existing recommendations (table may not exist):', deleteError.message)
             }
             
             // Return success - the frontend will then call the daily endpoint
@@ -2858,7 +2827,6 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
             return res.status(500).json({ error: 'Failed to update recommendation' })
           }
           
-          console.log(`✅ Recommendation ${recommendationId} marked as ${newCompletedStatus ? 'completed' : 'incomplete'}`)
           return res.status(200).json(updatedRec)
           
         } catch (error) {
@@ -2992,7 +2960,6 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
             }
           }))
 
-          console.log(`✅ Found ${transformedFollowups.length} contact followups for user ${followupsAuthResult.userId}`)
           return res.status(200).json(transformedFollowups)
         } catch (error) {
           console.error("Error fetching follow-ups:", error)
@@ -3783,7 +3750,6 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
               })
             }
 
-            console.log("Fetched billing data for", usersData?.length, "customers")
 
             // Transform data to match billing page format
             const customers = await Promise.all(
@@ -3874,7 +3840,6 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
               })
             )
 
-            console.log("Transformed billing data:", customers.length, "customers")
             return res.status(200).json(customers)
           } catch (error) {
             console.error("Error fetching billing data:", error)
