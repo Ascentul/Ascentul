@@ -4083,11 +4083,465 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
         break;
 
       default:
+        // Handle additional missing routes that are causing errors
+        
+        // JOB SEARCH API ROUTES
+        if (path === "/jobs/search" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to search jobs"
+            })
+          }
+
+          try {
+            const { keywords, location, remoteOnly } = req.body
+            
+            // Mock job search results for now
+            // In production, this would integrate with job search APIs like Adzuna, Indeed, etc.
+            const mockJobs = [
+              {
+                id: "1",
+                title: `${keywords || "Software Engineer"} Position`,
+                company: "Tech Corp",
+                location: location || "Remote",
+                salary: "$80,000 - $120,000",
+                description: `Exciting ${keywords || "software engineering"} opportunity at a growing tech company.`,
+                url: "https://example.com/job/1",
+                datePosted: new Date().toISOString()
+              },
+              {
+                id: "2", 
+                title: `Senior ${keywords || "Developer"}`,
+                company: "Innovation Inc",
+                location: location || "San Francisco, CA",
+                salary: "$100,000 - $150,000",
+                description: `Join our team as a senior ${keywords || "developer"} and make an impact.`,
+                url: "https://example.com/job/2",
+                datePosted: new Date(Date.now() - 86400000).toISOString()
+              }
+            ]
+
+            return res.status(200).json({
+              jobs: mockJobs,
+              total: mockJobs.length,
+              message: "Job search functionality is currently in development. These are sample results."
+            })
+          } catch (error) {
+            console.error("Error searching jobs:", error)
+            return res.status(500).json({ error: "Failed to search jobs" })
+          }
+        }
+
+        // CAREER PATH GENERATION API ROUTES
+        if (path === "/career-path/generate" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to generate career paths"
+            })
+          }
+
+          try {
+            const { targetRole } = req.body
+            
+            // Mock career path generation
+            const mockCareerPath = {
+              id: Date.now().toString(),
+              targetRole: targetRole || "Software Engineer",
+              currentLevel: "Junior",
+              estimatedTimeframe: "2-3 years",
+              steps: [
+                {
+                  step: 1,
+                  title: "Build Foundation Skills",
+                  description: "Master core programming languages and frameworks",
+                  timeframe: "3-6 months",
+                  skills: ["JavaScript", "React", "Node.js"],
+                  resources: ["Online courses", "Practice projects"]
+                },
+                {
+                  step: 2,
+                  title: "Gain Professional Experience",
+                  description: "Apply for junior positions and internships",
+                  timeframe: "6-12 months",
+                  skills: ["Version control", "Agile methodologies", "Testing"],
+                  resources: ["Job applications", "Networking events"]
+                },
+                {
+                  step: 3,
+                  title: "Advance to Target Role",
+                  description: "Develop leadership and advanced technical skills",
+                  timeframe: "12-18 months",
+                  skills: ["System design", "Mentoring", "Project management"],
+                  resources: ["Senior role applications", "Professional certifications"]
+                }
+              ],
+              createdAt: new Date().toISOString()
+            }
+
+            return res.status(200).json({
+              careerPath: mockCareerPath,
+              message: "Career path generation is currently in development. This is a sample path."
+            })
+          } catch (error) {
+            console.error("Error generating career path:", error)
+            return res.status(500).json({ error: "Failed to generate career path" })
+          }
+        }
+
+        // PROJECT PORTFOLIO API ROUTES
+        if (path === "/projects" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to create projects"
+            })
+          }
+
+          try {
+            const { title, role, startDate, endDate, company, url, description, type } = req.body
+
+            if (!title) {
+              return res.status(400).json({ error: "Project title is required" })
+            }
+
+            // Create project in database
+            const { data: project, error } = await supabaseAdmin
+              .from("projects")
+              .insert({
+                user_id: authResult.userId,
+                title,
+                role,
+                start_date: startDate,
+                end_date: endDate,
+                company,
+                url,
+                description,
+                type: type || "personal",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (error) {
+              console.error("Error creating project:", error)
+              return res.status(500).json({ error: "Failed to create project" })
+            }
+
+            return res.status(201).json(project)
+          } catch (error) {
+            console.error("Error creating project:", error)
+            return res.status(500).json({ error: "Failed to create project" })
+          }
+        }
+
+        // GET PROJECTS
+        if (path === "/projects" && req.method === "GET") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to view projects"
+            })
+          }
+
+          try {
+            const { data: projects, error } = await supabaseAdmin
+              .from("projects")
+              .select("*")
+              .eq("user_id", authResult.userId)
+              .order("created_at", { ascending: false })
+
+            if (error) {
+              console.error("Error fetching projects:", error)
+              return res.status(500).json({ error: "Failed to fetch projects" })
+            }
+
+            return res.status(200).json(projects || [])
+          } catch (error) {
+            console.error("Error fetching projects:", error)
+            return res.status(500).json({ error: "Failed to fetch projects" })
+          }
+        }
+
+        // COVER LETTER API ROUTES
+        if (path === "/cover-letters/generate" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to generate cover letters"
+            })
+          }
+
+          try {
+            const { jobTitle, companyName, jobDescription } = req.body
+
+            if (!jobTitle || !companyName) {
+              return res.status(400).json({ error: "Job title and company name are required" })
+            }
+
+            // Mock cover letter generation
+            const mockCoverLetter = {
+              id: Date.now().toString(),
+              jobTitle,
+              companyName,
+              content: `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobTitle} position at ${companyName}. With my background in software development and passion for innovative technology solutions, I am excited about the opportunity to contribute to your team.
+
+${jobDescription ? `I was particularly drawn to this role because of ${jobDescription.substring(0, 100)}...` : 'I believe my skills and experience align well with your requirements.'}
+
+I would welcome the opportunity to discuss how my experience and enthusiasm can contribute to ${companyName}'s continued success. Thank you for considering my application.
+
+Sincerely,
+[Your Name]`,
+              createdAt: new Date().toISOString()
+            }
+
+            return res.status(200).json({
+              coverLetter: mockCoverLetter,
+              message: "AI cover letter generation is currently in development. This is a sample letter."
+            })
+          } catch (error) {
+            console.error("Error generating cover letter:", error)
+            return res.status(500).json({ error: "Failed to generate cover letter" })
+          }
+        }
+
+        // ANALYZE COVER LETTER
+        if (path === "/cover-letters/analyze" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to analyze cover letters"
+            })
+          }
+
+          try {
+            const { content, jobDescription } = req.body
+
+            if (!content) {
+              return res.status(400).json({ error: "Cover letter content is required" })
+            }
+
+            // Mock analysis results
+            const mockAnalysis = {
+              score: 85,
+              strengths: [
+                "Clear and professional tone",
+                "Specific mention of company name",
+                "Relevant experience highlighted"
+              ],
+              improvements: [
+                "Add more specific examples of achievements",
+                "Include keywords from job description",
+                "Strengthen the closing paragraph"
+              ],
+              suggestions: [
+                "Consider adding quantifiable results from previous roles",
+                "Tailor the opening paragraph more specifically to the role",
+                "Use more action verbs to demonstrate impact"
+              ],
+              analyzedAt: new Date().toISOString()
+            }
+
+            return res.status(200).json({
+              analysis: mockAnalysis,
+              message: "AI cover letter analysis is currently in development. This is a sample analysis."
+            })
+          } catch (error) {
+            console.error("Error analyzing cover letter:", error)
+            return res.status(500).json({ error: "Failed to analyze cover letter" })
+          }
+        }
+
+        // CREATE COVER LETTER
+        if (path === "/cover-letters" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to create cover letters"
+            })
+          }
+
+          try {
+            const { name, jobTitle, template, content, closing } = req.body
+
+            if (!name || !jobTitle) {
+              return res.status(400).json({ error: "Name and job title are required" })
+            }
+
+            // Create cover letter in database
+            const { data: coverLetter, error } = await supabaseAdmin
+              .from("cover_letters")
+              .insert({
+                user_id: authResult.userId,
+                name,
+                job_title: jobTitle,
+                template: template || "standard",
+                content: content || "",
+                closing: closing || "Sincerely,",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (error) {
+              console.error("Error creating cover letter:", error)
+              return res.status(500).json({ error: "Failed to create cover letter" })
+            }
+
+            return res.status(201).json(coverLetter)
+          } catch (error) {
+            console.error("Error creating cover letter:", error)
+            return res.status(500).json({ error: "Failed to create cover letter" })
+          }
+        }
+
+        // GET COVER LETTERS
+        if (path === "/cover-letters" && req.method === "GET") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to view cover letters"
+            })
+          }
+
+          try {
+            const { data: coverLetters, error } = await supabaseAdmin
+              .from("cover_letters")
+              .select("*")
+              .eq("user_id", authResult.userId)
+              .order("created_at", { ascending: false })
+
+            if (error) {
+              console.error("Error fetching cover letters:", error)
+              return res.status(500).json({ error: "Failed to fetch cover letters" })
+            }
+
+            return res.status(200).json(coverLetters || [])
+          } catch (error) {
+            console.error("Error fetching cover letters:", error)
+            return res.status(500).json({ error: "Failed to fetch cover letters" })
+          }
+        }
+
+        // SUPPORT TICKET API ROUTES
+        if (path === "/support/tickets" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to submit support tickets"
+            })
+          }
+
+          try {
+            const { subject, category, priority, department, contactPerson, description } = req.body
+
+            if (!subject || !description) {
+              return res.status(400).json({ error: "Subject and description are required" })
+            }
+
+            // Create support ticket in database
+            const { data: ticket, error } = await supabaseAdmin
+              .from("support_tickets")
+              .insert({
+                user_id: authResult.userId,
+                subject,
+                category: category || "general",
+                priority: priority || "medium",
+                department: department || "support",
+                contact_person: contactPerson,
+                description,
+                status: "open",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (error) {
+              console.error("Error creating support ticket:", error)
+              return res.status(500).json({ error: "Failed to create support ticket" })
+            }
+
+            return res.status(201).json({
+              ticket,
+              message: "Support ticket created successfully. We'll get back to you soon!"
+            })
+          } catch (error) {
+            console.error("Error creating support ticket:", error)
+            return res.status(500).json({ error: "Failed to create support ticket" })
+          }
+        }
+
+        // UNIVERSITY ADMIN SUPPORT TICKET
+        if (path === "/university-admin/support" && req.method === "POST") {
+          const authResult = await verifySupabaseToken(req.headers.authorization)
+          if (authResult.error) {
+            return res.status(authResult.status).json({
+              error: authResult.error,
+              message: "Please log in to submit support requests"
+            })
+          }
+
+          try {
+            const { subject, category, priority, department, contactPerson, description } = req.body
+
+            if (!subject || !description) {
+              return res.status(400).json({ error: "Subject and description are required" })
+            }
+
+            // Create university admin support ticket
+            const { data: ticket, error } = await supabaseAdmin
+              .from("support_tickets")
+              .insert({
+                user_id: authResult.userId,
+                subject,
+                category: category || "university_admin",
+                priority: priority || "medium",
+                department: department || "university_support",
+                contact_person: contactPerson,
+                description,
+                status: "open",
+                ticket_type: "university_admin",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+
+            if (error) {
+              console.error("Error creating university admin support ticket:", error)
+              return res.status(500).json({ error: "Failed to create support request" })
+            }
+
+            return res.status(201).json({
+              ticket,
+              message: "Support request submitted successfully. Our university support team will contact you soon!"
+            })
+          } catch (error) {
+            console.error("Error creating university admin support ticket:", error)
+            return res.status(500).json({ error: "Failed to create support request" })
+          }
+        }
+
         return res.status(404).json({
           error: "API route not found",
           path: path,
           method: req.method,
-          hint: "This route may not be implemented yet in the Vercel deployment. Available routes: /users/me, /career-data, /goals, /admin/analytics, /users/statistics, /admin/openai-logs"
+          hint: "This route may not be implemented yet in the Vercel deployment. Available routes: /users/me, /career-data, /goals, /admin/analytics, /users/statistics, /admin/openai-logs, /jobs/search, /career-path/generate, /projects, /cover-letters, /support/tickets"
         })
     }
   } catch (error) {
