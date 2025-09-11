@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
 import dotenv from "dotenv"
-import { sessionTracker } from "../src/backend/services/sessionTrackingService.js"
 
 // Load environment variables
 dotenv.config()
@@ -24,13 +23,9 @@ function validateEnv() {
   const missing = required.filter((key) => !ENV[key])
 
   if (missing.length > 0) {
-    console.error(
-      `❌ Missing required environment variables: ${missing.join(", ")}`
-    )
     return { valid: false, missing }
   }
 
-  console.log("✅ Environment validation passed")
   return { valid: true, missing: [] }
 }
 
@@ -47,14 +42,10 @@ try {
         }
       }
     )
-    console.log("✅ Supabase client initialized successfully")
-  } else {
-    console.error(
-      "❌ Cannot initialize Supabase client - missing URL or service role key"
-    )
   }
 } catch (error) {
-  console.error("❌ Error initializing Supabase client:", error)
+  // Silently handle initialization errors to prevent function crashes
+  supabaseAdmin = null
 }
 
 // Authentication helper function
