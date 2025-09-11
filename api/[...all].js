@@ -3039,7 +3039,7 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
         return res.status(200).json([])
 
       case "/achievements":
-        // Achievements endpoint
+        // All achievements endpoint
         const achievementsAuthResult = await verifySupabaseToken(
           req.headers.authorization
         )
@@ -3055,7 +3055,7 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
           const { data: achievements } = await supabaseAdmin
             .from("achievements")
             .select("*")
-            .eq("user_id", achievementsAuthResult.userId)
+            .order("category", { ascending: true })
 
           return res.status(200).json(achievements || [])
         } catch (error) {
@@ -3063,6 +3063,61 @@ Generate 3-5 specific, actionable recommendations. Each should be a single, clea
           return res
             .status(500)
             .json({ message: "Error fetching achievements" })
+        }
+
+      case "/achievements/user":
+        // User achievements endpoint
+        const userAchievementsAuthResult = await verifySupabaseToken(
+          req.headers.authorization
+        )
+
+        if (userAchievementsAuthResult.error) {
+          return res.status(userAchievementsAuthResult.status).json({
+            error: userAchievementsAuthResult.error,
+            message: "Please log in to access user achievements"
+          })
+        }
+
+        try {
+          // Fetch user achievements with achievement details
+          const { data: userAchievements, error } = await supabaseAdmin
+            .from("user_achievements")
+            .select(`
+              *,
+              achievements (
+                id,
+                name,
+                description,
+                icon,
+                category,
+                points
+              )
+            `)
+            .eq("user_id", userAchievementsAuthResult.userId)
+            .order("earned_at", { ascending: false })
+
+          if (error) {
+            console.error("Error fetching user achievements:", error)
+            return res.status(500).json({ message: "Failed to fetch user achievements" })
+          }
+
+          // Transform the data to match expected format
+          const transformedAchievements = (userAchievements || []).map(ua => ({
+            id: ua.id,
+            achievementId: ua.achievement_id,
+            name: ua.achievements.name,
+            description: ua.achievements.description,
+            icon: ua.achievements.icon,
+            category: ua.achievements.category,
+            points: ua.achievements.points,
+            progress: ua.progress,
+            earnedAt: ua.earned_at
+          }))
+
+          return res.status(200).json(transformedAchievements)
+        } catch (error) {
+          console.error("Error fetching user achievements:", error)
+          return res.status(500).json({ message: "Failed to fetch user achievements" })
         }
 
       case "/work-history":
@@ -4691,12 +4746,14 @@ Sincerely,
             return res.status(400).json({ error: "Webhook handler failed" })
           }
         }
+        }
 
+      default:
         return res.status(404).json({
           error: "API route not found",
           path: path,
           method: req.method,
-          hint: "This route may not be implemented yet in the Vercel deployment. Available routes: /users/me, /career-data, /goals, /admin/analytics, /users/statistics, /admin/openai-logs, /jobs/search, /career-path/generate, /projects, /cover-letters, /support/tickets"
+          hint: "This route may not be implemented yet in the Vercel deployment. Available routes: /users/me, /career-data, /goals, /admin/analytics, /users/statistics, /admin/openai-logs, /jobs/search, /career-path/generate, /projects, /cover-letters, /support/tickets, /achievements, /achievements/user, /contacts/all-followups"
         })
     }
   } catch (error) {
@@ -4706,4 +4763,3 @@ Sincerely,
       message: error.message
     })
   }
-}
